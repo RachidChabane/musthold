@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import subprocess
@@ -12,11 +13,13 @@ from test_core_run import FakeModel, Provenance, Versions, build, make_world
 from pilot.adapters.ast_edits import AstEditApplier
 from pilot.adapters.process import SubprocessRunner
 from pilot.adapters.project_copy import ProjectWorkspace
-from pilot.adapters.provenance import GitProvenance, PreregNotCommitted, tree_digest
+from pilot.adapters.git_drift import PreregistrationTagMissing
+from pilot.adapters.provenance import GitProvenance, tree_digest
 from pilot.adapters.witness_runner import SubprocessWitnessExecutor
 from pilot.application.leak_audit_stage import LeakAuditMissing, run_leak_audit
 from pilot.application.relabel_stage import run_relabel
 from pilot.application.traceability_stage import TraceabilityFailed, ensure_traceability
+from pilot.domain.analysis_constants import PREREG_TAG, SUPERSEDED_PREREG_TAG
 from pilot.domain.call_type import CallType
 from pilot.domain.edits import Edit, EditSet
 from pilot.domain.model_call import CanaryBaseline, MissingResult
@@ -174,19 +177,39 @@ def test_tree_digest_follows_content_and_ignores_caches(tmp_path):
     assert tree_digest(tmp_path) != first
 
 
+GIT_ENV = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t", "PATH": "/usr/bin:/bin:/opt/homebrew/bin:/usr/local/bin"}
+
+
 def git(cwd, *args):
-    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, env={"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t", "PATH": "/usr/bin:/bin:/opt/homebrew/bin:/usr/local/bin"})
+    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, env=GIT_ENV)
 
 
-def test_prereg_commit_is_the_last_commit_touching_the_prereg_file(tmp_path):
+def test_prereg_commit_is_the_commit_the_annotated_tag_peels_to(tmp_path):
     git(tmp_path, "init", "-q")
     (tmp_path / "prereg").mkdir()
     provenance = GitProvenance(SubprocessRunner(), tmp_path, tmp_path, tmp_path)
     (tmp_path / "prereg" / "PREREG.md").write_text("v1")
-    with pytest.raises(PreregNotCommitted):
+    with pytest.raises(PreregistrationTagMissing):
         provenance.prereg_commit()
     git(tmp_path, "add", "."), git(tmp_path, "commit", "-qm", "prereg")
-    first = provenance.prereg_commit()
-    (tmp_path / "other.txt").write_text("x")
-    git(tmp_path, "add", "."), git(tmp_path, "commit", "-qm", "other")
-    assert provenance.prereg_commit() == first and len(first) == 40
+    frozen = git_output(tmp_path, "rev-parse", "HEAD")
+    git(tmp_path, "tag", "-a", "-m", "freeze", PREREG_TAG)
+    git(tmp_path, "tag", "-a", "-m", "freeze", SUPERSEDED_PREREG_TAG)
+    (tmp_path / "prereg" / "PREREG.md").write_text("v2")
+    git(tmp_path, "add", "."), git(tmp_path, "commit", "-qm", "later edit of the document")
+    assert provenance.prereg_commit() == frozen
+    assert provenance.superseded_prereg_commit() == frozen
+    assert provenance.prereg_tag() == PREREG_TAG and provenance.superseded_prereg_tag() == SUPERSEDED_PREREG_TAG
+
+
+def test_imports_digest_is_the_hash_of_imports_json_when_present(tmp_path):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    provenance = GitProvenance(SubprocessRunner(), tmp_path, tmp_path, tmp_path, run_dir)
+    assert provenance.imports_digest() is None
+    (run_dir / "imports.json").write_text("{}")
+    assert provenance.imports_digest() == hashlib.sha256(b"{}").hexdigest()
+
+
+def git_output(cwd, *args):
+    return subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True, env=GIT_ENV).stdout.strip()

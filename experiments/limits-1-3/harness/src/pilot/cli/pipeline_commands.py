@@ -19,7 +19,7 @@ from pilot.application.relabel_stage import run_relabel
 from pilot.application.secondary_run import SecondaryPreconditionFailed, run_secondary
 from pilot.application.traceability_stage import TraceabilityFailed, ensure_traceability
 from pilot.application.arm_p import ArmPIntegrityError
-from pilot.adapters.provenance import PreregNotCommitted
+from pilot.adapters.git_drift import PreregistrationTagMissing
 from pilot.cli.pipeline_layout import PipelineLayout
 from pilot.cli.pipeline_wiring import (
     build_model_stack,
@@ -49,7 +49,7 @@ ABORTS = (
     ReferenceUnstable,
     SecondaryPreconditionFailed,
     LeakAuditMissing,
-    PreregNotCommitted,
+    PreregistrationTagMissing,
     ArmPIntegrityError,
     MissingPreregFile,
 )

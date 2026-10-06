@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Final
 
+from pilot.domain.constants import LOCAL_SUBPROCESS_LIMIT
 from pilot.domain.endpoint_ids import ENDPOINT_IDS as DECISIONAL_ENDPOINT_IDS
 
 ANALYSIS_SEED: Final = 20261006
@@ -76,7 +77,7 @@ AUDIT_ORACLE_VALID: Final = "oracle-valid"
 AUDIT_ORACLE_OTHER: Final = "oracle-not-valid"
 
 ORACLE_CLASSES_FILENAME: Final = "oracle_classes.json"
-ORACLE_PARALLELISM: Final = 4
+ORACLE_PARALLELISM: Final = LOCAL_SUBPROCESS_LIMIT
 ORACLE_TESTS_DIRNAME: Final = "tests"
 
 # Scenario universe and truth.
@@ -219,7 +220,8 @@ DRIFT_GUARDED_PATHS: Final = (
     "harness/src/pilot/domain/deviations.py",
     "harness/src/pilot/domain/endpoint_ids.py",
 )
-PREREG_TAG: Final = "prereg-limits-1-3"
+PREREG_TAG: Final = "prereg-limits-1-3-a1"
+SUPERSEDED_PREREG_TAG: Final = "prereg-limits-1-3"
 EXPLORATORY_WORD_LIMIT: Final = 300
 EXPLORATORY_FILENAME: Final = "EXPLORATORY.md"
 REPORT_CONCLUSION_BEGIN: Final = "<!-- conclusion-templates:begin -->"

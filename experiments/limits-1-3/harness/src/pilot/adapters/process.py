@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import os
 import subprocess
+import threading
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import IO, Protocol
+
+from pilot.domain.constants import LOCAL_SUBPROCESS_LIMIT
 
 DEADLINE_RETURNCODE = -1
 _NESTED_PREFIXES = ("PYTEST_", "PYTHONPATH")
@@ -75,6 +78,37 @@ class SubprocessRunner:
         return ProcessResult(
             completed.returncode, _text(completed.stdout), _text(completed.stderr)
         )
+
+
+LOCAL_SUBPROCESS_GATE = threading.BoundedSemaphore(LOCAL_SUBPROCESS_LIMIT)
+
+
+class GatedProcessRunner:
+    """Decorator: at most LOCAL_SUBPROCESS_LIMIT local test, witness or oracle subprocesses run at once.
+
+    The gate is process-wide and held only for the lifetime of one subprocess, so a caller that
+    fans work out over threads can never deadlock on it.
+    """
+
+    def __init__(self, inner: ProcessRunner, gate: threading.BoundedSemaphore = LOCAL_SUBPROCESS_GATE) -> None:
+        self._inner = inner
+        self._gate = gate
+
+    def run(
+        self,
+        argv: Sequence[str],
+        cwd: Path,
+        *,
+        stdin_path: Path | None = None,
+        env: Mapping[str, str] | None = None,
+        deadline_seconds: float | None = None,
+    ) -> ProcessResult:
+        with self._gate:
+            return self._inner.run(argv, cwd, stdin_path=stdin_path, env=env, deadline_seconds=deadline_seconds)
+
+
+def local_process_runner() -> GatedProcessRunner:
+    return GatedProcessRunner(SubprocessRunner())
 
 
 def _text(data: bytes | str | None) -> str:

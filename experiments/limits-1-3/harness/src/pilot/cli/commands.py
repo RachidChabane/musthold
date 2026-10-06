@@ -18,7 +18,7 @@ from pilot.adapters.prereg_files import (
     write_label_matrix,
     write_lines,
 )
-from pilot.adapters.process import SubprocessRunner
+from pilot.adapters.process import local_process_runner
 from pilot.adapters.project_copy import ProjectWorkspace, temporary_work_root
 from pilot.adapters.pytest_runner import PytestJunitRunner, WorkspaceVariantRunner
 from pilot.adapters.shallnot import ShallnotTraceability
@@ -87,7 +87,7 @@ def verify_labels_command(args: Namespace) -> int:
     oracle_files = sorted(layout.oracle.glob(ORACLE_FILE_GLOB))
     with temporary_work_root() as work_root:
         workspace = ProjectWorkspace(layout.project, work_root, AstEditApplier())
-        runner = WorkspaceVariantRunner(workspace, PlainPytestRunner(SubprocessRunner(), oracle_files))
+        runner = WorkspaceVariantRunner(workspace, PlainPytestRunner(local_process_runner(), oracle_files))
         verification = verify_labels(
             runner, load_labels(layout.labels), _all_variants(layout), expected_counts(args)
         )
@@ -101,7 +101,7 @@ def runner_crosscheck_command(args: Namespace) -> int:
     committed = read_label_matrix((args.out_dir or layout.prereg) / LABEL_MATRIX_FILENAME)
     with temporary_work_root() as work_root:
         workspace = ProjectWorkspace(layout.project, work_root, AstEditApplier())
-        runner = WorkspaceVariantRunner(workspace, PytestJunitRunner(SubprocessRunner()).run)
+        runner = WorkspaceVariantRunner(workspace, PytestJunitRunner(local_process_runner()).run)
         differences = runner_crosscheck(runner, committed, _violations_and_refactor(layout))
     return _report("runner-crosscheck", differences)
 
@@ -116,7 +116,7 @@ def leak_check_command(args: Namespace) -> int:
 
 def traceability_check_command(args: Namespace) -> int:
     layout = ExperimentLayout(args.root)
-    process = SubprocessRunner()
+    process = local_process_runner()
     with temporary_work_root() as work_root:
         workspace = ProjectWorkspace(layout.project, work_root, AstEditApplier())
         port = ShallnotTraceability(workspace, PytestJunitRunner(process), process, args.out_dir)

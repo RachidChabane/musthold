@@ -41,11 +41,23 @@ def test_run_directory_writes_atomically_and_appends(tmp_path):
 
 
 class FixedProvenance:
-    def __init__(self, commit="c1", harness="h1"):
-        self.commit, self.harness = commit, harness
+    def __init__(self, commit="c1", harness="h1", imports="i1"):
+        self.commit, self.harness, self.imports = commit, harness, imports
+
+    def prereg_tag(self):
+        return "tag-a1"
 
     def prereg_commit(self):
         return self.commit
+
+    def superseded_prereg_tag(self):
+        return "tag-1"
+
+    def superseded_prereg_commit(self):
+        return "c0"
+
+    def imports_digest(self):
+        return self.imports
 
     def harness_digest(self):
         return self.harness
@@ -69,7 +81,8 @@ def test_manifest_records_commit_digests_versions_and_models(tmp_path):
     store = RunDirectory(tmp_path)
     manifest = ensure_manifest(store, FixedProvenance(), VersionBook(claude="2.1.292", codex="0.155.1"), INPUTS)
     assert manifest == {
-        "run_id": "r1", "prereg_commit": "c1", "harness_digest": "h1", "fixture_digest": "f1",
+        "run_id": "r1", "prereg_tag": "tag-a1", "prereg_commit": "c1", "superseded_prereg_tag": "tag-1",
+        "superseded_prereg_commit": "c0", "imports_digest": "i1", "harness_digest": "h1", "fixture_digest": "f1",
         "cli_versions": {"claude": "2.1.292", "codex": "0.155.1"},
         "models": [
             {"model": "claude-opus-5-5", "cli": "claude", "provenance": "reported"},

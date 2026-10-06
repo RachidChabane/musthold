@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import sys
-import threading
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -37,26 +36,20 @@ def pytest_argv(timeout_seconds: int, junit_path: Path, nodeids: Sequence[str]) 
 
 
 class PytestJunitRunner:
-    """Runs pytest inside one project copy; at most MAX_CONCURRENT_PYTEST at a time."""
+    """Runs pytest inside one project copy; the process runner bounds the concurrency."""
 
-    def __init__(
-        self,
-        process: ProcessRunner,
-        semaphore: threading.BoundedSemaphore | None = None,
-    ) -> None:
+    def __init__(self, process: ProcessRunner) -> None:
         self._process = process
-        self._semaphore = semaphore or threading.BoundedSemaphore(MAX_CONCURRENT_PYTEST)
 
     def run(self, project_dir: Path, nodeids: Sequence[str] = ()) -> RunResult:
         junit_path = project_dir / JUNIT_FILENAME
         argv = pytest_argv(PYTEST_TIMEOUT_SECONDS, junit_path, nodeids)
-        with self._semaphore:
-            result = self._process.run(
-                argv,
-                project_dir,
-                env=child_environment(),
-                deadline_seconds=PYTEST_RUN_DEADLINE_SECONDS,
-            )
+        result = self._process.run(
+            argv,
+            project_dir,
+            env=child_environment(),
+            deadline_seconds=PYTEST_RUN_DEADLINE_SECONDS,
+        )
         return RunResult(
             outcomes=parse_outcomes(junit_path, project_dir),
             returncode=result.returncode,

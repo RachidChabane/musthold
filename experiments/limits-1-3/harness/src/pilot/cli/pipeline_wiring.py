@@ -21,7 +21,7 @@ from pilot.adapters.models_lock import (
     load_baselines,
     load_models_lock,
 )
-from pilot.adapters.process import SubprocessRunner
+from pilot.adapters.process import SubprocessRunner, local_process_runner
 from pilot.adapters.project_copy import ProjectWorkspace, temporary_work_root
 from pilot.adapters.prompt_files import DirectoryPromptLibrary
 from pilot.adapters.provenance import GitProvenance
@@ -78,6 +78,7 @@ def core_dependencies(
     layout: PipelineLayout, run_id: str, expected_tests: int, expected_criteria: int
 ) -> Iterator[CoreDependencies]:
     process = SubprocessRunner()
+    local = local_process_runner()
     stack = build_model_stack(layout, layout.raw_dir(run_id), process)
     prompts = prompt_library(layout)
     store = RunDirectory(layout.run_dir(run_id))
@@ -92,22 +93,22 @@ def core_dependencies(
     with temporary_work_root() as work_root:
         applier = AstEditApplier()
         workspace = ProjectWorkspace(layout.project, work_root, applier)
-        pytest_runner = PytestJunitRunner(process)
+        pytest_runner = PytestJunitRunner(local)
         runner = WorkspaceVariantRunner(workspace, pytest_runner.run)
         processor = MutantProcessor(
-            runner, applier, layout.project, ProjectImportSmoke(workspace, process),
-            HypothesisDifferential(workspace, process, layout.project),
+            runner, applier, layout.project, ProjectImportSmoke(workspace, local),
+            HypothesisDifferential(workspace, local, layout.project),
         )
         yield CoreDependencies(
             ctx=ctx,
             timer=StageTimer(store),
-            provenance=GitProvenance(process, layout.root, layout.harness_source, layout.project),
+            provenance=GitProvenance(process, layout.root, layout.harness_source, layout.project, layout.run_dir(run_id)),
             versions=stack.versions,
             manifest_inputs=ManifestInputs(run_id, sorted(stack.lock.pins, key=lambda p: p.key), stack.lock.cli_versions),
-            traceability=ShallnotTraceability(workspace, pytest_runner, process),
+            traceability=ShallnotTraceability(workspace, pytest_runner, local),
             runner=runner,
             processor=processor,
-            witnesses=SubprocessWitnessExecutor(workspace, process),
+            witnesses=SubprocessWitnessExecutor(workspace, local),
             arm_p=DirectoryArmPItems(layout.arm_p_items),
             pins={pin.model: pin for pin in stack.lock.pins},
             expected_tests=expected_tests,

@@ -16,7 +16,7 @@ from pilot.adapters.git_drift import PreregistrationTagMissing, drifted_paths, p
 from pilot.adapters.ground_truth_reader import read_ground_truth, read_models_lock
 from pilot.adapters.oracle_runner import OracleClassifier, OracleRunError
 from pilot.adapters.prereg_files import load_edit_sets, load_refactor, read_label_matrix
-from pilot.adapters.process import SubprocessRunner
+from pilot.adapters.process import local_process_runner
 from pilot.adapters.project_copy import ProjectWorkspace, temporary_work_root
 from pilot.adapters.pytest_runner import PytestJunitRunner, WorkspaceVariantRunner
 from pilot.adapters.results_writer import write_csv, write_json, write_text
@@ -125,7 +125,7 @@ def _runner_crosscheck(layout: AnalysisLayout) -> list[str]:
     }
     with temporary_work_root() as work_root:
         workspace = ProjectWorkspace(layout.project, work_root, AstEditApplier())
-        runner = WorkspaceVariantRunner(workspace, PytestJunitRunner(SubprocessRunner()).run)
+        runner = WorkspaceVariantRunner(workspace, PytestJunitRunner(local_process_runner()).run)
         return [str(d) for d in runner_crosscheck(runner, committed, variants)]
 
 

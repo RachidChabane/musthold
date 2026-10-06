@@ -12,11 +12,19 @@ from pilot.domain.model_call import Cli, ModelPin
 from pilot.domain.pipeline_constants import DEVIATIONS_FILENAME, RUN_MANIFEST_FILENAME
 
 DEVIATIONS_HEADER = f"{DEVIATIONS_TITLE}\n\n"
-DIGEST_KEYS = ("prereg_commit", "harness_digest", "fixture_digest")
+DIGEST_KEYS = ("prereg_commit", "harness_digest", "fixture_digest", "imports_digest")
 
 
 class ProvenanceProbe(Protocol):
+    def prereg_tag(self) -> str: ...
+
     def prereg_commit(self) -> str: ...
+
+    def superseded_prereg_tag(self) -> str: ...
+
+    def superseded_prereg_commit(self) -> str: ...
+
+    def imports_digest(self) -> str | None: ...
 
     def harness_digest(self) -> str: ...
 
@@ -41,7 +49,11 @@ def ensure_manifest(
     """
     current = {
         "run_id": inputs.run_id,
+        "prereg_tag": provenance.prereg_tag(),
         "prereg_commit": provenance.prereg_commit(),
+        "superseded_prereg_tag": provenance.superseded_prereg_tag(),
+        "superseded_prereg_commit": provenance.superseded_prereg_commit(),
+        "imports_digest": provenance.imports_digest(),
         "harness_digest": provenance.harness_digest(),
         "fixture_digest": provenance.fixture_digest(),
         "cli_versions": _installed(versions, inputs.pins),

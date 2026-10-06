@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Final
 
+from pilot.domain.constants import LOCAL_SUBPROCESS_LIMIT
+
 TAU: Final = 0.70
 WITNESS_TIMEOUT_SECONDS: Final = 5
 AUDIT_SAMPLE_FILENAME: Final = "audit_sample.json"
@@ -73,4 +75,4 @@ CLASS_EXECUTED: Final = "executed"
 CLASS_JUDGED: Final = "judged"
 
 PROGRESS_INTERVAL: Final = 5
-MAX_WITNESS_WORKERS: Final = 4
+MAX_WITNESS_WORKERS: Final = LOCAL_SUBPROCESS_LIMIT

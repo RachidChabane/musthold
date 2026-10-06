@@ -117,8 +117,20 @@ def baselines():
 
 
 class Provenance:
+    def prereg_tag(self):
+        return "tag-a1"
+
     def prereg_commit(self):
         return "c0ffee"
+
+    def superseded_prereg_tag(self):
+        return "tag-1"
+
+    def superseded_prereg_commit(self):
+        return "c0ffe0"
+
+    def imports_digest(self):
+        return None
 
     def harness_digest(self):
         return "h"
@@ -207,7 +219,10 @@ def test_core_run_writes_every_record_of_the_contract(completed):
     ):
         assert (run / name).is_file(), name
     manifest = json.loads((run / "manifest.json").read_text())
-    assert set(manifest) == {"run_id", "prereg_commit", "harness_digest", "fixture_digest", "cli_versions", "models"}
+    assert set(manifest) == {
+        "run_id", "prereg_tag", "prereg_commit", "superseded_prereg_tag", "superseded_prereg_commit", "imports_digest",
+        "harness_digest", "fixture_digest", "cli_versions", "models",
+    }
     assert manifest["prereg_commit"] == "c0ffee" and manifest["cli_versions"] == {"claude": "2.1.292", "codex": "0.155.1"}
     bindings = json.loads((run / "bindings.json").read_text())
     assert len(bindings) == 8 and bindings["tests/test_mini.py::test_free_at_fifteen_minutes"] == "PARK-2~1"

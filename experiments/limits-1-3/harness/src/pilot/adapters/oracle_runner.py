@@ -20,7 +20,7 @@ from typing import Any
 
 from pilot.adapters.ast_edits import AstEditApplier
 from pilot.adapters.plain_pytest import PlainPytestRunner
-from pilot.adapters.process import SubprocessRunner
+from pilot.adapters.process import local_process_runner
 from pilot.adapters.project_copy import ProjectWorkspace, temporary_work_root
 from pilot.domain.analysis_constants import (
     ORACLE_CLASSES_FILENAME,
@@ -131,7 +131,7 @@ class OracleClassifier:
         unresolved: list[str] = []
         with temporary_work_root() as work_root:
             workspace = ProjectWorkspace(self._project, work_root, AstEditApplier())
-            runner = PlainPytestRunner(SubprocessRunner(), self._oracle_files)
+            runner = PlainPytestRunner(local_process_runner(), self._oracle_files)
             with ThreadPoolExecutor(max_workers=min(workers, ORACLE_PARALLELISM)) as pool:
                 futures = {t.mutant_id: pool.submit(self._run_one, workspace, runner, t) for t in pending}
                 for task in pending:
