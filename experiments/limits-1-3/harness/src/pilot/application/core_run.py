@@ -1,4 +1,4 @@
-"""Verb `run-core`: traceability, arm T and P, F0 to F3, validity judges, J-SONNET masked and probe."""
+"""Verb `run-core`: traceability, arm T and P, F0 to F3, V-H1 and V-H2, execution validation, J-H masked and probe."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ from pilot.application.stage_timer import StageTimer
 from pilot.application.traceability_stage import RawTraceability, ensure_traceability
 from pilot.application.validity_stage import judge_validity
 from pilot.domain.alignment_input import Arm
+from pilot.domain.arms import ARM_P, ARM_T
 from pilot.domain.constants import PACKAGE_NAME
 from pilot.domain.model_call import ModelPin
 from pilot.domain.model_slate import VALIDITY_JUDGES, Judge
@@ -61,10 +62,10 @@ def run_core(deps: CoreDependencies) -> None:
         _validity(deps)
         classify_mutants(ctx)
     with deps.timer.stage("alignment"):
-        run_alignment(ctx, [(Judge.J_SONNET, Arm.NAME_MASKED)], sorted(bindings), PACKAGE_NAME)
+        run_alignment(ctx, [(Judge.J_H, Arm.NAME_MASKED)], sorted(bindings), PACKAGE_NAME)
         aggregate_and_prove(ctx, bindings, ctx.criteria())
     with deps.timer.stage("probe"):
-        run_probe(ctx, [Judge.J_SONNET], sorted(bindings))
+        run_probe(ctx, [Judge.J_H], sorted(bindings))
     with deps.timer.stage("proofs"):
         write_discriminating_power_proofs(ctx, bindings)
 
@@ -72,7 +73,7 @@ def run_core(deps: CoreDependencies) -> None:
 def _candidates(deps: CoreDependencies) -> list[Candidate]:
     ctx = deps.ctx
     plan = ensure_plan(ctx, ctx.criteria())
-    generated = generate_mutants(ctx, plan, deps.pins)
+    generated = generate_mutants(ctx, plan.arm_t, deps.pins)
     planted = planted_mutants(deps.arm_p)
     candidates = write_mutants(ctx.store, [*generated, *planted], ctx.log)
     ctx.log(f"[mutants] {len(candidates)} candidates ({len(generated)} arm T, {len(planted)} arm P)")
@@ -95,7 +96,7 @@ def _process(deps: CoreDependencies, candidates: Sequence[Candidate], nodeids: S
 
 def _validity(deps: CoreDependencies) -> None:
     ctx = deps.ctx
-    ids = evaluated_mutant_ids(ctx.store, ("T", "P"))
+    ids = evaluated_mutant_ids(ctx.store, (ARM_T, ARM_P))
     if _validity_complete(ctx, ids):
         ctx.log("[validity] already complete")
         return

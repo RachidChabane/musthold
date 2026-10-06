@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from pilot.application.mutant_records import NewMutant
+from pilot.domain.arms import ARM_O
 from pilot.domain.operator_mutants import operator_mutants
 
-ARM_O = "O"
 PYTHON_SUFFIX = ".py"
 
 

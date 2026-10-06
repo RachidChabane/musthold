@@ -1,4 +1,4 @@
-"""Stage classes: mutant classes per criterion from judges, witnesses and kills (PREREG 6.5)."""
+"""Stage classes: mutant classes per criterion from the host votes, witnesses and kills (PREREG 6.5)."""
 
 from __future__ import annotations
 
@@ -9,11 +9,13 @@ from typing import Any
 from pilot.application.context import PipelineContext
 from pilot.application.mutant_records import evaluated_mutant_ids, load_mutant
 from pilot.application.validity_stage import STATUS_OK
+from pilot.domain.arms import ARM_P, ARM_T
 from pilot.domain.model_slate import VALIDITY_JUDGES, Judge
 from pilot.domain.mutant_classes import JudgeFindings, MutantEvidence, classify_mutant
 from pilot.domain.mutants import DifferentialKind
 from pilot.domain.outcomes import KillResult
 from pilot.domain.pipeline_constants import (
+    BINDINGS_FILENAME,
     DIFFERENTIAL_FILENAME,
     KILLS_FILENAME,
     MUTANT_CLASSES_FILENAME,
@@ -22,7 +24,7 @@ from pilot.domain.pipeline_constants import (
 )
 from pilot.domain.validity_payload import parse_validity
 
-CLASSIFIED_ARMS = ("T", "P")
+CLASSIFIED_ARMS = (ARM_T, ARM_P)
 
 
 def classify_mutants(ctx: PipelineContext) -> list[dict[str, Any]]:
@@ -31,6 +33,7 @@ def classify_mutants(ctx: PipelineContext) -> list[dict[str, Any]]:
     differential = {row["mutant_id"]: row["status"] for row in ctx.store.read_jsonl(DIFFERENTIAL_FILENAME)}
     validity = _validity_rows(ctx)
     confirmed = _confirmed_witnesses(ctx)
+    bindings = ctx.store.read_json(BINDINGS_FILENAME)
     classes = []
     for mid in evaluated_mutant_ids(ctx.store, CLASSIFIED_ARMS):
         document = load_mutant(ctx.store, mid)
@@ -41,6 +44,7 @@ def classify_mutants(ctx: PipelineContext) -> list[dict[str, Any]]:
             kills={nodeid: KillResult(value) for nodeid, value in kills[mid].items()},
             differential=DifferentialKind(differential[mid]),
             judges=[_findings(validity, confirmed, mid, judge) for judge in VALIDITY_JUDGES],
+            bindings=bindings,
         )
         classes.append(classify_mutant(evidence, criteria).to_mapping())
     ctx.store.write_json(MUTANT_CLASSES_FILENAME, classes)

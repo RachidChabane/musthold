@@ -235,7 +235,7 @@ def test_arm_t_plan_has_five_calls_per_criterion_with_unique_nonces_and_the_mode
     plan = json.loads((world / "runs" / "r1" / "plan.json").read_text())["arm_t"]
     assert len(plan) == 15 and len({c["nonce"] for c in plan}) == 15
     per_criterion = [c["model"] for c in plan if c["criterion"] == "PARK-1~1"]
-    assert per_criterion == ["claude-opus-5-5"] * 3 + ["gpt-5.6-terra"] * 2
+    assert per_criterion == ["claude-sonnet-5-5"] * 5
     generation = [r for r in model.requests if r.call_id.startswith("generate")]
     assert len(generation) == 15 and all(r.effort.value == "high" for r in generation)
     assert all(c["nonce"] in r.item for c, r in zip(plan, sorted(generation, key=lambda r: r.call_id), strict=False) if c["call_id"] == r.call_id)
@@ -243,7 +243,7 @@ def test_arm_t_plan_has_five_calls_per_criterion_with_unique_nonces_and_the_mode
 
 def test_generation_input_has_the_spec_target_and_source_but_never_tests_or_conftest(completed):
     _, model, _, _ = completed
-    item = next(r.item for r in model.requests if r.call_id == "generate__PARK-3~1__1")
+    item = next(r.item for r in model.requests if r.call_id == "generate__PARK-3~1__6")
     assert "PARK-3~1: WHEN a stay lasts more than 15 minutes" in item and "=== src/parkfee/tariff.py ===" in item
     assert "test_mini" not in item and "verifies" not in item and "conftest" not in item
 
@@ -279,9 +279,9 @@ def test_both_validity_judges_judge_every_evaluated_mutant_and_witnesses_are_exe
     deps, model, _, _ = completed
     validity = rows(deps.ctx.store, "validity.jsonl")
     kills = rows(deps.ctx.store, "kills.jsonl")
-    assert len(validity) == 2 * len(kills) and {r["judge"] for r in validity} == {"V-S", "V-G"}
+    assert len(validity) == 2 * len(kills) and {r["judge"] for r in validity} == {"V-H1", "V-H2"}
     witnesses = rows(deps.ctx.store, "witness.jsonl")
-    assert witnesses and {w["judge"] for w in witnesses} == {"V-S", "V-G"}
+    assert witnesses and {w["judge"] for w in witnesses} == {"V-H1", "V-H2"}
     assert any(w["confirmed"] for w in witnesses) and any(not w["confirmed"] for w in witnesses)
     confirmed = next(w for w in witnesses if w["confirmed"])
     assert confirmed["reference_out"]["kind"] == "RETURNS" and confirmed["error"] is None
@@ -296,8 +296,9 @@ def test_mutant_classes_mark_confirmed_valid_mutants_primary(completed):
     deps, _, _, _ = completed
     classes = deps.ctx.store.read_json("mutant_classes.json")
     assert [c["mutant_id"] for c in classes] == sorted(c["mutant_id"] for c in classes)
-    valid = [c for c in classes if c["per_criterion"]["PARK-3~1"] == "VALID"]
+    valid = [c for c in classes if c["per_criterion"]["PARK-3~1"] == "VALID_W"]
     assert valid and all(c["valid_confidence"]["PARK-3~1"] == 0.9 for c in valid)
+    assert all(set(c["valid_x"]) <= {"PARK-3~1"} for c in classes)
     primary = [c for c in classes if c["primary"]["included"]]
     assert primary and all(c["arm"] == "T" and c["target"] == "PARK-3~1" for c in primary)
     assert all(c["arm"] == "P" and not c["primary"]["included"] for c in classes if c["arm"] == "P")
@@ -307,16 +308,16 @@ def test_alignment_runs_five_masked_repetitions_per_test_with_token_maps_and_pro
     deps, model, _, world = completed
     run = world / "runs" / "r1"
     alignment = rows(deps.ctx.store, "alignment.jsonl")
-    assert len(alignment) == TESTS_PER_JUDGE * 5 and {(r["judge"], r["arm"]) for r in alignment} == {("J-SONNET", "NAME-MASKED")}
+    assert len(alignment) == TESTS_PER_JUDGE * 5 and {(r["judge"], r["arm"]) for r in alignment} == {("J-H", "NAME-MASKED")}
     assert set(alignment[0]) == {"judge", "arm", "nodeid", "rep", "call_id", "status", "verifies_ref", "coverage", "confidence", "rationale"}
     assert all(r["verifies_ref"] == "PARK-3~1" for r in alignment)
-    maps = sorted((run / "token_maps" / "J-SONNET" / "NAME-MASKED").glob("*/rep-*.json"))
+    maps = sorted((run / "token_maps" / "J-H" / "NAME-MASKED").glob("*/rep-*.json"))
     assert len(maps) == 40 and all(len(json.loads(m.read_text())) == 3 for m in maps)
-    aggregate = deps.ctx.store.read_json("alignment_aggregate.json")["J-SONNET"]["NAME-MASKED"]
+    aggregate = deps.ctx.store.read_json("alignment_aggregate.json")["J-H"]["NAME-MASKED"]
     verdicts = {nodeid: entry["verdict"] for nodeid, entry in aggregate.items()}
     assert verdicts["tests/test_mini.py::test_charges_two_hours_for_sixty_one_minutes"] == "ALIGNED"
     assert verdicts["tests/test_mini.py::test_free_at_fifteen_minutes"] == "MISALIGNED"
-    proofs = sorted((run / "proofs" / "alignment" / "J-SONNET" / "NAME-MASKED").glob("*.intoto.json"))
+    proofs = sorted((run / "proofs" / "alignment" / "J-H" / "NAME-MASKED").glob("*.intoto.json"))
     assert len(proofs) == 8
     first = json.loads(proofs[0].read_text())
     assert first["predicateType"].endswith("/alignment/v1") and first["predicate"]["requirement"]["statementCanonicalization"] == "c1"
@@ -327,7 +328,7 @@ def test_alignment_runs_five_masked_repetitions_per_test_with_token_maps_and_pro
 def test_probe_asks_three_masked_repetitions_per_test_without_criteria(completed):
     deps, model, _, _ = completed
     probe = rows(deps.ctx.store, "probe.jsonl")
-    assert len(probe) == TESTS_PER_JUDGE * 3 and {r["judge"] for r in probe} == {"J-SONNET"}
+    assert len(probe) == TESTS_PER_JUDGE * 3 and {r["judge"] for r in probe} == {"J-H"}
     assert {"judge", "nodeid", "rep", "call_id", "status", "guess", "confidence"} == set(probe[0])
     request = next(r for r in model.requests if r.call_id.startswith("probe"))
     assert "SHALL" not in request.item and "test_case" in request.item
@@ -340,7 +341,7 @@ def test_discriminating_power_proofs_are_written_per_criterion(completed):
     statement = json.loads((directory / "PARK-3~1.intoto.json").read_text())
     predicate = statement["predicate"]
     assert statement["predicateType"].endswith("/discriminating-power/v1") and predicate["correctCodePasses"]["value"] is True
-    assert len(predicate["tests"]) == 4 and any(m["validity"]["value"] == "VALID" for m in predicate["mutants"])
+    assert len(predicate["tests"]) == 4 and any(m["validity"]["value"] in {"VALID_W", "VALID_X"} for m in predicate["mutants"])
     assert "new_source" not in json.dumps(statement)
 
 
@@ -349,7 +350,7 @@ def test_timing_records_every_stage(completed):
     timing = deps.ctx.store.read_json("timing.json")
     assert set(timing) == {"traceability", "reference", "generate", "process", "validity", "alignment", "probe", "proofs"}
     assert all(set(entry) == {"started", "finished", "seconds"} for entry in timing.values())
-    assert any(line.startswith("[generate] 15/15 calls done") for line in logs)
+    assert any(line.startswith("[generate:T] 15/15 calls done") for line in logs)
 
 
 def test_a_second_run_reuses_the_plan_and_the_processing_without_new_nonces_or_pytest(completed, tmp_path):
@@ -398,12 +399,12 @@ def test_run_secondary_adds_the_other_judges_arm_o_and_the_audit(completed, tmp_
     run_secondary(again)
     alignment = rows(store, "alignment.jsonl")
     assert {(r["judge"], r["arm"]) for r in alignment} == {
-        ("J-SONNET", "NAME-MASKED"), ("J-SONNET", "NAME-SHOWN"), ("J-GPT", "NAME-MASKED"), ("J-GPT", "NAME-SHOWN"),
+        ("J-H", "NAME-MASKED"), ("J-H", "NAME-SHOWN"), ("J-X", "NAME-MASKED"), ("J-X", "NAME-SHOWN"),
     }
     assert len(alignment) == 4 * TESTS_PER_JUDGE * 5
-    assert {r["judge"] for r in rows(store, "probe.jsonl")} == {"J-SONNET", "J-GPT"}
+    assert {r["judge"] for r in rows(store, "probe.jsonl")} == {"J-H", "J-X"}
     aggregate = store.read_json("alignment_aggregate.json")
-    assert set(aggregate) == {"J-GPT", "J-SONNET"} and set(aggregate["J-GPT"]) == {"NAME-MASKED", "NAME-SHOWN"}
+    assert set(aggregate) == {"J-X", "J-H"} and set(aggregate["J-X"]) == {"NAME-MASKED", "NAME-SHOWN"}
     arm_o = [json.loads(p.read_text()) for p in (world / "runs" / "r1" / "mutants").glob("*.json")]
     operator = [d for d in arm_o if d["arm"] == "O"]
     assert operator and all(d["target"] is None and d["generator"] is None for d in operator)

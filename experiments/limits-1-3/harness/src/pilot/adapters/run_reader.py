@@ -204,6 +204,7 @@ def _class_view(raw: Mapping[str, Any]) -> MutantClassView:
             parse_criterion(ref): _checked(v, CLASS_VERDICTS, f"mutant_classes.json {raw['mutant_id']}")
             for ref, v in raw["per_criterion"].items()
         },
+        valid_x=frozenset(parse_criterion(ref) for ref in raw["valid_x"]),
         valid_confidence={parse_criterion(ref): float(v) for ref, v in raw.get("valid_confidence", {}).items()},
         equivalent=bool(raw.get("equivalent")),
         unattributed=bool(raw.get("unattributed")),

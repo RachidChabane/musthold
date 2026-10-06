@@ -7,7 +7,7 @@ from pathlib import Path
 
 from pilot.adapters.git_drift import preregistration_commit
 from pilot.adapters.process import ProcessRunner
-from pilot.domain.analysis_constants import PREREG_TAG, SUPERSEDED_PREREG_TAG
+from pilot.domain.preregistration import PREREG_TAG, SUPERSEDED_PREREG_TAG
 from pilot.domain.import_manifest import IMPORTS_FILENAME
 
 IGNORED_PARTS = ("__pycache__", ".hypothesis", ".pytest_cache", ".venv")

@@ -3,15 +3,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from functools import cached_property
 
 from pilot.analysis.oracle import OracleClass, classify_oracle
 from pilot.domain.analysis_constants import ARM_T
+from pilot.domain.execution_validation import other_binding_veto
 from pilot.domain.gate import CriterionEvidence, MutantResults
+from pilot.domain.outcomes import KillResult
 from pilot.domain.labels import TestLabel
 from pilot.domain.matrix import PoolMutant
-from pilot.domain.analysis_constants import ERROR_RESULT, KILLED_RESULT, MUTANT_UNDETERMINED, MUTANT_VALID
+from pilot.domain.analysis_constants import ERROR_RESULT, KILLED_RESULT, MUTANT_UNDETERMINED, MUTANT_VALID_W
 from pilot.domain.pipeline_constants import TAU
+from pilot.domain.refs import criterion_ref
 from pilot.domain.run_records import GroundTruth, MutantClassView, RunRecords
 
 
@@ -57,6 +61,16 @@ class Context:
             for mutant_id, results in self.run.kills.items()
         }
 
+    def vetoed(self, mutant_id: str, criterion: int) -> bool:
+        """True when a test declared for another criterion has a reproduced kill or an error on the mutant."""
+        results = {nodeid: KillResult(result) for nodeid, result in self.run.kills.get(mutant_id, {}).items()}
+        return other_binding_veto(results, self.refs, criterion_ref(criterion))
+
+    @cached_property
+    def refs(self) -> dict[str, str]:
+        """D(t) in the `PARK-n~1` text form, as the isolation predicate reads it."""
+        return {nodeid: criterion_ref(number) for nodeid, number in self.declared.items()}
+
     def results_of(self, mutant_id: str) -> MutantResults:
         return MutantResults(self.killers.get(mutant_id, frozenset()), self.errored.get(mutant_id, frozenset()))
 
@@ -98,40 +112,59 @@ def matrix_pools(ctx: Context) -> tuple[list[PoolMutant], list[frozenset[str]]]:
     return valid, unattributed
 
 
-def gate_evidence(ctx: Context, criterion: int, f_brief: bool = False) -> CriterionEvidence:
+class EvidenceTruth(Enum):
+    """Which links of the gate's evidence are replaced by the oracle's class (PREREG 9.4)."""
+
+    NONE = "none"
+    VALIDITY = "validity"
+    ISOLATION = "isolation"
+    ALL = "all"
+
+    @property
+    def validity_by_oracle(self) -> bool:
+        return self in (EvidenceTruth.VALIDITY, EvidenceTruth.ALL)
+
+    @property
+    def isolation_by_oracle(self) -> bool:
+        return self in (EvidenceTruth.ISOLATION, EvidenceTruth.ALL)
+
+
+def gate_evidence(ctx: Context, criterion: int, truth: EvidenceTruth = EvidenceTruth.NONE) -> CriterionEvidence:
     """Executed results the gate rules 3 to 5 read for one criterion: the mutants of its discriminating-power proof.
 
-    VALID: undiscarded arm-T mutants generated for the criterion and VALID for it at or above tau,
-    COLLATERAL ones included. UNDETERMINED: undiscarded arm-T mutants generated for the criterion that
-    are UNDETERMINED for it. F_brief drops a VALID mutant killed by any test declared for another criterion.
+    VALID_x: undiscarded arm-T mutants generated for the criterion and VALID_x for it at or above tau,
+    COLLATERAL ones included. VALID_w only: VALID_w for it, vetoed by execution. UNDETERMINED: undiscarded
+    arm-T mutants generated for the criterion that are UNDETERMINED for it. A substituted link takes the
+    oracle's class in place of its own decision.
     """
-    valid: list[MutantResults] = []
+    valid_x: list[MutantResults] = []
+    valid_w_only: list[MutantResults] = []
     undetermined: list[MutantResults] = []
     for view in ctx.arm_t_evaluated():
         if view.target != criterion or view.discarded:
             continue
         results = ctx.results_of(view.mutant_id)
-        verdict = view.verdict_for(criterion)
-        if verdict == MUTANT_VALID and view.valid_confidence.get(criterion, 0.0) >= TAU:
-            if not (f_brief and _killed_by_other_binding(ctx, results.killed, criterion)):
-                valid.append(results)
-        elif verdict == MUTANT_UNDETERMINED:
+        oracle_valid = ctx.oracle_valid_for(view.mutant_id, criterion)
+        judged = view.verdict_for(criterion) == MUTANT_VALID_W and view.valid_confidence.get(criterion, 0.0) >= TAU
+        valid_w = oracle_valid if truth.validity_by_oracle else judged
+        if truth.isolation_by_oracle:
+            valid_x_here = valid_w and oracle_valid
+        elif truth.validity_by_oracle:
+            valid_x_here = valid_w and not ctx.vetoed(view.mutant_id, criterion)
+        else:
+            valid_x_here = valid_w and criterion in view.valid_x
+        if valid_x_here:
+            valid_x.append(results)
+        elif valid_w:
+            valid_w_only.append(results)
+        elif view.verdict_for(criterion) == MUTANT_UNDETERMINED and not truth.validity_by_oracle:
             undetermined.append(results)
-    return CriterionEvidence(tuple(valid), tuple(undetermined))
-
-
-def _killed_by_other_binding(ctx: Context, killed: frozenset[str], criterion: int) -> bool:
-    return any(ctx.declared.get(nodeid, criterion) != criterion for nodeid in killed)
+    return CriterionEvidence(tuple(valid_x), tuple(valid_w_only), tuple(undetermined))
 
 
 def oracle_valid_kill_sets(ctx: Context, criterion: int) -> list[frozenset[str]]:
     """Kill sets of every arm-T mutant that is oracle-valid for the criterion (PREREG 9.3)."""
     return [ctx.results_of(m).killed for m in oracle_valid_mutants(ctx, criterion)]
-
-
-def oracle_valid_results(ctx: Context, criterion: int) -> list[MutantResults]:
-    """Executed results of every arm-T mutant that is oracle-valid for the criterion (PREREG 9.4 substitution)."""
-    return [ctx.results_of(m) for m in oracle_valid_mutants(ctx, criterion)]
 
 
 def oracle_valid_mutants(ctx: Context, criterion: int) -> list[str]:

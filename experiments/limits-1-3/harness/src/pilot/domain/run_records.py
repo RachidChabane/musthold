@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from pilot.domain.alignment_aggregate import AlignmentVerdict
-from pilot.domain.analysis_constants import MUTANT_VALID, STATUS_OK
+from pilot.domain.analysis_constants import MUTANT_VALID_W, STATUS_OK
 from pilot.domain.labels import TestLabel
 
 
@@ -36,6 +36,7 @@ class MutantClassView:
     arm: str
     target: int | None
     per_criterion: Mapping[int, str]
+    valid_x: frozenset[int]
     valid_confidence: Mapping[int, float]
     equivalent: bool
     unattributed: bool
@@ -53,12 +54,17 @@ class MutantClassView:
         return self.per_criterion.get(criterion)
 
     @property
-    def valid_criteria(self) -> tuple[int, ...]:
-        return tuple(sorted(c for c, v in self.per_criterion.items() if v == MUTANT_VALID))
+    def valid_w_criteria(self) -> tuple[int, ...]:
+        return tuple(sorted(c for c, v in self.per_criterion.items() if v == MUTANT_VALID_W))
+
+    @property
+    def primary_valid_x(self) -> bool:
+        """Primary-matrix mutant of its target that execution validation keeps (VALID_x for the target)."""
+        return self.primary_criterion is not None and self.primary_criterion in self.valid_x
 
     @property
     def target_valid(self) -> bool:
-        return self.target is not None and self.verdict_for(self.target) == MUTANT_VALID
+        return self.target is not None and self.verdict_for(self.target) == MUTANT_VALID_W
 
 
 @dataclass(frozen=True)
@@ -192,4 +198,5 @@ class GroundTruth:
     label_matrix_rows: Mapping[str, Mapping[str, str]]
     verify_log: str
     crosscheck_differences: Sequence[str] | None
+    d8_criteria: Sequence[int]
     extra: Mapping[str, Any] = field(default_factory=dict)

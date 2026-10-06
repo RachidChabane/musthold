@@ -17,6 +17,7 @@ from pilot.domain.analysis_constants import (
     ORACLE_CLASSES_FILENAME,
 )
 from pilot.domain.constants import LABEL_MATRIX_FILENAME, VERIFY_LOG_FILENAME
+from pilot.domain.isolation_table import ISOLATION_TABLE_FILENAME
 from pilot.domain.pipeline_constants import ARM_P_DIRNAME
 from pilot.domain.run_records import GroundTruth, OracleRecord, PlantedItem
 
@@ -78,7 +79,15 @@ def read_ground_truth(
         label_matrix_rows=read_label_matrix_rows(prereg_dir / LABEL_MATRIX_FILENAME),
         verify_log=log_path.read_text(encoding=ENCODING) if log_path.is_file() else "",
         crosscheck_differences=crosscheck_differences,
+        d8_criteria=read_d8_criteria(prereg_dir / ISOLATION_TABLE_FILENAME),
     )
+
+
+def read_d8_criteria(path: Path) -> tuple[int, ...]:
+    """C_D8 of `prereg/isolation_table.json`; empty when the file is absent, which the analysis refuses."""
+    if not path.is_file():
+        return ()
+    return tuple(int(number) for number in json.loads(path.read_text(encoding=ENCODING))["c_d8"])
 
 
 def read_models_lock(path: Path) -> Mapping[str, Any]:

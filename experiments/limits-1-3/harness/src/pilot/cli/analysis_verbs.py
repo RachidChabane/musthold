@@ -36,8 +36,8 @@ from pilot.domain.analysis_constants import (
     DRIFT_GUARDED_PATHS,
     ORACLE_PARALLELISM,
     PERMUTATION_COUNT,
-    PREREG_TAG,
 )
+from pilot.domain.preregistration import PREREG_TAG
 from pilot.domain.constants import LABEL_MATRIX_FILENAME
 from pilot.domain.pipeline_constants import AUDIT_SAMPLE_FILENAME
 from pilot.domain.variants import VariantKind

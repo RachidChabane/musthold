@@ -7,7 +7,8 @@ import subprocess
 import pytest
 
 from pilot.adapters.git_drift import PreregistrationTagMissing, drifted_paths, preregistration_commit
-from pilot.domain.analysis_constants import DRIFT_GUARDED_PATHS, PREREG_TAG
+from pilot.domain.analysis_constants import DRIFT_GUARDED_PATHS
+from pilot.domain.preregistration import PREREG_TAG
 
 pytestmark = pytest.mark.integration
 

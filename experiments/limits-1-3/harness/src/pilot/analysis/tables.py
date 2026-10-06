@@ -29,7 +29,7 @@ from pilot.analysis.table import Table
 from pilot.domain import analysis_constants as k
 from pilot.domain.constants import REFACTOR_VARIANT_ID
 from pilot.domain.alignment_aggregate import AlignmentVerdict
-from pilot.domain.gate import G0, G1, G2, G3, G3_LENIENT, G3_STRICT, GateOutcome, GatePolicy
+from pilot.domain.gate import G0, G1, G2, G3, G3_LENIENT, G3_NOISO, G3_PREREG, G3_STRICT, GateOutcome, GatePolicy
 from pilot.domain.labels import TestClass
 from pilot.domain.matrix import PoolMutant, Signature, TestSignature, build_evidence, classify_tests
 from pilot.domain.refs import criterion_ref
@@ -47,7 +47,7 @@ PREDICTED_SIGNATURE = {
     "OFFSPEC": "INERT or OFF_TARGET",
 }
 TABLE_POLICIES = (G0, G1, G2, G3)
-FULL_SET_POLICIES: tuple[GatePolicy, ...] = (G0, G1, G2, G3, G3_STRICT, G3_LENIENT)
+FULL_SET_POLICIES: tuple[GatePolicy, ...] = (G0, G1, G2, G3, G3_PREREG, G3_NOISO, G3_STRICT, G3_LENIENT)
 OUTCOMES = tuple(o.name for o in (GateOutcome.PASS, GateOutcome.ESCALATE, GateOutcome.BLOCK))
 NOT_JUDGED = "not judged"
 ANSWER_DECLARED, ANSWER_TRUE_OTHER, ANSWER_OTHER, ANSWER_NONE = "declared", "true B", "other", "NONE"
@@ -203,7 +203,7 @@ def cross_check(ctx: Context, verdicts: Mapping[str, AlignmentVerdict], signatur
         ["matrix silent (UNDETERMINED)", sum(1 for n in ctx.nodeids if signatures[n].verdict is AlignmentVerdict.UNDETERMINED),
          len(ctx.nodeids), None],
     ]
-    return Table("judge_matrix_cross_check", "J-SONNET NAME-MASKED (rows) x matrix (columns), with cross-check counts",
+    return Table("judge_matrix_cross_check", "J-H NAME-MASKED (rows) x matrix (columns), with cross-check counts",
                  ["judge verdict / measure", *VERDICTS], rows)
 
 
@@ -295,7 +295,7 @@ def audit_votes(ctx: Context) -> dict[str, tuple[list[str], int]]:
         votes[mutant_id] = (
             [
                 _vote(audit_valid),
-                _vote(view.verdict_for(target) == k.MUTANT_VALID),
+                _vote(view.verdict_for(target) == k.MUTANT_VALID_W),
                 _vote(ctx.oracle_valid_for(mutant_id, target)),
             ],
             target,
@@ -312,12 +312,12 @@ def _audit_target(ctx: Context, mutant_id: str) -> int | None:
 
 
 def _vote(valid: bool) -> str:
-    return k.MUTANT_VALID if valid else "NOT_VALID"
+    return k.MUTANT_VALID_W if valid else "NOT_VALID"
 
 
 def _audit_agreement(ctx: Context, settings: AnalysisSettings) -> Table:
     votes = audit_votes(ctx)
-    categories = (k.MUTANT_VALID, "NOT_VALID")
+    categories = (k.MUTANT_VALID_W, "NOT_VALID")
     names = ("A-OPUS", "pipeline", "oracle")
     clusters = [target for _, target in votes.values()]
     rows: list[list[object]] = []
@@ -410,19 +410,19 @@ def _name_anchoring(ctx: Context) -> Table:
 
 
 def _error_overlap(ctx: Context) -> Table:
-    sonnet = judge_verdicts(ctx, k.JUDGE_SONNET, k.ALIGNMENT_ARM_MASKED, False)
-    gpt = judge_verdicts(ctx, k.JUDGE_GPT, k.ALIGNMENT_ARM_MASKED, False)
+    sonnet = judge_verdicts(ctx, k.JUDGE_H, k.ALIGNMENT_ARM_MASKED, False)
+    gpt = judge_verdicts(ctx, k.JUDGE_X, k.ALIGNMENT_ARM_MASKED, False)
     counts: Counter[str] = Counter()
     for n in ctx.nodeids:
         wrong_s, wrong_g = sonnet[n] is not truth_verdict(ctx, n), gpt[n] is not truth_verdict(ctx, n)
-        counts["both wrong" if wrong_s and wrong_g else "J-SONNET only" if wrong_s else "J-GPT only" if wrong_g else "neither"] += 1
-    return Table("limit3_error_overlap", "J-SONNET vs J-GPT error overlap (NAME-MASKED, against PRIMARY labels)",
-                 ["pattern", "tests"], [[p, counts[p]] for p in ("both wrong", "J-SONNET only", "J-GPT only", "neither")])
+        counts["both wrong" if wrong_s and wrong_g else "J-H only" if wrong_s else "J-X only" if wrong_g else "neither"] += 1
+    return Table("limit3_error_overlap", "J-H vs J-X error overlap (NAME-MASKED, against PRIMARY labels)",
+                 ["pattern", "tests"], [[p, counts[p]] for p in ("both wrong", "J-H only", "J-X only", "neither")])
 
 
 def probe_table(ctx: Context) -> Table:
     rows = []
-    for judge in (k.JUDGE_SONNET, k.JUDGE_GPT):
+    for judge in (k.JUDGE_H, k.JUDGE_X):
         correct, total = probe_accuracy(ctx, judge)
         rows.append([judge, correct, total])
     return Table("leakage_probe", "leakage probe: tests separated (gold good vs MIS_OTHER and OFFSPEC)",
@@ -435,7 +435,6 @@ def probe_table(ctx: Context) -> Table:
 def contrasts(ctx: Context, signatures: Mapping[str, TestSignature]) -> Table:
     scenarios = build_scenarios(ctx)
     outcomes = simulate(ctx, scenarios, GateVariant("G3", G3))
-    brief = simulate(ctx, scenarios, GateVariant("G3-F_brief", G3, f_brief=True))
     rows: list[list[object]] = []
     for name, criteria in (("poisoned {3, 5, 8}", k.POISONED_CRITERIA), ("clean {1, 2, 4, 9}", k.CLEAN_CRITERIA)):
         adequate = [o for o in outcomes if o.scenario.criterion in criteria and is_adequate(ctx, o.scenario, TruthKind.ORACLE)]
@@ -443,17 +442,18 @@ def contrasts(ctx: Context, signatures: Mapping[str, TestSignature]) -> Table:
         interval = wilson(blocked, len(adequate))
         rows.append([f"G3 false-block rate, {name}", blocked, len(adequate), blocked / len(adequate) if adequate else None,
                      interval.lo, interval.hi])
-    for policy_name, found in (("G3", outcomes), ("G3-F_brief", brief)):
+    for policy in (G3, G3_PREREG, G3_NOISO):
+        found = outcomes if policy is G3 else simulate(ctx, scenarios, GateVariant(policy.name, policy))
         inadequate = [o for o in found if not is_adequate(ctx, o.scenario, TruthKind.ORACLE)]
         passed = sum(1 for o in inadequate if o.outcome is GateOutcome.PASS)
         interval = wilson(passed, len(inadequate))
-        rows.append([f"{policy_name} false-pass rate", passed, len(inadequate), passed / len(inadequate) if inadequate else None,
+        rows.append([f"{policy.name} false-pass rate", passed, len(inadequate), passed / len(inadequate) if inadequate else None,
                      interval.lo, interval.hi])
     signature_rows = []
     for label in ("GOOD", "GOOD_BROAD"):
         counts = Counter(s.signature.value for n, s in signatures.items() if label_of(ctx, n) == label)
         signature_rows.append([f"{label} signatures", ", ".join(f"{s}={c}" for s, c in sorted(counts.items())), None, None, None, None])
-    return Table("contrasts", "G3 on poisoned vs clean criteria; GOOD_BROAD vs GOOD signatures; G3 vs G3-F_brief",
+    return Table("contrasts", "G3 on poisoned vs clean criteria; GOOD_BROAD vs GOOD signatures; G3 vs G3-prereg vs G3-noiso",
                  ["contrast", "count", "total", "rate", "wilson lo", "wilson hi"], rows + signature_rows)
 
 

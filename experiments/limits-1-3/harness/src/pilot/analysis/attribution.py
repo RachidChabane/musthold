@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from pilot.analysis.endpoints import judge_verdicts, matrix_signatures
-from pilot.analysis.model import Context
+from pilot.analysis.model import Context, EvidenceTruth
 from pilot.analysis.scenarios import (
     GateVariant,
     Scenario,
@@ -25,18 +25,24 @@ from pilot.domain.alignment_aggregate import AlignmentVerdict
 from pilot.domain.analysis_constants import (
     ALIGNMENT_ARM_MASKED,
     COMPONENT_GATE,
+    COMPONENT_ISOLATION,
     COMPONENT_JUDGE,
     COMPONENT_VALIDITY,
-    JUDGE_SONNET,
+    JUDGE_H,
     UNCOVERED_CRITERIA,
 )
 from pilot.domain.gate import GateOutcome
 
 LINK_ALIGNMENT = "alignment"
 LINK_VALIDITY = "validity"
-LINK_BOTH = "both"
-SUBSTITUTIONS = (LINK_ALIGNMENT, LINK_VALIDITY, LINK_BOTH)
-LINK_COMPONENT = {LINK_ALIGNMENT: COMPONENT_JUDGE, LINK_VALIDITY: COMPONENT_VALIDITY}
+LINK_ISOLATION = "isolation"
+LINK_ALL = "all"
+SUBSTITUTIONS = (LINK_ALIGNMENT, LINK_VALIDITY, LINK_ISOLATION, LINK_ALL)
+LINK_COMPONENT = {
+    LINK_ALIGNMENT: COMPONENT_JUDGE,
+    LINK_VALIDITY: COMPONENT_VALIDITY,
+    LINK_ISOLATION: COMPONENT_ISOLATION,
+}
 
 ErrorPredicate = Callable[[Scenario, GateOutcome, bool], bool]
 
@@ -69,8 +75,9 @@ def run_substitutions(
     true_labels = true_alignment(ctx)
     runs = {
         LINK_ALIGNMENT: simulate(ctx, list(scenarios), variant, alignment=true_labels),
-        LINK_VALIDITY: simulate(ctx, list(scenarios), variant, oracle_evidence=True),
-        LINK_BOTH: simulate(ctx, list(scenarios), variant, alignment=true_labels, oracle_evidence=True),
+        LINK_VALIDITY: simulate(ctx, list(scenarios), variant, evidence_truth=EvidenceTruth.VALIDITY),
+        LINK_ISOLATION: simulate(ctx, list(scenarios), variant, evidence_truth=EvidenceTruth.ISOLATION),
+        LINK_ALL: simulate(ctx, list(scenarios), variant, alignment=true_labels, evidence_truth=EvidenceTruth.ALL),
     }
     base = simulate(ctx, list(scenarios), variant)
     return SubstitutedRuns(
@@ -148,7 +155,7 @@ def error_multiplication(
     The unit is the single-test scenario {t}: a gold bad test passed is a false pass, a gold
     good test blocked is a false block. The predictions multiply the links' own rates.
     """
-    judge = judge_verdicts(ctx, JUDGE_SONNET, ALIGNMENT_ARM_MASKED, False)
+    judge = judge_verdicts(ctx, JUDGE_H, ALIGNMENT_ARM_MASKED, False)
     signatures = matrix_signatures(ctx)
     singles = [Scenario(ctx.declared[n], frozenset({n}), False) for n in ctx.nodeids]
     outcomes = {next(iter(o.scenario.tests)): o.outcome for o in simulate(ctx, singles, variant)}
@@ -225,7 +232,7 @@ def _link_rates(
     return [
         LinkRates("traceability", trace_fp, 0.0, "passes every bound test"),
         LinkRates(
-            "alignment (J-SONNET NAME-MASKED vs labels)",
+            "alignment (J-H NAME-MASKED vs labels)",
             totals[2] / bad if bad else float("nan"),
             totals[6] / good if good else float("nan"),
             "false pass = gold bad judged ALIGNED; false block = gold good judged MISALIGNED",

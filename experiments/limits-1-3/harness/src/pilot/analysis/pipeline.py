@@ -99,7 +99,7 @@ def run_analysis(
     runs = run_substitutions(ctx, scenarios, PRIMARY_VARIANT, PRIMARY_TRUTH)
     signatures = matrix_signatures(ctx)
     nulls = compute_matrix_nulls(ctx, settings)
-    masked = judge_verdicts(ctx, k.JUDGE_SONNET, k.ALIGNMENT_ARM_MASKED, False)
+    masked = judge_verdicts(ctx, k.JUDGE_H, k.ALIGNMENT_ARM_MASKED, False)
 
     gate = [
         r.with_attribution(endpoint_attribution(r.id, runs))
@@ -115,7 +115,7 @@ def run_analysis(
     endpoints = apply_preconditions(base, preconditions)
     composite = composite_verdict(endpoints, preconditions)
     d8 = next(e for e in base if e.id == "D8")
-    valid_criteria = int(round(d8.point * d8.n)) if d8.n else 0
+    valid_criteria = int(d8.details["frozen_reading"]["criteria_with_two_valid_w"])  # type: ignore[index]
     crosscheck = ctx.truth.crosscheck_differences
     feasibility, feasibility_verdict = evaluate_feasibility(
         ctx, valid_criteria, None if crosscheck is None else not crosscheck

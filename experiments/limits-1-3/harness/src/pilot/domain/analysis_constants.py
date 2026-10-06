@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from typing import Final
 
+from pilot.domain.arms import ARM_O, ARM_P, ARM_T, ARMS
 from pilot.domain.constants import LOCAL_SUBPROCESS_LIMIT
+from pilot.domain.model_slate import Judge
+from pilot.domain.mutant_classes import CriterionClass
 from pilot.domain.endpoint_ids import ENDPOINT_IDS as DECISIONAL_ENDPOINT_IDS
 
 ANALYSIS_SEED: Final = 20261006
@@ -22,16 +25,12 @@ CRITERION_FORMAT: Final = "PARK-{number}~1"
 KILLED_RESULT: Final = "killed"
 NONE_ANSWER: Final = "NONE"
 
-ARM_T: Final = "T"
-ARM_P: Final = "P"
-ARM_O: Final = "O"
-ARMS: Final = (ARM_T, ARM_P, ARM_O)
 KIND_REGRESSION: Final = "r"
 KIND_NEUTRAL: Final = "n1"
 
-MUTANT_VALID: Final = "VALID"
-MUTANT_NOT_VIOLATING: Final = "NOT_VIOLATING"
-MUTANT_UNDETERMINED: Final = "UNDETERMINED"
+MUTANT_VALID_W: Final = CriterionClass.VALID_W.value
+MUTANT_NOT_VIOLATING: Final = CriterionClass.NOT_VIOLATING.value
+MUTANT_UNDETERMINED: Final = CriterionClass.UNDETERMINED.value
 STATUS_OK: Final = "OK"
 STATUS_TRIVIALLY_EQUIVALENT: Final = "TRIVIALLY_EQUIVALENT"
 STATUS_DUPLICATE: Final = "DUPLICATE"
@@ -39,7 +38,7 @@ PROCESSING_STATUSES: Final = (STATUS_OK, STATUS_TRIVIALLY_EQUIVALENT, STATUS_DUP
 ERROR_RESULT: Final = "error"
 KILL_RESULTS: Final = (KILLED_RESULT, "survived", ERROR_RESULT, "flaky")
 TEST_OUTCOMES: Final = ("passed", "failed", "error", "skipped")
-CLASS_VERDICTS: Final = (MUTANT_VALID, MUTANT_NOT_VIOLATING, MUTANT_UNDETERMINED)
+CLASS_VERDICTS: Final = (MUTANT_VALID_W, MUTANT_NOT_VIOLATING, MUTANT_UNDETERMINED)
 CALL_OK: Final = "ok"
 CALL_MISSING: Final = "missing"
 CALL_STATUSES: Final = (CALL_OK, CALL_MISSING)
@@ -50,13 +49,13 @@ DIFF_STATUSES: Final = (DIFF_DIFFERS, DIFF_NO_DIFF, DIFF_SKIPPED)
 
 ALIGNMENT_ARM_MASKED: Final = "NAME-MASKED"
 ALIGNMENT_ARM_SHOWN: Final = "NAME-SHOWN"
-JUDGE_SONNET: Final = "J-SONNET"
-JUDGE_GPT: Final = "J-GPT"
-VALIDITY_JUDGE_SONNET: Final = "V-S"
-VALIDITY_JUDGE_GPT: Final = "V-G"
-AUDIT_JUDGE: Final = "A-OPUS"
-RATER_OPENAI: Final = "R-OAI"
-RATER_AUTHOR: Final = "R-AUTHOR"
+JUDGE_H: Final = Judge.J_H.value
+JUDGE_X: Final = Judge.J_X.value
+VALIDITY_JUDGE_H1: Final = Judge.V_H1.value
+VALIDITY_JUDGE_H2: Final = Judge.V_H2.value
+AUDIT_JUDGE: Final = Judge.A_OPUS.value
+RATER_OPENAI: Final = Judge.R_OAI.value
+RATER_AUTHOR: Final = Judge.R_AUTHOR.value
 PROBE_TARGETED: Final = "TARGETED"
 PROBE_OTHER: Final = "OTHER"
 TRUTH_ALIGNED: Final = "ALIGNED"
@@ -113,8 +112,11 @@ D7_GO_REGRESSION_MIN: Final = 16
 D7_GO_NEUTRAL_MAX: Final = 1
 D7_NO_GO_REGRESSION_MAX: Final = 10
 D7_NO_GO_NEUTRAL_MIN: Final = 3
-D8_GO_CRITERIA: Final = 10
-D8_NO_GO_CRITERIA_MAX: Final = 7
+D8_NO_GO_SHORT: Final = 3
+D8_FROZEN_GO_CRITERIA: Final = 10
+D8_FROZEN_NO_GO_CRITERIA_MAX: Final = 7
+EXPOSED_CRITERIA: Final = (5, 8)
+PREDICTED_ISOLATION_EXPOSURE: Final = (3, 5, 8)
 D8_MIN_VALID_PER_CRITERION: Final = 2
 D9_GO_POINT: Final = 0.80
 D9_GO_LOWER: Final = 0.60
@@ -141,6 +143,7 @@ CROSS_CHECK_ENDPOINTS: Final = ("D11",)
 # Composite components (fallback map of PREREG 10).
 COMPONENT_GATE: Final = "gate"
 COMPONENT_VALIDITY: Final = "mutant validity"
+COMPONENT_ISOLATION: Final = "isolation"
 COMPONENT_JUDGE: Final = "alignment judge"
 COMPONENT_MATRIX: Final = "matrix"
 COMPONENT_CROSS_CHECK: Final = "cross-check"
@@ -220,8 +223,6 @@ DRIFT_GUARDED_PATHS: Final = (
     "harness/src/pilot/domain/deviations.py",
     "harness/src/pilot/domain/endpoint_ids.py",
 )
-PREREG_TAG: Final = "prereg-limits-1-3-a1"
-SUPERSEDED_PREREG_TAG: Final = "prereg-limits-1-3"
 EXPLORATORY_WORD_LIMIT: Final = 300
 EXPLORATORY_FILENAME: Final = "EXPLORATORY.md"
 REPORT_CONCLUSION_BEGIN: Final = "<!-- conclusion-templates:begin -->"

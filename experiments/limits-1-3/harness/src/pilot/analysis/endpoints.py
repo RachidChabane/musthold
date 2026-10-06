@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import math
 from collections import defaultdict
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass
 
 import numpy as np
@@ -57,6 +57,7 @@ from pilot.domain.alignment_aggregate import AlignmentVerdict
 from pilot.domain.gate import GateOutcome
 from pilot.domain.matrix import TestSignature, build_evidence, classify_tests, mean_dc
 from pilot.domain.refs import criterion_ref
+from pilot.domain.run_records import MutantClassView
 
 NAN = float("nan")
 NUMERATOR, DENOMINATOR = 0, 1
@@ -266,14 +267,8 @@ def validity_endpoints(ctx: Context, settings: AnalysisSettings) -> list[Endpoin
 
 
 def _d6(ctx: Context, settings: AnalysisSettings) -> EndpointResult:
-    per_cluster: dict[int, list[int]] = defaultdict(lambda: [0, 0])
-    for view in ctx.arm_t_evaluated():
-        if view.primary_criterion is None:
-            continue
-        cell = per_cluster[view.primary_criterion]
-        cell[DENOMINATOR] += 1
-        cell[NUMERATOR] += int(ctx.oracle_valid_for(view.mutant_id, view.target))
-    counts = RateCounts({c: (v[0], v[1]) for c, v in per_cluster.items()})
+    counts = _primary_precision(ctx, lambda view: view.primary_valid_x)
+    judged = _primary_precision(ctx, lambda view: view.primary_included)
     estimate = rate_estimate(counts, settings)
     base_valid, base_total = n7_base_rate(ctx)
     base_rate = base_valid / base_total if base_total else NAN
@@ -284,61 +279,96 @@ def _d6(ctx: Context, settings: AnalysisSettings) -> EndpointResult:
 
     margin = estimate.interval.lo - k.D6_GO_LOWER
     return _result(
-        "D6", 2, "VALID precision against oracle-valid-for-target, arm T (primary-matrix VALID mutants)",
+        "D6", 2, "VALID_x precision against oracle-valid-for-target, arm T (primary-matrix VALID_x mutants)",
         counts.denominator, estimate,
         "point >= 0.80, lower >= 0.70, precision - N7 >= 0.10 (waived if N7 >= 0.90)", "upper < 0.70",
         bands.valid_precision(estimate, base_rate), margin,
-        {"oracle_valid": counts.numerator, "valid": counts.denominator, "n7": base_rate,
-         "n7_counts": [base_valid, base_total]},
+        {"oracle_valid": counts.numerator, "valid_x": counts.denominator, "n7": base_rate,
+         "n7_counts": [base_valid, base_total],
+         "valid_w_precision": {"oracle_valid": judged.numerator, "valid_w": judged.denominator,
+                               "point": judged.point}},
         outcome_at,
     )
 
 
+def _primary_precision(ctx: Context, selected: Callable[[MutantClassView], bool]) -> RateCounts:
+    per_cluster: dict[int, list[int]] = defaultdict(lambda: [0, 0])
+    for view in ctx.arm_t_evaluated():
+        if view.primary_criterion is None or not selected(view):
+            continue
+        cell = per_cluster[view.primary_criterion]
+        cell[DENOMINATOR] += 1
+        cell[NUMERATOR] += int(ctx.oracle_valid_for(view.mutant_id, view.target))
+    return RateCounts({c: (v[0], v[1]) for c, v in per_cluster.items()})
+
+
 def _d7(ctx: Context) -> EndpointResult:
     regression_valid = regression_total = neutral_valid = neutral_total = 0
+    survivors_valid = survivors_total = 0
     for item in ctx.truth.planted.values():
         view = ctx.run.classes.get(item.mutant_id)
         if item.kind == k.KIND_REGRESSION:
             regression_total += 1
-            regression_valid += int(view is not None and view.verdict_for(item.declared_target) == k.MUTANT_VALID)
+            is_valid = view is not None and view.verdict_for(item.declared_target) == k.MUTANT_VALID_W
+            regression_valid += int(is_valid)
+            if view is not None and not ctx.vetoed(item.mutant_id, item.declared_target):
+                survivors_total += 1
+                survivors_valid += int(is_valid)
         else:
             neutral_total += 1
-            neutral_valid += int(view is not None and bool(view.valid_criteria))
+            neutral_valid += int(view is not None and bool(view.valid_w_criteria))
     outcome = bands.planted_controls(regression_valid, regression_total, neutral_valid, neutral_total)
     point = regression_valid / regression_total if regression_total else NAN
     neutral_point = neutral_valid / neutral_total if neutral_total else NAN
     margin = min(point - k.D7_GO_REGRESSION_MIN / 20, k.D7_GO_NEUTRAL_MAX / 10 - neutral_point)
     estimate = Estimate(point, wilson(regression_valid, regression_total))
     components = [
-        {"name": "r-items VALID for their criterion", "point": point, "lo": estimate.interval.lo,
+        {"name": "r-items VALID_w for their criterion", "point": point, "lo": estimate.interval.lo,
          "hi": estimate.interval.hi, "count": regression_valid, "total": regression_total},
-        {"name": "n1-items VALID for any criterion", "point": neutral_point,
+        {"name": "n1-items VALID_w for any criterion", "point": neutral_point,
          "lo": wilson(neutral_valid, neutral_total).lo, "hi": wilson(neutral_valid, neutral_total).hi,
          "count": neutral_valid, "total": neutral_total},
     ]
     return _result(
-        "D7", 2, "planted controls: r-items VALID for their criterion, n1-items VALID for any",
+        "D7", 2, "planted controls: r-items VALID_w for their criterion, n1-items VALID_w for any",
         regression_total + neutral_total, estimate, ">= 16/20 r-items and <= 1/10 n1-items",
         "<= 10/20 r-items, or >= 3/10 n1-items", outcome, margin,
         {"r_valid": regression_valid, "r_total": regression_total, "n1_valid": neutral_valid,
-         "n1_total": neutral_total},
+         "n1_total": neutral_total,
+         "isolation_survivors": {"r_valid": survivors_valid, "r_total": survivors_total}},
         None, components,
     )
 
 
 def _d8(ctx: Context) -> EndpointResult:
-    valid_by_criterion: dict[int, int] = defaultdict(int)
+    valid_x_by_criterion: dict[int, int] = defaultdict(int)
+    valid_w_by_criterion: dict[int, int] = defaultdict(int)
     for view in ctx.arm_t_evaluated():
         if view.primary_criterion is not None:
-            valid_by_criterion[view.primary_criterion] += 1
-    enough = sum(1 for c in ctx.criteria if valid_by_criterion[c] >= k.D8_MIN_VALID_PER_CRITERION)
-    total = len(ctx.criteria)
+            valid_w_by_criterion[view.primary_criterion] += 1
+            valid_x_by_criterion[view.primary_criterion] += int(view.primary_valid_x)
+    c_d8 = tuple(ctx.truth.d8_criteria)
+    enough = sum(1 for c in c_d8 if valid_x_by_criterion[c] >= k.D8_MIN_VALID_PER_CRITERION)
+    total = len(c_d8)
     point = enough / total if total else NAN
+    frozen_enough = sum(1 for c in ctx.criteria if valid_w_by_criterion[c] >= k.D8_MIN_VALID_PER_CRITERION)
     return _result(
-        "D8", 2, "criteria with >= 2 VALID arm-T mutants", total, Estimate(point, wilson(enough, total)),
-        "10/10", "<= 7/10", bands.criteria_with_valid_mutants(enough, total),
-        enough / k.D8_GO_CRITERIA - 1 if total else NAN,
-        {"valid_by_criterion": {criterion_ref(c): valid_by_criterion[c] for c in ctx.criteria}},
+        "D8", 2, f"criteria of C_D8 with >= 2 VALID_x arm-T mutants (C_D8 = {[criterion_ref(c) for c in c_d8]})",
+        total, Estimate(point, wilson(enough, total)),
+        f"{total}/{total}", f"<= {total - k.D8_NO_GO_SHORT}/{total}", bands.criteria_with_valid_mutants(enough, total),
+        enough / total - 1 if total else NAN,
+        {
+            "c_d8": [criterion_ref(c) for c in c_d8],
+            "valid_x_by_criterion": {criterion_ref(c): valid_x_by_criterion[c] for c in ctx.criteria},
+            "outside_c_d8": {criterion_ref(c): valid_x_by_criterion[c] for c in ctx.criteria if c not in c_d8},
+            "exposed": {criterion_ref(c): valid_x_by_criterion[c] for c in k.EXPOSED_CRITERIA},
+            "frozen_reading": {
+                "criteria_with_two_valid_w": frozen_enough,
+                "criteria": len(ctx.criteria),
+                "outcome": bands.frozen_criteria_with_valid_mutants(frozen_enough, len(ctx.criteria)).value,
+                "valid_w_by_criterion": {criterion_ref(c): valid_w_by_criterion[c] for c in ctx.criteria},
+            },
+        },
         None,
     )
 
@@ -360,7 +390,7 @@ def judge_endpoint(
     verdicts: Mapping[str, AlignmentVerdict],
     settings: AnalysisSettings,
     subset: Collection[str] | None = None,
-    label: str = "J-SONNET NAME-MASKED",
+    label: str = "J-H NAME-MASKED",
 ) -> EndpointResult:
     """D9: 'predicted bad' (MISALIGNED or UNDETERMINED) against gold bad tests."""
     tests = _tests_of(ctx, subset)
@@ -489,7 +519,7 @@ def cross_check_endpoint(
     signatures: Mapping[str, TestSignature],
     settings: AnalysisSettings,
     subset: Collection[str] | None = None,
-    label: str = "J-SONNET",
+    label: str = "J-H",
 ) -> EndpointResult:
     """D11: Cohen's kappa between the judge's and the matrix's binary verdict on determinate tests."""
     determinate = (AlignmentVerdict.ALIGNED, AlignmentVerdict.MISALIGNED)

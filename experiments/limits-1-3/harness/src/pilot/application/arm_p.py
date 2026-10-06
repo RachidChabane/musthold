@@ -6,10 +6,9 @@ from collections.abc import Mapping
 from typing import Protocol
 
 from pilot.application.mutant_records import NewMutant
+from pilot.domain.arms import ARM_P
 from pilot.domain.edits import EditSet
 from pilot.domain.ids import mutant_id
-
-ARM_P = "P"
 
 
 class ArmPItems(Protocol):

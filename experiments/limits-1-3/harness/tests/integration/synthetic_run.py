@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -16,12 +17,14 @@ import yaml
 
 from pilot.adapters.prereg_files import load_labels
 from pilot.domain.alignment_aggregate import AlignmentAggregate, AlignmentVerdict
+from pilot.domain.execution_validation import valid_x_criteria
 from pilot.domain.mutant_classes import CriterionClass, MutantClass
+from pilot.domain.outcomes import KillResult
 from pilot.domain.labels import TestClass, TestLabel
 from pilot.domain.refs import criterion_ref
 
 EXPERIMENT_ROOT = Path(__file__).resolve().parents[3]
-PREREG_FILES = ("labels.yaml", "label_matrix.csv", "models.lock.json", "REPORT.tmpl.md", "verify_log.txt")
+PREREG_FILES = ("labels.yaml", "label_matrix.csv", "models.lock.json", "REPORT.tmpl.md", "verify_log.txt", "isolation_table.json")
 RUN_ID = "synthetic"
 CRITERIA = tuple(range(1, 11))
 MUTANTS_PER_CRITERION = 4
@@ -29,7 +32,7 @@ SLOTS = ("S1", "S2", "S3")
 ALIGNMENT_REPS = 5
 PROBE_REPS = 3
 TIMING_SECONDS = 3600
-JUDGES_FOR_ALIGNMENT = (("J-SONNET", "NAME-MASKED"), ("J-SONNET", "NAME-SHOWN"), ("J-GPT", "NAME-MASKED"))
+JUDGES_FOR_ALIGNMENT = (("J-H", "NAME-MASKED"), ("J-H", "NAME-SHOWN"), ("J-X", "NAME-MASKED"))
 PLANTED_LETTERS = ("a", "b")
 CLAUDE_COST = 0.05
 
@@ -76,19 +79,21 @@ def noisy_verdict(label: TestLabel, flip: bool) -> str:
 
 
 def class_record(mid: str, arm: str, target: int | None, valid: bool, undetermined: bool = False,
-                 unattributed: bool = False) -> dict[str, Any]:
+                 unattributed: bool = False, killed: Sequence[str] = (), bindings: Mapping[str, str] | None = None) -> dict[str, Any]:
     """A mutant class written by the pipeline's own serializer (`MutantClass.to_mapping`)."""
     per = {criterion_ref(c): CriterionClass.NOT_VIOLATING for c in CRITERIA}
     confidence: dict[str, float] = {}
     if target is not None and valid:
-        per[criterion_ref(target)] = CriterionClass.VALID
+        per[criterion_ref(target)] = CriterionClass.VALID_W
         confidence[criterion_ref(target)] = 0.9
     elif target is not None and undetermined:
         per[criterion_ref(target)] = CriterionClass.UNDETERMINED
     target_ref = criterion_ref(target) if target else None
     included = bool(target and valid)
+    results = {nodeid: KillResult.KILLED if nodeid in killed else KillResult.SURVIVED for nodeid in (bindings or {})}
+    valid_x = valid_x_criteria([target_ref] if included and target_ref else [], True, results, bindings or {})
     return MutantClass(
-        mutant_id=mid, arm=arm, target=target_ref, per_criterion=per, valid_confidence=confidence, equivalent=False,
+        mutant_id=mid, arm=arm, target=target_ref, per_criterion=per, valid_x=valid_x, valid_confidence=confidence, equivalent=False,
         unattributed=unattributed, off_target=False, collateral=False, primary_included=included,
         primary_criterion=target_ref if included else None, discarded=False, survived_all=False,
     ).to_mapping()
@@ -136,6 +141,7 @@ class _RunBuilder:
         self.calls: dict[str, dict[str, Any]] = {}
         self.planted_labels: dict[str, Any] = {}
         self.nodeids = [label.nodeid for label in labels]
+        self.bindings = {label.nodeid: criterion_ref(label.cites) for label in labels}
 
     def write_all(self) -> None:
         self._arm_t()
@@ -184,12 +190,12 @@ class _RunBuilder:
                 self._add_mutant(mid, "T", criterion, SLOTS[index % 3], call_id, killed,
                                  [] if wrong else [criterion], diff="NO_DIFF_FOUND" if wrong else "DIFFERS")
                 self.classes.append(class_record(mid, "T", criterion, valid=not wrong and not undetermined,
-                                                 undetermined=undetermined))
+                                                 undetermined=undetermined, killed=killed, bindings=self.bindings))
                 self._validity_rows(mid, criterion, not wrong and not undetermined)
                 self.calls[call_id] = _call(cost=CLAUDE_COST)
         unattributed = mutant_id("T-unattributed")
         self._add_mutant(unattributed, "T", 1, "S3", "gen-1-0", [self.nodeids[0]], [])
-        self.classes.append(class_record(unattributed, "T", 1, valid=False, unattributed=True))
+        self.classes.append(class_record(unattributed, "T", 1, valid=False, unattributed=True, bindings=self.bindings))
         self._validity_rows(unattributed, 1, False)
         duplicate = mutant_id("T-duplicate")
         self.mutants.append({"mutant_id": duplicate, "arm": "T", "target": criterion_ref(1), "slot": "S1",
@@ -201,11 +207,11 @@ class _RunBuilder:
         self.oracle[duplicate] = {"arm": "T", "failed_criteria": [1], "source": f"inherited:{mutant_id('T-1-0')}"}
 
     def _validity_rows(self, mid: str, target: int | None, violated: bool) -> None:
-        for judge in ("V-S", "V-G"):
+        for judge in ("V-H1", "V-H2"):
             cid = f"val-{judge}-{mid}"
             self.validity.append({"mutant_id": mid, "judge": judge, "call_id": cid, "status": "ok",
                                   "payload": payload_for(target, violated)})
-            self.calls[cid] = _call(cost=CLAUDE_COST if judge == "V-S" else None)
+            self.calls[cid] = _call(cost=CLAUDE_COST if judge == "V-H1" else None)
             if violated and target is not None:
                 self.witness.append({"mutant_id": mid, "judge": judge, "criterion": criterion_ref(target),
                                      "confirmed": True, "reference_out": "0", "mutant_out": "1", "error": None})
@@ -216,12 +222,13 @@ class _RunBuilder:
                 mid = mutant_id(f"P-{criterion}-{letter}")
                 valid = not (criterion == 10 and letter == "b")
                 self._add_mutant(mid, "P", None, None, None, killers_for(self.labels, criterion, 1), [criterion])
-                self.classes.append(class_record(mid, "P", criterion, valid=valid))
+                self.classes.append(class_record(mid, "P", criterion, valid=valid,
+                                                 killed=killers_for(self.labels, criterion, 1), bindings=self.bindings))
                 self._validity_rows(mid, criterion, valid)
                 self.planted_labels[mid] = {"source": f"PARK-{criterion}_{letter}", "declared_target": criterion_ref(criterion), "kind": "r"}
             neutral = mutant_id(f"P-{criterion}-n1")
             self._add_mutant(neutral, "P", None, None, None, [], [], diff="NO_DIFF_FOUND")
-            self.classes.append(class_record(neutral, "P", criterion, valid=False))
+            self.classes.append(class_record(neutral, "P", criterion, valid=False, bindings=self.bindings))
             self._validity_rows(neutral, criterion, False)
             self.planted_labels[neutral] = {"source": f"PARK-{criterion}_n1", "declared_target": criterion_ref(criterion), "kind": "n1"}
 
@@ -254,16 +261,16 @@ class _RunBuilder:
         calls, aggregate = [], []
         for judge, arm in JUDGES_FOR_ALIGNMENT:
             for index, label in enumerate(self.labels):
-                flip = index % 5 == 0 if judge == "J-SONNET" else index % 3 == 0
+                flip = index % 5 == 0 if judge == "J-H" else index % 3 == 0
                 verdict = noisy_verdict(label, flip)
-                undetermined = self.flaky and judge == "J-SONNET" and arm == "NAME-MASKED" and index == 1
+                undetermined = self.flaky and judge == "J-H" and arm == "NAME-MASKED" and index == 1
                 for rep in range(ALIGNMENT_REPS):
                     cid = f"al-{judge}-{arm}-{index}-{rep}"
                     ref = criterion_ref(label.cites) if verdict == "ALIGNED" else "NONE"
                     calls.append({"judge": judge, "arm": arm, "nodeid": label.nodeid, "rep": rep, "call_id": cid,
                                   "status": "ok", "verifies_ref": ref, "coverage": "FULL" if ref != "NONE" else "NONE",
                                   "confidence": 80, "rationale": "synthetic"})
-                    self.calls[cid] = _call(cost=CLAUDE_COST if judge == "J-SONNET" else None)
+                    self.calls[cid] = _call(cost=CLAUDE_COST if judge == "J-H" else None)
                 final = AlignmentVerdict.UNDETERMINED if undetermined else AlignmentVerdict(verdict)
                 row = AlignmentAggregate(
                     modal_ref=criterion_ref(label.cites) if verdict == "ALIGNED" else "NONE", modal_share=1.0,
@@ -283,7 +290,7 @@ class _RunBuilder:
 
     def _probe_relabel(self) -> None:
         probes, relabels = [], []
-        for judge in ("J-SONNET", "J-GPT"):
+        for judge in ("J-H", "J-X"):
             for index, label in enumerate(self.labels):
                 for rep in range(PROBE_REPS):
                     guess = "TARGETED" if (index + rep) % 2 == 0 else "OTHER"

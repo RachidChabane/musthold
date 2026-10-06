@@ -34,7 +34,7 @@ class CostLine:
 
 
 def attribute_calls(ctx: Context) -> dict[str, CallAttribution]:
-    """Production-path calls by criterion: arm-T generation, both validity judges, J-SONNET NAME-MASKED."""
+    """Production-path calls by criterion: arm-T generation, both validity judges, J-H NAME-MASKED."""
     found: dict[str, CallAttribution] = {}
     for meta in ctx.run.mutants.values():
         if meta.arm == k.ARM_T and meta.generator_call_id:
@@ -43,10 +43,10 @@ def attribute_calls(ctx: Context) -> dict[str, CallAttribution]:
             )
     for row in ctx.run.validity:
         meta = ctx.run.mutants.get(row.mutant_id)
-        if meta is not None and meta.arm == k.ARM_T and row.judge in (k.VALIDITY_JUDGE_SONNET, k.VALIDITY_JUDGE_GPT):
-            found[row.call_id] = CallAttribution(row.call_id, PRODUCTION, meta.target, row.judge == k.VALIDITY_JUDGE_SONNET)
+        if meta is not None and meta.arm == k.ARM_T and row.judge in (k.VALIDITY_JUDGE_H1, k.VALIDITY_JUDGE_H2):
+            found[row.call_id] = CallAttribution(row.call_id, PRODUCTION, meta.target, row.judge == k.VALIDITY_JUDGE_H1)
     for call in ctx.run.alignment_calls:
-        if call.judge == k.JUDGE_SONNET and call.arm == k.ALIGNMENT_ARM_MASKED:
+        if call.judge == k.JUDGE_H and call.arm == k.ALIGNMENT_ARM_MASKED:
             found[call.call_id] = CallAttribution(call.call_id, PRODUCTION, ctx.declared.get(call.nodeid), True)
     return found
 

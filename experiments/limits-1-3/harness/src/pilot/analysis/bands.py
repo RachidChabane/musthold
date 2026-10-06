@@ -89,10 +89,19 @@ def planted_controls(
 
 
 def criteria_with_valid_mutants(criteria_count: int, criteria_total: int) -> Outcome:
-    """D8: criteria that have at least two VALID arm-T mutants."""
+    """D8 over C_D8: every criterion with at least two VALID_x arm-T mutants is GO, three or more short is NO-GO."""
     if criteria_total <= 0:
         return Outcome.INCONCLUSIVE
-    return _resolve(criteria_count >= k.D8_GO_CRITERIA, criteria_count <= k.D8_NO_GO_CRITERIA_MAX)
+    return _resolve(criteria_count >= criteria_total, criteria_count <= criteria_total - k.D8_NO_GO_SHORT)
+
+
+def frozen_criteria_with_valid_mutants(criteria_count: int, criteria_total: int) -> Outcome:
+    """D8, frozen reading over all ten criteria with VALID_w mutants: reported, never decisional."""
+    if criteria_total <= 0:
+        return Outcome.INCONCLUSIVE
+    return _resolve(
+        criteria_count >= k.D8_FROZEN_GO_CRITERIA, criteria_count <= k.D8_FROZEN_NO_GO_CRITERIA_MAX
+    )
 
 
 def bad_test_detection(recall: Estimate, precision: Estimate, always_misaligned_precision: float) -> Outcome:

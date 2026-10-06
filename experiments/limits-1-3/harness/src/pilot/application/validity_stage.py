@@ -1,4 +1,4 @@
-"""Validity judges V-S, V-G and the mutant audit A-OPUS, with executed witnesses (PREREG 6.5, 6.7)."""
+"""Validity judges V-H1, V-H2 and the mutant audit A-OPUS, with executed witnesses (PREREG 6.5, 6.7)."""
 
 from __future__ import annotations
 

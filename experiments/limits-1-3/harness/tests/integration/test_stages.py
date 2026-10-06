@@ -19,7 +19,7 @@ from pilot.adapters.witness_runner import SubprocessWitnessExecutor
 from pilot.application.leak_audit_stage import LeakAuditMissing, run_leak_audit
 from pilot.application.relabel_stage import run_relabel
 from pilot.application.traceability_stage import TraceabilityFailed, ensure_traceability
-from pilot.domain.analysis_constants import PREREG_TAG, SUPERSEDED_PREREG_TAG
+from pilot.domain.preregistration import PREREG_TAG, SUPERSEDED_PREREG_TAG
 from pilot.domain.call_type import CallType
 from pilot.domain.edits import Edit, EditSet
 from pilot.domain.model_call import CanaryBaseline, MissingResult

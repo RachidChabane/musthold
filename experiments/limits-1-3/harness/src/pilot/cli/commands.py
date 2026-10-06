@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from argparse import Namespace
 from collections.abc import Sequence
@@ -23,9 +24,11 @@ from pilot.adapters.project_copy import ProjectWorkspace, temporary_work_root
 from pilot.adapters.pytest_runner import PytestJunitRunner, WorkspaceVariantRunner
 from pilot.adapters.shallnot import ShallnotTraceability
 from pilot.application.assemble_arm_p import assemble_items
+from pilot.application.isolation_table_stage import compute_isolation_table
 from pilot.application.leak_check import leak_check
 from pilot.application.runner_crosscheck import runner_crosscheck
 from pilot.application.traceability_check import traceability_check
+from pilot.application.traceability_stage import TraceabilityFailed
 from pilot.application.verify_labels import LabelVerification, verify_labels
 from pilot.cli.layout import ExperimentLayout
 from pilot.domain.constants import (
@@ -34,6 +37,7 @@ from pilot.domain.constants import (
 )
 from pilot.domain.edits import EditSet
 from pilot.domain.ground_truth_paths import ORACLE_FILE_GLOB
+from pilot.domain.isolation_table import ISOLATION_TABLE_FILENAME
 from pilot.domain.label_rules import ExpectedCounts
 from pilot.domain.variants import VariantKind
 
@@ -132,4 +136,23 @@ def assemble_arm_p_command(args: Namespace) -> int:
     )
     write_arm_p(layout.arm_p_items, layout.arm_p_labels, items)
     print(f"assemble-arm-p: {len(items)} items written to {layout.arm_p_items}")
+    return EXIT_OK
+
+
+def isolation_table_command(args: Namespace) -> int:
+    """Writes `prereg/isolation_table.json`: C_D8 and the violations another binding's test kills (no model call)."""
+    layout = ExperimentLayout(args.root)
+    process = local_process_runner()
+    matrix = read_label_matrix(layout.prereg / LABEL_MATRIX_FILENAME)
+    with temporary_work_root() as work_root:
+        workspace = ProjectWorkspace(layout.project, work_root, AstEditApplier())
+        port = ShallnotTraceability(workspace, PytestJunitRunner(process), process)
+        try:
+            table = compute_isolation_table(port, matrix, args.expected_tests, args.expected_criteria)
+        except TraceabilityFailed as failure:
+            return _report("isolation-table", [failure])
+    out_dir = args.out_dir or layout.prereg
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / ISOLATION_TABLE_FILENAME).write_text(json.dumps(table.to_mapping(), indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(f"isolation-table: C_D8 = {list(table.d8_criteria)} written to {out_dir / ISOLATION_TABLE_FILENAME}")
     return EXIT_OK

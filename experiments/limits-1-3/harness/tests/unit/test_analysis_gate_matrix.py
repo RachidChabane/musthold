@@ -1,4 +1,4 @@
-"""Gate rules (PREREG 9.2) and matrix classifier (PREREG 8)."""
+"""Matrix classifier (PREREG 8)."""
 
 from __future__ import annotations
 
@@ -6,21 +6,6 @@ import pytest
 from hypothesis import given, strategies as st
 
 from pilot.domain.alignment_aggregate import AlignmentVerdict
-from pilot.domain.gate import (
-    G0,
-    G1,
-    G2,
-    G3,
-    G3_LENIENT,
-    G3_STRICT,
-    POLICIES,
-    CriterionEvidence,
-    GateInputs,
-    GateOutcome,
-    MutantResults,
-    Rule,
-    evaluate_gate,
-)
 from pilot.domain.matrix import (
     AMBIGUOUS_LABEL,
     NO_LABEL,
@@ -34,144 +19,6 @@ from pilot.domain.matrix import (
 
 A, B, C = "tests/t.py::a", "tests/t.py::b", "tests/t.py::c"
 ALIGNED, MISALIGNED, UNDETERMINED = AlignmentVerdict.ALIGNED, AlignmentVerdict.MISALIGNED, AlignmentVerdict.UNDETERMINED
-
-
-def results(kill_sets):
-    return tuple(k if isinstance(k, MutantResults) else MutantResults(frozenset(k)) for k in kill_sets)
-
-
-def inputs(valid=(), undetermined=(), alignment=None, trace=True, reference=None, tests=(A, B, C)):
-    return GateInputs(
-        trace,
-        reference if reference is not None else {t: True for t in tests},
-        CriterionEvidence(results(valid), results(undetermined)),
-        alignment if alignment is not None else {t: ALIGNED for t in tests},
-    )
-
-
-def decide(policy, tests, **kw):
-    return evaluate_gate(policy, tests, inputs(**kw))
-
-
-def test_an_error_is_neither_a_kill_nor_a_survival():
-    errored = MutantResults(frozenset(), frozenset({A}))
-    assert not decide(G1, {A}, valid=[errored, {A}]).fired
-    assert Rule.NO_KILLED_VALID in decide(G1, {A}, valid=[errored]).fired
-    assert Rule.SURVIVING_VALID not in decide(G1, {A}, valid=[errored]).fired
-    assert decide(G1, {A}, valid=[{A}], undetermined=[errored]).outcome is GateOutcome.PASS
-    assert decide(G1, {A, B}, valid=[{A}], undetermined=[errored]).outcome is GateOutcome.PASS
-    assert decide(G1, {B}, valid=[{B}], undetermined=[errored]).outcome is GateOutcome.ESCALATE
-
-
-def test_a_clean_scenario_passes_under_every_policy():
-    for policy in POLICIES.values():
-        assert decide(policy, {A}, valid=[{A}]).outcome is GateOutcome.PASS
-
-
-def test_rule_1_blocks_when_traceability_fails_even_under_g0():
-    assert decide(G0, {A}, valid=[{A}], trace=False).outcome is GateOutcome.BLOCK
-
-
-def test_g0_ignores_everything_but_traceability():
-    result = decide(G0, {A}, valid=[{B}], alignment={A: MISALIGNED}, reference={A: False})
-    assert result.outcome is GateOutcome.PASS and result.fired == ()
-
-
-def test_rule_2_blocks_when_the_reference_fails_a_test_in_the_scenario():
-    result = decide(G1, {A, B}, valid=[{A}], reference={A: True, B: False})
-    assert result.outcome is GateOutcome.BLOCK and Rule.REFERENCE_PASSES in result.fired
-
-
-def test_rule_3_blocks_when_a_valid_mutant_survives_every_test_in_the_scenario():
-    result = decide(G1, {A}, valid=[{A}, {B}])
-    assert result.outcome is GateOutcome.BLOCK and Rule.SURVIVING_VALID in result.fired
-
-
-def test_rule_4_blocks_when_no_valid_mutant_is_killed_and_also_when_there_is_none():
-    assert Rule.NO_KILLED_VALID in decide(G1, {A}, valid=[{B}]).fired
-    assert decide(G1, {A}, valid=[]).outcome is GateOutcome.BLOCK
-
-
-def test_rule_5_escalates_on_a_surviving_undetermined_mutant_but_not_a_killed_one():
-    assert decide(G1, {A}, valid=[{A}], undetermined=[{B}]).outcome is GateOutcome.ESCALATE
-    assert decide(G1, {A}, valid=[{A}], undetermined=[{A}]).outcome is GateOutcome.PASS
-
-
-@pytest.mark.parametrize("verdict", [MISALIGNED, UNDETERMINED])
-def test_rule_6_escalates_when_a_test_is_not_aligned(verdict):
-    result = decide(G3, {A, B}, valid=[{A}], alignment={A: ALIGNED, B: verdict})
-    assert result.outcome is GateOutcome.ESCALATE and result.fired == (Rule.ALIGNMENT,)
-
-
-def test_a_test_without_an_alignment_verdict_counts_as_undetermined():
-    assert decide(G3, {A}, valid=[{A}], alignment={}).outcome is GateOutcome.ESCALATE
-
-
-def test_g2_reads_only_traceability_and_alignment():
-    result = decide(G2, {A}, valid=[{B}], alignment={A: MISALIGNED})
-    assert result.fired == (Rule.ALIGNMENT,)
-
-
-def test_block_takes_precedence_over_escalate_in_the_same_scenario():
-    result = decide(G3, {A}, valid=[{B}], alignment={A: MISALIGNED})
-    assert result.outcome is GateOutcome.BLOCK
-    assert Rule.ALIGNMENT in result.fired
-
-
-def test_strict_turns_escalation_into_block_and_lenient_into_pass():
-    kw = dict(valid=[{A}], alignment={A: MISALIGNED})
-    assert decide(G3, {A}, **kw).outcome is GateOutcome.ESCALATE
-    assert decide(G3_STRICT, {A}, **kw).outcome is GateOutcome.BLOCK
-    assert decide(G3_LENIENT, {A}, **kw).outcome is GateOutcome.PASS
-
-
-def test_lenient_and_strict_keep_blocks_as_blocks():
-    assert decide(G3_LENIENT, {A}, valid=[{B}]).outcome is GateOutcome.BLOCK
-
-
-kill_sets = st.lists(st.frozensets(st.sampled_from([A, B, C])), max_size=4)
-verdicts = st.sampled_from(list(AlignmentVerdict))
-
-
-@given(
-    scenario=st.frozensets(st.sampled_from([A, B, C]), min_size=1),
-    valid=kill_sets,
-    undetermined=kill_sets,
-    alignment=st.fixed_dictionaries({A: verdicts, B: verdicts, C: verdicts}),
-    trace=st.booleans(),
-    reference=st.fixed_dictionaries({A: st.booleans(), B: st.booleans(), C: st.booleans()}),
-)
-def test_gate_precedence_block_over_escalate_over_pass(scenario, valid, undetermined, alignment, trace, reference):
-    data = GateInputs(trace, reference, CriterionEvidence(results(valid), results(undetermined)), alignment)
-    decision = evaluate_gate(G3, scenario, data)
-    fired_outcomes = {rule.outcome for rule in decision.fired}
-    if GateOutcome.BLOCK in fired_outcomes:
-        assert decision.outcome is GateOutcome.BLOCK
-    elif GateOutcome.ESCALATE in fired_outcomes:
-        assert decision.outcome is GateOutcome.ESCALATE
-    else:
-        assert decision.outcome is GateOutcome.PASS
-    assert evaluate_gate(G3, scenario, data) == decision
-    assert evaluate_gate(G3_STRICT, scenario, data).outcome == (
-        GateOutcome.BLOCK if decision.outcome is not GateOutcome.PASS else GateOutcome.PASS
-    )
-    assert evaluate_gate(G3_LENIENT, scenario, data).outcome == (
-        GateOutcome.BLOCK if decision.outcome is GateOutcome.BLOCK else GateOutcome.PASS
-    )
-
-
-@given(
-    scenario=st.frozensets(st.sampled_from([A, B, C]), min_size=1),
-    valid=kill_sets,
-    undetermined=kill_sets,
-    alignment=st.fixed_dictionaries({A: verdicts, B: verdicts, C: verdicts}),
-)
-def test_g1_and_g2_decisions_never_exceed_g3(scenario, valid, undetermined, alignment):
-    data = GateInputs(True, {A: True, B: True, C: True}, CriterionEvidence(results(valid), results(undetermined)), alignment)
-    g3 = evaluate_gate(G3, scenario, data).outcome
-    assert evaluate_gate(G1, scenario, data).outcome <= g3
-    assert evaluate_gate(G2, scenario, data).outcome <= g3
-    assert evaluate_gate(G0, scenario, data).outcome <= g3
 
 
 # ----------------------------------------------------------------------------- matrix
@@ -275,42 +122,3 @@ def test_matrix_signature_rules_are_exhaustive_and_consistent(pool, declared):
 
 
 # ----------------------------------------------------------------------------- gate pools
-
-
-class PoolContext:
-    """The slice of the analysis context that `gate_evidence` reads."""
-
-    def __init__(self, views, results, declared):
-        self.views, self.results, self.declared = views, results, declared
-
-    def arm_t_evaluated(self):
-        return self.views
-
-    def results_of(self, mutant_id):
-        return self.results[mutant_id]
-
-
-def view(mutant_id, target, per_criterion, discarded=False):
-    from pilot.domain.run_records import MutantClassView
-
-    valid = [c for c, v in per_criterion.items() if v == "VALID"]
-    return MutantClassView(
-        mutant_id, "T", target, per_criterion, {c: 0.9 for c in valid}, False, False, False,
-        len(valid) >= 2, target if valid == [target] else None, discarded, False,
-    )
-
-
-def test_gate_pools_are_the_undiscarded_mutants_generated_for_the_criterion():
-    from pilot.analysis.model import gate_evidence
-
-    views = [
-        view("collateral", 3, {3: "VALID", 5: "VALID"}),
-        view("exclusive", 3, {3: "VALID"}),
-        view("off-target", 5, {3: "VALID"}),
-        view("discarded", 3, {3: "UNDETERMINED"}, discarded=True),
-        view("open", 3, {3: "UNDETERMINED"}),
-    ]
-    results = {v.mutant_id: MutantResults(frozenset({v.mutant_id})) for v in views}
-    evidence = gate_evidence(PoolContext(views, results, {}), 3)  # type: ignore[arg-type]
-    assert {next(iter(m.killed)) for m in evidence.valid} == {"collateral", "exclusive"}
-    assert [next(iter(m.killed)) for m in evidence.undetermined] == ["open"]

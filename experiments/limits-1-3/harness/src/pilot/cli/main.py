@@ -71,6 +71,10 @@ def build_parser() -> tuple[argparse.ArgumentParser, dict[str, Handler]]:
     _add_out_dir(sub)
     _add_counts(sub, "tests", "criteria")
 
+    sub = verb("isolation-table", commands.isolation_table_command, "C_D8 and the isolation of the hand-written violations")
+    _add_out_dir(sub)
+    _add_counts(sub, "tests", "criteria")
+
     sub = verb("canary", pipeline_commands.canary_command, "one synthetic call per (model, call type)")
     sub.add_argument("--run-id", required=True)
     sub.add_argument("--models", nargs="+", default=None, help="restrict to these model names")

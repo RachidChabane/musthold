@@ -24,9 +24,9 @@ from pilot.domain.pipeline_constants import (
 )
 
 SECONDARY_ALIGNMENT = (
-    (Judge.J_SONNET, Arm.NAME_SHOWN),
-    (Judge.J_GPT, Arm.NAME_MASKED),
-    (Judge.J_GPT, Arm.NAME_SHOWN),
+    (Judge.J_H, Arm.NAME_SHOWN),
+    (Judge.J_X, Arm.NAME_MASKED),
+    (Judge.J_X, Arm.NAME_SHOWN),
 )
 
 
@@ -44,7 +44,7 @@ def run_secondary(core: CoreDependencies) -> None:
         run_alignment(ctx, SECONDARY_ALIGNMENT, nodeids, PACKAGE_NAME)
         aggregate_and_prove(ctx, bindings, ctx.criteria())
     with core.timer.stage("secondary-probe"):
-        run_probe(ctx, [Judge.J_GPT], nodeids)
+        run_probe(ctx, [Judge.J_X], nodeids)
     with core.timer.stage("arm-o"):
         _process_arm_o(core)
     with core.timer.stage("audit"):

@@ -29,18 +29,18 @@ def _short(nodeid: str) -> str:
 
 def test_failures(ctx: Context, signatures: Mapping[str, TestSignature]) -> list[list[str]]:
     rows: list[list[str]] = []
-    verdicts = judge_verdicts(ctx, k.JUDGE_SONNET, k.ALIGNMENT_ARM_MASKED, False)
+    verdicts = judge_verdicts(ctx, k.JUDGE_H, k.ALIGNMENT_ARM_MASKED, False)
     for nodeid in ctx.nodeids:
         truth = truth_verdict(ctx, nodeid)
         label = label_of(ctx, nodeid)
-        view = ctx.run.alignment.get((k.JUDGE_SONNET, k.ALIGNMENT_ARM_MASKED, nodeid))
+        view = ctx.run.alignment.get((k.JUDGE_H, k.ALIGNMENT_ARM_MASKED, nodeid))
         if verdicts[nodeid] is not truth:
             chain = (
                 f"label {label}, declared {criterion_ref(ctx.declared[nodeid])}; modal answer "
                 f"{view.modal_ref if view else 'missing'} with coverage {view.modal_coverage if view else 'n/a'} "
                 f"and share {view.modal_share if view else 0:.2f}; verdict {verdicts[nodeid].value}, truth {truth.value}"
             )
-            rows.append([KIND_JUDGE, nodeid, f"J-SONNET NAME-MASKED {verdicts[nodeid].value} on a {label} test", chain])
+            rows.append([KIND_JUDGE, nodeid, f"J-H NAME-MASKED {verdicts[nodeid].value} on a {label} test", chain])
         signature = signatures[nodeid]
         if signature.verdict is not truth and not (
             signature.verdict is AlignmentVerdict.UNDETERMINED and truth is AlignmentVerdict.MISALIGNED

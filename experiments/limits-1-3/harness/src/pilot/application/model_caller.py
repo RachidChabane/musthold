@@ -50,6 +50,7 @@ class ModelCaller:
         log: Log,
         max_workers: int,
         require_baseline: bool = True,
+        recorded: Callable[[str], bool] = lambda _call_id: False,
     ) -> None:
         self._port = port
         self._baselines = baselines
@@ -57,11 +58,17 @@ class ModelCaller:
         self._log = log
         self._max_workers = max_workers
         self._require_baseline = require_baseline
+        self._recorded = recorded
+
+    def is_recorded(self, call_id: str) -> bool:
+        """A call whose result is already on disk is resumed, never repeated."""
+        return self._recorded(call_id)
 
     def call_all(self, stage: str, specs: Sequence[CallSpec]) -> dict[str, ModelOutcome]:
         self._check_baselines(specs)
         outcomes: dict[str, ModelOutcome] = {}
         stop = threading.Event()
+        stopped: list[QuotaExhausted] = []
         lock = threading.Lock()
 
         def work(spec: CallSpec) -> None:
@@ -69,7 +76,8 @@ class ModelCaller:
                 return
             try:
                 outcome = self._port.call(self._request(spec), self._baselines.get((spec.pin.key, spec.call_type)))
-            except QuotaExhausted:
+            except QuotaExhausted as reached:
+                stopped.append(reached)
                 stop.set()
                 return
             with lock:
@@ -80,13 +88,19 @@ class ModelCaller:
             list(pool.map(work, specs))
         if stop.is_set():
             self._log(f"[{stage}] quota or rate limit reached after {len(outcomes)}/{len(specs)} calls; rerun to resume")
-            raise QuotaExhausted(stage)
+            raise stopped[0]
         return outcomes
 
     def _check_baselines(self, specs: Sequence[CallSpec]) -> None:
         if not self._require_baseline:
             return
-        missing = sorted({f"{s.pin.key}/{s.call_type.value}" for s in specs if (s.pin.key, s.call_type) not in self._baselines})
+        missing = sorted(
+            {
+                f"{s.pin.key}/{s.call_type.value}"
+                for s in specs
+                if (s.pin.key, s.call_type) not in self._baselines and not self._recorded(s.call_id)
+            }
+        )
         if missing:
             raise MissingCanary(f"no canary baseline for {missing}; run canary first")
 

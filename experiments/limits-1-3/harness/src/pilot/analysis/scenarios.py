@@ -8,9 +8,9 @@ from enum import Enum
 from itertools import combinations
 
 from pilot.adapters.shallnot import parse_report
-from pilot.analysis.model import Context, gate_evidence, oracle_valid_kill_sets, oracle_valid_results
+from pilot.analysis.model import Context, EvidenceTruth, gate_evidence, oracle_valid_kill_sets
 from pilot.domain.alignment_aggregate import AlignmentVerdict
-from pilot.domain.analysis_constants import ALIGNMENT_ARM_MASKED, JUDGE_SONNET
+from pilot.domain.analysis_constants import ALIGNMENT_ARM_MASKED, JUDGE_H
 from pilot.domain.gate import (
     G3,
     CriterionEvidence,
@@ -41,14 +41,13 @@ class Scenario:
 
 @dataclass(frozen=True)
 class GateVariant:
-    """Which evidence the gate reads: judge, alignment arm, S1 rule and F_brief filter."""
+    """Which evidence the gate reads: judge, alignment arm and S1 rule."""
 
     name: str
     policy: GatePolicy = G3
-    judge: str = JUDGE_SONNET
+    judge: str = JUDGE_H
     alignment_arm: str = ALIGNMENT_ARM_MASKED
     use_s1: bool = False
-    f_brief: bool = False
 
 
 @dataclass(frozen=True)
@@ -115,13 +114,13 @@ def simulate(
     variant: GateVariant,
     *,
     alignment: dict[str, AlignmentVerdict] | None = None,
-    oracle_evidence: bool = False,
+    evidence_truth: EvidenceTruth = EvidenceTruth.NONE,
 ) -> list[ScenarioOutcome]:
     """Gate decisions for every scenario; the substitutions of 9.4 replace links by their truth."""
     traceable = traceability_passes(ctx)
     references = ctx.run.reference_passes
     verdicts = alignment if alignment is not None else alignment_verdicts(ctx, variant)
-    evidence = {c: _evidence(ctx, c, variant, oracle_evidence) for c in ctx.criteria}
+    evidence = {c: gate_evidence(ctx, c, evidence_truth) for c in ctx.criteria}
     return [
         ScenarioOutcome(
             s,
@@ -129,11 +128,3 @@ def simulate(
         )
         for s in scenarios
     ]
-
-
-def _evidence(
-    ctx: Context, criterion: int, variant: GateVariant, oracle_evidence: bool
-) -> CriterionEvidence:
-    if oracle_evidence:
-        return CriterionEvidence(tuple(oracle_valid_results(ctx, criterion)), ())
-    return gate_evidence(ctx, criterion, variant.f_brief)

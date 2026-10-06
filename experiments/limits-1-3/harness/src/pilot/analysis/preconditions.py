@@ -21,6 +21,7 @@ from pilot.analysis.stats import (
 from pilot.domain import analysis_constants as k
 from pilot.domain.deviations import DeviationEntry, DeviationKind, parse_deviations
 from pilot.domain.labels import TestClass
+from pilot.domain.model_slate import CANARY_PINS
 
 VERIFY_PASS_LINE = "RESULT: PASS"
 RATER_COUNT = 3
@@ -58,6 +59,7 @@ class Precondition:
 
 
 ALL_ENDPOINTS = k.ENDPOINT_IDS
+CANARY_SCOPE = {(pin.model, pin.cli.value) for pin in CANARY_PINS}
 
 
 def p1_ground_truth(ctx: Context) -> Precondition:
@@ -161,13 +163,13 @@ def probe_accuracy(ctx: Context, judge: str) -> tuple[int, int]:
 
 
 def p3_leakage(ctx: Context) -> Precondition:
-    correct, total = probe_accuracy(ctx, k.JUDGE_SONNET)
+    correct, total = probe_accuracy(ctx, k.JUDGE_H)
     if total == 0:
-        return Precondition("P3", "leakage probe not significant for J-SONNET", Status.UNEVALUABLE,
+        return Precondition("P3", "leakage probe not significant for J-H", Status.UNEVALUABLE,
                             "no probe answers", k.JUDGE_ENDPOINTS + k.CROSS_CHECK_ENDPOINTS)
     p_value = binomial_greater_p(correct, total)
     return Precondition(
-        "P3", "leakage probe not significant for J-SONNET (one-sided exact binomial against 0.5, alpha 0.05)",
+        "P3", "leakage probe not significant for J-H (one-sided exact binomial against 0.5, alpha 0.05)",
         Status.PASS if p_value > k.BINOMIAL_ALPHA else Status.FAIL,
         f"{correct}/{total} separated, p = {p_value:.4f}", k.JUDGE_ENDPOINTS + k.CROSS_CHECK_ENDPOINTS,
     )
@@ -180,12 +182,13 @@ def pins_of_lock(lock: Mapping[str, object]) -> list[tuple[str, str]]:
 
 def p4_canaries_and_pins(ctx: Context, lock: Mapping[str, object]) -> Precondition:
     pins = pins_of_lock(lock)
-    missing = [f"{m}__{c}" for m, c in pins if not any(f.startswith(f"{m}__{c}__") for f in ctx.run.canary_files)]
+    canaried = [pin for pin in pins if pin in CANARY_SCOPE]
+    missing = [f"{m}__{c}" for m, c in canaried if not any(f.startswith(f"{m}__{c}__") for f in ctx.run.canary_files)]
     manifest_models = _manifest_models(ctx.run.manifest)
     unknown = sorted(manifest_models - {m for m, _ in pins})
     problems = [f"no canary for {m}" for m in missing] + [f"manifest model {m} not in the lock" for m in unknown]
-    if not pins:
-        problems.append("no pins in the lock")
+    if not canaried:
+        problems.append("no canaried pin in the lock")
     return Precondition("P4", "canaries pass and every pin matches", Status.FAIL if problems else Status.PASS,
                         "; ".join(problems) or "all pins have canaries", ALL_ENDPOINTS, forces_inconclusive=True)
 
@@ -217,13 +220,13 @@ def missing_rates(ctx: Context) -> list[MissingRate]:
     rates: list[MissingRate] = []
     evaluated = [m for m, p in ctx.run.processing.items()
                  if not p.stillborn and p.status == k.STATUS_OK and ctx.run.mutants[m].arm in (k.ARM_T, k.ARM_P)]
-    for judge in (k.VALIDITY_JUDGE_SONNET, k.VALIDITY_JUDGE_GPT):
+    for judge in (k.VALIDITY_JUDGE_H1, k.VALIDITY_JUDGE_H2):
         answered = {r.mutant_id for r in ctx.run.validity if r.judge == judge and r.status == k.CALL_OK}
         rates.append(MissingRate(judge, sum(1 for m in evaluated if m not in answered), len(evaluated)))
-    for judge in (k.JUDGE_SONNET, k.JUDGE_GPT):
+    for judge in (k.JUDGE_H, k.JUDGE_X):
         for arm in (k.ALIGNMENT_ARM_MASKED, k.ALIGNMENT_ARM_SHOWN):
             calls = [c for c in ctx.run.alignment_calls if c.judge == judge and c.arm == arm]
-            if not calls and judge != k.JUDGE_SONNET:
+            if not calls and judge != k.JUDGE_H:
                 continue
             answered_calls = sum(1 for c in calls if c.status == k.CALL_OK)
             expected = len(ctx.nodeids) * k.EXPECTED_ALIGNMENT_REPS
@@ -245,9 +248,9 @@ def p5_missing_rates(ctx: Context) -> list[Precondition]:
 
 
 def _judge_endpoints(judge: str) -> tuple[str, ...]:
-    if judge in (k.VALIDITY_JUDGE_SONNET, k.VALIDITY_JUDGE_GPT):
+    if judge in (k.VALIDITY_JUDGE_H1, k.VALIDITY_JUDGE_H2):
         return k.GATE_ENDPOINTS + k.VALIDITY_ENDPOINTS + k.MATRIX_ENDPOINTS + k.CROSS_CHECK_ENDPOINTS
-    if judge == f"{k.JUDGE_SONNET} {k.ALIGNMENT_ARM_MASKED}":
+    if judge == f"{k.JUDGE_H} {k.ALIGNMENT_ARM_MASKED}":
         return k.GATE_ENDPOINTS + k.JUDGE_ENDPOINTS + k.CROSS_CHECK_ENDPOINTS
     return ()
 

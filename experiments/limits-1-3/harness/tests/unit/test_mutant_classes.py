@@ -21,8 +21,11 @@ def verdict(violated=(), confidence=0.9, equivalent=False, equivalent_confidence
     )
 
 
-def evidence(judges, kills=KILLED, differential=DifferentialKind.DIFFERS, target="PARK-3~1"):
-    return MutantEvidence("m", "T", target, kills, differential, judges)
+BINDINGS = {"t1": "PARK-3~1", "t2": "PARK-3~1"}
+
+
+def evidence(judges, kills=KILLED, differential=DifferentialKind.DIFFERS, target="PARK-3~1", bindings=BINDINGS):
+    return MutantEvidence("m", "T", target, kills, differential, judges, bindings)
 
 
 def both(v, confirmed=("PARK-3~1",)):
@@ -32,7 +35,7 @@ def both(v, confirmed=("PARK-3~1",)):
 def test_valid_needs_both_judges_above_tau_and_a_confirmed_witness_and_takes_the_minimum_confidence():
     low = verdict(violated=["PARK-3~1"], confidence=0.75)
     result = classify_mutant(evidence([JudgeFindings(verdict(violated=["PARK-3~1"]), frozenset({"PARK-3~1"})), JudgeFindings(low)]), REFS)
-    assert result.per_criterion["PARK-3~1"] is CriterionClass.VALID
+    assert result.per_criterion["PARK-3~1"] is CriterionClass.VALID_W
     assert result.valid_confidence["PARK-3~1"] == 0.75
     assert result.primary_included and result.primary_criterion == "PARK-3~1"
     assert not (result.collateral or result.off_target or result.unattributed or result.equivalent)
@@ -94,16 +97,31 @@ def test_a_mutant_that_survived_every_test_and_is_equivalent_or_not_violating_fo
 
 
 def test_an_arm_p_mutant_has_no_target_and_enters_no_primary_matrix():
-    planted = MutantEvidence("m", "P", None, KILLED, DifferentialKind.DIFFERS, both(verdict(violated=["PARK-3~1"])))
+    planted = MutantEvidence("m", "P", None, KILLED, DifferentialKind.DIFFERS, both(verdict(violated=["PARK-3~1"])), BINDINGS)
     result = classify_mutant(planted, REFS)
-    assert result.per_criterion["PARK-3~1"] is CriterionClass.VALID
+    assert result.per_criterion["PARK-3~1"] is CriterionClass.VALID_W
     assert not (result.primary_included or result.off_target) and result.target is None
 
 
 def test_mapping_follows_the_run_record_contract():
     result = classify_mutant(evidence(both(verdict(violated=["PARK-3~1"]))), REFS).to_mapping()
     assert set(result) == {
-        "mutant_id", "arm", "target", "per_criterion", "valid_confidence", "equivalent", "unattributed",
+        "mutant_id", "arm", "target", "per_criterion", "valid_x", "valid_confidence", "equivalent", "unattributed",
         "off_target", "collateral", "primary", "discarded", "survived_all",
     }
     assert result["primary"] == {"included": True, "criterion": "PARK-3~1"}
+
+
+def test_valid_x_is_valid_w_without_a_kill_or_error_on_a_test_bound_to_another_criterion():
+    valid = both(verdict(violated=["PARK-3~1"]))
+    isolated = classify_mutant(evidence(valid), REFS)
+    assert isolated.valid_x == {"PARK-3~1"} and isolated.per_criterion["PARK-3~1"] is CriterionClass.VALID_W
+    vetoed = classify_mutant(evidence(valid, bindings={"t1": "PARK-1~1", "t2": "PARK-3~1"}), REFS)
+    assert vetoed.per_criterion["PARK-3~1"] is CriterionClass.VALID_W and vetoed.valid_x == frozenset()
+    errored = classify_mutant(evidence(valid, kills={"t1": KillResult.SURVIVED, "t2": KillResult.ERROR},
+                                       bindings={"t1": "PARK-3~1", "t2": "PARK-1~1"}), REFS)
+    assert errored.valid_x == frozenset()
+    flaky = classify_mutant(evidence(valid, kills={"t1": KillResult.SURVIVED, "t2": KillResult.FLAKY},
+                                     bindings={"t1": "PARK-3~1", "t2": "PARK-1~1"}), REFS)
+    assert flaky.valid_x == {"PARK-3~1"}
+    assert vetoed.primary_included and vetoed.to_mapping()["valid_x"] == []

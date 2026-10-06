@@ -24,6 +24,8 @@ GROUND_TRUTH_MODULES = (
     "pilot.domain.label_rules",
     "pilot.domain.label_matrix",
     "pilot.domain.variants",
+    "pilot.domain.isolation_table",
+    "pilot.application.isolation_table_stage",
     "pilot.domain.outcome_matrix",
 )
 FORBIDDEN_STRINGS = ("labels.yaml", "oracle", "violations", "refactor", "planted", "planted_map", "arm_p/labels")

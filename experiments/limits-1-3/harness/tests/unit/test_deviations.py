@@ -39,8 +39,8 @@ def test_each_kind_renders_on_one_line_with_its_scope():
     assert DeviationEntry.provenance("CLI claude changed").render() == "- provenance | endpoints: none | CLI claude changed"
     assert DeviationEntry.quota_pause("paused").render() == "- quota-pause | endpoints: none | paused"
     assert DeviationEntry.protocol_for_all("fixture changed").render() == "- protocol | endpoints: all | fixture changed"
-    blocked = DeviationEntry.create(DeviationKind.QUOTA_BLOCKED, ("D11", "D9"), "J-SONNET\nincomplete")
-    assert blocked.render() == "- quota-blocked | endpoints: D9, D11 | J-SONNET incomplete"
+    blocked = DeviationEntry.create(DeviationKind.QUOTA_BLOCKED, ("D11", "D9"), "J-H\nincomplete")
+    assert blocked.render() == "- quota-blocked | endpoints: D9, D11 | J-H incomplete"
 
 
 def test_scopes_are_none_all_or_known_endpoint_ids_in_endpoint_order():
@@ -123,7 +123,7 @@ def test_a_quota_pause_affects_no_precondition():
 
 
 def test_a_quota_blocked_entry_fails_p7_for_its_endpoints_only():
-    p6, p7 = preconditions("- quota-blocked | endpoints: D9, D11 | J-SONNET could not complete")
+    p6, p7 = preconditions("- quota-blocked | endpoints: D9, D11 | J-H could not complete")
     assert p6.status is Status.PASS
     assert (p7.status, p7.affects, p7.forces_inconclusive) == (Status.FAIL, ("D9", "D11"), True)
 
@@ -152,12 +152,12 @@ def test_an_unparseable_line_fails_p6_for_every_endpoint():
 
 def test_log_deviation_appends_a_valid_entry_and_rejects_an_invalid_one(tmp_path):
     common = ["log-deviation", "--root", str(tmp_path), "--run-id", "r1"]
-    assert main([*common, "--kind", "quota-blocked", "--endpoints", "D9", "--text", "J-GPT incomplete"]) == 0
+    assert main([*common, "--kind", "quota-blocked", "--endpoints", "D9", "--text", "J-X incomplete"]) == 0
     assert main([*common, "--kind", "protocol", "--endpoints", "D12", "--text", "x"]) == 1
     with pytest.raises(SystemExit):
         main([*common, "--kind", "provenance", "--endpoints", "none", "--text", "a routine record"])
     text = RunDirectory(tmp_path / "runs" / "r1").read_text("DEVIATIONS.md")
-    assert parse_deviations(text) == [DeviationEntry.create(DeviationKind.QUOTA_BLOCKED, ("D9",), "J-GPT incomplete")]
+    assert parse_deviations(text) == [DeviationEntry.create(DeviationKind.QUOTA_BLOCKED, ("D9",), "J-X incomplete")]
 
 
 def test_a_quota_stop_of_a_run_verb_is_logged_as_a_quota_pause(tmp_path):

@@ -8,6 +8,7 @@ from typing import Any
 from pilot.application.context import PipelineContext
 from pilot.application.mutant_records import load_mutant
 from pilot.application.validity_stage import STATUS_OK
+from pilot.domain.arms import ARM_T
 from pilot.domain.call_type import CallType
 from pilot.domain.edits import EditSet
 from pilot.domain.ids import mutant_digest
@@ -38,7 +39,6 @@ from pilot.domain.proofs import (
 from pilot.domain.spec import Criterion
 from pilot.domain.validity_payload import ValidityVerdict, parse_validity
 
-ARM_T = "T"
 PROOF_RESULT_SURVIVED = "survived"
 
 

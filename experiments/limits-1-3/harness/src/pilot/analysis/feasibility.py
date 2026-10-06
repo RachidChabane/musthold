@@ -63,7 +63,7 @@ def evaluate_feasibility(
                         grade_lower(worst_missing, k.F3_GREEN_MAX, k.F3_AMBER_MAX)),
         FeasibilityItem("F4", "arm-T stillborn share", f"{stillborn_share:.1%}",
                         grade_lower(stillborn_share, k.F4_GREEN_MAX, k.F4_AMBER_MAX)),
-        FeasibilityItem("F5", "criteria with >= 2 VALID arm-T mutants", str(valid_criteria_count), _f5(valid_criteria_count)),
+        FeasibilityItem("F5", "criteria with >= 2 VALID_w arm-T mutants (all ten criteria)", str(valid_criteria_count), _f5(valid_criteria_count)),
         FeasibilityItem("F6", "runner cross-check exact",
                         "not executed" if crosscheck_exact is None else str(crosscheck_exact),
                         k.FEASIBILITY_GREEN if crosscheck_exact else k.FEASIBILITY_RED),

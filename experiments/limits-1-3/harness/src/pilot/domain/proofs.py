@@ -18,6 +18,7 @@ from pilot.domain.pipeline_constants import (
     STATEMENT_CANONICALIZATION,
     STATEMENT_TYPE,
 )
+from pilot.domain.mutant_classes import CriterionClass
 from pilot.domain.spec import Criterion, statement_digest
 from pilot.domain.validity_payload import ValidityVerdict
 
@@ -151,7 +152,8 @@ def discriminating_power_statement(
     )
 
 
-VALIDITY_VALID = "VALID"
+VALIDITY_VALID_W = "VALID_W"
+VALIDITY_VALID_X = "VALID_X"
 VALIDITY_EQUIVALENT = "EQUIVALENT"
 VALIDITY_NOT_VIOLATING = "NOT_VIOLATING"
 VALIDITY_UNDETERMINED = "UNDETERMINED"
@@ -163,8 +165,9 @@ def validity_claim(
 ) -> tuple[str, float]:
     """Validity of a mutant for one criterion as a judged claim: class and the minimum judge confidence."""
     per = mutant_class["per_criterion"][ref]
-    if per == VALIDITY_VALID:
-        return VALIDITY_VALID, float(mutant_class["valid_confidence"][ref])
+    if per == CriterionClass.VALID_W.value:
+        claim = VALIDITY_VALID_X if ref in mutant_class["valid_x"] else VALIDITY_VALID_W
+        return claim, float(mutant_class["valid_confidence"][ref])
     if mutant_class["equivalent"]:
         return VALIDITY_EQUIVALENT, _minimum(v.equivalent_confidence if v else None for v in judges)
     confidence = _minimum(v.requirements[ref].confidence if v else None for v in judges)

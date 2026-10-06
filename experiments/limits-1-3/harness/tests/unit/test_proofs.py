@@ -27,7 +27,7 @@ def alignment():
 
 def power(mutants=None):
     mutants = mutants if mutants is not None else [
-        MutantProof("b" * 64, "VALID", 0.85, {"t::b": "killed", "t::a": "survived"}, "claude-opus-5-5"),
+        MutantProof("b" * 64, "VALID_X", 0.85, {"t::b": "killed", "t::a": "survived"}, "claude-opus-5-5"),
         MutantProof("a" * 64, "NOT_VIOLATING", 0.9, {"t::a": "error"}, "gpt-5.6-terra"),
     ]
     return discriminating_power_statement(CRITERION, ["t::b", "t::a"], True, mutants, INPUTS, ["gpt-5.6-terra", "claude-opus-5-5", "gpt-5.6-terra"])
@@ -91,8 +91,8 @@ def test_files_digest_depends_on_paths_and_contents_not_on_insertion_order():
     assert files_digest({"a": "1"}) != files_digest({"a": "2"}) != files_digest({"c": "1"})
 
 
-def mutant_class(per, equivalent=False, confidence=None):
-    return {"per_criterion": {"PARK-3~1": per}, "equivalent": equivalent, "valid_confidence": confidence or {}}
+def mutant_class(per, equivalent=False, confidence=None, valid_x=()):
+    return {"per_criterion": {"PARK-3~1": per}, "equivalent": equivalent, "valid_confidence": confidence or {}, "valid_x": list(valid_x)}
 
 
 def verdicts(violated_confidence=0.8, equivalent_confidence=0.75):
@@ -102,7 +102,8 @@ def verdicts(violated_confidence=0.8, equivalent_confidence=0.75):
 
 
 def test_validity_claims_carry_the_minimum_judge_confidence():
-    assert validity_claim(mutant_class("VALID", confidence={"PARK-3~1": 0.8}), "PARK-3~1", verdicts()) == ("VALID", 0.8)
+    assert validity_claim(mutant_class("VALID_W", confidence={"PARK-3~1": 0.8}, valid_x=["PARK-3~1"]), "PARK-3~1", verdicts()) == ("VALID_X", 0.8)
+    assert validity_claim(mutant_class("VALID_W", confidence={"PARK-3~1": 0.8}), "PARK-3~1", verdicts()) == ("VALID_W", 0.8)
     assert validity_claim(mutant_class("NOT_VIOLATING"), "PARK-3~1", verdicts()) == ("NOT_VIOLATING", 0.8)
     assert validity_claim(mutant_class("UNDETERMINED", equivalent=True), "PARK-3~1", verdicts()) == ("EQUIVALENT", 0.75)
     assert validity_claim(mutant_class("UNDETERMINED"), "PARK-3~1", [verdicts()[0], None]) == ("UNDETERMINED", 0.0)
