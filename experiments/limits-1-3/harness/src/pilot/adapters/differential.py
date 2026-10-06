@@ -21,6 +21,8 @@ from hypothesis import strategies as st
 
 from pilot.adapters.process import ProcessRunner, child_environment
 from pilot.adapters.project_copy import ProjectWorkspace
+from pilot.domain.call_graph import call_graph as domain_call_graph
+from pilot.domain.call_graph import reachable
 from pilot.domain.constants import (
     DIFFERENTIAL_EVAL_TIMEOUT_SECONDS,
     DIFFERENTIAL_MAX_AMOUNT,
@@ -161,35 +163,9 @@ def _params(node: _DefNode) -> Params:
 
 
 def call_graph(package_dir: Path) -> dict[str, set[str]]:
-    graph: dict[str, set[str]] = {}
-    for module in sorted(package_dir.rglob("*.py")):
-        for node in ast.walk(ast.parse(module.read_text(encoding="utf-8"))):
-            if isinstance(node, _DefNode):
-                graph.setdefault(node.name, set()).update(_called_names(node))
-    return graph
-
-
-def _called_names(node: ast.AST) -> set[str]:
-    names: set[str] = set()
-    for child in ast.walk(node):
-        if isinstance(child, ast.Call):
-            target = child.func
-            if isinstance(target, ast.Name):
-                names.add(target.id)
-            elif isinstance(target, ast.Attribute):
-                names.add(target.attr)
-    return names
-
-
-def reachable(graph: dict[str, set[str]], start: str) -> set[str]:
-    seen = {start}
-    pending = [start]
-    while pending:
-        for callee in graph.get(pending.pop(), ()):
-            if callee not in seen:
-                seen.add(callee)
-                pending.append(callee)
-    return seen
+    return domain_call_graph(
+        module.read_text(encoding="utf-8") for module in sorted(package_dir.rglob("*.py"))
+    )
 
 
 def edited_names(edit_set: EditSet) -> set[str]:

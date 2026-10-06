@@ -1,0 +1,9 @@
+{
+  "edits": [
+    {
+      "file": "src/parkfee/tariff.py",
+      "new_source": "def _in_night_window(entry: datetime, exit: datetime) -> bool:\n    night_start = datetime.combine(entry.date(), NIGHT_STARTS, entry.tzinfo)\n    if entry.time() < NIGHT_ENDS:\n        night_start -= timedelta(days=1)\n    night_end = night_start + timedelta(hours=8)\n    return night_start <= entry and exit <= night_end\n",
+      "qualname": "_in_night_window"
+    }
+  ]
+}

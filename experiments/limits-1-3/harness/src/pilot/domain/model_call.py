@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
+
+PayloadCheck = Callable[[Any], list[str]]
 
 
 class Cli(Enum):
@@ -47,6 +49,7 @@ class ModelRequest:
     item: str
     schema_text: str
     system_prompt: str
+    validate: PayloadCheck | None = field(default=None, compare=False, repr=False)
 
 
 @dataclass(frozen=True)

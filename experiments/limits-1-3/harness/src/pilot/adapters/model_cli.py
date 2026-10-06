@@ -12,11 +12,12 @@ import shutil
 import tempfile
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
 from pilot.adapters.process import ProcessResult, ProcessRunner
+from pilot.application.ports import SchemaValidator
 from pilot.domain.constants import CLAUDE_NESTING_ENV_VARS, MODEL_CALL_DEADLINE_SECONDS, MODEL_RETRY_COUNT
 from pilot.domain.isolation import (
     codex_item_violations,
@@ -25,6 +26,7 @@ from pilot.domain.isolation import (
     pinned_model_violation,
     token_violation,
 )
+from pilot.domain.quota import QuotaExhausted, looks_like_quota_exhausted
 from pilot.domain.model_call import (
     CanaryBaseline,
     MissingResult,
@@ -61,6 +63,7 @@ CHECKS_FILENAME = "checks.json"
 RESULT_FILENAME = "result.json"
 ATTEMPT_DIR_TEMPLATE = "attempt-{number}"
 CALL_DIR_PREFIX = "pilot-call-"
+SCHEMA_DIALECT_KEY = "$schema"
 
 
 @dataclass(frozen=True)
@@ -74,6 +77,7 @@ class ParsedCall:
     num_turns: int | None = None
     failures: list[str] = field(default_factory=list)
     violations: list[str] = field(default_factory=list)
+    quota_exhausted: bool = False
 
 
 class _CliModel(ABC):
@@ -85,10 +89,14 @@ class _CliModel(ABC):
         process: ProcessRunner,
         raw_dir: Path,
         call_parent: Path | None = None,
+        cli_version: str | None = None,
+        schema_validator: SchemaValidator | None = None,
     ) -> None:
         self._process = process
         self._raw_dir = raw_dir
         self._call_parent = call_parent
+        self._cli_version = cli_version
+        self._schema_validator = schema_validator
 
     def call(self, request: ModelRequest, baseline: CanaryBaseline | None) -> ModelOutcome:
         recorded = self._raw_dir / request.call_id / RESULT_FILENAME
@@ -116,7 +124,8 @@ class _CliModel(ABC):
     def _record(self, request: ModelRequest, outcome: ModelOutcome) -> ModelOutcome:
         path = self._raw_dir / request.call_id / RESULT_FILENAME
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(outcome.to_mapping(), indent=2, sort_keys=True), encoding="utf-8")
+        record = {**outcome.to_mapping(), "cli_version": self._cli_version}
+        path.write_text(json.dumps(record, indent=2, sort_keys=True), encoding="utf-8")
         return outcome
 
     def _attempt(
@@ -130,8 +139,10 @@ class _CliModel(ABC):
         finally:
             shutil.rmtree(call_dir, ignore_errors=True)
         violations = parsed.violations + self._baseline_violations(request, parsed, baseline)
-        failures = list(parsed.failures)
+        failures = list(parsed.failures) + self._payload_problems(request, parsed)
         self._store_checks(attempt_dir, failures, violations)
+        if parsed.quota_exhausted:
+            raise QuotaExhausted(f"{request.call_id}: {failures}")
         if failures or violations:
             return None, failures, violations
         return self._result(parsed, number, request), [], []
@@ -157,7 +168,19 @@ class _CliModel(ABC):
         leftover = self.leftover_violation(call_dir)
         if leftover:
             parsed.violations.append(leftover)
+        if parsed.failures and looks_like_quota_exhausted(process_result.stderr, process_result.stdout):
+            return replace(parsed, quota_exhausted=True)
         return parsed
+
+    def _payload_problems(self, request: ModelRequest, parsed: ParsedCall) -> list[str]:
+        if parsed.failures:
+            return []
+        problems = []
+        if self._schema_validator is not None:
+            problems += self._schema_validator.violations(request.schema_text, parsed.payload)
+        if request.validate is not None and not problems:
+            problems += self._semantic_problems(request, parsed.payload)
+        return [f"invalid payload: {problem}" for problem in problems]
 
     def _store_streams(self, attempt_dir: Path, result: ProcessResult) -> None:
         (attempt_dir / self.stdout_filename).write_text(result.stdout, encoding="utf-8")
@@ -167,6 +190,14 @@ class _CliModel(ABC):
         for name in self.artifact_names:
             if (call_dir / name).is_file():
                 shutil.copy(call_dir / name, attempt_dir / name)
+
+    @staticmethod
+    def _semantic_problems(request: ModelRequest, payload: Any) -> list[str]:
+        assert request.validate is not None
+        try:
+            return request.validate(payload)
+        except (KeyError, TypeError, ValueError, AttributeError) as error:
+            return [f"unreadable payload: {error!r}"]
 
     @staticmethod
     def _store_checks(attempt_dir: Path, failures: list[str], violations: list[str]) -> None:
@@ -210,6 +241,14 @@ class _CliModel(ABC):
         return None
 
 
+def claude_schema_argument(schema_text: str) -> str:
+    """The schema as the claude CLI accepts it: it rejects a `$schema` meta-schema reference."""
+    schema = json.loads(schema_text)
+    if not isinstance(schema, dict) or SCHEMA_DIALECT_KEY not in schema:
+        return schema_text
+    return json.dumps({key: value for key, value in schema.items() if key != SCHEMA_DIALECT_KEY})
+
+
 class ClaudeCli(_CliModel):
     """`claude -p` in a fresh empty directory; the single `modelUsage` key must equal the pin."""
 
@@ -233,7 +272,7 @@ class ClaudeCli(_CliModel):
             "--output-format",
             "json",
             "--json-schema",
-            request.schema_text,
+            claude_schema_argument(request.schema_text),
         ]
 
     def environment(self) -> Mapping[str, str]:

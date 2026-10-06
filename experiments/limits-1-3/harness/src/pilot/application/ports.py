@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
+from pilot.domain.call_type import CallType
 from pilot.domain.edits import EditSet
 from pilot.domain.mutants import DifferentialResult
 from pilot.domain.model_call import (
@@ -18,6 +19,7 @@ from pilot.domain.model_call import (
 )
 from pilot.domain.outcomes import RunResult
 from pilot.domain.traceability import TraceabilityReport
+from pilot.domain.witness import Output, Witness
 
 
 @dataclass(frozen=True)
@@ -65,7 +67,61 @@ class SchemaValidator(Protocol):
 
 
 class CanaryStore(Protocol):
-    def save(self, pin: ModelPin, baseline: CanaryBaseline, cli_version: str) -> None: ...
+    def save(
+        self, pin: ModelPin, call_type: CallType, baseline: CanaryBaseline, cli_version: str
+    ) -> None: ...
+
+
+class RunStore(Protocol):
+    """Reads and writes files of one run directory (paths relative to `runs/<run-id>/`)."""
+
+    def exists(self, relative: str) -> bool: ...
+
+    def read_text(self, relative: str) -> str: ...
+
+    def write_text(self, relative: str, text: str) -> None: ...
+
+    def append_text(self, relative: str, text: str) -> None: ...
+
+    def read_json(self, relative: str) -> Any: ...
+
+    def write_json(self, relative: str, value: Any) -> None: ...
+
+    def read_jsonl(self, relative: str) -> list[dict[str, Any]]: ...
+
+    def write_jsonl(self, relative: str, rows: Sequence[Mapping[str, Any]], key: Sequence[str]) -> None: ...
+
+    def list_files(self, relative: str) -> list[str]: ...
+
+
+class FixtureSources(Protocol):
+    """Reads the fixture project: spec, source tree and tests, keyed by project-relative path."""
+
+    def spec_text(self) -> str: ...
+
+    def source_files(self) -> Mapping[str, str]: ...
+
+    def test_files(self) -> Mapping[str, str]: ...
+
+
+class PromptLibrary(Protocol):
+    """The pre-registered templates, schemas and system prompt."""
+
+    def template(self, call_type: CallType) -> str: ...
+
+    def schema(self, call_type: CallType) -> str: ...
+
+    def system_prompt(self) -> str: ...
+
+    def codebook(self) -> str: ...
+
+
+class WitnessExecutor(Protocol):
+    """Runs witness calls on the reference and on one mutant, each call bounded in time."""
+
+    def execute(
+        self, edit_set: EditSet, witnesses: Sequence[Witness]
+    ) -> list[WitnessExecution]: ...
 
 
 class TestSourceReader(Protocol):
@@ -74,3 +130,10 @@ class TestSourceReader(Protocol):
     def read(self) -> Mapping[str, str]: ...
 
     def read_conftest(self) -> str | None: ...
+
+
+@dataclass(frozen=True)
+class WitnessExecution:
+    reference: Output | None
+    mutant: Output | None
+    error: str | None

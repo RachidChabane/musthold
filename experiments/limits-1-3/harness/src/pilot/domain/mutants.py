@@ -58,6 +58,7 @@ class MutantRecord:
     duplicate_of: str | None = None
     merged_ids: list[str] = field(default_factory=list)
     digest: str | None = None
+    changed_lines: int = 0
     kill_vector: Mapping[str, KillResult] = field(default_factory=dict)
     differential: DifferentialResult | None = None
 

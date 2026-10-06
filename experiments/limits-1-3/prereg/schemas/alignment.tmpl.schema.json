@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "verifies",
+    "coverage",
+    "confidence",
+    "rationale"
+  ],
+  "properties": {
+    "verifies": {
+      "type": "string",
+      "enum": [
+        "__TOKENS__",
+        "NONE"
+      ]
+    },
+    "coverage": {
+      "type": "string",
+      "enum": [
+        "FULL",
+        "PARTIAL",
+        "WEAK",
+        "NONE"
+      ]
+    },
+    "confidence": {
+      "type": "integer"
+    },
+    "rationale": {
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

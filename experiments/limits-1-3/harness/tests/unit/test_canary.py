@@ -11,10 +11,15 @@ from pilot.adapters.models_lock import (
     DirectoryCanaryStore,
     InstalledCliVersions,
     JsonSchemaValidator,
+    load_baselines,
     load_models_lock,
+    record_cli_versions,
 )
 from pilot.adapters.process import ProcessResult
-from pilot.application.canary import CanaryFailed, CanarySpec, run_canary
+from pilot.adapters.prompt_files import DirectoryPromptLibrary
+from pilot.application.canary import CanaryFailed, CanaryTask, plan_canary, run_canary
+from pilot.domain.call_type import CallType
+from pilot.domain.canary_items import CANARY_TOKENS
 from pilot.application.model_router import RoutingModelPort
 from pilot.domain.model_call import (
     CanaryBaseline,
@@ -31,6 +36,8 @@ from pilot.domain.model_call import (
 SCHEMA = '{"type":"object","properties":{"ok":{"type":"boolean"}},"required":["ok"]}'
 SONNET = ModelPin("claude-sonnet-5-5", Cli.CLAUDE)
 TERRA = ModelPin("gpt-5.6-terra", Cli.CODEX)
+VERSIONS = {Cli.CLAUDE: "2.1.292", Cli.CODEX: "0.155.1"}
+SYSTEM = "system"
 
 
 class FakeModel:
@@ -40,7 +47,7 @@ class FakeModel:
 
     def call(self, request, baseline):
         self.requests.append((request, baseline))
-        return self.outcomes[request.pin.key]
+        return self.outcomes[(request.pin.key, request.call_id.rsplit("__", 1)[1])]
 
 
 class FakeProbe:
@@ -55,63 +62,112 @@ class MemoryStore:
     def __init__(self):
         self.saved = {}
 
-    def save(self, pin, baseline, cli_version):
-        self.saved[pin.key] = (baseline, cli_version)
+    def save(self, pin, call_type, baseline, cli_version):
+        self.saved[(pin.key, call_type)] = (baseline, cli_version)
+
+
+PREREG = Path(__file__).resolve().parents[3] / "prereg"
+
+
+def real_prompts():
+    return DirectoryPromptLibrary(
+        PREREG / "prompts", PREREG / "schemas", PREREG / "prompts" / "system.txt", PREREG / "codebook.md"
+    )
 
 
 def ok(tokens, turns, payload=None):
     return ModelResult(payload if payload is not None else {"ok": True}, TokenUsage(tokens, 5), None, turns, 1, ModelProvenance.REPORTED)
 
 
-def spec(pins=(SONNET, TERRA), versions=None):
-    return CanarySpec(
-        pins=pins,
-        locked_cli_versions=versions or {Cli.CLAUDE: "2.1.292", Cli.CODEX: "0.155.1"},
-        effort=Effort.MEDIUM,
-        system_prompt="system",
-        item="item",
-        schema_text=SCHEMA,
-    )
+def task(pin, call_type):
+    return CanaryTask(pin, call_type, "item", SCHEMA)
 
 
-VERSIONS = {Cli.CLAUDE: "2.1.292", Cli.CODEX: "0.155.1"}
-
-
-def test_canary_records_a_baseline_per_pair_without_checking_the_bound():
-    model = FakeModel({SONNET.key: ok(1174, 2), TERRA.key: ok(8627, None)})
+def test_canary_records_a_baseline_per_model_and_call_type_without_checking_the_bound():
+    model = FakeModel({
+        (SONNET.key, "probe"): ok(1174, 2), (SONNET.key, "validity"): ok(7000, 2), (TERRA.key, "probe"): ok(8627, None),
+    })
     store = MemoryStore()
-    baselines = run_canary(model, FakeProbe(VERSIONS), JsonSchemaValidator(), store, spec())
-    assert baselines == {SONNET.key: CanaryBaseline(1174, 2), TERRA.key: CanaryBaseline(8627, None)}
-    assert store.saved[SONNET.key] == (CanaryBaseline(1174, 2), "2.1.292")
+    tasks = [task(SONNET, CallType.PROBE), task(SONNET, CallType.VALIDITY), task(TERRA, CallType.PROBE)]
+    report = run_canary(model, FakeProbe(VERSIONS), JsonSchemaValidator(), store, tasks, SYSTEM)
+    assert report.baselines == {
+        (SONNET.key, CallType.PROBE): CanaryBaseline(1174, 2),
+        (SONNET.key, CallType.VALIDITY): CanaryBaseline(7000, 2),
+        (TERRA.key, CallType.PROBE): CanaryBaseline(8627, None),
+    }
+    assert store.saved[(TERRA.key, CallType.PROBE)] == (CanaryBaseline(8627, None), "0.155.1")
+    assert report.versions == VERSIONS
     assert all(baseline is None for _, baseline in model.requests)
-    assert {r.call_id for r, _ in model.requests} == {f"canary/{SONNET.key}", f"canary/{TERRA.key}"}
+    assert {r.call_id for r, _ in model.requests} == {
+        f"canary/{SONNET.key}__probe", f"canary/{SONNET.key}__validity", f"canary/{TERRA.key}__probe",
+    }
 
 
-def test_canary_aborts_on_a_cli_version_mismatch():
-    model = FakeModel({SONNET.key: ok(1, 1)})
-    with pytest.raises(CanaryFailed, match="claude installed 2.1.293, locked 2.1.292"):
-        run_canary(model, FakeProbe({Cli.CLAUDE: "2.1.293"}), JsonSchemaValidator(), MemoryStore(), spec((SONNET,)))
-    assert model.requests == []
+def test_canary_uses_the_effort_of_the_call_type():
+    model = FakeModel({(SONNET.key, "generate"): ok(1, 1), (SONNET.key, "probe"): ok(1, 1)})
+    run_canary(model, FakeProbe(VERSIONS), JsonSchemaValidator(), MemoryStore(),
+               [task(SONNET, CallType.GENERATE), task(SONNET, CallType.PROBE)], SYSTEM)
+    assert [r.effort for r, _ in model.requests] == [Effort.HIGH, Effort.MEDIUM]
+
+
+def test_a_version_different_from_the_lock_is_recorded_not_an_abort():
+    model = FakeModel({(SONNET.key, "probe"): ok(1, 1)})
+    report = run_canary(model, FakeProbe({Cli.CLAUDE: "2.1.293"}), JsonSchemaValidator(), MemoryStore(),
+                        [task(SONNET, CallType.PROBE)], SYSTEM)
+    assert report.versions == {Cli.CLAUDE: "2.1.293"}
 
 
 def test_canary_aborts_when_the_call_is_missing():
     missing = MissingResult(("claude exited 1",), ("modelUsage keys",))
-    model = FakeModel({SONNET.key: missing})
+    model = FakeModel({(SONNET.key, "probe"): missing})
     with pytest.raises(CanaryFailed, match="modelUsage keys"):
-        run_canary(model, FakeProbe(VERSIONS), JsonSchemaValidator(), MemoryStore(), spec((SONNET,)))
+        run_canary(model, FakeProbe(VERSIONS), JsonSchemaValidator(), MemoryStore(), [task(SONNET, CallType.PROBE)], SYSTEM)
 
 
 def test_canary_aborts_when_the_payload_violates_the_schema():
-    model = FakeModel({SONNET.key: ok(1, 1, payload={"ok": "yes"})})
+    model = FakeModel({(SONNET.key, "probe"): ok(1, 1, payload={"ok": "yes"})})
     with pytest.raises(CanaryFailed, match="violates schema"):
-        run_canary(model, FakeProbe(VERSIONS), JsonSchemaValidator(), MemoryStore(), spec((SONNET,)))
+        run_canary(model, FakeProbe(VERSIONS), JsonSchemaValidator(), MemoryStore(), [task(SONNET, CallType.PROBE)], SYSTEM)
 
 
 def test_router_dispatches_by_cli():
-    claude, codex = FakeModel({SONNET.key: ok(1, 1)}), FakeModel({TERRA.key: ok(2, None)})
+    claude, codex = FakeModel({(SONNET.key, "probe"): ok(1, 1)}), FakeModel({(TERRA.key, "probe"): ok(2, None)})
     router = RoutingModelPort({Cli.CLAUDE: claude, Cli.CODEX: codex})
-    run_canary(router, FakeProbe(VERSIONS), JsonSchemaValidator(), MemoryStore(), spec())
+    run_canary(router, FakeProbe(VERSIONS), JsonSchemaValidator(), MemoryStore(),
+               [task(SONNET, CallType.PROBE), task(TERRA, CallType.PROBE)], SYSTEM)
     assert len(claude.requests) == 1 and len(codex.requests) == 1
+
+
+ROLES = {
+    SONNET: ("validity_judge_v_s", "alignment_judge_j_sonnet"),
+    TERRA: ("mutant_generator", "relabel_oai", "leak_audit", "alignment_judge_j_gpt"),
+}
+
+
+def test_the_plan_covers_the_call_types_each_model_actually_uses():
+    tasks = plan_canary(ROLES, real_prompts())
+    assert [(t.pin.model, t.call_type.value) for t in tasks] == [
+        ("claude-sonnet-5-5", "validity"), ("claude-sonnet-5-5", "alignment"), ("claude-sonnet-5-5", "probe"),
+        ("gpt-5.6-terra", "generate"), ("gpt-5.6-terra", "alignment"), ("gpt-5.6-terra", "probe"),
+        ("gpt-5.6-terra", "relabel"), ("gpt-5.6-terra", "leak_audit"),
+    ]
+
+
+def test_the_plan_can_be_narrowed_by_model_and_call_type():
+    tasks = plan_canary(ROLES, real_prompts(), models=["gpt-5.6-terra"], call_types=[CallType.PROBE])
+    assert [(t.pin.model, t.call_type) for t in tasks] == [("gpt-5.6-terra", CallType.PROBE)]
+
+
+def test_the_alignment_canary_uses_the_ten_canary_tokens_in_its_schema():
+    (alignment,) = plan_canary(ROLES, real_prompts(), models=["claude-sonnet-5-5"], call_types=[CallType.ALIGNMENT])
+    enum = json.loads(alignment.schema_text)["properties"]["verifies"]["enum"]
+    assert enum == [*CANARY_TOKENS, "NONE"] and enum[0] == "K-0001" and enum[9] == "K-0010"
+
+
+def test_no_canary_item_mentions_the_fixture():
+    for task in plan_canary(ROLES, real_prompts()):
+        if task.call_type is not CallType.GENERATE:
+            assert "parkfee" not in task.item.lower()
 
 
 def test_models_lock_loads_pins_and_versions(tmp_path):
@@ -133,13 +189,19 @@ def test_committed_models_lock_matches_the_pins_of_the_protocol(experiment_root)
     }
 
 
-def test_canary_store_writes_one_file_per_pin(tmp_path):
-    DirectoryCanaryStore(tmp_path / "canary").save(TERRA, CanaryBaseline(8627, None), "0.155.1")
-    saved = json.loads((tmp_path / "canary" / "gpt-5.6-terra__codex.json").read_text())
-    assert saved == {
-        "model": "gpt-5.6-terra", "cli": "codex", "cli_version": "0.155.1",
-        "provenance": "requested_only", "input_tokens": 8627, "num_turns": None,
-    }
+def test_canary_store_writes_one_file_per_model_cli_and_call_type(tmp_path):
+    DirectoryCanaryStore(tmp_path / "canary").save(TERRA, CallType.AUDIT, CanaryBaseline(8627, None), "0.155.1")
+    saved = json.loads((tmp_path / "canary" / "gpt-5.6-terra__codex__audit.json").read_text())
+    assert saved == {"input_tokens": 8627, "num_turns": None, "cli_version": "0.155.1"}
+    assert load_baselines(tmp_path / "canary") == {(TERRA.key, CallType.AUDIT): CanaryBaseline(8627, None)}
+
+
+def test_cli_versions_are_recorded_in_the_lock_only_when_they_differ(tmp_path):
+    lock = tmp_path / "models.lock.json"
+    lock.write_text(json.dumps({"cli_versions": {"claude": "2.1.292", "codex": "0.155.1"}, "models": []}))
+    assert not record_cli_versions(lock, {Cli.CLAUDE: "2.1.292"})
+    assert record_cli_versions(lock, {Cli.CLAUDE: "2.1.300"})
+    assert json.loads(lock.read_text())["cli_versions"] == {"claude": "2.1.300", "codex": "0.155.1"}
 
 
 class OneShotProcess:

@@ -5,18 +5,11 @@ from __future__ import annotations
 import sys
 from argparse import Namespace
 from collections.abc import Sequence
-from pathlib import Path
 
 from pilot.adapters.ast_edits import AstEditApplier
-from pilot.adapters.model_cli import ClaudeCli, CodexCli
-from pilot.adapters.models_lock import (
-    DirectoryCanaryStore,
-    InstalledCliVersions,
-    JsonSchemaValidator,
-    load_models_lock,
-)
 from pilot.adapters.plain_pytest import PlainPytestRunner
 from pilot.adapters.prereg_files import (
+    write_arm_p,
     DirectoryTestSourceReader,
     load_edit_sets,
     load_labels,
@@ -29,23 +22,19 @@ from pilot.adapters.process import SubprocessRunner
 from pilot.adapters.project_copy import ProjectWorkspace, temporary_work_root
 from pilot.adapters.pytest_runner import PytestJunitRunner, WorkspaceVariantRunner
 from pilot.adapters.shallnot import ShallnotTraceability
-from pilot.application.canary import CanaryFailed, CanarySpec, run_canary
+from pilot.application.assemble_arm_p import assemble_items
 from pilot.application.leak_check import leak_check
-from pilot.application.model_router import RoutingModelPort
 from pilot.application.runner_crosscheck import runner_crosscheck
 from pilot.application.traceability_check import traceability_check
 from pilot.application.verify_labels import LabelVerification, verify_labels
 from pilot.cli.layout import ExperimentLayout
 from pilot.domain.constants import (
-    CANARY_ITEM,
-    CANARY_SCHEMA_TEXT,
     LABEL_MATRIX_FILENAME,
-    ORACLE_FILE_GLOB,
     VERIFY_LOG_FILENAME,
 )
 from pilot.domain.edits import EditSet
+from pilot.domain.ground_truth_paths import ORACLE_FILE_GLOB
 from pilot.domain.label_rules import ExpectedCounts
-from pilot.domain.model_call import Cli, Effort
 from pilot.domain.variants import VariantKind
 
 EXIT_OK = 0
@@ -135,30 +124,12 @@ def traceability_check_command(args: Namespace) -> int:
     return _report("traceability-check", failures)
 
 
-def canary_command(args: Namespace) -> int:
+def assemble_arm_p_command(args: Namespace) -> int:
     layout = ExperimentLayout(args.root)
-    if not layout.system_prompt.is_file():
-        return _report("canary", [f"missing {layout.system_prompt}"])
-    lock = load_models_lock(layout.models_lock)
-    process = SubprocessRunner()
-    raw_dir = layout.raw_dir(args.run_id)
-    router = RoutingModelPort({Cli.CLAUDE: ClaudeCli(process, raw_dir), Cli.CODEX: CodexCli(process, raw_dir)})
-    spec = CanarySpec(
-        pins=sorted(set(lock.pins), key=lambda pin: pin.key),
-        locked_cli_versions=lock.cli_versions,
-        effort=Effort.MEDIUM,
-        system_prompt=_read_text(layout.system_prompt),
-        item=CANARY_ITEM,
-        schema_text=CANARY_SCHEMA_TEXT,
+    items = assemble_items(
+        load_edit_sets(layout.violations, VariantKind.VIOLATION),
+        load_edit_sets(layout.planted, VariantKind.PLANTED),
     )
-    store = DirectoryCanaryStore(layout.canary_dir(args.run_id))
-    try:
-        baselines = run_canary(router, InstalledCliVersions(process, args.root), JsonSchemaValidator(), store, spec)
-    except CanaryFailed as failure:
-        return _report("canary", [failure])
-    return _report("canary", [] if baselines else ["no model pins in the lock"])
-
-
-def _read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8")
-
+    write_arm_p(layout.arm_p_items, layout.arm_p_labels, items)
+    print(f"assemble-arm-p: {len(items)} items written to {layout.arm_p_items}")
+    return EXIT_OK

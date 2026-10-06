@@ -6,8 +6,9 @@ import argparse
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from pilot.cli import commands
+from pilot.cli import analysis_verbs, commands, pipeline_commands
 from pilot.cli.layout import default_root
+from pilot.domain.call_type import CallType
 from pilot.domain.constants import (
     EXPECTED_CRITERION_COUNT,
     EXPECTED_PLANTED_COUNT,
@@ -38,6 +39,11 @@ def _add_counts(parser: argparse.ArgumentParser, *names: str) -> None:
         parser.add_argument(f"--expected-{name}", type=int, default=defaults[name])
 
 
+def _add_run(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--run-id", required=True)
+    _add_counts(parser, "tests", "criteria")
+
+
 def build_parser() -> tuple[argparse.ArgumentParser, dict[str, Handler]]:
     parser = argparse.ArgumentParser(prog="pilot.cli")
     verbs = parser.add_subparsers(dest="verb", required=True)
@@ -64,8 +70,26 @@ def build_parser() -> tuple[argparse.ArgumentParser, dict[str, Handler]]:
     _add_out_dir(sub)
     _add_counts(sub, "tests", "criteria")
 
-    sub = verb("canary", commands.canary_command, "one synthetic call per (model, CLI) pair")
+    sub = verb("canary", pipeline_commands.canary_command, "one synthetic call per (model, call type)")
     sub.add_argument("--run-id", required=True)
+    sub.add_argument("--models", nargs="+", default=None, help="restrict to these model names")
+    sub.add_argument("--call-types", nargs="+", default=None, choices=[c.value for c in CallType])
+    sub.add_argument("--no-lock-update", action="store_true", help="do not record CLI versions in models.lock.json")
+
+    verb("assemble-arm-p", commands.assemble_arm_p_command, "arm-P items and labels from the ground truth")
+
+    verb("leak-audit", pipeline_commands.leak_audit_command, "PREREG 3.3 cross-family leak audit")
+
+    sub = verb("relabel", pipeline_commands.relabel_command, "PREREG 3.4 blind relabels by two model raters")
+    _add_run(sub)
+
+    sub = verb("run-core", pipeline_commands.run_core_command, "PREREG 14 step 3")
+    _add_run(sub)
+
+    sub = verb("run-secondary", pipeline_commands.run_secondary_command, "PREREG 14 step 5")
+    _add_run(sub)
+
+    analysis_verbs.register(verb)
     return parser, handlers
 
 

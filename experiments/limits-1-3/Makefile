@@ -1,6 +1,6 @@
 # Front door for the limits 1-3 pilot: thin recipes over script/<verb>.
 # Every verb also runs without make: ./script/<verb>.
-.PHONY: help verify-labels runner-crosscheck leak-check traceability-check canary test lint
+.PHONY: help verify-labels runner-crosscheck leak-check traceability-check assemble-arm-p leak-audit canary relabel run-core run-secondary test lint
 
 help:  ## list verbs
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-20s %s\n",$$1,$$2}'
@@ -17,11 +17,43 @@ leak-check:  ## static in-universe rules on the fixture test files
 traceability-check:  ## null gate G0 precondition through shallnot
 	./script/traceability-check
 
-canary:  ## one synthetic call per (model, CLI) pair; needs RUN_ID=<run-id>
+assemble-arm-p:  ## arm-P items and labels from violations and planted items (no model call)
+	./script/assemble-arm-p
+
+leak-audit:  ## PREREG 3.3 cross-family leak audit of fixture/parkfee (one model call)
+	./script/leak-audit
+
+canary:  ## one synthetic call per (model, call type) used; needs RUN_ID=<run-id>
 	./script/canary --run-id $(RUN_ID)
+
+relabel:  ## PREREG 3.4 blind relabels, two model calls; needs RUN_ID=<run-id>
+	./script/relabel --run-id $(RUN_ID)
+
+run-core:  ## traceability, arm T and P, F0-F3, validity, J-SONNET masked and probe; needs RUN_ID=<run-id>
+	./script/run-core --run-id $(RUN_ID)
+
+run-secondary:  ## other judges, arm O, mutant audit; needs RUN_ID=<run-id>
+	./script/run-secondary --run-id $(RUN_ID)
 
 test:  ## harness unit and integration tests
 	cd harness && uv run --frozen pytest
 
 lint:  ## import contracts and type check
 	cd harness && uv run --frozen lint-imports && uv run --frozen pyright
+
+.PHONY: oracle-classify audit-sample analyze report-lint precision-table
+
+oracle-classify:  ## PREREG 6.6 oracle classes of every non-stillborn mutant; needs RUN_ID=<run-id>
+	./script/oracle-classify --run-id $(RUN_ID)
+
+audit-sample:  ## PREREG 6.7 A-OPUS audit sample (ids and strata); needs RUN_ID=<run-id>
+	./script/audit-sample --run-id $(RUN_ID)
+
+analyze:  ## endpoints, tables and results/REPORT.md; needs RUN_ID=<run-id>
+	./script/analyze --run-id $(RUN_ID)
+
+report-lint:  ## PREREG 13 lint of results/REPORT.md
+	./script/report-lint
+
+precision-table:  ## Wilson interval table written to prereg/precision-table.csv
+	./script/precision-table

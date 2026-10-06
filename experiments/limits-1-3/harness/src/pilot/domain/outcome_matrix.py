@@ -6,7 +6,7 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from pilot.domain.constants import ORACLE_FILE_PATTERN
+from pilot.domain.ground_truth_paths import ORACLE_FILE_PATTERN
 from pilot.domain.outcomes import TestOutcome
 
 _ORACLE_PATTERN = re.compile(ORACLE_FILE_PATTERN)

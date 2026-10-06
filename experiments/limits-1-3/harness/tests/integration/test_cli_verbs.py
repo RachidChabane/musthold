@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 
 import pytest
@@ -113,3 +114,23 @@ def test_traceability_check_fails_on_an_unbound_test(root, capsys):
 def test_canary_refuses_to_run_without_the_system_prompt(root, capsys):
     assert main(["canary", "--root", str(root), "--run-id", "r1"]) == 1
     assert "system.txt" in capsys.readouterr().err
+
+
+def test_assemble_arm_p_writes_items_labels_and_the_planted_map_deterministically(root):
+    assert main(["assemble-arm-p", "--root", str(root)]) == 0
+    items = root / "prereg" / "arm_p" / "items"
+    first = {p.name: p.read_text() for p in items.iterdir()}
+    labels = yaml.safe_load((root / "prereg" / "arm_p" / "labels.yaml").read_text())
+    assert len(labels) == 8 and set(first) == {f"{k}.json" for k in labels} | {"planted_map.json"}
+    assert {entry["kind"] for entry in labels.values()} == {"r", "n1"}
+    assert set(next(iter(labels.values()))) == {"source", "declared_target", "kind"}
+    assert main(["assemble-arm-p", "--root", str(root)]) == 0
+    assert first == {p.name: p.read_text() for p in items.iterdir()}
+    for mutant_id, entry in labels.items():
+        body = json.loads((items / f"{mutant_id}.json").read_text())
+        assert list(body) == ["edits"] and json.loads((items / "planted_map.json").read_text())[mutant_id] == entry["source"]
+
+
+def test_run_core_refuses_to_run_without_the_prereg_prompts(root, capsys):
+    assert main(["run-core", "--root", str(root), "--run-id", "r1"]) == 1
+    assert "MissingPreregFile" in capsys.readouterr().err

@@ -1,0 +1,1055 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "equivalent",
+    "requirements"
+  ],
+  "properties": {
+    "equivalent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "confidence"
+      ],
+      "properties": {
+        "value": {
+          "type": "boolean"
+        },
+        "confidence": {
+          "type": "number"
+        }
+      }
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "PARK-1~1",
+        "PARK-2~1",
+        "PARK-3~1",
+        "PARK-4~1",
+        "PARK-5~1",
+        "PARK-6~1",
+        "PARK-7~1",
+        "PARK-8~1",
+        "PARK-9~1",
+        "PARK-10~1"
+      ],
+      "properties": {
+        "PARK-1~1": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verdict",
+            "confidence",
+            "witness"
+          ],
+          "properties": {
+            "verdict": {
+              "type": "string",
+              "enum": [
+                "VIOLATED",
+                "NOT_VIOLATED",
+                "UNDETERMINED"
+              ]
+            },
+            "confidence": {
+              "type": "number"
+            },
+            "witness": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "function",
+                    "entry",
+                    "exit",
+                    "lost_ticket",
+                    "validated",
+                    "amount",
+                    "expected"
+                  ],
+                  "properties": {
+                    "function": {
+                      "type": "string",
+                      "enum": [
+                        "quote",
+                        "format_receipt"
+                      ]
+                    },
+                    "entry": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "exit": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "lost_ticket": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "validated": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "amount": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "expected": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "RETURNS",
+                            "RAISES"
+                          ]
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "PARK-2~1": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verdict",
+            "confidence",
+            "witness"
+          ],
+          "properties": {
+            "verdict": {
+              "type": "string",
+              "enum": [
+                "VIOLATED",
+                "NOT_VIOLATED",
+                "UNDETERMINED"
+              ]
+            },
+            "confidence": {
+              "type": "number"
+            },
+            "witness": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "function",
+                    "entry",
+                    "exit",
+                    "lost_ticket",
+                    "validated",
+                    "amount",
+                    "expected"
+                  ],
+                  "properties": {
+                    "function": {
+                      "type": "string",
+                      "enum": [
+                        "quote",
+                        "format_receipt"
+                      ]
+                    },
+                    "entry": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "exit": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "lost_ticket": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "validated": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "amount": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "expected": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "RETURNS",
+                            "RAISES"
+                          ]
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "PARK-3~1": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verdict",
+            "confidence",
+            "witness"
+          ],
+          "properties": {
+            "verdict": {
+              "type": "string",
+              "enum": [
+                "VIOLATED",
+                "NOT_VIOLATED",
+                "UNDETERMINED"
+              ]
+            },
+            "confidence": {
+              "type": "number"
+            },
+            "witness": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "function",
+                    "entry",
+                    "exit",
+                    "lost_ticket",
+                    "validated",
+                    "amount",
+                    "expected"
+                  ],
+                  "properties": {
+                    "function": {
+                      "type": "string",
+                      "enum": [
+                        "quote",
+                        "format_receipt"
+                      ]
+                    },
+                    "entry": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "exit": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "lost_ticket": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "validated": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "amount": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "expected": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "RETURNS",
+                            "RAISES"
+                          ]
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "PARK-4~1": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verdict",
+            "confidence",
+            "witness"
+          ],
+          "properties": {
+            "verdict": {
+              "type": "string",
+              "enum": [
+                "VIOLATED",
+                "NOT_VIOLATED",
+                "UNDETERMINED"
+              ]
+            },
+            "confidence": {
+              "type": "number"
+            },
+            "witness": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "function",
+                    "entry",
+                    "exit",
+                    "lost_ticket",
+                    "validated",
+                    "amount",
+                    "expected"
+                  ],
+                  "properties": {
+                    "function": {
+                      "type": "string",
+                      "enum": [
+                        "quote",
+                        "format_receipt"
+                      ]
+                    },
+                    "entry": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "exit": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "lost_ticket": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "validated": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "amount": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "expected": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "RETURNS",
+                            "RAISES"
+                          ]
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "PARK-5~1": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verdict",
+            "confidence",
+            "witness"
+          ],
+          "properties": {
+            "verdict": {
+              "type": "string",
+              "enum": [
+                "VIOLATED",
+                "NOT_VIOLATED",
+                "UNDETERMINED"
+              ]
+            },
+            "confidence": {
+              "type": "number"
+            },
+            "witness": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "function",
+                    "entry",
+                    "exit",
+                    "lost_ticket",
+                    "validated",
+                    "amount",
+                    "expected"
+                  ],
+                  "properties": {
+                    "function": {
+                      "type": "string",
+                      "enum": [
+                        "quote",
+                        "format_receipt"
+                      ]
+                    },
+                    "entry": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "exit": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "lost_ticket": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "validated": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "amount": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "expected": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "RETURNS",
+                            "RAISES"
+                          ]
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "PARK-6~1": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verdict",
+            "confidence",
+            "witness"
+          ],
+          "properties": {
+            "verdict": {
+              "type": "string",
+              "enum": [
+                "VIOLATED",
+                "NOT_VIOLATED",
+                "UNDETERMINED"
+              ]
+            },
+            "confidence": {
+              "type": "number"
+            },
+            "witness": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "function",
+                    "entry",
+                    "exit",
+                    "lost_ticket",
+                    "validated",
+                    "amount",
+                    "expected"
+                  ],
+                  "properties": {
+                    "function": {
+                      "type": "string",
+                      "enum": [
+                        "quote",
+                        "format_receipt"
+                      ]
+                    },
+                    "entry": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "exit": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "lost_ticket": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "validated": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "amount": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "expected": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "RETURNS",
+                            "RAISES"
+                          ]
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "PARK-7~1": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verdict",
+            "confidence",
+            "witness"
+          ],
+          "properties": {
+            "verdict": {
+              "type": "string",
+              "enum": [
+                "VIOLATED",
+                "NOT_VIOLATED",
+                "UNDETERMINED"
+              ]
+            },
+            "confidence": {
+              "type": "number"
+            },
+            "witness": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "function",
+                    "entry",
+                    "exit",
+                    "lost_ticket",
+                    "validated",
+                    "amount",
+                    "expected"
+                  ],
+                  "properties": {
+                    "function": {
+                      "type": "string",
+                      "enum": [
+                        "quote",
+                        "format_receipt"
+                      ]
+                    },
+                    "entry": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "exit": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "lost_ticket": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "validated": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "amount": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "expected": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "RETURNS",
+                            "RAISES"
+                          ]
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "PARK-8~1": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verdict",
+            "confidence",
+            "witness"
+          ],
+          "properties": {
+            "verdict": {
+              "type": "string",
+              "enum": [
+                "VIOLATED",
+                "NOT_VIOLATED",
+                "UNDETERMINED"
+              ]
+            },
+            "confidence": {
+              "type": "number"
+            },
+            "witness": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "function",
+                    "entry",
+                    "exit",
+                    "lost_ticket",
+                    "validated",
+                    "amount",
+                    "expected"
+                  ],
+                  "properties": {
+                    "function": {
+                      "type": "string",
+                      "enum": [
+                        "quote",
+                        "format_receipt"
+                      ]
+                    },
+                    "entry": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "exit": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "lost_ticket": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "validated": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "amount": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "expected": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "RETURNS",
+                            "RAISES"
+                          ]
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "PARK-9~1": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verdict",
+            "confidence",
+            "witness"
+          ],
+          "properties": {
+            "verdict": {
+              "type": "string",
+              "enum": [
+                "VIOLATED",
+                "NOT_VIOLATED",
+                "UNDETERMINED"
+              ]
+            },
+            "confidence": {
+              "type": "number"
+            },
+            "witness": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "function",
+                    "entry",
+                    "exit",
+                    "lost_ticket",
+                    "validated",
+                    "amount",
+                    "expected"
+                  ],
+                  "properties": {
+                    "function": {
+                      "type": "string",
+                      "enum": [
+                        "quote",
+                        "format_receipt"
+                      ]
+                    },
+                    "entry": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "exit": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "lost_ticket": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "validated": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "amount": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "expected": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "RETURNS",
+                            "RAISES"
+                          ]
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "PARK-10~1": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verdict",
+            "confidence",
+            "witness"
+          ],
+          "properties": {
+            "verdict": {
+              "type": "string",
+              "enum": [
+                "VIOLATED",
+                "NOT_VIOLATED",
+                "UNDETERMINED"
+              ]
+            },
+            "confidence": {
+              "type": "number"
+            },
+            "witness": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "function",
+                    "entry",
+                    "exit",
+                    "lost_ticket",
+                    "validated",
+                    "amount",
+                    "expected"
+                  ],
+                  "properties": {
+                    "function": {
+                      "type": "string",
+                      "enum": [
+                        "quote",
+                        "format_receipt"
+                      ]
+                    },
+                    "entry": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "exit": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "lost_ticket": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "validated": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "amount": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "expected": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "RETURNS",
+                            "RAISES"
+                          ]
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

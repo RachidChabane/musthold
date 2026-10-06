@@ -282,3 +282,76 @@ def test_a_crashed_call_without_a_result_file_never_overwrites_its_raw_attempt(t
     assert again.attempt == 2
     assert (raw / "c1" / "attempt-1" / "stdout.txt").read_text() == attempt_one
     assert (raw / "c1" / "attempt-2" / "stdout.txt").is_file()
+
+
+def quota_failure(cwd):
+    return ProcessResult(1, "", "Error: 429 rate limit exceeded, usage limit reached")
+
+
+def test_a_quota_failure_stops_cleanly_and_leaves_the_call_unrecorded(tmp_path, responses):
+    from pilot.domain.quota import QuotaExhausted
+
+    raw = tmp_path / "raw"
+    with pytest.raises(QuotaExhausted):
+        ClaudeCli(FakeProcess(quota_failure), raw).call(request(CLAUDE_PIN), None)
+    assert not (raw / "c1" / "result.json").exists()
+    resumed = ClaudeCli(FakeProcess(claude_ok(responses)), raw).call(request(CLAUDE_PIN), None)
+    assert isinstance(resumed, ModelResult)
+
+
+def test_quota_words_in_a_successful_answer_are_not_a_quota_failure(tmp_path, responses):
+    outcome = ClaudeCli(FakeProcess(claude_ok(responses, result="rate limit")), tmp_path / "raw").call(request(CLAUDE_PIN), None)
+    assert isinstance(outcome, ModelResult)
+
+
+def test_an_ordinary_failure_is_still_recorded_as_missing(tmp_path):
+    outcome = ClaudeCli(FakeProcess(failing(), failing()), tmp_path / "raw").call(request(CLAUDE_PIN), None)
+    assert isinstance(outcome, MissingResult)
+
+
+def test_every_raw_record_stores_the_cli_version(tmp_path, responses):
+    ClaudeCli(FakeProcess(claude_ok(responses)), tmp_path / "raw", cli_version="2.1.292").call(request(CLAUDE_PIN), None)
+    record = json.loads((tmp_path / "raw" / "c1" / "result.json").read_text())
+    assert record["cli_version"] == "2.1.292" and record["status"] == "ok"
+    ClaudeCli(FakeProcess(failing(), failing()), tmp_path / "raw", cli_version="2.1.292").call(request(CLAUDE_PIN, "c2"), None)
+    assert json.loads((tmp_path / "raw" / "c2" / "result.json").read_text())["cli_version"] == "2.1.292"
+
+
+def test_a_payload_failing_the_request_check_is_retried_once_then_missing(tmp_path, responses):
+    checked = ModelRequest("c1", CLAUDE_PIN, Effort.MEDIUM, "item", SCHEMA, "system", validate=lambda payload: ["bad slots"])
+    process = FakeProcess(claude_ok(responses), claude_ok(responses))
+    outcome = ClaudeCli(process, tmp_path / "raw").call(checked, None)
+    assert isinstance(outcome, MissingResult) and len(process.calls) == 2
+    assert any("bad slots" in failure for failure in outcome.failures)
+
+
+def test_a_payload_violating_the_schema_is_invalid(tmp_path, responses):
+    from pilot.adapters.models_lock import JsonSchemaValidator
+
+    strict = ModelRequest("c1", CLAUDE_PIN, Effort.MEDIUM, "item", '{"type":"array"}', "system")
+    outcome = ClaudeCli(FakeProcess(claude_ok(responses), claude_ok(responses)), tmp_path / "raw", schema_validator=JsonSchemaValidator()).call(strict, None)
+    assert isinstance(outcome, MissingResult)
+
+
+def test_a_check_that_cannot_read_the_payload_counts_as_a_failure(tmp_path, responses):
+    def reads_missing_key(payload):
+        return payload["absent"]
+
+    checked = ModelRequest("c1", CLAUDE_PIN, Effort.MEDIUM, "item", SCHEMA, "system", validate=reads_missing_key)
+    outcome = ClaudeCli(FakeProcess(claude_ok(responses), claude_ok(responses)), tmp_path / "raw").call(checked, None)
+    assert isinstance(outcome, MissingResult)
+
+
+def test_claude_receives_the_schema_without_its_dialect_reference(tmp_path, responses):
+    schema = json.dumps({"$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object"})
+    process = FakeProcess(claude_ok(responses))
+    ClaudeCli(process, tmp_path / "raw").call(ModelRequest("c1", CLAUDE_PIN, Effort.MEDIUM, "i", schema, "s"), None)
+    assert json.loads(process.calls[0]["argv"][-1]) == {"type": "object"}
+    assert json.loads((tmp_path / "raw" / "c1" / "attempt-1" / "schema.json").read_text())["$schema"]
+
+
+def test_codex_receives_the_schema_file_unchanged(tmp_path, responses):
+    schema = json.dumps({"$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object"})
+    process = FakeProcess(codex_ok(responses))
+    CodexCli(process, tmp_path / "raw").call(ModelRequest("c1", CODEX_PIN, Effort.MEDIUM, "i", schema, "s"), None)
+    assert (tmp_path / "raw" / "c1" / "attempt-1" / "schema.json").read_text() == schema

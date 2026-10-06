@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import jsonschema
 
 from pilot.adapters.process import ProcessRunner
+from pilot.domain.call_type import CallType
 from pilot.domain.model_call import CanaryBaseline, Cli, ModelPin
 
 VERSION_PATTERN = re.compile(r"\d+\.\d+\.\d+")
@@ -21,6 +23,7 @@ VERSION_FLAG = "--version"
 class ModelsLock:
     cli_versions: dict[Cli, str]
     pins: tuple[ModelPin, ...]
+    roles: Mapping[ModelPin, tuple[str, ...]] = field(default_factory=dict)
 
 
 def load_models_lock(path: Path) -> ModelsLock:
@@ -28,7 +31,22 @@ def load_models_lock(path: Path) -> ModelsLock:
     return ModelsLock(
         cli_versions={Cli(name): version for name, version in raw["cli_versions"].items()},
         pins=tuple(ModelPin(entry["model"], Cli(entry["cli"])) for entry in raw["models"]),
+        roles={
+            ModelPin(entry["model"], Cli(entry["cli"])): tuple(entry.get("roles", ()))
+            for entry in raw["models"]
+        },
     )
+
+
+def record_cli_versions(path: Path, versions: Mapping[Cli, str]) -> bool:
+    """Write the installed CLI versions into the lock; returns whether the file changed."""
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    updated = {**raw["cli_versions"], **{cli.value: version for cli, version in versions.items()}}
+    if updated == raw["cli_versions"]:
+        return False
+    raw["cli_versions"] = dict(sorted(updated.items()))
+    path.write_text(json.dumps(raw, indent=2) + "\n", encoding="utf-8")
+    return True
 
 
 class InstalledCliVersions:
@@ -55,20 +73,29 @@ class JsonSchemaValidator:
 
 
 class DirectoryCanaryStore:
-    """Implements the `CanaryStore` port: one JSON file per pin under `runs/<run-id>/canary/`."""
+    """Implements the `CanaryStore` port: one JSON file per (pin, call type) under `runs/<run-id>/canary/`."""
 
     def __init__(self, directory: Path) -> None:
         self._directory = directory
 
-    def save(self, pin: ModelPin, baseline: CanaryBaseline, cli_version: str) -> None:
+    def save(
+        self, pin: ModelPin, call_type: CallType, baseline: CanaryBaseline, cli_version: str
+    ) -> None:
         self._directory.mkdir(parents=True, exist_ok=True)
         record = {
-            "model": pin.model,
-            "cli": pin.cli.value,
-            "cli_version": cli_version,
-            "provenance": pin.provenance.value,
             "input_tokens": baseline.input_tokens,
             "num_turns": baseline.num_turns,
+            "cli_version": cli_version,
         }
-        path = self._directory / f"{pin.key}.json"
+        path = self._directory / f"{pin.key}__{call_type.value}.json"
         path.write_text(json.dumps(record, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def load_baselines(directory: Path) -> dict[tuple[str, CallType], CanaryBaseline]:
+    """Baselines per (pin key, call type) from a run's canary directory."""
+    found: dict[tuple[str, CallType], CanaryBaseline] = {}
+    for path in sorted(directory.glob("*.json")) if directory.is_dir() else []:
+        pin_key, call_type = path.stem.rsplit("__", 1)
+        record = json.loads(path.read_text(encoding="utf-8"))
+        found[(pin_key, CallType(call_type))] = CanaryBaseline(record["input_tokens"], record["num_turns"])
+    return found

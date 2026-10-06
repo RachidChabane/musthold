@@ -1,0 +1,9 @@
+{
+  "edits": [
+    {
+      "file": "src/parkfee/tariff.py",
+      "new_source": "def _validated_free(duration: timedelta, validated: bool) -> bool:\n    return validated and duration <= timedelta(hours=2)\n",
+      "qualname": "_validated_free"
+    }
+  ]
+}

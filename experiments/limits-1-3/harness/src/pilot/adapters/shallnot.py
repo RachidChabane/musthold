@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import shutil
-from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -17,7 +16,7 @@ from pilot.domain.constants import (
     TESTS_DIRNAME,
     TRACEABILITY_FILENAME,
 )
-from pilot.domain.traceability import TraceabilityReport
+from pilot.domain.traceability import TraceabilityReport, report_from_json
 
 SHALLNOT_TOOL_FAILURE = 2
 
@@ -47,22 +46,7 @@ def shallnot_argv(junit_path: Path, json_out: Path) -> list[str]:
     ]
 
 
-def parse_report(report: dict[str, Any]) -> TraceabilityReport:
-    requirements = report["summary"]["requirements"]
-    tests = report["summary"]["tests"]
-    bindings: dict[str, list[str]] = defaultdict(list)
-    for requirement in report["requirements"]:
-        for test in requirement["tests"]:
-            bindings[test["name"]].append(requirement["ref"])
-    return TraceabilityReport(
-        verdict=report["verdict"],
-        requirements_in_focus=requirements["in_focus"],
-        requirements_covered=requirements["covered"],
-        tests_total=tests["total"],
-        tests_bound=tests["bound"],
-        finding_categories=tuple(f["category"] for f in report["findings"]),
-        bindings={name: tuple(refs) for name, refs in bindings.items()},
-    )
+parse_report = report_from_json
 
 
 class ShallnotTraceability:
@@ -81,6 +65,9 @@ class ShallnotTraceability:
         self._output_dir = output_dir
 
     def check(self) -> TraceabilityReport:
+        return report_from_json(self.raw_report())
+
+    def raw_report(self) -> dict[str, Any]:
         with self._workspace.materialized() as copy:
             self._runner.run(copy)
             json_out = copy / TRACEABILITY_FILENAME
@@ -90,7 +77,7 @@ class ShallnotTraceability:
             if result.returncode == SHALLNOT_TOOL_FAILURE or not json_out.is_file():
                 raise ShallnotError(f"shallnot failed ({result.returncode}): {result.stderr.strip()}")
             self._keep(copy)
-            return parse_report(json.loads(json_out.read_text(encoding="utf-8")))
+            return json.loads(json_out.read_text(encoding="utf-8"))
 
     def _keep(self, copy: Path) -> None:
         if self._output_dir is None:

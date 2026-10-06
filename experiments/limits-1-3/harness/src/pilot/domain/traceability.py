@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Any
 
 from pilot.domain.constants import (
     FORBIDDEN_TRACEABILITY_FINDINGS,
@@ -41,3 +43,39 @@ def null_gate_failures(
     if report.verdict != TRACEABILITY_PASS_VERDICT:
         failures.append(f"verdict {report.verdict}")
     return failures
+
+
+def report_from_json(report: Mapping[str, Any]) -> TraceabilityReport:
+    requirements = report["summary"]["requirements"]
+    tests = report["summary"]["tests"]
+    bindings: dict[str, list[str]] = defaultdict(list)
+    for requirement in report["requirements"]:
+        for test in requirement["tests"]:
+            bindings[test["name"]].append(requirement["ref"])
+    return TraceabilityReport(
+        verdict=report["verdict"],
+        requirements_in_focus=requirements["in_focus"],
+        requirements_covered=requirements["covered"],
+        tests_total=tests["total"],
+        tests_bound=tests["bound"],
+        finding_categories=tuple(f["category"] for f in report["findings"]),
+        bindings={name: tuple(refs) for name, refs in bindings.items()},
+    )
+
+
+def nodeid_bindings(report: Mapping[str, Any]) -> dict[str, tuple[str, ...]]:
+    """Declared criteria per pytest node id, taken from the report's per-test source file and name."""
+    bound: dict[str, list[str]] = defaultdict(list)
+    for requirement in report["requirements"]:
+        for test in requirement["tests"]:
+            bound[_nodeid(test)].append(requirement["ref"])
+    return {nodeid: tuple(refs) for nodeid, refs in bound.items()}
+
+
+def _nodeid(test: Mapping[str, Any]) -> str:
+    file = test["source"]["file"]
+    module = file.removesuffix(".py").replace("/", ".")
+    classname = test.get("classname", "")
+    scope = classname.removeprefix(module).strip(".")
+    parts = [file, *([p for p in scope.split(".") if p]), test["name"]]
+    return "::".join(parts)

@@ -76,3 +76,4 @@ name = "nothing outside analysis imports analysis"
 type = "forbidden"
 source_modules = ["pilot.domain", "pilot.application", "pilot.adapters", "pilot.cli"]
 forbidden_modules = ["pilot.analysis"]
+ignore_imports = ["pilot.cli.analysis_verbs -> pilot.analysis.*"]

@@ -10,10 +10,12 @@ from typing import Any
 
 import yaml
 
+from pilot.application.assemble_arm_p import ArmPItem
 from pilot.domain.constants import REFACTOR_VARIANT_ID
 from pilot.domain.edits import EditSet
 from pilot.domain.label_matrix import LabelMatrix
 from pilot.domain.labels import TestLabel
+from pilot.domain.pipeline_constants import PLANTED_MAP_FILENAME
 from pilot.domain.variants import VariantId, VariantKind
 
 NODEID_COLUMN = "nodeid"
@@ -88,3 +90,21 @@ class DirectoryTestSourceReader:
         if not self._conftest_path.is_file():
             return None
         return self._conftest_path.read_text(encoding="utf-8")
+
+
+def write_arm_p(items_dir: Path, labels_path: Path, items: Sequence[ArmPItem]) -> None:
+    """Items as edit-set files named by mutant id, the label table and the planted map; deterministic."""
+    items_dir.mkdir(parents=True, exist_ok=True)
+    for stale in items_dir.glob(_JSON_GLOB):
+        stale.unlink()
+    for item in items:
+        (items_dir / f"{item.mutant_id}.json").write_text(_dump(item.edit_set.to_mapping()), encoding="utf-8")
+    (items_dir / PLANTED_MAP_FILENAME).write_text(_dump({i.mutant_id: i.source for i in items}), encoding="utf-8")
+    labels = {
+        i.mutant_id: {"source": i.source, "declared_target": i.declared_target, "kind": i.kind} for i in items
+    }
+    labels_path.write_text(yaml.safe_dump(labels, sort_keys=True), encoding="utf-8")
+
+
+def _dump(value: Any) -> str:
+    return json.dumps(value, indent=2, sort_keys=True) + "\n"

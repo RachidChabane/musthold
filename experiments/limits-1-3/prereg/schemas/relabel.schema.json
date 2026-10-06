@@ -1,0 +1,59 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tests"
+  ],
+  "properties": {
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "nodeid",
+          "label",
+          "checks"
+        ],
+        "properties": {
+          "nodeid": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string",
+            "enum": [
+              "GOOD",
+              "GOOD_BROAD",
+              "WEAK",
+              "VACUOUS",
+              "MIS_OTHER",
+              "OFFSPEC"
+            ]
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "PARK-1~1",
+                "PARK-2~1",
+                "PARK-3~1",
+                "PARK-4~1",
+                "PARK-5~1",
+                "PARK-6~1",
+                "PARK-7~1",
+                "PARK-8~1",
+                "PARK-9~1",
+                "PARK-10~1",
+                "UNCOVERED",
+                "NONE"
+              ]
+            },
+            "minItems": 1
+          }
+        }
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

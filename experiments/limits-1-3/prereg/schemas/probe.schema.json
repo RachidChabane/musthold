@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "guess",
+    "confidence"
+  ],
+  "properties": {
+    "guess": {
+      "type": "string",
+      "enum": [
+        "TARGETED",
+        "OTHER"
+      ]
+    },
+    "confidence": {
+      "type": "integer"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

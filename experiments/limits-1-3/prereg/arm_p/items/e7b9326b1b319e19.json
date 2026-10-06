@@ -1,0 +1,9 @@
+{
+  "edits": [
+    {
+      "file": "src/parkfee/tariff.py",
+      "new_source": "def _hourly_charge(entry: datetime, exit: datetime) -> Decimal:\n    hours, rest = divmod(exit - entry, HOUR)\n    return HOURLY_RATE * (hours + 1 if rest else hours)\n",
+      "qualname": "_hourly_charge"
+    }
+  ]
+}

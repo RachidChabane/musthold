@@ -1,0 +1,9 @@
+{
+  "edits": [
+    {
+      "file": "src/parkfee/tariff.py",
+      "new_source": "def _long_stay_charge(entry: datetime, exit: datetime) -> Decimal:\n    days, rest = divmod(exit - entry, DAY)\n    return DAY_RATE * days + (DAY_RATE if rest else Decimal(\"0.00\"))\n",
+      "qualname": "_long_stay_charge"
+    }
+  ]
+}

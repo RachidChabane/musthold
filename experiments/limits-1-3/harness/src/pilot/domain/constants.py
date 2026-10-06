@@ -55,7 +55,6 @@ FIXTURE_DECORATOR_NAMES: Final = ("fixture",)
 PARAMETRIZE_DECORATOR_NAMES: Final = ("parametrize",)
 TEST_FUNCTION_PREFIX: Final = "test_"
 
-ORACLE_FILE_PATTERN: Final = r"test_oracle_park_(\d+)\.py$"
 
 CELL_PASS: Final = "pass"
 CELL_FAIL: Final = "fail"
@@ -80,12 +79,7 @@ CODEX_ALLOWED_ITEM_TYPES: Final = ("agent_message", "reasoning")
 PREREG_DIRNAME: Final = "prereg"
 FIXTURE_DIRNAME: Final = "fixture"
 RUNS_DIRNAME: Final = "runs"
-VIOLATIONS_DIRNAME: Final = "violations"
-PLANTED_DIRNAME: Final = "planted"
-REFACTOR_DIRNAME: Final = "refactor"
-ORACLE_DIRNAME: Final = "oracle"
 PROMPTS_DIRNAME: Final = "prompts"
-LABELS_FILENAME: Final = "labels.yaml"
 SYSTEM_PROMPT_FILENAME: Final = "system.txt"
 RAW_DIRNAME: Final = "raw"
 CANARY_DIRNAME: Final = "canary"
@@ -95,7 +89,6 @@ CANARY_SCHEMA_TEXT: Final = (
     '{"type":"object","properties":{"ok":{"type":"boolean"}},'
     '"required":["ok"],"additionalProperties":false}'
 )
-ORACLE_FILE_GLOB: Final = "test_oracle_park_*.py"
 
 SHALLNOT_CONFTEST_HOOK: Final = """def pytest_collection_modifyitems(items):
     for item in items:

@@ -1,0 +1,62 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "mutants"
+  ],
+  "properties": {
+    "mutants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "slot",
+          "edits",
+          "mechanism_summary"
+        ],
+        "properties": {
+          "slot": {
+            "type": "string",
+            "enum": [
+              "S1",
+              "S2",
+              "S3"
+            ]
+          },
+          "edits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "file",
+                "qualname",
+                "new_source"
+              ],
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "qualname": {
+                  "type": "string"
+                },
+                "new_source": {
+                  "type": "string"
+                }
+              }
+            },
+            "minItems": 1,
+            "maxItems": 2
+          },
+          "mechanism_summary": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 3,
+      "maxItems": 3
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

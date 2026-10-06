@@ -55,8 +55,11 @@ class MutantProcessor:
             raise ReferenceUnstable(f"reference did not pass {REFERENCE_RUN_COUNT}/{REFERENCE_RUN_COUNT}")
         return sorted(results[0].outcomes)
 
-    def process(self, candidates: Sequence[Candidate]) -> list[MutantRecord]:
-        nodeids = self.confirm_reference()
+    def process(
+        self, candidates: Sequence[Candidate], nodeids: Sequence[str] | None = None
+    ) -> list[MutantRecord]:
+        """F0 to F3; `nodeids` skips the reference confirmation when the caller already holds it."""
+        nodeids = self.confirm_reference() if nodeids is None else nodeids
         records = self._static_stage(candidates)
         live = [r for r in records if r.status is MutantStatus.EVALUATED]
         self._import_stage(live)
@@ -85,11 +88,11 @@ class MutantProcessor:
         changed = sum(changed_line_count(old, new) for old, new in previews.values())
         if changed > MAX_CHANGED_LINES:
             reason = EditFailure.TOO_MANY_CHANGED_LINES.value
-            return MutantRecord(candidate, MutantStatus.STILLBORN, reason=reason)
+            return MutantRecord(candidate, MutantStatus.STILLBORN, reason=reason, changed_lines=changed)
         if all(normalize(old) == normalize(new) for old, new in previews.values()):
-            return MutantRecord(candidate, MutantStatus.TRIVIALLY_EQUIVALENT)
+            return MutantRecord(candidate, MutantStatus.TRIVIALLY_EQUIVALENT, changed_lines=changed)
         digest = normalized_digest({file: new for file, (_, new) in previews.items()})
-        return MutantRecord(candidate, MutantStatus.EVALUATED, digest=digest)
+        return MutantRecord(candidate, MutantStatus.EVALUATED, digest=digest, changed_lines=changed)
 
     @staticmethod
     def _deduplicate(
