@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# Memory guard for heavy local jobs (local models, large test batches).
+#
+#   script/mem-guard check            exit 0 if the machine may start a batch
+#   script/mem-guard run -- CMD ARGS  check, then run CMD under nice and stop it
+#                                     cleanly if memory pressure reaches warn
+#
+# Thresholds: MEM_GUARD_MIN_FREE_PCT (default 40) is the minimum system-wide free
+# memory percentage reported by memory_pressure; MEM_GUARD_INTERVAL_S (default 5)
+# is the polling interval while a command runs.
+set -euo pipefail
+
+readonly MIN_FREE_PCT="${MEM_GUARD_MIN_FREE_PCT:-40}"
+readonly INTERVAL_S="${MEM_GUARD_INTERVAL_S:-5}"
+readonly NICE_LEVEL=10
+readonly PRESSURE_NORMAL=1
+readonly EXIT_REFUSED=4
+readonly EXIT_INTERRUPTED=5
+readonly GRACE_S=10
+
+free_pct() {
+  memory_pressure | awk -F': ' '/System-wide memory free percentage/ {gsub("%", "", $2); print $2}'
+}
+
+pressure_level() {
+  sysctl -n kern.memorystatus_vm_pressure_level
+}
+
+swap_used_mb() {
+  sysctl -n vm.swapusage | awk '{for (i = 1; i <= NF; i++) if ($i == "used") {gsub("M", "", $(i + 2)); print int($(i + 2))}}'
+}
+
+report() {
+  echo "mem-guard: free=$(free_pct)% pressure_level=$(pressure_level) swap_used=$(swap_used_mb)M min_free=${MIN_FREE_PCT}%" >&2
+}
+
+is_safe() {
+  local free level
+  free="$(free_pct)"
+  level="$(pressure_level)"
+  [[ "${level}" -eq "${PRESSURE_NORMAL}" && "${free}" -ge "${MIN_FREE_PCT}" ]]
+}
+
+cmd_check() {
+  report
+  if is_safe; then
+    echo "mem-guard: ok" >&2
+    return 0
+  fi
+  echo "mem-guard: refused (below threshold or pressure not normal)" >&2
+  return "${EXIT_REFUSED}"
+}
+
+stop_group() {
+  local pgid="$1"
+  kill -TERM -- "-${pgid}" 2>/dev/null || true
+  for _ in $(seq "${GRACE_S}"); do
+    kill -0 -- "-${pgid}" 2>/dev/null || return 0
+    sleep 1
+  done
+  kill -KILL -- "-${pgid}" 2>/dev/null || true
+}
+
+cmd_run() {
+  if [[ $# -eq 0 ]]; then
+    echo "usage: script/mem-guard run -- CMD [ARGS...]" >&2
+    return 2
+  fi
+  cmd_check || return $?
+  set -m
+  nice -n "${NICE_LEVEL}" "$@" &
+  local child=$!
+  set +m
+  local pgid
+  pgid="$(ps -o pgid= -p "${child}" | tr -d ' ')"
+  while kill -0 "${child}" 2>/dev/null; do
+    if [[ "$(pressure_level)" -ne "${PRESSURE_NORMAL}" ]]; then
+      report
+      echo "mem-guard: memory pressure left normal; stopping the batch" >&2
+      stop_group "${pgid}"
+      wait "${child}" 2>/dev/null || true
+      return "${EXIT_INTERRUPTED}"
+    fi
+    sleep "${INTERVAL_S}"
+  done
+  wait "${child}"
+}
+
+main() {
+  local verb="${1:-}"
+  shift || true
+  case "${verb}" in
+    check) cmd_check ;;
+    run)
+      [[ "${1:-}" == "--" ]] && shift
+      cmd_run "$@"
+      ;;
+    *)
+      echo "usage: script/mem-guard check | run -- CMD [ARGS...]" >&2
+      return 2
+      ;;
+  esac
+}
+
+main "$@"

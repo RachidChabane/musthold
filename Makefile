@@ -33,3 +33,7 @@ go-lint:  ## gofmt check and go vet on the Go product (script/lint)
 
 ci:  ## lint, then self-gate the Go product with shallnot (script/ci)
 	script/ci
+
+.PHONY: mem-check
+mem-check:  ## refuse heavy local work unless memory is free enough (script/mem-guard)
+	./script/mem-guard check
