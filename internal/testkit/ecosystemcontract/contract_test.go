@@ -7,6 +7,8 @@ import (
 
 	"github.com/RachidChabane/spec-proof/internal/adapters/ecosystem/golang"
 	"github.com/RachidChabane/spec-proof/internal/adapters/ecosystem/pytest"
+	gomutation "github.com/RachidChabane/spec-proof/internal/adapters/mutation/golang"
+	pythonmutation "github.com/RachidChabane/spec-proof/internal/adapters/mutation/python"
 	"github.com/RachidChabane/spec-proof/internal/adapters/sourceparse/goparser"
 	"github.com/RachidChabane/spec-proof/internal/adapters/sourceparse/treesitter"
 	"github.com/RachidChabane/spec-proof/internal/app/ports"
@@ -54,7 +56,7 @@ func pytestSubject(t *testing.T) ecosystemcontract.Subject {
 	return ecosystemcontract.Subject{
 		Name: "pytest",
 		Build: func(a ecosystemcontract.Adapters) ports.Ecosystem {
-			return pytest.New(pytest.Dependencies{Process: a.Process, Reader: a.Reader, Locator: treesitter.NewLocator()})
+			return pytest.New(pytest.Dependencies{Process: a.Process, Reader: a.Reader, Locator: treesitter.NewLocator(), Assignments: pythonmutation.New()})
 		},
 		FixtureDir:    filepath.Join(fixturesRoot, "pytest"),
 		Sources:       []string{pytestSource},
@@ -78,7 +80,7 @@ func goSubject(t *testing.T) ecosystemcontract.Subject {
 	return ecosystemcontract.Subject{
 		Name: "go",
 		Build: func(a ecosystemcontract.Adapters) ports.Ecosystem {
-			return golang.New(golang.Dependencies{Process: a.Process, Reader: a.Reader, Locator: goparser.NewLocator()})
+			return golang.New(golang.Dependencies{Process: a.Process, Reader: a.Reader, Locator: goparser.NewLocator(), Assignments: gomutation.New()})
 		},
 		FixtureDir:    filepath.Join(fixturesRoot, "go"),
 		Sources:       []string{goSource},
