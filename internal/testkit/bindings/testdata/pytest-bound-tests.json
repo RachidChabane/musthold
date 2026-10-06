@@ -1,0 +1,50 @@
+{
+  "PAR-1~1": [
+    {
+      "name": "test_line_total_multiplies_price_by_quantity",
+      "classname": "tests.test_rates",
+      "file": "tests/test_rates.py",
+      "line": 6
+    }
+  ],
+  "PAR-2~1": [
+    {
+      "name": "test_discount_reduces_total[0-19.99-19.99]",
+      "classname": "tests.test_rates",
+      "file": "tests/test_rates.py",
+      "line": 15
+    },
+    {
+      "name": "test_discount_reduces_total[10-200-180.0]",
+      "classname": "tests.test_rates",
+      "file": "tests/test_rates.py",
+      "line": 15
+    },
+    {
+      "name": "test_discount_reduces_total[50-80-40.0]",
+      "classname": "tests.test_rates",
+      "file": "tests/test_rates.py",
+      "line": 15
+    },
+    {
+      "name": "test_negative_percent_is_ignored",
+      "classname": "tests.test_rates.TestDiscountLimits",
+      "file": "tests/test_rates.py",
+      "line": 24
+    },
+    {
+      "name": "test_percent_above_one_hundred_is_clamped",
+      "classname": "tests.test_rates.TestDiscountLimits",
+      "file": "tests/test_rates.py",
+      "line": 24
+    }
+  ],
+  "PAR-3~1": [
+    {
+      "name": "test_shipping_is_waived_from_fifty",
+      "classname": "tests.test_rates",
+      "file": "tests/test_rates.py",
+      "line": 33
+    }
+  ]
+}

@@ -102,6 +102,75 @@ The requirements of the spec-proof product, in Shallnot's Markdown spec format.
 - **SP-35~1**: WHEN project settings are created THE SYSTEM SHALL disable
   every proof, and refuse an unknown proof or ecosystem.
 
+## Mutant execution
+
+- **SP-60~1**: WHEN an edit names a definition by its qualified name THE SYSTEM
+  SHALL replace exactly that definition's byte span with the new source, apply
+  the edits of one file in order, and refuse an unknown or ambiguous qualname.
+- **SP-61~1**: WHEN a splice is done THE SYSTEM SHALL re-parse the file and
+  accept it only when the target definition's text equals the new source and
+  every definition outside the target is byte-identical.
+- **SP-62~1**: WHEN an edit names a path THE SYSTEM SHALL refuse it unless it is
+  a clean relative POSIX path inside a source root and not a test file of the
+  ecosystem.
+- **SP-63~1**: WHEN a definition is spliced with its own source THE SYSTEM SHALL
+  leave the file unchanged.
+- **SP-64~1**: WHEN a test is named by a report and by a results file THE SYSTEM
+  SHALL give both the same identity, and WHEN one test is reported several times
+  THE SYSTEM SHALL keep its most severe outcome.
+- **SP-65~1**: WHEN a bound test is mapped to a definition by its source line
+  THE SYSTEM SHALL choose the innermost definition containing the line, else the
+  nearest definition that follows it.
+- **SP-66~1**: WHEN a command is run THE SYSTEM SHALL capture its output within
+  a limit and report its exit status, a non-zero status being a result, and a
+  suite run SHALL read the per-test outcomes its reporter wrote.
+- **SP-67~1**: WHEN a command exceeds its deadline or its context ends THE
+  SYSTEM SHALL kill its whole process group and report the timeout.
+- **SP-68~1**: WHEN a reference workspace is prepared THE SYSTEM SHALL copy the
+  project once under the temporary directory, outside the repository, leaving
+  out version control data and the excluded directories of the ecosystem.
+- **SP-69~1**: WHEN a mutant workspace is created THE SYSTEM SHALL clone it from
+  the built reference with the first working strategy of copy-on-write clone
+  and plain copy, link the dependency directories when copying, and leave the
+  reference unchanged.
+- **SP-70~1**: WHEN a file is written into a workspace THE SYSTEM SHALL give it
+  a modification time later than every file of the workspace outside the
+  dependency directories.
+- **SP-71~1**: WHEN JUnit XML written by pytest, jest-junit, Vitest, Surefire,
+  Gradle or gotestsum is read THE SYSTEM SHALL give each test its outcome, with
+  an error element counting as a failure only where the test body raises it.
+- **SP-72~1**: WHEN a Go source is located THE SYSTEM SHALL return every function
+  and method declaration with its byte span, lines and qualified name, and
+  refuse a source that does not parse.
+- **SP-73~1**: WHEN a project tree is inspected THE SYSTEM SHALL choose the
+  ecosystem strategies that recognize it, refuse two strategies of one name,
+  and add a strategy without a change to the registry.
+- **SP-74~1**: WHEN a pytest project is executed THE SYSTEM SHALL resolve the
+  interpreter from the configuration, the virtual environment, `uv run python`
+  for a uv project, then `python3`, compile and import the changed modules,
+  select bound tests by node id, and run `python -m pytest` with bytecode
+  writing disabled.
+- **SP-75~1**: WHEN a Go module is executed THE SYSTEM SHALL compile the test
+  binaries of the changed packages, select bound tests by an anchored `-run`
+  expression over their subtest paths, and run `go tool gotestsum` with a JUnit
+  file.
+- **SP-76~1**: WHEN a mutant that a bound test fails is executed THE SYSTEM
+  SHALL classify it killed, in every ecosystem.
+- **SP-77~1**: WHEN a behaviour-preserving mutant is executed THE SYSTEM SHALL
+  classify it survived, in every ecosystem.
+- **SP-78~1**: WHEN a mutant that does not parse or compile is executed THE
+  SYSTEM SHALL classify it error with diagnostics, in every ecosystem.
+- **SP-79~1**: WHEN a mutant is executed against the tests bound to a criterion
+  THE SYSTEM SHALL run only those tests.
+- **SP-80~1**: WHEN a mutant workspace is cloned from an already-built reference
+  THE SYSTEM SHALL still kill a mutant the tests fail.
+- **SP-81~1**: WHEN a bound test is display-named or parametrized THE SYSTEM
+  SHALL select it and attribute its outcome to the criterion it is bound to.
+- **SP-82~1**: WHEN a mutant is executed THE SYSTEM SHALL clone the reference,
+  splice, build-check, select, run and classify, report a splice or build
+  failure as the outcome error, refuse a path the policy forbids before any
+  clone, and release the mutant workspace.
+
 ## Architecture
 
 - **SP-36~1**: WHEN the packages `format` and `internal/domain` are inspected
