@@ -1,6 +1,6 @@
 # ADR 0002: Product architecture and distribution
 
-Status: accepted
+Status: accepted; superseded in part by ADR 0005.
 
 ## Context
 

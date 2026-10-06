@@ -1,6 +1,6 @@
 # ADR 0004: Benchmark design
 
-Status: accepted
+Status: accepted; superseded in part by ADR 0007.
 
 ## Context
 
