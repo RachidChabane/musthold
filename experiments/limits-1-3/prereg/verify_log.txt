@@ -1,0 +1,45 @@
+tests: 38
+variants: 41
+PARK-10_a: 48 passed, 1 not passed
+PARK-10_b: 47 passed, 2 not passed
+PARK-10_c: 47 passed, 2 not passed
+PARK-10_n1: 49 passed, 0 not passed
+PARK-1_a: 46 passed, 3 not passed
+PARK-1_b: 46 passed, 3 not passed
+PARK-1_c: 46 passed, 3 not passed
+PARK-1_n1: 49 passed, 0 not passed
+PARK-2_a: 46 passed, 3 not passed
+PARK-2_b: 46 passed, 3 not passed
+PARK-2_c: 45 passed, 4 not passed
+PARK-2_n1: 49 passed, 0 not passed
+PARK-3_a: 42 passed, 7 not passed
+PARK-3_b: 43 passed, 6 not passed
+PARK-3_c: 45 passed, 4 not passed
+PARK-3_n1: 49 passed, 0 not passed
+PARK-4_a: 46 passed, 3 not passed
+PARK-4_b: 45 passed, 4 not passed
+PARK-4_c: 46 passed, 3 not passed
+PARK-4_n1: 49 passed, 0 not passed
+PARK-5_a: 46 passed, 3 not passed
+PARK-5_b: 44 passed, 5 not passed
+PARK-5_c: 45 passed, 4 not passed
+PARK-5_n1: 49 passed, 0 not passed
+PARK-6_a: 47 passed, 2 not passed
+PARK-6_b: 48 passed, 1 not passed
+PARK-6_c: 48 passed, 1 not passed
+PARK-6_n1: 49 passed, 0 not passed
+PARK-7_a: 48 passed, 1 not passed
+PARK-7_b: 48 passed, 1 not passed
+PARK-7_c: 48 passed, 1 not passed
+PARK-7_n1: 49 passed, 0 not passed
+PARK-8_a: 46 passed, 3 not passed
+PARK-8_b: 47 passed, 2 not passed
+PARK-8_c: 46 passed, 3 not passed
+PARK-8_n1: 48 passed, 1 not passed
+PARK-9_a: 45 passed, 4 not passed
+PARK-9_b: 45 passed, 4 not passed
+PARK-9_c: 45 passed, 4 not passed
+PARK-9_n1: 48 passed, 1 not passed
+R: 41 passed, 8 not passed
+REFERENCE: 49 passed, 0 not passed
+RESULT: PASS

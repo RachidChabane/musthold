@@ -1,0 +1,9 @@
+{
+  "edits": [
+    {
+      "file": "src/parkfee/tariff.py",
+      "qualname": "breakdown",
+      "new_source": "def breakdown(entry: datetime, exit: datetime, *, lost_ticket: bool = False, validated: bool = False) -> Breakdown:\n    if exit < entry:\n        raise ValueError(\"exit time precedes entry time\")\n    duration = exit - entry\n    if lost_ticket:\n        return Breakdown(Rule.LOST_TICKET, duration, LOST_TICKET_FEE)\n    if duration <= GRACE_PERIOD:\n        return Breakdown(Rule.GRACE, duration, FREE)\n    if _validated_free(duration, validated):\n        return Breakdown(Rule.VALIDATED, duration, FREE)\n    if duration > DAY:\n        return Breakdown(Rule.LONG_STAY, duration, _long_stay_charge(entry, exit))\n    if duration > NIGHT_MINIMUM_STAY and _in_night_window(entry, exit):\n        return Breakdown(Rule.NIGHT, duration, NIGHT_FLAT_RATE)\n    return Breakdown(Rule.HOURLY, duration, min(_hourly_charge(entry, exit), Decimal(\"20.00\")))\n"
+    }
+  ]
+}

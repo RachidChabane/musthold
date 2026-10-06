@@ -1,0 +1,9 @@
+{
+  "edits": [
+    {
+      "file": "src/parkfee/tariff.py",
+      "qualname": "_long_stay_charge",
+      "new_source": "def _long_stay_charge(entry: datetime, exit: datetime) -> Decimal:\n    return DAY_RATE * _started(exit - entry - GRACE_PERIOD, DAY)\n"
+    }
+  ]
+}

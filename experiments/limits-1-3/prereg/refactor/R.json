@@ -1,0 +1,24 @@
+{
+  "edits": [
+    {
+      "file": "src/parkfee/models.py",
+      "qualname": "Breakdown",
+      "new_source": "@dataclass(frozen=True)\nclass Breakdown:\n    total: Decimal\n    tariff: Rule\n    minutes: int\n"
+    },
+    {
+      "file": "src/parkfee/tariff.py",
+      "qualname": "breakdown",
+      "new_source": "def breakdown(entry: datetime, exit: datetime, *, lost_ticket: bool = False, validated: bool = False) -> Breakdown:\n    if entry.tzinfo is None and exit.tzinfo is not None:\n        entry = entry.replace(tzinfo=exit.tzinfo)\n    elif exit.tzinfo is None and entry.tzinfo is not None:\n        exit = exit.replace(tzinfo=entry.tzinfo)\n    if exit < entry:\n        raise ValueError(f\"exit {exit.isoformat()} is earlier than entry {entry.isoformat()}\")\n    duration = exit - entry\n    if lost_ticket:\n        rule, amount = Rule.LOST_TICKET, LOST_TICKET_FEE\n    elif duration <= GRACE_PERIOD:\n        rule, amount = Rule.GRACE, FREE\n    elif _validated_free(duration, validated):\n        rule, amount = Rule.VALIDATED, FREE\n    elif duration > DAY:\n        rule, amount = Rule.LONG_STAY, _long_stay_charge(entry, exit)\n    elif duration > NIGHT_MINIMUM_STAY and _in_night_window(entry, exit):\n        rule, amount = Rule.NIGHT, NIGHT_FLAT_RATE\n    else:\n        rule, amount = Rule.HOURLY, min(_hourly_charge(entry, exit), DAILY_CAP)\n    return Breakdown(total=amount.normalize(), tariff=rule, minutes=round(duration / timedelta(minutes=1)))\n"
+    },
+    {
+      "file": "src/parkfee/tariff.py",
+      "qualname": "quote",
+      "new_source": "def quote(entry: datetime, exit: datetime, *, lost_ticket: bool = False, validated: bool = False) -> Decimal:\n    return breakdown(entry, exit, lost_ticket=lost_ticket, validated=validated).total\n"
+    },
+    {
+      "file": "src/parkfee/receipt.py",
+      "qualname": "format_receipt",
+      "new_source": "def format_receipt(amount: Decimal) -> str:\n    if amount == FREE:\n        return FREE_RECEIPT\n    return CURRENCY + format(amount, \" .2f\")\n"
+    }
+  ]
+}

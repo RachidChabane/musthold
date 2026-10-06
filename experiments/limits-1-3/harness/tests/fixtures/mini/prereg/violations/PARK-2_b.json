@@ -1,0 +1,9 @@
+{
+  "edits": [
+    {
+      "file": "src/parkfee/tariff.py",
+      "qualname": "quote",
+      "new_source": "def quote(entry: datetime, exit: datetime) -> Decimal:\n    if exit < entry:\n        raise ValueError(\"exit before entry\")\n    minutes = (exit - entry) // timedelta(minutes=1)\n    if minutes <= 10:\n        return Decimal(\"0.00\")\n    return _hourly_charge(minutes)\n"
+    }
+  ]
+}

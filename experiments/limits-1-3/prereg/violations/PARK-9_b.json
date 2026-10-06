@@ -1,0 +1,9 @@
+{
+  "edits": [
+    {
+      "file": "src/parkfee/receipt.py",
+      "qualname": "format_receipt",
+      "new_source": "def format_receipt(amount: Decimal) -> str:\n    if amount == FREE:\n        return FREE_RECEIPT\n    return f\"{CURRENCY} {float(amount.quantize(CENT, rounding=ROUND_HALF_UP))}\"\n"
+    }
+  ]
+}

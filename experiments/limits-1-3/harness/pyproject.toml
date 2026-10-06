@@ -1,0 +1,78 @@
+[project]
+name = "pilot"
+version = "0.1.0"
+description = "Experiment harness for the limits 1-3 pilot"
+requires-python = "==3.13.14"
+dependencies = [
+    "pytest",
+    "pytest-timeout",
+    "hypothesis",
+    "pyyaml",
+    "jsonschema",
+    "numpy",
+    "scipy",
+    "statsmodels",
+    "rfc8785",
+]
+
+[dependency-groups]
+dev = [
+    "import-linter",
+    "pyright",
+    "pytest-cov",
+    "types-pyyaml",
+    "types-jsonschema",
+]
+
+[project.scripts]
+pilot = "pilot.cli.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pilot"]
+
+[tool.uv]
+python-downloads = "never"
+python-preference = "only-system"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider"
+pythonpath = ["src"]
+markers = ["integration: runs real subprocesses"]
+
+[tool.pyright]
+include = ["src"]
+typeCheckingMode = "basic"
+pythonVersion = "3.13"
+
+[tool.importlinter]
+root_package = "pilot"
+include_external_packages = false
+
+[[tool.importlinter.contracts]]
+name = "domain imports nothing from other layers"
+type = "forbidden"
+source_modules = ["pilot.domain"]
+forbidden_modules = ["pilot.application", "pilot.adapters", "pilot.analysis", "pilot.cli"]
+
+[[tool.importlinter.contracts]]
+name = "application imports only domain"
+type = "forbidden"
+source_modules = ["pilot.application"]
+forbidden_modules = ["pilot.adapters", "pilot.analysis", "pilot.cli"]
+
+[[tool.importlinter.contracts]]
+name = "adapters do not import analysis or cli"
+type = "forbidden"
+source_modules = ["pilot.adapters"]
+forbidden_modules = ["pilot.analysis", "pilot.cli"]
+
+[[tool.importlinter.contracts]]
+name = "nothing outside analysis imports analysis"
+type = "forbidden"
+source_modules = ["pilot.domain", "pilot.application", "pilot.adapters", "pilot.cli"]
+forbidden_modules = ["pilot.analysis"]
