@@ -1,0 +1,213 @@
+{
+  "enumerated": 72,
+  "enumeratedByFamily": {
+    "and_or": 1,
+    "arithmetic": 12,
+    "boolean_literal": 1,
+    "boolean_logical": 5,
+    "constructor_argument": 3,
+    "decimal_string": 7,
+    "exception_class": 2,
+    "min_max": 2,
+    "module_constant": 6,
+    "numeric_constant": 11,
+    "relational": 15,
+    "return_value": 7
+  },
+  "strata": 32,
+  "sampled": [
+    {
+      "id": "9ac03ac2891de56000d5533cbb28e1ff4f3ebdf4652e2761c24376339387346a",
+      "family": "boolean_logical",
+      "qualname": "Tariff.breakdown"
+    },
+    {
+      "id": "54ea4331a685f4127cf514f9275f9e914baea657dbd0b43a243d80ff4be4195e",
+      "family": "relational",
+      "qualname": "Tariff.breakdown"
+    },
+    {
+      "id": "c1e48d17d7948f548e6f07f6cd0b68594db1b2b3c1ddba6fdbbee7dbac5c2cdf",
+      "family": "arithmetic",
+      "qualname": "Tariff.breakdown"
+    },
+    {
+      "id": "7630dcdbb79a3c3a9d6a1679a7340985e12e3c5db47a45bf1d96fcbbf89fc350",
+      "family": "numeric_constant",
+      "qualname": "Tariff.breakdown"
+    },
+    {
+      "id": "2371ebc377bbffbebc38764cb6b54a5d9134efa35c47711d059368208925c493",
+      "family": "return_value",
+      "qualname": "Tariff.breakdown"
+    },
+    {
+      "id": "c78cf05cd53a8357e81435f0fa2dc41ac12347c78485b6409acfa462e145d6da",
+      "family": "decimal_string",
+      "qualname": "Tariff.breakdown"
+    },
+    {
+      "id": "e293595b697470bd68220b0a11c54b44c594dc0873381835df513de6dbaac403",
+      "family": "boolean_logical",
+      "qualname": "Tariff.breakdown"
+    },
+    {
+      "id": "e0ec592bf92c536092784461f99f067a986d7fc52998d577cb23281a7ff9ccfe",
+      "family": "return_value",
+      "qualname": "Tariff.breakdown"
+    },
+    {
+      "id": "828969cd54ce11f86d8a3dda3182369d2d755967fc24826a2e61d5c68a611e88",
+      "family": "decimal_string",
+      "qualname": "Tariff.breakdown"
+    },
+    {
+      "id": "1580baae77a71c43ed45946c913a9823dcfc58eb472b339c78a0ac2d239bdf61",
+      "family": "numeric_constant",
+      "qualname": "Tariff.breakdown"
+    },
+    {
+      "id": "3d7bfcc1f8c2d9916e663ec7127d4433f96270607d19699d713dbf2a674564d6",
+      "family": "numeric_constant",
+      "qualname": "Tariff.breakdown"
+    },
+    {
+      "id": "974420258fdef5561b186922a6c30f6459fbcefafc4484d0507f7afc16c32693",
+      "family": "min_max",
+      "qualname": "Tariff.breakdown"
+    },
+    {
+      "id": "474787814816ea1dfd2a1b00a821e4e52466e7c9aebd877d899917cbc5eec7fc",
+      "family": "return_value",
+      "qualname": "_validated_free"
+    },
+    {
+      "id": "24821815425d441e2db29ed68ca561e179e1d9e3cbd5834ea9f4ae2dc7abae22",
+      "family": "boolean_logical",
+      "qualname": "_validated_free"
+    },
+    {
+      "id": "7905ed29847a71ef36d7f96f23f1b54069a9808fe7d6d12dc5bfb32dbbe2baa5",
+      "family": "and_or",
+      "qualname": "_validated_free"
+    },
+    {
+      "id": "f1634027447963e74e55d9f4a2f56a20ede9932d7bd96956d47acf0ab437e9b1",
+      "family": "boolean_logical",
+      "qualname": "_validated_free"
+    },
+    {
+      "id": "1a47d56e54cc742b5c561f52c757688b85319134a67190fb9c1803b0bec29f9f",
+      "family": "relational",
+      "qualname": "_validated_free"
+    },
+    {
+      "id": "452e3abc17a15822c077c76a4ccfa0f01082d4aa83488985472a9c5214577185",
+      "family": "boolean_literal",
+      "qualname": "charge"
+    },
+    {
+      "id": "b91f6290b8fdd0891bca59e59529e5b09e39427ec2584def8a072fe1c35f59b5",
+      "family": "relational",
+      "qualname": "charge"
+    },
+    {
+      "id": "f083998051433109fc810632a49c326a4ae36d0f008d301a98306d800b5b9e92",
+      "family": "numeric_constant",
+      "qualname": "charge"
+    },
+    {
+      "id": "47f4306bbad8f5d8adf97a138e3d3869879fa8ebcfc5e4ae04c24d5933d87cdb",
+      "family": "exception_class",
+      "qualname": "charge"
+    },
+    {
+      "id": "3a31dab052939dd1f430a3a8a5b3217f2cd0b7b4115e6b7174afa27bf1cb54bc",
+      "family": "exception_class",
+      "qualname": "charge"
+    },
+    {
+      "id": "87a93b5d3292d661ce8326b133222585ac2b168c722cbcfcb6c4a8219c3b3e40",
+      "family": "module_constant",
+      "qualname": "DAILY_CAP"
+    },
+    {
+      "id": "c62aa1dea6a711bd971fbdb67da13c30feccea2ea5e6e32a989ce51573ec2e50",
+      "family": "decimal_string",
+      "qualname": "HOURLY_RATE"
+    },
+    {
+      "id": "ceee012eb3cf6f11ece5c8ebeacee0d18e43da4e691c8523b08326c690f4bbd4",
+      "family": "module_constant",
+      "qualname": "VALIDATION_WINDOW"
+    }
+  ],
+  "sentinels": [
+    {
+      "id": "b204c4f46f89d7cec57c2c76ba2fb4b0f07ad6f9ab03f0618fc16fa78a6f5709",
+      "kind": "dead_assignment",
+      "qualname": "charge"
+    },
+    {
+      "id": "2b8c191c3aa0d7eff7242b1bad3ab4e5ab282cdecd088b77001b5afa91a86653",
+      "kind": "unused_constant",
+      "qualname": "_SCRATCH_S0"
+    }
+  ],
+  "footprint": {
+    "definitions": [
+      "Tariff.__init__",
+      "Tariff.breakdown",
+      "_validated_free",
+      "charge"
+    ],
+    "assignments": [
+      "DAILY_CAP",
+      "GRACE",
+      "HOURLY_RATE",
+      "LABEL",
+      "VALIDATION_WINDOW"
+    ]
+  },
+  "sampledByFamily": {
+    "and_or": 1,
+    "arithmetic": 1,
+    "boolean_literal": 1,
+    "boolean_logical": 4,
+    "decimal_string": 3,
+    "exception_class": 2,
+    "min_max": 1,
+    "module_constant": 2,
+    "numeric_constant": 4,
+    "relational": 3,
+    "return_value": 3
+  },
+  "unrestrictedByFamily": {
+    "and_or": 2,
+    "arithmetic": 12,
+    "boolean_literal": 1,
+    "boolean_logical": 7,
+    "constructor_argument": 13,
+    "decimal_string": 7,
+    "exception_class": 2,
+    "min_max": 2,
+    "module_constant": 6,
+    "numeric_constant": 11,
+    "relational": 25,
+    "return_value": 8
+  },
+  "sentinelsBySeed": {
+    "1": [
+      "unused_constant:_CURSOR_QW",
+      "alpha_rename:Tariff.breakdown"
+    ],
+    "2": [
+      "alpha_rename:Tariff.breakdown",
+      "unused_constant:_SLOT_DT"
+    ],
+    "3": [
+      "alpha_rename:Tariff.breakdown",
+      "dead_assignment:Tariff.breakdown"
+    ]
+  }
+}
