@@ -16,8 +16,10 @@ from pilot.adapters.models_lock import (
 )
 from pilot.adapters.process import ProcessResult
 from pilot.adapters.prompt_files import DirectoryPromptLibrary
-from pilot.application.canary import CanaryFailed, CanaryTask, plan_canary, run_canary
-from pilot.domain.call_type import CallType
+from pilot.application.canary import CanaryFailed, CanaryTask, canary_roles, plan_canary, run_canary
+from pilot.domain.call_type import ROLE_CALL_TYPES, CallType
+from pilot.domain.model_slate import CANARY_PINS, LUNA_CANARY_PINS
+from pilot.domain.model_slate import TERRA as TERRA_PIN
 from pilot.domain.canary_items import CANARY_TOKENS
 from pilot.application.model_router import RoutingModelPort
 from pilot.domain.model_call import (
@@ -138,8 +140,8 @@ def test_router_dispatches_by_cli():
 
 
 ROLES = {
-    SONNET: ("validity_judge_v_s", "alignment_judge_j_sonnet"),
-    TERRA: ("mutant_generator", "relabel_oai", "leak_audit", "alignment_judge_j_gpt"),
+    SONNET: ("validity_judge", "alignment_judge", "leakage_probe"),
+    TERRA: ("mutant_generator", "relabel_rater", "leak_audit", "alignment_judge", "leakage_probe"),
 }
 
 
@@ -185,7 +187,40 @@ def test_committed_models_lock_matches_the_pins_of_the_protocol(experiment_root)
         ("claude-opus-5-5", Cli.CLAUDE),
         ("claude-sonnet-5-5", Cli.CLAUDE),
         ("gpt-5.6-terra", Cli.CODEX),
+        ("gpt-6-luna", Cli.CODEX),
     }
+
+
+def pairs(tasks):
+    return sorted((t.pin.model, t.call_type.value) for t in tasks)
+
+
+def test_the_committed_lock_canaries_the_claude_pairs_of_the_decisional_run_only(experiment_root):
+    lock = load_models_lock(experiment_root / "prereg" / "models.lock.json")
+    tasks = plan_canary(canary_roles(lock.roles, CANARY_PINS), real_prompts())
+    assert pairs(tasks) == sorted([
+        ("claude-sonnet-5-5", "generate"), ("claude-sonnet-5-5", "validity"), ("claude-sonnet-5-5", "alignment"),
+        ("claude-sonnet-5-5", "probe"), ("claude-sonnet-5-5", "write_tests"),
+        ("claude-opus-5-5", "generate"), ("claude-opus-5-5", "write_tests"), ("claude-opus-5-5", "alignment"),
+        ("claude-opus-5-5", "audit"),
+    ])
+
+
+def test_the_luna_canary_is_two_pairs_and_terra_is_never_canaried(experiment_root):
+    lock = load_models_lock(experiment_root / "prereg" / "models.lock.json")
+    assert pairs(plan_canary(canary_roles(lock.roles, LUNA_CANARY_PINS), real_prompts())) == [
+        ("gpt-6-luna", "generate"), ("gpt-6-luna", "write_tests")]
+    assert TERRA_PIN not in CANARY_PINS and TERRA_PIN not in LUNA_CANARY_PINS
+
+
+def test_every_role_of_the_committed_lock_is_a_known_role(experiment_root):
+    raw = json.loads((experiment_root / "prereg" / "models.lock.json").read_text())
+    known = set(ROLE_CALL_TYPES)
+    assert all(set(entry["roles"]) | set(entry["completed_roles"]) <= known for entry in raw["models"])
+    assert {entry["model"]: entry["status"] for entry in raw["models"]} == {
+        "claude-sonnet-5-5": "active", "claude-opus-5-5": "active", "gpt-5.6-terra": "completed", "gpt-6-luna": "exploratory",
+    }
+    assert {e["model"]: e["provenance"] for e in raw["models"]}["gpt-6-luna"] == "requested_only"
 
 
 def test_canary_store_writes_one_file_per_model_cli_and_call_type(tmp_path):

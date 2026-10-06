@@ -41,6 +41,13 @@ class CanaryReport:
     versions: Mapping[Cli, str]
 
 
+def canary_roles(
+    lock_roles: Mapping[ModelPin, tuple[str, ...]], pins: Sequence[ModelPin]
+) -> dict[ModelPin, tuple[str, ...]]:
+    """The lock roles of the pins a canary measures."""
+    return {pin: lock_roles[pin] for pin in pins if pin in lock_roles}
+
+
 def plan_canary(
     roles: Mapping[ModelPin, tuple[str, ...]],
     prompts: PromptLibrary,

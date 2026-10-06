@@ -13,6 +13,7 @@ from pilot.domain.prompts import (
     probe_item,
     relabel_item,
     validity_item,
+    writer_item,
 )
 
 CANARY_TOKENS: Final = tuple(f"K-{n:04d}" for n in range(1, 11))
@@ -72,6 +73,11 @@ def canary_item(call_type: CallType, templates: Mapping[CallType, str]) -> str:
         target = CANARY_SPEC.splitlines()[2]
         return generation_item(
             template, CANARY_SPEC, "PARK-3~1", target.split(": ", 1)[1], CANARY_SOURCE, CANARY_NONCE
+        )
+    if call_type is CallType.WRITE_TESTS:
+        target = CANARY_SPEC.splitlines()[2]
+        return writer_item(
+            template, CANARY_SPEC, "PARK-3~1", target.split(": ", 1)[1], CANARY_SOURCE, CANARY_SIGNATURES, CANARY_NONCE
         )
     if call_type in (CallType.VALIDITY, CallType.AUDIT):
         return validity_item(template, CANARY_SPEC, CANARY_ORIGINAL, CANARY_MUTANT, CANARY_DIFF, "")

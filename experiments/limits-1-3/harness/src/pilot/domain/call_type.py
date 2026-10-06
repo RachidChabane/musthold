@@ -16,6 +16,7 @@ class CallType(Enum):
     RELABEL = "relabel"
     AUDIT = "audit"
     LEAK_AUDIT = "leak_audit"
+    WRITE_TESTS = "write_tests"
 
 
 CALL_EFFORT: Final = {
@@ -26,6 +27,7 @@ CALL_EFFORT: Final = {
     CallType.RELABEL: Effort.HIGH,
     CallType.AUDIT: Effort.HIGH,
     CallType.LEAK_AUDIT: Effort.HIGH,
+    CallType.WRITE_TESTS: Effort.HIGH,
 }
 
 TEMPLATE_STEM: Final = {
@@ -36,6 +38,7 @@ TEMPLATE_STEM: Final = {
     CallType.RELABEL: "relabel",
     CallType.AUDIT: "validity",
     CallType.LEAK_AUDIT: "leak_audit",
+    CallType.WRITE_TESTS: "write_tests",
 }
 
 SCHEMA_STEM: Final = {
@@ -46,27 +49,24 @@ SCHEMA_STEM: Final = {
     CallType.RELABEL: "relabel.schema.json",
     CallType.AUDIT: "validity.schema.json",
     CallType.LEAK_AUDIT: "leak_audit.schema.json",
+    CallType.WRITE_TESTS: "write_tests.schema.json",
 }
 
 TEMPLATE_SUFFIX: Final = ".md"
 
-ROLE_CALL_TYPES: Final = (
-    ("mutant_generator", (CallType.GENERATE,)),
-    ("relabel_", (CallType.RELABEL,)),
-    ("mutant_audit", (CallType.AUDIT,)),
-    ("validity_judge", (CallType.VALIDITY,)),
-    ("alignment_judge", (CallType.ALIGNMENT, CallType.PROBE)),
-    ("leak_audit", (CallType.LEAK_AUDIT,)),
-)
+ROLE_CALL_TYPES: Final = {
+    "mutant_generator": (CallType.GENERATE,),
+    "test_writer": (CallType.WRITE_TESTS,),
+    "validity_judge": (CallType.VALIDITY,),
+    "alignment_judge": (CallType.ALIGNMENT,),
+    "leakage_probe": (CallType.PROBE,),
+    "mutant_audit": (CallType.AUDIT,),
+    "relabel_rater": (CallType.RELABEL,),
+    "leak_audit": (CallType.LEAK_AUDIT,),
+}
 
 
 def call_types_of_roles(roles: tuple[str, ...]) -> tuple[CallType, ...]:
     """Call types a model with these lock roles performs, in enum order."""
-    found = {
-        call_type
-        for role in roles
-        for prefix, call_types in ROLE_CALL_TYPES
-        if role.startswith(prefix)
-        for call_type in call_types
-    }
+    found = {call_type for role in roles for call_type in ROLE_CALL_TYPES.get(role, ())}
     return tuple(call_type for call_type in CallType if call_type in found)

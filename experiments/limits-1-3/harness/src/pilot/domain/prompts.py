@@ -27,6 +27,25 @@ def generation_item(
     )
 
 
+def writer_item(
+    template: str,
+    spec: str,
+    target_ref: str,
+    target_statement: str,
+    source: Mapping[str, str],
+    api: str,
+    nonce: str,
+) -> str:
+    return template.format(
+        target_ref=target_ref,
+        target_statement=target_statement,
+        nonce=nonce,
+        spec=spec,
+        api=api,
+        source=render_files(source),
+    )
+
+
 def validity_item(
     template: str, spec: str, original: str, mutant: str, diff: str, differential: str
 ) -> str:

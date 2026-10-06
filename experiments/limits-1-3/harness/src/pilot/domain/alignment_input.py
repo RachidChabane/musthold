@@ -164,11 +164,11 @@ def public_signatures(unit: TestUnit, package: str, package_sources: Mapping[str
         for module, name in unit.imported_symbols
         if module == package or module.startswith(f"{package}.")
     ]
-    stubs = [stub for name in wanted if (stub := _signature_of(name, package_sources)) is not None]
+    stubs = [stub for name in wanted if (stub := signature_of(name, package_sources)) is not None]
     return SIGNATURE_SEPARATOR.join(stubs)
 
 
-def _signature_of(name: str, package_sources: Mapping[str, str]) -> str | None:
+def signature_of(name: str, package_sources: Mapping[str, str]) -> str | None:
     for _file, source in sorted(package_sources.items()):
         for node in ast.parse(source).body:
             if isinstance(node, _DefNode) and node.name == name:
