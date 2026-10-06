@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from pilot.application.model_caller import Log, ModelCaller
+from pilot.application.model_caller import CallRunner, Log
 from pilot.application.ports import FixtureSources, PromptLibrary, RunStore
 from pilot.domain.spec import Criterion, parse_spec
 
@@ -15,7 +15,7 @@ class PipelineContext:
     store: RunStore
     sources: FixtureSources
     prompts: PromptLibrary
-    caller: ModelCaller
+    caller: CallRunner
     log: Log
 
     def criteria(self) -> tuple[Criterion, ...]:

@@ -17,7 +17,6 @@ from pilot.domain.constants import (
     PYTEST_EXIT_INTERRUPTED,
     REFERENCE_RUN_COUNT,
 )
-from pilot.domain.edits import EditError, EditFailure
 from pilot.domain.mutants import (
     Candidate,
     MutantRecord,
@@ -25,7 +24,8 @@ from pilot.domain.mutants import (
     StillbornReason,
 )
 from pilot.domain.normalization import changed_line_count, normalize, normalized_digest
-from pilot.domain.outcomes import RunResult, TestOutcome, classify_kill
+from pilot.domain.edits import EditError, EditFailure, EditSet
+from pilot.domain.outcomes import KillResult, RunResult, TestOutcome, classify_kill
 
 
 class ReferenceUnstable(Exception):
@@ -56,9 +56,9 @@ class MutantProcessor:
         return sorted(results[0].outcomes)
 
     def process(
-        self, candidates: Sequence[Candidate], nodeids: Sequence[str] | None = None
+        self, candidates: Sequence[Candidate], nodeids: Sequence[str] | None = None, differential: bool = True
     ) -> list[MutantRecord]:
-        """F0 to F3; `nodeids` skips the reference confirmation when the caller already holds it."""
+        """F0 to F3 (F0 to F2 without `differential`); `nodeids` skips the reference confirmation."""
         nodeids = self.confirm_reference() if nodeids is None else nodeids
         records = self._static_stage(candidates)
         live = [r for r in records if r.status is MutantStatus.EVALUATED]
@@ -66,8 +66,9 @@ class MutantProcessor:
         live = [r for r in live if r.status is MutantStatus.EVALUATED]
         results = self._runner.run_many({r.candidate.key: RunRequest(r.candidate.edit_set) for r in live})
         self._kill_stage(live, results, nodeids)
-        for record in (r for r in live if r.status is MutantStatus.EVALUATED):
-            record.differential = self._differential.compare(record.candidate.edit_set)
+        if differential:
+            for record in (r for r in live if r.status is MutantStatus.EVALUATED):
+                record.differential = self._differential.compare(record.candidate.edit_set)
         return records
 
     def _static_stage(self, candidates: Sequence[Candidate]) -> list[MutantRecord]:
@@ -126,29 +127,27 @@ class MutantProcessor:
                 record.status = MutantStatus.STILLBORN
                 record.reason = StillbornReason.COLLECTION_ERROR.value
                 continue
-            pending.append((record, result))
-        reruns = self._rerun_kills(pending)
-        for record, result in pending:
-            record.kill_vector = {
-                nodeid: classify_kill(result.outcome_of(nodeid), reruns[record.candidate.key].get(nodeid))
-                for nodeid in nodeids
-            }
+            pending.append(record)
+        vectors = kill_vectors(
+            self._runner, {r.candidate.key: (r.candidate.edit_set, results[r.candidate.key]) for r in pending}, nodeids
+        )
+        for record in pending:
+            record.kill_vector = vectors[record.candidate.key]
 
-    def _rerun_kills(
-        self, pending: Sequence[tuple[MutantRecord, RunResult]]
-    ) -> dict[str, dict[str, TestOutcome]]:
-        killed = {
-            record.candidate.key: tuple(
-                n for n, o in result.outcomes.items() if o is TestOutcome.FAILED
-            )
-            for record, result in pending
+
+def kill_vectors(
+    runner: VariantRunner, runs: Mapping[str, tuple[EditSet, RunResult]], nodeids: Sequence[str]
+) -> dict[str, dict[str, KillResult]]:
+    """F2 over finished suite runs: every first-run kill is rerun once, a non-reproducing kill is flaky."""
+    killed = {
+        key: tuple(n for n, o in result.outcomes.items() if o is TestOutcome.FAILED) for key, (_, result) in runs.items()
+    }
+    requests = {key: RunRequest(runs[key][0], failed) for key, failed in killed.items() if failed}
+    reruns = runner.run_many(requests)
+    return {
+        key: {
+            nodeid: classify_kill(result.outcome_of(nodeid), reruns[key].outcome_of(nodeid) if key in reruns else None)
+            for nodeid in nodeids
         }
-        requests = {
-            record.candidate.key: RunRequest(record.candidate.edit_set, killed[record.candidate.key])
-            for record, _ in pending
-            if killed[record.candidate.key]
-        }
-        reruns = self._runner.run_many(requests)
-        return {
-            key: dict(reruns[key].outcomes) if key in reruns else {} for key in killed
-        }
+        for key, (_, result) in runs.items()
+    }

@@ -137,3 +137,9 @@ class WitnessExecution:
     reference: Output | None
     mutant: Output | None
     error: str | None
+
+
+class SuiteRunners(Protocol):
+    """Builds a variant runner whose project carries a writer's test files in place of the fixture tests."""
+
+    def runner(self, files: Mapping[str, str]) -> VariantRunner: ...

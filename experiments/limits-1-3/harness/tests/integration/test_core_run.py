@@ -27,7 +27,8 @@ from pilot.application.core_run import CoreDependencies, run_core
 from pilot.application.model_caller import ModelCaller
 from pilot.application.process_mutants import MutantProcessor
 from pilot.application.provenance import ManifestInputs
-from pilot.application.secondary_run import SecondaryPreconditionFailed, run_secondary
+from pilot.application.exploratory_calls import ExploratoryLedger
+from pilot.application.secondary_run import SecondaryDependencies, SecondaryPreconditionFailed, run_secondary
 from pilot.application.stage_timer import StageTimer
 from pilot.domain.call_type import CallType
 from pilot.domain.model_call import CanaryBaseline, ModelProvenance, ModelResult, TokenUsage
@@ -382,10 +383,10 @@ def test_run_secondary_requires_the_audit_sample(completed, tmp_path):
     shutil.copytree(world, copied)
     deps, _ = build(copied, FakeModel(), tmp_path / "w")
     with pytest.raises(SecondaryPreconditionFailed, match="audit_sample.json"):
-        run_secondary(deps)
+        run_secondary(SecondaryDependencies(deps, ExploratoryLedger(deps.ctx.store)))
 
 
-def test_run_secondary_adds_the_other_judges_arm_o_and_the_audit(completed, tmp_path):
+def test_run_secondary_adds_j_h_name_shown_j_x_masked_and_the_audit_and_records_per_call_status(completed, tmp_path):
     _, _, _, shared = completed
     world = tmp_path / "copy"
     shutil.copytree(shared, world)
@@ -396,22 +397,18 @@ def test_run_secondary_adds_the_other_judges_arm_o_and_the_audit(completed, tmp_
     store.write_json("audit_sample.json", {"seed": 1, "mutant_ids": sample, "strata": {m: "s" for m in sample}})
     model = FakeModel()
     again, _ = build(world, model, tmp_path / "secondary")
-    run_secondary(again)
+    run_secondary(SecondaryDependencies(again, ExploratoryLedger(store)))
     alignment = rows(store, "alignment.jsonl")
-    assert {(r["judge"], r["arm"]) for r in alignment} == {
-        ("J-H", "NAME-MASKED"), ("J-H", "NAME-SHOWN"), ("J-X", "NAME-MASKED"), ("J-X", "NAME-SHOWN"),
-    }
-    assert len(alignment) == 4 * TESTS_PER_JUDGE * 5
-    assert {r["judge"] for r in rows(store, "probe.jsonl")} == {"J-H", "J-X"}
+    assert {(r["judge"], r["arm"]) for r in alignment} == {("J-H", "NAME-MASKED"), ("J-H", "NAME-SHOWN"), ("J-X", "NAME-MASKED")}
+    assert len(alignment) == 3 * TESTS_PER_JUDGE * 5
+    assert {r["judge"] for r in rows(store, "probe.jsonl")} == {"J-H"}
     aggregate = store.read_json("alignment_aggregate.json")
-    assert set(aggregate) == {"J-X", "J-H"} and set(aggregate["J-X"]) == {"NAME-MASKED", "NAME-SHOWN"}
-    arm_o = [json.loads(p.read_text()) for p in (world / "runs" / "r1" / "mutants").glob("*.json")]
-    operator = [d for d in arm_o if d["arm"] == "O"]
-    assert operator and all(d["target"] is None and d["generator"] is None for d in operator)
+    assert set(aggregate) == {"J-X", "J-H"} and set(aggregate["J-X"]) == {"NAME-MASKED"}
     audit = [r for r in rows(store, "validity.jsonl") if r["judge"] == "A-OPUS"]
     assert sorted(r["mutant_id"] for r in audit) == sorted(sample)
     assert all(r["call_id"].startswith("audit__") for r in audit)
     audit_requests = [r for r in model.requests if r.call_id.startswith("audit")]
     assert len(audit_requests) == 2 and all(r.effort.value == "high" for r in audit_requests)
-    assert {r["mutant_id"] for r in rows(store, "processing.jsonl")} >= {d["mutant_id"] for d in operator}
-    assert not any(c["arm"] == "O" for c in store.read_json("mutant_classes.json"))
+    assert not any(json.loads(p.read_text())["arm"] == "O" for p in (world / "runs" / "r1" / "mutants").glob("*.json"))
+    status = store.read_json("exploratory_status.json")["secondary"]
+    assert set(status.values()) == {"complete"} and len(status) == 2 * TESTS_PER_JUDGE * 5 + 2

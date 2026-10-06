@@ -8,6 +8,7 @@ from pathlib import Path
 
 from pilot.cli import analysis_verbs, commands, pipeline_commands
 from pilot.cli.layout import default_root
+from pilot.domain.call_budget import DEFAULT_CALL_BUDGET
 from pilot.domain.call_type import CallType
 from pilot.domain.deviations import OPERATOR_KINDS
 from pilot.domain.constants import (
@@ -43,6 +44,10 @@ def _add_counts(parser: argparse.ArgumentParser, *names: str) -> None:
 def _add_run(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--run-id", required=True)
     _add_counts(parser, "tests", "criteria")
+    parser.add_argument(
+        "--call-budget", type=int, default=DEFAULT_CALL_BUDGET,
+        help="new model calls per UTC day and CLI before the verb stops cleanly (exit 3)",
+    )
 
 
 def build_parser() -> tuple[argparse.ArgumentParser, dict[str, Handler]]:
@@ -94,7 +99,13 @@ def build_parser() -> tuple[argparse.ArgumentParser, dict[str, Handler]]:
     sub = verb("run-core", pipeline_commands.run_core_command, "PREREG 14 step 3")
     _add_run(sub)
 
-    sub = verb("run-secondary", pipeline_commands.run_secondary_command, "PREREG 14 step 5")
+    sub = verb("run-blindspot", pipeline_commands.run_blindspot_command, "contrast mutants, test writers, operator mutants and writer kill vectors")
+    _add_run(sub)
+
+    sub = verb("run-secondary", pipeline_commands.run_secondary_command, "J-H NAME-SHOWN, J-X and the mutant audit")
+    _add_run(sub)
+
+    sub = verb("run-luna", pipeline_commands.run_luna_command, "the exploratory luna stratum, inside its window")
     _add_run(sub)
 
     sub = verb("log-deviation", pipeline_commands.log_deviation_command, "append one entry to DEVIATIONS.md")

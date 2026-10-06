@@ -13,13 +13,12 @@ from enum import Enum
 from typing import Any, Final
 
 from pilot.domain.call_ids import GENERATE_CALL_ID, RELABEL_CALL_ID
-from pilot.domain.constants import CANARY_DIRNAME, RAW_DIRNAME
+from pilot.domain.constants import CANARY_DIRNAME, RAW_DIRNAME, RESULT_FILENAME
 
 SOURCE_RUN_ID: Final = "run-01"
 IMPORTS_FILENAME: Final = "imports.json"
 IMPORTS_DIRNAME: Final = "imports"
 SHA256SUMS_FILENAME: Final = "SHA256SUMS"
-RESULT_FILENAME: Final = "result.json"
 PLAN_FILENAME: Final = "plan.json"
 IMPORTED_CANARY_DIRECTORY: Final = f"{IMPORTS_DIRNAME}/{SOURCE_RUN_ID}/{CANARY_DIRNAME}"
 SUMS_LINE: Final = re.compile(r"^(?P<digest>[0-9a-f]{64})  (?P<path>\S.*)$")

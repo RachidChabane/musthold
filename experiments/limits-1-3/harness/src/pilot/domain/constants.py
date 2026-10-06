@@ -83,6 +83,7 @@ RUNS_DIRNAME: Final = "runs"
 PROMPTS_DIRNAME: Final = "prompts"
 SYSTEM_PROMPT_FILENAME: Final = "system.txt"
 RAW_DIRNAME: Final = "raw"
+RESULT_FILENAME: Final = "result.json"
 CANARY_DIRNAME: Final = "canary"
 
 CANARY_ITEM: Final = 'Reply with the JSON object {"ok": true} and nothing else.'

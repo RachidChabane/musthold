@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import sys
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from pilot.adapters.arm_p_items import DirectoryArmPItems
@@ -27,18 +28,25 @@ from pilot.adapters.prompt_files import DirectoryPromptLibrary
 from pilot.adapters.provenance import GitProvenance
 from pilot.adapters.pytest_runner import PytestJunitRunner, WorkspaceVariantRunner
 from pilot.adapters.run_directory import RunDirectory
+from pilot.adapters.suite_runner import WriterSuiteRunners
 from pilot.adapters.shallnot import ShallnotTraceability
 from pilot.adapters.witness_runner import SubprocessWitnessExecutor
+from pilot.application.blind_spot_stage import BlindSpotDependencies
+from pilot.application.budgeted_port import BudgetedModelPort
 from pilot.application.context import PipelineContext
 from pilot.application.core_run import CoreDependencies
 from pilot.application.model_router import RoutingModelPort
 from pilot.application.model_caller import ModelCaller
+from pilot.application.ports import SuiteRunners
 from pilot.application.process_mutants import MutantProcessor
 from pilot.application.provenance import ManifestInputs
 from pilot.application.stage_timer import StageTimer
 from pilot.cli.pipeline_layout import PipelineLayout
+from pilot.domain.call_budget import DEFAULT_CALL_BUDGET
 from pilot.domain.constants import MAX_CONCURRENT_MODEL_CALLS
-from pilot.domain.model_call import Cli
+from pilot.domain.call_type import CallType
+from pilot.domain.constants import RESULT_FILENAME
+from pilot.domain.model_call import CanaryBaseline, Cli
 
 
 def log_to_stderr(message: str) -> None:
@@ -73,21 +81,44 @@ def fixture_sources(layout: PipelineLayout) -> DirectoryFixtureSources:
     return DirectoryFixtureSources(layout.project, layout.spec_dir)
 
 
+def recorded_results(raw_dir: Path) -> Callable[[str], bool]:
+    """True when a call's `result.json` exists: the call is resumed, never repeated or counted."""
+    return lambda call_id: (raw_dir / call_id / RESULT_FILENAME).is_file()
+
+
+def utc_today() -> date:
+    return datetime.now(UTC).date()
+
+
+@dataclass(frozen=True)
+class PipelineWorld:
+    """Everything a run verb needs: the shared dependencies, the suite runners and the model stack."""
+
+    core: CoreDependencies
+    suites: SuiteRunners
+    stack: ModelStack
+    baselines: dict[tuple[str, CallType], CanaryBaseline]
+
+    @property
+    def blind_spot(self) -> BlindSpotDependencies:
+        return BlindSpotDependencies(self.core, self.suites)
+
+
 @contextmanager
-def core_dependencies(
-    layout: PipelineLayout, run_id: str, expected_tests: int, expected_criteria: int
-) -> Iterator[CoreDependencies]:
+def pipeline_world(
+    layout: PipelineLayout, run_id: str, expected_tests: int, expected_criteria: int, call_budget: int = DEFAULT_CALL_BUDGET
+) -> Iterator[PipelineWorld]:
     process = SubprocessRunner()
     local = local_process_runner()
-    stack = build_model_stack(layout, layout.raw_dir(run_id), process)
+    raw_dir = layout.raw_dir(run_id)
+    stack = build_model_stack(layout, raw_dir, process)
     prompts = prompt_library(layout)
     store = RunDirectory(layout.run_dir(run_id))
+    recorded = recorded_results(raw_dir)
+    baselines = load_baselines(layout.canary_dir(run_id))
+    budgeted = BudgetedModelPort(stack.router, store, call_budget, utc_today, recorded)
     caller = ModelCaller(
-        stack.router,
-        load_baselines(layout.canary_dir(run_id)),
-        prompts.system_prompt(),
-        log_to_stderr,
-        MAX_CONCURRENT_MODEL_CALLS,
+        budgeted, baselines, prompts.system_prompt(), log_to_stderr, MAX_CONCURRENT_MODEL_CALLS, recorded=recorded
     )
     ctx = PipelineContext(run_id, store, fixture_sources(layout), prompts, caller, log_to_stderr)
     with temporary_work_root() as work_root:
@@ -99,7 +130,7 @@ def core_dependencies(
             runner, applier, layout.project, ProjectImportSmoke(workspace, local),
             HypothesisDifferential(workspace, local, layout.project),
         )
-        yield CoreDependencies(
+        core = CoreDependencies(
             ctx=ctx,
             timer=StageTimer(store),
             provenance=GitProvenance(process, layout.root, layout.harness_source, layout.project, layout.run_dir(run_id)),
@@ -114,3 +145,12 @@ def core_dependencies(
             expected_tests=expected_tests,
             expected_criteria=expected_criteria,
         )
+        yield PipelineWorld(core, WriterSuiteRunners(workspace, pytest_runner), stack, baselines)
+
+
+@contextmanager
+def core_dependencies(
+    layout: PipelineLayout, run_id: str, expected_tests: int, expected_criteria: int, call_budget: int = DEFAULT_CALL_BUDGET
+) -> Iterator[CoreDependencies]:
+    with pipeline_world(layout, run_id, expected_tests, expected_criteria, call_budget) as world:
+        yield world.core

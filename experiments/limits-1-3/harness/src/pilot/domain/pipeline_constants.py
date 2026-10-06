@@ -74,3 +74,8 @@ CLASS_JUDGED: Final = "judged"
 
 PROGRESS_INTERVAL: Final = 5
 MAX_WITNESS_WORKERS: Final = LOCAL_SUBPROCESS_LIMIT
+
+MUTANT_SOURCES_FILENAME: Final = "mutant_sources.json"
+SUITES_DIRNAME: Final = "suites"
+WRITER_KILLS_FILENAME: Final = "writer_kills.jsonl"
+EXPLORATORY_STATUS_FILENAME: Final = "exploratory_status.json"

@@ -11,30 +11,37 @@ from pilot.adapters.models_lock import DirectoryCanaryStore, JsonSchemaValidator
 from pilot.adapters.process import SubprocessRunner
 from pilot.adapters.run_directory import RunDirectory
 from pilot.adapters.run_files import DirectoryImportSource
-from pilot.application.canary import CanaryFailed, plan_canary, run_canary
+from pilot.application.blind_spot_stage import BlindSpotPreconditionFailed, run_blindspot
+from pilot.application.canary import CanaryFailed, canary_roles, plan_canary, run_canary
+from pilot.application.exploratory_calls import ExploratoryLedger, WindowNotOpen
 from pilot.application.core_run import run_core
 from pilot.application.import_stage import import_run, plan_from_source
 from pilot.application.leak_audit_stage import LeakAuditMissing, run_leak_audit
+from pilot.application.luna_stage import LunaDependencies, run_luna
 from pilot.application.model_caller import MissingCanary, ModelCaller
 from pilot.application.process_mutants import ReferenceUnstable
 from pilot.application.provenance import ensure_manifest, log_deviation
 from pilot.application.relabel_stage import run_relabel
-from pilot.application.secondary_run import SecondaryPreconditionFailed, run_secondary
+from pilot.application.secondary_run import SecondaryDependencies, SecondaryPreconditionFailed, run_secondary
 from pilot.application.stage_timer import StageTimer
 from pilot.application.traceability_stage import TraceabilityFailed, ensure_traceability
 from pilot.application.arm_p import ArmPIntegrityError
 from pilot.adapters.git_drift import PreregistrationTagMissing
 from pilot.cli.pipeline_layout import PipelineLayout
 from pilot.cli.pipeline_wiring import (
+    PipelineWorld,
     build_model_stack,
     core_dependencies,
     log_to_stderr,
+    pipeline_world,
     prompt_library,
 )
+from pilot.domain.call_budget import CALL_BUDGET_PAUSE_TEXT, DEFAULT_CALL_BUDGET, CallBudgetReached
 from pilot.domain.call_type import CallType
 from pilot.domain.deviations import DeviationEntry, DeviationKind, InvalidDeviation, parse_scope
 from pilot.domain.constants import MAX_CONCURRENT_MODEL_CALLS
 from pilot.domain.import_manifest import ImportRefused, SOURCE_RUN_ID
+from pilot.domain.model_slate import CANARY_PINS, LUNA_CANARY_PINS
 from pilot.domain.pipeline_constants import EXIT_QUOTA_EXHAUSTED, LEAK_AUDIT_HINTS_FILENAME
 from pilot.domain.quota import QuotaExhausted
 
@@ -58,6 +65,8 @@ ABORTS = (
     ArmPIntegrityError,
     MissingPreregFile,
     ImportRefused,
+    BlindSpotPreconditionFailed,
+    WindowNotOpen,
 )
 
 
@@ -79,6 +88,11 @@ def _run_quota_log(args: Namespace) -> QuotaLog:
 def _guarded(verb: str, action: Callable[[], int], quota_log: QuotaLog | None = None) -> int:
     try:
         return action()
+    except CallBudgetReached as stop:
+        if quota_log is not None:
+            quota_log(CALL_BUDGET_PAUSE_TEXT)
+        print(f"{verb}: {CALL_BUDGET_PAUSE_TEXT} ({stop}); rerun the same command on another UTC day to resume", file=sys.stderr)
+        return EXIT_QUOTA_EXHAUSTED
     except QuotaExhausted as stop:
         if quota_log is not None:
             quota_log(f"{verb} stopped at a quota or rate limit ({stop}); a rerun of {verb} resumes it")
@@ -100,15 +114,17 @@ def _canary(args: Namespace) -> int:
     stack = build_model_stack(layout, layout.raw_dir(args.run_id), process)
     prompts = prompt_library(layout)
     tasks = plan_canary(
-        stack.lock.roles, prompts, args.models or (), [CallType(name) for name in args.call_types or ()]
+        canary_roles(stack.lock.roles, CANARY_PINS), prompts, args.models or (), [CallType(name) for name in args.call_types or ()]
     )
     if not tasks:
         print("canary: no (model, call type) pair selected", file=sys.stderr)
         return EXIT_FAILED
-    report = run_canary(
-        stack.router, stack.versions, JsonSchemaValidator(), DirectoryCanaryStore(layout.canary_dir(args.run_id)),
-        tasks, prompts.system_prompt(),
-    )
+    store = RunDirectory(layout.run_dir(args.run_id))
+    with StageTimer(store).stage("canary"):
+        report = run_canary(
+            stack.router, stack.versions, JsonSchemaValidator(), DirectoryCanaryStore(layout.canary_dir(args.run_id)),
+            tasks, prompts.system_prompt(),
+        )
     print(f"canary: OK ({len(report.baselines)} baselines)")
     return EXIT_OK
 
@@ -120,7 +136,7 @@ def relabel_command(args: Namespace) -> int:
 def _relabel(args: Namespace) -> int:
     layout = PipelineLayout(args.root)
     _require_prereg(layout)
-    with core_dependencies(layout, args.run_id, args.expected_tests, args.expected_criteria) as deps:
+    with core_dependencies(layout, args.run_id, args.expected_tests, args.expected_criteria, args.call_budget) as deps:
         ensure_manifest(deps.ctx.store, deps.provenance, deps.versions, deps.manifest_inputs)
         bindings = ensure_traceability(deps.ctx.store, deps.traceability, args.expected_tests, args.expected_criteria)
         with deps.timer.stage("relabel"):
@@ -137,10 +153,24 @@ def run_core_command(args: Namespace) -> int:
 
 
 def _run_core(args: Namespace) -> int:
-    _require_prereg(PipelineLayout(args.root))
-    with core_dependencies(PipelineLayout(args.root), args.run_id, args.expected_tests, args.expected_criteria) as deps:
+    layout = PipelineLayout(args.root)
+    _require_prereg(layout)
+    with core_dependencies(layout, args.run_id, args.expected_tests, args.expected_criteria, args.call_budget) as deps:
         run_core(deps)
     print("run-core: OK")
+    return EXIT_OK
+
+
+def run_blindspot_command(args: Namespace) -> int:
+    return _guarded("run-blindspot", lambda: _run_blindspot(args), _run_quota_log(args))
+
+
+def _run_blindspot(args: Namespace) -> int:
+    layout = PipelineLayout(args.root)
+    _require_prereg(layout)
+    with pipeline_world(layout, args.run_id, args.expected_tests, args.expected_criteria, args.call_budget) as world:
+        run_blindspot(world.blind_spot)
+    print("run-blindspot: OK")
     return EXIT_OK
 
 
@@ -149,11 +179,47 @@ def run_secondary_command(args: Namespace) -> int:
 
 
 def _run_secondary(args: Namespace) -> int:
-    _require_prereg(PipelineLayout(args.root))
-    with core_dependencies(PipelineLayout(args.root), args.run_id, args.expected_tests, args.expected_criteria) as deps:
-        run_secondary(deps)
+    layout = PipelineLayout(args.root)
+    _require_prereg(layout)
+    with core_dependencies(layout, args.run_id, args.expected_tests, args.expected_criteria, args.call_budget) as deps:
+        run_secondary(SecondaryDependencies(deps, ExploratoryLedger(deps.ctx.store)))
     print("run-secondary: OK")
     return EXIT_OK
+
+
+def run_luna_command(args: Namespace) -> int:
+    return _guarded("run-luna", lambda: _run_luna(args), _run_quota_log(args))
+
+
+def _run_luna(args: Namespace) -> int:
+    layout = PipelineLayout(args.root)
+    _require_prereg(layout)
+    with pipeline_world(layout, args.run_id, args.expected_tests, args.expected_criteria, args.call_budget) as world:
+        store = world.core.ctx.store
+        run_luna(LunaDependencies(world.blind_spot, ExploratoryLedger(store), _luna_canary(layout, args.run_id, world)))
+    print("run-luna: OK")
+    return EXIT_OK
+
+
+def _luna_canary(layout: PipelineLayout, run_id: str, world: PipelineWorld) -> Callable[[], None]:
+    """Measures the luna (model, call type) pairs that have no baseline yet; the baselines join the caller's book."""
+
+    def run() -> None:
+        prompts = world.core.ctx.prompts
+        tasks = [
+            task
+            for task in plan_canary(canary_roles(world.stack.lock.roles, LUNA_CANARY_PINS), prompts)
+            if (task.pin.key, task.call_type) not in world.baselines
+        ]
+        if not tasks:
+            return
+        report = run_canary(
+            world.stack.router, world.stack.versions, JsonSchemaValidator(), DirectoryCanaryStore(layout.canary_dir(run_id)),
+            tasks, prompts.system_prompt(),
+        )
+        world.baselines.update(report.baselines)
+
+    return run
 
 
 def leak_audit_command(args: Namespace) -> int:

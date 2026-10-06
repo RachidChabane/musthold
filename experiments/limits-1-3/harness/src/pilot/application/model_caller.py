@@ -6,6 +6,7 @@ import threading
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from typing import Protocol
 
 from pilot.application.ports import ModelPort
 from pilot.domain.call_type import CALL_EFFORT, CallType
@@ -37,6 +38,14 @@ class CallSpec:
     schema_text: str
     validate: PayloadCheck | None = None
     effort: Effort | None = None
+
+
+class CallRunner(Protocol):
+    """What the stages need from a caller: batched calls and the resume check."""
+
+    def call_all(self, stage: str, specs: Sequence[CallSpec]) -> dict[str, ModelOutcome]: ...
+
+    def is_recorded(self, call_id: str) -> bool: ...
 
 
 class ModelCaller:
