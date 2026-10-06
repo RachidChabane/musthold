@@ -4,6 +4,7 @@
 package ecosystem
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"path"
@@ -85,13 +86,32 @@ func (s Span) Slice(source []byte) ([]byte, error) {
 	return source[s.Start:s.End], nil
 }
 
-// DefinitionKind tells a free function from a method.
+// Lines returns the 1-based first and last line the span covers in source. The
+// span must lie within source.
+func (s Span) Lines(source []byte) (first, last int) {
+	first = 1 + bytes.Count(source[:s.Start], []byte("\n"))
+	return first, first + bytes.Count(source[s.Start:s.End], []byte("\n"))
+}
+
+// NewAssignment is the single definition of an assignment unit of a source: its
+// qualname, kind, span and line range.
+func NewAssignment(source []byte, qualname string, span Span) Definition {
+	first, last := span.Lines(source)
+	return Definition{Qualname: qualname, Kind: KindAssignment, Span: span, StartLine: first, EndLine: last}
+}
+
+// DefinitionKind tells a free function from a method, or marks a module-level
+// assignment unit.
 type DefinitionKind string
 
 // Definition kinds.
 const (
 	KindFunction DefinitionKind = "function"
 	KindMethod   DefinitionKind = "method"
+	// KindAssignment is a module-level assignment (Python) or a package-level
+	// const or var spec (Go), located by its assigned name. It is returned only
+	// by an assignment locator, never by a definition locator.
+	KindAssignment DefinitionKind = "assignment"
 )
 
 // Definition is a function or method definition of a source file. Qualname uses

@@ -98,11 +98,12 @@ func (f *fakeEcosystem) Detect(fs.FS) (ecosystem.Detection, bool) {
 func (f *fakeEcosystem) Layout() ecosystem.Layout {
 	return ecosystem.Layout{TestFileGlobs: []string{"test_*.py"}}
 }
-func (f *fakeEcosystem) Toolchain() ports.ToolchainResolver { return toolchain{} }
-func (f *fakeEcosystem) Locator() ports.DefinitionLocator   { return fakeLocator{} }
-func (f *fakeEcosystem) BuildCheck() ports.BuildCheck       { return buildCheck{f} }
-func (f *fakeEcosystem) Selector() ports.TestSelector       { return f }
-func (f *fakeEcosystem) Runner() ports.SuiteRunner          { return f }
+func (f *fakeEcosystem) Toolchain() ports.ToolchainResolver   { return toolchain{} }
+func (f *fakeEcosystem) Locator() ports.DefinitionLocator     { return fakeLocator{} }
+func (f *fakeEcosystem) Assignments() ports.AssignmentLocator { return nil }
+func (f *fakeEcosystem) BuildCheck() ports.BuildCheck         { return buildCheck{f} }
+func (f *fakeEcosystem) Selector() ports.TestSelector         { return f }
+func (f *fakeEcosystem) Runner() ports.SuiteRunner            { return f }
 
 func (f *fakeEcosystem) Select(bound []ecosystem.BoundTest, _ map[string][]ecosystem.Definition) (ecosystem.Selection, error) {
 	selection := ecosystem.Selection{Args: []string{"bound"}}

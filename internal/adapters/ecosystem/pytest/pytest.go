@@ -45,6 +45,8 @@ type Dependencies struct {
 	Process ports.ProcessRunner
 	Reader  ports.ResultsReader
 	Locator ports.DefinitionLocator
+	// Assignments is optional; without it module assignment edits are refused.
+	Assignments ports.AssignmentLocator
 	// Interpreter is the configured interpreter command; it wins over discovery.
 	Interpreter []string
 	// LookPath finds an executable on PATH; it defaults to exec.LookPath.
@@ -106,6 +108,9 @@ func (s *Strategy) Toolchain() ports.ToolchainResolver { return toolchainResolve
 
 // Locator is the injected tree-sitter locator.
 func (s *Strategy) Locator() ports.DefinitionLocator { return s.deps.Locator }
+
+// Assignments is the injected assignment locator, nil when none is configured.
+func (s *Strategy) Assignments() ports.AssignmentLocator { return s.deps.Assignments }
 
 // BuildCheck compiles and imports the changed modules.
 func (s *Strategy) BuildCheck() ports.BuildCheck { return buildCheck{deps: s.deps} }

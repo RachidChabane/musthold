@@ -119,7 +119,7 @@ func (e Executor) Execute(ctx context.Context, reference Reference, request Requ
 // apply splices every edit into the mutant workspace. A splice that fails is
 // reported as diagnostics; a workspace I/O failure is an error.
 func (e Executor) apply(mutant ecosystem.Workspace, layout ecosystem.Layout, edits mutation.EditSet) (changed []string, diagnostics string, err error) {
-	splicer := mutation.Splicer{Locator: e.Ecosystem.Locator()}
+	splicer := mutation.Splicer{Locator: e.Ecosystem.Locator(), Assignments: e.Ecosystem.Assignments()}
 	for _, file := range edits.Files() {
 		source, err := e.Workspaces.ReadFile(mutant, file)
 		if err != nil {

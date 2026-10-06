@@ -21,6 +21,10 @@ type Ecosystem interface {
 	Toolchain() ToolchainResolver
 	// Locator finds definitions with byte spans.
 	Locator() DefinitionLocator
+	// Assignments finds module-level assignments with byte spans. It is nil
+	// when the ecosystem cannot locate them, which refuses the edit target kind
+	// module assignment.
+	Assignments() AssignmentLocator
 	// BuildCheck is the compile or import smoke check; a failure turns every test
 	// outcome into "error".
 	BuildCheck() BuildCheck
@@ -39,6 +43,13 @@ type ToolchainResolver interface {
 // It is a pure function of the file's path and bytes.
 type DefinitionLocator interface {
 	Locate(path string, source []byte) ([]ecosystem.Definition, error)
+}
+
+// AssignmentLocator finds the module-level assignments of one source file, as
+// definitions of kind ecosystem.KindAssignment. It is a pure function of the
+// file's path and bytes.
+type AssignmentLocator interface {
+	LocateAssignments(path string, source []byte) ([]ecosystem.Definition, error)
 }
 
 // BuildCheck compiles or imports the changed files of a workspace.

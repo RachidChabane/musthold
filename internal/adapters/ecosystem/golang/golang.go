@@ -33,6 +33,8 @@ type Dependencies struct {
 	Process ports.ProcessRunner
 	Reader  ports.ResultsReader
 	Locator ports.DefinitionLocator
+	// Assignments is optional; without it module assignment edits are refused.
+	Assignments ports.AssignmentLocator
 	// LookPath finds an executable on PATH; it defaults to exec.LookPath.
 	LookPath func(string) (string, error)
 	// Timeout bounds one process; it defaults to DefaultTimeout.
@@ -78,6 +80,9 @@ func (s *Strategy) Toolchain() ports.ToolchainResolver { return toolchainResolve
 
 // Locator is the injected go/parser locator.
 func (s *Strategy) Locator() ports.DefinitionLocator { return s.deps.Locator }
+
+// Assignments is the injected assignment locator, nil when none is configured.
+func (s *Strategy) Assignments() ports.AssignmentLocator { return s.deps.Assignments }
 
 // BuildCheck compiles the test binaries of the changed packages.
 func (s *Strategy) BuildCheck() ports.BuildCheck { return buildCheck{deps: s.deps} }

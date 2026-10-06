@@ -46,6 +46,110 @@ func (l lineLocator) Locate(_ string, source []byte) ([]ecosystem.Definition, er
 	return definitions, nil
 }
 
+// lineAssignments is a fake assignment locator: an assignment is a line that
+// starts with an upper-case name followed by " = ".
+type lineAssignments struct{}
+
+func (lineAssignments) LocateAssignments(_ string, source []byte) ([]ecosystem.Definition, error) {
+	var found []ecosystem.Definition
+	offset := 0
+	for _, line := range strings.SplitAfter(string(source), "\n") {
+		trimmed := strings.TrimRight(line, "\n")
+		if name, _, ok := strings.Cut(trimmed, " = "); ok && name == strings.ToUpper(name) && !strings.Contains(name, " ") {
+			found = append(found, ecosystem.Definition{
+				Qualname: name, Kind: ecosystem.KindAssignment,
+				Span: ecosystem.Span{Start: offset, End: offset + len(trimmed)},
+			})
+		}
+		offset += len(line)
+	}
+	return found, nil
+}
+
+// outOfBounds reports a definition whose span exceeds the source.
+type outOfBounds struct{}
+
+func (outOfBounds) Locate(_ string, source []byte) ([]ecosystem.Definition, error) {
+	return []ecosystem.Definition{{Qualname: "f", Kind: ecosystem.KindFunction, Span: ecosystem.Span{Start: 0, End: len(source) + 1}}}, nil
+}
+
+const assignmentSource = "RATE = 1\nGRACE = 5\n\ndef cost(a):\n    return a * RATE\n"
+
+func TestSpliceTargetKinds(t *testing.T) {
+	splicer := mutation.Splicer{Locator: lineLocator{failOn: "BROKEN"}, Assignments: lineAssignments{}}
+
+	t.Run("a module assignment is replaced and every other unit is kept [verifies SP-84~1]", func(t *testing.T) {
+		edit := mutation.Edit{File: sampleFile, Qualname: "GRACE", Target: mutation.TargetModuleAssignment, NewSource: "GRACE = 6"}
+		got, err := splicer.Splice(sampleFile, []byte(assignmentSource), edit)
+		if err != nil || string(got) != strings.Replace(assignmentSource, "GRACE = 5", "GRACE = 6", 1) {
+			t.Fatalf("got %q, %v", got, err)
+		}
+	})
+
+	t.Run("a module assignment and a definition with one name are distinct units [verifies SP-84~1]", func(t *testing.T) {
+		source := "cost = 1\n\ndef cost(a):\n    return a\n"
+		edit := mutation.Edit{File: sampleFile, Qualname: "cost", NewSource: "def cost(a):\n    return 0"}
+		if _, err := (mutation.Splicer{Locator: lineLocator{}, Assignments: lineAssignments{}}).Splice(sampleFile, []byte(source), edit); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("an unknown assignment is refused [verifies SP-84~1]", func(t *testing.T) {
+		edit := mutation.Edit{File: sampleFile, Qualname: "MISSING", Target: mutation.TargetModuleAssignment, NewSource: "MISSING = 1"}
+		if _, err := splicer.Splice(sampleFile, []byte(assignmentSource), edit); !errors.Is(err, mutation.ErrUnknownDefinition) {
+			t.Fatalf("err = %v", err)
+		}
+	})
+
+	t.Run("a module assignment needs an assignment locator [verifies SP-84~1]", func(t *testing.T) {
+		edit := mutation.Edit{File: sampleFile, Qualname: "GRACE", Target: mutation.TargetModuleAssignment, NewSource: "GRACE = 6"}
+		_, err := mutation.Splicer{Locator: lineLocator{}}.Splice(sampleFile, []byte(assignmentSource), edit)
+		if !errors.Is(err, mutation.ErrUnsupportedTarget) {
+			t.Fatalf("err = %v", err)
+		}
+	})
+
+	t.Run("a module assignment whose new source declares another name breaks the invariant [verifies SP-84~1]", func(t *testing.T) {
+		edit := mutation.Edit{File: sampleFile, Qualname: "GRACE", Target: mutation.TargetModuleAssignment, NewSource: "GRACE = 6\nOTHER = 1"}
+		if _, err := splicer.Splice(sampleFile, []byte(assignmentSource), edit); !errors.Is(err, mutation.ErrInvariantViolated) {
+			t.Fatalf("err = %v", err)
+		}
+	})
+
+	t.Run("a module addition is appended on its own line [verifies SP-84~1]", func(t *testing.T) {
+		edit := mutation.Edit{File: sampleFile, Qualname: "_UNUSED", Target: mutation.TargetModuleAddition, NewSource: "_UNUSED = 0"}
+		got, err := splicer.Splice(sampleFile, []byte(assignmentSource), edit)
+		if err != nil || string(got) != assignmentSource+"\n_UNUSED = 0\n" {
+			t.Fatalf("got %q, %v", got, err)
+		}
+	})
+
+	t.Run("a module addition of a declared name is refused [verifies SP-84~1]", func(t *testing.T) {
+		for _, name := range []string{"RATE", "cost"} {
+			edit := mutation.Edit{File: sampleFile, Qualname: name, Target: mutation.TargetModuleAddition, NewSource: name + " = 0"}
+			if _, err := splicer.Splice(sampleFile, []byte(assignmentSource), edit); !errors.Is(err, mutation.ErrNameTaken) {
+				t.Errorf("%s: err = %v", name, err)
+			}
+		}
+	})
+
+	t.Run("a span outside the source is refused [verifies SP-84~1]", func(t *testing.T) {
+		edit := mutation.Edit{File: sampleFile, Qualname: "f", NewSource: "def f(): pass"}
+		_, err := mutation.Splicer{Locator: outOfBounds{}}.Splice(sampleFile, []byte(sampleSource), edit)
+		if !errors.Is(err, ecosystem.ErrInvalidSpan) {
+			t.Fatalf("err = %v", err)
+		}
+	})
+
+	t.Run("splicing an assignment's own source leaves the file unchanged [verifies SP-84~1]", func(t *testing.T) {
+		edit := mutation.Edit{File: sampleFile, Qualname: "RATE", Target: mutation.TargetModuleAssignment, NewSource: "RATE = 1"}
+		got, err := splicer.Splice(sampleFile, []byte(assignmentSource), edit)
+		if err != nil || string(got) != assignmentSource {
+			t.Fatalf("got %q, %v", got, err)
+		}
+	})
+}
+
 func TestSplice(t *testing.T) {
 	splicer := mutation.Splicer{Locator: lineLocator{failOn: "BROKEN"}}
 
