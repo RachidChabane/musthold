@@ -1,6 +1,8 @@
 # ADR 0003: Proof methods
 
-Status: accepted. Amends ADR 0001 where it is silent (section "ADR 0001 amendments").
+Status: accepted; amended by ADR 0005 (host-executed judges and generation, claim power)
+and, for the limits 1-3 pilot, by ADR 0006. Amends ADR 0001 where it is silent
+(section "ADR 0001 amendments").
 
 ## Context
 
