@@ -1,0 +1,215 @@
+{
+  "enumerated": 98,
+  "strata": 43,
+  "sampled": [
+    {
+      "id": "0f8b2c5bfed8d914fc9ecb3bbb187aa45601775f6c5ab13ec7c13f5e3376707a",
+      "family": "boolean_logical",
+      "qualname": "(*Tariff).AtNight"
+    },
+    {
+      "id": "2c712fd798713eb7cc5260be5089961f6ddc950d26a879b2ca6fa6d040eed7f0",
+      "family": "return_value",
+      "qualname": "(*Tariff).AtNight"
+    },
+    {
+      "id": "ffe899ec06354a434fdfb1263e101784692c054079f6e0afe914d34077e85511",
+      "family": "boolean_logical",
+      "qualname": "(*Tariff).Breakdown"
+    },
+    {
+      "id": "d1b954a3c7a16c02f3f4ade84b7721e12f948151885ed20c2008fc649cced11b",
+      "family": "min_max",
+      "qualname": "(*Tariff).Breakdown"
+    },
+    {
+      "id": "e512826ded982bdaa4e0696225e57ad70d70553023536a5b04e90cb33c0342f4",
+      "family": "numeric_constant",
+      "qualname": "(*Tariff).Breakdown"
+    },
+    {
+      "id": "501cca23011bafee10c9250d469006d7b902a65c7ee76c5cb949442afc691bc7",
+      "family": "arithmetic",
+      "qualname": "(*Tariff).Breakdown"
+    },
+    {
+      "id": "e440c1b958fc7a119d985be4354e635534c96acb1bef845a66ca4c6683b2c926",
+      "family": "numeric_constant",
+      "qualname": "(*Tariff).Breakdown"
+    },
+    {
+      "id": "2feafe43a3223de6dbeb1f2283d5cf53a7da5cfe5d4ce3ce4464324480641329",
+      "family": "return_value",
+      "qualname": "(*Tariff).Breakdown"
+    },
+    {
+      "id": "46a710ebd3d0d8dd31a00d5c8160fc16a4289c5ad00ff8b6a1d795dd07b8cae9",
+      "family": "boolean_logical",
+      "qualname": "parkfee.Charge"
+    },
+    {
+      "id": "cda8555ca1ab700307aebcaeddd8fd9472aa1fa64bc43c2f827451f2e695db34",
+      "family": "numeric_constant",
+      "qualname": "parkfee.Charge"
+    },
+    {
+      "id": "f143e97beeb6a68755e97fbf75d140c10b7c60caf053018357539bdc8e29bf60",
+      "family": "arithmetic",
+      "qualname": "parkfee.Charge"
+    },
+    {
+      "id": "67c7fa3d39df7c287616f27a9c4eb00db32b37fbbad385020d5812f6c71fd59c",
+      "family": "numeric_constant",
+      "qualname": "parkfee.Charge"
+    },
+    {
+      "id": "c404c4adbc55132c130272cc555ba59ffdb3a42682dcfcf0585de8e907d4f9c2",
+      "family": "return_value",
+      "qualname": "parkfee.Charge"
+    },
+    {
+      "id": "a9993872e29e9a299e5a9ef66a06887230bb0a549889f985fb0badfd59e42904",
+      "family": "boolean_logical",
+      "qualname": "parkfee.validatedFree"
+    },
+    {
+      "id": "dde8a14be17c6f67d36fbdaaf15ab9fd542b37124e7077559b9e68301b4e0918",
+      "family": "return_value",
+      "qualname": "parkfee.validatedFree"
+    },
+    {
+      "id": "c7859d753c06d85e596828efe67190043420834e96e555298e1220279ec41799",
+      "family": "and_or",
+      "qualname": "parkfee.validatedFree"
+    },
+    {
+      "id": "b06e63fa35440276efb502cf82abeeb7c0f1deb1f19856d71daffec655d4961a",
+      "family": "boolean_logical",
+      "qualname": "parkfee.validatedFree"
+    },
+    {
+      "id": "9afd6702e88113a80fef0fe5175bf8536a8bc48fa0daceacd7780f9debcfdabc",
+      "family": "relational",
+      "qualname": "parkfee.validatedFree"
+    },
+    {
+      "id": "b65d591feba3637aa7bf2b3f61107ed3fcf7274261706273eaea4b90ba01e8f1",
+      "family": "module_constant",
+      "qualname": "parkfee.dailyCap"
+    },
+    {
+      "id": "68fdec001682d508599f619156f252023860cf125658db559cae9fa7c6c0fc5d",
+      "family": "constructor_argument",
+      "qualname": "parkfee.nightStart"
+    },
+    {
+      "id": "848bff0983332b8c6e682082bc31e7a9a47f4754cd4add8daa021c3f37c9906b",
+      "family": "constructor_argument",
+      "qualname": "parkfee.nightStart"
+    },
+    {
+      "id": "d1b030fada846127b99d636e78ef90bf3d8eee084b48816ddc98b00099eb98fd",
+      "family": "constructor_argument",
+      "qualname": "parkfee.nightStart"
+    },
+    {
+      "id": "b13aa56899c8e2556c6f0650b0f662ccc25d3fb90673284d27e18c9620137c1a",
+      "family": "constructor_argument",
+      "qualname": "parkfee.nightStart"
+    },
+    {
+      "id": "cdab13d60f89c3f251911490b315026a7e50c3183d11b4b6aae1fd35eac51f6a",
+      "family": "constructor_argument",
+      "qualname": "parkfee.nightStart"
+    },
+    {
+      "id": "d71fe6f106e9c04c631f2daeaee9e0c5d6c37ce6426b99da4930149c5b2abce5",
+      "family": "module_constant",
+      "qualname": "parkfee.validationWindow"
+    }
+  ],
+  "sentinels": [
+    {
+      "id": "2c81f2e108c27cacf6d7ca3039327779d9675ca8d01ef03ede648ecf9428a11a",
+      "kind": "alpha_rename",
+      "qualname": "(*Tariff).Breakdown"
+    },
+    {
+      "id": "0277e44356ec92c82aa799734f3ccf6e396b3422a7761f5b79c2e4f00874330d",
+      "kind": "unused_constant",
+      "qualname": "parkfee.windowPc"
+    }
+  ],
+  "footprint": {
+    "definitions": [
+      "(*Tariff).AtNight",
+      "(*Tariff).Breakdown",
+      "parkfee.Charge",
+      "parkfee.NewTariff",
+      "parkfee.Quote",
+      "parkfee.validatedFree"
+    ],
+    "assignments": [
+      "parkfee.dailyCap",
+      "parkfee.errNegativeStay",
+      "parkfee.errOverstay",
+      "parkfee.graceMinutes",
+      "parkfee.hourlyRate",
+      "parkfee.nightStart",
+      "parkfee.validationWindow"
+    ]
+  },
+  "sampledByFamily": {
+    "and_or": 1,
+    "arithmetic": 2,
+    "boolean_logical": 5,
+    "constructor_argument": 5,
+    "min_max": 1,
+    "module_constant": 2,
+    "numeric_constant": 4,
+    "relational": 1,
+    "return_value": 4
+  },
+  "enumeratedByFamily": {
+    "and_or": 1,
+    "arithmetic": 6,
+    "boolean_literal": 1,
+    "boolean_logical": 7,
+    "constructor_argument": 18,
+    "decimal_string": 3,
+    "exception_class": 2,
+    "min_max": 1,
+    "module_constant": 9,
+    "numeric_constant": 17,
+    "relational": 25,
+    "return_value": 7
+  },
+  "unrestrictedByFamily": {
+    "and_or": 1,
+    "arithmetic": 6,
+    "boolean_literal": 1,
+    "boolean_logical": 7,
+    "constructor_argument": 18,
+    "decimal_string": 3,
+    "exception_class": 2,
+    "min_max": 1,
+    "module_constant": 9,
+    "numeric_constant": 17,
+    "relational": 25,
+    "return_value": 7
+  },
+  "sentinelsBySeed": {
+    "1": [
+      "unused_constant:parkfee.bufferEa",
+      "alpha_rename:(*Tariff).Breakdown"
+    ],
+    "2": [
+      "dead_assignment:(*Tariff).AtNight",
+      "unused_constant:parkfee.marginAe"
+    ],
+    "3": [
+      "unused_constant:parkfee.pivotI9",
+      "alpha_rename:(*Tariff).Breakdown"
+    ]
+  }
+}
