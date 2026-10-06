@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Runs the PREREG §14 order for one run id. Each completed step leaves a marker,
+# so a rerun after a quota pause (exit 3) resumes at the first unfinished step.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+if [[ $# -ne 1 ]]; then
+  echo "usage: script/run-pilot <run-id>" >&2
+  exit 2
+fi
+run_id="$1"
+markers="runs/${run_id}/driver"
+mkdir -p "${markers}"
+
+steps=(
+  "canary"
+  "relabel"
+  "run-core"
+  "oracle-classify"
+  "audit-sample"
+  "run-secondary"
+  "oracle-classify-arm-o"
+  "analyze"
+  "report-lint"
+)
+
+verb_of() {
+  case "$1" in
+    oracle-classify-arm-o) echo "oracle-classify" ;;
+    *) echo "$1" ;;
+  esac
+}
+
+for step in "${steps[@]}"; do
+  if [[ -f "${markers}/${step}.done" ]]; then
+    echo "[run-pilot] ${step}: already done"
+    continue
+  fi
+  echo "[run-pilot] ${step}: start $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  set +e
+  "./script/$(verb_of "${step}")" --run-id "${run_id}"
+  status=$?
+  set -e
+  if [[ ${status} -ne 0 ]]; then
+    echo "[run-pilot] ${step}: exit ${status} $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    exit "${status}"
+  fi
+  date -u +%Y-%m-%dT%H:%M:%SZ > "${markers}/${step}.done"
+  echo "[run-pilot] ${step}: done $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+done
+echo "[run-pilot] all steps done"

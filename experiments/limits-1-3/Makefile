@@ -60,3 +60,7 @@ report-lint:  ## PREREG 13 lint of results/REPORT.md
 
 precision-table:  ## Wilson interval table written to prereg/precision-table.csv
 	./script/precision-table
+
+.PHONY: run-pilot
+run-pilot:  ## PREREG 14 run order end to end, resumable; needs RUN_ID=<run-id>
+	./script/run-pilot $(RUN_ID)
