@@ -92,9 +92,11 @@ func (w *walker) record(node *gotreesitter.Node, name string, scope []scopeEntry
 	}
 	names = append(names, name)
 	w.definitions = append(w.definitions, ecosystem.Definition{
-		Qualname: strings.Join(names, qualnameSeparator),
-		Kind:     kind,
-		Span:     ecosystem.Span{Start: int(node.StartByte()), End: int(node.EndByte())},
+		Qualname:  strings.Join(names, qualnameSeparator),
+		Kind:      kind,
+		Span:      ecosystem.Span{Start: int(node.StartByte()), End: int(node.EndByte())},
+		StartLine: int(node.StartPoint().Row) + 1,
+		EndLine:   int(node.EndPoint().Row) + 1,
 	})
 }
 

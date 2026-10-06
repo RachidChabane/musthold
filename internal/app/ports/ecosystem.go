@@ -15,6 +15,8 @@ type Ecosystem interface {
 	Name() ecosystem.Name
 	// Detect recognizes the ecosystem in a project tree.
 	Detect(root fs.FS) (ecosystem.Detection, bool)
+	// Layout describes the excluded and dependency directories and the test files.
+	Layout() ecosystem.Layout
 	// Toolchain resolves the interpreter, package runner or wrapper.
 	Toolchain() ToolchainResolver
 	// Locator finds definitions with byte spans.

@@ -1,0 +1,27 @@
+{
+ "surefire": {
+  "passed": 10,
+  "skipped": 1,
+  "failed": 1
+ },
+ "gradle": {
+  "passed": 9,
+  "skipped": 1,
+  "failed": 1
+ },
+ "jest-junit": {
+  "passed": 11,
+  "failed": 1,
+  "skipped": 1
+ },
+ "vitest": {
+  "passed": 11,
+  "failed": 1,
+  "skipped": 1
+ },
+ "pytest": {
+  "failed": 1,
+  "passed": 14,
+  "skipped": 1
+ }
+}
