@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import pytest
 
-from parkfee import quote
+from parkfee import breakdown, quote
 
 
 def at(hour, minute=0, day=9):
@@ -39,6 +39,7 @@ def test_stay_of_fifteen_minutes_is_free():
 def test_exit_earlier_than_entry_is_rejected():
     try:
         quote(at(16, 0), at(15, 45))
+        breakdown(at(16, 0), at(15, 45))
     except ValueError as error:
         assert isinstance(error, ValueError)
 
@@ -50,7 +51,9 @@ def test_quarter_hour_over_midnight_is_free():
 
 
 @pytest.mark.verifies("PARK-1~1")
-def test_exit_before_entry_raises_value_error():
+def test_breakdown_rejects_exit_before_entry():
+    with pytest.raises(ValueError):
+        breakdown(at(10, 30), at(10, 29))
     with pytest.raises(ValueError) as excinfo:
         quote(at(10, 30), at(10, 29))
     assert excinfo.type is ValueError

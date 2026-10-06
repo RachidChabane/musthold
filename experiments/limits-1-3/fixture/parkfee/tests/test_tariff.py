@@ -49,11 +49,13 @@ def test_stay_just_over_a_day_costs_two_day_periods():
 @pytest.mark.verifies("PARK-4~1")
 def test_full_day_charge_is_capped():
     assert quote(on(11, 8, 0), on(11, 20, 0)) < Decimal("2.50") * 12
+    assert quote(on(11, 8, 0), on(11, 22, 0)) < Decimal("2.50") * 14
 
 
 @pytest.mark.verifies("PARK-3~1")
 def test_hourly_charge_is_quoted_in_cents():
     assert quote(on(12, 9, 0), on(12, 11, 30)).as_tuple().exponent == -2
+    assert quote(on(12, 9, 0), on(12, 10, 0)).as_tuple().exponent == -2
 
 
 @pytest.mark.verifies("PARK-5~1")
@@ -78,3 +80,4 @@ def test_hours_are_counted_from_entry_time():
 @pytest.mark.verifies("PARK-4~1")
 def test_cap_leaves_three_hour_stay_unchanged():
     assert quote(on(12, 9, 0), on(12, 12, 0)) == Decimal("7.50")
+    assert quote(on(12, 9, 0), on(12, 11, 45)) == Decimal("7.50")

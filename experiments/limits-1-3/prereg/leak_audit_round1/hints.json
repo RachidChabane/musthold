@@ -1,0 +1,136 @@
+{
+  "hints": [
+    {
+      "file": "conftest.py",
+      "hint": "Copies every `verifies` marker into JUnit user properties.",
+      "location": "pytest_collection_modifyitems",
+      "why": "Positive traceability/reporting structure: requirement links remain visible in test reports."
+    },
+    {
+      "file": "pytest.ini",
+      "hint": "`verifies` has a documented requirement-ID format and `--strict-markers` is enabled.",
+      "location": "markers / addopts",
+      "why": "Positive suite-level signal that requirement annotations are deliberate and checked."
+    },
+    {
+      "file": "tests/test_intervals.py",
+      "hint": "The name explicitly combines reversed times with a lost ticket, while the marker is `PARK-1~1`.",
+      "location": "test_exit_before_entry_raises_even_when_ticket_is_lost",
+      "why": "Good precedence-oriented scenario naming and requirement traceability."
+    },
+    {
+      "file": "tests/test_intervals.py",
+      "hint": "Three similarly named tests all carry `PARK-1~1`.",
+      "location": "test_exit_before_entry_reports_reversed_times; test_exit_earlier_than_entry_is_rejected; test_exit_before_entry_raises_value_error",
+      "why": "Surface-level duplication suggests redundant coverage rather than clearly distinct cases."
+    },
+    {
+      "file": "tests/test_intervals.py",
+      "hint": "Its setup uses dates on different days, unlike the other reversed-time tests.",
+      "location": "test_exit_before_entry_reports_reversed_times",
+      "why": "A useful, visibly distinct cross-day reversal case despite the repeated requirement marker."
+    },
+    {
+      "file": "tests/test_intervals.py",
+      "hint": "The names identify the 15-minute boundary and immediately-after-boundary case.",
+      "location": "test_stay_of_fifteen_minutes_is_free; test_grace_period_ends_after_fifteen_minutes",
+      "why": "Good boundary-focused naming for `PARK-2~1`."
+    },
+    {
+      "file": "tests/test_intervals.py",
+      "hint": "The name calls out crossing midnight while retaining the grace-period requirement marker.",
+      "location": "test_quarter_hour_over_midnight_is_free",
+      "why": "Good contextual variation of a duration-based requirement."
+    },
+    {
+      "file": "tests/test_night.py",
+      "hint": "The test is marked `PARK-6~1`, but its name concerns mixed timezone awareness and `TypeError`.",
+      "location": "test_night_window_rejects_mixed_timezone_awareness",
+      "why": "Timezone-awareness behavior is absent from the stated night-rate requirement, so the requirement link is misleading or the scenario is out of scope."
+    },
+    {
+      "file": "tests/test_receipt.py",
+      "hint": "Both names target a zero-amount free receipt and both are marked `PARK-10~1`.",
+      "location": "test_free_receipt_is_printed_for_zero; test_zero_amount_receipt_is_free",
+      "why": "Likely redundant requirement coverage."
+    },
+    {
+      "file": "tests/test_receipt.py",
+      "hint": "The name explicitly distinguishes exact zero from nearby nonzero values.",
+      "location": "test_receipt_is_free_only_for_exactly_zero",
+      "why": "Good negative/boundary framing for `PARK-10~1`."
+    },
+    {
+      "file": "tests/test_receipt.py",
+      "hint": "This receipt test obtains its amount through `quote` rather than supplying a receipt amount directly.",
+      "location": "test_receipt_for_two_hour_stay_prints_euros",
+      "why": "It is an integration-shaped test under the receipt requirement, which broadens dependencies and can obscure a receipt-only failure."
+    },
+    {
+      "file": "tests/test_receipt.py",
+      "hint": "The name and input concern a negative amount, although `PARK-9~1` specifies amounts above zero.",
+      "location": "test_receipt_separates_currency_from_amount_with_a_space",
+      "why": "The test visibly exercises an unspecified domain while claiming traceability to the positive-amount receipt requirement."
+    },
+    {
+      "file": "tests/test_tariff.py",
+      "hint": "It patches private function `parkfee.tariff._hourly_charge`.",
+      "location": "test_partial_hour_is_charged_as_full_hour",
+      "why": "Testing through a private implementation seam is a coupling/brittleness signal rather than an externally observable tariff scenario."
+    },
+    {
+      "file": "tests/test_tariff.py",
+      "hint": "The test is named for, and imports, the public `Breakdown` value object; it states rule, duration, and amount together.",
+      "location": "test_long_stay_breakdown_uses_day_rate",
+      "why": "Clear, structured characterization of the long-stay result for `PARK-5~1`."
+    },
+    {
+      "file": "tests/test_tariff.py",
+      "hint": "The name centers on a lost ticket but the marker is `PARK-5~1` (long stays).",
+      "location": "test_multi_day_stay_charge_with_lost_ticket",
+      "why": "The requirement link does not match the scenario's principal precedence behavior; `PARK-8~1` is the apparent traceability target."
+    },
+    {
+      "file": "tests/test_tariff.py",
+      "hint": "The names explicitly cover just-over-24-hours and multiple started-day thresholds.",
+      "location": "test_stay_just_over_a_day_costs_two_day_periods; test_long_stay_charges_each_started_day",
+      "why": "Good boundary-oriented surface design for `PARK-5~1`."
+    },
+    {
+      "file": "tests/test_tariff.py",
+      "hint": "The name targets Decimal scale/representation rather than the stated hourly-price behavior.",
+      "location": "test_hourly_charge_is_quoted_in_cents",
+      "why": "`PARK-3~1` does not prescribe a Decimal exponent, making this look like an implementation-format concern rather than a requirement test."
+    },
+    {
+      "file": "tests/test_tickets.py",
+      "hint": "The name and `PARK-7~1` marker say validation is under test, but the scenario visibly also sets `lost_ticket=True`.",
+      "location": "test_validated_ticket_covers_two_hour_stay",
+      "why": "Lost-ticket precedence dominates this scenario, so the test's name and requirement annotation are misleading."
+    },
+    {
+      "file": "tests/test_tickets.py",
+      "hint": "The name claims to test the lost-ticket condition, while the shown scenario does not set `lost_ticket=True`.",
+      "location": "test_lost_ticket_fee_only_applies_when_ticket_is_lost",
+      "why": "The test title and setup are visibly misaligned, weakening its `PARK-8~1` traceability."
+    },
+    {
+      "file": "tests/test_tickets.py",
+      "hint": "It compares the textual `repr` of a `Breakdown`, including enum and timedelta rendering.",
+      "location": "test_lost_ticket_breakdown_shows_flat_fee",
+      "why": "Exact representation strings are a brittle structural coupling and are not part of `PARK-8~1`."
+    },
+    {
+      "file": "tests/test_tickets.py",
+      "hint": "It patches private function `parkfee.tariff._validated_free`.",
+      "location": "test_validated_stay_under_three_hours_is_free",
+      "why": "This is implementation-coupled and less robust than an externally driven validated-ticket case."
+    },
+    {
+      "file": "tests/test_tickets.py",
+      "hint": "Its name mirrors the 'whatever the entry time, exit time and validation' wording and the setup varies stay length and validation.",
+      "location": "test_lost_ticket_costs_forty_whatever_the_stay",
+      "why": "Strong requirement-oriented naming and scenario matrix for `PARK-8~1`."
+    }
+  ]
+}

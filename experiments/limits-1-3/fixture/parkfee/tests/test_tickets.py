@@ -19,6 +19,8 @@ def test_validated_ticket_covers_two_hour_stay():
 @pytest.mark.verifies("PARK-8~1")
 def test_lost_ticket_fee_only_applies_when_ticket_is_lost():
     assert quote(at(8, 0, day=9), at(14, 0, day=10)) == Decimal("30.00")
+    assert quote(at(8, 0, day=9), at(9, 0, day=10)) == Decimal("30.00")
+    assert quote(at(8, 0, day=9), at(20, 0, day=10)) == Decimal("30.00")
 
 
 @pytest.mark.verifies("PARK-8~1")
@@ -33,6 +35,7 @@ def test_lost_ticket_breakdown_shows_flat_fee():
 def test_lost_ticket_fee_is_forty_euros():
     fee = quote(at(8, 0), at(17, 0), lost_ticket=True)
     assert fee == Decimal(fee)
+    assert fee == quote(at(8, 0), at(17, 0), lost_ticket=True)
 
 
 @pytest.mark.verifies("PARK-7~1")

@@ -27,7 +27,7 @@ def test_night_stay_over_two_hours_costs_six_euros():
 
 
 @pytest.mark.verifies("PARK-6~1")
-def test_night_window_rejects_mixed_timezone_awareness():
+def test_night_window_compares_entry_and_exit_times():
     with pytest.raises(TypeError) as excinfo:
         quote(at(12, 23, 0), datetime(2026, 3, 13, 3, 0, tzinfo=timezone.utc))
     assert excinfo.type is TypeError

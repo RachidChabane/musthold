@@ -1,0 +1,142 @@
+{
+  "hints": [
+    {
+      "file": "tests/test_intervals.py",
+      "hint": "Uses a try/except instead of pytest.raises and puts quote and breakdown in the same try block.",
+      "location": "test_exit_earlier_than_entry_is_rejected",
+      "why": "The test can finish without an assertion if neither call raises, and an exception from the first call prevents exercising the second."
+    },
+    {
+      "file": "tests/test_intervals.py",
+      "hint": "Compares the 15-minute result with a separate zero-duration quote rather than naming a literal free amount.",
+      "location": "test_quarter_hour_over_midnight_is_free",
+      "why": "The oracle is indirect; a shared incorrect result could satisfy the comparison."
+    },
+    {
+      "file": "tests/test_night.py",
+      "hint": "The name says \u201csame_night\u201d, but its dates run from March 9 to March 11.",
+      "location": "test_night_rate_requires_entry_and_exit_in_same_night",
+      "why": "The scenario encoded by the inputs conflicts with the stated behavior, making the test purpose misleading."
+    },
+    {
+      "file": "tests/test_night.py",
+      "hint": "The expected value is a repeat of the identical quote call with identical arguments.",
+      "location": "test_night_flat_rate_applies_to_whole_night",
+      "why": "This self-comparison is structurally tautological and provides no independent expected outcome."
+    },
+    {
+      "file": "tests/test_night.py",
+      "hint": "The name promises a six-euro rate, while the test structure only compares a night quote against a daytime quote.",
+      "location": "test_night_stay_over_two_hours_costs_six_euros",
+      "why": "The test name is more specific than its oracle and the relational comparison does not document the required amount."
+    },
+    {
+      "file": "tests/test_night.py",
+      "hint": "Introduces a naive/UTC-aware datetime mix and expects TypeError.",
+      "location": "test_night_window_compares_entry_and_exit_times",
+      "why": "Timezone compatibility is not a PARK-6 requirement; the test name and marker make an out-of-scope implementation behavior look like tariff coverage."
+    },
+    {
+      "file": "tests/test_receipt.py",
+      "hint": "Uses `receipt in (receipt, \"FREE\")`.",
+      "location": "test_free_receipt_is_printed_for_zero",
+      "why": "Including the observed value itself makes the membership condition tautological."
+    },
+    {
+      "file": "tests/test_receipt.py",
+      "hint": "It is marked PARK-10 although its name and nonzero input concern the formatted non-free branch.",
+      "location": "test_receipt_is_free_only_for_exactly_zero",
+      "why": "The traceability marker does not match the requirement being described; PARK-9 is the positive-amount receipt requirement."
+    },
+    {
+      "file": "tests/test_receipt.py",
+      "hint": "The name claims the exact FREE receipt, but the check is only absence of the substring `EUR`.",
+      "location": "test_zero_amount_receipt_is_free",
+      "why": "The stated behavior is stronger than the test's surface-level oracle."
+    },
+    {
+      "file": "tests/test_receipt.py",
+      "hint": "Uses a negative amount despite receipt requirements only specifying zero and positive amounts.",
+      "location": "test_receipt_separates_currency_from_amount_with_a_space",
+      "why": "The case is outside the documented input partition, so it is weak evidence for the PARK-9 marker."
+    },
+    {
+      "file": "tests/test_tariff.py",
+      "hint": "The title says the cap is reached after seven hours, while the first scenario is exactly seven hours and is paired with a just-over-seven-hours scenario.",
+      "location": "test_cap_is_reached_after_seven_hours",
+      "why": "The wording is imprecise about the boundary the test is intended to cover."
+    },
+    {
+      "file": "tests/test_tariff.py",
+      "hint": "Patches the private helper `parkfee.tariff._hourly_charge` and compares the result to the mock's return value.",
+      "location": "test_partial_hour_is_charged_as_full_hour",
+      "why": "The test is coupled to an internal implementation seam and its title describes a tariff rule that the mocked helper bypasses."
+    },
+    {
+      "file": "tests/test_tariff.py",
+      "hint": "It is marked PARK-5 and named as a multi-day test, but explicitly sets `lost_ticket=True`.",
+      "location": "test_multi_day_stay_charge_with_lost_ticket",
+      "why": "Lost-ticket precedence belongs to PARK-8, so the marker and name obscure what behavior the scenario targets."
+    },
+    {
+      "file": "tests/test_tariff.py",
+      "hint": "The title claims capping, but the test uses only less-than comparisons against uncapped arithmetic.",
+      "location": "test_full_day_charge_is_capped",
+      "why": "This is a weak oracle for the exact PARK-4 cap and would allow many undercharges."
+    },
+    {
+      "file": "tests/test_tariff.py",
+      "hint": "Checks Decimal exponent/representation rather than a stated tariff outcome.",
+      "location": "test_hourly_charge_is_quoted_in_cents",
+      "why": "PARK-3 specifies the charge, not a Decimal storage-format contract; this is implementation-oriented coverage."
+    },
+    {
+      "file": "tests/test_tariff.py",
+      "hint": "The three-hour, same-day scenario does not visibly distinguish counting from entry time from simple duration-based calculation.",
+      "location": "test_hours_are_counted_from_entry_time",
+      "why": "The scenario title promises a specific counting origin that the supplied case does not isolate."
+    },
+    {
+      "file": "tests/test_tickets.py",
+      "hint": "It is marked PARK-7 and named for validation, but also sets `lost_ticket=True`.",
+      "location": "test_validated_ticket_covers_two_hour_stay",
+      "why": "The scenario is dominated by the PARK-8 lost-ticket rule, so the marker/name are misleading validation traceability."
+    },
+    {
+      "file": "tests/test_tickets.py",
+      "hint": "The PARK-8-marked, lost-ticket-named test never passes `lost_ticket=True`.",
+      "location": "test_lost_ticket_fee_only_applies_when_ticket_is_lost",
+      "why": "Its data does not surface the condition named by either the requirement marker or test name."
+    },
+    {
+      "file": "tests/test_tickets.py",
+      "hint": "Asserts the complete `repr` string of a Breakdown, including enum and timedelta representation details.",
+      "location": "test_lost_ticket_breakdown_shows_flat_fee",
+      "why": "This is brittle representation coupling rather than a stable public-value check."
+    },
+    {
+      "file": "tests/test_tickets.py",
+      "hint": "The name says \u201cforty euros\u201d, but the structure compares the fee to `Decimal(fee)` and to another identical quote rather than to `Decimal(\"40.00\")`.",
+      "location": "test_lost_ticket_fee_is_forty_euros",
+      "why": "Both comparisons are self-derived and do not visibly encode the named required fee."
+    },
+    {
+      "file": "tests/test_tickets.py",
+      "hint": "Patches private `_validated_free` to return True.",
+      "location": "test_validated_stay_under_three_hours_is_free",
+      "why": "The test is implementation-coupled and does not exercise the three-hour validation boundary advertised by its name."
+    },
+    {
+      "file": "conftest.py",
+      "hint": "The suite copies every `verifies` marker into JUnit user properties.",
+      "location": "pytest_collection_modifyitems",
+      "why": "This is positive traceability infrastructure: requirement IDs are retained in collected test results, though the mis-marked tests above reduce its reliability."
+    },
+    {
+      "file": "pytest.ini",
+      "hint": "The marker definition requires requirement IDs in `ID~REV` form and strict markers are enabled.",
+      "location": "markers = verifies",
+      "why": "This is a positive surface signal of intentional, machine-checkable requirement-to-test traceability."
+    }
+  ]
+}

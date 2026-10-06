@@ -1,4 +1,4 @@
-- nodeid: "tests/test_intervals.py::test_exit_before_entry_raises_value_error"
+- nodeid: "tests/test_intervals.py::test_breakdown_rejects_exit_before_entry"
   cites: "PARK-1~1"
   label: GOOD
   shape: n/a
@@ -136,7 +136,7 @@
   shape: neighbour_criterion
   checks: ["PARK-5~1"]
   alignment_truth: NOT_ALIGNED
-- nodeid: "tests/test_night.py::test_night_window_rejects_mixed_timezone_awareness"
+- nodeid: "tests/test_night.py::test_night_window_compares_entry_and_exit_times"
   cites: "PARK-6~1"
   label: OFFSPEC
   shape: uncovered_behaviour
