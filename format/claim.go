@@ -6,13 +6,16 @@ import (
 )
 
 // Claim is a verdict-bearing value with the class of its evidence. A judged claim
-// carries a confidence in [0,1]; an executed claim never does. Build claims with
-// Executed and Judged so the invariant holds by construction; Validate checks
-// claims that were decoded from the wire.
+// carries a confidence in [0,1], may name the executor that produced it and may
+// list the executed evidence it is corroborated by; an executed claim carries
+// none of these. Build claims with Executed and Judged so the invariant holds by
+// construction; Validate checks claims that were decoded from the wire.
 type Claim[V comparable] struct {
-	Value      V        `json:"value"`
-	Class      Class    `json:"class"`
-	Confidence *float64 `json:"confidence,omitempty"`
+	Value          V               `json:"value"`
+	Class          Class           `json:"class"`
+	Confidence     *float64        `json:"confidence,omitempty"`
+	Executor       *Executor       `json:"executor,omitempty"`
+	CorroboratedBy []Corroboration `json:"corroboratedBy,omitempty"`
 }
 
 // Executed builds a claim backed by an execution result.
@@ -26,6 +29,18 @@ func Judged[V comparable](value V, confidence float64) (Claim[V], error) {
 		return Claim[V]{}, fmt.Errorf("confidence %v is outside [%v,%v]", confidence, MinConfidence, MaxConfidence)
 	}
 	return Claim[V]{Value: value, Class: ClassJudged, Confidence: &confidence}, nil
+}
+
+// Corroborated returns the claim with the executed evidence it rests on.
+func (c Claim[V]) Corroborated(by ...Corroboration) Claim[V] {
+	c.CorroboratedBy = append([]Corroboration(nil), by...)
+	return c
+}
+
+// ProducedByExecutor returns the claim with the executor that produced it.
+func (c Claim[V]) ProducedByExecutor(executor Executor) Claim[V] {
+	c.Executor = &executor
+	return c
 }
 
 func confidenceInRange(confidence float64) bool {
@@ -49,5 +64,23 @@ func (c Claim[V]) check(sink *collector, path string, allowed Class) {
 		sink.add(CodeConfidenceRange, path+".confidence", "confidence %v is outside [%v,%v]", *c.Confidence, MinConfidence, MaxConfidence)
 	case c.Class == ClassExecuted && c.Confidence != nil:
 		sink.add(CodeExecutedWithConfidence, path, "an executed claim forbids a confidence")
+	}
+	c.checkJudgmentMembers(sink, path)
+}
+
+// checkJudgmentMembers checks the members only a judged claim may carry.
+func (c Claim[V]) checkJudgmentMembers(sink *collector, path string) {
+	if c.Class == ClassExecuted {
+		if len(c.CorroboratedBy) > 0 {
+			sink.add(CodeExecutedWithCorroboration, path+".corroboratedBy", "an executed claim forbids corroboration")
+		}
+		if c.Executor != nil {
+			sink.add(CodeExecutedWithExecutor, path+".executor", "an executed claim forbids an executor")
+		}
+		return
+	}
+	checkCorroborations(sink, path+".corroboratedBy", c.CorroboratedBy)
+	if c.Executor != nil {
+		c.Executor.check(sink, path+".executor")
 	}
 }

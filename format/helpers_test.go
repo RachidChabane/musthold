@@ -34,6 +34,11 @@ func assertCodes(t *testing.T, err error, want ...format.ViolationCode) {
 
 func floatPointer(value float64) *float64 { return &value }
 
+// corroborationFixture is a valid piece of executed evidence.
+func corroborationFixture() format.Corroboration {
+	return format.Corroboration{Kind: format.CorroborationSpecificKill, Digest: proofs.Digest("evidence/specific-kill")}
+}
+
 // regularMutant returns the first mutant that is not a sentinel, with a decision
 // attached so a test can edit it.
 func regularMutant(s *format.Statement[format.DiscriminatingPower]) *format.Mutant {

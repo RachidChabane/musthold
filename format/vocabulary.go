@@ -68,6 +68,18 @@ func KindOfPredicateType(predicateType string) (Kind, bool) {
 	return "", false
 }
 
+// predicateMinorVersion is the minor version of every predicate schema. A minor
+// version is additive; the major version lives in the predicate type URI.
+const predicateMinorVersion = 1
+
+// MinorVersion returns the minor version of the predicate schema of the kind.
+func (k Kind) MinorVersion() int {
+	if _, known := predicateTypes[k]; !known {
+		return 0
+	}
+	return predicateMinorVersion
+}
+
 // SubjectName builds the `ID~REV` subject name of a requirement.
 func SubjectName(requirementID string, revision int) string {
 	return requirementID + RevisionSeparator + strconv.Itoa(revision)
@@ -134,7 +146,8 @@ const (
 // InputRole is the role of one input descriptor.
 type InputRole string
 
-// Input roles: the seven of ADR 0001 plus the two added by ADR 0003 (A1).
+// Input roles: the seven of ADR 0001, the two added by ADR 0003 (A1) and the two
+// added by ADR 0005 for a host response and a consumed proof.
 const (
 	RoleSpec           InputRole = "spec"
 	RoleTestSource     InputRole = "test_source"
@@ -145,6 +158,8 @@ const (
 	RolePromptTemplate InputRole = "prompt_template"
 	RoleDecisionPolicy InputRole = "decision_policy"
 	RoleExampleBinding InputRole = "example_binding"
+	RoleHostResponse   InputRole = "host_response"
+	RoleProof          InputRole = "proof"
 )
 
 // DecisionBasis tells how a judged claim was decided (ADR 0003, A7).
@@ -168,6 +183,7 @@ var (
 	inputRoles     = []InputRole{
 		RoleSpec, RoleTestSource, RoleCodeTree, RoleJUnitResult, RoleMutantSet,
 		RoleModelID, RolePromptTemplate, RoleDecisionPolicy, RoleExampleBinding,
+		RoleHostResponse, RoleProof,
 	}
 	bases = []DecisionBasis{BasisConstruction, BasisSpecExample, BasisJudges, BasisSystemOne, BasisExecution}
 )

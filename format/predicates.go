@@ -85,20 +85,13 @@ type Core struct {
 	Extensions Extensions `json:"extensions"`
 }
 
-// Judge identifies the model that judged an alignment and its masked prompt.
-type Judge struct {
-	Model        string `json:"model"`
-	PromptDigest string `json:"promptDigest"`
-	Blind        bool   `json:"blind"`
-}
-
 // Alignment is the predicate of one (test, criterion) alignment judgment.
 type Alignment struct {
 	Requirement Requirement `json:"requirement"`
 	Core
-	Test    string         `json:"test"`
-	Verdict Claim[Verdict] `json:"verdict"`
-	Judge   Judge          `json:"judge"`
+	Test     string         `json:"test"`
+	Verdict  Claim[Verdict] `json:"verdict"`
+	Executor Executor       `json:"executor"`
 }
 
 // MutantExtensions is the open part of one mutant entry (ADR 0003, validity
@@ -126,11 +119,6 @@ type Mutant struct {
 	Extensions *MutantExtensions `json:"extensions,omitempty"`
 }
 
-// Generator identifies the model that generated targeted mutants.
-type Generator struct {
-	Model string `json:"model"`
-}
-
 // ExampleRun is the executed result of one spec example on the reference code
 // (ADR 0003, A6).
 type ExampleRun struct {
@@ -145,7 +133,7 @@ type DiscriminatingPower struct {
 	Tests             []string     `json:"tests"`
 	CorrectCodePasses Claim[bool]  `json:"correctCodePasses"`
 	Mutants           []Mutant     `json:"mutants,omitempty"`
-	Generator         Generator    `json:"generator"`
+	Executor          Executor     `json:"executor"`
 	Examples          []ExampleRun `json:"examples,omitempty"`
 }
 

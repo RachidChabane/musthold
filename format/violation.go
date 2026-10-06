@@ -28,6 +28,11 @@ const (
 	CodeSentinelNotEquivalent   ViolationCode = "sentinel_not_equivalent"
 	CodeNotBlind                ViolationCode = "not_blind"
 	CodeNotAdvisory             ViolationCode = "not_advisory"
+
+	CodeUncorroboratedClaim       ViolationCode = "uncorroborated_claim"
+	CodeExecutedWithCorroboration ViolationCode = "executed_with_corroboration"
+	CodeExecutedWithExecutor      ViolationCode = "executed_with_executor"
+	CodeInconsistentAttribution   ViolationCode = "inconsistent_attribution"
 )
 
 // Violation is one broken invariant at a JSON path of the statement.

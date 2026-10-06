@@ -23,6 +23,9 @@ const (
 	moduleCompleteness  = "spec-proof-completeness"
 	judgeModel          = "claude-sonnet-5-5"
 	generatorModel      = "claude-opus-5-5"
+	harnessName         = "claude-code"
+	harnessVersion      = "2.1.292"
+	fixtureAgentID      = "agent-0001"
 	statementText       = "WHEN a stay lasts 15 minutes or less THE SYSTEM SHALL charge 0.00."
 	specText            = "# parkfee\n\n- PARK-2~1: " + statementText + "\n"
 	defaultConfidence   = 0.9
@@ -50,6 +53,26 @@ func SortInputs(inputs []format.Input) []format.Input {
 	return sorted
 }
 
+// Executor builds a valid attested executor that ran the given model and
+// answered the prompt with the given digest.
+func Executor(model, promptDigest string) format.Executor {
+	return format.Executor{
+		ExecutorProfile: format.ExecutorProfile{
+			Channel:   format.ChannelHostSubagent,
+			Harness:   format.Harness{Name: harnessName, Version: harnessVersion},
+			Isolation: format.IsolationRestrictedAttested,
+			Attestation: format.Attestation{
+				AgentID:          fixtureAgentID,
+				CapDigest:        Digest("cap/" + fixtureAgentID),
+				TranscriptDigest: Digest("transcript/" + fixtureAgentID),
+			},
+			Model: format.ExecutorModel{Name: model, Source: format.ModelSourceResolved},
+		},
+		PromptDigest: promptDigest,
+		Blind:        true,
+	}
+}
+
 func alignmentInputs() []format.Input {
 	return SortInputs([]format.Input{
 		Input(format.RoleSpec, SpecPath),
@@ -57,6 +80,7 @@ func alignmentInputs() []format.Input {
 		Input(format.RoleModelID, judgeModel),
 		Input(format.RolePromptTemplate, "alignment-judge"),
 		Input(format.RoleDecisionPolicy, "decision-policy"),
+		Input(format.RoleProof, "discriminating-power"),
 	})
 }
 
@@ -71,6 +95,7 @@ func discriminatingPowerInputs() []format.Input {
 		Input(format.RolePromptTemplate, "mutant-generator"),
 		Input(format.RoleDecisionPolicy, "decision-policy"),
 		Input(format.RoleExampleBinding, "example-binding"),
+		Input(format.RoleHostResponse, "host-responses"),
 	})
 }
 
@@ -111,7 +136,7 @@ func Alignment(mutations ...func(*format.Statement[format.Alignment])) format.St
 		Core:        core(moduleAlignment, alignmentInputs()),
 		Test:        TestName,
 		Verdict:     mustJudged(format.VerdictAligned, defaultConfidence),
-		Judge:       format.Judge{Model: judgeModel, PromptDigest: Digest("alignment-judge-prompt"), Blind: true},
+		Executor:    Executor(judgeModel, Digest("alignment-judge-prompt")),
 	}
 	predicate.Extensions.Decision = decision
 	statement := format.NewStatement([]format.Subject{requirementSubject()}, predicate)
@@ -132,7 +157,7 @@ func DiscriminatingPower(mutations ...func(*format.Statement[format.Discriminati
 		Tests:             []string{"test_grace_period_boundary", TestName},
 		CorrectCodePasses: format.Executed(true),
 		Mutants:           mutants(),
-		Generator:         format.Generator{Model: generatorModel},
+		Executor:          Executor(generatorModel, Digest("mutant-generator-prompt")),
 		Examples: []format.ExampleRun{
 			{Index: 0, Result: format.Executed(format.ExamplePassed)},
 			{Index: 1, Result: format.Executed(format.ExamplePassed)},
@@ -177,7 +202,7 @@ func requirementSubject() format.Subject {
 func mutants() []format.Mutant {
 	killedValid := format.Mutant{
 		Digest:   Digest("mutant/boundary"),
-		Validity: mustJudged(format.ValidityValid, 1.0),
+		Validity: mustJudged(format.ValidityValid, 1.0).Corroborated(format.Corroboration{Kind: format.CorroborationExampleFailed, Digest: Digest("example-0")}),
 		Results: []format.TestResult{
 			{Test: "test_grace_period_boundary", Outcome: format.Executed(format.OutcomeKilled)},
 			{Test: TestName, Outcome: format.Executed(format.OutcomeSurvived)},

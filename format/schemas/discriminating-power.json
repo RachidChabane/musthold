@@ -2,8 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://rachid-chabane.com/attestations/discriminating-power/v1",
   "title": "Discriminating-power predicate: the tests-by-mutants matrix of one criterion",
+  "x-minorVersion": 1,
   "type": "object",
-  "required": ["requirement", "module", "inputs", "cacheKey", "producedBy", "extensions", "tests", "correctCodePasses", "generator"],
+  "required": ["requirement", "module", "inputs", "cacheKey", "producedBy", "extensions", "tests", "correctCodePasses", "executor"],
   "properties": {
     "requirement": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/requirement" },
     "module": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/module" },
@@ -23,13 +24,7 @@
         { "properties": { "value": { "type": "boolean" } } }
       ]
     },
-    "generator": {
-      "type": "object",
-      "required": ["model"],
-      "properties": {
-        "model": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/nonEmptyString" }
-      }
-    },
+    "executor": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/executor" },
     "mutants": {
       "type": "array",
       "items": { "$ref": "#/$defs/mutant" }
@@ -67,15 +62,68 @@
           }
         }
       },
-      "if": {
-        "required": ["sentinel"],
-        "properties": { "sentinel": { "const": true } }
-      },
-      "then": {
-        "properties": {
-          "validity": { "properties": { "value": { "const": "EQUIVALENT" } } }
+      "allOf": [
+        {
+          "if": {
+            "required": ["sentinel"],
+            "properties": { "sentinel": { "const": true } }
+          },
+          "then": {
+            "properties": {
+              "validity": { "properties": { "value": { "const": "EQUIVALENT" } } }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["validity"],
+            "properties": {
+              "validity": {
+                "required": ["value", "class"],
+                "properties": { "value": { "const": "VALID" }, "class": { "const": "judged" } }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "validity": {
+                "required": ["corroboratedBy"],
+                "properties": { "corroboratedBy": { "minItems": 1 } }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["extensions"],
+            "properties": {
+              "extensions": {
+                "anyOf": [
+                  { "required": ["unattributed"], "properties": { "unattributed": { "const": true } } },
+                  { "required": ["offTarget"], "properties": { "offTarget": { "minLength": 1 } } }
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "validity": { "properties": { "value": { "const": "NOT_VIOLATING" } } }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["extensions"],
+            "properties": {
+              "extensions": {
+                "required": ["unattributed", "offTarget"],
+                "properties": { "unattributed": { "const": true }, "offTarget": { "minLength": 1 } }
+              }
+            }
+          },
+          "then": { "not": {} }
         }
-      }
+      ]
     },
     "testResult": {
       "type": "object",

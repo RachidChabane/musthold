@@ -66,6 +66,32 @@ Go tests of the module in CI.
   `extensions.operatorScreen` THE SYSTEM SHALL keep them through decoding and
   encoding and check the decision's basis and confidences.
 
+## Executors and corroboration
+
+- **SP-111~1**: WHEN a predicate or a judged claim carries an executor THE
+  SYSTEM SHALL require a channel, an isolation level and a model source of their
+  closed sets, a named harness, a named model unless its source is `unknown`,
+  and a SHA-256 prompt digest; and, for a `restricted-attested` executor, an
+  agent identifier, a cap digest and a transcript digest; and SHALL report
+  `unknown_value`, `missing_field` or `bad_digest`, and `executed_with_executor`
+  for an executed claim that carries one.
+- **SP-112~1**: WHEN a judged mutant validity is VALID THE SYSTEM SHALL require
+  its `corroboratedBy` list, whose entries are of a closed set of kinds, carry a
+  SHA-256 evidence digest and are strictly ascending, and SHALL report
+  `uncorroborated_claim` for an empty list and `executed_with_corroboration` for
+  an executed claim that carries one.
+- **SP-113~1**: WHEN a mutant is unattributed or off-target THE SYSTEM SHALL
+  require its validity to be NOT_VIOLATING and SHALL refuse a mutant that is
+  both, reporting `inconsistent_attribution`.
+- **SP-114~1**: WHEN an input names a host response or a consumed proof THE
+  SYSTEM SHALL accept the roles `host_response` and `proof`.
+- **SP-115~1**: WHEN a predicate schema is listed THE SYSTEM SHALL state its
+  minor version, equal to the minor version of its kind.
+- **SP-116~1**: WHEN isolation levels are compared THE SYSTEM SHALL order
+  `restricted-attested`, `restricted`, `restricted-unverified`, `unrestricted`
+  and `inline` from the strongest to the weakest, and rank an unknown level
+  below every floor.
+
 ## Schemas and golden vectors
 
 - **SP-22~1**: WHEN the embedded schemas are listed THE SYSTEM SHALL give each

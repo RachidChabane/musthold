@@ -118,6 +118,8 @@ func Cases() []Case {
 	cases := append(validCases(), alignmentCases()...)
 	cases = append(cases, discriminatingPowerCases()...)
 	cases = append(cases, completenessCases()...)
+	cases = append(cases, executorCases()...)
+	cases = append(cases, corroborationCases()...)
 	return append(cases, envelopeCases()...)
 }
 
@@ -164,7 +166,7 @@ func alignmentCases() []Case {
 			s.Predicate.Inputs = proofs.SortInputs(append(s.Predicate.Inputs, proofs.Input(unknownInputRole, "extra")))
 		}),
 		build("alignment-not-blind", breaks(SchemaInvalid, format.CodeNotBlind), func(s *alignment) {
-			s.Predicate.Judge.Blind = false
+			s.Predicate.Executor.Blind = false
 		}),
 		{Name: "alignment-cache-key-mismatch", Document: encode(cacheKeyMismatch), Expectation: breaks(SchemaValid, format.CodeCacheKeyMismatch)},
 	}
@@ -191,7 +193,7 @@ func discriminatingPowerCases() []Case {
 		build("discriminating-power-sentinel-not-equivalent", breaks(SchemaInvalid, format.CodeSentinelNotEquivalent), func(s *power) {
 			for index := range s.Predicate.Mutants {
 				if s.Predicate.Mutants[index].Sentinel {
-					s.Predicate.Mutants[index].Validity = judgedClaim(format.ValidityValid)
+					s.Predicate.Mutants[index].Validity = judgedClaim(format.ValidityValid).Corroborated(someCorroboration())
 				}
 			}
 		}),

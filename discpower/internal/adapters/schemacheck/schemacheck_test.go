@@ -143,9 +143,12 @@ func alignmentCorruptions() []corruption[format.Statement[format.Alignment]] {
 		{"confidence above one", func(s *statement) { s.Predicate.Verdict.Confidence = &tooHigh }},
 		{"confidence below zero", func(s *statement) { s.Predicate.Verdict.Confidence = &negative }},
 		{"unknown verdict", func(s *statement) { s.Predicate.Verdict.Value = "ALMOST" }},
-		{"judge not blind", func(s *statement) { s.Predicate.Judge.Blind = false }},
-		{"bad prompt digest", func(s *statement) { s.Predicate.Judge.PromptDigest = "short" }},
+		{"executor not blind", func(s *statement) { s.Predicate.Executor.Blind = false }},
+		{"bad prompt digest", func(s *statement) { s.Predicate.Executor.PromptDigest = "short" }},
 		{"empty test", func(s *statement) { s.Predicate.Test = "" }},
+		{"unknown channel", func(s *statement) { s.Predicate.Executor.Channel = "carrier-pigeon" }},
+		{"attested without cap digest", func(s *statement) { s.Predicate.Executor.Attestation.CapDigest = "" }},
+		{"unnamed known model", func(s *statement) { s.Predicate.Executor.Model.Name = "" }},
 		{"unknown producer", func(s *statement) { s.Predicate.ProducedBy = "laptop" }},
 		{"bad cache key", func(s *statement) { s.Predicate.CacheKey = "short" }},
 		{"empty module name", func(s *statement) { s.Predicate.Module.Name = "" }},
@@ -190,7 +193,18 @@ func powerCorruptions() []corruption[format.Statement[format.DiscriminatingPower
 			}
 		}},
 		{"no tests", func(s *statement) { s.Predicate.Tests = nil }},
-		{"no generator model", func(s *statement) { s.Predicate.Generator.Model = "" }},
+		{"valid mutant without corroboration", onFirstMutant(func(m *format.Mutant) {
+			m.Validity.Value = format.ValidityValid
+			m.Validity.CorroboratedBy = nil
+		})},
+		{"corroboration on an executed outcome", onFirstMutant(func(m *format.Mutant) {
+			m.Results[0].Outcome.CorroboratedBy = []format.Corroboration{{Kind: format.CorroborationBuilds, Digest: strings.Repeat("a", format.Sha256HexLength)}}
+		})},
+		{"unattributed valid mutant", onFirstMutant(func(m *format.Mutant) {
+			m.Validity.Value = format.ValidityValid
+			m.Extensions = &format.MutantExtensions{Unattributed: true}
+		})},
+		{"no generator model", func(s *statement) { s.Predicate.Executor.Model.Name = "" }},
 	}
 }
 

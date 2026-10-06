@@ -112,7 +112,7 @@ func TestEnvelope(t *testing.T) {
 		generic["later"] = "top"
 		predicate := generic["predicate"].(map[string]any)
 		predicate["later"] = map[string]any{"nested": true}
-		predicate["generator"].(map[string]any)["later"] = 1
+		predicate["executor"].(map[string]any)["later"] = 1
 		predicate["mutants"].([]any)[0].(map[string]any)["later"] = []any{"x"}
 		document, err := json.Marshal(generic)
 		if err != nil {
@@ -310,12 +310,12 @@ func TestClosedSets(t *testing.T) {
 		assertCodes(t, statement.Validate(), format.CodeBadDigest)
 	})
 
-	t.Run("every input role of ADR 0001 and ADR 0003 is accepted [verifies SP-13~1]", func(t *testing.T) {
+	t.Run("every input role of ADR 0001, ADR 0003 and ADR 0005 is accepted [verifies SP-13~1]", func(t *testing.T) {
 		roles := format.InputRoles()
-		if len(roles) != 9 {
+		if len(roles) != 11 {
 			t.Fatalf("roles = %v", roles)
 		}
-		for _, role := range []format.InputRole{format.RoleDecisionPolicy, format.RoleExampleBinding} {
+		for _, role := range []format.InputRole{format.RoleDecisionPolicy, format.RoleExampleBinding, format.RoleHostResponse, format.RoleProof} {
 			if !slices.Contains(roles, role) {
 				t.Errorf("role %s is missing", role)
 			}
@@ -361,10 +361,10 @@ func TestPredicateInvariants(t *testing.T) {
 			want []format.ViolationCode
 		}{
 			{"valid", func(*alignment) {}, nil},
-			{"judge not blind", func(s *alignment) { s.Predicate.Judge.Blind = false }, []format.ViolationCode{format.CodeNotBlind}},
+			{"judge not blind", func(s *alignment) { s.Predicate.Executor.Blind = false }, []format.ViolationCode{format.CodeNotBlind}},
 			{"executed verdict", func(s *alignment) { s.Predicate.Verdict = format.Executed(format.VerdictAligned) }, []format.ViolationCode{format.CodeWrongClass}},
-			{"no judge model", func(s *alignment) { s.Predicate.Judge.Model = "" }, []format.ViolationCode{format.CodeMissingField}},
-			{"bad prompt digest", func(s *alignment) { s.Predicate.Judge.PromptDigest = "x" }, []format.ViolationCode{format.CodeBadDigest}},
+			{"no judge model", func(s *alignment) { s.Predicate.Executor.Model.Name = "" }, []format.ViolationCode{format.CodeMissingField}},
+			{"bad prompt digest", func(s *alignment) { s.Predicate.Executor.PromptDigest = "x" }, []format.ViolationCode{format.CodeBadDigest}},
 			{"no test", func(s *alignment) { s.Predicate.Test = "" }, []format.ViolationCode{format.CodeMissingField}},
 			{"no module", func(s *alignment) { s.Predicate.Module = format.Module{} }, []format.ViolationCode{format.CodeMissingField}},
 			{"no inputs", func(s *alignment) { s.Predicate.Inputs = nil }, []format.ViolationCode{format.CodeMissingField}},
@@ -384,7 +384,7 @@ func TestPredicateInvariants(t *testing.T) {
 		}{
 			{"valid", func(*power) {}, nil},
 			{"no tests", func(s *power) { s.Predicate.Tests = nil }, []format.ViolationCode{format.CodeMissingField}},
-			{"no generator model", func(s *power) { s.Predicate.Generator.Model = "" }, []format.ViolationCode{format.CodeMissingField}},
+			{"no generator model", func(s *power) { s.Predicate.Executor.Model.Name = "" }, []format.ViolationCode{format.CodeMissingField}},
 			{"a mutant without results", func(s *power) {
 				s.Predicate.Mutants[proofs.RegularMutantIndex(s.Predicate.Mutants)].Results = nil
 			}, []format.ViolationCode{format.CodeMissingField}},
@@ -408,7 +408,7 @@ func TestPredicateInvariants(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					s.Predicate.Mutants[index].Validity = claim
+					s.Predicate.Mutants[index].Validity = claim.Corroborated(corroborationFixture())
 				})
 				if validity == format.ValidityEquivalent {
 					assertCodes(t, statement.Validate())

@@ -1,6 +1,8 @@
 // Package format is the public contract of the proof format: in-toto Statement v1
 // envelopes with three project-owned predicates (alignment, discriminating power,
-// completeness), the claim model that separates executed from judged evidence,
+// completeness), the claim model that separates executed from judged evidence
+// (a judged claim may name its executor and the executed evidence that
+// corroborates it), the executor and isolation vocabulary,
 // RFC 8785 (JCS) serialization, the file-set digest, the cache key, the subject
 // rules, the sort orders and the embedded JSON Schemas.
 //

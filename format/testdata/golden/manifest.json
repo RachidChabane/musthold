@@ -190,6 +190,183 @@
     "schema": "invalid"
   },
   {
+    "file": "alignment-executor-model-unknown.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "alignment-executor-unattested.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "alignment-executor-inline.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "alignment-claim-executor-and-corroboration.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "alignment-executor-unknown-channel.json",
+    "decode": "ok",
+    "violations": [
+      "unknown_value"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "alignment-executor-unknown-isolation.json",
+    "decode": "ok",
+    "violations": [
+      "unknown_value"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "alignment-executor-unknown-model-source.json",
+    "decode": "ok",
+    "violations": [
+      "unknown_value"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "alignment-executor-model-unnamed.json",
+    "decode": "ok",
+    "violations": [
+      "missing_field"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "alignment-executor-attested-without-attestation.json",
+    "decode": "ok",
+    "violations": [
+      "missing_field",
+      "bad_digest"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "alignment-executor-bad-cap-digest.json",
+    "decode": "ok",
+    "violations": [
+      "bad_digest"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "alignment-executor-bad-prompt-digest.json",
+    "decode": "ok",
+    "violations": [
+      "bad_digest"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "alignment-claim-executor-invalid.json",
+    "decode": "ok",
+    "violations": [
+      "unknown_value"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "discriminating-power-executed-with-corroboration.json",
+    "decode": "ok",
+    "violations": [
+      "executed_with_corroboration"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "discriminating-power-executed-with-executor.json",
+    "decode": "ok",
+    "violations": [
+      "executed_with_executor"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "discriminating-power-valid-mutant-corroborated-twice.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "discriminating-power-unattributed-mutant.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "discriminating-power-off-target-mutant.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "discriminating-power-excluded-mutant-without-corroboration.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "discriminating-power-valid-mutant-uncorroborated.json",
+    "decode": "ok",
+    "violations": [
+      "uncorroborated_claim"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "discriminating-power-corroboration-unknown-kind.json",
+    "decode": "ok",
+    "violations": [
+      "unknown_value"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "discriminating-power-corroboration-bad-digest.json",
+    "decode": "ok",
+    "violations": [
+      "bad_digest"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "discriminating-power-corroboration-unsorted.json",
+    "decode": "ok",
+    "violations": [
+      "unsorted"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "discriminating-power-valid-mutant-unattributed.json",
+    "decode": "ok",
+    "violations": [
+      "inconsistent_attribution"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "discriminating-power-unattributed-and-off-target.json",
+    "decode": "ok",
+    "violations": [
+      "inconsistent_attribution"
+    ],
+    "schema": "invalid"
+  },
+  {
     "file": "envelope-wrong-statement-type.json",
     "decode": "ok",
     "violations": [

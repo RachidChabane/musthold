@@ -28,14 +28,16 @@
       "required": ["value", "class"],
       "properties": {
         "class": { "enum": ["executed", "judged"] },
-        "confidence": { "$ref": "#/$defs/confidence" }
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "executor": { "$ref": "#/$defs/executor" },
+        "corroboratedBy": { "$ref": "#/$defs/corroborations" }
       },
       "if": {
         "required": ["class"],
         "properties": { "class": { "const": "judged" } }
       },
       "then": { "required": ["confidence"] },
-      "else": { "not": { "required": ["confidence"] } }
+      "else": { "not": { "anyOf": [{ "required": ["confidence"] }, { "required": ["executor"] }, { "required": ["corroboratedBy"] }] } }
     },
     "executedClaim": {
       "allOf": [
@@ -47,6 +49,103 @@
       "allOf": [
         { "$ref": "#/$defs/claim" },
         { "properties": { "class": { "const": "judged" } } }
+      ]
+    },
+    "digestOrEmpty": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{64})?$"
+    },
+    "corroboration": {
+      "type": "object",
+      "required": ["kind", "digest"],
+      "properties": {
+        "kind": {
+          "enum": [
+            "example_failed",
+            "other_example_failed",
+            "specific_kill",
+            "f4_witness",
+            "builds",
+            "other_criteria_pass",
+            "no_diff_found",
+            "specific_matrix",
+            "judge_quorum"
+          ]
+        },
+        "digest": { "$ref": "#/$defs/sha256Hex" }
+      }
+    },
+    "corroborations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/corroboration" },
+      "uniqueItems": true
+    },
+    "executorProfile": {
+      "type": "object",
+      "required": ["channel", "harness", "isolation", "attestation", "model"],
+      "properties": {
+        "channel": { "enum": ["host-subagent", "host-sampled", "host-inline", "systemone-relay"] },
+        "harness": {
+          "type": "object",
+          "required": ["name", "version"],
+          "properties": {
+            "name": { "$ref": "#/$defs/nonEmptyString" },
+            "version": { "type": "string" }
+          }
+        },
+        "isolation": {
+          "enum": ["restricted-attested", "restricted", "restricted-unverified", "unrestricted", "inline"]
+        },
+        "attestation": {
+          "type": "object",
+          "required": ["agentId", "capDigest", "transcriptDigest"],
+          "properties": {
+            "agentId": { "type": "string" },
+            "capDigest": { "$ref": "#/$defs/digestOrEmpty" },
+            "transcriptDigest": { "$ref": "#/$defs/digestOrEmpty" }
+          }
+        },
+        "model": {
+          "type": "object",
+          "required": ["name", "source"],
+          "properties": {
+            "name": { "type": "string" },
+            "source": { "enum": ["resolved", "declared", "unknown"] }
+          },
+          "if": {
+            "required": ["source"],
+            "properties": { "source": { "const": "unknown" } }
+          },
+          "else": { "properties": { "name": { "$ref": "#/$defs/nonEmptyString" } } }
+        }
+      },
+      "if": {
+        "required": ["isolation"],
+        "properties": { "isolation": { "const": "restricted-attested" } }
+      },
+      "then": {
+        "properties": {
+          "attestation": {
+            "properties": {
+              "agentId": { "$ref": "#/$defs/nonEmptyString" },
+              "capDigest": { "$ref": "#/$defs/sha256Hex" },
+              "transcriptDigest": { "$ref": "#/$defs/sha256Hex" }
+            }
+          }
+        }
+      }
+    },
+    "executor": {
+      "allOf": [
+        { "$ref": "#/$defs/executorProfile" },
+        {
+          "type": "object",
+          "required": ["promptDigest", "blind"],
+          "properties": {
+            "promptDigest": { "$ref": "#/$defs/sha256Hex" },
+            "blind": { "type": "boolean" }
+          }
+        }
       ]
     },
     "requirement": {
@@ -80,7 +179,9 @@
             "model_id",
             "prompt_template",
             "decision_policy",
-            "example_binding"
+            "example_binding",
+            "host_response",
+            "proof"
           ]
         },
         "name": { "$ref": "#/$defs/nonEmptyString" },

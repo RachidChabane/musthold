@@ -23,10 +23,9 @@ func (p Alignment) check(sink *collector, subject []Subject) {
 	checkNotEmpty(sink, "predicate.test", p.Test)
 	p.Verdict.check(sink, "predicate.verdict", ClassJudged)
 	checkMember(sink, "predicate.verdict.value", p.Verdict.Value, verdicts)
-	checkNotEmpty(sink, "predicate.judge.model", p.Judge.Model)
-	checkDigest(sink, "predicate.judge.promptDigest", p.Judge.PromptDigest)
-	if !p.Judge.Blind {
-		sink.add(CodeNotBlind, "predicate.judge.blind", "the judge must have been blind")
+	p.Executor.check(sink, "predicate.executor")
+	if !p.Executor.Blind {
+		sink.add(CodeNotBlind, "predicate.executor.blind", "the judge must have been blind")
 	}
 }
 
@@ -37,7 +36,7 @@ func (p DiscriminatingPower) check(sink *collector, subject []Subject) {
 	checkNotEmptyList(sink, "predicate.tests", p.Tests)
 	checkAscending(sink, "predicate.tests", p.Tests, strings.Compare)
 	p.CorrectCodePasses.check(sink, "predicate.correctCodePasses", ClassExecuted)
-	checkNotEmpty(sink, "predicate.generator.model", p.Generator.Model)
+	p.Executor.check(sink, "predicate.executor")
 	checkAscending(sink, "predicate.mutants", p.Mutants, func(a, b Mutant) int { return strings.Compare(a.Digest, b.Digest) })
 	for index, mutant := range p.Mutants {
 		checkMutant(sink, fmt.Sprintf("predicate.mutants[%d]", index), mutant)
@@ -90,8 +89,30 @@ func checkMutant(sink *collector, path string, mutant Mutant) {
 		result.Outcome.check(sink, resultPath+".outcome", ClassExecuted)
 		checkMember(sink, resultPath+".outcome.value", result.Outcome.Value, outcomes)
 	}
+	checkCorroborationRequired(sink, path+".validity", mutant.Validity)
 	if mutant.Extensions != nil {
 		checkDecision(sink, path+".extensions.decision", mutant.Extensions.Decision)
+		checkAttribution(sink, path, mutant)
+	}
+}
+
+// checkCorroborationRequired enforces the invariant of ADR 0005: a judged claim
+// with the power to block or to earn credit rests on executed evidence.
+func checkCorroborationRequired(sink *collector, path string, validity Claim[Validity]) {
+	if validity.Class == ClassJudged && validity.Value.CarriesPassEffect() && len(validity.CorroboratedBy) == 0 {
+		sink.add(CodeUncorroboratedClaim, path+".corroboratedBy", "a judged %s claim needs executed corroboration", validity.Value)
+	}
+}
+
+// checkAttribution enforces that an unattributed or off-target mutant is judged
+// NOT_VIOLATING, and that no mutant is both.
+func checkAttribution(sink *collector, path string, mutant Mutant) {
+	extensions := mutant.Extensions
+	if (extensions.Unattributed || extensions.OffTarget != "") && mutant.Validity.Value != ValidityNotViolating {
+		sink.add(CodeInconsistentAttribution, path+".validity.value", "an unattributed or off-target mutant is %q, not %q", ValidityNotViolating, mutant.Validity.Value)
+	}
+	if extensions.Unattributed && extensions.OffTarget != "" {
+		sink.add(CodeInconsistentAttribution, path+".extensions", "a mutant is unattributed or off-target, not both")
 	}
 }
 

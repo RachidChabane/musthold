@@ -79,16 +79,16 @@ func TestClaimRules(t *testing.T) {
 			want format.ViolationCode
 		}{
 			{"judged without confidence", func(s *format.Statement[format.DiscriminatingPower]) {
-				s.Predicate.Mutants[proofs.RegularMutantIndex(s.Predicate.Mutants)].Validity = format.Claim[format.Validity]{Value: format.ValidityValid, Class: format.ClassJudged}
+				s.Predicate.Mutants[proofs.RegularMutantIndex(s.Predicate.Mutants)].Validity = format.Claim[format.Validity]{Value: format.ValidityEquivalent, Class: format.ClassJudged}
 			}, format.CodeJudgedWithoutConfidence},
 			{"executed with confidence", func(s *format.Statement[format.DiscriminatingPower]) {
 				s.Predicate.CorrectCodePasses = format.Claim[bool]{Value: true, Class: format.ClassExecuted, Confidence: floatPointer(0.5)}
 			}, format.CodeExecutedWithConfidence},
 			{"confidence above one", func(s *format.Statement[format.DiscriminatingPower]) {
-				s.Predicate.Mutants[proofs.RegularMutantIndex(s.Predicate.Mutants)].Validity = format.Claim[format.Validity]{Value: format.ValidityValid, Class: format.ClassJudged, Confidence: floatPointer(1.01)}
+				s.Predicate.Mutants[proofs.RegularMutantIndex(s.Predicate.Mutants)].Validity = format.Claim[format.Validity]{Value: format.ValidityEquivalent, Class: format.ClassJudged, Confidence: floatPointer(1.01)}
 			}, format.CodeConfidenceRange},
 			{"negative confidence", func(s *format.Statement[format.DiscriminatingPower]) {
-				s.Predicate.Mutants[proofs.RegularMutantIndex(s.Predicate.Mutants)].Validity = format.Claim[format.Validity]{Value: format.ValidityValid, Class: format.ClassJudged, Confidence: floatPointer(-0.01)}
+				s.Predicate.Mutants[proofs.RegularMutantIndex(s.Predicate.Mutants)].Validity = format.Claim[format.Validity]{Value: format.ValidityEquivalent, Class: format.ClassJudged, Confidence: floatPointer(-0.01)}
 			}, format.CodeConfidenceRange},
 		}
 		for _, c := range cases {

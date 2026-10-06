@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://rachid-chabane.com/attestations/completeness/v1",
   "title": "Completeness predicate: advisory questions about one spec",
+  "x-minorVersion": 1,
   "type": "object",
   "required": ["module", "inputs", "cacheKey", "producedBy", "extensions", "advisory"],
   "properties": {

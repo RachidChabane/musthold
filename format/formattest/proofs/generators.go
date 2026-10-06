@@ -12,16 +12,17 @@ import (
 
 // Bounds of the generated fixtures.
 const (
-	maxGeneratedInputs    = 6
-	maxGeneratedTests     = 4
-	maxGeneratedMutants   = 4
-	maxGeneratedExamples  = 4
-	maxGeneratedQuestions = 4
-	maxGeneratedRevision  = 9
-	digestSeedBytes       = 32
-	identifierPattern     = `[a-z][a-z0-9_]{2,12}`
-	requirementPattern    = `[A-Z]{2,4}-[1-9][0-9]{0,2}`
-	pathPattern           = `[a-z]{1,6}(/[a-z]{1,6}){0,2}`
+	maxGeneratedInputs         = 6
+	maxGeneratedTests          = 4
+	maxGeneratedMutants        = 4
+	maxGeneratedExamples       = 4
+	maxGeneratedQuestions      = 4
+	maxGeneratedCorroborations = 3
+	maxGeneratedRevision       = 9
+	digestSeedBytes            = 32
+	identifierPattern          = `[a-z][a-z0-9_]{2,12}`
+	requirementPattern         = `[A-Z]{2,4}-[1-9][0-9]{0,2}`
+	pathPattern                = `[a-z]{1,6}(/[a-z]{1,6}){0,2}`
 )
 
 // Digests generates SHA-256 hex digests.
@@ -50,6 +51,39 @@ func Inputs() *rapid.Generator[[]format.Input] {
 // Confidences generates confidences inside [0,1].
 func Confidences() *rapid.Generator[float64] {
 	return rapid.Float64Range(format.MinConfidence, format.MaxConfidence)
+}
+
+// Corroborations generates a non-empty, strictly ascending corroboration list.
+func Corroborations() *rapid.Generator[[]format.Corroboration] {
+	corroboration := rapid.Custom(func(t *rapid.T) format.Corroboration {
+		return format.Corroboration{
+			Kind:   rapid.SampledFrom(format.CorroborationKinds()).Draw(t, "kind"),
+			Digest: Digests().Draw(t, "evidence"),
+		}
+	})
+	return rapid.Custom(func(t *rapid.T) []format.Corroboration {
+		drawn := rapid.SliceOfN(corroboration, 1, maxGeneratedCorroborations).Draw(t, "corroborations")
+		return sortedUnique(drawn, func(a, b format.Corroboration) int {
+			return cmp.Or(strings.Compare(string(a.Kind), string(b.Kind)), strings.Compare(a.Digest, b.Digest))
+		})
+	})
+}
+
+// Executors generates valid executors of every channel and isolation level.
+func Executors() *rapid.Generator[format.Executor] {
+	return rapid.Custom(func(t *rapid.T) format.Executor {
+		isolation := rapid.SampledFrom(format.Isolations()).Draw(t, "isolation")
+		source := rapid.SampledFrom(format.ModelSources()).Draw(t, "modelSource")
+		executor := Executor(rapid.StringMatching(identifierPattern).Draw(t, "model"), Digests().Draw(t, "promptDigest"))
+		executor.Channel = rapid.SampledFrom(format.Channels()).Draw(t, "channel")
+		executor.Isolation = isolation
+		executor.Model.Source = source
+		executor.Blind = rapid.Bool().Draw(t, "blind")
+		if isolation != format.IsolationRestrictedAttested {
+			executor.Attestation = format.Attestation{}
+		}
+		return executor
+	})
 }
 
 func sortedUnique[T any](items []T, compare func(a, b T) int) []T {
@@ -81,7 +115,8 @@ func Alignments() *rapid.Generator[format.Statement[format.Alignment]] {
 			s.Predicate.ProducedBy = rapid.SampledFrom([]format.ProducedBy{format.ProducedByLocal, format.ProducedByCI}).Draw(t, "producedBy")
 			s.Predicate.Test = rapid.StringMatching(identifierPattern).Draw(t, "test")
 			s.Predicate.Verdict = judgedClaim(t, "verdict", format.Verdicts())
-			s.Predicate.Judge.PromptDigest = Digests().Draw(t, "promptDigest")
+			s.Predicate.Executor = Executors().Draw(t, "executor")
+			s.Predicate.Executor.Blind = true
 		})
 	})
 }
@@ -94,6 +129,7 @@ func DiscriminatingPowers() *rapid.Generator[format.Statement[format.Discriminat
 			s.Subject = []format.Subject{format.RequirementSubject(RequirementID, RequirementRevision, Digests().Draw(t, "statementDigest"))}
 			s.Predicate.Inputs = Inputs().Draw(t, "inputs")
 			s.Predicate.Tests = tests
+			s.Predicate.Executor = Executors().Draw(t, "executor")
 			s.Predicate.CorrectCodePasses = format.Executed(rapid.Bool().Draw(t, "correctCodePasses"))
 			s.Predicate.Mutants = generatedMutants(t, tests)
 			s.Predicate.Examples = generatedExamples(t)
@@ -111,6 +147,9 @@ func generatedMutants(t *rapid.T, tests []string) []format.Mutant {
 		validity := judgedClaim(t, "validity", format.Validities())
 		if sentinel {
 			validity = mustJudged(format.ValidityEquivalent, Confidences().Draw(t, "sentinelConfidence"))
+		}
+		if validity.Value.CarriesPassEffect() {
+			validity = validity.Corroborated(Corroborations().Draw(t, "corroboration")...)
 		}
 		return format.Mutant{Digest: Digests().Draw(t, "mutantDigest"), Validity: validity, Sentinel: sentinel, Results: results}
 	})

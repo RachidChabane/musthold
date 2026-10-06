@@ -2,8 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://rachid-chabane.com/attestations/alignment/v1",
   "title": "Alignment predicate: one test judged against one criterion",
+  "x-minorVersion": 1,
   "type": "object",
-  "required": ["requirement", "module", "inputs", "cacheKey", "producedBy", "extensions", "test", "verdict", "judge"],
+  "required": ["requirement", "module", "inputs", "cacheKey", "producedBy", "extensions", "test", "verdict", "executor"],
   "properties": {
     "requirement": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/requirement" },
     "module": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/module" },
@@ -18,14 +19,11 @@
         { "properties": { "value": { "enum": ["ALIGNED", "MISALIGNED", "UNDETERMINED"] } } }
       ]
     },
-    "judge": {
-      "type": "object",
-      "required": ["model", "promptDigest", "blind"],
-      "properties": {
-        "model": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/nonEmptyString" },
-        "promptDigest": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/sha256Hex" },
-        "blind": { "const": true }
-      }
+    "executor": {
+      "allOf": [
+        { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/executor" },
+        { "properties": { "blind": { "const": true } } }
+      ]
     }
   }
 }
