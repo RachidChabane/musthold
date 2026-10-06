@@ -214,7 +214,7 @@ DRIFT_GUARDED_PATHS: Final = (
     "harness/src/pilot/domain/matrix.py",
     "harness/src/pilot/domain/analysis_constants.py",
 )
-PREREG_DOCUMENT_PATH: Final = "prereg/PREREG.md"
+PREREG_TAG: Final = "prereg-limits-1-3"
 EXPLORATORY_WORD_LIMIT: Final = 300
 EXPLORATORY_FILENAME: Final = "EXPLORATORY.md"
 REPORT_CONCLUSION_BEGIN: Final = "<!-- conclusion-templates:begin -->"

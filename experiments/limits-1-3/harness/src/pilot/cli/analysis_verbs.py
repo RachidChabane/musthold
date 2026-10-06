@@ -12,7 +12,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 
 from pilot.adapters.ast_edits import AstEditApplier
-from pilot.adapters.git_drift import PreregistrationUncommitted, drifted_paths, preregistration_commit
+from pilot.adapters.git_drift import PreregistrationTagMissing, drifted_paths, preregistration_commit
 from pilot.adapters.ground_truth_reader import read_ground_truth, read_models_lock
 from pilot.adapters.oracle_runner import OracleClassifier, OracleRunError
 from pilot.adapters.prereg_files import load_edit_sets, load_refactor, read_label_matrix
@@ -36,7 +36,7 @@ from pilot.domain.analysis_constants import (
     DRIFT_GUARDED_PATHS,
     ORACLE_PARALLELISM,
     PERMUTATION_COUNT,
-    PREREG_DOCUMENT_PATH,
+    PREREG_TAG,
 )
 from pilot.domain.constants import LABEL_MATRIX_FILENAME
 from pilot.domain.pipeline_constants import AUDIT_SAMPLE_FILENAME
@@ -138,7 +138,7 @@ def _crosscheck_differences(layout: AnalysisLayout) -> list[str]:
 
 
 def _check_drift(layout: AnalysisLayout) -> tuple[str, list[str]]:
-    commit = preregistration_commit(layout.root, PREREG_DOCUMENT_PATH)
+    commit = preregistration_commit(layout.root, PREREG_TAG)
     return commit, drifted_paths(layout.root, commit, DRIFT_GUARDED_PATHS)
 
 
@@ -167,7 +167,7 @@ def analyze_command(args: Namespace) -> int:
     if not args.allow_drift:
         try:
             commit, drift = _check_drift(layout)
-        except PreregistrationUncommitted as error:
+        except PreregistrationTagMissing as error:
             return _fail("analyze", [error])
         if drift:
             return _fail("analyze", [f"differs from pre-registration commit {commit}: {p}" for p in drift])

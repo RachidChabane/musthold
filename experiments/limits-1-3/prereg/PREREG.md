@@ -224,6 +224,8 @@ From a fresh empty temporary directory outside the repository:
 
 `claude -p --model <pin> --effort <medium|high> --system-prompt "<prereg/prompts/system.txt>" --tools "" --setting-sources "" --strict-mcp-config --disable-slash-commands --no-session-persistence --output-format json --json-schema '<schema>' < item.txt`
 
+The `$schema` keyword is removed from the schema passed to `claude --json-schema`; the schema file itself is unchanged.
+
 Isolation checks per call: pinned `modelUsage` key; total input tokens ≤
 the (model, call type) canary baseline + ceil(chars(item)/2.5) + 500; `num_turns` equal to the canary
 value; the directory is empty afterwards.
