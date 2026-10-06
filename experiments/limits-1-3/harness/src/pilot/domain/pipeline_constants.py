@@ -30,7 +30,6 @@ RANDOM_NONCE_BYTES: Final = 16
 
 ARM_P_DIRNAME: Final = "arm_p"
 ARM_P_ITEMS_DIRNAME: Final = "items"
-PLANTED_MAP_FILENAME: Final = "planted_map.json"
 LEAK_AUDIT_DIRNAME: Final = "leak_audit"
 LEAK_AUDIT_HINTS_FILENAME: Final = "hints.json"
 CODEBOOK_FILENAME: Final = "codebook.md"

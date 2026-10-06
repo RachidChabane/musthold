@@ -15,8 +15,6 @@ ARM_P = "P"
 class ArmPItems(Protocol):
     def items(self) -> Mapping[str, EditSet]: ...
 
-    def planted_map_text(self) -> str: ...
-
 
 class ArmPIntegrityError(Exception):
     pass

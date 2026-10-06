@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Final
 
+from pilot.domain.endpoint_ids import ENDPOINT_IDS as DECISIONAL_ENDPOINT_IDS
+
 ANALYSIS_SEED: Final = 20261006
 BOOTSTRAP_RESAMPLES: Final = 10_000
 PERMUTATION_COUNT: Final = 10_000
@@ -33,7 +35,8 @@ STATUS_OK: Final = "OK"
 STATUS_TRIVIALLY_EQUIVALENT: Final = "TRIVIALLY_EQUIVALENT"
 STATUS_DUPLICATE: Final = "DUPLICATE"
 PROCESSING_STATUSES: Final = (STATUS_OK, STATUS_TRIVIALLY_EQUIVALENT, STATUS_DUPLICATE)
-KILL_RESULTS: Final = (KILLED_RESULT, "survived", "error", "flaky")
+ERROR_RESULT: Final = "error"
+KILL_RESULTS: Final = (KILLED_RESULT, "survived", ERROR_RESULT, "flaky")
 TEST_OUTCOMES: Final = ("passed", "failed", "error", "skipped")
 CLASS_VERDICTS: Final = (MUTANT_VALID, MUTANT_NOT_VIOLATING, MUTANT_UNDETERMINED)
 CALL_OK: Final = "ok"
@@ -83,7 +86,7 @@ POISONED_CRITERIA: Final = (3, 5, 8)
 CLEAN_CRITERIA: Final = (1, 2, 4, 9)
 
 # Endpoint identifiers, in report order.
-ENDPOINT_IDS: Final = tuple(f"D{n}" for n in range(1, 12))
+ENDPOINT_IDS: Final = DECISIONAL_ENDPOINT_IDS
 OUTCOME_GO: Final = "GO"
 OUTCOME_NO_GO: Final = "NO-GO"
 OUTCOME_INCONCLUSIVE: Final = "INCONCLUSIVE"
@@ -213,6 +216,8 @@ DRIFT_GUARDED_PATHS: Final = (
     "harness/src/pilot/domain/gate.py",
     "harness/src/pilot/domain/matrix.py",
     "harness/src/pilot/domain/analysis_constants.py",
+    "harness/src/pilot/domain/deviations.py",
+    "harness/src/pilot/domain/endpoint_ids.py",
 )
 PREREG_TAG: Final = "prereg-limits-1-3"
 EXPLORATORY_WORD_LIMIT: Final = 300

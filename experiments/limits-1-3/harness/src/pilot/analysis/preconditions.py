@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import math
-import re
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -20,13 +19,10 @@ from pilot.analysis.stats import (
     fleiss_sufficient,
 )
 from pilot.domain import analysis_constants as k
+from pilot.domain.deviations import DeviationEntry, DeviationKind, parse_deviations
 from pilot.domain.labels import TestClass
 
 VERIFY_PASS_LINE = "RESULT: PASS"
-ENDPOINT_ID_PATTERN = re.compile(r"\bD(?:1[01]|[1-9])\b")
-ALL_ENDPOINTS_WORDS = re.compile(r"\b(all|decisional)\b", re.IGNORECASE)
-QUOTA_WORD = "quota"
-DEVIATION_ENTRY_PATTERN = re.compile(r"^\s*(?:[-*]|#{2,})\s+(?P<text>.+)$")
 RATER_COUNT = 3
 BINARY_CATEGORIES = (k.TRUTH_ALIGNED, k.TRUTH_NOT_ALIGNED)
 
@@ -256,39 +252,43 @@ def _judge_endpoints(judge: str) -> tuple[str, ...]:
     return ()
 
 
-def deviation_entries(text: str) -> list[str]:
-    return [m.group("text").strip() for line in text.splitlines() if (m := DEVIATION_ENTRY_PATTERN.match(line))]
+def _entries_of(ctx: Context, kind: DeviationKind) -> list[DeviationEntry]:
+    return [entry for entry in parse_deviations(ctx.run.deviations) if entry.kind is kind]
 
 
-def _endpoints_named(entry: str) -> tuple[str, ...]:
-    """Endpoints a deviation entry names; an entry naming none touches every endpoint's inputs."""
-    named = tuple(dict.fromkeys(ENDPOINT_ID_PATTERN.findall(entry)))
-    return named or ALL_ENDPOINTS
+def _union(entries: Sequence[DeviationEntry]) -> tuple[str, ...]:
+    return tuple(e for e in ALL_ENDPOINTS if any(e in entry.endpoints for entry in entries))
+
+
+def _count(entries: Sequence[DeviationEntry], noun: str) -> str:
+    return f"{len(entries)} {noun} entr{'y' if len(entries) == 1 else 'ies'}"
 
 
 def p6_deviations(ctx: Context) -> Precondition:
-    touching = {
-        entry: _endpoints_named(entry)
-        for entry in deviation_entries(ctx.run.deviations)
-        if QUOTA_WORD not in entry.lower()
-    }
-    affected = tuple(sorted({e for v in touching.values() for e in v}, key=ALL_ENDPOINTS.index))
+    """Protocol entries naming endpoints fail P6 for those endpoints; provenance and quota pauses never do."""
+    protocol = _entries_of(ctx, DeviationKind.PROTOCOL)
+    touching = [entry for entry in protocol if entry.endpoints]
+    malformed = [entry for entry in protocol if not entry.well_formed]
+    provenance = _entries_of(ctx, DeviationKind.PROVENANCE)
+    parts = [_count(touching, "protocol"), _count(provenance, "provenance")]
+    if malformed:
+        parts.append(f"{len(malformed)} unparseable line(s) read as protocol entries touching every endpoint")
     return Precondition(
-        "P6", "no logged deviation touches a decisional endpoint's inputs",
+        "P6", "no logged protocol deviation touches a decisional endpoint's inputs",
         Status.FAIL if touching else Status.PASS,
-        f"{len(touching)} deviation entr{'y' if len(touching) == 1 else 'ies'} logged; see DEVIATIONS.md in the run directory"
-        if touching else "no deviation logged", affected,
+        f"{'; '.join(parts)} logged; see DEVIATIONS.md in the run directory", _union(touching),
     )
 
 
 def p7_quota(ctx: Context) -> Precondition:
-    entries = [e for e in deviation_entries(ctx.run.deviations) if QUOTA_WORD in e.lower()]
-    affected = tuple(sorted({e for entry in entries for e in (_endpoints_named(entry) or ALL_ENDPOINTS)},
-                            key=ALL_ENDPOINTS.index))
+    """A quota-blocked entry makes its endpoints INCONCLUSIVE; a quota pause that resumed does not."""
+    blocked = _entries_of(ctx, DeviationKind.QUOTA_BLOCKED)
+    pauses = _entries_of(ctx, DeviationKind.QUOTA_PAUSE)
     return Precondition(
-        "P7", "no quota exhaustion", Status.FAIL if entries else Status.PASS,
-        f"{len(entries)} quota entr{'y' if len(entries) == 1 else 'ies'} logged; see DEVIATIONS.md in the run directory"
-        if entries else "none logged", affected, forces_inconclusive=True,
+        "P7", "no stage blocked by quota exhaustion", Status.FAIL if blocked else Status.PASS,
+        f"{_count(blocked, 'quota-blocked')}, {_count(pauses, 'quota-pause')} logged; "
+        "see DEVIATIONS.md in the run directory",
+        _union(blocked), forces_inconclusive=True,
     )
 
 

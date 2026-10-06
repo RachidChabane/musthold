@@ -13,9 +13,9 @@ import yaml
 from pilot.application.assemble_arm_p import ArmPItem
 from pilot.domain.constants import REFACTOR_VARIANT_ID
 from pilot.domain.edits import EditSet
+from pilot.domain.ground_truth_paths import PLANTED_MAP_FILENAME
 from pilot.domain.label_matrix import LabelMatrix
 from pilot.domain.labels import TestLabel
-from pilot.domain.pipeline_constants import PLANTED_MAP_FILENAME
 from pilot.domain.variants import VariantId, VariantKind
 
 NODEID_COLUMN = "nodeid"

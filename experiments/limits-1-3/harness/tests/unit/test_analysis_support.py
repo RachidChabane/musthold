@@ -9,7 +9,7 @@ from pilot.analysis.audit import allocate, draw_sample, stratum_of
 from pilot.analysis.lint import lint_report
 from pilot.analysis.oracle import OracleKind, classify_oracle
 from pilot.analysis.precision import count_at, precision_table
-from pilot.analysis.preconditions import deviation_entries, modal_guess, pins_of_lock
+from pilot.analysis.preconditions import modal_guess, pins_of_lock
 from pilot.analysis.report import TemplateError, parse_conclusion_templates
 from pilot.analysis.stats import wilson
 from pilot.domain.analysis_constants import REPORT_CONCLUSION_BEGIN, REPORT_CONCLUSION_END
@@ -121,11 +121,6 @@ def test_modal_guess_breaks_ties_by_mean_confidence_then_lexicographically():
     assert modal_guess([("TARGETED", 60), ("TARGETED", 50), ("OTHER", 90)]) == "TARGETED"
     assert modal_guess([("TARGETED", 60), ("OTHER", 70)]) == "OTHER"
     assert modal_guess([("TARGETED", 60), ("OTHER", 60)]) == "OTHER"
-
-
-def test_deviation_entries_are_list_items_and_second_level_headings():
-    text = "# Deviations\n- D3 inputs changed after the canary\n## CLI update\nplain prose\n* quota paused the run\n"
-    assert deviation_entries(text) == ["D3 inputs changed after the canary", "CLI update", "quota paused the run"]
 
 
 def test_pins_come_from_the_models_lock():

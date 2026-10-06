@@ -17,6 +17,7 @@ from pilot.domain.gate import (
     CriterionEvidence,
     GateInputs,
     GateOutcome,
+    MutantResults,
     Rule,
     evaluate_gate,
 )
@@ -35,17 +36,31 @@ A, B, C = "tests/t.py::a", "tests/t.py::b", "tests/t.py::c"
 ALIGNED, MISALIGNED, UNDETERMINED = AlignmentVerdict.ALIGNED, AlignmentVerdict.MISALIGNED, AlignmentVerdict.UNDETERMINED
 
 
+def results(kill_sets):
+    return tuple(k if isinstance(k, MutantResults) else MutantResults(frozenset(k)) for k in kill_sets)
+
+
 def inputs(valid=(), undetermined=(), alignment=None, trace=True, reference=None, tests=(A, B, C)):
     return GateInputs(
         trace,
         reference if reference is not None else {t: True for t in tests},
-        CriterionEvidence(tuple(frozenset(k) for k in valid), tuple(frozenset(k) for k in undetermined)),
+        CriterionEvidence(results(valid), results(undetermined)),
         alignment if alignment is not None else {t: ALIGNED for t in tests},
     )
 
 
 def decide(policy, tests, **kw):
     return evaluate_gate(policy, tests, inputs(**kw))
+
+
+def test_an_error_is_neither_a_kill_nor_a_survival():
+    errored = MutantResults(frozenset(), frozenset({A}))
+    assert not decide(G1, {A}, valid=[errored, {A}]).fired
+    assert Rule.NO_KILLED_VALID in decide(G1, {A}, valid=[errored]).fired
+    assert Rule.SURVIVING_VALID not in decide(G1, {A}, valid=[errored]).fired
+    assert decide(G1, {A}, valid=[{A}], undetermined=[errored]).outcome is GateOutcome.PASS
+    assert decide(G1, {A, B}, valid=[{A}], undetermined=[errored]).outcome is GateOutcome.PASS
+    assert decide(G1, {B}, valid=[{B}], undetermined=[errored]).outcome is GateOutcome.ESCALATE
 
 
 def test_a_clean_scenario_passes_under_every_policy():
@@ -127,7 +142,7 @@ verdicts = st.sampled_from(list(AlignmentVerdict))
     reference=st.fixed_dictionaries({A: st.booleans(), B: st.booleans(), C: st.booleans()}),
 )
 def test_gate_precedence_block_over_escalate_over_pass(scenario, valid, undetermined, alignment, trace, reference):
-    data = GateInputs(trace, reference, CriterionEvidence(tuple(valid), tuple(undetermined)), alignment)
+    data = GateInputs(trace, reference, CriterionEvidence(results(valid), results(undetermined)), alignment)
     decision = evaluate_gate(G3, scenario, data)
     fired_outcomes = {rule.outcome for rule in decision.fired}
     if GateOutcome.BLOCK in fired_outcomes:
@@ -152,7 +167,7 @@ def test_gate_precedence_block_over_escalate_over_pass(scenario, valid, undeterm
     alignment=st.fixed_dictionaries({A: verdicts, B: verdicts, C: verdicts}),
 )
 def test_g1_and_g2_decisions_never_exceed_g3(scenario, valid, undetermined, alignment):
-    data = GateInputs(True, {A: True, B: True, C: True}, CriterionEvidence(tuple(valid), tuple(undetermined)), alignment)
+    data = GateInputs(True, {A: True, B: True, C: True}, CriterionEvidence(results(valid), results(undetermined)), alignment)
     g3 = evaluate_gate(G3, scenario, data).outcome
     assert evaluate_gate(G1, scenario, data).outcome <= g3
     assert evaluate_gate(G2, scenario, data).outcome <= g3
@@ -257,3 +272,45 @@ def test_matrix_signature_rules_are_exhaustive_and_consistent(pool, declared):
         else:
             assert result.own >= 0.5
             assert (result.signature is Signature.SPECIFIC) == (result.other <= 0.2)
+
+
+# ----------------------------------------------------------------------------- gate pools
+
+
+class PoolContext:
+    """The slice of the analysis context that `gate_evidence` reads."""
+
+    def __init__(self, views, results, declared):
+        self.views, self.results, self.declared = views, results, declared
+
+    def arm_t_evaluated(self):
+        return self.views
+
+    def results_of(self, mutant_id):
+        return self.results[mutant_id]
+
+
+def view(mutant_id, target, per_criterion, discarded=False):
+    from pilot.domain.run_records import MutantClassView
+
+    valid = [c for c, v in per_criterion.items() if v == "VALID"]
+    return MutantClassView(
+        mutant_id, "T", target, per_criterion, {c: 0.9 for c in valid}, False, False, False,
+        len(valid) >= 2, target if valid == [target] else None, discarded, False,
+    )
+
+
+def test_gate_pools_are_the_undiscarded_mutants_generated_for_the_criterion():
+    from pilot.analysis.model import gate_evidence
+
+    views = [
+        view("collateral", 3, {3: "VALID", 5: "VALID"}),
+        view("exclusive", 3, {3: "VALID"}),
+        view("off-target", 5, {3: "VALID"}),
+        view("discarded", 3, {3: "UNDETERMINED"}, discarded=True),
+        view("open", 3, {3: "UNDETERMINED"}),
+    ]
+    results = {v.mutant_id: MutantResults(frozenset({v.mutant_id})) for v in views}
+    evidence = gate_evidence(PoolContext(views, results, {}), 3)  # type: ignore[arg-type]
+    assert {next(iter(m.killed)) for m in evidence.valid} == {"collateral", "exclusive"}
+    assert [next(iter(m.killed)) for m in evidence.undetermined] == ["open"]

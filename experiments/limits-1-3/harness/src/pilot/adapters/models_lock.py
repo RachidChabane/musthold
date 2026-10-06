@@ -38,17 +38,6 @@ def load_models_lock(path: Path) -> ModelsLock:
     )
 
 
-def record_cli_versions(path: Path, versions: Mapping[Cli, str]) -> bool:
-    """Write the installed CLI versions into the lock; returns whether the file changed."""
-    raw = json.loads(path.read_text(encoding="utf-8"))
-    updated = {**raw["cli_versions"], **{cli.value: version for cli, version in versions.items()}}
-    if updated == raw["cli_versions"]:
-        return False
-    raw["cli_versions"] = dict(sorted(updated.items()))
-    path.write_text(json.dumps(raw, indent=2) + "\n", encoding="utf-8")
-    return True
-
-
 class InstalledCliVersions:
     """Implements the `CliVersionProbe` port by running `<cli> --version`."""
 

@@ -7,10 +7,10 @@ from functools import cached_property
 
 from pilot.analysis.oracle import OracleClass, classify_oracle
 from pilot.domain.analysis_constants import ARM_T
-from pilot.domain.gate import CriterionEvidence
+from pilot.domain.gate import CriterionEvidence, MutantResults
 from pilot.domain.labels import TestLabel
 from pilot.domain.matrix import PoolMutant
-from pilot.domain.analysis_constants import KILLED_RESULT, MUTANT_UNDETERMINED
+from pilot.domain.analysis_constants import ERROR_RESULT, KILLED_RESULT, MUTANT_UNDETERMINED, MUTANT_VALID
 from pilot.domain.pipeline_constants import TAU
 from pilot.domain.run_records import GroundTruth, MutantClassView, RunRecords
 
@@ -48,6 +48,17 @@ class Context:
             mutant_id: frozenset(n for n, r in results.items() if r == KILLED_RESULT)
             for mutant_id, results in self.run.kills.items()
         }
+
+    @cached_property
+    def errored(self) -> dict[str, frozenset[str]]:
+        """Tests whose result is error, per evaluated mutant: neither a kill nor a survival."""
+        return {
+            mutant_id: frozenset(n for n, r in results.items() if r == ERROR_RESULT)
+            for mutant_id, results in self.run.kills.items()
+        }
+
+    def results_of(self, mutant_id: str) -> MutantResults:
+        return MutantResults(self.killers.get(mutant_id, frozenset()), self.errored.get(mutant_id, frozenset()))
 
     @cached_property
     def oracle_class(self) -> dict[str, OracleClass]:
@@ -88,21 +99,24 @@ def matrix_pools(ctx: Context) -> tuple[list[PoolMutant], list[frozenset[str]]]:
 
 
 def gate_evidence(ctx: Context, criterion: int, f_brief: bool = False) -> CriterionEvidence:
-    """Kill sets the gate rules 3 to 5 read for one criterion.
+    """Executed results the gate rules 3 to 5 read for one criterion: the mutants of its discriminating-power proof.
 
-    VALID: the primary-matrix VALID mutants of the criterion at or above tau.
-    UNDETERMINED: undiscarded arm-T mutants generated for the criterion that no judge pair settled.
-    F_brief drops a VALID mutant killed by any test declared for another criterion.
+    VALID: undiscarded arm-T mutants generated for the criterion and VALID for it at or above tau,
+    COLLATERAL ones included. UNDETERMINED: undiscarded arm-T mutants generated for the criterion that
+    are UNDETERMINED for it. F_brief drops a VALID mutant killed by any test declared for another criterion.
     """
-    valid: list[frozenset[str]] = []
-    undetermined: list[frozenset[str]] = []
+    valid: list[MutantResults] = []
+    undetermined: list[MutantResults] = []
     for view in ctx.arm_t_evaluated():
-        killed = ctx.killers.get(view.mutant_id, frozenset())
-        if view.primary_criterion == criterion and view.valid_confidence.get(criterion, 0.0) >= TAU:
-            if not (f_brief and _killed_by_other_binding(ctx, killed, criterion)):
-                valid.append(killed)
-        elif view.target == criterion and not view.discarded and view.verdict_for(criterion) == MUTANT_UNDETERMINED:
-            undetermined.append(killed)
+        if view.target != criterion or view.discarded:
+            continue
+        results = ctx.results_of(view.mutant_id)
+        verdict = view.verdict_for(criterion)
+        if verdict == MUTANT_VALID and view.valid_confidence.get(criterion, 0.0) >= TAU:
+            if not (f_brief and _killed_by_other_binding(ctx, results.killed, criterion)):
+                valid.append(results)
+        elif verdict == MUTANT_UNDETERMINED:
+            undetermined.append(results)
     return CriterionEvidence(tuple(valid), tuple(undetermined))
 
 
@@ -112,9 +126,13 @@ def _killed_by_other_binding(ctx: Context, killed: frozenset[str], criterion: in
 
 def oracle_valid_kill_sets(ctx: Context, criterion: int) -> list[frozenset[str]]:
     """Kill sets of every arm-T mutant that is oracle-valid for the criterion (PREREG 9.3)."""
-    return [
-        ctx.killers.get(view.mutant_id, frozenset())
-        for view in ctx.arm_t_evaluated()
-        if ctx.oracle_valid_for(view.mutant_id, criterion)
-    ]
+    return [ctx.results_of(m).killed for m in oracle_valid_mutants(ctx, criterion)]
 
+
+def oracle_valid_results(ctx: Context, criterion: int) -> list[MutantResults]:
+    """Executed results of every arm-T mutant that is oracle-valid for the criterion (PREREG 9.4 substitution)."""
+    return [ctx.results_of(m) for m in oracle_valid_mutants(ctx, criterion)]
+
+
+def oracle_valid_mutants(ctx: Context, criterion: int) -> list[str]:
+    return [view.mutant_id for view in ctx.arm_t_evaluated() if ctx.oracle_valid_for(view.mutant_id, criterion)]

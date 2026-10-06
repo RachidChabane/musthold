@@ -13,7 +13,6 @@ from pilot.adapters.models_lock import (
     JsonSchemaValidator,
     load_baselines,
     load_models_lock,
-    record_cli_versions,
 )
 from pilot.adapters.process import ProcessResult
 from pilot.adapters.prompt_files import DirectoryPromptLibrary
@@ -194,14 +193,6 @@ def test_canary_store_writes_one_file_per_model_cli_and_call_type(tmp_path):
     saved = json.loads((tmp_path / "canary" / "gpt-5.6-terra__codex__audit.json").read_text())
     assert saved == {"input_tokens": 8627, "num_turns": None, "cli_version": "0.155.1"}
     assert load_baselines(tmp_path / "canary") == {(TERRA.key, CallType.AUDIT): CanaryBaseline(8627, None)}
-
-
-def test_cli_versions_are_recorded_in_the_lock_only_when_they_differ(tmp_path):
-    lock = tmp_path / "models.lock.json"
-    lock.write_text(json.dumps({"cli_versions": {"claude": "2.1.292", "codex": "0.155.1"}, "models": []}))
-    assert not record_cli_versions(lock, {Cli.CLAUDE: "2.1.292"})
-    assert record_cli_versions(lock, {Cli.CLAUDE: "2.1.300"})
-    assert json.loads(lock.read_text())["cli_versions"] == {"claude": "2.1.300", "codex": "0.155.1"}
 
 
 class OneShotProcess:

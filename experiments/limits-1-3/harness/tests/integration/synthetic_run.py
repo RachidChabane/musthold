@@ -149,7 +149,6 @@ class _RunBuilder:
         dump_lines(self.run / "witness.jsonl", self.witness)
         dump(self.run / "mutant_classes.json", self.classes)
         dump(self.run / "oracle_classes.json", {"oracle_digest": "synthetic", "mutants": self.oracle})
-        dump(self.run / "planted_map.json", {m: v["source"] for m, v in self.planted_labels.items()})
         (self.root / "prereg" / "arm_p").mkdir()
         (self.root / "prereg" / "arm_p" / "labels.yaml").write_text(yaml.safe_dump(self.planted_labels), encoding="utf-8")
         self._reference_bindings_traceability()

@@ -1,6 +1,6 @@
 # Front door for the limits 1-3 pilot: thin recipes over script/<verb>.
 # Every verb also runs without make: ./script/<verb>.
-.PHONY: help verify-labels runner-crosscheck leak-check traceability-check assemble-arm-p leak-audit canary relabel run-core run-secondary test lint
+.PHONY: help verify-labels runner-crosscheck leak-check traceability-check assemble-arm-p leak-audit canary relabel run-core run-secondary log-deviation test lint
 
 help:  ## list verbs
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-20s %s\n",$$1,$$2}'
@@ -34,6 +34,9 @@ run-core:  ## traceability, arm T and P, F0-F3, validity, J-SONNET masked and pr
 
 run-secondary:  ## other judges, arm O, mutant audit; needs RUN_ID=<run-id>
 	./script/run-secondary --run-id $(RUN_ID)
+
+log-deviation:  ## PREREG 4.4 one DEVIATIONS.md entry; needs RUN_ID, KIND, ENDPOINTS (none|all|D3,D4), TEXT
+	./script/log-deviation --run-id $(RUN_ID) --kind $(KIND) --endpoints "$(ENDPOINTS)" --text "$(TEXT)"
 
 test:  ## harness unit and integration tests
 	cd harness && uv run --frozen pytest

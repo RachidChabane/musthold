@@ -1,4 +1,4 @@
-"""Pipeline verbs: canary, relabel, run-core, run-secondary, leak-audit. Reaches no ground truth."""
+"""Pipeline verbs: canary, relabel, run-core, run-secondary, leak-audit, log-deviation. Reaches no ground truth."""
 
 from __future__ import annotations
 
@@ -6,11 +6,7 @@ import sys
 from argparse import Namespace
 from collections.abc import Callable, Sequence
 
-from pilot.adapters.models_lock import (
-    DirectoryCanaryStore,
-    JsonSchemaValidator,
-    record_cli_versions,
-)
+from pilot.adapters.models_lock import DirectoryCanaryStore, JsonSchemaValidator
 from pilot.adapters.process import SubprocessRunner
 from pilot.adapters.run_directory import RunDirectory
 from pilot.application.canary import CanaryFailed, plan_canary, run_canary
@@ -18,7 +14,7 @@ from pilot.application.core_run import run_core
 from pilot.application.leak_audit_stage import LeakAuditMissing, run_leak_audit
 from pilot.application.model_caller import MissingCanary, ModelCaller
 from pilot.application.process_mutants import ReferenceUnstable
-from pilot.application.provenance import ensure_manifest
+from pilot.application.provenance import ensure_manifest, log_deviation
 from pilot.application.relabel_stage import run_relabel
 from pilot.application.secondary_run import SecondaryPreconditionFailed, run_secondary
 from pilot.application.traceability_stage import TraceabilityFailed, ensure_traceability
@@ -32,6 +28,7 @@ from pilot.cli.pipeline_wiring import (
     prompt_library,
 )
 from pilot.domain.call_type import CallType
+from pilot.domain.deviations import DeviationEntry, DeviationKind, InvalidDeviation, parse_scope
 from pilot.domain.constants import MAX_CONCURRENT_MODEL_CALLS
 from pilot.domain.pipeline_constants import EXIT_QUOTA_EXHAUSTED, LEAK_AUDIT_HINTS_FILENAME
 from pilot.domain.quota import QuotaExhausted
@@ -64,10 +61,21 @@ def _require_prereg(layout: PipelineLayout) -> None:
             raise MissingPreregFile(f"missing {path}")
 
 
-def _guarded(verb: str, action: Callable[[], int]) -> int:
+QuotaLog = Callable[[str], None]
+
+
+def _run_quota_log(args: Namespace) -> QuotaLog:
+    """Logs a quota pause of a run verb as a `quota-pause` entry of the run's DEVIATIONS.md."""
+    store = RunDirectory(PipelineLayout(args.root).run_dir(args.run_id))
+    return lambda text: log_deviation(store, DeviationEntry.quota_pause(text))
+
+
+def _guarded(verb: str, action: Callable[[], int], quota_log: QuotaLog | None = None) -> int:
     try:
         return action()
     except QuotaExhausted as stop:
+        if quota_log is not None:
+            quota_log(f"{verb} stopped at a quota or rate limit ({stop}); a rerun of {verb} resumes it")
         print(f"{verb}: stopped at quota or rate limit ({stop}); rerun the same command to resume", file=sys.stderr)
         return EXIT_QUOTA_EXHAUSTED
     except ABORTS as failure:
@@ -76,7 +84,7 @@ def _guarded(verb: str, action: Callable[[], int]) -> int:
 
 
 def canary_command(args: Namespace) -> int:
-    return _guarded("canary", lambda: _canary(args))
+    return _guarded("canary", lambda: _canary(args), _run_quota_log(args))
 
 
 def _canary(args: Namespace) -> int:
@@ -95,14 +103,12 @@ def _canary(args: Namespace) -> int:
         stack.router, stack.versions, JsonSchemaValidator(), DirectoryCanaryStore(layout.canary_dir(args.run_id)),
         tasks, prompts.system_prompt(),
     )
-    if not args.no_lock_update and record_cli_versions(layout.models_lock, report.versions):
-        print(f"canary: recorded CLI versions {dict((c.value, v) for c, v in report.versions.items())} in models.lock.json")
     print(f"canary: OK ({len(report.baselines)} baselines)")
     return EXIT_OK
 
 
 def relabel_command(args: Namespace) -> int:
-    return _guarded("relabel", lambda: _relabel(args))
+    return _guarded("relabel", lambda: _relabel(args), _run_quota_log(args))
 
 
 def _relabel(args: Namespace) -> int:
@@ -121,7 +127,7 @@ def _relabel(args: Namespace) -> int:
 
 
 def run_core_command(args: Namespace) -> int:
-    return _guarded("run-core", lambda: _run_core(args))
+    return _guarded("run-core", lambda: _run_core(args), _run_quota_log(args))
 
 
 def _run_core(args: Namespace) -> int:
@@ -133,7 +139,7 @@ def _run_core(args: Namespace) -> int:
 
 
 def run_secondary_command(args: Namespace) -> int:
-    return _guarded("run-secondary", lambda: _run_secondary(args))
+    return _guarded("run-secondary", lambda: _run_secondary(args), _run_quota_log(args))
 
 
 def _run_secondary(args: Namespace) -> int:
@@ -174,3 +180,15 @@ def _leak_audit_files(layout: PipelineLayout) -> dict[str, str]:
         for path in sorted(layout.project.rglob("*"))
         if path.is_file() and not any(part in AUDIT_IGNORED_PARTS for part in path.parts) and path.suffix in AUDIT_SUFFIXES
     }
+
+
+def log_deviation_command(args: Namespace) -> int:
+    """Appends one operator entry (canary fix, rerun, blocked arm, other deviation) to the run's DEVIATIONS.md."""
+    try:
+        entry = DeviationEntry.create(DeviationKind(args.kind), parse_scope(args.endpoints), args.text)
+    except InvalidDeviation as invalid:
+        print(f"log-deviation: {invalid}", file=sys.stderr)
+        return EXIT_FAILED
+    log_deviation(RunDirectory(PipelineLayout(args.root).run_dir(args.run_id)), entry)
+    print(f"log-deviation: {entry.render()}")
+    return EXIT_OK

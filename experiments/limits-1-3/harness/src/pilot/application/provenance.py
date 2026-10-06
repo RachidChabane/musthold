@@ -7,10 +7,12 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 from pilot.application.ports import CliVersionProbe, RunStore
+from pilot.domain.deviations import DEVIATIONS_TITLE, DeviationEntry
 from pilot.domain.model_call import Cli, ModelPin
 from pilot.domain.pipeline_constants import DEVIATIONS_FILENAME, RUN_MANIFEST_FILENAME
 
-DEVIATIONS_HEADER = "# Deviations\n\n"
+DEVIATIONS_HEADER = f"{DEVIATIONS_TITLE}\n\n"
+DIGEST_KEYS = ("prereg_commit", "harness_digest", "fixture_digest")
 
 
 class ProvenanceProbe(Protocol):
@@ -31,7 +33,12 @@ class ManifestInputs:
 def ensure_manifest(
     store: RunStore, provenance: ProvenanceProbe, versions: CliVersionProbe, inputs: ManifestInputs
 ) -> dict[str, Any]:
-    """Create the manifest on the first call; later calls log every drift as a deviation."""
+    """Create the manifest on the first call; later calls log every drift.
+
+    A CLI version is provenance: it differs from the lock or changes between verbs
+    without touching the protocol. A changed pre-registration commit, harness or
+    fixture digest is a protocol deviation touching every endpoint.
+    """
     current = {
         "run_id": inputs.run_id,
         "prereg_commit": provenance.prereg_commit(),
@@ -45,8 +52,8 @@ def ensure_manifest(
     }
     _ensure_deviations_file(store)
     previous = store.read_json(RUN_MANIFEST_FILENAME) if store.exists(RUN_MANIFEST_FILENAME) else None
-    for line in _drift(previous, current, inputs.locked_versions):
-        log_deviation(store, line)
+    for entry in _drift(previous, current, inputs.locked_versions):
+        log_deviation(store, entry)
     store.write_json(RUN_MANIFEST_FILENAME, current)
     return current
 
@@ -57,20 +64,20 @@ def _installed(versions: CliVersionProbe, pins: Sequence[ModelPin]) -> dict[str,
 
 def _drift(
     previous: Mapping[str, Any] | None, current: Mapping[str, Any], locked: Mapping[Cli, str]
-) -> list[str]:
+) -> list[DeviationEntry]:
     if previous is None:
         return [
-            f"CLI {cli} installed {version}, models.lock.json records {locked[Cli(cli)]}"
+            DeviationEntry.provenance(f"CLI {cli} installed {version}, models.lock.json records {locked[Cli(cli)]}")
             for cli, version in current["cli_versions"].items()
             if Cli(cli) in locked and locked[Cli(cli)] != version
         ]
     changed = [
-        f"{key} changed from {previous.get(key)} to {current[key]}"
-        for key in ("prereg_commit", "harness_digest", "fixture_digest")
+        DeviationEntry.protocol_for_all(f"{key} changed from {previous.get(key)} to {current[key]}")
+        for key in DIGEST_KEYS
         if previous.get(key) != current[key]
     ]
     changed += [
-        f"CLI {cli} changed from {previous['cli_versions'].get(cli)} to {version}"
+        DeviationEntry.provenance(f"CLI {cli} changed from {previous['cli_versions'].get(cli)} to {version}")
         for cli, version in current["cli_versions"].items()
         if previous["cli_versions"].get(cli) != version
     ]
@@ -82,6 +89,6 @@ def _ensure_deviations_file(store: RunStore) -> None:
         store.write_text(DEVIATIONS_FILENAME, DEVIATIONS_HEADER)
 
 
-def log_deviation(store: RunStore, line: str) -> None:
+def log_deviation(store: RunStore, entry: DeviationEntry) -> None:
     _ensure_deviations_file(store)
-    store.append_text(DEVIATIONS_FILENAME, f"- {line}\n")
+    store.append_text(DEVIATIONS_FILENAME, f"{entry.render()}\n")

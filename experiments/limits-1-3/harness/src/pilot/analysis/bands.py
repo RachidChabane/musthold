@@ -109,21 +109,27 @@ def bad_test_detection(recall: Estimate, precision: Estimate, always_misaligned_
 
 
 def matrix_balanced_accuracy(
-    accuracy: Estimate, null_balanced_accuracy: float, mean_dc: float | None, dc_null_threshold: float
+    accuracy: Estimate,
+    null_balanced_accuracy: float,
+    mean_dc: float | None,
+    dc_null_threshold: float,
+    dc_null_mean: float,
 ) -> Outcome:
-    """D10: balanced accuracy over chance and mean DC above the N3 percentile."""
+    """D10: balanced accuracy over chance; mean DC above the N3 95th percentile for GO, at most the N3 mean for NO-GO.
+
+    Chance levels are the means of the N6 and N3 permutation nulls.
+    """
     if _undefined(accuracy) or math.isnan(null_balanced_accuracy):
         return Outcome.INCONCLUSIVE
-    if mean_dc is None or math.isnan(dc_null_threshold):
+    if mean_dc is None or math.isnan(dc_null_threshold) or math.isnan(dc_null_mean):
         return Outcome.INCONCLUSIVE
-    dc_above_null = mean_dc > dc_null_threshold
     go = (
         accuracy.point >= k.D10_GO_POINT
         and accuracy.interval.lo >= k.D10_GO_LOWER
         and accuracy.interval.lo - null_balanced_accuracy > 0
-        and dc_above_null
+        and mean_dc > dc_null_threshold
     )
-    return _resolve(go, accuracy.interval.hi < k.D10_NO_GO_UPPER or not dc_above_null)
+    return _resolve(go, accuracy.interval.hi < k.D10_NO_GO_UPPER or mean_dc <= dc_null_mean)
 
 
 def cross_check_kappa(kappa: Estimate) -> Outcome:

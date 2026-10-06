@@ -10,6 +10,7 @@ from pilot.application.assemble_arm_p import DuplicateArmPItem, assemble_items
 from pilot.application.arm_p import ArmPIntegrityError, planted_mutants
 from pilot.application.provenance import ManifestInputs, ensure_manifest, log_deviation
 from pilot.application.stage_timer import StageTimer
+from pilot.domain.deviations import DeviationEntry, parse_deviations
 from pilot.domain.edits import Edit, EditSet
 from pilot.domain.ids import mutant_id
 from pilot.domain.model_call import Cli
@@ -78,28 +79,36 @@ def test_manifest_records_commit_digests_versions_and_models(tmp_path):
     assert store.read_text("DEVIATIONS.md").strip() == "# Deviations"
 
 
-def test_a_cli_version_different_from_the_lock_is_logged_not_fatal(tmp_path):
+def test_a_cli_version_different_from_the_lock_is_a_provenance_record_not_fatal(tmp_path):
     store = RunDirectory(tmp_path)
     ensure_manifest(store, FixedProvenance(), VersionBook(claude="2.1.300", codex="0.155.1"), INPUTS)
-    assert "CLI claude installed 2.1.300, models.lock.json records 2.1.292" in store.read_text("DEVIATIONS.md")
+    assert parse_deviations(store.read_text("DEVIATIONS.md")) == [
+        DeviationEntry.provenance("CLI claude installed 2.1.300, models.lock.json records 2.1.292")
+    ]
 
 
-def test_a_cli_update_during_the_run_is_logged_and_the_manifest_follows(tmp_path):
+def test_a_cli_update_is_provenance_and_a_harness_change_is_a_protocol_deviation_for_all(tmp_path):
     store = RunDirectory(tmp_path)
     ensure_manifest(store, FixedProvenance(), VersionBook(claude="2.1.292", codex="0.155.1"), INPUTS)
     manifest = ensure_manifest(store, FixedProvenance(harness="h2"), VersionBook(claude="2.1.293", codex="0.155.1"), INPUTS)
     log = store.read_text("DEVIATIONS.md")
-    assert "CLI claude changed from 2.1.292 to 2.1.293" in log and "harness_digest changed from h1 to h2" in log
+    assert parse_deviations(log) == [
+        DeviationEntry.protocol_for_all("harness_digest changed from h1 to h2"),
+        DeviationEntry.provenance("CLI claude changed from 2.1.292 to 2.1.293"),
+    ]
     assert manifest["cli_versions"]["claude"] == "2.1.293"
     ensure_manifest(store, FixedProvenance(harness="h2"), VersionBook(claude="2.1.293", codex="0.155.1"), INPUTS)
     assert store.read_text("DEVIATIONS.md") == log
 
 
-def test_deviations_are_appended_one_per_line(tmp_path):
+def test_deviations_are_appended_one_rendered_entry_per_line(tmp_path):
     store = RunDirectory(tmp_path)
-    log_deviation(store, "first")
-    log_deviation(store, "second")
-    assert store.read_text("DEVIATIONS.md").splitlines()[-2:] == ["- first", "- second"]
+    log_deviation(store, DeviationEntry.quota_pause("first"))
+    log_deviation(store, DeviationEntry.provenance("second"))
+    assert store.read_text("DEVIATIONS.md").splitlines()[-2:] == [
+        "- quota-pause | endpoints: none | first",
+        "- provenance | endpoints: none | second",
+    ]
 
 
 def test_stage_timer_keeps_the_first_start_and_accumulates_seconds(tmp_path):

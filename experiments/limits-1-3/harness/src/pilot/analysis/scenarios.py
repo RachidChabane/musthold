@@ -8,7 +8,7 @@ from enum import Enum
 from itertools import combinations
 
 from pilot.adapters.shallnot import parse_report
-from pilot.analysis.model import Context, gate_evidence, oracle_valid_kill_sets
+from pilot.analysis.model import Context, gate_evidence, oracle_valid_kill_sets, oracle_valid_results
 from pilot.domain.alignment_aggregate import AlignmentVerdict
 from pilot.domain.analysis_constants import ALIGNMENT_ARM_MASKED, JUDGE_SONNET
 from pilot.domain.gate import (
@@ -135,5 +135,5 @@ def _evidence(
     ctx: Context, criterion: int, variant: GateVariant, oracle_evidence: bool
 ) -> CriterionEvidence:
     if oracle_evidence:
-        return CriterionEvidence(tuple(oracle_valid_kill_sets(ctx, criterion)), ())
+        return CriterionEvidence(tuple(oracle_valid_results(ctx, criterion)), ())
     return gate_evidence(ctx, criterion, variant.f_brief)

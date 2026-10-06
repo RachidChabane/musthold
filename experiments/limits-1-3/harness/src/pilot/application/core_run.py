@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
@@ -25,7 +24,7 @@ from pilot.domain.constants import PACKAGE_NAME
 from pilot.domain.model_call import ModelPin
 from pilot.domain.model_slate import VALIDITY_JUDGES, Judge
 from pilot.domain.mutants import Candidate, MutantStatus
-from pilot.domain.pipeline_constants import PLANTED_MAP_FILENAME, PROCESSING_FILENAME, VALIDITY_FILENAME
+from pilot.domain.pipeline_constants import PROCESSING_FILENAME, VALIDITY_FILENAME
 
 
 @dataclass(frozen=True)
@@ -75,7 +74,6 @@ def _candidates(deps: CoreDependencies) -> list[Candidate]:
     plan = ensure_plan(ctx, ctx.criteria())
     generated = generate_mutants(ctx, plan, deps.pins)
     planted = planted_mutants(deps.arm_p)
-    ctx.store.write_json(PLANTED_MAP_FILENAME, json.loads(deps.arm_p.planted_map_text()))
     candidates = write_mutants(ctx.store, [*generated, *planted], ctx.log)
     ctx.log(f"[mutants] {len(candidates)} candidates ({len(generated)} arm T, {len(planted)} arm P)")
     return candidates

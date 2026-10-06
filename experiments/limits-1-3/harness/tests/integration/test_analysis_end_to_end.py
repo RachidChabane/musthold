@@ -160,9 +160,11 @@ def test_report_lint_flags_forbidden_words_and_unpaired_consensus(tmp_path):
     assert not any("line 3" in f for f in findings)
 
 
-def test_a_deviation_note_with_forbidden_words_is_not_echoed_and_caps_the_endpoints(tmp_path):
+def test_a_protocol_deviation_with_forbidden_words_is_not_echoed_and_caps_the_endpoints(tmp_path):
     run = build_root(tmp_path)
-    (run / "DEVIATIONS.md").write_text("# Deviations\n\n- harness_digest changed from a to b; this works and was confirmed\n")
+    (run / "DEVIATIONS.md").write_text(
+        "# Deviations\n\n- protocol | endpoints: all | harness_digest changed from a to b; this works and was confirmed\n"
+    )
     assert analyze(tmp_path) == 0
     report = (tmp_path / "results" / "REPORT.md").read_text()
     assert lint_report(report) == []
@@ -173,13 +175,30 @@ def test_a_deviation_note_with_forbidden_words_is_not_echoed_and_caps_the_endpoi
     assert all("P6" in e["capped_by"] for e in decisions["endpoints"])
 
 
-def test_a_quota_entry_forces_its_endpoints_inconclusive(tmp_path):
+def test_a_quota_blocked_entry_forces_its_endpoints_inconclusive(tmp_path):
     run = build_root(tmp_path)
-    (run / "DEVIATIONS.md").write_text("# Deviations\n\n- quota exhausted during the alignment stage, D9 affected\n")
+    (run / "DEVIATIONS.md").write_text(
+        "# Deviations\n\n- quota-blocked | endpoints: D9 | alignment stage could not complete\n"
+    )
     assert analyze(tmp_path) == 0
     decisions = json.loads((tmp_path / "results" / "decisions.json").read_text())
     d9 = next(e for e in decisions["endpoints"] if e["id"] == "D9")
     assert d9["outcome"] == "INCONCLUSIVE" and d9["capped_by"] == ["P7"]
+    assert all(not e["capped_by"] for e in decisions["endpoints"] if e["id"] != "D9")
+
+
+def test_routine_provenance_and_quota_pause_entries_cap_nothing(tmp_path):
+    run = build_root(tmp_path)
+    (run / "DEVIATIONS.md").write_text(
+        "# Deviations\n\n"
+        "- provenance | endpoints: none | CLI claude changed from 2.1.292 to 2.1.293\n"
+        "- quota-pause | endpoints: none | run-core stopped at a quota or rate limit; a rerun resumes it\n"
+    )
+    assert analyze(tmp_path) == 0
+    decisions = json.loads((tmp_path / "results" / "decisions.json").read_text())
+    statuses = {p["id"]: p["status"] for p in decisions["preconditions"]}
+    assert statuses["P6"] == "pass" and statuses["P7"] == "pass"
+    assert all(not e["capped_by"] for e in decisions["endpoints"])
 
 
 @pytest.mark.parametrize(

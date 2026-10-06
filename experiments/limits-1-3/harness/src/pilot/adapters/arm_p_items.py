@@ -1,4 +1,4 @@
-"""Arm-P items on disk: edit-set bodies named by mutant id, and the verbatim planted map."""
+"""Arm-P items on disk: only the edit-set bodies named by their mutant id are ever opened."""
 
 from __future__ import annotations
 
@@ -7,7 +7,6 @@ import re
 from pathlib import Path
 
 from pilot.domain.edits import EditSet
-from pilot.domain.pipeline_constants import PLANTED_MAP_FILENAME
 
 ITEM_NAME = re.compile(r"^[0-9a-f]{16}\.json$")
 
@@ -24,6 +23,3 @@ class DirectoryArmPItems:
             for path in sorted(self._directory.iterdir())
             if ITEM_NAME.match(path.name)
         }
-
-    def planted_map_text(self) -> str:
-        return (self._directory / PLANTED_MAP_FILENAME).read_text(encoding="utf-8")

@@ -30,7 +30,6 @@ from pilot.domain.pipeline_constants import (
     KILLS_FILENAME,
     MUTANT_CLASSES_FILENAME,
     MUTANTS_DIRNAME,
-    PLANTED_MAP_FILENAME,
     PROBE_FILENAME,
     PROCESSING_FILENAME,
     REFERENCE_FILENAME,
@@ -112,7 +111,6 @@ def _read_run(run_dir: Path) -> RunRecords:
         bindings={n: _binding(v) for n, v in read_json(run_dir / BINDINGS_FILENAME).items()},
         reference_runs=_reference_runs(read_json(run_dir / REFERENCE_FILENAME)),
         mutants=_read_mutants(run_dir / MUTANTS_DIRNAME),
-        planted_map=read_json_optional(run_dir / PLANTED_MAP_FILENAME, {}),
         processing=_read_processing(run_dir / PROCESSING_FILENAME),
         kills={r["mutant_id"]: _kill_results(r) for r in read_jsonl(run_dir / KILLS_FILENAME, True)},
         differential={

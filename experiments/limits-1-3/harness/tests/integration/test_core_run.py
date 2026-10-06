@@ -202,7 +202,7 @@ def test_core_run_writes_every_record_of_the_contract(completed):
     run = world / "runs" / "r1"
     for name in (
         "manifest.json", "DEVIATIONS.md", "traceability.json", "bindings.json", "reference.json", "plan.json",
-        "planted_map.json", "processing.jsonl", "kills.jsonl", "differential.jsonl", "validity.jsonl",
+        "processing.jsonl", "kills.jsonl", "differential.jsonl", "validity.jsonl",
         "witness.jsonl", "mutant_classes.json", "alignment.jsonl", "alignment_aggregate.json", "probe.jsonl", "timing.json",
     ):
         assert (run / name).is_file(), name

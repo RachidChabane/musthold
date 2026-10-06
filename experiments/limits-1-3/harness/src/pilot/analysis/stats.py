@@ -79,6 +79,12 @@ def null_threshold(samples: FloatArray) -> float:
     return float(np.percentile(finite, NULL_PERCENTILE)) if finite.size else NAN
 
 
+def null_mean(samples: FloatArray) -> float:
+    """Chance level of a permutation null: the mean of its finite samples."""
+    finite = samples[~np.isnan(samples)]
+    return float(finite.mean()) if finite.size else NAN
+
+
 def cluster_bootstrap(
     cluster_counts: FloatArray,
     statistic: Statistic,

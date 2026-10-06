@@ -9,6 +9,7 @@ from pathlib import Path
 from pilot.cli import analysis_verbs, commands, pipeline_commands
 from pilot.cli.layout import default_root
 from pilot.domain.call_type import CallType
+from pilot.domain.deviations import OPERATOR_KINDS
 from pilot.domain.constants import (
     EXPECTED_CRITERION_COUNT,
     EXPECTED_PLANTED_COUNT,
@@ -74,7 +75,6 @@ def build_parser() -> tuple[argparse.ArgumentParser, dict[str, Handler]]:
     sub.add_argument("--run-id", required=True)
     sub.add_argument("--models", nargs="+", default=None, help="restrict to these model names")
     sub.add_argument("--call-types", nargs="+", default=None, choices=[c.value for c in CallType])
-    sub.add_argument("--no-lock-update", action="store_true", help="do not record CLI versions in models.lock.json")
 
     verb("assemble-arm-p", commands.assemble_arm_p_command, "arm-P items and labels from the ground truth")
 
@@ -88,6 +88,12 @@ def build_parser() -> tuple[argparse.ArgumentParser, dict[str, Handler]]:
 
     sub = verb("run-secondary", pipeline_commands.run_secondary_command, "PREREG 14 step 5")
     _add_run(sub)
+
+    sub = verb("log-deviation", pipeline_commands.log_deviation_command, "append one entry to DEVIATIONS.md")
+    sub.add_argument("--run-id", required=True)
+    sub.add_argument("--kind", required=True, choices=[kind.value for kind in OPERATOR_KINDS])
+    sub.add_argument("--endpoints", required=True, help="none, all, or endpoint ids such as D3,D4")
+    sub.add_argument("--text", required=True)
 
     analysis_verbs.register(verb)
     return parser, handlers

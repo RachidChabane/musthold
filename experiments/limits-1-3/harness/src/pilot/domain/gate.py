@@ -3,6 +3,10 @@
 Rules, in order: 1 traceability, 2 reference passes, 3 a surviving VALID mutant,
 4 no killed VALID mutant, 5 a surviving UNDETERMINED mutant, 6 alignment.
 Rules 1 to 4 block, rules 5 and 6 escalate, and BLOCK > ESCALATE > PASS.
+
+A mutant is killed by a test with a reproduced kill and survives a test whose
+result is survived or flaky; an error is neither, as in ADR 0001's executed
+results `killed | survived | error`.
 """
 
 from __future__ import annotations
@@ -66,11 +70,25 @@ POLICIES: Mapping[str, GatePolicy] = {
 
 
 @dataclass(frozen=True)
-class CriterionEvidence:
-    """What the gate knows about one criterion: the kill sets of its mutants."""
+class MutantResults:
+    """Executed results of one mutant: tests with a reproduced kill, tests that errored; the others survived."""
 
-    valid_kill_sets: tuple[frozenset[str], ...]
-    undetermined_kill_sets: tuple[frozenset[str], ...]
+    killed: frozenset[str]
+    errored: frozenset[str] = frozenset()
+
+    def killed_by_any(self, tests: Collection[str]) -> bool:
+        return not self.killed.isdisjoint(tests)
+
+    def survives_every(self, tests: Collection[str]) -> bool:
+        return self.killed.isdisjoint(tests) and self.errored.isdisjoint(tests)
+
+
+@dataclass(frozen=True)
+class CriterionEvidence:
+    """What the gate knows about one criterion: the executed results of its VALID and UNDETERMINED mutants."""
+
+    valid: tuple[MutantResults, ...]
+    undetermined: tuple[MutantResults, ...]
 
 
 @dataclass(frozen=True)
@@ -87,10 +105,6 @@ class GateDecision:
     fired: tuple[Rule, ...]
 
 
-def _survives(kill_set: frozenset[str], tests: Collection[str]) -> bool:
-    return kill_set.isdisjoint(tests)
-
-
 def _fires(rule: Rule, tests: Collection[str], inputs: GateInputs) -> bool:
     evidence = inputs.evidence
     if rule is Rule.TRACEABILITY:
@@ -98,11 +112,11 @@ def _fires(rule: Rule, tests: Collection[str], inputs: GateInputs) -> bool:
     if rule is Rule.REFERENCE_PASSES:
         return any(not inputs.reference_passes.get(test, False) for test in tests)
     if rule is Rule.SURVIVING_VALID:
-        return any(_survives(kills, tests) for kills in evidence.valid_kill_sets)
+        return any(mutant.survives_every(tests) for mutant in evidence.valid)
     if rule is Rule.NO_KILLED_VALID:
-        return not any(not _survives(kills, tests) for kills in evidence.valid_kill_sets)
+        return not any(mutant.killed_by_any(tests) for mutant in evidence.valid)
     if rule is Rule.SURVIVING_UNDETERMINED:
-        return any(_survives(kills, tests) for kills in evidence.undetermined_kill_sets)
+        return any(mutant.survives_every(tests) for mutant in evidence.undetermined)
     return any(
         inputs.alignment.get(test, AlignmentVerdict.UNDETERMINED) is not AlignmentVerdict.ALIGNED
         for test in tests

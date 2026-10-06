@@ -26,7 +26,7 @@ GROUND_TRUTH_MODULES = (
     "pilot.domain.variants",
     "pilot.domain.outcome_matrix",
 )
-FORBIDDEN_STRINGS = ("labels.yaml", "oracle", "violations", "refactor", "planted", "arm_p/labels")
+FORBIDDEN_STRINGS = ("labels.yaml", "oracle", "violations", "refactor", "planted", "planted_map", "arm_p/labels")
 FORBIDDEN_NAMES = ("oracle", "refactor", "arm_p_labels")
 _WORD = "(?<![A-Za-z_]){}(?![A-Za-z_])"
 

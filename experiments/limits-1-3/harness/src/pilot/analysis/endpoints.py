@@ -47,6 +47,7 @@ from pilot.analysis.stats import (
     bootstrap_interval,
     cohen_kappa_statistic,
     cohen_kappa_tables,
+    null_mean,
     null_threshold,
     ratio_statistic,
     wilson,
@@ -417,9 +418,12 @@ class MatrixNulls:
         return null_threshold(self.mean_dc_null)
 
     @property
+    def dc_mean(self) -> float:
+        return null_mean(self.mean_dc_null)
+
+    @property
     def balanced_accuracy_mean(self) -> float:
-        finite = self.balanced_accuracy_null[~np.isnan(self.balanced_accuracy_null)]
-        return float(finite.mean()) if finite.size else NAN
+        return null_mean(self.balanced_accuracy_null)
 
 
 def compute_matrix_nulls(ctx: Context, settings: AnalysisSettings) -> MatrixNulls:
@@ -459,22 +463,22 @@ def matrix_endpoint(
     boot = bootstrap_interval(array, balanced_accuracy_statistic, settings.resamples, settings.seed)
     estimate = Estimate(scores.balanced_accuracy, _wider(wilson_mean, boot))
     observed_dc = mean_dc(signatures[n] for n in tests)
-    threshold = nulls.dc_threshold
+    threshold, dc_chance = nulls.dc_threshold, nulls.dc_mean
     n6 = nulls.balanced_accuracy_mean
-    outcome = bands.matrix_balanced_accuracy(estimate, n6, observed_dc, threshold)
+    outcome = bands.matrix_balanced_accuracy(estimate, n6, observed_dc, threshold, dc_chance)
     point = estimate.point
 
     def outcome_at(n: int) -> Outcome:
         shrunk = scaled_interval(point, estimate.interval, len(tests), n)
-        return bands.matrix_balanced_accuracy(Estimate(point, shrunk), n6, observed_dc, threshold)
+        return bands.matrix_balanced_accuracy(Estimate(point, shrunk), n6, observed_dc, threshold, dc_chance)
 
     return _result(
         "D10", 3, "matrix binary verdict, balanced accuracy over the tests (UNDETERMINED counts as predicted bad)",
         len(tests), estimate,
-        "point >= 0.80, lower >= 0.65, lower - N6 > 0, mean DC above the N3 95th percentile",
-        "upper < 0.70, or mean DC not above N3", outcome, estimate.interval.lo - k.D10_GO_LOWER,
+        "point >= 0.80, lower >= 0.65, lower - N6 mean > 0, mean DC above the N3 95th percentile",
+        "upper < 0.70, or mean DC not above the N3 mean", outcome, estimate.interval.lo - k.D10_GO_LOWER,
         {"sensitivity": scores.sensitivity, "specificity": scores.specificity, "mean_dc": observed_dc,
-         "n3_p95": threshold, "n6_mean": n6, "n6_p95": null_threshold(nulls.balanced_accuracy_null)},
+         "n3_p95": threshold, "n3_mean": dc_chance, "n6_mean": n6, "n6_p95": null_threshold(nulls.balanced_accuracy_null)},
         outcome_at,
     )
 

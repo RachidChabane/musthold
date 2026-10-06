@@ -146,7 +146,6 @@ class RunRecords:
     bindings: Mapping[str, int]
     reference_runs: Sequence[Mapping[str, str]]
     mutants: Mapping[str, MutantMeta]
-    planted_map: Mapping[str, str]
     processing: Mapping[str, ProcessingRecord]
     kills: Mapping[str, Mapping[str, str]]
     differential: Mapping[str, str]

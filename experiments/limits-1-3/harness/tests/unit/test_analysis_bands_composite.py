@@ -87,12 +87,14 @@ def test_d9_requires_recall_and_precision_and_a_margin_over_the_always_misaligne
     assert bands.bad_test_detection(good, weak, 0.632) is Outcome.NO_GO
 
 
-def test_d10_mean_dc_not_above_the_null_is_no_go_even_with_high_accuracy():
+def test_d10_mean_dc_at_chance_is_no_go_and_short_of_significance_is_inconclusive():
     accuracy = Estimate(0.9, Interval(0.75, 0.97))
-    assert bands.matrix_balanced_accuracy(accuracy, 0.5, 0.4, 0.3) is Outcome.GO
-    assert bands.matrix_balanced_accuracy(accuracy, 0.5, 0.2, 0.3) is Outcome.NO_GO
-    assert bands.matrix_balanced_accuracy(accuracy, 0.8, 0.4, 0.3) is Outcome.INCONCLUSIVE
-    assert bands.matrix_balanced_accuracy(accuracy, 0.5, None, 0.3) is Outcome.INCONCLUSIVE
+    assert bands.matrix_balanced_accuracy(accuracy, 0.5, 0.4, 0.3, 0.1) is Outcome.GO
+    assert bands.matrix_balanced_accuracy(accuracy, 0.5, 0.2, 0.3, 0.1) is Outcome.INCONCLUSIVE
+    assert bands.matrix_balanced_accuracy(accuracy, 0.5, 0.1, 0.3, 0.1) is Outcome.NO_GO
+    assert bands.matrix_balanced_accuracy(accuracy, 0.8, 0.4, 0.3, 0.1) is Outcome.INCONCLUSIVE
+    assert bands.matrix_balanced_accuracy(accuracy, 0.5, None, 0.3, 0.1) is Outcome.INCONCLUSIVE
+    assert bands.matrix_balanced_accuracy(accuracy, 0.5, 0.4, 0.3, math.nan) is Outcome.INCONCLUSIVE
 
 
 def test_d11_kappa_bands():
@@ -146,7 +148,7 @@ def test_undefined_estimates_are_inconclusive(base, accuracy):
     nan = Estimate(math.nan, Interval(math.nan, math.nan))
     assert bands.lower_is_better_rate(nan, 0.05, 0.2, 0.2) is Outcome.INCONCLUSIVE
     assert bands.valid_precision(nan, base) is Outcome.INCONCLUSIVE
-    assert bands.matrix_balanced_accuracy(nan, accuracy, 0.1, 0.0) is Outcome.INCONCLUSIVE
+    assert bands.matrix_balanced_accuracy(nan, accuracy, 0.1, 0.0, 0.0) is Outcome.INCONCLUSIVE
 
 
 # ---------------------------------------------------------------- composite
