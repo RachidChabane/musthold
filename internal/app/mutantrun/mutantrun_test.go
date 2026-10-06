@@ -64,6 +64,22 @@ func (m *memoryWorkspaces) Release(w ecosystem.Workspace) error {
 	return nil
 }
 
+// bodyLength is the length of a definition: its header line and the indented
+// lines that follow.
+func bodyLength(text string) int {
+	length := 0
+	for n, line := range strings.SplitAfter(text, "\n") {
+		if n > 0 && !strings.HasPrefix(line, "    ") {
+			break
+		}
+		length += len(strings.TrimRight(line, "\n"))
+		if n > 0 {
+			length++
+		}
+	}
+	return length
+}
+
 type fakeLocator struct{}
 
 func (fakeLocator) Locate(file string, source []byte) ([]ecosystem.Definition, error) {
@@ -74,10 +90,7 @@ func (fakeLocator) Locate(file string, source []byte) ([]ecosystem.Definition, e
 	var definitions []ecosystem.Definition
 	for _, name := range []string{"f", "test_f"} {
 		if i := strings.Index(text, "def "+name+"("); i >= 0 {
-			end := strings.Index(text[i:], "\n\n")
-			if end < 0 {
-				end = len(text) - i
-			}
+			end := bodyLength(text[i:])
 			definitions = append(definitions, ecosystem.Definition{Qualname: name, Span: ecosystem.Span{Start: i, End: i + end}, StartLine: 1, EndLine: 2})
 		}
 	}
@@ -87,8 +100,18 @@ func (fakeLocator) Locate(file string, source []byte) ([]ecosystem.Definition, e
 // fakeEcosystem is a Strategy whose build check and runner behave by the
 // content of the spliced file.
 type fakeEcosystem struct {
-	workspaces *memoryWorkspaces
-	selections []ecosystem.Selection
+	workspaces  *memoryWorkspaces
+	selections  []ecosystem.Selection
+	assignments ports.AssignmentLocator
+}
+
+// takenName is the module assignment a fake assignment locator reports.
+const takenName = "TAKEN"
+
+type fakeAssignments struct{}
+
+func (fakeAssignments) LocateAssignments(string, []byte) ([]ecosystem.Definition, error) {
+	return []ecosystem.Definition{{Qualname: takenName, Kind: ecosystem.KindAssignment}}, nil
 }
 
 func (f *fakeEcosystem) Name() ecosystem.Name { return ecosystem.Pytest }
@@ -100,7 +123,7 @@ func (f *fakeEcosystem) Layout() ecosystem.Layout {
 }
 func (f *fakeEcosystem) Toolchain() ports.ToolchainResolver   { return toolchain{} }
 func (f *fakeEcosystem) Locator() ports.DefinitionLocator     { return fakeLocator{} }
-func (f *fakeEcosystem) Assignments() ports.AssignmentLocator { return nil }
+func (f *fakeEcosystem) Assignments() ports.AssignmentLocator { return f.assignments }
 func (f *fakeEcosystem) BuildCheck() ports.BuildCheck         { return buildCheck{f} }
 func (f *fakeEcosystem) Selector() ports.TestSelector         { return f }
 func (f *fakeEcosystem) Runner() ports.SuiteRunner            { return f }
@@ -193,6 +216,30 @@ func TestExecute(t *testing.T) {
 		executor, reference, _, _ := setup(t)
 		result, err := executor.Execute(ctx, reference, request("def f():\n    SYNTAX"))
 		if err != nil || result.Outcome != format.OutcomeError || result.Diagnostics == "" {
+			t.Fatalf("%+v %v", result, err)
+		}
+	})
+
+	t.Run("a module addition is spliced and a module assignment needs the strategy's assignment locator [verifies SP-84~1]", func(t *testing.T) {
+		addition := mutation.Edit{File: sourceFile, Qualname: "EXTRA", Target: mutation.TargetModuleAddition, NewSource: "EXTRA = 0"}
+		assignment := mutation.Edit{File: sourceFile, Qualname: takenName, Target: mutation.TargetModuleAssignment, NewSource: takenName + " = 1"}
+		executor, reference, _, workspaces := setup(t)
+		result, err := executor.Execute(ctx, reference, mutantrun.Request{Edits: mutation.EditSet{Edits: []mutation.Edit{addition}}, Bound: []ecosystem.BoundTest{boundTest}})
+		if err != nil || result.Outcome != format.OutcomeSurvived || !strings.Contains(string(workspaces.files["mutant1"][sourceFile]), "EXTRA = 0") {
+			t.Fatalf("%+v %v", result, err)
+		}
+		result, err = executor.Execute(ctx, reference, mutantrun.Request{Edits: mutation.EditSet{Edits: []mutation.Edit{assignment}}, Bound: []ecosystem.BoundTest{boundTest}})
+		if err != nil || result.Outcome != format.OutcomeError || !strings.Contains(result.Diagnostics, mutation.ErrUnsupportedTarget.Error()) {
+			t.Fatalf("%+v %v", result, err)
+		}
+	})
+
+	t.Run("an addition of a name the assignment locator reports is the outcome error [verifies SP-84~1]", func(t *testing.T) {
+		executor, reference, eco, _ := setup(t)
+		eco.assignments = fakeAssignments{}
+		edit := mutation.Edit{File: sourceFile, Qualname: takenName, Target: mutation.TargetModuleAddition, NewSource: takenName + " = 0"}
+		result, err := executor.Execute(ctx, reference, mutantrun.Request{Edits: mutation.EditSet{Edits: []mutation.Edit{edit}}, Bound: []ecosystem.BoundTest{boundTest}})
+		if err != nil || result.Outcome != format.OutcomeError || !strings.Contains(result.Diagnostics, mutation.ErrNameTaken.Error()) {
 			t.Fatalf("%+v %v", result, err)
 		}
 	})
