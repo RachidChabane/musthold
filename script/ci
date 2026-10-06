@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Everything CI runs for the Go product: lint, then the self-gate, which runs the
+# tests and traces specs/spec-proof.md to their results.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+if ! command -v shallnot >/dev/null 2>&1; then
+  echo "shallnot is required for the self-gate: install it or put it on PATH" >&2
+  exit 2
+fi
+
+script/lint
+mkdir -p build/test-results
+shallnot gate "$@"

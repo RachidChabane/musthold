@@ -4,3 +4,8 @@ __pycache__/
 .venv/
 .import_linter_cache/
 *.egg-info/
+/bin/
+/build/
+/dist/
+*.test
+*.out

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Run every Go test and write the JUnit XML results that `shallnot` reads.
+# Extra arguments go to `go test` (for example -short).
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+mkdir -p build/test-results
+go tool gotestsum --format pkgname --junitfile build/test-results/go.xml -- -count=1 -p 2 ./... "$@"

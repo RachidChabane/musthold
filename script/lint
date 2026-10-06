@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Check formatting and run go vet on the Go product.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+unformatted="$(gofmt -l cmd format internal)"
+if [ -n "$unformatted" ]; then
+  echo "gofmt needed on:" >&2
+  echo "$unformatted" >&2
+  exit 1
+fi
+go vet ./...
