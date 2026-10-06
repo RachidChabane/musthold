@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
-# Check formatting and run go vet on the Go product.
+# Check formatting and run go vet in each Go module. Arguments name the modules to
+# check; with none, every module of the workspace is checked.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-unformatted="$(gofmt -l cmd format internal)"
-if [ -n "$unformatted" ]; then
-  echo "gofmt needed on:" >&2
-  echo "$unformatted" >&2
-  exit 1
-fi
-go vet ./...
+modules="${*:-$(script/modules)}"
+for module in $modules; do
+  echo "== lint $module"
+  unformatted="$(gofmt -l "$module")"
+  if [ -n "$unformatted" ]; then
+    echo "gofmt needed on:" >&2
+    echo "$unformatted" >&2
+    exit 1
+  fi
+  (cd "$module" && go vet ./...)
+done

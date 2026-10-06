@@ -2,7 +2,8 @@
 # re-deriving repeatable work with the model — cheaper, predictable, testable).
 # Keep recipes thin; put real work in script/. `make help` lists verbs.
 # The pilot verbs (setup, verify, test, run) drive experiments/limits-1-3; the
-# product verbs (go-test, go-lint, ci) drive the Go module through script/*.
+# product verbs (go-test, go-lint, ci) drive every Go module of go.work through
+# script/*; name modules with MODULES="format discpower" to run a subset.
 .PHONY: help setup verify test run go-test go-lint ci
 
 help:  ## list verbs
@@ -16,8 +17,8 @@ setup:  ## install deps / bootstrap
 verify:  ## fast read-only checks (lint, typecheck, drift, Go architecture) — runs at commit time
 	$(MAKE) -C experiments/limits-1-3 leak-check
 	cd experiments/limits-1-3/harness && uv run --frozen lint-imports
-	go vet ./...
-	go test -count=1 -p 2 ./internal/architecture
+	script/lint
+	cd tools/archtest && go test -count=1 -p 1 ./...
 
 test:  ## full pilot test suite (slow — kept out of the commit gate)
 	$(MAKE) -C experiments/limits-1-3 test
@@ -25,14 +26,14 @@ test:  ## full pilot test suite (slow — kept out of the commit gate)
 run:  ## list the pilot experiment verbs
 	$(MAKE) -C experiments/limits-1-3 help
 
-go-test:  ## run every Go test and write JUnit XML (script/test)
-	script/test
+go-test:  ## run the Go tests of each module and write JUnit XML (script/test)
+	script/test $(MODULES)
 
-go-lint:  ## gofmt check and go vet on the Go product (script/lint)
-	script/lint
+go-lint:  ## gofmt check and go vet on each Go module (script/lint)
+	script/lint $(MODULES)
 
-ci:  ## lint, then self-gate the Go product with shallnot (script/ci)
-	script/ci
+ci:  ## lint, then self-gate each Go module with shallnot (script/ci)
+	script/ci $(MODULES)
 
 .PHONY: mem-check
 mem-check:  ## refuse heavy local work unless memory is free enough (script/mem-guard)

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Print the directory of every Go module of the workspace, one per line.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+awk '/^[[:space:]]+\.\//{print $1}' go.work

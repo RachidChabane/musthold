@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
-# Run every Go test and write the JUnit XML results that `shallnot` reads.
-# Extra arguments go to `go test` (for example -short).
+# Run the Go tests of each module and write the JUnit XML results that `shallnot`
+# reads. Arguments name the modules to test; with none, every module of the
+# workspace is tested. Set GO_TEST_FLAGS for extra `go test` flags (for example
+# -short).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-mkdir -p build/test-results
-go tool gotestsum --format pkgname --junitfile build/test-results/go.xml -- -count=1 -p 2 ./... "$@"
+modules="${*:-$(script/modules)}"
+for module in $modules; do
+  echo "== test $module"
+  (
+    cd "$module"
+    mkdir -p build/test-results
+    # shellcheck disable=SC2086
+    go tool gotestsum --format pkgname --junitfile build/test-results/go.xml -- -count=1 -p 1 ./... ${GO_TEST_FLAGS:-}
+  )
+done
