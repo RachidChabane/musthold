@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from argparse import Namespace
 from collections.abc import Callable, Sequence
@@ -9,14 +10,17 @@ from collections.abc import Callable, Sequence
 from pilot.adapters.models_lock import DirectoryCanaryStore, JsonSchemaValidator
 from pilot.adapters.process import SubprocessRunner
 from pilot.adapters.run_directory import RunDirectory
+from pilot.adapters.run_files import DirectoryImportSource
 from pilot.application.canary import CanaryFailed, plan_canary, run_canary
 from pilot.application.core_run import run_core
+from pilot.application.import_stage import import_run, plan_from_source
 from pilot.application.leak_audit_stage import LeakAuditMissing, run_leak_audit
 from pilot.application.model_caller import MissingCanary, ModelCaller
 from pilot.application.process_mutants import ReferenceUnstable
 from pilot.application.provenance import ensure_manifest, log_deviation
 from pilot.application.relabel_stage import run_relabel
 from pilot.application.secondary_run import SecondaryPreconditionFailed, run_secondary
+from pilot.application.stage_timer import StageTimer
 from pilot.application.traceability_stage import TraceabilityFailed, ensure_traceability
 from pilot.application.arm_p import ArmPIntegrityError
 from pilot.adapters.git_drift import PreregistrationTagMissing
@@ -30,6 +34,7 @@ from pilot.cli.pipeline_wiring import (
 from pilot.domain.call_type import CallType
 from pilot.domain.deviations import DeviationEntry, DeviationKind, InvalidDeviation, parse_scope
 from pilot.domain.constants import MAX_CONCURRENT_MODEL_CALLS
+from pilot.domain.import_manifest import ImportRefused, SOURCE_RUN_ID
 from pilot.domain.pipeline_constants import EXIT_QUOTA_EXHAUSTED, LEAK_AUDIT_HINTS_FILENAME
 from pilot.domain.quota import QuotaExhausted
 
@@ -52,6 +57,7 @@ ABORTS = (
     PreregistrationTagMissing,
     ArmPIntegrityError,
     MissingPreregFile,
+    ImportRefused,
 )
 
 
@@ -191,4 +197,23 @@ def log_deviation_command(args: Namespace) -> int:
         return EXIT_FAILED
     log_deviation(RunDirectory(PipelineLayout(args.root).run_dir(args.run_id)), entry)
     print(f"log-deviation: {entry.render()}")
+    return EXIT_OK
+
+
+def import_run_01_command(args: Namespace) -> int:
+    return _guarded("import-run-01", lambda: _import_run_01(args))
+
+
+def _import_run_01(args: Namespace) -> int:
+    """Carries the sealed run's completed calls into the decisional run; `--plan-only` prints their digests."""
+    layout = PipelineLayout(args.root)
+    source = DirectoryImportSource(layout.run_dir(SOURCE_RUN_ID))
+    if args.plan_only:
+        plan, _ = plan_from_source(source)
+        print(json.dumps({"import_digests": {entry.source_path: entry.digest for entry in plan.entries}}, indent=2, sort_keys=True))
+        return EXIT_OK
+    store = RunDirectory(layout.run_dir(args.run_id))
+    with StageTimer(store).stage("import-run-01"):
+        plan = import_run(source, store)
+    print(f"import-run-01: {len(plan.entries)} files imported from {SOURCE_RUN_ID}, {len(plan.retired)} call(s) retired")
     return EXIT_OK

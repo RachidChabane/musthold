@@ -11,12 +11,13 @@ from argparse import ArgumentParser, Namespace
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
+from pilot.adapters.amendment_facts import OpensslTimestampReader, collect_facts
 from pilot.adapters.ast_edits import AstEditApplier
 from pilot.adapters.git_drift import PreregistrationTagMissing, drifted_paths, preregistration_commit
 from pilot.adapters.ground_truth_reader import read_ground_truth, read_models_lock
 from pilot.adapters.oracle_runner import OracleClassifier, OracleRunError
 from pilot.adapters.prereg_files import load_edit_sets, load_refactor, read_label_matrix
-from pilot.adapters.process import local_process_runner
+from pilot.adapters.process import SubprocessRunner, local_process_runner
 from pilot.adapters.project_copy import ProjectWorkspace, temporary_work_root
 from pilot.adapters.pytest_runner import PytestJunitRunner, WorkspaceVariantRunner
 from pilot.adapters.results_writer import write_csv, write_json, write_text
@@ -30,6 +31,7 @@ from pilot.analysis.report import endpoint_documents, render_report
 from pilot.analysis.settings import AnalysisSettings
 from pilot.application.runner_crosscheck import runner_crosscheck
 from pilot.cli.analysis_layout import AnalysisLayout
+from pilot.domain.amendment import evaluate_amendment
 from pilot.domain.analysis_constants import (
     ANALYSIS_SEED,
     BOOTSTRAP_RESAMPLES,
@@ -62,6 +64,9 @@ def register(verb: VerbHelper) -> None:
     sub.add_argument("--allow-drift", action="store_true", help="test-only: skip the pre-registration drift check")
     sub.add_argument("--resamples", type=int, default=BOOTSTRAP_RESAMPLES, help="test-only unless left at the default")
     sub.add_argument("--permutations", type=int, default=PERMUTATION_COUNT, help="test-only unless left at the default")
+
+    sub = verb("amendment-check", amendment_check_command, "tags, declared paths, timestamps, seal and imports of the amendment")
+    sub.add_argument("--run-id", required=True)
 
     sub = verb("report-lint", report_lint_command, "forbidden words and CONSENSUS-without-PRIMARY (PREREG 13)")
     sub.add_argument("--report", type=Path, default=None)
@@ -158,6 +163,19 @@ def _provenance(output: AnalysisOutput, ctx: Context, commit: str, settings: Ana
     }
 
 
+def amendment_problems(layout: AnalysisLayout, run_id: str) -> list[str]:
+    process = SubprocessRunner()
+    return evaluate_amendment(collect_facts(layout.root, run_id, process, OpensslTimestampReader(process, layout.root)))
+
+
+def amendment_check_command(args: Namespace) -> int:
+    problems = amendment_problems(AnalysisLayout(args.root), args.run_id)
+    if problems:
+        return _fail("amendment-check", problems)
+    print("amendment-check: OK")
+    return EXIT_OK
+
+
 def analyze_command(args: Namespace) -> int:
     layout = AnalysisLayout(args.root)
     settings = AnalysisSettings(args.resamples, args.permutations, ANALYSIS_SEED)
@@ -165,6 +183,9 @@ def analyze_command(args: Namespace) -> int:
         return _fail("analyze", ["non-default resamples or permutations need --allow-drift"])
     commit = "uncommitted (--allow-drift)"
     if not args.allow_drift:
+        problems = amendment_problems(layout, args.run_id)
+        if problems:
+            return _fail("analyze", problems)
         try:
             commit, drift = _check_drift(layout)
         except PreregistrationTagMissing as error:

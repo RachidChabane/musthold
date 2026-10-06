@@ -36,6 +36,14 @@ class RunDirectory:
             handle.write(text)
         os.replace(temporary, path)
 
+    def write_bytes(self, relative: str, data: bytes) -> None:
+        path = self._root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        descriptor, temporary = tempfile.mkstemp(dir=path.parent, prefix=".tmp-")
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(data)
+        os.replace(temporary, path)
+
     def append_text(self, relative: str, text: str) -> None:
         path = self._root / relative
         path.parent.mkdir(parents=True, exist_ok=True)

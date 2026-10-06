@@ -121,7 +121,7 @@ def plan_import(
     listing: Mapping[str, str], sums: Mapping[str, str], source_plan: Mapping[str, Any]
 ) -> ImportPlan:
     """The files to carry over, or a refusal naming every way the source differs from the sealed set."""
-    problems = _seal_problems(listing, sums)
+    problems = seal_problems(listing, sums)
     completed, attempts_only = _call_directories(listing)
     problems += _set_problems("completed calls", completed, set(EXPECTED_CALL_ROLES))
     problems += _set_problems("attempt-only calls", attempts_only, set(RETIRED_CALL_IDS))
@@ -136,7 +136,7 @@ def plan_import(
     return ImportPlan(tuple(entries), tuple(sorted(attempts_only)), wanted)
 
 
-def _seal_problems(listing: Mapping[str, str], sums: Mapping[str, str]) -> list[str]:
+def seal_problems(listing: Mapping[str, str], sums: Mapping[str, str]) -> list[str]:
     problems = [f"modified or missing: {path}" for path in sorted(sums) if listing.get(path) != sums[path]]
     return problems + [f"not covered by {SHA256SUMS_FILENAME}: {path}" for path in sorted(set(listing) - set(sums))]
 

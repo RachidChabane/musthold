@@ -222,6 +222,13 @@ DRIFT_GUARDED_PATHS: Final = (
     "harness/src/pilot/domain/analysis_constants.py",
     "harness/src/pilot/domain/deviations.py",
     "harness/src/pilot/domain/endpoint_ids.py",
+    "harness/src/pilot/domain/mutant_classes.py",
+    "harness/src/pilot/domain/model_slate.py",
+    "harness/src/pilot/domain/execution_validation.py",
+    "harness/src/pilot/application/blind_spot_stage.py",
+    "runs/run-01",
+    "freeze/prereg-commit.*",
+    "freeze/README.md",
 )
 EXPLORATORY_WORD_LIMIT: Final = 300
 EXPLORATORY_FILENAME: Final = "EXPLORATORY.md"

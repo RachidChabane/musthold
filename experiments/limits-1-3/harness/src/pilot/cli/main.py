@@ -84,6 +84,10 @@ def build_parser() -> tuple[argparse.ArgumentParser, dict[str, Handler]]:
 
     verb("leak-audit", pipeline_commands.leak_audit_command, "PREREG 3.3 cross-family leak audit")
 
+    sub = verb("import-run-01", pipeline_commands.import_run_01_command, "carry the sealed run-01's completed calls into a run, by digest")
+    sub.add_argument("--run-id", required=True)
+    sub.add_argument("--plan-only", action="store_true", help="print the digests of the files an import would carry; write nothing")
+
     sub = verb("relabel", pipeline_commands.relabel_command, "PREREG 3.4 blind relabels by two model raters")
     _add_run(sub)
 
