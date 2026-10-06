@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/internal/testkit/proofs"
+	"github.com/RachidChabane/spec-proof/format/formattest/proofs"
 )
 
 type (

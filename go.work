@@ -1,0 +1,12 @@
+go 1.26.4
+
+use (
+	./alignment
+	./completeness
+	./discpower
+	./format
+	./ledger
+	./s1relay
+	./tools/archtest
+	./verify
+)

@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/internal/testkit/golden"
+	"github.com/RachidChabane/spec-proof/format/formattest/golden"
 )
 
 const (

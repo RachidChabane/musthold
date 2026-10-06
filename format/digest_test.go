@@ -8,7 +8,7 @@ import (
 	"pgregory.net/rapid"
 
 	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/internal/testkit/proofs"
+	"github.com/RachidChabane/spec-proof/format/formattest/proofs"
 )
 
 func sha256Hex(text string) string {
