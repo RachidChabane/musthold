@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rachid-chabane.com/attestations/common/v1",
+  "title": "Definitions shared by the predicate schemas",
+  "$defs": {
+    "sha256Hex": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "digest": {
+      "type": "object",
+      "required": ["sha256"],
+      "properties": {
+        "sha256": { "$ref": "#/$defs/sha256Hex" }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "required": ["value", "class"],
+      "properties": {
+        "class": { "enum": ["executed", "judged"] },
+        "confidence": { "$ref": "#/$defs/confidence" }
+      },
+      "if": {
+        "required": ["class"],
+        "properties": { "class": { "const": "judged" } }
+      },
+      "then": { "required": ["confidence"] },
+      "else": { "not": { "required": ["confidence"] } }
+    },
+    "executedClaim": {
+      "allOf": [
+        { "$ref": "#/$defs/claim" },
+        { "properties": { "class": { "const": "executed" } } }
+      ]
+    },
+    "judgedClaim": {
+      "allOf": [
+        { "$ref": "#/$defs/claim" },
+        { "properties": { "class": { "const": "judged" } } }
+      ]
+    },
+    "requirement": {
+      "type": "object",
+      "required": ["id", "revision", "statementCanonicalization"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[^~]+$" },
+        "revision": { "type": "integer", "minimum": 1 },
+        "statementCanonicalization": { "const": "c1" }
+      }
+    },
+    "module": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "version": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "input": {
+      "type": "object",
+      "required": ["role", "name", "digest"],
+      "properties": {
+        "role": {
+          "enum": [
+            "spec",
+            "test_source",
+            "code_tree",
+            "junit_result",
+            "mutant_set",
+            "model_id",
+            "prompt_template",
+            "decision_policy",
+            "example_binding"
+          ]
+        },
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "digest": { "$ref": "#/$defs/digest" },
+        "annotations": {
+          "type": "object",
+          "properties": {
+            "globs": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/nonEmptyString" },
+              "uniqueItems": true
+            }
+          }
+        }
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/input" }
+    },
+    "producedBy": { "enum": ["local", "ci"] },
+    "decision": {
+      "type": "object",
+      "required": ["basis", "deciders", "rawConfidence", "threshold"],
+      "properties": {
+        "basis": { "enum": ["construction", "spec_example", "judges", "system_one", "execution"] },
+        "deciders": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonEmptyString" },
+          "uniqueItems": true
+        },
+        "rawConfidence": { "$ref": "#/$defs/confidence" },
+        "calibratedConfidence": { "$ref": "#/$defs/confidence" },
+        "threshold": { "$ref": "#/$defs/confidence" },
+        "escalationReason": { "type": "string" }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "properties": {
+        "decision": { "$ref": "#/$defs/decision" },
+        "operatorScreen": {
+          "type": "object",
+          "required": ["flagged", "screenedOut"],
+          "properties": {
+            "flagged": { "type": "integer", "minimum": 0 },
+            "screenedOut": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,206 @@
+[
+  {
+    "file": "alignment-valid.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "alignment-valid-unknown-members.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "discriminating-power-valid.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "discriminating-power-no-mutants.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "completeness-valid.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "alignment-judged-without-confidence.json",
+    "decode": "ok",
+    "violations": [
+      "judged_without_confidence"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "alignment-executed-verdict.json",
+    "decode": "ok",
+    "violations": [
+      "wrong_class"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "alignment-confidence-out-of-range.json",
+    "decode": "ok",
+    "violations": [
+      "confidence_range"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "alignment-wrong-subject.json",
+    "decode": "ok",
+    "violations": [
+      "subject"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "alignment-subject-without-revision.json",
+    "decode": "ok",
+    "violations": [
+      "subject"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "alignment-unsorted-inputs.json",
+    "decode": "ok",
+    "violations": [
+      "unsorted"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "alignment-unknown-input-role.json",
+    "decode": "ok",
+    "violations": [
+      "unknown_value"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "alignment-not-blind.json",
+    "decode": "ok",
+    "violations": [
+      "not_blind"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "alignment-cache-key-mismatch.json",
+    "decode": "ok",
+    "violations": [
+      "cache_key_mismatch"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "discriminating-power-executed-with-confidence.json",
+    "decode": "ok",
+    "violations": [
+      "executed_with_confidence"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "discriminating-power-validity-executed.json",
+    "decode": "ok",
+    "violations": [
+      "wrong_class"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "discriminating-power-outcome-judged.json",
+    "decode": "ok",
+    "violations": [
+      "wrong_class"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "discriminating-power-example-judged.json",
+    "decode": "ok",
+    "violations": [
+      "wrong_class"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "discriminating-power-sentinel-not-equivalent.json",
+    "decode": "ok",
+    "violations": [
+      "sentinel_not_equivalent"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "discriminating-power-unsorted-tests.json",
+    "decode": "ok",
+    "violations": [
+      "unsorted"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "discriminating-power-unsorted-mutants.json",
+    "decode": "ok",
+    "violations": [
+      "unsorted"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "discriminating-power-unsorted-examples.json",
+    "decode": "ok",
+    "violations": [
+      "unsorted"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "completeness-not-advisory.json",
+    "decode": "ok",
+    "violations": [
+      "not_advisory"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "completeness-unsorted-questions.json",
+    "decode": "ok",
+    "violations": [
+      "unsorted"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "completeness-absolute-spec-path.json",
+    "decode": "ok",
+    "violations": [
+      "subject"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "envelope-wrong-statement-type.json",
+    "decode": "ok",
+    "violations": [
+      "statement_type"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "envelope-unknown-predicate-type.json",
+    "decode": "unknown_predicate_type",
+    "violations": [],
+    "schema": "unknown_predicate_type"
+  }
+]
