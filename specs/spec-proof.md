@@ -207,3 +207,68 @@ The requirements of the spec-proof product, in Shallnot's Markdown spec format.
 - **SP-48~1**: WHEN a statement is wrapped for signing THE SYSTEM SHALL carry
   the exact canonical bytes as the payload of a DSSE envelope inside a bundle.
 
+## Operator mutants and sentinels
+
+- **SP-83~1**: WHEN a mutant is identified THE SYSTEM SHALL derive its id as the
+  SHA-256 of the RFC 8785 canonical form of its edit set, regardless of the
+  order of the edits, and give another id when any field of any edit changes.
+- **SP-84~1**: WHEN an edit set is checked THE SYSTEM SHALL require a known
+  target kind (definition, module assignment or module addition), a file and a
+  qualname, and no unit edited twice, SHALL apply an edit only inside the
+  bounds of its source, replace a module assignment by its span, append a
+  module addition on its own line, and refuse a module addition of a name the
+  file already declares and a module assignment when the ecosystem has no
+  assignment locator.
+- **SP-85~1**: WHEN a numeric constant or a `Decimal` string is mutated THE
+  SYSTEM SHALL produce the value plus one, minus one and times ten in the form
+  of the original, and nothing for a form it cannot re-emit.
+- **SP-86~1**: WHEN operator candidates are screened THE SYSTEM SHALL drop those
+  that do not parse, those equal to their original after normalization and
+  those equal to an earlier candidate, and SHALL never screen a sentinel.
+- **SP-87~1**: WHEN operator mutants are sampled THE SYSTEM SHALL keep at most
+  `K_op` of them, exactly `K_op` when more exist, stratified by site and family
+  so that no stratum with candidates left trails another by more than one.
+- **SP-88~1**: WHEN operator mutants are sampled THE SYSTEM SHALL give the same
+  sample for the same seed whatever the order of the candidates, and another
+  sample for another seed.
+- **SP-89~1**: WHEN sentinels are drawn for a footprint file THE SYSTEM SHALL
+  draw two by seed from the catalogue of dead assignment, alpha-renaming and
+  unused private module constant, with the injected identifiers and the
+  positions drawn by seed and no fixed marker in the source, mark them as
+  sentinels, and keep them outside the `K_op` cap.
+- **SP-90~1**: WHEN a footprint is closed THE SYSTEM SHALL include every
+  definition reachable from the entry functions through the static call graph
+  and every module-level assignment those definitions read.
+- **SP-91~1**: WHEN a Python source is enumerated THE SYSTEM SHALL produce
+  relational, arithmetic, numeric constant, boolean and logical, return value,
+  module constant, constructor argument, decimal string, min and max, and and or,
+  boolean literal and exception class mutants, each as an edit of the whole
+  outermost definition or of the module-level assignment.
+- **SP-92~1**: WHEN Python sentinels are listed THE SYSTEM SHALL skip functions
+  that use `locals`, `vars`, `globals`, `eval`, `exec` or `inspect`, and SHALL
+  rename only locals that no nested scope, parameter or comprehension binds.
+- **SP-93~1**: WHEN a Python unit is normalized THE SYSTEM SHALL ignore
+  comments, docstrings and layout, keep every change of meaning, and refuse a
+  unit that does not parse.
+- **SP-94~1**: WHEN the call graph of a Python file is read THE SYSTEM SHALL
+  give each outermost definition its owner, aliases, calls and reads, and list
+  the module-level assignments.
+- **SP-95~1**: WHEN a Go source is enumerated THE SYSTEM SHALL produce the
+  operator families as edits of whole declarations or package-level specs named
+  `pkg.Func`, `(*T).Method` or `T.Method`, taking the error sentinel swap in the
+  place of the exception class swap.
+- **SP-96~1**: WHEN Go sentinels are listed THE SYSTEM SHALL skip functions that
+  use `reflect`, `runtime` or `unsafe`, and SHALL rename only locals resolved by
+  the parser and never a name used as a composite literal key.
+- **SP-97~1**: WHEN a Go unit is normalized or its call graph is read THE SYSTEM
+  SHALL ignore comments and layout, refuse a unit that does not parse, and list
+  the package-level names with their qualnames.
+- **SP-98~1**: WHEN a file is given to the generator THE SYSTEM SHALL choose the
+  mutation engine by the extension of the file and refuse a file no registered
+  engine handles.
+- **SP-99~1**: WHEN mutants are generated for a footprint THE SYSTEM SHALL
+  restrict operator mutants and sentinels to the footprint, cap the operator
+  mutants at `K_op`, and give the same mutants for the same files and seed.
+- **SP-100~1**: WHEN mutants are generated from any source THE SYSTEM SHALL give
+  operator mutants and sentinels that re-parse, differ from the original, and
+  splice into a parsable file, deterministically for a fixed seed.

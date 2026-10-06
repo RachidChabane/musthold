@@ -163,6 +163,7 @@ type Ecosystem interface {
     Detect(root fs.FS) (Detection, bool)
     Toolchain() ToolchainResolver   // interpreter / package runner / wrapper resolution
     Locator() DefinitionLocator     // definitions with byte spans
+    Assignments() AssignmentLocator // module-level assignments with byte spans; nil when unsupported
     BuildCheck() BuildCheck         // compile/import smoke; failure => every test "error"
     Selector() TestSelector         // bound tests from the Shallnot report -> native selection
     Runner() SuiteRunner            // runs the selection, returns per-test outcomes from JUnit XML
@@ -173,18 +174,37 @@ An `EcosystemContract` suite (see "Test strategy") is mandatory for every
 strategy. Each ecosystem has a mandatory build-check stage before its mutant
 matrix.
 
-**Edit format.** Mutants are `EditSet {edits:[{file, qualname, new_source}]}`.
+**Edit format.** Mutants are `EditSet {edits:[{file, qualname, target, new_source}]}`.
 Each ecosystem has its own qualname grammar: `Class.method`, `pkg.Func`,
 `(*T).Method`, `Outer.inner`. Operator mutants and model-generated mutants both
 compile to `EditSet`s.
 
-**Splicing** (pure domain, `internal/domain/mutation`):
+Each edit has a target kind, written `target` and omitted for a definition:
 
-1. resolve the qualname;
-2. splice into the byte span;
+- `definition`: the qualname locates a function or method, and `new_source`
+  replaces the whole definition. An edit inside a nested definition is written
+  on the outermost definition, so every other definition stays byte-identical.
+- `module_assignment`: the qualname is the assigned name (`GRACE`, `pkg.rate`),
+  and `new_source` replaces the whole assignment statement (Python) or the
+  const or var spec (Go).
+- `module_addition`: the qualname is the name a new module-level statement
+  declares, and `new_source` is appended on its own line after the last
+  statement.
+
+The mutant id is the SHA-256 of the RFC 8785 canonical form of the edit set with
+its edits ordered by file, target and qualname.
+
+**Splicing** (pure domain, `internal/domain/mutation`; one `Splicer` serves every
+target kind and every caller):
+
+1. resolve the qualname among the units of the target kind: definitions come
+   from the ecosystem's definition locator and module assignments from its
+   assignment locator; a module addition resolves nothing and is refused when
+   the name is already declared;
+2. splice into the byte span, or append the addition after the last statement;
 3. re-parse the spliced file and check the post-splice invariant: the target
-   definition's text equals `new_source`, and every other definition is
-   byte-identical;
+   unit's text equals `new_source` (a module addition has no target before the
+   splice), and every other definition and module assignment is byte-identical;
 4. run the build check.
 
 The applier refuses paths outside source roots and any test file.
