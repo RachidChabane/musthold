@@ -1,0 +1,19 @@
+[project]
+name = "parkfee"
+version = "0.1.0"
+description = "Car park tariff: charges for a stay and the printed receipt."
+requires-python = ">=3.13"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-timeout>=2.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/parkfee"]
