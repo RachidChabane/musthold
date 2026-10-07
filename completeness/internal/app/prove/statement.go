@@ -128,7 +128,7 @@ func (s *specRun) decision() *format.Decision {
 	return &format.Decision{
 		Basis: format.BasisSystemOne, Deciders: []string{closedSignalDecider},
 		ConfidenceSource: weakest, ConfidenceMapping: mapping,
-		RawConfidence: confidence, Threshold: s.pass.settings.Policy.TauAdv,
+		RawConfidence: confidence, Threshold: s.pass.settings.Policy.TauAdv.For(weakest),
 	}
 }
 

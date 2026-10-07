@@ -172,7 +172,7 @@ func (s *specRun) dimensions() error {
 	if !s.record(signal) {
 		return nil
 	}
-	for _, gap := range advice.DimensionGaps(asked, signal.reading.Questions, s.pass.settings.Policy.TauAdv) {
+	for _, gap := range advice.DimensionGaps(asked, signal.reading.Questions, s.pass.settings.Policy.TauAdv.For(signal.reading.Source)) {
 		s.questions = append(s.questions, question.Missing(gap.Dimension, gap.LowConfidence))
 	}
 	return nil
@@ -218,6 +218,7 @@ func (s *specRun) askHunk(changed hunk.Hunk) (unjustified bool, err error) {
 	fileDigests := []string{s.pass.changes.files[changed.Unit.File]}
 	var failure error
 	degraded, waiting := false, false
+	held, heldConfidence := format.ConfidenceSource(""), format.MaxConfidence
 	lookup := func(group []string, _ bool) (tournament.Answer, bool) {
 		built, buildErr := prompt.BuildHunk(prompt.HunkInput{Criteria: tokenized, Group: group, Change: change})
 		if buildErr != nil {
@@ -242,6 +243,9 @@ func (s *specRun) askHunk(changed hunk.Hunk) (unjustified bool, err error) {
 		if !slices.Contains(group, decided.Choice) {
 			decided.Choice = blind.NoneAnswer
 		}
+		if decided.Confidence <= heldConfidence {
+			held, heldConfidence = signal.reading.Source, decided.Confidence
+		}
 		return tournament.Answer{Choice: decided.Choice, Confidence: decided.Confidence}, true
 	}
 	outcome := tournament.Resolve(tokenized.Tokens, lookup)
@@ -251,7 +255,7 @@ func (s *specRun) askHunk(changed hunk.Hunk) (unjustified bool, err error) {
 	case waiting, degraded:
 		return false, nil
 	}
-	return advice.Unjustified(outcome, s.pass.settings.Policy.TauAdv), nil
+	return advice.Unjustified(outcome, s.pass.settings.Policy.TauAdv.For(held)), nil
 }
 
 func (s *specRun) groupDigests(tokenized blind.Tokenized, group []string) []string {

@@ -342,3 +342,14 @@ traces them to the Go tests of the module in CI.
   no adapter.
 - **SP-555~1**: WHEN an adapter is inspected THE SYSTEM SHALL import no other
   adapter.
+
+## Thresholds per confidence source
+
+- **SP-904~1**: WHEN `tau_adv` is set THE SYSTEM SHALL accept a bare number or a
+  mapping of `default` and of confidence sources to numbers, as Shallnot's
+  `proofs.thresholds` does, hold a closed answer to the threshold of the source of
+  its confidence (`system-one:<model>@<endpoint digest>` for a relayed answer,
+  `host-votes(<k>)` for k host votes), resolving the exact source, then its kind,
+  then the default, refuse a value outside [0,1] and a key that names no source, and
+  record the threshold the weakest answer was held to in
+  `extensions.decision.threshold`.

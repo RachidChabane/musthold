@@ -22,7 +22,7 @@ const (
 type Policy struct {
 	// TauAdv is the confidence at or above which a System One answer produces a
 	// question.
-	TauAdv float64 `json:"tauAdv"`
+	TauAdv format.Threshold `json:"tauAdv"`
 	// DecideK is the number of host votes of a closed question when no System One
 	// endpoint answers.
 	DecideK int `json:"decideK"`
@@ -35,7 +35,7 @@ type Policy struct {
 
 // Default returns the policy of ADR 0003.
 func Default() Policy {
-	return Policy{TauAdv: DefaultTauAdv, DecideK: DefaultDecideK, MaxHunkBytes: DefaultMaxHunkBytes, MaxHunks: DefaultMaxHunks}
+	return Policy{TauAdv: format.UniformThreshold(DefaultTauAdv), DecideK: DefaultDecideK, MaxHunkBytes: DefaultMaxHunkBytes, MaxHunks: DefaultMaxHunks}
 }
 
 // ErrInvalid is returned for a policy outside its domain.
@@ -44,8 +44,8 @@ var ErrInvalid = errors.New("invalid policy")
 // Validate rejects a threshold outside [0,1] and a count below one.
 func (p Policy) Validate() error {
 	switch {
-	case p.TauAdv < 0 || p.TauAdv > 1:
-		return fmt.Errorf("%w: tau_adv is outside [0,1]", ErrInvalid)
+	case p.TauAdv.Validate() != nil:
+		return fmt.Errorf("%w: tau_adv is outside [0,1] or keys an unknown confidence source", ErrInvalid)
 	case p.DecideK < 1, p.MaxHunkBytes < 1, p.MaxHunks < 1:
 		return fmt.Errorf("%w: a count is below 1", ErrInvalid)
 	}

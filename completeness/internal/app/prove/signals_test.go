@@ -252,7 +252,7 @@ func TestAdvisory(t *testing.T) {
 			if rapid.Bool().Draw(t, "relayed") {
 				w.answers = relay{honest: w.answers, confidence: rapid.Float64Range(0, 1).Draw(t, "stated")}
 			}
-			w.policy.TauAdv = rapid.Float64Range(0, 1).Draw(t, "tau")
+			w.policy.TauAdv = format.UniformThreshold(rapid.Float64Range(0, 1).Draw(t, "tau"))
 			w.store = freshStore(outer)
 			w.mustRun(prove.Options{})
 			for _, content := range w.proofs.statements {

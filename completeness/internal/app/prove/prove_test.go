@@ -238,9 +238,10 @@ func TestHostVotes(t *testing.T) {
 		}
 	})
 
-	t.Run("a split vote below tau_adv flags the question as low confidence [verifies SP-503~1]", func(t *testing.T) {
+	splitVote := func(t *testing.T, tau format.Threshold) (*world, format.Statement[format.Completeness]) {
+		t.Helper()
 		w := newWorld(t, testkit.GoLedger)
-		w.policy.TauAdv = 0.9
+		w.policy.TauAdv = tau
 		honest := testkit.Honest()
 		w.answers = testkit.Answerer{Choose: func(question closedq.Question, state string, vote int) (string, float64) {
 			if question.ID == "boundaries" && vote == 0 {
@@ -249,13 +250,39 @@ func TestHostVotes(t *testing.T) {
 			return honest.Choose(question, state, vote)
 		}}
 		w.mustRun(prove.Options{})
-		statement := w.statement()
-		boundaries := questionsOf(statement, "boundaries")
-		if len(boundaries) != 1 || !strings.HasPrefix(boundaries[0].Question, "(low confidence) ") {
-			t.Fatalf("boundaries %+v", boundaries)
+		return w, w.statement()
+	}
+	lowConfidence := func(statement format.Statement[format.Completeness], dimension string) bool {
+		questions := questionsOf(statement, dimension)
+		return len(questions) == 1 && strings.HasPrefix(questions[0].Question, "(low confidence)")
+	}
+
+	t.Run("a split vote below tau_adv flags the question as low confidence [verifies SP-503~1]", func(t *testing.T) {
+		_, statement := splitVote(t, format.UniformThreshold(0.9))
+		if !lowConfidence(statement, "boundaries") || lowConfidence(statement, "error_handling") {
+			t.Fatalf("boundaries %+v, error handling %+v", questionsOf(statement, "boundaries"), questionsOf(statement, "error_handling"))
 		}
-		if errorHandling := questionsOf(statement, "error_handling"); len(errorHandling) != 1 || strings.HasPrefix(errorHandling[0].Question, "(low confidence)") {
-			t.Fatalf("error handling %+v", errorHandling)
+	})
+
+	t.Run("the threshold of host votes flags the split vote although the default would not [verifies SP-904~1]", func(t *testing.T) {
+		_, statement := splitVote(t, format.Threshold{Default: 0.1, BySource: map[format.ConfidenceSource]float64{format.SourceHostVotes: 0.9}})
+		if !lowConfidence(statement, "boundaries") || lowConfidence(statement, "error_handling") {
+			t.Fatalf("boundaries %+v", questionsOf(statement, "boundaries"))
+		}
+	})
+
+	t.Run("a threshold of System One leaves the host votes on the default [verifies SP-904~1]", func(t *testing.T) {
+		_, statement := splitVote(t, format.Threshold{Default: 0.1, BySource: map[format.ConfidenceSource]float64{format.SourceSystemOne: 0.99}})
+		if lowConfidence(statement, "boundaries") {
+			t.Fatalf("boundaries %+v", questionsOf(statement, "boundaries"))
+		}
+	})
+
+	t.Run("the decision records the threshold of the source it was held to [verifies SP-904~1]", func(t *testing.T) {
+		_, statement := splitVote(t, format.Threshold{Default: 0.1, BySource: map[format.ConfidenceSource]float64{format.SourceHostVotes: 0.9}})
+		decision := statement.Predicate.Extensions.Decision
+		if decision == nil || decision.Threshold != 0.9 {
+			t.Fatalf("decision %+v", decision)
 		}
 	})
 }

@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/policy"
+	"github.com/RachidChabane/spec-proof/format"
 )
 
 // FileName is the configuration file inside the project's `.spec-proof` directory.
@@ -23,10 +24,10 @@ type document struct {
 }
 
 type policyDocument struct {
-	TauAdv       *float64 `yaml:"tau_adv"`
-	DecideK      *int     `yaml:"decide_k"`
-	MaxHunkBytes *int     `yaml:"max_hunk_bytes"`
-	MaxHunks     *int     `yaml:"max_hunks"`
+	TauAdv       *format.ThresholdOverride `yaml:"tau_adv"`
+	DecideK      *int                      `yaml:"decide_k"`
+	MaxHunkBytes *int                      `yaml:"max_hunk_bytes"`
+	MaxHunks     *int                      `yaml:"max_hunks"`
 }
 
 // Decode parses the YAML configuration into the decision policy. An unknown key
@@ -36,11 +37,14 @@ func Decode(data []byte) (policy.Policy, error) {
 	decoder.KnownFields(true)
 	var doc document
 	if err := decoder.Decode(&doc); err != nil && !errors.Is(err, io.EOF) {
+		if errors.Is(err, format.ErrThreshold) {
+			return policy.Policy{}, fmt.Errorf("%w: %v", policy.ErrInvalid, err)
+		}
 		return policy.Policy{}, fmt.Errorf("decode configuration: %w", err)
 	}
 	result := policy.Default()
 	if doc.Policy.TauAdv != nil {
-		result.TauAdv = *doc.Policy.TauAdv
+		result.TauAdv = doc.Policy.TauAdv.ApplyTo(result.TauAdv)
 	}
 	if doc.Policy.DecideK != nil {
 		result.DecideK = *doc.Policy.DecideK
