@@ -50,8 +50,10 @@ A proof is stale when any of these holds:
 2. a `code_tree` descriptor names a file outside the configured `proofs.code`
    globs, or a `test_source` descriptor a file outside the configured `tests`
    roots;
-3. a test file that holds a test Shallnot binds to the criterion is not listed
-   among the `test_source` descriptors;
+3. for a discriminating-power proof, a test file that holds a test Shallnot
+   binds to the criterion is not listed among the `test_source` descriptors;
+   for an alignment proof, which concerns one test, the file holding that
+   test is not listed;
 4. the `spec` descriptor differs from Shallnot's own statement digest for the
    criterion;
 5. a `proof` input names a Statement that is not in the verified set
