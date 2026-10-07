@@ -468,3 +468,17 @@ Go tests of the module in CI.
   resolve each predicate type URI of the format to the schema it identifies.
 - **SP-24~1**: WHEN a golden vector is decoded and validated THE SYSTEM SHALL
   give the outcome and the violation codes its manifest states.
+
+## Command-line conventions
+
+- **SP-1600~1**: WHEN a command line asks for help with `-h`, `--help`, `-help` or,
+  in the place of a command, `help` THE SYSTEM SHALL print the usage of what it
+  was asked about on the output stream and succeed, giving the commands of a
+  binary, the verbs of a command that takes one, and for a command its synopsis
+  and exactly the flags that command defines with their values and defaults; and
+  WHEN a command line does not parse THE SYSTEM SHALL print the failure and the
+  usage of that command on the error stream and exit with the usage code, the
+  same in every binary of the repository.
+- **SP-1601~1**: WHEN the fields of an output line are joined THE SYSTEM SHALL
+  separate the non-empty fields with one space and leave out the empty ones, so
+  that a line never starts or ends with a space and never holds two in a row.
