@@ -169,21 +169,65 @@
           "templateDigest": "dea94dccf7340a05dd63f74d8f1e2b986300931036289bae894419005ef65fca"
         },
         "responseSchema": {
-          "type": "object",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "additionalProperties": false,
-          "required": [
-            "validity"
-          ],
           "properties": {
-            "validity": {
-              "enum": [
-                "VALID",
-                "EQUIVALENT",
-                "NOT_VIOLATING",
-                "UNDETERMINED"
-              ]
+            "answers": {
+              "allOf": [
+                {
+                  "contains": {
+                    "properties": {
+                      "id": {
+                        "const": "q1"
+                      }
+                    },
+                    "required": [
+                      "id"
+                    ],
+                    "type": "object"
+                  },
+                  "maxContains": 1,
+                  "minContains": 1
+                }
+              ],
+              "items": {
+                "oneOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "choice": {
+                        "enum": [
+                          "VIOLATES",
+                          "CONSISTENT"
+                        ],
+                        "type": "string"
+                      },
+                      "confidence": {
+                        "maximum": 1,
+                        "minimum": 0,
+                        "type": "number"
+                      },
+                      "id": {
+                        "const": "q1"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "choice"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              },
+              "maxItems": 1,
+              "minItems": 1,
+              "type": "array"
             }
-          }
+          },
+          "required": [
+            "answers"
+          ],
+          "type": "object"
         },
         "closed": {
           "state": "Requirement 1:\nthe fee is waived from 50\n",
@@ -220,7 +264,7 @@
         ],
         "cacheKey": "89dd5bff4fb6fd83ee0679edfb07756d0d22222a414f0c3ac6fd92c120e4fe4f"
       },
-      "id": "2fce5c0623727daa687401774dbc34264368a7e89c9924598d6e82095d31b9a4"
+      "id": "d2b0ba4beac38544c9631f114f6f97d165f4c2a7b70cf45d52186238b6f09bae"
     }
   ],
   "capabilities": [

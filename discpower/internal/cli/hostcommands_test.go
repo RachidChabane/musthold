@@ -341,16 +341,20 @@ func TestSystemOne(t *testing.T) {
 		}
 	})
 
-	t.Run("import records the relayed answer under the relay executor and does not mark it exposed [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("import records the relayed answer under the relay executor and does not mark it exposed [verifies SP-192~1] [verifies SP-408~1]", func(t *testing.T) {
 		f := newHostFixture(t)
 		ticket := f.emit(closed, 0)
-		code, stdout, stderr := f.run([]byte(honestAnswer), "systemone", "import", ticket.TicketID.String(), "--nonce", ticket.Nonce, "--source", relaySource)
+		code, stdout, stderr := f.run([]byte(hostprototest.ClosedSystemOneResponse), "systemone", "import", ticket.TicketID.String(), "--nonce", ticket.Nonce, "--source", relaySource)
 		if code != cli.ExitClean || !strings.Contains(stdout, ticket.TicketID.String()) {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
 		}
 		response, err := f.store.GetResponse(ticket.Key())
 		if err != nil || response.Executor.Channel != format.ChannelSystemOneRelay || response.Executor.Model.Name != relaySource {
 			t.Fatalf("response %+v (%v)", response, err)
+		}
+		answers, err := hostproto.ParseClosedAnswers(response.Output)
+		if err != nil || answers[hostprototest.ClosedQuestionID] != (hostproto.ClosedAnswer{Choice: "VIOLATES", Confidence: 0.9, HasConfidence: true}) {
+			t.Fatalf("the stored output %s is not the translation of the endpoint response (%v)", response.Output, err)
 		}
 		if f.journaled(hostproto.EventExposed) {
 			t.Fatal("a relayed answer is journaled as exposed")
@@ -364,16 +368,22 @@ func TestSystemOne(t *testing.T) {
 	}{
 		{"without a source", func(t hostproto.Ticket) []string {
 			return []string{"systemone", "import", t.TicketID.String(), "--nonce", t.Nonce}
-		}, honestAnswer},
+		}, hostprototest.ClosedSystemOneResponse},
 		{"without a ticket", func(t hostproto.Ticket) []string {
 			return []string{"systemone", "import", "--nonce", t.Nonce, "--source", relaySource}
-		}, honestAnswer},
+		}, hostprototest.ClosedSystemOneResponse},
 		{"with another nonce", func(t hostproto.Ticket) []string {
 			return []string{"systemone", "import", t.TicketID.String(), "--nonce", staleNonce, "--source", relaySource}
-		}, honestAnswer},
-		{"with an answer that breaks the schema", func(t hostproto.Ticket) []string {
+		}, hostprototest.ClosedSystemOneResponse},
+		{"with a response that breaks the schema", func(t hostproto.Ticket) []string {
 			return []string{"systemone", "import", t.TicketID.String(), "--nonce", t.Nonce, "--source", relaySource}
 		}, brokenAnswer},
+		{"with a response that leaves the question unanswered", func(t hostproto.Ticket) []string {
+			return []string{"systemone", "import", t.TicketID.String(), "--nonce", t.Nonce, "--source", relaySource}
+		}, `{"answers":{}}`},
+		{"with a response whose choice is no option", func(t hostproto.Ticket) []string {
+			return []string{"systemone", "import", t.TicketID.String(), "--nonce", t.Nonce, "--source", relaySource}
+		}, `{"answers":{"q1":{"type":"choice","choice":"MAYBE"}}}`},
 	}
 	for _, tt := range refusals {
 		t.Run("import "+tt.name+" is a refusal [verifies SP-192~1]", func(t *testing.T) {

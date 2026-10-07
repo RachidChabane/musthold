@@ -2,14 +2,17 @@ package prove
 
 import (
 	"encoding/json"
+	"slices"
 	"testing"
 
 	"pgregory.net/rapid"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/execution"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/hostbridge"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/coverage"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/footprint"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/policy"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
 	"github.com/RachidChabane/spec-proof/format"
@@ -44,7 +47,7 @@ func newFixture() fixture {
 		testFileDigests:   map[string]string{testFile: format.SHA256Hex([]byte("tests"))},
 		referenceOutcomes: map[ecosystem.TestID]ecosystem.TestOutcome{testName: ecosystem.TestPassed},
 	}
-	run := &critRun{p: p, c: criterion, st: &staticAnalysis{criterion: criterion, codeFiles: []string{sourceFile}}, rules: p.settings.Policy, poolByID: map[string]*poolMutant{}}
+	run := &critRun{p: p, c: criterion, st: &staticAnalysis{criterion: criterion, codeFiles: []string{sourceFile}, testFiles: []string{testFile}}, rules: p.settings.Policy, poolByID: map[string]*poolMutant{}}
 	return fixture{project: p, run: run}
 }
 
@@ -148,5 +151,111 @@ func TestCacheKey(t *testing.T) {
 				t.Fatal("the cache key depends on the consumption order")
 			}
 		})
+	})
+}
+
+const (
+	otherTestFile  = "tests/test_other.py"
+	unrelatedFile  = "tests/test_unrelated.py"
+	reachingName   = "tests.test_other::test_reaches"
+	unrelatedName  = "tests.test_unrelated::test_elsewhere"
+	footprintUnit  = "shipping_fee"
+	elsewhereUnit  = "greeting"
+	verifiesInputs = " [verifies SP-407~1]"
+)
+
+// withOtherTests adds to the fixture the tests of two more files, one that
+// executes the criterion's footprint and one that does not.
+func withOtherTests(f *fixture) footprint.Footprint {
+	reaching := ecosystem.NewBoundTest("tests.test_other", "test_reaches", otherTestFile, 3)
+	unrelated := ecosystem.NewBoundTest("tests.test_unrelated", "test_elsewhere", unrelatedFile, 3)
+	f.project.tests = append(f.project.tests, f.run.c.Tests[0], reaching, unrelated)
+	f.project.testFileDigests[otherTestFile] = format.SHA256Hex([]byte("other"))
+	f.project.testFileDigests[unrelatedFile] = format.SHA256Hex([]byte("unrelated"))
+	unit := footprint.Ref{File: sourceFile, Qualname: footprintUnit}
+	f.project.runner.Coverage = coverage.Map{
+		testName:      {unit},
+		reachingName:  {unit},
+		unrelatedName: {{File: sourceFile, Qualname: elsewhereUnit}},
+	}
+	return footprint.Footprint{Definitions: []footprint.Ref{unit}}
+}
+
+func TestTestFilesOf(t *testing.T) {
+	t.Run("the files of the bound tests and of the tests that execute the footprint are listed, and no other"+verifiesInputs, func(t *testing.T) {
+		f := newFixture()
+		closed := withOtherTests(&f)
+		got := f.project.testFilesOf(f.run.c, closed)
+		want := []string{otherTestFile, testFile}
+		if !slices.Equal(got, want) {
+			t.Fatalf("test files %v, want %v", got, want)
+		}
+	})
+
+	t.Run("a unit nested in a unit of the footprint counts as reached"+verifiesInputs, func(t *testing.T) {
+		f := newFixture()
+		closed := withOtherTests(&f)
+		f.project.runner.Coverage[unrelatedName] = []footprint.Ref{{File: sourceFile, Qualname: footprintUnit + ".inner"}}
+		if got := f.project.testFilesOf(f.run.c, closed); !slices.Contains(got, unrelatedFile) {
+			t.Fatalf("test files %v", got)
+		}
+	})
+
+	t.Run("without a footprint every file that holds a bound test of the project is listed"+verifiesInputs, func(t *testing.T) {
+		f := newFixture()
+		withOtherTests(&f)
+		got := f.project.testFilesOf(f.run.c, footprint.Footprint{})
+		want := []string{otherTestFile, testFile, unrelatedFile}
+		if !slices.Equal(got, want) {
+			t.Fatalf("test files %v, want %v", got, want)
+		}
+	})
+}
+
+func TestBaseInputsAreDescriptors(t *testing.T) {
+	f := newFixture()
+	closed := withOtherTests(&f)
+	f.run.st.testFiles = f.project.testFilesOf(f.run.c, closed)
+	inputs, err := f.run.baseInputs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	byRole := map[format.InputRole][]format.Input{}
+	for _, input := range inputs {
+		byRole[input.Role] = append(byRole[input.Role], input)
+	}
+
+	t.Run("the spec input is named after the criterion and holds its statement digest"+verifiesInputs, func(t *testing.T) {
+		want := format.SpecInput("PAR-3", 1, f.run.c.StatementDigest)
+		if len(byRole[format.RoleSpec]) != 1 || byRole[format.RoleSpec][0] != want {
+			t.Fatalf("spec inputs %+v, want %+v", byRole[format.RoleSpec], want)
+		}
+	})
+
+	t.Run("each test file and code file is one descriptor with the digest of its exact bytes"+verifiesInputs, func(t *testing.T) {
+		wantTests := []format.Input{
+			format.FileInput(format.RoleTestSource, testFile, format.SHA256Hex([]byte("tests"))),
+			format.FileInput(format.RoleTestSource, otherTestFile, format.SHA256Hex([]byte("other"))),
+		}
+		if len(byRole[format.RoleTestSource]) != len(wantTests) {
+			t.Fatalf("test inputs %+v", byRole[format.RoleTestSource])
+		}
+		for _, want := range wantTests {
+			if !slices.Contains(byRole[format.RoleTestSource], want) {
+				t.Errorf("no descriptor %+v among %+v", want, byRole[format.RoleTestSource])
+			}
+		}
+		wantCode := format.FileInput(format.RoleCodeTree, sourceFile, format.SHA256Hex([]byte("FREE = 50\n")))
+		if len(byRole[format.RoleCodeTree]) != 1 || byRole[format.RoleCodeTree][0] != wantCode {
+			t.Fatalf("code inputs %+v, want %+v", byRole[format.RoleCodeTree], wantCode)
+		}
+	})
+
+	t.Run("a test file no listed test reaches is not a descriptor"+verifiesInputs, func(t *testing.T) {
+		for _, input := range byRole[format.RoleTestSource] {
+			if input.Name == unrelatedFile {
+				t.Fatalf("the unrelated file is listed: %+v", input)
+			}
+		}
 	})
 }

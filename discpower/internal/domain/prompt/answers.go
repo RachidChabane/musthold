@@ -8,6 +8,7 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
 
 // GeneratedMutant is one mutant a generation response proposes.
@@ -112,23 +113,13 @@ func confidenceOf(stated *float64) float64 {
 // ParseScreen reads a response that satisfies the closed schema into the answers
 // by question id.
 func ParseScreen(output []byte) (map[string]power.ClosedAnswer, error) {
-	var document struct {
-		Answers []struct {
-			ID         string             `json:"id"`
-			Choice     power.ClosedChoice `json:"choice"`
-			Confidence *float64           `json:"confidence"`
-		} `json:"answers"`
+	parsed, err := hostproto.ParseClosedAnswers(output)
+	if err != nil {
+		return nil, err
 	}
-	if err := json.Unmarshal(output, &document); err != nil {
-		return nil, fmt.Errorf("read the closed response: %w", err)
-	}
-	answers := make(map[string]power.ClosedAnswer, len(document.Answers))
-	for _, answer := range document.Answers {
-		closed := power.ClosedAnswer{Choice: answer.Choice}
-		if answer.Confidence != nil {
-			closed.Confidence, closed.HasConfidence = *answer.Confidence, true
-		}
-		answers[answer.ID] = closed
+	answers := make(map[string]power.ClosedAnswer, len(parsed))
+	for id, answer := range parsed {
+		answers[id] = power.ClosedAnswer{Choice: power.ClosedChoice(answer.Choice), Confidence: answer.Confidence, HasConfidence: answer.HasConfidence}
 	}
 	return answers, nil
 }

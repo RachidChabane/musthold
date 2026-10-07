@@ -67,6 +67,10 @@ type Decision struct {
 	Basis      format.DecisionBasis
 	Confidence float64
 	Deciders   []string
+	// Source says where Confidence came from, and Mapping how it was derived from
+	// what the answerers gave; the Statement records both.
+	Source  format.ConfidenceSource
+	Mapping string
 	// Corroboration is the executed evidence, sorted and without duplicates.
 	Corroboration []Evidence
 	// OffTarget is the criterion an off-target mutant violates.
@@ -83,7 +87,7 @@ func (d Decision) Carries() bool { return d.Class == ClassValid || d.Class == Cl
 
 // Undetermined builds the decision of a mutant no stage could classify.
 func Undetermined(reason Reason) Decision {
-	return Decision{Class: ClassUndetermined, Validity: format.ValidityUndetermined, Basis: format.BasisJudges, Confidence: format.MinConfidence, Deciders: []string{DeciderHostJudge}, Reason: reason}
+	return Decision{Class: ClassUndetermined, Validity: format.ValidityUndetermined, Basis: format.BasisJudges, Confidence: format.MinConfidence, Deciders: []string{DeciderHostJudge}, Source: format.SourceExecution, Reason: reason}
 }
 
 // VoteQuestion is what a judge was asked about a mutant.
@@ -174,7 +178,7 @@ func Decide(subject Subject, facts Facts, votes []Vote, rules policy.Policy) Dec
 func sentinelDecision(facts Facts) Decision {
 	return Decision{
 		Class: ClassEquivalent, Validity: format.ValidityEquivalent, Basis: format.BasisConstruction,
-		Confidence: format.MaxConfidence, Deciders: []string{DeciderSentinelCatalogue},
+		Confidence: format.MaxConfidence, Deciders: []string{DeciderSentinelCatalogue}, Source: format.SourceExecution,
 		Corroboration: nil, Reason: ReasonNone,
 	}
 }
@@ -187,7 +191,7 @@ func attributedDecision(subject Subject, facts Facts) Decision {
 	}
 	slices.Sort(deciders)
 	evidence := []Evidence{{Kind: format.CorroborationExampleFailed, Digest: evidenceDigest(format.CorroborationExampleFailed, facts.ID, refStrings(failed))}}
-	decision := Decision{Basis: format.BasisSpecExample, Confidence: format.MaxConfidence, Deciders: deciders, Corroboration: evidence}
+	decision := Decision{Basis: format.BasisSpecExample, Confidence: format.MaxConfidence, Deciders: deciders, Source: format.SourceExecution, Corroboration: evidence}
 	inSubject := slices.ContainsFunc(failed, func(ref spec.Ref) bool { return ref == subject.Ref })
 	switch {
 	case inSubject && len(failed) == 1:
@@ -230,7 +234,10 @@ func judgedDecision(subject Subject, facts Facts, votes []Vote, rules policy.Pol
 	case tally.MinConfidence < rules.TauJudge:
 		return Undetermined(ReasonBelowThreshold)
 	}
-	base := Decision{Basis: format.BasisJudges, Confidence: tally.MinConfidence, Deciders: []string{DeciderHostJudge}}
+	base := Decision{
+		Basis: format.BasisJudges, Confidence: tally.MinConfidence, Deciders: []string{DeciderHostJudge},
+		Source: format.HostVotesSource(rules.JudgeK), Mapping: format.MappingWeakestStated,
+	}
 	atFloor := allAtFloor(votes, rules.MinIsolation)
 	switch tally.Answer {
 	case AnswerValid:

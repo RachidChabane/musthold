@@ -43,7 +43,7 @@ func TestTemplateDigestFollowsTheTemplate(t *testing.T) {
 func TestEmbeddedFilesAreAllPresent(t *testing.T) {
 	for _, name := range []string{
 		generateSystem, generateInstructions, judgeSystem, validityInstructions, equivalentInstruction,
-		screenSystem, screenInstructions, generateSchema, validitySchema, equivalentSchema, closedSchema,
+		screenSystem, screenInstructions, generateSchema, validitySchema, equivalentSchema,
 	} {
 		t.Run(name+" is embedded and not empty [verifies SP-173~1]", func(t *testing.T) {
 			if embedded(name) == "" {

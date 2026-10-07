@@ -11,6 +11,7 @@ import (
 	"pgregory.net/rapid"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
 )
 
 const schemaDirectory = "../../domain/prompt/schemas"
@@ -22,6 +23,16 @@ func loadSchema(t testing.TB, name string) json.RawMessage {
 		t.Fatal(err)
 	}
 	return content
+}
+
+// closedSchema is the response schema of a screen request with one question.
+func closedSchema(t testing.TB) json.RawMessage {
+	t.Helper()
+	schema, err := hostprototest.ClosedSet().ResponseSchema()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return schema
 }
 
 func TestValidate(t *testing.T) {
@@ -77,21 +88,23 @@ func TestValidate(t *testing.T) {
 
 	t.Run("the other embedded schemas accept and refuse outputs [verifies SP-156~1]", func(t *testing.T) {
 		cases := []struct {
-			schema, accepted, refused string
+			name     string
+			schema   json.RawMessage
+			accepted string
+			refused  string
 		}{
-			{"generate.json",
+			{"generate.json", loadSchema(t, "generate.json"),
 				`{"mutants":[{"slot":"S1","mechanism":"off by one","edits":[{"file":"a.py","qualname":"f","new_source":"def f(): pass"}]}]}`,
 				`{"mutants":[{"slot":"S9","mechanism":"x","edits":[]}]}`},
-			{"judge-equivalent.json", `{"equivalent":"DIFFERENT","confidence":1}`, `{"equivalent":"SAME"}`},
-			{"closed.json", `{"answers":[{"id":"q1","choice":"VIOLATES"}]}`, `{"answers":[{"id":"","choice":"CONSISTENT"}]}`},
+			{"judge-equivalent.json", loadSchema(t, "judge-equivalent.json"), `{"equivalent":"DIFFERENT","confidence":1}`, `{"equivalent":"SAME"}`},
+			{"the closed question set", closedSchema(t), `{"answers":[{"id":"q1","choice":"VIOLATES"}]}`, `{"answers":[{"id":"","choice":"CONSISTENT"}]}`},
 		}
 		for _, c := range cases {
-			schema := loadSchema(t, c.schema)
-			if err := validator.Validate(schema, []byte(c.accepted)); err != nil {
-				t.Errorf("%s accepted: %v", c.schema, err)
+			if err := validator.Validate(c.schema, []byte(c.accepted)); err != nil {
+				t.Errorf("%s accepted: %v", c.name, err)
 			}
-			if err := validator.Validate(schema, []byte(c.refused)); !errors.Is(err, ports.ErrSchemaViolation) {
-				t.Errorf("%s refused: %v", c.schema, err)
+			if err := validator.Validate(c.schema, []byte(c.refused)); !errors.Is(err, ports.ErrSchemaViolation) {
+				t.Errorf("%s refused: %v", c.name, err)
 			}
 		}
 	})

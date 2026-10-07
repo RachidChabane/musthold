@@ -572,3 +572,24 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   runs executors whose hooks never fire, THE SYSTEM SHALL give no criterion a
   pass, accept no uncapped answer, write no Statement for a hookless host and
   have Shallnot refuse the turn or the check.
+
+## Contracts with the format and the gate
+
+- **SP-406~1**: WHEN a mutant decision is recorded THE SYSTEM SHALL name where its
+  confidence came from in `extensions.decision.confidenceSource`: `execution` for a
+  sentinel, a spec example and a mutant no judge could classify, and
+  `host-votes(<judge_k>)` with the mapping of the weakest stated confidence for a
+  judged decision, and SHALL leave the source out of `deciders`.
+- **SP-407~1**: WHEN a Statement lists its inputs THE SYSTEM SHALL name the `spec`
+  input `ID~REV` with the statement digest, list as `test_source` descriptors the
+  files that hold a test bound to the criterion and those that hold a test whose
+  execution reaches the footprint under the reference coverage (every file that
+  holds a bound test when no footprint restricts the scope), and list as
+  `code_tree` descriptors the files of the footprint, each by its path relative to
+  the project root and the SHA-256 of its exact bytes.
+- **SP-408~1**: WHEN a screen request is built THE SYSTEM SHALL build its question
+  set and its response schema through the host protocol's closed question type, with
+  one choice question per requirement whose options carry their criteria text, and
+  WHEN a relay imports the response of a System One endpoint THE SYSTEM SHALL
+  translate it with the question set of the ticket and refuse a response that
+  leaves a question unanswered or picks no option.

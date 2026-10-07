@@ -16,7 +16,6 @@ import (
 
 // Names of the inputs whose role admits only one descriptor.
 const (
-	inputNameStatement = "statement"
 	inputNameReference = "reference-outcomes"
 	inputNameBinding   = "example-binding"
 	inputNamePolicy    = "decision-policy"
@@ -33,16 +32,16 @@ const (
 // statement, the tests, the code tree, the reference results, the examples and
 // their bindings, the policy and the prompt templates.
 func (r *critRun) baseInputs() ([]format.Input, error) {
-	inputs := []format.Input{descriptor(format.RoleSpec, inputNameStatement, r.c.StatementDigest)}
-	for file, digest := range r.p.testFileDigests {
-		inputs = append(inputs, descriptor(format.RoleTestSource, file, digest))
+	inputs := []format.Input{format.SpecInput(r.c.Ref.ID, r.c.Ref.Revision, r.c.StatementDigest)}
+	for _, file := range r.st.testFiles {
+		inputs = append(inputs, format.FileInput(format.RoleTestSource, file, r.p.testFileDigests[file]))
 	}
 	for _, file := range r.st.codeFiles {
 		content, ok := r.p.sourceContent(file)
 		if !ok {
 			return nil, fmt.Errorf("the code tree file %q is not a source file", file)
 		}
-		inputs = append(inputs, descriptor(format.RoleCodeTree, file, digestText(string(content))))
+		inputs = append(inputs, format.FileInput(format.RoleCodeTree, file, format.SHA256Hex(content)))
 	}
 	outcomes := map[string]string{}
 	for _, test := range r.c.TestIDs() {
@@ -276,8 +275,8 @@ func (r *critRun) mutantEntry(m *poolMutant, decision power.Decision) (format.Mu
 	slices.SortFunc(results, func(a, b format.TestResult) int { return strings.Compare(a.Test, b.Test) })
 	extensions := &format.MutantExtensions{
 		Decision: &format.Decision{
-			Basis: decision.Basis, Deciders: decision.Deciders, RawConfidence: decision.Confidence,
-			Threshold: r.rules.TauJudge, EscalationReason: string(decision.Reason),
+			Basis: decision.Basis, Deciders: decision.Deciders, ConfidenceSource: decision.Source, ConfidenceMapping: decision.Mapping,
+			RawConfidence: decision.Confidence, Threshold: r.rules.TauJudge, EscalationReason: string(decision.Reason),
 		},
 		Collateral:   decision.Class == power.ClassCollateral,
 		Unattributed: decision.Class == power.ClassUnattributed,

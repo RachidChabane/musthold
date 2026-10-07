@@ -81,7 +81,13 @@ func ClosedRequest(mutations ...func(*hostproto.Request)) hostproto.Request {
 		r.Kind = hostproto.KindDecideClosed
 		r.Role = hostproto.RoleFor(PluginName, hostproto.AgentDecider)
 		r.Shape = hostproto.ShapeClosed
-		r.Closed = mustClosed(ClosedSet())
+		set := ClosedSet()
+		r.Closed = mustClosed(set)
+		schema, err := set.ResponseSchema()
+		if err != nil {
+			panic(err)
+		}
+		r.ResponseSchema = schema
 	}}, mutations...)...)
 }
 
@@ -122,8 +128,15 @@ func Response(ticket hostproto.Ticket) hostproto.Response {
 	}
 }
 
-// ClosedQuestionID is the id of the question of ClosedSet.
-const ClosedQuestionID = "q1"
+// Names of the closed fixtures.
+const (
+	// ClosedQuestionID is the id of the question of ClosedSet.
+	ClosedQuestionID = "q1"
+	// ClosedHonestAnswer satisfies the response schema of ClosedRequest.
+	ClosedHonestAnswer = `{"answers":[{"id":"q1","choice":"VIOLATES","confidence":0.9}]}`
+	// ClosedSystemOneResponse is what a System One endpoint answers to ClosedSet.
+	ClosedSystemOneResponse = `{"model":"tev1:0.8b","answers":{"q1":{"type":"choice","choice":"VIOLATES","probabilities":{"VIOLATES":0.9,"CONSISTENT":0.1},"confidence":0.9}},"usage":{"input_tokens":10,"output_tokens":1}}`
+)
 
 // ClosedSet builds a valid question set: one choice question about a state.
 func ClosedSet() hostproto.ClosedSet {

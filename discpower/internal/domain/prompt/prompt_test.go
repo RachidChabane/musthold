@@ -104,13 +104,13 @@ func TestNoPromptNamesACriterion(t *testing.T) {
 	}
 	t.Run("the screen questions carry opaque ids"+verifiesSP173, func(t *testing.T) {
 		var closed struct {
-			Questions []prompt.ScreenQuestion `json:"questions"`
+			Questions []hostproto.ClosedQuestion `json:"questions"`
 		}
 		if err := json.Unmarshal(screen.Closed, &closed); err != nil {
 			t.Fatal(err)
 		}
 		for index, question := range closed.Questions {
-			if question.ID != prompt.QuestionID(index) || identifierPattern.MatchString(question.ID+question.Question) {
+			if question.ID != prompt.QuestionID(index) || identifierPattern.MatchString(question.ID+question.Instructions) {
 				t.Errorf("question %+v", question)
 			}
 		}
@@ -165,6 +165,45 @@ func TestGenerationShowsNoTest(t *testing.T) {
 	})
 }
 
+func TestScreenIsAClosedQuestionSet(t *testing.T) {
+	const verifiesSP408 = " [verifies SP-408~1]"
+	built, err := prompt.BuildScreen(prompt.ScreenInput{Statements: statements(3), Edits: []prompt.EditView{sampleEdit()}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Run("the question set is valid and every question is a choice with the criteria text of its options"+verifiesSP408, func(t *testing.T) {
+		set, err := hostproto.ParseClosedSet(built.Closed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, question := range set.Questions {
+			if question.Type != hostproto.ClosedChoice || len(question.Options) != 2 || question.Options[0].Description == "" || question.Options[1].Description == "" {
+				t.Errorf("question %+v", question)
+			}
+		}
+	})
+	t.Run("the response schema is the one the question set builds, whatever its size"+verifiesSP408, func(t *testing.T) {
+		set, _ := hostproto.ParseClosedSet(built.Closed)
+		want, err := set.ResponseSchema()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(built.Schema) != string(want) {
+			t.Errorf("schema %s, want %s", built.Schema, want)
+		}
+		one, _ := prompt.BuildScreen(prompt.ScreenInput{Statements: statements(1)})
+		if one.Prompt.TemplateDigest != built.Prompt.TemplateDigest {
+			t.Error("the template digest depends on the number of questions")
+		}
+	})
+	t.Run("answers are read through the shared reader"+verifiesSP408, func(t *testing.T) {
+		answers, err := prompt.ParseScreen([]byte(`{"answers":[{"id":"q1","choice":"VIOLATES","confidence":0.7}]}`))
+		if err != nil || answers["q1"] != (power.ClosedAnswer{Choice: power.ChoiceViolates, Confidence: 0.7, HasConfidence: true}) {
+			t.Fatalf("answers %+v (%v)", answers, err)
+		}
+	})
+}
+
 func TestBuildScreenLimits(t *testing.T) {
 	for _, count := range []int{0, closedLimit + 1, closedLimit * 2} {
 		t.Run(fmt.Sprintf("a request with %d statements is refused", count)+verifiesSP173, func(t *testing.T) {
@@ -180,8 +219,8 @@ func TestBuildScreenLimits(t *testing.T) {
 				t.Fatal(err)
 			}
 			var closed struct {
-				State     string                  `json:"state"`
-				Questions []prompt.ScreenQuestion `json:"questions"`
+				State     string                     `json:"state"`
+				Questions []hostproto.ClosedQuestion `json:"questions"`
 			}
 			if err := json.Unmarshal(built.Closed, &closed); err != nil {
 				t.Fatal(err)
@@ -190,7 +229,7 @@ func TestBuildScreenLimits(t *testing.T) {
 				t.Fatalf("%d questions", len(closed.Questions))
 			}
 			last := closed.Questions[count-1]
-			if last.ID != fmt.Sprintf("q%d", count) || last.Type != "choice" || len(last.Options) != 2 || last.Options[0] != "VIOLATES" || last.Options[1] != "CONSISTENT" {
+			if last.ID != fmt.Sprintf("q%d", count) || last.Type != "choice" || len(last.Options) != 2 || last.Options[0].Name != "VIOLATES" || last.Options[1].Name != "CONSISTENT" {
 				t.Errorf("question %+v", last)
 			}
 			if !strings.HasPrefix(built.Prompt.User, closed.State) || !strings.Contains(closed.State, fmt.Sprintf("Requirement %d:\n%s", count, statements(count)[count-1])) {

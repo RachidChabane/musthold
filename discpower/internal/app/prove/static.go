@@ -3,6 +3,8 @@ package prove
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/execution"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/operatorgen"
@@ -23,6 +25,7 @@ type staticAnalysis struct {
 	generated   operatorgen.Result
 	slice       []prompt.SliceEntry
 	codeFiles   []string
+	testFiles   []string
 	draws       *execution.Draws
 	skipReason  string
 	sourceTexts []string
@@ -47,6 +50,7 @@ func (p *project) staticOf(ctx context.Context, criterion spec.Criterion) (*stat
 		return nil, err
 	}
 	analysis.codeFiles = p.codeFilesOf(generated.Footprint)
+	analysis.testFiles = p.testFilesOf(criterion, generated.Footprint)
 	for _, entry := range analysis.slice {
 		analysis.sourceTexts = append(analysis.sourceTexts, entry.Source)
 	}
@@ -72,6 +76,35 @@ func (p *project) codeFilesOf(closed footprint.Footprint) []string {
 		files[index] = source.Path
 	}
 	return files
+}
+
+// testFilesOf lists the test files the criterion's proof depends on: those that
+// hold a test bound to it, and those that hold a test whose execution reaches the
+// footprint under the reference coverage. Without a footprint, every file that
+// holds a bound test of the project is reached.
+func (p *project) testFilesOf(criterion spec.Criterion, closed footprint.Footprint) []string {
+	files := map[string]bool{}
+	for _, test := range criterion.Tests {
+		files[test.File] = true
+	}
+	for _, test := range p.reachingTests(closed) {
+		files[test.File] = true
+	}
+	return slices.Sorted(maps.Keys(files))
+}
+
+// reachingTests lists the tests of the project that execute a definition of the
+// footprint, or all of them when no footprint restricts the scope.
+func (p *project) reachingTests(closed footprint.Footprint) []ecosystem.BoundTest {
+	if len(closed.Definitions) == 0 {
+		return p.tests
+	}
+	ids := make([]ecosystem.TestID, len(p.tests))
+	for index, test := range p.tests {
+		ids[index] = test.ID
+	}
+	covering := p.runner.Coverage.Covering(ids, closed.Definitions)
+	return slices.DeleteFunc(slices.Clone(p.tests), func(test ecosystem.BoundTest) bool { return !slices.Contains(covering, test.ID) })
 }
 
 // sliceOf shows the units of the footprint, or of every source file when no

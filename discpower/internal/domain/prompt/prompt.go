@@ -33,7 +33,6 @@ const (
 	generateSchema        = "schemas/generate.json"
 	validitySchema        = "schemas/judge-validity.json"
 	equivalentSchema      = "schemas/judge-equivalent.json"
-	closedSchema          = "schemas/closed.json"
 )
 
 const (
@@ -41,13 +40,17 @@ const (
 	sectionBreak    = "\n\n"
 	partSeparator   = "\x00"
 	questionPrefix  = "q"
-	choiceQuestion  = "choice"
-	maxQuestions    = 64
 	statementHeader = "Requirement:"
 )
 
 // MaxQuestions is the most questions one closed request carries.
-const MaxQuestions = maxQuestions
+const MaxQuestions = hostproto.MaxClosedQuestions
+
+// Criteria text of the two answers of a screen question.
+const (
+	violatesCriteria   = "The change breaks the requirement."
+	consistentCriteria = "The requirement is still met."
+)
 
 func embedded(name string) string {
 	content, err := data.ReadFile(name)
@@ -207,14 +210,6 @@ type ScreenInput struct {
 	Witnesses  []WitnessView
 }
 
-// ScreenQuestion is one closed question of a screen request.
-type ScreenQuestion struct {
-	ID       string   `json:"id"`
-	Type     string   `json:"type"`
-	Question string   `json:"question"`
-	Options  []string `json:"options"`
-}
-
 // QuestionID is the opaque id of the question about the statement at index.
 func QuestionID(index int) string { return fmt.Sprintf("%s%d", questionPrefix, index+1) }
 
@@ -225,25 +220,38 @@ func BuildScreen(input ScreenInput) (Built, error) {
 		return Built{}, fmt.Errorf("a screen request asks 1 to %d questions, not %d", MaxQuestions, len(input.Statements))
 	}
 	var state strings.Builder
-	questions := make([]ScreenQuestion, len(input.Statements))
+	questions := make([]hostproto.ClosedQuestion, len(input.Statements))
 	for index, statement := range input.Statements {
 		fmt.Fprintf(&state, "Requirement %d:\n%s\n\n", index+1, statement)
-		questions[index] = ScreenQuestion{
-			ID: QuestionID(index), Type: choiceQuestion,
-			Question: fmt.Sprintf("Does the change break requirement %d?", index+1),
-			Options:  []string{string(power.ChoiceViolates), string(power.ChoiceConsistent)},
-		}
+		questions[index] = screenQuestion(index)
 	}
 	writeChange(&state, input.Edits, input.Witnesses)
-	closed, err := json.Marshal(struct {
-		State     string           `json:"state"`
-		Questions []ScreenQuestion `json:"questions"`
-	}{State: state.String(), Questions: questions})
+	set := hostproto.ClosedSet{State: state.String(), Questions: questions}
+	closed, err := set.Marshal()
+	if err != nil {
+		return Built{}, err
+	}
+	schema, err := set.ResponseSchema()
+	if err != nil {
+		return Built{}, err
+	}
+	skeleton, err := hostproto.ClosedSet{Questions: []hostproto.ClosedQuestion{screenQuestion(0)}}.ResponseSchema()
 	if err != nil {
 		return Built{}, err
 	}
 	user := state.String() + "\n" + embedded(screenInstructions)
-	return build(embedded(screenSystem), user, embedded(closedSchema), closed, embedded(screenInstructions)), nil
+	built := build(embedded(screenSystem), user, string(skeleton), closed, embedded(screenInstructions))
+	built.Schema = schema
+	return built, nil
+}
+
+// screenQuestion is the question about the requirement at index: does the change
+// break it.
+func screenQuestion(index int) hostproto.ClosedQuestion {
+	return hostproto.ChoiceQuestion(QuestionID(index), fmt.Sprintf("Does the change break requirement %d?", index+1), []hostproto.ClosedOption{
+		{Name: string(power.ChoiceViolates), Description: violatesCriteria},
+		{Name: string(power.ChoiceConsistent), Description: consistentCriteria},
+	})
 }
 
 func writeChange(out *strings.Builder, edits []EditView, witnesses []WitnessView) {
