@@ -1,0 +1,1 @@
+Does the specification above state what the software does with respect to the dimension described here, is the dimension irrelevant to this software, or does it concern this software while the specification is silent about it?

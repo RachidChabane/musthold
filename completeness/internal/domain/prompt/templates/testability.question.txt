@@ -1,0 +1,1 @@
+Can a test verify this requirement as it is written?

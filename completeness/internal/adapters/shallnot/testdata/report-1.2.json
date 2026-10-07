@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.2",
+  "tool": {"name": "shallnot", "version": "0.5.0"},
+  "run": {
+    "advisory": true,
+    "fail_on": "error",
+    "id_pattern": "INV-[0-9]+",
+    "spec_files": ["specs/invoicing.md", "specs/archive.md", "specs/shipping.yaml"],
+    "test_roots": ["tests", "./cmd/../checks/"],
+    "results_files": []
+  },
+  "requirements": [
+    {
+      "id": "INV-2",
+      "revision": 1,
+      "ref": "INV-2~1",
+      "statement": "WHEN an invoice is displayed THE SYSTEM SHALL handle it appropriately.",
+      "status": "active",
+      "statement_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+      "location": {"file": "specs/invoicing.md", "line": 9},
+      "in_focus": true,
+      "tests": [],
+      "extensions": {}
+    },
+    {
+      "id": "INV-1",
+      "revision": 2,
+      "ref": "INV-1~2",
+      "statement": "WHEN an invoice is totalled THE SYSTEM SHALL add the amount of each line.\n\nExamples:\n  invoice_total(lines=3) => 17",
+      "status": "active",
+      "statement_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+      "location": {"file": "specs/invoicing.md", "line": 5},
+      "in_focus": true,
+      "examples": [
+        {"index": 1, "operation": "invoice_total", "args": {}, "expect": {"kind": "returns", "type": "integer", "value": "17"}},
+        {"index": 0, "operation": "line_amount", "args": {}, "expect": {"kind": "returns", "type": "integer", "value": "12"}}
+      ],
+      "tests": [],
+      "extensions": {}
+    },
+    {
+      "id": "INV-9",
+      "revision": 1,
+      "ref": "INV-9~1",
+      "statement": "Printed copies are archived.",
+      "status": "non_testable",
+      "statement_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+      "location": {"file": "specs/invoicing.md", "line": 14},
+      "in_focus": false,
+      "tests": [],
+      "extensions": {}
+    },
+    {
+      "id": "SHP-1",
+      "revision": 1,
+      "ref": "SHP-1~1",
+      "statement": "WHEN a parcel is dispatched THE SYSTEM SHALL record the carrier.",
+      "status": "active",
+      "statement_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+      "location": {"file": "specs/shipping.yaml", "line": 2},
+      "in_focus": true,
+      "tests": [],
+      "extensions": {}
+    }
+  ],
+  "out_of_scope": [
+    {"spec_file": "specs/invoicing.md", "line": 20, "dimension": "permissions", "reason": "single-user tool"},
+    {"spec_file": "specs/invoicing.md", "line": 21, "dimension": "concurrency", "reason": "single-threaded batch"},
+    {"spec_file": "specs/invoicing.md", "line": 22, "dimension": "telepathy", "reason": "not a dimension"},
+    {"spec_file": "specs/shipping.yaml", "line": 30, "dimension": "time_and_locale", "reason": "dates are UTC"}
+  ],
+  "findings": [],
+  "extensions": {}
+}

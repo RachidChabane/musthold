@@ -1,0 +1,1 @@
+Read each requirement and decide whether a test could verify it as written. Answer one question per requirement, using the requirement token as the question identifier. For each give one option and, when you can, your confidence in it as a number between 0 and 1.

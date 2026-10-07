@@ -12,7 +12,7 @@ exclude:
   - '**/*.md'
   - '**/*.json'
 test_commands:
-  - go tool gotestsum --format pkgname --junitfile build/test-results/go.xml -- -count=1 -p 1 ./...
+  - go tool gotestsum --format pkgname --junitfile build/test-results/go.xml -- -count=1 -p 1 -tags grammar_subset,grammar_subset_python ./...
 severities:
   tag_not_in_results: error
   bound_non_testable: error
