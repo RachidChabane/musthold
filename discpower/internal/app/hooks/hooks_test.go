@@ -65,8 +65,10 @@ func newFixture(t *testing.T) *fixture {
 }
 
 func (f *fixture) handler(harness hostharness.Harness) hooks.Handler {
-	return hooks.Handler{Harness: harness, Store: f.store, Transcripts: f.transcripts}
+	return hooks.Handler{Harness: harness, Open: f.open, Transcripts: f.transcripts}
 }
+
+func (f *fixture) open() (hooks.Store, error) { return f.store, nil }
 
 func (f *fixture) events() []hostproto.Event {
 	records, err := f.store.Records()
@@ -293,7 +295,7 @@ func TestExecutorToolGuard(t *testing.T) {
 
 	t.Run("a call that cannot be checked is denied, never allowed [verifies SP-234~1]", func(t *testing.T) {
 		f := newFixture(t)
-		handler := hooks.Handler{Harness: claude, Store: failingStore{f.store}, Transcripts: f.transcripts}
+		handler := hooks.Handler{Harness: claude, Open: func() (hooks.Store, error) { return failingStore{f.store}, nil }, Transcripts: f.transcripts}
 		output, err := handler.Handle(hostproto.HookPreTool, []byte(executorCall(t, claude, f.ticketText(), agentID, judgeRole)))
 		if err != nil || claudeDecision(t, output).Permission != "deny" {
 			t.Fatalf("output %q, error %v", output, err)
@@ -363,10 +365,12 @@ func call(t *testing.T, harness hostharness.Harness, tool, ticket string) hostpr
 	return hostproto.ToolCall{Name: harness.ToolName(tool), Input: json.RawMessage(marshal(t, map[string]string{"ticket": ticket}))}
 }
 
-func stopPayload(t *testing.T, reply string) []byte {
+func stopPayload(t *testing.T, reply string) []byte { return stopPayloadOf(t, judgeRole, reply) }
+
+func stopPayloadOf(t *testing.T, agentType, reply string) []byte {
 	t.Helper()
 	return []byte(marshal(t, map[string]any{
-		"hook_event_name": "SubagentStop", "agent_id": agentID, "agent_type": judgeRole,
+		"hook_event_name": "SubagentStop", "agent_id": agentID, "agent_type": agentType,
 		"agent_transcript_path": transcriptPath, "last_assistant_message": reply,
 	}))
 }
@@ -571,7 +575,7 @@ func TestHarnessVariants(t *testing.T) {
 
 	t.Run("on Codex the executor of the role gets a capability, the main agent is denied and a launch is left alone [verifies SP-238~1]", func(t *testing.T) {
 		f := newFixture(t)
-		output, err := f.handler(codex).Handle(hostproto.HookPreTool, []byte(executorCall(t, codex, f.ticketText(), agentID, judgeRole)))
+		output, err := f.handler(codex).Handle(hostproto.HookPreTool, []byte(executorCall(t, codex, f.ticketText(), agentID, codex.AgentType(judgeRole))))
 		if err != nil || claudeDecision(t, output).Updated["cap"] == nil {
 			t.Fatalf("output %q, error %v", output, err)
 		}
@@ -587,7 +591,7 @@ func TestHarnessVariants(t *testing.T) {
 
 	t.Run("on Codex the role of an agent may come from the journal when the call does not carry its type [verifies SP-238~1]", func(t *testing.T) {
 		f := newFixture(t)
-		start := marshal(t, map[string]any{"hook_event_name": "SubagentStart", "agent_id": agentID, "agent_type": judgeRole})
+		start := marshal(t, map[string]any{"hook_event_name": "SubagentStart", "agent_id": agentID, "agent_type": codex.AgentType(judgeRole)})
 		if _, err := f.handler(codex).Handle(hostproto.HookSubagentStart, []byte(start)); err != nil {
 			t.Fatal(err)
 		}
@@ -605,7 +609,7 @@ func TestHarnessVariants(t *testing.T) {
 		f := newFixture(t)
 		f.transcripts[transcriptPath] = executorTranscript(t, codex,
 			call(t, codex, hostproto.ToolFetchRequest, f.ticketText()), call(t, codex, hostproto.ToolSubmitResponse, f.ticketText()))
-		if _, err := f.handler(codex).Handle(hostproto.HookSubagentStop, stopPayload(t, executorrun.Receipt(f.ticket.TicketID))); err != nil {
+		if _, err := f.handler(codex).Handle(hostproto.HookSubagentStop, stopPayloadOf(t, codex.AgentType(judgeRole), executorrun.Receipt(f.ticket.TicketID))); err != nil {
 			t.Fatal(err)
 		}
 		if !slices.Contains(f.kinds(), hostproto.EventAttested) {
@@ -621,14 +625,14 @@ func TestHarnessVariants(t *testing.T) {
 				"sessionId": "s", "toolName": copilot.ToolName(hostproto.ToolFetchRequest), "toolArgs": args, "agentType": agentType, "agentId": agentID,
 			}))
 		}
-		output, err := f.handler(copilot).Handle(hostproto.HookPreTool, call(deciderRole))
+		output, err := f.handler(copilot).Handle(hostproto.HookPreTool, call(copilot.AgentType(deciderRole)))
 		var parsed struct {
 			Permission string `json:"permissionDecision"`
 		}
 		if err != nil || json.Unmarshal(output, &parsed) != nil || parsed.Permission != "deny" {
 			t.Fatalf("output %q, error %v", output, err)
 		}
-		output, err = f.handler(copilot).Handle(hostproto.HookPreTool, call(judgeRole))
+		output, err = f.handler(copilot).Handle(hostproto.HookPreTool, call(copilot.AgentType(judgeRole)))
 		if err != nil || len(output) != 0 {
 			t.Fatalf("a capability was issued on Copilot: %q, %v", output, err)
 		}
@@ -646,7 +650,7 @@ func TestHarnessVariants(t *testing.T) {
 
 	t.Run("Copilot has no start hook and no run report to serve [verifies SP-238~1]", func(t *testing.T) {
 		f := newFixture(t)
-		start := marshal(t, map[string]any{"agentId": agentID, "agentType": judgeRole})
+		start := marshal(t, map[string]any{"agentId": agentID, "agentType": copilot.AgentType(judgeRole)})
 		if _, err := f.handler(copilot).Handle(hostproto.HookSubagentStart, []byte(start)); err != nil || len(f.events()) != 0 {
 			t.Fatalf("events = %v, error %v", f.events(), err)
 		}
@@ -660,6 +664,61 @@ func TestHarnessVariants(t *testing.T) {
 		f := newFixture(t)
 		if _, err := f.handler(hostharness.Claude()).Handle(hostproto.HookKind("stop"), []byte(`{}`)); err == nil {
 			t.Fatal("an unknown hook was served")
+		}
+	})
+}
+
+func TestHooksOfOtherProjectsAndAgents(t *testing.T) {
+	claude := hostharness.Claude()
+	unusable := func() (hooks.Store, error) { return nil, errors.New("the state directory cannot be created") }
+	handler := hooks.Handler{Harness: claude, Open: unusable, Transcripts: memoryTranscripts{}}
+
+	t.Run("a call that is not about the module's executors never opens the store and is left alone [verifies SP-239~1]", func(t *testing.T) {
+		for name, test := range map[string]struct {
+			kind    hostproto.HookKind
+			payload string
+		}{
+			"a launch of another subagent": {hostproto.HookPreTool, agentLaunch(t, "general-purpose", "do things", nil)},
+			"a shell command":              {hostproto.HookPreTool, `{"tool_name":"Bash","tool_input":{"command":"ls"}}`},
+			"a tool of another server":     {hostproto.HookPreTool, `{"tool_name":"mcp__plugin_other_exec__fetch_request","tool_input":{}}`},
+			"the drain tool":               {hostproto.HookPreTool, `{"tool_name":"mcp__plugin_spec-proof-dp_exec__drain","tool_input":{"module":"dp"}}`},
+			"the start of another agent":   {hostproto.HookSubagentStart, `{"agent_id":"a","agent_type":"general-purpose"}`},
+			"the stop of another agent":    {hostproto.HookSubagentStop, `{"agent_id":"a","agent_type":"other:judge","agent_transcript_path":"/x"}`},
+			"the end of another launch":    {hostproto.HookPostTool, `{"tool_name":"Agent","tool_input":{"subagent_type":"general-purpose","prompt":"x"}}`},
+		} {
+			output, err := handler.Handle(test.kind, []byte(test.payload))
+			if err != nil || len(output) != 0 {
+				t.Errorf("%s: output %q, error %v", name, output, err)
+			}
+		}
+	})
+
+	t.Run("a call of the module's own tools that cannot be checked is denied and the others report an error [verifies SP-239~1]", func(t *testing.T) {
+		f := newFixture(t)
+		for name, payload := range map[string]string{
+			"an executor launch": agentLaunch(t, judgeRole, hostproto.ExecutorPrompt(f.ticket.TicketID), nil),
+			"an executor tool":   executorCall(t, claude, f.ticketText(), agentID, judgeRole),
+		} {
+			output, err := handler.Handle(hostproto.HookPreTool, []byte(payload))
+			if err != nil || claudeDecision(t, output).Permission != "deny" {
+				t.Errorf("%s: output %q, error %v", name, output, err)
+			}
+		}
+		start := marshal(t, map[string]any{"agent_id": agentID, "agent_type": judgeRole})
+		if _, err := handler.Handle(hostproto.HookSubagentStart, []byte(start)); err == nil {
+			t.Error("a start that could not be journaled reported no error")
+		}
+	})
+
+	t.Run("a receipt with whitespace around it is still the bare receipt [verifies SP-239~1]", func(t *testing.T) {
+		f := newFixture(t)
+		f.transcripts[transcriptPath] = executorTranscript(t, claude,
+			call(t, claude, hostproto.ToolFetchRequest, f.ticketText()), call(t, claude, hostproto.ToolSubmitResponse, f.ticketText()))
+		if _, err := f.handler(claude).Handle(hostproto.HookSubagentStop, stopPayload(t, "\n"+executorrun.Receipt(f.ticket.TicketID)+"\n")); err != nil {
+			t.Fatal(err)
+		}
+		if kinds := f.kinds(); !slices.Contains(kinds, hostproto.EventAttested) || slices.Contains(kinds, hostproto.EventLeaked) {
+			t.Fatalf("events = %v", kinds)
 		}
 	})
 }

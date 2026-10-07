@@ -90,16 +90,33 @@ func TestHarnessStrategies(t *testing.T) {
 		}
 	})
 
-	t.Run("only the three executor agents of the plugin are executor roles [verifies SP-228~1]", func(t *testing.T) {
-		for _, role := range []string{"spec-proof-dp:generator", "spec-proof-dp:judge", "spec-proof-dp:decider"} {
-			if !hostharness.IsExecutorRole(role) {
-				t.Errorf("%s is not an executor role", role)
+	t.Run("an agent type is an executor of the plugin only in the form its harness reports, and maps back to its role [verifies SP-228~1]", func(t *testing.T) {
+		forms := map[string]string{
+			hostharness.FlagClaude: "spec-proof-dp:", hostharness.FlagCodex: "spec-proof-dp-", hostharness.FlagCopilot: "spec-proof-dp-",
+		}
+		for _, harness := range hostharness.All() {
+			prefix := forms[harness.Flag]
+			for _, agent := range []string{"generator", "judge", "decider"} {
+				role := "spec-proof-dp:" + agent
+				if got := harness.AgentType(role); got != prefix+agent {
+					t.Errorf("%s: type of %s = %q", harness.Flag, role, got)
+				}
+				if back, ok := harness.RoleOf(prefix + agent); !ok || back != role {
+					t.Errorf("%s: %s%s maps to %q, %v", harness.Flag, prefix, agent, back, ok)
+				}
+			}
+			foreign := "spec-proof-dp-judge"
+			if harness.Flag != hostharness.FlagClaude {
+				foreign = "spec-proof-dp:judge"
+			}
+			for _, wrong := range []string{"", "judge", prefix, prefix + "boss", "x" + prefix + "judge", prefix + "judge:x", prefix + "judgey", foreign} {
+				if role, ok := harness.RoleOf(wrong); ok {
+					t.Errorf("%s: %q was taken for %q", harness.Flag, wrong, role)
+				}
 			}
 		}
-		for _, role := range []string{"", "judge", "spec-proof-dp:", "spec-proof-dp:boss", "other:judge", "spec-proof-dp:judge:x"} {
-			if hostharness.IsExecutorRole(role) {
-				t.Errorf("%q is an executor role", role)
-			}
+		if hostharness.Claude().AgentType("judge") != "" {
+			t.Error("a role without a plugin has an agent type")
 		}
 	})
 }

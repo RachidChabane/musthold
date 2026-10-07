@@ -65,6 +65,14 @@ func (r Repository) HeadSHA(ctx context.Context) (string, error) {
 	return r.git(ctx, nil, "rev-parse", "HEAD")
 }
 
+// HasUncommittedChanges reports whether a tracked file differs from the head
+// commit, which makes the requests the host answered differ from the ones CI
+// recomputes from that commit.
+func (r Repository) HasUncommittedChanges(ctx context.Context) (bool, error) {
+	status, err := r.git(ctx, nil, "status", "--porcelain", "--untracked-files=no")
+	return status != "", err
+}
+
 // Publish writes the files as a tree and a commit and points ref at the commit.
 // It returns the commit's id. A ref that exists is replaced.
 func (r Repository) Publish(ctx context.Context, ref string, files []hostbundle.File) (string, error) {

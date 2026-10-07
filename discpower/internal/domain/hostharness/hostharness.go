@@ -76,9 +76,14 @@ type Harness struct {
 	server string
 	// toolName renders the name the harness gives a tool of the server.
 	toolName func(server, tool string) string
+	// agentType renders the type the harness reports for an executor agent.
+	agentType func(agent hostproto.Agent) string
 	// acceptedForms are the other spellings a hook payload may use for a tool.
 	acceptedForms []func(server, tool string) string
 }
+
+// standaloneAgentName is the name of an agent on a harness without plugin scope.
+func standaloneAgentName(agent hostproto.Agent) string { return PluginName + "-" + string(agent) }
 
 func mcpDoubleUnderscore(server, tool string) string { return "mcp__" + server + "__" + tool }
 func slashed(server, tool string) string             { return server + "/" + tool }
@@ -92,6 +97,7 @@ func Claude() Harness {
 		Behaviours: Behaviours{RewritesLaunch: true, JournalsStart: true, IssuesCap: true, ChecksStop: true, ReportsRun: true, IdentifiesCaller: true},
 		server:     "plugin_" + PluginName + "_" + ExecutorServer,
 		toolName:   mcpDoubleUnderscore,
+		agentType:  func(agent hostproto.Agent) string { return hostproto.RoleFor(PluginName, agent) },
 	}
 }
 
@@ -104,6 +110,7 @@ func Codex() Harness {
 		Behaviours:    Behaviours{JournalsStart: true, IssuesCap: true, ChecksStop: true, IdentifiesCaller: true},
 		server:        StandaloneExecutorServer,
 		toolName:      mcpDoubleUnderscore,
+		agentType:     standaloneAgentName,
 		acceptedForms: []func(string, string) string{slashed},
 	}
 }
@@ -117,6 +124,7 @@ func Copilot() Harness {
 		Behaviours:    Behaviours{ChecksStop: true},
 		server:        StandaloneExecutorServer,
 		toolName:      slashed,
+		agentType:     standaloneAgentName,
 		acceptedForms: []func(string, string) string{mcpDoubleUnderscore},
 	}
 }
@@ -170,10 +178,24 @@ func (h Harness) ExecutorTool(name string) (string, bool) {
 	return "", false
 }
 
-// IsExecutorRole reports whether an agent type is one of the executor roles of
-// the module's plugin.
-func IsExecutorRole(agentType string) bool {
-	return hostproto.IsExecutorRole(agentType, PluginName)
+// AgentType is the type this harness reports for the executor agent of a role.
+func (h Harness) AgentType(role string) string {
+	_, agent, err := hostproto.ParseRole(role)
+	if err != nil {
+		return ""
+	}
+	return h.agentType(agent)
+}
+
+// RoleOf returns the role of the executor agent an agent type names on this
+// harness, and false for any other agent.
+func (h Harness) RoleOf(agentType string) (string, bool) {
+	for _, agent := range hostproto.Agents() {
+		if h.agentType(agent) == agentType {
+			return hostproto.RoleFor(PluginName, agent), true
+		}
+	}
+	return "", false
 }
 
 // Observed is what the host shows: the plugin and its server are present, and the

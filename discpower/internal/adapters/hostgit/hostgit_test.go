@@ -87,6 +87,25 @@ func TestPublish(t *testing.T) {
 		}
 	})
 
+	t.Run("a tracked file that differs from the head commit is reported, an untracked one is not [verifies SP-247~1]", func(t *testing.T) {
+		root, repo := repository(t)
+		if dirty, err := repo.HasUncommittedChanges(context.Background()); err != nil || dirty {
+			t.Fatalf("clean tree: %v, %v", dirty, err)
+		}
+		if err := os.WriteFile(filepath.Join(root, "untracked.txt"), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if dirty, _ := repo.HasUncommittedChanges(context.Background()); dirty {
+			t.Fatal("an untracked file made the tree dirty")
+		}
+		if err := os.WriteFile(filepath.Join(root, "code.py"), []byte("x = 2\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if dirty, err := repo.HasUncommittedChanges(context.Background()); err != nil || !dirty {
+			t.Fatalf("edited tree: %v, %v", dirty, err)
+		}
+	})
+
 	t.Run("the head commit is read from the repository [verifies SP-247~1]", func(t *testing.T) {
 		root, repo := repository(t)
 		head, err := repo.HeadSHA(context.Background())

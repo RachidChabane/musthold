@@ -171,24 +171,24 @@ func TestHonestHostEndToEnd(t *testing.T) {
 		}
 	})
 
-	t.Run("Shallnot reads the proofs the module wrote and gives no pass to what it cannot confirm [verifies SP-250~1]", func(t *testing.T) {
+	t.Run("Shallnot refuses the project, and the reason is the form of the Statement inputs, not the verdicts [verifies SP-250~1]", func(t *testing.T) {
 		p.writeVerifiedSet(nil)
 		check := p.check()
 		if check.code != exitBlocked {
 			t.Fatalf("shallnot check exited %d:\n%s", check.code, check.output())
 		}
-		blocking := map[string]bool{}
-		for _, f := range check.findings {
-			if f.Blocking {
-				blocking[f.Requirement] = true
-			}
+		// The module records the code, test and spec inputs of a Statement one file or
+		// one statement at a time, while Shallnot recomputes them as the digest of a file
+		// set, so it reads every Statement as stale. The pass of PAR-1 and PAR-2 and the
+		// block of PAR-3 that the module reached therefore cannot be told apart by
+		// `shallnot check` yet: this step asserts the findings that are really there and
+		// does not claim a verdict it cannot reach.
+		if len(check.findings) != 3 {
+			t.Fatalf("findings = %+v", check.findings)
 		}
-		if !blocking["PAR-3"] {
-			t.Errorf("the weak test of PAR-3 is not blocked: %+v", check.findings)
-		}
 		for _, f := range check.findings {
-			if f.Category == "stale_proof" {
-				t.Logf("shallnot reads the Statement of %s as stale: %s", f.Requirement, f.Message)
+			if f.Category != "stale_proof" || !f.Blocking || !strings.Contains(f.Message, "code_tree") {
+				t.Errorf("finding %+v is not a stale code_tree proof", f)
 			}
 		}
 	})

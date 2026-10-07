@@ -80,6 +80,11 @@ func (e Env) push(root, remote string) outcome {
 	if err != nil {
 		return outcome{err: err}
 	}
+	if dirty, err := repository.HasUncommittedChanges(ctx); err != nil {
+		return outcome{err: err}
+	} else if dirty {
+		fmt.Fprintf(e.Stderr, "%s: the working tree differs from %s: CI recomputes the requests from that commit and will not find the answers of the ones that changed\n", e.Binary, head)
+	}
 	store, err := e.hostStore(root)
 	if err != nil {
 		return outcome{err: err}

@@ -437,10 +437,11 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   tolerate the sections other modules keep in the same file.
 - **SP-228~1**: WHEN a host harness is selected THE SYSTEM SHALL name the executor
   tools as that harness spells them, recognize them and no other tool in a hook
-  payload, derive the isolation its allowlist reaches (restricted on Claude Code,
-  unrestricted on Codex, restricted-unverified on Copilot), waive attestation on a
-  harness that cannot issue a capability, and know only the three executor roles
-  of the module's plugin.
+  payload, name the type of each executor agent as that harness reports it and map
+  a reported type back to the role of its requests, derive the isolation its
+  allowlist reaches (restricted on Claude Code, unrestricted on Codex,
+  restricted-unverified on Copilot), and waive attestation on a harness that
+  cannot issue a capability.
 - **SP-229~1**: WHEN a response is read for a proof THE SYSTEM SHALL credit it with
   `restricted-attested` and the digest of its transcript only when the stop hook
   attested the agent that answered and no leak, exposure or conflict marks its
@@ -490,8 +491,11 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   and conclude nothing from a call that carries no agent identity where the
   harness does not identify callers.
 - **SP-239~1**: WHEN `mcp` or `hook` is run THE SYSTEM SHALL refuse a role, harness
-  or hook it does not know with exit 1, block the call when a PreToolUse hook
-  cannot read its payload and only report for the other hooks, and resolve the
+  or hook it does not know with exit 1, report with exit 1 and never block when a
+  hook cannot read its payload, leave a call that is not about the module's
+  executors alone without opening any state, do nothing in a project that has no
+  configuration of the module, deny a call of the module's own tools that it
+  cannot check, accept a receipt with whitespace around it, and resolve the
   project root from the option, the harness's project directory or the working
   directory, with symbolic links resolved, so that the hook, the server and the
   tickets of one project share one host directory.
@@ -509,6 +513,22 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   a skill; give Copilot agents naming server and tool pairs, a hooks file and a
   skill; and carry no text about their own authoring.
 
+## Installation
+
+- **SP-243~1**: WHEN `init` runs THE SYSTEM SHALL require a Shallnot whose report
+  schema is 1.2 or later, write the module's configuration and ignore its local
+  state, install the files of each selected harness (`auto`, `none` or a list of
+  Claude Code, Codex and Copilot) by merging into every file another tool shares
+  and writing the files it owns, plan no change on a second run, and leave
+  Shallnot's configuration, its block of AGENTS.md and its hooks as they were.
+- **SP-244~1**: WHEN `enable` or `disable` runs THE SYSTEM SHALL turn the proof on or
+  off in the module's configuration, add or remove its kind in `proofs.require` of
+  `shallnot.yaml` and its block of AGENTS.md by line edits that keep every other
+  byte, so that disabling restores what enabling changed, refuse a project with
+  no `shallnot.yaml`, and refuse a layout it cannot extend without rewriting.
+- **SP-245~1**: WHEN `doctor` runs THE SYSTEM SHALL check that the report schema
+  Shallnot prints accepts version 1.2 and refuses 1.1, and report the check.
+
 ## CI authority
 
 - **SP-246~1**: WHEN a host bundle is made or read THE SYSTEM SHALL list the
@@ -523,8 +543,8 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   with the profile it is credited with and the marks against it as a tree under the
   ref of the head commit with git plumbing, replace a ref that exists, publish the
   ref to a remote when asked, touch neither the working tree nor the current
-  branch, refuse a store whose journal chain is broken and publish nothing when
-  nothing is answered.
+  branch, warn when a tracked file differs from the head commit, refuse a store
+  whose journal chain is broken and publish nothing when nothing is answered.
 - **SP-248~1**: WHEN `host pull --ci-run ID` runs THE SYSTEM SHALL download the
   artifact of the run with `gh`, refuse a download that fails or a bundle that is
   not one, and make tickets of the requests it holds once, with the votes and the
@@ -544,10 +564,10 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   proved THE SYSTEM SHALL have the end-of-turn hook of Shallnot hold the turn with
   `awaiting_host` naming the module's skill while the host owes answers, let a
   simulated Claude Code host answer every ticket through the real hooks and the
-  real executor server until `prove` ends, block the criterion whose test is
-  weak, journal the executors as started, fetched, accepted, attested and
-  reported with no leak, exposure or conflict, deny a main-session call of an
-  executor tool, and have `shallnot check` block the project.
+  real executor server until `prove` ends with a pass for the adequate tests and a
+  block for the weak one, journal the executors as started, fetched, accepted,
+  attested and reported with no leak, exposure or conflict, deny a main-session
+  call of an executor tool, and have `shallnot check` refuse the project.
 - **SP-251~1**: WHEN a forger answers every ticket from the command line, or a host
   runs executors whose hooks never fire, THE SYSTEM SHALL give no criterion a
   pass, accept no uncapped answer, write no Statement for a hookless host and

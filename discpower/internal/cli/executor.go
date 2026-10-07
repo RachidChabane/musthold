@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/responsecheck"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/transcriptfile"
@@ -12,6 +14,7 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/hooks"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/requests"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostharness"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/projectconfig"
 	"github.com/RachidChabane/spec-proof/discpower/internal/version"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
@@ -129,7 +132,7 @@ func (e Env) hook(args []string) outcome {
 	}
 	output, err := e.runHook(*root, harness, kind, payload)
 	if err != nil {
-		return outcome{err: hookFailure(kind, err)}
+		return outcome{err: refusal{err}}
 	}
 	if len(output) > 0 {
 		if _, err := e.Stdout.Write(output); err != nil {
@@ -144,11 +147,13 @@ func (e Env) runHook(rootFlag string, harness hostharness.Harness, kind hostprot
 	if err != nil {
 		return nil, err
 	}
-	store, err := e.hostStore(root)
-	if err != nil {
-		return nil, err
+	// The plugin's hooks run in every project of the user: one that has no
+	// configuration of the module is none of their business.
+	if _, err := os.Stat(filepath.Join(root, projectconfig.Directory, projectconfig.FileName)); err != nil {
+		return nil, nil
 	}
-	return hooks.Handler{Harness: harness, Store: store, Transcripts: transcriptfile.Reader{}}.Handle(kind, payload)
+	open := func() (hooks.Store, error) { return e.hostStore(root) }
+	return hooks.Handler{Harness: harness, Open: open, Transcripts: transcriptfile.Reader{}}.Handle(kind, payload)
 }
 
 func isHookKind(kind hostproto.HookKind) bool {
@@ -158,14 +163,4 @@ func isHookKind(kind hostproto.HookKind) bool {
 		}
 	}
 	return false
-}
-
-// hookFailure classifies the error of a hook that failed: a PreToolUse hook
-// blocks the call it could not check, as a tool failure does, and the others
-// report without blocking, as a refusal does.
-func hookFailure(kind hostproto.HookKind, err error) error {
-	if kind == hostproto.HookPreTool {
-		return err
-	}
-	return refusal{err}
 }

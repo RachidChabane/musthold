@@ -66,6 +66,18 @@ func TestHostPush(t *testing.T) {
 		}
 	})
 
+	t.Run("push warns when the working tree differs from the commit it names [verifies SP-247~1]", func(t *testing.T) {
+		f := newHostFixture(t)
+		commitProject(t, f.root)
+		ticket := f.emit(hostprototest.Request(), 0)
+		answerFromCLI(t, f, ticket)
+		writeFile(t, filepath.Join(f.root, "parcel", "rates.py"), "# edited\n")
+		code, _, stderr := f.run(nil, "host", "push")
+		if code != cli.ExitClean || !strings.Contains(stderr, "working tree differs") {
+			t.Fatalf("exit %d, stderr %q", code, stderr)
+		}
+	})
+
 	t.Run("push refuses to publish nothing, and fails outside a repository [verifies SP-247~1]", func(t *testing.T) {
 		f := newHostFixture(t)
 		if code, _, _ := f.run(nil, "host", "push"); code != cli.ExitToolFailure {

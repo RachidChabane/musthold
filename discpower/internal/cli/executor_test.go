@@ -154,11 +154,8 @@ func TestExecutorCommandRefusals(t *testing.T) {
 		}
 	})
 
-	t.Run("a pre-tool hook that cannot read its payload blocks the call, the others report only [verifies SP-239~1]", func(t *testing.T) {
-		if code, _, _ := h.run("not json", "hook", "pre-tool"); code != cli.ExitToolFailure {
-			t.Errorf("pre-tool exit = %d", code)
-		}
-		for _, kind := range []string{"subagent-start", "subagent-stop", "post-tool"} {
+	t.Run("a hook that cannot read its payload only reports, so that it never blocks a call that is not the module's [verifies SP-239~1]", func(t *testing.T) {
+		for _, kind := range []string{"pre-tool", "subagent-start", "subagent-stop", "post-tool"} {
 			if code, _, _ := h.run("not json", "hook", kind); code != cli.ExitBlocked {
 				t.Errorf("%s exit = %d", kind, code)
 			}
@@ -221,4 +218,41 @@ func marshalJSON(t *testing.T, value any) string {
 		t.Fatal(err)
 	}
 	return string(encoded)
+}
+
+func TestHooksInAProjectWithoutTheModule(t *testing.T) {
+	t.Run("a hook in a project that has no configuration of the module does nothing and creates no state [verifies SP-239~1]", func(t *testing.T) {
+		h := claudeHost(t)
+		if err := os.Remove(filepath.Join(h.root, ".spec-proof", "config.yaml")); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.RemoveAll(h.state); err != nil {
+			t.Fatal(err)
+		}
+		payload := executorCallPayload(t, h, "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5.0.1")
+		code, stdout, stderr := h.run(payload, "hook", "pre-tool")
+		if code != cli.ExitClean || stdout != "" || stderr != "" {
+			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
+		}
+		if _, err := os.Stat(h.state); !os.IsNotExist(err) {
+			t.Fatalf("the hook created state: %v", err)
+		}
+	})
+
+	t.Run("a call that is not the module's passes through although the state directory is unusable [verifies SP-239~1]", func(t *testing.T) {
+		h := claudeHost(t)
+		blocker := filepath.Join(t.TempDir(), "file")
+		writeFile(t, blocker, "not a directory")
+		variables := map[string]string{"XDG_STATE_HOME": filepath.Join(blocker, "state")}
+		var out, errOut bytes.Buffer
+		code := cli.Run(cli.Env{
+			Binary: "spec-proof-dp", Stdin: strings.NewReader(`{"tool_name":"Agent","tool_input":{"subagent_type":"general-purpose","prompt":"x"}}`),
+			Stdout: &out, Stderr: &errOut, WorkDir: h.root, HomeDir: h.state,
+			LookupEnv: func(name string) (string, bool) { value, found := variables[name]; return value, found },
+			Now:       func() time.Time { return h.now }, Entropy: h.entropy,
+		}, []string{"hook", "pre-tool"})
+		if code != cli.ExitClean || out.Len() != 0 {
+			t.Fatalf("exit %d, stdout %q, stderr %q", code, out.String(), errOut.String())
+		}
+	})
 }

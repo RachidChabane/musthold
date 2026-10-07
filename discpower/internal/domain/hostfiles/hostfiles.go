@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -69,13 +70,14 @@ func HookCommand(kind hostproto.HookKind, harness hostharness.Harness) string {
 	return fmt.Sprintf("%s%s --harness %s", HookCommandMarker, kind, harness.Flag)
 }
 
-// ExecutorRoleMatcher matches the type of the executor agents of the plugin.
-func ExecutorRoleMatcher() string {
-	names := make([]string, 0, len(agents()))
+// ExecutorRoleMatcher matches the types the harness reports for the executor
+// agents of the plugin, and no other agent type.
+func ExecutorRoleMatcher(harness hostharness.Harness) string {
+	types := make([]string, 0, len(agents()))
 	for _, agent := range agents() {
-		names = append(names, string(agent))
+		types = append(types, regexp.QuoteMeta(harness.AgentType(hostproto.RoleFor(hostharness.PluginName, agent))))
 	}
-	return "^" + hostharness.PluginName + hostproto.RoleSeparator + "(" + strings.Join(names, "|") + ")$"
+	return "^(" + strings.Join(types, "|") + ")$"
 }
 
 // For returns the files shipped for a harness.
@@ -244,8 +246,8 @@ func claudePlugin(harness hostharness.Harness) ([]File, error) {
 	}
 	hooks, err := encodeJSON(snakeHooks{Hooks: map[string][]matcherGroup{
 		eventPreToolUse:    group(claudeToolMatcher, hostproto.HookPreTool, harness),
-		eventSubagentStart: group(ExecutorRoleMatcher(), hostproto.HookSubagentStart, harness),
-		eventSubagentStop:  group(ExecutorRoleMatcher(), hostproto.HookSubagentStop, harness),
+		eventSubagentStart: group(ExecutorRoleMatcher(harness), hostproto.HookSubagentStart, harness),
+		eventSubagentStop:  group(ExecutorRoleMatcher(harness), hostproto.HookSubagentStop, harness),
 		eventPostToolUse:   group(launchTool, hostproto.HookPostTool, harness),
 	}})
 	if err != nil {
@@ -326,8 +328,8 @@ func codexFiles(harness hostharness.Harness) ([]File, error) {
 	}
 	hooks, err := encodeJSON(snakeHooks{Hooks: map[string][]matcherGroup{
 		eventPreToolUse:    group(codexToolMatcher, hostproto.HookPreTool, harness),
-		eventSubagentStart: group(ExecutorRoleMatcher(), hostproto.HookSubagentStart, harness),
-		eventSubagentStop:  group(ExecutorRoleMatcher(), hostproto.HookSubagentStop, harness),
+		eventSubagentStart: group(ExecutorRoleMatcher(harness), hostproto.HookSubagentStart, harness),
+		eventSubagentStop:  group(ExecutorRoleMatcher(harness), hostproto.HookSubagentStop, harness),
 	}})
 	if err != nil {
 		return nil, err

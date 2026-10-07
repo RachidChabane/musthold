@@ -14,7 +14,7 @@
     ],
     "SubagentStart": [
       {
-        "matcher": "^spec-proof-dp:(generator|judge|decider)$",
+        "matcher": "^(spec-proof-dp-generator|spec-proof-dp-judge|spec-proof-dp-decider)$",
         "hooks": [
           {
             "type": "command",
@@ -26,7 +26,7 @@
     ],
     "SubagentStop": [
       {
-        "matcher": "^spec-proof-dp:(generator|judge|decider)$",
+        "matcher": "^(spec-proof-dp-generator|spec-proof-dp-judge|spec-proof-dp-decider)$",
         "hooks": [
           {
             "type": "command",

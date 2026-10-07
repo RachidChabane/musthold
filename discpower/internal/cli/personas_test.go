@@ -24,7 +24,8 @@ import (
 
 const (
 	protocolVersion    = "2025-06-18"
-	requireOptOutYAML  = "host:\n  require_attestation: false\n"
+	moduleConfigYAML   = "proofs:\n  discriminating-power: true\n"
+	requireOptOutYAML  = "proofs:\n  discriminating-power: true\nhost:\n  require_attestation: false\n"
 	agentIDFormat      = "agent-%04d"
 	sessionID          = "session-1"
 	usageInputTokens   = 8320
@@ -90,6 +91,7 @@ func newCommandHost(t *testing.T, observed hostproto.Observed, policy hostproto.
 	default:
 		h.harness = hostharness.Claude()
 	}
+	h.writeConfig(moduleConfigYAML)
 	if !policy.RequireAttestation {
 		h.writeConfig(requireOptOutYAML)
 	}
@@ -275,7 +277,7 @@ func (h *commandHost) StartExecutor(role string) string {
 	agentID := fmt.Sprintf(agentIDFormat, h.counter)
 	h.roles[agentID] = role
 	if _, code := h.runHook(hostproto.HookSubagentStart, map[string]any{
-		"hook_event_name": "SubagentStart", "session_id": sessionID, "agent_id": agentID, "agent_type": role,
+		"hook_event_name": "SubagentStart", "session_id": sessionID, "agent_id": agentID, "agent_type": h.harness.AgentType(role),
 	}); code != cli.ExitClean {
 		h.t.Fatalf("subagent-start exited %d", code)
 	}
@@ -288,7 +290,7 @@ func (h *commandHost) Cap(agentID string) string {
 		return ""
 	}
 	stdout, code := h.runHook(hostproto.HookPreTool, map[string]any{
-		"hook_event_name": "PreToolUse", "session_id": sessionID, "agent_id": agentID, "agent_type": h.roles[agentID],
+		"hook_event_name": "PreToolUse", "session_id": sessionID, "agent_id": agentID, "agent_type": h.harness.AgentType(h.roles[agentID]),
 		"tool_name":  h.harness.ToolName(hostproto.ToolFetchRequest),
 		"tool_input": map[string]string{"ticket": h.current.TicketID.String(), "cap": ""},
 	})
@@ -350,7 +352,7 @@ func (h *commandHost) AfterRun(run hostprototest.Run) error {
 	}
 	role := h.roles[run.AgentID]
 	if _, code := h.runHook(hostproto.HookSubagentStop, map[string]any{
-		"hook_event_name": "SubagentStop", "session_id": sessionID, "agent_id": run.AgentID, "agent_type": role,
+		"hook_event_name": "SubagentStop", "session_id": sessionID, "agent_id": run.AgentID, "agent_type": h.harness.AgentType(role),
 		"agent_transcript_path": path, "last_assistant_message": run.Reply,
 	}); code != cli.ExitClean {
 		h.t.Fatalf("subagent-stop exited %d", code)

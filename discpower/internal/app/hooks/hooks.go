@@ -3,6 +3,10 @@
 // capability, checks its transcript when it stops and records what the harness
 // reports about the run. A hook decides nothing about a proof; it only produces
 // the evidence the lifecycle and the claim power read.
+//
+// The plugin's hooks run in every project of the user, so a hook first decides
+// whether the call concerns the module's executors at all and opens the host
+// store only when it does.
 package hooks
 
 import (
@@ -24,6 +28,7 @@ const (
 	reasonMainAgent         = "the executor tools belong to the executor subagents"
 	reasonInternal          = "the module could not check the call"
 	reasonLaunchRole        = "the ticket belongs to another role than the subagent"
+	reasonNotBareReceipt    = "the reply is not the bare receipt"
 )
 
 // Store is what the hooks read and write of the host directory.
@@ -40,9 +45,13 @@ type TranscriptSource interface {
 
 // Handler serves the hooks of one harness.
 type Handler struct {
-	Harness     hostharness.Harness
-	Store       Store
+	Harness hostharness.Harness
+	// Open opens the host store. A hook that is not about the module's executors
+	// never calls it.
+	Open        func() (Store, error)
 	Transcripts TranscriptSource
+
+	store Store
 }
 
 // ErrUnsupportedHook is returned for a hook kind the module does not serve.
@@ -66,7 +75,7 @@ func (h Handler) Handle(kind hostproto.HookKind, payload []byte) ([]byte, error)
 	case hostproto.HookSubagentStart:
 		return nil, h.subagentStart(event)
 	case hostproto.HookSubagentStop:
-		return h.subagentStop(event)
+		return nil, h.subagentStop(event)
 	case hostproto.HookPostTool:
 		return nil, h.postTool(event)
 	default:
@@ -74,8 +83,18 @@ func (h Handler) Handle(kind hostproto.HookKind, payload []byte) ([]byte, error)
 	}
 }
 
+// bound returns the handler with its store opened.
+func (h Handler) bound() (Handler, error) {
+	store, err := h.Open()
+	if err != nil {
+		return h, err
+	}
+	h.store = store
+	return h, nil
+}
+
 func (h Handler) journal(kind hostproto.EventKind, ticket, agentID, role, detail string) error {
-	_, err := h.Store.Append(hostproto.Event{Kind: kind, Ticket: ticket, AgentID: agentID, Role: role, Detail: detail})
+	_, err := h.store.Append(hostproto.Event{Kind: kind, Ticket: ticket, AgentID: agentID, Role: role, Detail: detail})
 	if err != nil {
 		return fmt.Errorf("journal %s: %w", kind, err)
 	}
@@ -90,6 +109,12 @@ func (h Handler) deny(reason string) ([]byte, error) {
 	return h.decide(hostproto.PermissionDeny, reason, nil)
 }
 
+// isReceipt reports whether a reply is the bare receipt of the ticket, whatever
+// whitespace the model put around it.
+func isReceipt(reply string, ticket hostproto.TicketID) bool {
+	return strings.TrimSpace(reply) == executorrun.Receipt(ticket)
+}
+
 // ticketOfInput reads the ticket an executor tool call names.
 func ticketOfInput(toolInput json.RawMessage) (hostproto.TicketID, error) {
 	var input struct {
@@ -101,16 +126,17 @@ func ticketOfInput(toolInput json.RawMessage) (hostproto.TicketID, error) {
 	return hostproto.ParseTicketID(input.Ticket)
 }
 
-// roleOfAgent is the role an agent runs as: the type the harness reports, or the
-// role the journal recorded when the agent started.
+// roleOfAgent is the role an agent runs as: the role of the type the harness
+// reports, or the role the journal recorded when the agent started. It is empty
+// for an agent that is not one of the module's executors.
 func (h Handler) roleOfAgent(event hostproto.HookEvent) (string, error) {
-	if event.AgentType != "" {
-		return event.AgentType, nil
+	if role, ours := h.Harness.RoleOf(event.AgentType); ours {
+		return role, nil
 	}
-	if event.AgentID == "" {
+	if event.AgentID == "" || event.AgentType != "" {
 		return "", nil
 	}
-	records, err := h.Store.Records()
+	records, err := h.store.Records()
 	if err != nil {
 		return "", err
 	}
@@ -124,13 +150,29 @@ func (h Handler) roleOfAgent(event hostproto.HookEvent) (string, error) {
 
 func (h Handler) preTool(event hostproto.HookEvent) ([]byte, error) {
 	if hostproto.IsAgentTool(event.ToolName) && h.Harness.Behaviours.RewritesLaunch {
-		return h.rewriteLaunch(event)
+		input, err := hostproto.DecodeAgentInput(event.ToolInput)
+		if err != nil {
+			return nil, nil
+		}
+		role, ours := h.Harness.RoleOf(input.SubagentType)
+		if !ours {
+			return nil, nil
+		}
+		bound, err := h.bound()
+		if err != nil {
+			return h.deny(reasonInternal + ": " + err.Error())
+		}
+		return bound.rewriteLaunch(input, role)
 	}
 	tool, executorTool := h.Harness.ExecutorTool(event.ToolName)
 	if !executorTool || tool == hostproto.ToolDrain {
 		return nil, nil
 	}
-	decision, err := h.guardExecutorTool(event)
+	bound, err := h.bound()
+	if err != nil {
+		return h.deny(reasonInternal + ": " + err.Error())
+	}
+	decision, err := bound.guardExecutorTool(event)
 	if err != nil {
 		return h.deny(reasonInternal + ": " + err.Error())
 	}
@@ -139,11 +181,7 @@ func (h Handler) preTool(event hostproto.HookEvent) ([]byte, error) {
 
 // rewriteLaunch rebuilds the launch of an executor to the bare ticket, in the
 // foreground, with no model: the ticket must exist and be for the subagent's role.
-func (h Handler) rewriteLaunch(event hostproto.HookEvent) ([]byte, error) {
-	input, err := hostproto.DecodeAgentInput(event.ToolInput)
-	if err != nil || !hostharness.IsExecutorRole(input.SubagentType) {
-		return nil, nil
-	}
+func (h Handler) rewriteLaunch(input hostproto.AgentInput, role string) ([]byte, error) {
 	sanitized, err := input.Sanitize(hostharness.PluginName)
 	if err != nil {
 		return h.deny(err.Error())
@@ -152,13 +190,13 @@ func (h Handler) rewriteLaunch(event hostproto.HookEvent) ([]byte, error) {
 	if err != nil {
 		return h.deny(err.Error())
 	}
-	entry, err := h.Store.GetEntry(ticket.Key())
+	entry, err := h.store.GetEntry(ticket.Key())
 	switch {
 	case errors.Is(err, hostproto.ErrNotFound):
 		return h.deny(reasonNotExecutorTicket)
 	case err != nil:
 		return h.deny(reasonInternal + ": " + err.Error())
-	case entry.Role != input.SubagentType:
+	case entry.Role != role:
 		return h.deny(reasonLaunchRole)
 	}
 	updated, err := json.Marshal(sanitized)
@@ -176,7 +214,7 @@ func (h Handler) guardExecutorTool(event hostproto.HookEvent) ([]byte, error) {
 	if err != nil {
 		return h.refuse(event, hostproto.TicketID{}, reasonNotExecutorTicket)
 	}
-	entry, err := h.Store.GetEntry(ticket.Key())
+	entry, err := h.store.GetEntry(ticket.Key())
 	if errors.Is(err, hostproto.ErrNotFound) {
 		return h.refuse(event, ticket, reasonNotExecutorTicket)
 	}
@@ -209,7 +247,7 @@ func (h Handler) refuseUnidentified(event hostproto.HookEvent, ticket hostproto.
 }
 
 func (h Handler) issueCap(event hostproto.HookEvent) ([]byte, error) {
-	secret, err := h.Store.Secret()
+	secret, err := h.store.Secret()
 	if err != nil {
 		return nil, err
 	}
@@ -236,42 +274,52 @@ func (h Handler) refuse(event hostproto.HookEvent, ticket hostproto.TicketID, re
 }
 
 func (h Handler) subagentStart(event hostproto.HookEvent) error {
-	if !h.Harness.Behaviours.JournalsStart || !hostharness.IsExecutorRole(event.AgentType) {
+	role, ours := h.Harness.RoleOf(event.AgentType)
+	if !h.Harness.Behaviours.JournalsStart || !ours {
 		return nil
 	}
-	return h.journal(hostproto.EventAgentStarted, "", event.AgentID, event.AgentType, "")
+	bound, err := h.bound()
+	if err != nil {
+		return err
+	}
+	return bound.journal(hostproto.EventAgentStarted, "", event.AgentID, role, "")
 }
 
-func (h Handler) subagentStop(event hostproto.HookEvent) ([]byte, error) {
-	if !h.Harness.Behaviours.ChecksStop || !hostharness.IsExecutorRole(event.AgentType) {
-		return nil, nil
+func (h Handler) subagentStop(event hostproto.HookEvent) error {
+	role, ours := h.Harness.RoleOf(event.AgentType)
+	if !h.Harness.Behaviours.ChecksStop || !ours {
+		return nil
 	}
-	return nil, h.checkRun(event)
+	bound, err := h.bound()
+	if err != nil {
+		return err
+	}
+	return bound.checkRun(event, role)
 }
 
 // checkRun reads the transcript of a stopped executor: its calls must be exactly
 // the fetch and the submit of one ticket and its reply the bare receipt.
-func (h Handler) checkRun(event hostproto.HookEvent) error {
+func (h Handler) checkRun(event hostproto.HookEvent, role string) error {
 	transcript, err := h.Transcripts.Read(event.TranscriptPath)
 	if err != nil {
-		return h.journal(hostproto.EventRestricted, "", event.AgentID, event.AgentType, "transcript unreadable: "+err.Error())
+		return h.journal(hostproto.EventRestricted, "", event.AgentID, role, "transcript unreadable: "+err.Error())
 	}
 	calls, err := hostproto.DecodeTranscript(bytes.NewReader(transcript))
 	if err != nil {
-		return h.journal(hostproto.EventRestricted, "", event.AgentID, event.AgentType, "transcript undecodable: "+err.Error())
+		return h.journal(hostproto.EventRestricted, "", event.AgentID, role, "transcript undecodable: "+err.Error())
 	}
 	ticket, found := fetchedTicket(calls)
 	if !found {
-		return h.journal(hostproto.EventExposed, "", event.AgentID, event.AgentType, "the run never fetched a ticket")
+		return h.journal(hostproto.EventExposed, "", event.AgentID, role, "the run never fetched a ticket")
 	}
 	if err := hostproto.CheckExecutorTranscript(calls, ticket); err != nil {
-		return h.journal(hostproto.EventExposed, ticket.String(), event.AgentID, event.AgentType, err.Error())
+		return h.journal(hostproto.EventExposed, ticket.String(), event.AgentID, role, err.Error())
 	}
-	if event.LastMessage != executorrun.Receipt(ticket) {
-		return h.journal(hostproto.EventLeaked, ticket.String(), event.AgentID, event.AgentType, "the reply is not the bare receipt")
+	if !isReceipt(event.LastMessage, ticket) {
+		return h.journal(hostproto.EventLeaked, ticket.String(), event.AgentID, role, reasonNotBareReceipt)
 	}
 	detail := executorrun.AttestationDetail(hostproto.TranscriptDigest(transcript))
-	return h.journal(hostproto.EventAttested, ticket.String(), event.AgentID, event.AgentType, detail)
+	return h.journal(hostproto.EventAttested, ticket.String(), event.AgentID, role, detail)
 }
 
 // fetchedTicket is the ticket of the first fetch an executor made.
@@ -305,18 +353,26 @@ func (h Handler) postTool(event hostproto.HookEvent) error {
 		return nil
 	}
 	input, err := hostproto.DecodeAgentInput(event.ToolInput)
-	if err != nil || !hostharness.IsExecutorRole(input.SubagentType) {
+	if err != nil {
+		return nil
+	}
+	role, ours := h.Harness.RoleOf(input.SubagentType)
+	if !ours {
 		return nil
 	}
 	ticket, err := hostproto.FindTicketID(input.Prompt)
 	if err != nil {
 		return nil
 	}
-	if event.Reply != "" && event.Reply != executorrun.Receipt(ticket) {
-		if err := h.journal(hostproto.EventLeaked, ticket.String(), "", input.SubagentType, "the reply is not the bare receipt"); err != nil {
+	bound, err := h.bound()
+	if err != nil {
+		return err
+	}
+	if event.Reply != "" && !isReceipt(event.Reply, ticket) {
+		if err := bound.journal(hostproto.EventLeaked, ticket.String(), "", role, reasonNotBareReceipt); err != nil {
 			return err
 		}
 	}
 	report := executorrun.RunReport{Model: event.ResolvedModel, Usage: event.Usage}
-	return h.journal(hostproto.EventRunReported, ticket.String(), "", input.SubagentType, executorrun.RunReportDetail(report))
+	return bound.journal(hostproto.EventRunReported, ticket.String(), "", role, executorrun.RunReportDetail(report))
 }
