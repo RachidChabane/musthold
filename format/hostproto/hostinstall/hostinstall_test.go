@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	initTag   = "[verifies SP-717~1]"
-	enableTag = "[verifies SP-718~1]"
+	initTag   = "[verifies SP-717~2]"
+	enableTag = "[verifies SP-718~2]"
 
 	configPath    = ".spec-proof/config.yaml"
 	shallnotPath  = "shallnot.yaml"
@@ -108,11 +108,15 @@ func (s sample) agentNames() []string {
 // gitignoreAfterInit is what init appends to a .gitignore holding "build/".
 func (s sample) gitignoreAfterInit() string {
 	text := "build/\n"
-	for _, path := range s.module.IgnoredPaths {
+	for _, path := range hostinstall.LocalStatePaths {
 		text += path + "\n"
 	}
 	return text
 }
+
+// seedWithExample is the configuration init writes: the seed, a blank line and the
+// commented example of the operations block.
+func (s sample) seedWithExample() string { return s.seed() + "\n" + hostinstall.OperationsExample }
 
 func samples() []sample {
 	pair := harness.Identity{Plugin: "spec-proof-pair", Agents: []hostproto.Agent{hostproto.AgentJudge, hostproto.AgentDecider}}
@@ -125,7 +129,6 @@ func samples() []sample {
 				Subject: "sample proof", ProofPhrase: "the sample proof",
 			},
 			ProofKind: "discriminating-power", ConfigPath: configPath, Required: true,
-			IgnoredPaths: []string{".spec-proof/cache/", ".spec-proof/verified/"},
 		}},
 		{name: "pair", module: hostinstall.Module{
 			Files: pluginfiles.Module{
@@ -209,7 +212,7 @@ func TestInit(t *testing.T) {
 		if got := files.text(agentsPath); got != shallnotAgents {
 			t.Errorf("AGENTS.md changed:\n%s", got)
 		}
-		if got := files.text(configPath); got != s.seed() {
+		if got := files.text(configPath); got != s.seedWithExample() {
 			t.Errorf("config.yaml = %q", got)
 		}
 		if got := files.text(gitignorePath); got != s.gitignoreAfterInit() {
@@ -319,7 +322,7 @@ func TestInit(t *testing.T) {
 		files := repository(t)
 		files.put(t, configPath, "# kept\nproofs:\n  "+otherProof+": true\necosystems:\n  - go\nalignment:\n  anything: 1\n")
 		apply(t, files)(initPlan(s, files))
-		want := "# kept\nproofs:\n  " + otherProof + ": true\n  " + s.kind() + ": false\necosystems:\n  - go\nalignment:\n  anything: 1\n"
+		want := "# kept\nproofs:\n  " + otherProof + ": true\n  " + s.kind() + ": false\necosystems:\n  - go\nalignment:\n  anything: 1\n\n" + hostinstall.OperationsExample
 		if got := files.text(configPath); got != want {
 			t.Fatalf("config = %q", got)
 		}
@@ -405,7 +408,7 @@ func TestInit(t *testing.T) {
 				t.Errorf("%s did not go through Write; writes = %v", path, files.writes)
 			}
 		}
-		if got := files.text(configPath); got != s.seed() {
+		if got := files.text(configPath); got != s.seedWithExample() {
 			t.Errorf("config.yaml read back = %q", got)
 		}
 		for _, action := range plan.Actions {
@@ -444,7 +447,7 @@ func TestEnableAndDisable(t *testing.T) {
 		enable(t, s, files)
 		want := traceabilityOnly
 		if s.module.Required {
-			want += "proofs:\n  require:\n    - " + s.kind() + "\n"
+			want += "proofs:\n  require:\n    - " + s.kind() + "\n  trust: local\n"
 		}
 		if got := files.text(shallnotPath); got != want {
 			t.Fatalf("shallnot.yaml = %q", got)
@@ -486,7 +489,7 @@ func TestEnableAndDisable(t *testing.T) {
 		}
 	})
 
-	eachModule(t, "enable tells what to do next only for an advisory proof", enableTag, func(t *testing.T, s sample) {
+	eachModule(t, "enable tells that the gate reads local proofs and CI signed ones for a required proof, and what is advisory for the other", enableTag, func(t *testing.T, s sample) {
 		files := prepared(t, s, traceabilityOnly)
 		plan, err := s.module.BuildEnable(files)
 		if err != nil {
@@ -494,8 +497,11 @@ func TestEnableAndDisable(t *testing.T) {
 		}
 		joined := strings.Join(plan.NextSteps, "\n")
 		if s.module.Required {
-			if len(plan.NextSteps) != 0 {
+			if !strings.Contains(joined, "proofs.trust is local") || !strings.Contains(joined, "CI configuration of the gate sets proofs.trust to signed") {
 				t.Errorf("next steps = %q", plan.NextSteps)
+			}
+			if !strings.Contains(joined, "no source root was detected for proofs.code") {
+				t.Errorf("a project with no layout gets no note about proofs.code: %q", plan.NextSteps)
 			}
 			return
 		}
@@ -539,7 +545,7 @@ func TestEnableAndDisable(t *testing.T) {
 		}
 	})
 
-	eachModule(t, "enable extends an existing proofs block in each layout and disable restores every file byte for byte", enableTag, func(t *testing.T, s sample) {
+	eachModule(t, "enable extends an existing proofs block in each layout and disable takes the require entry out and leaves what else the block holds", enableTag, func(t *testing.T, s sample) {
 		type layout struct{ before, enabled, disabled string }
 		layouts := map[string]layout{
 			"a block without require": {
@@ -565,8 +571,8 @@ func TestEnableAndDisable(t *testing.T) {
 			},
 			"no trailing newline": {
 				before:   "version: 1\nspecs: [specs]",
-				enabled:  "version: 1\nspecs: [specs]\nproofs:\n  require:\n    - {kind}\n",
-				disabled: "version: 1\nspecs: [specs]\n",
+				enabled:  "version: 1\nspecs: [specs]\nproofs:\n  require:\n    - {kind}\n  trust: local\n",
+				disabled: "version: 1\nspecs: [specs]\nproofs:\n  trust: local\n",
 			},
 		}
 		for name, l := range layouts {

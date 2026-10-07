@@ -20,6 +20,10 @@ type Files interface {
 	Read(path string) (content []byte, found bool, err error)
 	// Exists reports whether a file or a directory exists.
 	Exists(path string) bool
+	// Directories lists the names of the directories directly inside a directory,
+	// the project root for an empty path; it lists none for a path that is not a
+	// directory.
+	Directories(path string) []string
 	// Write creates or replaces a file, creating its directories.
 	Write(path string, content []byte) error
 	// Remove deletes a file; deleting an absent file is not an error.

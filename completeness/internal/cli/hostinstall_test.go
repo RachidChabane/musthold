@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/hostinstall"
 	"github.com/RachidChabane/spec-proof/completeness/internal/cli"
 )
 
@@ -55,7 +56,7 @@ func oldShallnot(t *testing.T) string {
 }
 
 func TestInitCommand(t *testing.T) {
-	t.Run("init installs the harness files, keeps a configuration that exists and enables nothing [verifies SP-785~1]", func(t *testing.T) {
+	t.Run("init installs the harness files, keeps a configuration that exists and enables nothing [verifies SP-785~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		writeFile(t, filepath.Join(f.root, shallnotFile), shallnotYAML)
 		existing := "proofs:\n  completeness: true\n"
@@ -80,16 +81,16 @@ func TestInitCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("init seeds the shared configuration with the proof disabled and ignores the module's local state [verifies SP-785~1]", func(t *testing.T) {
+	t.Run("init seeds the shared configuration with the proof disabled and ignores the module's local state [verifies SP-785~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		if code, stdout, stderr := f.run(nil, "init", "--hooks", "none"); code != cli.ExitClean {
 			t.Fatalf("exit %d: %s%s", code, stdout, stderr)
 		}
-		if got := readFile(t, filepath.Join(f.root, sharedConfig)); got != seededConfig {
+		if got := readFile(t, filepath.Join(f.root, sharedConfig)); got != seededConfig+"\n"+hostinstall.OperationsExample {
 			t.Errorf("configuration = %q", got)
 		}
 		ignored := readFile(t, filepath.Join(f.root, ".gitignore"))
-		for _, line := range []string{".spec-proof/cache/", ".spec-proof/verified/"} {
+		for _, line := range []string{".spec-proof/cache/", ".spec-proof/verified/", ".spec-proof/pending/"} {
 			if !strings.Contains(ignored, line+"\n") {
 				t.Errorf(".gitignore lacks %q: %q", line, ignored)
 			}
@@ -99,7 +100,7 @@ func TestInitCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("init --check reports a pending change by its exit code and writes nothing [verifies SP-785~1]", func(t *testing.T) {
+	t.Run("init --check reports a pending change by its exit code and writes nothing [verifies SP-785~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		if code, _, _ := f.run(nil, "init", "--hooks", "codex", "--check"); code != cli.ExitBlocked {
 			t.Fatalf("exit = %d", code)
@@ -115,7 +116,7 @@ func TestInitCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("doctor names the harnesses whose files init installed [verifies SP-785~1]", func(t *testing.T) {
+	t.Run("doctor names the harnesses whose files init installed [verifies SP-785~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		if code, _, stderr := f.run(nil, "init", "--hooks", "claude,codex"); code != cli.ExitClean {
 			t.Fatalf("init: %d %s", code, stderr)
@@ -126,7 +127,7 @@ func TestInitCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("init refuses a Shallnot older than report schema 1.2, a harness it has no files for and a stray argument [verifies SP-785~1]", func(t *testing.T) {
+	t.Run("init refuses a Shallnot older than report schema 1.2, a harness it has no files for and a stray argument [verifies SP-785~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		code, _, stderr := f.runWithEnv(map[string]string{shallnotVariable: oldShallnot(t)}, "init")
 		if code != cli.ExitBlocked || !strings.Contains(stderr, "1.2") {

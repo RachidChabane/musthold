@@ -8,7 +8,7 @@ import (
 )
 
 func TestInstalled(t *testing.T) {
-	eachModule(t, "the harnesses a project holds the module's files for are listed", "[verifies SP-717~1]", func(t *testing.T, s sample) {
+	eachModule(t, "the harnesses a project holds the module's files for are listed", "[verifies SP-717~2]", func(t *testing.T, s sample) {
 		files := repository(t)
 		if got := s.module.Installed(files); len(got) != 0 {
 			t.Fatalf("a project without the module's files lists %v", got)
@@ -21,7 +21,7 @@ func TestInstalled(t *testing.T) {
 		}
 	})
 
-	eachModule(t, "a plugin another module enabled is not this module's", "[verifies SP-717~1]", func(t *testing.T, s sample) {
+	eachModule(t, "a plugin another module enabled is not this module's", "[verifies SP-717~2]", func(t *testing.T, s sample) {
 		files := repository(t)
 		files.put(t, settingsPath, `{"enabledPlugins":{"spec-proof-other@spec-proof":true}}`)
 		files.put(t, ".codex/hooks.json", `{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"shallnot hook stop"}]}]}}`)

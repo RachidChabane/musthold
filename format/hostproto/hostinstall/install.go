@@ -24,6 +24,10 @@ const (
 	claudeSettings     = ".claude/settings.json"
 	keyProofs          = "proofs"
 	keyRequire         = "require"
+	keyTrust           = "trust"
+	keyCode            = "code"
+	keyOperations      = "operations"
+	trustLocal         = "local"
 	hookSelectionAuto  = "auto"
 	hookSelectionNone  = "none"
 	pluginKeySeparator = "@"
@@ -31,6 +35,31 @@ const (
 
 // SharedConfigPath is the path of the configuration file the modules share.
 const SharedConfigPath = StateDirectory + "/" + SharedConfigFile
+
+// LocalStatePaths are the directories of local state every module keeps out of
+// version control: the statements of the proof cache, the verified set built from
+// them and the pending files of the modules that wait on an answer.
+var LocalStatePaths = []string{StateDirectory + "/cache/", StateDirectory + "/verified/", StateDirectory + "/pending/"}
+
+// OperationsExample is the commented block of the shared configuration that shows
+// how an operation named by the examples of a spec is bound to code. It is a
+// comment because a binding is only valid once it names a callable that exists.
+const OperationsExample = `# Bind the operation names of the examples in your specs to the code they call.
+# A target names an exported or public callable that exists.
+# operations:
+#   line_total:
+#     python: package.module:function
+#     go: import/path:Function
+#     typescript: path/file.ts:function
+#     java: package.Class:method
+`
+
+// shallnotNextSteps tell what the gate configuration needs besides what enable
+// writes.
+const (
+	trustNextStep = "shallnot.yaml: proofs.trust is local, so Shallnot reads the proofs made on this machine. The CI configuration of the gate sets proofs.trust to signed."
+	codeNextStep  = "shallnot.yaml: no source root was detected for proofs.code; list the files, directories or globs a proof may name as code, or a proof that names a source file is stale."
+)
 
 // Errors of the installer.
 var (
@@ -52,8 +81,6 @@ type Module struct {
 	// Required says whether Shallnot accepts the proof in `proofs.require`. An
 	// advisory proof is refused there, so enabling it writes no entry.
 	Required bool
-	// IgnoredPaths are the module's local state, kept out of version control.
-	IgnoredPaths []string
 }
 
 // ConfigSeed is the content of a new configuration file.
@@ -145,7 +172,7 @@ func fileMentions(files Files, path, text string) bool {
 func (m Module) BuildInit(files Files, options InitOptions) (Plan, error) {
 	provisioners := []provisioner{
 		{path: m.ConfigPath, desired: m.seedConfig(options.Seed)},
-		{path: gitignorePath, desired: ignoreLines(m.IgnoredPaths)},
+		{path: gitignorePath, desired: ignoreLines(LocalStatePaths)},
 	}
 	var steps []string
 	for _, selected := range options.Harnesses {
@@ -196,11 +223,14 @@ func filePath(file pluginfiles.File) provisioner {
 }
 
 // seedConfig writes the configuration of a project that has none, and makes sure
-// the module's proof has an entry, disabled, in one that has.
+// the module's proof has an entry, disabled, in one that has. A configuration the
+// installer writes or extends ends with the commented example of the operations
+// block unless it binds operations or already holds the example; one that has the
+// proof's entry already is left as it is.
 func (m Module) seedConfig(seed ConfigSeed) func([]byte) ([]byte, error) {
 	return func(current []byte) ([]byte, error) {
 		if current == nil {
-			return seed, nil
+			return withOperationsExample(seed)
 		}
 		text, err := parseYAML(current)
 		if err != nil {
@@ -209,8 +239,32 @@ func (m Module) seedConfig(seed ConfigSeed) func([]byte) ([]byte, error) {
 		if _, present := text.boolValue(keyProofs, m.ProofKind); present {
 			return current, nil
 		}
-		return edited(current, text, func() (bool, error) { return text.setBool(keyProofs, m.ProofKind, false) })
+		extended, err := edited(current, text, func() (bool, error) { return text.setBool(keyProofs, m.ProofKind, false) })
+		if err != nil {
+			return nil, err
+		}
+		return withOperationsExample(extended)
 	}
+}
+
+// withOperationsExample appends the commented example of the operations block to a
+// configuration that neither binds operations nor holds the example.
+func withOperationsExample(content []byte) ([]byte, error) {
+	text, err := parseYAML(content)
+	if err != nil {
+		return nil, err
+	}
+	if text.hasKey(keyOperations) || strings.Contains(string(content), OperationsExample) {
+		return content, nil
+	}
+	body := string(content)
+	if body != "" && !strings.HasSuffix(body, newline) {
+		body += newline
+	}
+	if body != "" {
+		body += newline
+	}
+	return []byte(body + OperationsExample), nil
 }
 
 // edited runs an edit of a parsed document and returns the document's bytes, or the
@@ -256,8 +310,9 @@ func (m Module) advisoryNote() string {
 }
 
 // BuildEnable plans enabling the proof: its flag in the module's configuration, its
-// entry in Shallnot's `proofs.require` when Shallnot accepts the proof there, and
-// its block of AGENTS.md.
+// entry in Shallnot's `proofs.require` when Shallnot accepts the proof there, the
+// `proofs.trust` and `proofs.code` the local loop needs when the gate configuration
+// sets none, and its block of AGENTS.md.
 func (m Module) BuildEnable(files Files) (Plan, error) {
 	provisioners := []provisioner{{path: m.ConfigPath, desired: m.setProofFlag(true)}}
 	var steps []string
@@ -265,7 +320,12 @@ func (m Module) BuildEnable(files Files) (Plan, error) {
 		if !files.Exists(shallnotConfig) {
 			return Plan{}, ErrNoShallnotConfig
 		}
-		provisioners = append(provisioners, provisioner{path: shallnotConfig, desired: m.requireProof(true)})
+		roots := SourceRoots(files)
+		provisioners = append(provisioners, provisioner{path: shallnotConfig, desired: m.enableInGate(roots)})
+		steps = append(steps, trustNextStep)
+		if len(roots) == 0 {
+			steps = append(steps, codeNextStep)
+		}
 	} else {
 		steps = append(steps, m.advisoryNote())
 	}
@@ -278,7 +338,7 @@ func (m Module) BuildEnable(files Files) (Plan, error) {
 func (m Module) BuildDisable(files Files) (Plan, error) {
 	provisioners := []provisioner{{path: m.ConfigPath, desired: m.disableFlag}}
 	if m.Required {
-		provisioners = append(provisioners, provisioner{path: shallnotConfig, desired: m.requireProof(false)})
+		provisioners = append(provisioners, provisioner{path: shallnotConfig, desired: m.dropFromGate})
 	}
 	provisioners = append(provisioners, provisioner{path: agentsPath, desired: m.removeAgentsBlock})
 	return buildPlan(files, provisioners, nil)
@@ -302,21 +362,50 @@ func (m Module) disableFlag(current []byte) ([]byte, error) {
 	return m.setProofFlag(false)(current)
 }
 
-// requireProof adds or removes the proof's kind in `proofs.require` of shallnot.yaml.
-func (m Module) requireProof(add bool) func([]byte) ([]byte, error) {
+// enableInGate adds the proof's kind to `proofs.require` of shallnot.yaml, sets
+// `proofs.trust` to local when it is not set and fills `proofs.code` with the
+// source roots when it lists none. The settings other modules share are never
+// changed once they are set.
+func (m Module) enableInGate(roots []string) func([]byte) ([]byte, error) {
 	return func(current []byte) ([]byte, error) {
 		if current == nil {
 			return nil, nil
 		}
-		text, err := parseYAML(current)
+		return editChain(current,
+			func(text *yamlText) (bool, error) { return text.addToList(keyProofs, keyRequire, m.ProofKind) },
+			func(text *yamlText) (bool, error) { return text.setStringIfAbsent(keyProofs, keyTrust, trustLocal) },
+			func(text *yamlText) (bool, error) { return text.fillList(keyProofs, keyCode, roots) },
+		)
+	}
+}
+
+// dropFromGate removes the proof's kind from `proofs.require` of shallnot.yaml and
+// leaves `proofs.trust` and `proofs.code`, which the other modules rely on too.
+func (m Module) dropFromGate(current []byte) ([]byte, error) {
+	if current == nil {
+		return nil, nil
+	}
+	return editChain(current, func(text *yamlText) (bool, error) {
+		return text.removeFromList(keyProofs, keyRequire, m.ProofKind)
+	})
+}
+
+// editChain applies edits to a YAML document one after the other, reading the
+// document again after each, since an edit moves the lines the next one locates.
+func editChain(current []byte, edits ...func(*yamlText) (bool, error)) ([]byte, error) {
+	content := current
+	for _, edit := range edits {
+		text, err := parseYAML(content)
 		if err != nil {
 			return nil, err
 		}
-		return edited(current, text, func() (bool, error) {
-			if add {
-				return text.addToList(keyProofs, keyRequire, m.ProofKind)
-			}
-			return text.removeFromList(keyProofs, keyRequire, m.ProofKind)
-		})
+		changed, err := edit(text)
+		if err != nil {
+			return nil, err
+		}
+		if changed {
+			content = text.bytes()
+		}
 	}
+	return content, nil
 }

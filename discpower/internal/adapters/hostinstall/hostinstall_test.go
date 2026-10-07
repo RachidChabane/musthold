@@ -59,15 +59,15 @@ func apply(t *testing.T, plan hostinstall.Plan, err error) {
 }
 
 func TestInstallOnDisk(t *testing.T) {
-	t.Run("init writes the seed, ignores the module's state and enables the plugin, and a second run plans nothing [verifies SP-243~1]", func(t *testing.T) {
+	t.Run("init writes the seed, ignores the module's state and enables the plugin, and a second run plans nothing [verifies SP-243~2]", func(t *testing.T) {
 		root := repository(t)
 		all := []hostharness.Harness{hostharness.Claude(), hostharness.Codex(), hostharness.Copilot()}
 		plan, err := hostinstall.BuildInit(hostinstall.InitOptions{Root: root, Harnesses: all, Seed: hostinstall.ConfigSeed(seedYAML)})
 		apply(t, plan, err)
-		if got := read(t, root, ".spec-proof/config.yaml"); got != seedYAML {
+		if got := read(t, root, ".spec-proof/config.yaml"); got != seedYAML+"\n"+hostinstall.OperationsExample {
 			t.Errorf("config = %q", got)
 		}
-		if got := read(t, root, ".gitignore"); got != ".spec-proof/cache/\n.spec-proof/verified/\n" {
+		if got := read(t, root, ".gitignore"); got != ".spec-proof/cache/\n.spec-proof/verified/\n.spec-proof/pending/\n" {
 			t.Errorf(".gitignore = %q", got)
 		}
 		if got := read(t, root, ".claude/settings.json"); !strings.Contains(got, `"spec-proof-dp@spec-proof": true`) {
@@ -87,7 +87,7 @@ func TestInstallOnDisk(t *testing.T) {
 		}
 	})
 
-	t.Run("hooks selection resolves auto, none and a list on the disk [verifies SP-243~1]", func(t *testing.T) {
+	t.Run("hooks selection resolves auto, none and a list on the disk [verifies SP-243~2]", func(t *testing.T) {
 		root := t.TempDir()
 		if harnesses, err := hostinstall.SelectHarnesses(root, "auto"); err != nil || len(harnesses) != 1 {
 			t.Fatalf("auto on an empty project: %v, %v", harnesses, err)
@@ -104,11 +104,11 @@ func TestInstallOnDisk(t *testing.T) {
 		}
 	})
 
-	t.Run("enable adds discriminating-power to proofs.require and disable restores the file byte for byte [verifies SP-244~1]", func(t *testing.T) {
+	t.Run("enable adds discriminating-power to proofs.require and sets the local trust, and disable removes the entry and keeps the trust [verifies SP-244~2]", func(t *testing.T) {
 		root := repository(t)
 		plan, err := hostinstall.BuildEnable(root)
 		apply(t, plan, err)
-		if got := read(t, root, "shallnot.yaml"); got != traceabilityOnly+"proofs:\n  require:\n    - discriminating-power\n" {
+		if got := read(t, root, "shallnot.yaml"); got != traceabilityOnly+"proofs:\n  require:\n    - discriminating-power\n  trust: local\n" {
 			t.Fatalf("shallnot.yaml = %q", got)
 		}
 		if agents := read(t, root, "AGENTS.md"); !strings.HasPrefix(agents, shallnotAgents) || !strings.Contains(agents, "spec-proof-dp prove --changed") {
@@ -116,12 +116,12 @@ func TestInstallOnDisk(t *testing.T) {
 		}
 		plan, err = hostinstall.BuildDisable(root)
 		apply(t, plan, err)
-		if read(t, root, "shallnot.yaml") != traceabilityOnly || read(t, root, "AGENTS.md") != shallnotAgents {
-			t.Fatal("disable did not restore the files")
+		if read(t, root, "shallnot.yaml") != traceabilityOnly+"proofs:\n  trust: local\n" || read(t, root, "AGENTS.md") != shallnotAgents {
+			t.Fatal("disable did not take the require entry and the block away and keep the trust")
 		}
 	})
 
-	t.Run("a project with no shallnot.yaml cannot enable the proof and a flow-style proofs block is refused [verifies SP-244~1]", func(t *testing.T) {
+	t.Run("a project with no shallnot.yaml cannot enable the proof and a flow-style proofs block is refused [verifies SP-244~2]", func(t *testing.T) {
 		if _, err := hostinstall.BuildEnable(t.TempDir()); !errors.Is(err, hostinstall.ErrNoShallnotConfig) {
 			t.Fatalf("error = %v", err)
 		}

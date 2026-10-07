@@ -20,6 +20,10 @@ const (
 	flowClose    = "]"
 	flowSplitter = ", "
 	newline      = "\n"
+
+	// yamlIndicators are the characters that give a plain scalar a meaning when it
+	// starts with one.
+	yamlIndicators = "*&!|>'\"%@`[]{},#?-: "
 )
 
 // yamlText is a YAML document edited line by line. yaml.v3 only locates nodes;
@@ -236,6 +240,95 @@ func (t *yamlText) setBool(parent, key string, value bool) (bool, error) {
 	start := scalar.Column - 1
 	t.lines[scalar.Line-1] = line[:start] + text + line[start+len(scalar.Value):]
 	return true, nil
+}
+
+// setStringIfAbsent sets `parent.key` to the text when the document has no such
+// member, creating what is missing at the end of its parent, and leaves a member
+// that is there as it is, whatever its value. It reports whether the document
+// changed.
+func (t *yamlText) setStringIfAbsent(parent, key, value string) (bool, error) {
+	if t.root == nil {
+		t.lines = []string{parent + ":", indentUnit + key + ": " + value}
+		return true, nil
+	}
+	_, mapping, err := blockMapping(t.root, parent)
+	if err != nil {
+		return false, err
+	}
+	if mapping == nil {
+		t.lines = append(t.lines, parent+":", indentUnit+key+": "+value)
+		return true, nil
+	}
+	if _, present := child(mapping, key); present != nil {
+		return false, nil
+	}
+	indent := strings.Repeat(" ", indentOf(t.lines[mapping.Content[0].Line-1]))
+	t.insertAfter(lastLine(mapping), indent+key+": "+value)
+	return true, nil
+}
+
+// fillList makes `parent.key` the list of the values when the document has no such
+// list or the list is empty, and leaves a list that has items as it is. It
+// reports whether the document changed.
+func (t *yamlText) fillList(parent, key string, values []string) (bool, error) {
+	if len(values) == 0 || t.listLength(parent, key) > 0 {
+		return false, nil
+	}
+	changed := false
+	for _, value := range values {
+		added, err := t.addToList(parent, key, yamlScalar(value))
+		if err != nil {
+			return false, err
+		}
+		changed = changed || added
+		if err := t.reparse(); err != nil {
+			return false, err
+		}
+	}
+	return changed, nil
+}
+
+// yamlScalar spells a string as a YAML scalar: as it is when it reads back as the
+// same string, in single quotes when it starts with a character YAML gives a
+// meaning, as the `*` of a glob does.
+func yamlScalar(value string) string {
+	if value == "" || strings.ContainsAny(value[:1], yamlIndicators) || strings.Contains(value, ": ") || strings.Contains(value, " #") {
+		return "'" + strings.ReplaceAll(value, "'", "''") + "'"
+	}
+	return value
+}
+
+// listLength is the number of items of `parent.key`, zero when it is not a list.
+func (t *yamlText) listLength(parent, key string) int {
+	if t.root == nil {
+		return 0
+	}
+	_, mapping := child(t.root, parent)
+	_, list := child(mapping, key)
+	if list == nil || list.Kind != yaml.SequenceNode {
+		return 0
+	}
+	return len(list.Content)
+}
+
+// reparse reads the document again after an edit, so that the positions of its
+// nodes match its lines.
+func (t *yamlText) reparse() error {
+	parsed, err := parseYAML(t.bytes())
+	if err != nil {
+		return err
+	}
+	*t = *parsed
+	return nil
+}
+
+// hasKey reports whether the document has a member at its top level.
+func (t *yamlText) hasKey(key string) bool {
+	if t.root == nil {
+		return false
+	}
+	_, value := child(t.root, key)
+	return value != nil
 }
 
 // boolValue reads `parent.key`.

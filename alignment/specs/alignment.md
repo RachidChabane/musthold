@@ -264,17 +264,21 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   tools, its four hooks and a skill that pre-approves what its loop runs, give Codex
   and Copilot their agents, hooks and skill, and ship no agent of a role the module
   does not use.
-- **SP-745~1**: WHEN `init` runs THE SYSTEM SHALL require a Shallnot whose report schema
-  is 1.2 or later, write the module's entry of the shared configuration and ignore
-  its local state, install the files of each selected harness (`auto`, `none` or a
+- **SP-745~2**: WHEN `init` runs THE SYSTEM SHALL require a Shallnot whose report schema
+  is 1.2 or later, write the module's entry of the shared configuration with the
+  commented example of the operations block and ignore its local state (the
+  statement cache, the verified set and the pending files), install the files of each selected harness (`auto`, `none` or a
   list of Claude Code, Codex and Copilot) by merging into every file another tool
   shares and writing the files it owns, plan no change on a second run, and leave
   Shallnot's configuration, its block of AGENTS.md and its hooks as they were.
-- **SP-746~1**: WHEN `enable` or `disable` runs THE SYSTEM SHALL turn the proof on or off in the shared
+- **SP-746~2**: WHEN `enable` or `disable` runs THE SYSTEM SHALL turn the proof on or off in the shared
   configuration, add or remove `alignment` in `proofs.require` of `shallnot.yaml` and
-  the module's block of AGENTS.md by line edits that keep every other byte, so that
-  disabling restores what enabling changed, refuse a project with no `shallnot.yaml`,
-  and refuse a layout it cannot extend without rewriting.
+  the module's block of AGENTS.md by line edits that keep every other byte, set
+  `proofs.trust` to `local` and list the source roots of the project in
+  `proofs.code` when `shallnot.yaml` sets neither, so that disabling removes what
+  enabling added to `proofs.require` and to AGENTS.md and leaves the trust and the
+  code, refuse a project with no `shallnot.yaml`, and refuse a layout it cannot
+  extend without rewriting.
 - **SP-747~1**: WHEN `doctor` runs THE SYSTEM SHALL check that the report schema Shallnot
   prints accepts version 1.2 and refuses 1.1, and report the check.
 - **SP-748~1**: WHEN `host push` runs THE SYSTEM SHALL publish every answered ticket with

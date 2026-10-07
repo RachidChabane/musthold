@@ -32,6 +32,10 @@ type (
 	ConfigSeed = shared.ConfigSeed
 )
 
+// OperationsExample is the commented example of the operations block that a
+// configuration the installer writes ends with.
+const OperationsExample = shared.OperationsExample
+
 // Errors of the installer.
 var (
 	// ErrNoShallnotConfig is returned when enabling in a project that has no shallnot.yaml.
@@ -48,11 +52,10 @@ const proofKind = format.KindCompleteness
 // module is the module as the installer sees it. Completeness is advisory:
 // Shallnot refuses it in `proofs.require`, so enabling it writes no require entry.
 var module = shared.Module{
-	Files:        hostfiles.Module,
-	ProofKind:    string(proofKind),
-	ConfigPath:   shared.SharedConfigPath,
-	Required:     false,
-	IgnoredPaths: []string{shared.StateDirectory + "/cache/", shared.StateDirectory + "/verified/"},
+	Files:      hostfiles.Module,
+	ProofKind:  string(proofKind),
+	ConfigPath: shared.SharedConfigPath,
+	Required:   false,
 }
 
 // Seed is the content of a configuration file the module creates: its proof,
@@ -122,6 +125,20 @@ func (d disk) Read(path string) ([]byte, bool, error) {
 		return nil, false, nil
 	}
 	return content, err == nil, err
+}
+
+func (d disk) Directories(path string) []string {
+	entries, err := os.ReadDir(d.path(path))
+	if err != nil {
+		return nil
+	}
+	var names []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			names = append(names, entry.Name())
+		}
+	}
+	return names
 }
 
 func (d disk) Exists(path string) bool {

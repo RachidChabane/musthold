@@ -442,20 +442,42 @@ Go tests of the module in CI.
   module overwrites the requests of another, and WHEN the artifact a CI job
   uploaded is read THE SYSTEM SHALL take the issued bundle from the root of the
   artifact or from the directory of the module below it.
-- **SP-717~1**: WHEN a module is installed into a project THE SYSTEM SHALL write
-  the module's configuration seed and ignore its local state, install the files
+- **SP-717~2**: WHEN a module is installed into a project THE SYSTEM SHALL write
+  the module's configuration seed and ignore its local state (the statement cache,
+  the verified set and the pending files), end a configuration it writes or
+  extends with the commented example of the operations block, install the files
   of each selected harness (`auto`, `none` or a list) by merging into every file
   another tool shares and writing the files it owns, enable the plugin in the
   project's Claude Code settings without overriding the user's choice, plan no
   change on a second run, and leave Shallnot's configuration, its block of
   AGENTS.md and its hooks as they were.
-- **SP-718~1**: WHEN a module is enabled or disabled THE SYSTEM SHALL turn the
+- **SP-718~2**: WHEN a module is enabled or disabled THE SYSTEM SHALL turn the
   proof on or off in the module's configuration, add or remove its kind in
   `proofs.require` of `shallnot.yaml` and its block of AGENTS.md by line edits
-  that keep every other byte, so that disabling restores what enabling changed,
-  refuse a project with no `shallnot.yaml`, refuse a layout it cannot extend
-  without rewriting, and for an advisory proof that Shallnot refuses in
+  that keep every other byte, so that disabling removes what enabling added to
+  `proofs.require` and to AGENTS.md and leaves `proofs.trust` and `proofs.code`,
+  which the other modules rely on, refuse a project with no `shallnot.yaml`,
+  refuse a layout it cannot extend without rewriting, say that the gate reads the
+  proofs of this machine and that the CI configuration of the gate sets
+  `proofs.trust` to `signed`, and for an advisory proof that Shallnot refuses in
   `proofs.require` write no require entry, mark its block advisory and say why.
+- **SP-1603~1**: WHEN a required proof is enabled THE SYSTEM SHALL set
+  `proofs.trust` of `shallnot.yaml` to `local` when it sets none, and list in
+  `proofs.code` the source roots of the layout the project shows when it lists
+  none, never change a value that is set, keep every comment and every other
+  byte, apply the same edits once when several modules are enabled, and say so
+  when no source root is found; and the source roots SHALL be `**/*.go` for a Go
+  module, `src` for a Node project that has it, `src/main` for a Maven or Gradle
+  project that has it, and for a Python project `src` or else each top-level
+  directory that is a package and is not a test, documentation, build, hidden or
+  private directory.
+- **SP-1604~1**: WHEN a module is installed THE SYSTEM SHALL keep the statement
+  cache, the verified set and the pending files out of version control and end
+  the configuration it writes or extends with a commented example of the
+  `operations` block, which binds each operation of the examples of a spec to a
+  target under the language of its ecosystem, and SHALL add that example neither
+  to a configuration that binds operations nor twice, so that a second run
+  changes nothing.
 - **SP-719~1**: WHEN the host settings of the shared configuration file are read
   THE SYSTEM SHALL keep attestation required and sampling off when the section is
   absent, read `sampling` and `require_attestation`, refuse an unknown or

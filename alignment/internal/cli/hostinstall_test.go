@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/hostinstall"
 	"github.com/RachidChabane/spec-proof/alignment/internal/cli"
 )
 
@@ -52,7 +53,7 @@ func oldShallnot(t *testing.T) string {
 }
 
 func TestInitCommand(t *testing.T) {
-	t.Run("init installs the harness files, keeps a configuration that exists and enables nothing [verifies SP-745~1]", func(t *testing.T) {
+	t.Run("init installs the harness files, keeps a configuration that exists and enables nothing [verifies SP-745~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		writeFile(t, filepath.Join(f.root, "shallnot.yaml"), shallnotYAML)
 		existing := "proofs:\n  alignment: true\n"
@@ -77,16 +78,16 @@ func TestInitCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("init seeds the shared configuration with the proof disabled and ignores the module's local state [verifies SP-745~1]", func(t *testing.T) {
+	t.Run("init seeds the shared configuration with the proof disabled and ignores the module's local state [verifies SP-745~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		if code, stdout, stderr := f.run(nil, "init", "--hooks", "none"); code != cli.ExitClean {
 			t.Fatalf("exit %d: %s%s", code, stdout, stderr)
 		}
-		if got := readFile(t, filepath.Join(f.root, sharedConfig)); got != "proofs:\n  alignment: false\n" {
+		if got := readFile(t, filepath.Join(f.root, sharedConfig)); got != "proofs:\n  alignment: false\n\n"+hostinstall.OperationsExample {
 			t.Errorf("configuration = %q", got)
 		}
 		ignored := readFile(t, filepath.Join(f.root, ".gitignore"))
-		for _, line := range []string{".spec-proof/cache/", ".spec-proof/verified/"} {
+		for _, line := range []string{".spec-proof/cache/", ".spec-proof/verified/", ".spec-proof/pending/"} {
 			if !strings.Contains(ignored, line+"\n") {
 				t.Errorf(".gitignore lacks %q: %q", line, ignored)
 			}
@@ -96,7 +97,7 @@ func TestInitCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("init --check reports a pending change by its exit code and writes nothing [verifies SP-745~1]", func(t *testing.T) {
+	t.Run("init --check reports a pending change by its exit code and writes nothing [verifies SP-745~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		if code, _, _ := f.run(nil, "init", "--hooks", "codex", "--check"); code != cli.ExitBlocked {
 			t.Fatalf("exit = %d", code)
@@ -112,7 +113,7 @@ func TestInitCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("doctor names the harnesses whose files init installed [verifies SP-745~1]", func(t *testing.T) {
+	t.Run("doctor names the harnesses whose files init installed [verifies SP-745~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		if code, _, stderr := f.run(nil, "init", "--hooks", "claude,codex"); code != cli.ExitClean {
 			t.Fatalf("init: %d %s", code, stderr)
@@ -123,7 +124,7 @@ func TestInitCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("init refuses a Shallnot older than report schema 1.2, a harness it has no files for and a stray argument [verifies SP-745~1]", func(t *testing.T) {
+	t.Run("init refuses a Shallnot older than report schema 1.2, a harness it has no files for and a stray argument [verifies SP-745~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		code, _, stderr := f.runWithEnv(map[string]string{shallnotVariable: oldShallnot(t)}, "init")
 		if code != cli.ExitBlocked || !strings.Contains(stderr, "1.2") {
@@ -142,7 +143,7 @@ func TestInitCommand(t *testing.T) {
 }
 
 func TestEnableAndDisableCommands(t *testing.T) {
-	t.Run("enable adds the proof to shallnot.yaml, the shared configuration and AGENTS.md and disable takes it away [verifies SP-746~1]", func(t *testing.T) {
+	t.Run("enable adds the proof, the local trust to shallnot.yaml, the proof to the shared configuration and AGENTS.md, and disable takes the proof away [verifies SP-746~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		if code, _, _ := f.run(nil, "enable"); code != cli.ExitBlocked {
 			t.Fatalf("enable without shallnot.yaml exit = %d", code)
@@ -151,7 +152,7 @@ func TestEnableAndDisableCommands(t *testing.T) {
 		if code, stdout, stderr := f.run(nil, "enable", "--dir", f.root); code != cli.ExitClean {
 			t.Fatalf("enable exit %d: %s%s", code, stdout, stderr)
 		}
-		if got := readFile(t, filepath.Join(f.root, "shallnot.yaml")); got != shallnotYAML+"proofs:\n  require:\n    - alignment\n" {
+		if got := readFile(t, filepath.Join(f.root, "shallnot.yaml")); got != shallnotYAML+"proofs:\n  require:\n    - alignment\n  trust: local\n" {
 			t.Errorf("shallnot.yaml = %q", got)
 		}
 		if got := readFile(t, filepath.Join(f.root, sharedConfig)); !strings.Contains(got, "alignment: true") {
@@ -164,7 +165,7 @@ func TestEnableAndDisableCommands(t *testing.T) {
 		if code, _, stderr := f.run(nil, "disable"); code != cli.ExitClean {
 			t.Fatalf("disable: %d %s", code, stderr)
 		}
-		if got := readFile(t, filepath.Join(f.root, "shallnot.yaml")); got != shallnotYAML {
+		if got := readFile(t, filepath.Join(f.root, "shallnot.yaml")); got != shallnotYAML+"proofs:\n  trust: local\n" {
 			t.Errorf("shallnot.yaml after disable = %q", got)
 		}
 		if got := readFile(t, filepath.Join(f.root, sharedConfig)); !strings.Contains(got, "alignment: false") {
@@ -175,7 +176,7 @@ func TestEnableAndDisableCommands(t *testing.T) {
 		}
 	})
 
-	t.Run("enable leaves what AGENTS.md held and disable restores it [verifies SP-746~1]", func(t *testing.T) {
+	t.Run("enable leaves what AGENTS.md held and disable restores it [verifies SP-746~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		writeFile(t, filepath.Join(f.root, "shallnot.yaml"), shallnotYAML)
 		const own = "# Project rules\n\nRun the formatter.\n"
@@ -194,7 +195,7 @@ func TestEnableAndDisableCommands(t *testing.T) {
 		}
 	})
 
-	t.Run("enable --check reports a pending change and writes nothing [verifies SP-746~1]", func(t *testing.T) {
+	t.Run("enable --check reports a pending change and writes nothing [verifies SP-746~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		writeFile(t, filepath.Join(f.root, "shallnot.yaml"), shallnotYAML)
 		if code, _, _ := f.run(nil, "enable", "--check"); code != cli.ExitBlocked {
@@ -205,7 +206,7 @@ func TestEnableAndDisableCommands(t *testing.T) {
 		}
 	})
 
-	t.Run("enable and disable refuse a Shallnot older than report schema 1.2 and write nothing [verifies SP-746~1]", func(t *testing.T) {
+	t.Run("enable and disable refuse a Shallnot older than report schema 1.2 and write nothing [verifies SP-746~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		writeFile(t, filepath.Join(f.root, "shallnot.yaml"), shallnotYAML)
 		overrides := map[string]string{shallnotVariable: oldShallnot(t)}

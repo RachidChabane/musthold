@@ -40,6 +40,29 @@ func (m *memFiles) Exists(path string) bool {
 	return false
 }
 
+// Directories lists the directories directly inside a directory, as the names of
+// the first segment below it of every file held.
+func (m *memFiles) Directories(path string) []string {
+	prefix := ""
+	if path != "" {
+		prefix = path + "/"
+	}
+	seen := map[string]bool{}
+	var names []string
+	for held := range m.data {
+		rest, found := strings.CutPrefix(held, prefix)
+		if !found {
+			continue
+		}
+		name, _, nested := strings.Cut(rest, "/")
+		if nested && !seen[name] {
+			seen[name] = true
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
 func (m *memFiles) Write(path string, content []byte) error {
 	if m.failWrites != nil {
 		return m.failWrites

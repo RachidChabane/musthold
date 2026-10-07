@@ -27,7 +27,7 @@ func readFile(t *testing.T, path string) string {
 }
 
 func TestInstallCommands(t *testing.T) {
-	t.Run("init in the parcel project installs the harness files and enables nothing [verifies SP-243~1]", func(t *testing.T) {
+	t.Run("init in the parcel project installs the harness files and enables nothing [verifies SP-243~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		writeFile(t, filepath.Join(f.root, "shallnot.yaml"), shallnotYAML)
 		before := readFile(t, filepath.Join(f.root, ".spec-proof", "config.yaml"))
@@ -49,7 +49,7 @@ func TestInstallCommands(t *testing.T) {
 		}
 	})
 
-	t.Run("init --check reports a pending change by its exit code and writes nothing [verifies SP-243~1]", func(t *testing.T) {
+	t.Run("init --check reports a pending change by its exit code and writes nothing [verifies SP-243~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		if code, _, _ := f.run(nil, "init", "--hooks", "codex", "--check"); code != cli.ExitBlocked {
 			t.Fatalf("exit = %d", code)
@@ -65,7 +65,7 @@ func TestInstallCommands(t *testing.T) {
 		}
 	})
 
-	t.Run("init, enable and disable refuse a Shallnot older than report schema 1.2 [verifies SP-243~1]", func(t *testing.T) {
+	t.Run("init, enable and disable refuse a Shallnot older than report schema 1.2 [verifies SP-243~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		script := filepath.Join(t.TempDir(), "shallnot")
 		writeFile(t, script, oldSchemaScript)
@@ -83,7 +83,7 @@ func TestInstallCommands(t *testing.T) {
 		}
 	})
 
-	t.Run("init refuses a harness it has no files for and a stray argument [verifies SP-243~1]", func(t *testing.T) {
+	t.Run("init refuses a harness it has no files for and a stray argument [verifies SP-243~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		if code, _, _ := f.run(nil, "init", "--hooks", "vim"); code != cli.ExitBlocked {
 			t.Errorf("unknown harness exit = %d", code)
@@ -93,7 +93,7 @@ func TestInstallCommands(t *testing.T) {
 		}
 	})
 
-	t.Run("enable adds the proof to shallnot.yaml and AGENTS.md and disable takes both away [verifies SP-244~1]", func(t *testing.T) {
+	t.Run("enable adds the proof, the local trust and the source roots to shallnot.yaml and the proof to AGENTS.md, and disable takes the proof away [verifies SP-244~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		if code, _, _ := f.run(nil, "enable"); code != cli.ExitBlocked {
 			t.Fatalf("enable without shallnot.yaml exit = %d", code)
@@ -102,7 +102,7 @@ func TestInstallCommands(t *testing.T) {
 		if code, stdout, stderr := f.run(nil, "enable", "--dir", f.root); code != cli.ExitClean {
 			t.Fatalf("enable exit %d: %s%s", code, stdout, stderr)
 		}
-		if got := readFile(t, filepath.Join(f.root, "shallnot.yaml")); got != shallnotYAML+"proofs:\n  require:\n    - discriminating-power\n" {
+		if got := readFile(t, filepath.Join(f.root, "shallnot.yaml")); got != shallnotYAML+"proofs:\n  require:\n    - discriminating-power\n  trust: local\n  code:\n    - parcel\n" {
 			t.Errorf("shallnot.yaml = %q", got)
 		}
 		if got := readFile(t, filepath.Join(f.root, "AGENTS.md")); !strings.Contains(got, "spec-proof-dp prove --changed") {
@@ -111,7 +111,7 @@ func TestInstallCommands(t *testing.T) {
 		if code, _, stderr := f.run(nil, "disable"); code != cli.ExitClean {
 			t.Fatalf("disable: %d %s", code, stderr)
 		}
-		if got := readFile(t, filepath.Join(f.root, "shallnot.yaml")); got != shallnotYAML {
+		if got := readFile(t, filepath.Join(f.root, "shallnot.yaml")); got != shallnotYAML+"proofs:\n  trust: local\n  code:\n    - parcel\n" {
 			t.Errorf("shallnot.yaml after disable = %q", got)
 		}
 		if got := readFile(t, filepath.Join(f.root, "AGENTS.md")); got != "<absent>" {
