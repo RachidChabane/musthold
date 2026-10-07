@@ -434,6 +434,13 @@ func TestSyntheticCodexSessionThatBreaksARule(t *testing.T) {
 		want(t, evaluate(t, "codex", files), "executor_sandbox", verdict.Fail)
 	})
 
+	t.Run("a write that landed without any executor agent is not charged to the executor sandbox [verifies SP-1503~1]", func(t *testing.T) {
+		files := readFiles(t, codexSession)
+		files.SandboxProbe = replace(files.SandboxProbe, `"exists": false`, `"exists": true`)
+		files.Stream = dropLines(files.Stream, "spawn_agent")
+		want(t, evaluate(t, "codex", files), "executor_sandbox", verdict.Inconclusive)
+	})
+
 	t.Run("an executor that never tried the write leaves the sandbox inconclusive [verifies SP-1503~1]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.Stream = dropLines(files.Stream, "touch sandbox-probe.txt'")

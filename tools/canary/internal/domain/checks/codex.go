@@ -221,6 +221,11 @@ func sandboxCheck() Check {
 				return verdict.Undecided("the sandbox probe was not recorded")
 			}
 			if probe.Exists {
+				// Only an executor's write breaks the executor's sandbox: the main
+				// agent runs with write access, so a file it wrote proves nothing.
+				if spawns, _ := spawnedExecutor(found); len(spawns) == 0 {
+					return verdict.Undecided(probe.File+" exists but no executor agent ran, so the write is not the executor's", pointer)
+				}
 				return verdict.Failed("the executor wrote "+probe.File+" despite the read-only sandbox", pointer)
 			}
 			for _, item := range codexStream(found).ItemsOf(evidence.CodexItemCommand) {
