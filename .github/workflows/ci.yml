@@ -154,7 +154,7 @@ jobs:
           GOTOOLCHAIN: local
           HTTP_PROXY: http://127.0.0.1:9
           HTTPS_PROXY: http://127.0.0.1:9
-          NO_PROXY: ""
+          NO_PROXY: "127.0.0.1,localhost,::1"
         run: bench/script/test
 
   calibration:
@@ -201,5 +201,5 @@ jobs:
           GOTOOLCHAIN: local
           HTTP_PROXY: http://127.0.0.1:9
           HTTPS_PROXY: http://127.0.0.1:9
-          NO_PROXY: ""
+          NO_PROXY: "127.0.0.1,localhost,::1"
         run: experiments/calibration/script/test
