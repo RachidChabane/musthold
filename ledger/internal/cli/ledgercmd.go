@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/cliconv"
 	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/filetree"
 	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/gitrepo"
 	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/signing/inspect"
@@ -17,11 +18,17 @@ import (
 
 const defaultRepository = "."
 
+// ledgerSubcommands are the subcommands of `ledger`, in the order the usage gives them.
+var ledgerSubcommands = []string{appendSubcommand, exportSubcommand, auditSubcommand, seedSubcommand, fetchTrustSubcommand}
+
 func runLedger(environment Environment, args []string, stdout, _ io.Writer) error {
 	if len(args) == 0 {
 		return fmt.Errorf("%w: ledger: no subcommand", errUsage)
 	}
 	subcommand, rest := args[0], args[1:]
+	if cliconv.IsHelpRequest(args) {
+		return cliconv.HelpRequest{Text: cliconv.VerbsUsage(environment.Binary, ledgerCommand, ledgerSubcommands)}
+	}
 	switch subcommand {
 	case appendSubcommand:
 		return runAppend(environment, rest, stdout)
@@ -43,7 +50,7 @@ func openRepository(environment Environment, directory string) *gitrepo.Reposito
 }
 
 func runAppend(environment Environment, args []string, stdout io.Writer) error {
-	flags := newFlagSet(appendSubcommand)
+	flags := newFlagSet(environment, ledgerCommand+" "+appendSubcommand)
 	repository := flags.String("repo", defaultRepository, "git repository that holds the ledger")
 	signed := flags.String("signed", "", "output directory of `sign`")
 	mutants := flags.String("mutants", "", "directory of <cacheKey>.age encrypted mutants")
@@ -108,7 +115,7 @@ func additionSources(signed, mutants, trust, headSHA, runID string) (filetree.Ad
 }
 
 func runExport(environment Environment, args []string, stdout io.Writer) error {
-	flags := newFlagSet(exportSubcommand)
+	flags := newFlagSet(environment, ledgerCommand+" "+exportSubcommand)
 	repository := flags.String("repo", defaultRepository, "git repository that holds the ledger")
 	to := flags.String("to", "", "directory the proofs and the trust snapshot are written to")
 	if err := parse(flags, args); err != nil {
@@ -127,7 +134,7 @@ func runExport(environment Environment, args []string, stdout io.Writer) error {
 }
 
 func runAudit(environment Environment, args []string, stdout io.Writer) error {
-	flags := newFlagSet(auditSubcommand)
+	flags := newFlagSet(environment, ledgerCommand+" "+auditSubcommand)
 	repository := flags.String("repo", defaultRepository, "git repository that holds the ledger")
 	if err := parse(flags, args); err != nil {
 		return err
@@ -148,7 +155,7 @@ func runAudit(environment Environment, args []string, stdout io.Writer) error {
 }
 
 func runFetchTrust(environment Environment, args []string, stdout io.Writer) error {
-	flags := newFlagSet(fetchTrustSubcommand)
+	flags := newFlagSet(environment, ledgerCommand+" "+fetchTrustSubcommand)
 	out := flags.String("out", "", "directory the TUF snapshot is written to, for `ledger append --trust`")
 	mirror := flags.String("mirror", trustroot.PublicGoodMirror, "TUF mirror of the trusted root")
 	if err := parse(flags, args); err != nil {
@@ -174,7 +181,7 @@ func runFetchTrust(environment Environment, args []string, stdout io.Writer) err
 }
 
 func runSeed(environment Environment, args []string, stdout io.Writer) error {
-	flags := newFlagSet(seedSubcommand)
+	flags := newFlagSet(environment, ledgerCommand+" "+seedSubcommand)
 	repository := flags.String("repo", defaultRepository, "git repository that holds the ledger")
 	headSHA := flags.String("head-sha", "", "head commit")
 	runID := flags.String("run-id", "", "CI run that first saw the head commit")

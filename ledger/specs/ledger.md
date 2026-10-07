@@ -12,6 +12,13 @@ the module in CI.
   when it refused a statement, a path or a ledger that breaks a rule, and 2 for a
   command line that does not parse or a failure of the tool, and SHALL explain
   every non-zero exit on the error stream.
+- **SP-1650~1**: WHEN the binary is run with `-h`, `--help` or `help`, a command or
+  subcommand with `-h` or `--help`, `ledger` with a request for help, or `help`
+  followed by a command THE SYSTEM SHALL print the forms of the binary, the
+  subcommands of `ledger`, or the flags and the synopsis of that command, on the
+  output stream and exit 0, listing exactly the flags that command defines; and
+  WHEN a flag is unknown THE SYSTEM SHALL print the failure and the usage of that
+  command on the error stream and exit 2.
 
 ## Signing
 

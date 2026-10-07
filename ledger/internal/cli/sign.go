@@ -20,7 +20,7 @@ const (
 )
 
 func runSign(environment Environment, args []string, stdout, _ io.Writer) error {
-	flags := newFlagSet(signCommand)
+	flags := newFlagSet(environment, signCommand)
 	identity := flags.String("identity", "", "signing identity: "+identityEd25519+" or "+identitySigstore)
 	in := flags.String("in", "", "directory of statements: <module>/<subject key>/<cacheKey>.json")
 	out := flags.String("out", "", "directory the signed bundles are written to")

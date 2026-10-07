@@ -4,11 +4,11 @@ package cli
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"os"
 
+	"github.com/RachidChabane/spec-proof/format/cliconv"
 	"github.com/RachidChabane/spec-proof/ledger/internal/app"
 	"github.com/RachidChabane/spec-proof/ledger/internal/domain/refusal"
 	"github.com/RachidChabane/spec-proof/ledger/internal/version"
@@ -20,6 +20,9 @@ const (
 	ExitBlocked     = 1
 	ExitToolFailure = 2
 )
+
+// helpFlag is the flag `help <command>` hands to the command.
+const helpFlag = "-h"
 
 // Commands of the binary.
 const (
@@ -50,6 +53,8 @@ const usageText = `usage:
 
 // Environment is what the binary reads from the machine it runs on.
 type Environment struct {
+	// Binary is the name the binary was called by; Run sets it.
+	Binary    string
 	LookupEnv func(string) (string, bool)
 	Clock     app.Clock
 	// GitEnvironment is appended to the environment of every git command.
@@ -74,7 +79,14 @@ func Run(environment Environment, binary string, args []string, stdout, stderr i
 		fmt.Fprintln(stdout, version.Line(binary))
 		return ExitClean
 	}
+	environment.Binary = binary
+	if cliconv.IsHelpRequest(args) {
+		return help(binary, args, stdout, stderr, environment)
+	}
 	err := dispatch(environment, args, stdout, stderr)
+	if code, handled := cliconv.Handle(err, binary, stdout, stderr); handled {
+		return code
+	}
 	switch {
 	case err == nil:
 		return ExitClean
@@ -89,6 +101,16 @@ func Run(environment Environment, binary string, args []string, stdout, stderr i
 		fmt.Fprintf(stderr, "%s: %v\n", binary, err)
 		return ExitToolFailure
 	}
+}
+
+// help answers a request for help: the usage of the binary, or the one of the
+// command that `help` names.
+func help(binary string, args []string, stdout, stderr io.Writer, environment Environment) int {
+	if args[0] == cliconv.HelpCommand && len(args) > 1 {
+		return Run(environment, binary, []string{args[1], helpFlag}, stdout, stderr)
+	}
+	fmt.Fprintf(stdout, usageText, binary)
+	return cliconv.ExitHelp
 }
 
 func dispatch(environment Environment, args []string, stdout, stderr io.Writer) error {
@@ -106,25 +128,26 @@ func dispatch(environment Environment, args []string, stdout, stderr io.Writer) 
 	}
 }
 
-// newFlagSet returns a flag set that reports a parse error as a usage error and
-// writes nothing itself.
-func newFlagSet(name string) *flag.FlagSet {
-	flags := flag.NewFlagSet(name, flag.ContinueOnError)
-	flags.SetOutput(io.Discard)
-	return flags
+// newFlagSet returns the flag set of a command of the binary; it takes no
+// argument besides its flags.
+func newFlagSet(environment Environment, command string) *cliconv.FlagSet {
+	return cliconv.NewFlagSet(environment.Binary+" "+command, "")
 }
 
-func parse(flags *flag.FlagSet, args []string) error {
-	if err := flags.Parse(args); err != nil {
-		return fmt.Errorf("%w: %s: %v", errUsage, flags.Name(), err)
+// parse parses the flags of a command; a request for help and a flag that does
+// not parse come back as the errors of the convention.
+func parse(flags *cliconv.FlagSet, args []string) error {
+	rest, err := flags.ParseArguments(args)
+	if err != nil {
+		return err
 	}
-	if flags.NArg() > 0 {
-		return fmt.Errorf("%w: %s: unexpected argument %q", errUsage, flags.Name(), flags.Arg(0))
+	if len(rest) > 0 {
+		return cliconv.UsageError{Err: fmt.Errorf("%s: unexpected argument %q", flags.Name(), rest[0]), Text: flags.Usage()}
 	}
 	return nil
 }
 
-func requireFlag(flags *flag.FlagSet, name, value string) error {
+func requireFlag(flags *cliconv.FlagSet, name, value string) error {
 	if value == "" {
 		return fmt.Errorf("%w: %s: --%s is required", errUsage, flags.Name(), name)
 	}
