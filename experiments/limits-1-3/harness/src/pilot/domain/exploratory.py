@@ -20,6 +20,7 @@ class CallStatus(Enum):
     COMPLETE = "complete"
     BLOCKED = "blocked"
     PENDING = "pending"
+    MISSING = "missing"
 
 
 @dataclass(frozen=True)

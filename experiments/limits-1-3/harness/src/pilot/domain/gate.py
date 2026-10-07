@@ -11,7 +11,7 @@ Rules of the primary policy G3, in precedence BLOCK > ESCALATE > PASS:
 7. otherwise PASS; pass credit is a VALID_x killed by S, so rule 4 also catches a pool whose mutants S
    neither kills nor lets survive (every result an error)
 
-The sensitivities G3-prereg (the frozen rules: rule 4 blocks when no VALID mutant is killed
+The sensitivities G3-prereg (the rules of the first protocol: rule 4 blocks when no VALID mutant is killed
 by S, over VALID_w) and G3-noiso (VALID_w in place of VALID_x) change the evidence basis or
 the outcome of rule 4 only. A mutant is killed by a test with a reproduced kill and survives
 a test whose result is survived or flaky; an error is neither.

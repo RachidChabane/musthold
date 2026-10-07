@@ -118,7 +118,7 @@ def test_two_streams_share_one_status_file_and_a_later_mark_replaces_an_earlier_
     ledger.mark(STREAM_SECONDARY, {"y": CallStatus.BLOCKED})
     ledger.mark(STREAM_LUNA, {"x": CallStatus.COMPLETE})
     assert ledger.statuses() == {"luna": {"x": "complete"}, "secondary": {"y": "blocked"}}
-    assert set(CallStatus) == {CallStatus.COMPLETE, CallStatus.BLOCKED, CallStatus.PENDING}
+    assert set(CallStatus) == {CallStatus.COMPLETE, CallStatus.BLOCKED, CallStatus.PENDING, CallStatus.MISSING}
 
 
 def test_the_status_never_reaches_the_deviation_log(tmp_path):
@@ -141,3 +141,13 @@ def test_the_luna_calls_pass_the_requested_slug_to_codex_and_report_requested_on
     argv = cli.argv(ModelRequest("c", LUNA, Effort.HIGH, "item", "{}", "system"), tmp_path, tmp_path / "schema.json")
     assert argv[argv.index("-m") + 1] == "gpt-6-luna" and argv[:2] == ["codex", "exec"]
     assert LUNA.cli is Cli.CODEX and LUNA.provenance is ModelProvenance.REQUESTED_ONLY
+
+
+def test_a_call_that_ended_missing_after_its_retry_is_marked_missing_not_complete(tmp_path):
+    class Failing(Inner):
+        def call_all(self, stage, specs):
+            return {spec.call_id: MissingResult(("claude exited 1",), ()) for spec in specs}
+
+    caller, ledger = windowed(tmp_path, Failing(), utc(2026, 10, 12))
+    caller.call_all("stage", specs("a"))
+    assert ledger.statuses() == {"luna": {"a": "missing"}}

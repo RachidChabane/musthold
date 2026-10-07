@@ -66,7 +66,8 @@ def primary_cells(ctx: Context) -> dict[tuple[Writer, MutantSource, int], CellCo
 
 
 def blind_spot(ctx: Context, settings: AnalysisSettings) -> BlindSpotResult:
-    return estimate(primary_cells(ctx), ctx.criteria, settings)
+    universes = {(s, c): len(universe(ctx, s, c)) for s in (MutantSource.SONNET, MutantSource.OPUS, MutantSource.OPERATOR) for c in ctx.criteria}
+    return estimate(primary_cells(ctx), ctx.criteria, settings, universes)
 
 
 def _escaping(ctx: Context, writer: Writer, source: MutantSource, criteria: Sequence[int]) -> dict[int, list[str]]:
@@ -100,7 +101,7 @@ def _estimand_table(result: BlindSpotResult) -> Table:
     rows = [[name, _fmt(getattr(c, attr)) if c else None] for name, attr in
             (("Delta_S", "delta_s"), ("Delta_O", "delta_o"), ("SB_S", "sb_s"), ("SB_O", "sb_o"), ("SB", "sb"))]
     rows += [["SB interval lo", _fmt(result.interval.lo)], ["SB interval hi", _fmt(result.interval.hi)],
-             ["reading", result.reading], ["upper bound below materiality", str(result.below_materiality)],
+             ["reading", result.reading], ["indicated with the upper bound below materiality", str(result.indicated_below_materiality)],
              ["criteria in C*", len(result.c_star)]]
     return Table("blind_spot_estimand", "shared blind spot SB (descriptive): contrasts, bootstrap interval and fixed reading",
                  ["measure", "value"], rows)

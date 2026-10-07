@@ -122,7 +122,7 @@ def run_analysis(
     endpoints = apply_preconditions(base, preconditions)
     composite = composite_verdict(endpoints, preconditions)
     d8 = next(e for e in base if e.id == "D8")
-    valid_criteria = int(d8.details["frozen_reading"]["criteria_with_two_valid_w"])  # type: ignore[index]
+    valid_criteria = int(d8.details["d8_all"]["criteria_with_two_valid_w"])  # type: ignore[index]
     crosscheck = ctx.truth.crosscheck_differences
     feasibility, feasibility_verdict = evaluate_feasibility(
         ctx, valid_criteria, None if crosscheck is None else not crosscheck

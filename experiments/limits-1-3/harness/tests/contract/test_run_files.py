@@ -21,7 +21,7 @@ def test_imports_json_has_the_documented_keys():
 
 
 def test_exploratory_status_values_and_streams_are_closed_sets():
-    assert {s.value for s in CallStatus} == {"complete", "blocked", "pending"} and STREAMS == ("luna", "secondary")
+    assert {s.value for s in CallStatus} == {"complete", "blocked", "pending", "missing"} and STREAMS == ("luna", "secondary")
 
 
 def test_pause_entries_follow_the_deviation_grammar_and_touch_no_endpoint():

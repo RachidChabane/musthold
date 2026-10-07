@@ -115,7 +115,7 @@ def test_the_upper_bound_below_materiality_is_flagged_beside_an_indicated_readin
     for c in range(1, 5):
         cells[(WS, S, c)] = CellCount(3, 2, 0)
     result = estimate(cells, range(1, 5), FAST)
-    assert result.reading == "shared blind spot indicated" and result.below_materiality in (True, False)
+    assert result.reading == "shared blind spot indicated" and result.indicated_below_materiality in (True, False)
 
 
 def test_location_split_separates_coverage_holes_from_model_specific_blind_spots():
@@ -128,3 +128,26 @@ def test_a_model_mutant_is_compared_only_with_operator_mutants_of_its_own_criter
     hosts = {"m": ("f::a",), "o": ("f::a",)}
     split = location_split(WS, S, {1: ["m"]}, {2: ["o"]}, lambda m: hosts[m], [1, 2])
     assert split.coverage_hole == 0
+
+
+def test_the_reading_is_undetermined_below_three_criteria_whatever_the_interval():
+    for count in (1, 2):
+        result = estimate(grid(range(1, count + 1), CellCount(4, 0, 0)), range(1, count + 1), FAST)
+        assert result.reading == "undetermined" and result.interval.lo == result.interval.hi
+    positive = grid(range(1, 4))
+    for c in range(1, 4):
+        positive[(WS, S, c)] = CellCount(4, 1, 0)
+    two = {k: v for k, v in positive.items() if k[2] <= 2}
+    assert estimate(two, [1, 2], FAST).reading == "undetermined"
+
+
+def test_a_criterion_with_empty_suites_but_non_empty_universes_is_not_reported_as_an_empty_universe():
+    cells = grid([1])
+    for w in (WS, WO):
+        for s in (S, O, OP):
+            cells[(w, s, 1)] = None
+    universes = {(s, 1): 5 for s in (S, O, OP)}
+    _, exclusions = common_set(cells, [1], universes)
+    assert exclusions[0].reasons == ("T_S is empty after the reference filter", "T_O is empty after the reference filter")
+    _, exclusions = common_set(cells, [1], {(S, 1): 5, (O, 1): 0, (OP, 1): 5})
+    assert "U(O) is empty" in exclusions[0].reasons

@@ -311,7 +311,7 @@ def _d7(ctx: Context) -> EndpointResult:
             regression_total += 1
             is_valid = view is not None and view.verdict_for(item.declared_target) == k.MUTANT_VALID_W
             regression_valid += int(is_valid)
-            if view is not None and not ctx.vetoed(item.mutant_id, item.declared_target):
+            if item.source not in ctx.truth.isolation_vetoed:
                 survivors_total += 1
                 survivors_valid += int(is_valid)
         else:
@@ -351,7 +351,7 @@ def _d8(ctx: Context) -> EndpointResult:
     enough = sum(1 for c in c_d8 if valid_x_by_criterion[c] >= k.D8_MIN_VALID_PER_CRITERION)
     total = len(c_d8)
     point = enough / total if total else NAN
-    frozen_enough = sum(1 for c in ctx.criteria if valid_w_by_criterion[c] >= k.D8_MIN_VALID_PER_CRITERION)
+    d8_all_enough = sum(1 for c in ctx.criteria if valid_w_by_criterion[c] >= k.D8_MIN_VALID_PER_CRITERION)
     return _result(
         "D8", 2, f"criteria of C_D8 with >= 2 VALID_x arm-T mutants (C_D8 = {[criterion_ref(c) for c in c_d8]})",
         total, Estimate(point, wilson(enough, total)),
@@ -362,10 +362,10 @@ def _d8(ctx: Context) -> EndpointResult:
             "valid_x_by_criterion": {criterion_ref(c): valid_x_by_criterion[c] for c in ctx.criteria},
             "outside_c_d8": {criterion_ref(c): valid_x_by_criterion[c] for c in ctx.criteria if c not in c_d8},
             "exposed": {criterion_ref(c): valid_x_by_criterion[c] for c in k.EXPOSED_CRITERIA},
-            "frozen_reading": {
-                "criteria_with_two_valid_w": frozen_enough,
+            "d8_all": {
+                "criteria_with_two_valid_w": d8_all_enough,
                 "criteria": len(ctx.criteria),
-                "outcome": bands.frozen_criteria_with_valid_mutants(frozen_enough, len(ctx.criteria)).value,
+                "outcome": bands.d8_all_criteria_with_valid_mutants(d8_all_enough, len(ctx.criteria)).value,
                 "valid_w_by_criterion": {criterion_ref(c): valid_w_by_criterion[c] for c in ctx.criteria},
             },
         },

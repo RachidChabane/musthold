@@ -16,6 +16,7 @@ from typing import Any
 import yaml
 
 from pilot.adapters.prereg_files import load_labels
+from pilot.analysis.preconditions import canary_pairs
 from pilot.domain.alignment_aggregate import AlignmentAggregate, AlignmentVerdict
 from pilot.domain.execution_validation import valid_x_criteria
 from pilot.domain.mutant_classes import CriterionClass, MutantClass
@@ -345,9 +346,8 @@ class _RunBuilder:
                                            "models": ["claude-opus-5-5", "claude-sonnet-5-5", "gpt-5.6-terra"]})
         (self.run / "DEVIATIONS.md").write_text("", encoding="utf-8")
         lock = json.loads((self.root / "prereg" / "models.lock.json").read_text(encoding="utf-8"))
-        for model in lock["models"]:
-            dump(self.run / "canary" / f"{model['model']}__{model['cli']}__alignment.json",
-                 {"input_tokens": 1, "num_turns": 1, "cli_version": "x"})
+        for model, cli, call_type in canary_pairs(lock):
+            dump(self.run / "canary" / f"{model}__{cli}__{call_type}.json", {"input_tokens": 1, "num_turns": 1, "cli_version": "x"})
         dump(self.root / "results" / "runner_crosscheck.json", {"differences": []})
 
 

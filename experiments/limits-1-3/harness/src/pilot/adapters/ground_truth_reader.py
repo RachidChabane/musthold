@@ -80,6 +80,7 @@ def read_ground_truth(
         verify_log=log_path.read_text(encoding=ENCODING) if log_path.is_file() else "",
         crosscheck_differences=crosscheck_differences,
         d8_criteria=read_d8_criteria(prereg_dir / ISOLATION_TABLE_FILENAME),
+        isolation_vetoed=read_isolation_vetoed(prereg_dir / ISOLATION_TABLE_FILENAME),
     )
 
 
@@ -88,6 +89,13 @@ def read_d8_criteria(path: Path) -> tuple[int, ...]:
     if not path.is_file():
         return ()
     return tuple(int(number) for number in json.loads(path.read_text(encoding=ENCODING))["c_d8"])
+
+
+def read_isolation_vetoed(path: Path) -> frozenset[str]:
+    """The hand-written violations that a test bound to another criterion kills, from the committed table."""
+    if not path.is_file():
+        return frozenset()
+    return frozenset(json.loads(path.read_text(encoding=ENCODING))["killed_by_other_binding"])
 
 
 def read_models_lock(path: Path) -> Mapping[str, Any]:

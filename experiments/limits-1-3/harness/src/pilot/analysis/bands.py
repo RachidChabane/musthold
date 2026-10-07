@@ -95,12 +95,12 @@ def criteria_with_valid_mutants(criteria_count: int, criteria_total: int) -> Out
     return _resolve(criteria_count >= criteria_total, criteria_count <= criteria_total - k.D8_NO_GO_SHORT)
 
 
-def frozen_criteria_with_valid_mutants(criteria_count: int, criteria_total: int) -> Outcome:
-    """D8, frozen reading over all ten criteria with VALID_w mutants: reported, never decisional."""
+def d8_all_criteria_with_valid_mutants(criteria_count: int, criteria_total: int) -> Outcome:
+    """D8, D8-all reading over all ten criteria with VALID_w mutants: reported, never decisional."""
     if criteria_total <= 0:
         return Outcome.INCONCLUSIVE
     return _resolve(
-        criteria_count >= k.D8_FROZEN_GO_CRITERIA, criteria_count <= k.D8_FROZEN_NO_GO_CRITERIA_MAX
+        criteria_count >= k.D8_ALL_GO_CRITERIA, criteria_count <= k.D8_ALL_NO_GO_CRITERIA_MAX
     )
 
 

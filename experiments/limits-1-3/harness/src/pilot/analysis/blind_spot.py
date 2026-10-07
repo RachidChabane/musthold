@@ -87,8 +87,13 @@ class Exclusion:
     reasons: tuple[str, ...]
 
 
+Universes = Mapping[tuple[MutantSource, int], int]
+
+
 def common_set(
-    cells: Mapping[tuple[Writer, MutantSource, int], CellCount | None], criteria: Sequence[int]
+    cells: Mapping[tuple[Writer, MutantSource, int], CellCount | None],
+    criteria: Sequence[int],
+    universes: Universes | None = None,
 ) -> tuple[tuple[int, ...], tuple[Exclusion, ...]]:
     """C*: criteria with both suites non-empty, a non-empty universe for every source and an evaluable pair in every cell.
 
@@ -97,7 +102,7 @@ def common_set(
     included: list[int] = []
     excluded: list[Exclusion] = []
     for criterion in criteria:
-        reasons = _exclusion_reasons(cells, criterion)
+        reasons = _exclusion_reasons(cells, criterion, universes)
         if reasons:
             excluded.append(Exclusion(criterion, tuple(reasons)))
         else:
@@ -105,11 +110,16 @@ def common_set(
     return tuple(included), tuple(excluded)
 
 
-def _exclusion_reasons(cells: Mapping[tuple[Writer, MutantSource, int], CellCount | None], criterion: int) -> list[str]:
+def _exclusion_reasons(
+    cells: Mapping[tuple[Writer, MutantSource, int], CellCount | None], criterion: int, universes: Universes | None
+) -> list[str]:
     reasons = [f"T_{w.value} is empty after the reference filter" for w in WRITERS if all(cells.get((w, s, criterion)) is None for s in SOURCES)]
     for source in SOURCES:
-        sizes = [c.universe for w in WRITERS if (c := cells.get((w, source, criterion))) is not None]
-        if not any(sizes):
+        if universes is not None:
+            empty = universes.get((source, criterion), 0) == 0
+        else:
+            empty = not any(c.universe for w in WRITERS if (c := cells.get((w, source, criterion))) is not None)
+        if empty:
             reasons.append(f"U({source.value}) is empty")
     for writer, source in CELL_ORDER:
         cell = cells.get((writer, source, criterion))
@@ -165,7 +175,8 @@ def primary_statistic(sums: FloatArray) -> FloatArray:
 
 
 def reading(interval: Interval) -> str:
-    """Fixed in advance; the first rule that holds wins, so a positive lower bound reads as indicated."""
+    """Fixed in advance; the first rule that holds wins, so a positive lower bound reads as indicated. The caller
+    reads "undetermined" below the minimum number of criteria."""
     if not interval.is_defined:
         return k.BLIND_SPOT_UNDETERMINED
     if interval.lo > 0:
@@ -184,7 +195,7 @@ class BlindSpotResult:
     contrasts: Contrasts | None
     interval: Interval
     reading: str
-    below_materiality: bool
+    indicated_below_materiality: bool
 
     def to_mapping(self) -> dict[str, Any]:
         found = self.contrasts
@@ -200,7 +211,7 @@ class BlindSpotResult:
             "SB": _clean(found.sb) if found else None,
             "interval": [_clean(self.interval.lo), _clean(self.interval.hi)],
             "reading": self.reading,
-            "upper_bound_below_materiality": self.below_materiality,
+            "indicated_below_materiality": self.indicated_below_materiality,
         }
 
 
@@ -212,9 +223,10 @@ def estimate(
     cells: Mapping[tuple[Writer, MutantSource, int], CellCount | None],
     criteria: Sequence[int],
     settings: AnalysisSettings,
+    universes: Universes | None = None,
 ) -> BlindSpotResult:
     """The primary estimand over C*, its percentile cluster bootstrap and the three-way reading."""
-    c_star, exclusions = common_set(cells, criteria)
+    c_star, exclusions = common_set(cells, criteria, universes)
     pooled = {
         cell: _pool([count for c in c_star if (count := cells.get((*cell, c))) is not None]) for cell in CELL_ORDER
     }
@@ -224,9 +236,10 @@ def estimate(
     rows = np.array([[*criterion_rates(cells, c), 1.0] for c in c_star], dtype=np.float64)
     means = dict(zip(CELL_ORDER, cell_means(rows).tolist(), strict=True))
     interval = bootstrap_interval(rows, primary_statistic, settings.resamples, settings.seed)
+    found = reading(interval) if len(c_star) >= k.BLIND_SPOT_MIN_CRITERIA else k.BLIND_SPOT_UNDETERMINED
     return BlindSpotResult(
-        c_star, exclusions, means, pooled, contrasts(means), interval, reading(interval),
-        interval.is_defined and interval.lo > 0 and interval.hi < k.BLIND_SPOT_MATERIALITY,
+        c_star, exclusions, means, pooled, contrasts(means), interval, found,
+        found == k.BLIND_SPOT_INDICATED and interval.hi < k.BLIND_SPOT_MATERIALITY,
     )
 
 

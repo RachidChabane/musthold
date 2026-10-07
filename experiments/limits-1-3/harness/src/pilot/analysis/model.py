@@ -71,6 +71,11 @@ class Context:
         """D(t) in the `PARK-n~1` text form, as the isolation predicate reads it."""
         return {nodeid: criterion_ref(number) for nodeid, number in self.declared.items()}
 
+    def oracle_vetoes(self, mutant_id: str, criterion: int) -> bool:
+        """True when the oracle fails a criterion other than `criterion` on the mutant: isolation by truth."""
+        record = self.truth.oracle.get(mutant_id)
+        return record is not None and any(failed != criterion for failed in record.failed_criteria)
+
     def results_of(self, mutant_id: str) -> MutantResults:
         return MutantResults(self.killers.get(mutant_id, frozenset()), self.errored.get(mutant_id, frozenset()))
 
@@ -147,8 +152,10 @@ def gate_evidence(ctx: Context, criterion: int, truth: EvidenceTruth = EvidenceT
         oracle_valid = ctx.oracle_valid_for(view.mutant_id, criterion)
         judged = view.verdict_for(criterion) == MUTANT_VALID_W and view.valid_confidence.get(criterion, 0.0) >= TAU
         valid_w = oracle_valid if truth.validity_by_oracle else judged
-        if truth.isolation_by_oracle:
-            valid_x_here = valid_w and oracle_valid
+        if truth.validity_by_oracle and truth.isolation_by_oracle:
+            valid_x_here = oracle_valid
+        elif truth.isolation_by_oracle:
+            valid_x_here = valid_w and not ctx.oracle_vetoes(view.mutant_id, criterion)
         elif truth.validity_by_oracle:
             valid_x_here = valid_w and not ctx.vetoed(view.mutant_id, criterion)
         else:

@@ -91,9 +91,9 @@ def test_d8_is_decided_over_c_d8_every_criterion_for_go_and_three_or_more_short_
 @pytest.mark.parametrize(
     ("count", "outcome"), [(10, Outcome.GO), (9, Outcome.INCONCLUSIVE), (8, Outcome.INCONCLUSIVE), (7, Outcome.NO_GO), (0, Outcome.NO_GO)]
 )
-def test_d8_frozen_reading_over_ten_criteria_keeps_the_frozen_bands(count, outcome):
-    assert bands.frozen_criteria_with_valid_mutants(count, 10) is outcome
-    assert bands.frozen_criteria_with_valid_mutants(count, 0) is Outcome.INCONCLUSIVE
+def test_d8_all_over_ten_criteria_keeps_its_bands(count, outcome):
+    assert bands.d8_all_criteria_with_valid_mutants(count, 10) is outcome
+    assert bands.d8_all_criteria_with_valid_mutants(count, 0) is Outcome.INCONCLUSIVE
 
 
 def test_d9_requires_recall_and_precision_and_a_margin_over_the_always_misaligned_judge():

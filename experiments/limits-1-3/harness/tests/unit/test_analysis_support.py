@@ -150,3 +150,15 @@ def test_a_template_missing_a_conclusion_form_is_rejected():
     broken = f'{REPORT_CONCLUSION_BEGIN}\n- GO: "x"\n{REPORT_CONCLUSION_END}\n'
     with pytest.raises(TemplateError):
         parse_conclusion_templates(broken)
+
+
+def test_p4_requires_one_canary_per_pair_of_the_lock_not_one_per_pin():
+    import json
+    from pathlib import Path
+
+    from pilot.analysis.preconditions import canary_pairs
+
+    lock = json.loads((Path(__file__).resolve().parents[3] / "prereg" / "models.lock.json").read_text())
+    pairs = canary_pairs(lock)
+    assert len(pairs) == 9 and {m for m, _, _ in pairs} == {"claude-sonnet-5-5", "claude-opus-5-5"}
+    assert ("claude-opus-5-5", "claude", "audit") in pairs and ("gpt-6-luna", "codex", "generate") not in pairs

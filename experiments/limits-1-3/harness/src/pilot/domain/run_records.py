@@ -220,4 +220,5 @@ class GroundTruth:
     verify_log: str
     crosscheck_differences: Sequence[str] | None
     d8_criteria: Sequence[int]
+    isolation_vetoed: frozenset[str]
     extra: Mapping[str, Any] = field(default_factory=dict)

@@ -21,7 +21,7 @@ def utc_now() -> datetime:
 
 
 class ExploratoryLedger:
-    """`exploratory_status.json`: stream -> call id -> complete | blocked | pending."""
+    """`exploratory_status.json`: stream -> call id -> complete | missing | blocked | pending."""
 
     def __init__(self, store: RunStore) -> None:
         self._store = store
@@ -75,7 +75,11 @@ class WindowedCaller:
             done = [spec for spec in specs if self._inner.is_recorded(spec.call_id)]
             self._mark(done, [spec for spec in specs if spec not in done], CallStatus.PENDING)
             raise
-        self._mark(list(specs), [], CallStatus.PENDING)
+        statuses = {
+            spec.call_id: CallStatus.MISSING if isinstance(outcomes.get(spec.call_id), MissingResult) else CallStatus.COMPLETE
+            for spec in specs
+        }
+        self._ledger.mark(self._stream, statuses)
         return outcomes
 
     def _mark(self, done: Sequence[CallSpec], rest: Sequence[CallSpec], rest_status: CallStatus) -> None:

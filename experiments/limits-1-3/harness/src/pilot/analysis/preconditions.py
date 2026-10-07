@@ -21,6 +21,7 @@ from pilot.analysis.stats import (
 from pilot.domain import analysis_constants as k
 from pilot.domain.deviations import DeviationEntry, DeviationKind, parse_deviations
 from pilot.domain.labels import TestClass
+from pilot.domain.call_type import call_types_of_roles
 from pilot.domain.model_slate import CANARY_PINS
 
 VERIFY_PASS_LINE = "RESULT: PASS"
@@ -183,7 +184,7 @@ def pins_of_lock(lock: Mapping[str, object]) -> list[tuple[str, str]]:
 def p4_canaries_and_pins(ctx: Context, lock: Mapping[str, object]) -> Precondition:
     pins = pins_of_lock(lock)
     canaried = [pin for pin in pins if pin in CANARY_SCOPE]
-    missing = [f"{m}__{c}" for m, c in canaried if not any(f.startswith(f"{m}__{c}__") for f in ctx.run.canary_files)]
+    missing = [f"{m}__{c}/{call_type}" for m, c, call_type in canary_pairs(lock) if f"{m}__{c}__{call_type}.json" not in ctx.run.canary_files]
     manifest_models = _manifest_models(ctx.run.manifest)
     unknown = sorted(manifest_models - {m for m, _ in pins})
     problems = [f"no canary for {m}" for m in missing] + [f"manifest model {m} not in the lock" for m in unknown]
@@ -191,6 +192,15 @@ def p4_canaries_and_pins(ctx: Context, lock: Mapping[str, object]) -> Preconditi
         problems.append("no canaried pin in the lock")
     return Precondition("P4", "canaries pass and every pin matches", Status.FAIL if problems else Status.PASS,
                         "; ".join(problems) or "all pins have canaries", ALL_ENDPOINTS, forces_inconclusive=True)
+
+
+def canary_pairs(lock: Mapping[str, object]) -> list[tuple[str, str, str]]:
+    """The (model, cli, call type) pairs the run's canary measures: the lock roles of the canaried pins."""
+    pairs = []
+    for entry in lock.get("models", []):  # type: ignore[attr-defined]
+        if (str(entry["model"]), str(entry["cli"])) in CANARY_SCOPE:
+            pairs += [(str(entry["model"]), str(entry["cli"]), t.value) for t in call_types_of_roles(tuple(entry.get("roles", ())))]
+    return pairs
 
 
 def _manifest_models(manifest: Mapping[str, object]) -> set[str]:
