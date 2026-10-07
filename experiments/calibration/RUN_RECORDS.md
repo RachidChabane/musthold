@@ -150,3 +150,16 @@ detail open. None of them changes a number of the pre-registration. Paths are re
   scope of an identifier when it names its kind, its model or its source; the S1 cells have no source identifier of
   their own.
 - `analyze` and `derive` write no entry other than the `protocol` entries named above.
+
+## Thresholds and counts
+
+- A test labelled MIS_OTHER counts in the K1 and K3 units and not in K2.
+- The VH2 population is every measured mutant with an oracle record; a mutant without a V-H record counts as
+  `units_without_votes` for each of its pairs.
+- A screen pair whose answer document does not answer the question is a `RELAY_REFUSED` fall-through without a
+  decision.
+- The blindness comparison is strict on both the analysis-commit date and the earliest start of run-02: equal times
+  fail it.
+- "More than 0.10" fall-throughs is strict: a share of exactly 0.10 does not read INCONCLUSIVE (data). A two-signal
+  test whose `none_share` is exactly 0.20 is not off-spec.
+- Fewer than 200 fit-half units reads UNREACHABLE when the item set cannot supply them and INCONCLUSIVE when it could.
