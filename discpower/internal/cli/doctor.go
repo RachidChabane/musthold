@@ -1,9 +1,11 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 
+	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/shallnot"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
@@ -53,7 +55,7 @@ func (e Env) diagnose(rootFlag string) []check {
 	if binary == "" {
 		binary = shallnot.DefaultBinary
 	}
-	checks := []check{lookPath("shallnot", binary)}
+	checks := []check{lookPath("shallnot", binary), e.schemaCheck(binary)}
 	project, err := e.openProject(rootFlag)
 	if err != nil {
 		return append(checks, check{name: "project", detail: err.Error()})
@@ -68,6 +70,15 @@ func (e Env) diagnose(rootFlag string) []check {
 		return append(checks, check{name: "journal", detail: err.Error()})
 	}
 	return append(checks, check{name: "journal", passed: true, detail: fmt.Sprintf("%d records, chain verified", len(records))})
+}
+
+// schemaCheck verifies that Shallnot speaks the report schema the module reads.
+func (e Env) schemaCheck(binary string) check {
+	gateway := shallnot.Gateway{Process: process.New(), Binary: binary, Root: e.WorkDir}
+	if err := gateway.CheckReportSchema(context.Background()); err != nil {
+		return check{name: "shallnot-schema", detail: err.Error()}
+	}
+	return check{name: "shallnot-schema", passed: true, detail: "report schema 1.2 or later"}
 }
 
 func lookPath(name, binary string) check {

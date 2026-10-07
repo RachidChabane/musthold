@@ -108,10 +108,7 @@ func (e Env) openProject(rootFlag string) (*project, error) {
 		return nil, err
 	}
 	runner, reader := process.New(), junitxml.NewReader()
-	strategies, err := ecosystem.New(
-		pytest.New(pytest.Dependencies{Process: runner, Reader: reader, Locator: treesitter.NewLocator(), Assignments: pythonmutation.New()}),
-		golang.New(golang.Dependencies{Process: runner, Reader: reader, Locator: goparser.NewLocator(), Assignments: gomutation.New()}),
-	)
+	strategies, err := newStrategies(runner, reader)
 	if err != nil {
 		return nil, err
 	}
@@ -150,6 +147,14 @@ func (e Env) openProject(rootFlag string) (*project, error) {
 		Clock:      e.Now,
 		Entropy:    e.Entropy,
 	}}, nil
+}
+
+// newStrategies registers the strategy of every supported ecosystem.
+func newStrategies(runner ports.ProcessRunner, reader ports.ResultsReader) (*ecosystem.Registry, error) {
+	return ecosystem.New(
+		pytest.New(pytest.Dependencies{Process: runner, Reader: reader, Locator: treesitter.NewLocator(), Assignments: pythonmutation.New()}),
+		golang.New(golang.Dependencies{Process: runner, Reader: reader, Locator: goparser.NewLocator(), Assignments: gomutation.New()}),
+	)
 }
 
 func chooseEcosystem(strategies *ecosystem.Registry, settings projectconfig.Settings, root string) (domain.Name, ports.Ecosystem, error) {
