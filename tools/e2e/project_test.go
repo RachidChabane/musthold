@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -35,6 +36,7 @@ const (
 	cachePath        = ".spec-proof/cache"
 	// claudeToolPrefix is how the Claude harness spells the tools of the executor
 	// server of the discriminating-power plugin.
+	verifiesTag      = "verifies"
 	claudeToolPrefix = "mcp__plugin_spec-proof-dp_exec__"
 )
 
@@ -79,20 +81,30 @@ func productBinaries(t *testing.T) string {
 }
 
 // requireMachine skips the test, with the reason, when the machine is short of free
-// memory, and when the pinned Shallnot cannot be built. It returns the Shallnot.
-func requireMachine(t *testing.T, requirement string) string {
+// memory, and when the pinned Shallnot cannot be built. The skip is recorded under
+// one subtest per requirement the test verifies, tagged as the requirement is, so
+// that the gate reports each requirement as skipped and never drops it. It returns
+// the Shallnot.
+func requireMachine(t *testing.T, requirements []string) string {
 	t.Helper()
 	root, err := filepath.Abs(repositoryDir)
 	if err != nil {
 		t.Fatal(err)
 	}
+	skip := func(format string, args ...any) {
+		reason := fmt.Sprintf(format, args...)
+		for _, requirement := range requirements {
+			t.Run("is not checked ["+verifiesTag+" "+requirement+"]", func(t *testing.T) { t.Skip(reason) })
+		}
+		t.Skip(reason)
+	}
 	if output, err := exec.Command("bash", filepath.Join(root, memGuardScript), "check").CombinedOutput(); err != nil {
-		t.Skipf("%s is not checked: the memory guard refused the run: %s", requirement, strings.TrimSpace(string(output)))
+		skip("the memory guard refused the run: %s", strings.TrimSpace(string(output)))
 	}
 	command := exec.Command("bash", filepath.Join(root, shallnotScript))
 	command.Dir = root
 	if output, err := command.CombinedOutput(); err != nil {
-		t.Skipf("%s is not checked: the pinned Shallnot cannot be built from $SHALLNOT_SRC (%v): %s", requirement, err, strings.TrimSpace(string(output)))
+		skip("the pinned Shallnot cannot be built from $SHALLNOT_SRC (%v): %s", err, strings.TrimSpace(string(output)))
 	}
 	return filepath.Join(root, filepath.FromSlash(shallnotRelative))
 }
@@ -117,9 +129,9 @@ type parcelProject struct {
 	tmp      string
 }
 
-func newParcelProject(t *testing.T, requirement string) *parcelProject {
+func newParcelProject(t *testing.T, requirements []string) *parcelProject {
 	t.Helper()
-	shallnot := requireMachine(t, requirement)
+	shallnot := requireMachine(t, requirements)
 	base, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
