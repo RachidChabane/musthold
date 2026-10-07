@@ -17,17 +17,17 @@ import (
 )
 
 const (
-	maxWaves       = 10
-	exitClean      = 0
-	exitBlocked    = 1
-	exitHookHold   = 2
-	exitAwaiting   = 3
-	stopEvent      = `{"session_id":%q,"cwd":%q}`
-	policyOnProofs = "proofs:\n  trust: local\n  code:\n    - parcel/**\n"
-	editedLine     = "\n# reviewed\n"
-	reportFile     = "report.json"
-	passVerdict    = "PASS"
-	blockVerdict   = "BLOCK"
+	maxWaves      = 10
+	exitClean     = 0
+	exitBlocked   = 1
+	exitHookHold  = 2
+	exitAwaiting  = 3
+	stopEvent     = `{"session_id":%q,"cwd":%q}`
+	enabledPolicy = "proofs:\n  require:\n    - discriminating-power\n  trust: local\n  code:\n    - parcel\n"
+	editedLine    = "\n# reviewed\n"
+	reportFile    = "report.json"
+	passVerdict   = "PASS"
+	blockVerdict  = "BLOCK"
 )
 
 // editCode makes the change an agent would make: it touches the code under test.
@@ -53,10 +53,9 @@ func (p *project) equip() {
 	if r := p.dp("", "enable"); r.code != exitClean {
 		p.t.Fatalf("enable: %s", r.output())
 	}
-	if got := p.read("shallnot.yaml"); got != traceability+"proofs:\n  require:\n    - discriminating-power\n" {
-		p.t.Fatalf("enable did not add the proof to proofs.require:\n%s", got)
+	if got := p.read("shallnot.yaml"); got != traceability+enabledPolicy {
+		p.t.Fatalf("enable did not leave the policy of the local loop:\n%s", got)
 	}
-	p.write("shallnot.yaml", strings.Replace(p.read("shallnot.yaml"), "proofs:\n", policyOnProofs, 1))
 }
 
 // stop runs Shallnot's end-of-turn hook as Claude Code does.
