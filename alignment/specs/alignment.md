@@ -417,3 +417,20 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   three consecutive words of its method name, display names or name pattern.
 - **SP-1214~1**: WHEN a file is offered to the Java masker THE SYSTEM SHALL serve the
   files of Java and refuse every other file.
+- **SP-1220~1**: WHEN a JUnit 5 test written in Kotlin is masked THE SYSTEM SHALL
+  return one class that holds the test and the members of its enclosing classes that
+  run for every test or that it reaches, with the declarations of the file it reaches
+  and the imports they use, under neutral names, without comments, display names,
+  name patterns or citation tags, however many annotations precede a class.
+- **SP-1221~1**: WHEN the signatures of the code under a Kotlin test are built THE
+  SYSTEM SHALL return, without bodies, annotations, initial values or private
+  members, the classes, objects and top-level declarations of the project that the
+  test imports or names from its own package or a package it imports whole.
+- **SP-1222~1**: WHEN a Kotlin test is bound by the name its runner reports THE
+  SYSTEM SHALL find it as it finds a Java test, reading the name of a function written
+  between backticks as the sentence it is.
+- **SP-1223~1**: WHEN a masked input is built for any name of a Kotlin test THE
+  SYSTEM SHALL hold no declared criterion reference, no marker word and no run of
+  three consecutive words of its function name, display names or name pattern.
+- **SP-1224~1**: WHEN a file is offered to the Kotlin masker THE SYSTEM SHALL serve
+  the files of Kotlin and refuse every other file.
