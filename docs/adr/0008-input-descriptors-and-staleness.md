@@ -22,7 +22,7 @@ per-file form gives Shallnot nothing it currently recomputes.
 ### One descriptor per file
 
 `code_tree` and `test_source` inputs are per-file resource descriptors:
-`{role, name: <path relative to the repository root, POSIX>, digest: {sha256:
+`{role, name: <path relative to the directory holding `shallnot.yaml`, POSIX>, digest: {sha256:
 <SHA-256 of the file's exact bytes>}}`, sorted by role, then name.
 
 - `code_tree` lists the criterion's footprint files (ADR 0003: functions reached
@@ -47,6 +47,15 @@ per-file form gives Shallnot nothing it currently recomputes.
 
 The file-set digest and the `annotations.globs` comparison of ADR 0002 are
 not used for proof inputs.
+
+Paths are relative to the directory holding `shallnot.yaml`, the same base
+Shallnot resolves its `specs`, `tests` and `proofs.code` patterns against.
+
+A Statement may consume the Statements of several criteria of one kind (an
+alignment proof reads the matrix of every criterion its test is bound to); each
+consumed Statement is one `proof` input named by its kind and carrying the
+criterion in `annotations.criterion`, and `(name, annotations.criterion)` is
+unique within a Statement.
 
 ### What Shallnot checks
 
