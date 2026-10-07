@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.2",
+  "tool": "shallnot",
+  "requirements": [
+    {
+      "id": "PAR-1",
+      "revision": 1,
+      "ref": "PAR-1~1",
+      "statement": "WHEN a line is priced THE SYSTEM SHALL multiply the unit price by the quantity.",
+      "status": "active",
+      "statement_digest": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f809",
+      "tests": [
+        {"name": "TestLineTotal/multiplies_the_unit_price_by_the_quantity_[verifies_PAR-1~1]", "classname": "example.com/parcelgo", "source": {"file": "pricing_test.go", "line": 16}}
+      ]
+    },
+    {
+      "id": "PAR-2",
+      "revision": 1,
+      "ref": "PAR-2~1",
+      "statement": "WHEN a parcel is shipped to a remote zone THE SYSTEM SHALL add the remote surcharge to the shipping cost.",
+      "status": "active",
+      "statement_digest": "9f8e7d6c5b4a39281706f5e4d3c2b1a09f8e7d6c5b4a39281706f5e4d3c2b1a0",
+      "tests": [
+        {"name": "TestShippingCost/adds_the_remote_surcharge_[verifies_PAR-2~1]", "classname": "example.com/parcelgo", "source": {"file": "pricing_test.go", "line": 31}},
+        {"name": "TestShippingCost/returns_a_positive_cost_[verifies_PAR-2~1]", "classname": "example.com/parcelgo", "source": {"file": "pricing_test.go", "line": 38}}
+      ]
+    },
+    {
+      "id": "PAR-3",
+      "revision": 1,
+      "ref": "PAR-3~1",
+      "statement": "WHEN the quantity of a line is zero or negative THE SYSTEM SHALL reject the line.",
+      "status": "active",
+      "statement_digest": "7c3d1f5e9a0b4c28d6e1f7a3b5c9d2e4f8a6b0c1d3e5f7a9b1c3d5e7f9a1b3c5",
+      "tests": [
+        {"name": "TestLineTotal/rejects_a_zero_quantity_[verifies_PAR-3~1]", "classname": "example.com/parcelgo", "source": {"file": "pricing_test.go", "line": 23}}
+      ]
+    }
+  ]
+}
