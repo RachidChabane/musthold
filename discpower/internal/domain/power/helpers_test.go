@@ -31,7 +31,16 @@ var (
 	thirdRef   = spec.Ref{ID: "SP-3", Revision: 2}
 )
 
-func verifies(requirement string) string { return " [verifies " + requirement + "~1]" }
+const (
+	tagOpen  = "["
+	tagVerb  = "verifies"
+	tagClose = "]"
+)
+
+// verifies renders the suffix that ties a subtest to a requirement.
+func verifies(requirement string) string {
+	return " " + tagOpen + tagVerb + " " + requirement + "~1" + tagClose
+}
 
 var (
 	verifiesSP164 = verifies("SP-164")

@@ -448,12 +448,12 @@ func TestProveRefusals(t *testing.T) {
 		code    int
 		message string
 	}{
-		{"--changed with --all", []string{"prove", "--changed", "--all"}, refusalExit, "--changed and --all exclude each other"},
-		{"--record with --replay", []string{"prove", "--record", "one", "--replay", "two"}, refusalExit, "--record and --replay exclude each other"},
+		{"--changed with --all", []string{"prove", "--changed", "--all"}, toolFailureExit, "--changed and --all exclude each other"},
+		{"--record with --replay", []string{"prove", "--record", "one", "--replay", "two"}, toolFailureExit, "--record and --replay exclude each other"},
 		{"an unexpected positional argument", []string{"prove", "extra"}, toolFailureExit, "unexpected arguments"},
 		{"a positional argument after the flags", []string{"prove", "--all", "extra"}, toolFailureExit, "unexpected arguments"},
 		{"an unknown flag", []string{"prove", "--bogus"}, toolFailureExit, "bogus"},
-		{"--resume when no request was ever emitted", []string{"prove", "--resume"}, refusalExit, "nothing to resume"},
+		{"--resume when no request was ever emitted", []string{"prove", "--resume"}, toolFailureExit, "nothing to resume"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name+" is refused before anything runs [verifies SP-193~1]", func(t *testing.T) {

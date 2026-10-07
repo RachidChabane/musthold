@@ -203,8 +203,8 @@ func TestProveEndToEnd(t *testing.T) {
 
 	t.Run("prove waits for the host, repeats its requests and refuses to resume nothing [verifies SP-181~1]", func(t *testing.T) {
 		h := newHarness(t, shared)
-		if code, _, _ := h.run(nil, proveCommand, resumeFlag); code != cli.ExitBlocked {
-			t.Errorf("--resume before any request exited %d, want %d", code, cli.ExitBlocked)
+		if code, _, _ := h.run(nil, proveCommand, resumeFlag); code != cli.ExitToolFailure {
+			t.Errorf("--resume before any request exited %d, want %d", code, cli.ExitToolFailure)
 		}
 		code, first, _ := h.run(nil, proveCommand, allFlag)
 		_, listed, _ := h.run(nil, hostproto.ListArgs()...)
@@ -404,8 +404,12 @@ func TestProveCleanRun(t *testing.T) {
 			t.Errorf("%s: %q, want %q\n%s", ref, got, provedPass, output)
 		}
 	}
+	t.Run("a run whose criteria all pass exits clean [verifies SP-181~1]", func(t *testing.T) {
+		if code != cli.ExitClean {
+			t.Errorf("exit code %d, want %d", code, cli.ExitClean)
+		}
+	})
 	if code != cli.ExitClean {
-		t.Errorf("exit code %d, want %d [verifies SP-181~1]", code, cli.ExitClean)
 		for _, mutant := range h.statement("PAR-3~1").Predicate.Mutants {
 			t.Logf("%s %v %v", mutant.Digest[:8], mutant.Validity.Value, mutant.Extensions.Decision)
 			for _, body := range h.mutantBodies() {

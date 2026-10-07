@@ -23,10 +23,12 @@ const (
 	flagRoot    = "root"
 )
 
+// Usage errors of `prove`: a command line the binary cannot act on is a tool
+// failure, never a verdict.
 var (
-	errChangedAndAll    = refusal{errors.New("--changed and --all exclude each other")}
-	errRecordAndReplay  = refusal{errors.New("--record and --replay exclude each other")}
-	errNothingToResume  = refusal{errors.New("nothing to resume: no request was ever emitted")}
+	errChangedAndAll    = errors.New("--changed and --all exclude each other")
+	errRecordAndReplay  = errors.New("--record and --replay exclude each other")
+	errNothingToResume  = errors.New("nothing to resume: no request was ever emitted")
 	errUnexpectedParams = errors.New("unexpected arguments")
 )
 
