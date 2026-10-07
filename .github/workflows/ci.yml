@@ -48,6 +48,23 @@ jobs:
           go-version-file: spec-proof/go.work
           cache-dependency-path: spec-proof/**/go.sum
 
+      - name: Set up Java 21 for the JUnit 5 fixtures
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: spec-proof/discpower/fixtures/ecosystems/*/pom.xml
+
+      - name: Cache the Gradle home of the JUnit 5 fixtures
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('spec-proof/discpower/fixtures/ecosystems/*/build.gradle*', 'spec-proof/discpower/fixtures/ecosystems/*/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
       - name: Set up Python for the pytest fixtures
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:

@@ -33,7 +33,7 @@ class RatesTest {
             "-5, 80.00, 80.00"
     })
     void takesPercentOff(int percent, BigDecimal total, BigDecimal expected) {
-        assertEquals(0, expected.compareTo(Rates.discounted(total, percent)));
+        assertEquals(expected, Rates.discounted(total, percent));
     }
 
     @Nested

@@ -201,6 +201,34 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-100~1**: WHEN mutants are generated from any source THE SYSTEM SHALL give
   operator mutants and sentinels that re-parse, differ from the original, and
   splice into a parsable file, deterministically for a fixed seed.
+- **SP-1100~1**: WHEN a Java or Kotlin source is enumerated THE SYSTEM SHALL
+  produce relational, arithmetic, numeric constant, boolean and logical, return
+  value, static constant, constructor argument, decimal string, minimum and
+  maximum, and and or, boolean literal and exception class mutants, each as an
+  edit of one node inside a whole method, constructor, function or constant
+  declaration, so that the rest of the unit keeps its layout.
+- **SP-1101~1**: WHEN the units of a Java or Kotlin file are listed THE SYSTEM
+  SHALL name each outermost method, constructor or function as the definition
+  locator does, take the definitions nested in it as part of it, leave out a
+  definition whose name several share, and list the static finals of Java and
+  the constant properties of Kotlin as assignments.
+- **SP-1102~1**: WHEN Java and Kotlin sentinels are listed THE SYSTEM SHALL offer
+  a dead local before a statement of a body and the consistent rename of a local
+  that nothing else binds or names, offer the unused private constant to Kotlin
+  files only, draw every injected identifier by seed, and skip a unit that uses
+  reflection.
+- **SP-1103~1**: WHEN the call graph of a Java or Kotlin file is read THE SYSTEM
+  SHALL give each outermost definition its owner, aliases, calls and reads,
+  following static calls, instance calls, calls on this and constructors, and
+  list the constants as assignments.
+- **SP-1104~1**: WHEN a Java or Kotlin unit is normalized THE SYSTEM SHALL ignore
+  comments and layout, keep every change of meaning, and refuse a unit that does
+  not parse.
+- **SP-1105~1**: WHEN mutants are generated from any Java or Kotlin source THE
+  SYSTEM SHALL give operator mutants and sentinels that splice back into a
+  parsable file with the post-splice invariant intact.
+- **SP-1106~1**: WHEN Java sentinels and operator mutants are compiled THE SYSTEM
+  SHALL compile every sentinel and the large majority of the operator mutants.
 
 ## JavaScript and TypeScript mutation
 
@@ -414,6 +442,56 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   mutant survive and pass the criteria whose tests kill every validated mutant.
 - **SP-1042~1**: WHEN a project is inspected THE SYSTEM SHALL recognize a Jest or
   Vitest project among the ecosystems it supports.
+
+## JVM probes and ecosystems
+
+- **SP-1110~1**: WHEN a project tree is inspected THE SYSTEM SHALL recognize a
+  Maven project by its `pom.xml` and a Gradle project by a build or settings
+  script in Groovy or Kotlin, take test classes of both languages as test files,
+  and leave the Gradle caches of a project out of its workspaces.
+- **SP-1111~1**: WHEN a Maven or Gradle project is executed THE SYSTEM SHALL
+  resolve the project's executable wrapper as `./mvnw` or `./gradlew`, else the
+  build tool found on PATH, and report their absence as an error.
+- **SP-1112~1**: WHEN the build of a Maven or Gradle project is checked THE
+  SYSTEM SHALL compile its main and test sources offline in one process, with no
+  daemon left behind, and report a failed or timed out build as diagnostics.
+- **SP-1113~1**: WHEN a selection of tests is run THE SYSTEM SHALL clear the
+  reports of an earlier run, run Surefire directly on Maven and a clean test task
+  on Gradle, filtered to the selection, and read the outcomes from the JUnit XML
+  of the build tool.
+- **SP-1114~1**: WHEN a test bound by its display name is selected THE SYSTEM
+  SHALL map it through its source location to the method whose lines hold it,
+  the annotations of the method included, to the whole class of the next method
+  when the location is outside every method, and to the binary name of nested
+  classes, and refuse a test no definition explains.
+- **SP-1115~1**: WHEN the signature of a bound JVM target
+  `package.Class:method` is asked THE SYSTEM SHALL report the parameters of the
+  method as its Java or Kotlin source declares them, named in snake case and each
+  with a type hint, take the top-level functions of a Kotlin file as the methods
+  of its file class, and refuse a target that is malformed, absent or
+  overloaded.
+- **SP-1116~1**: WHEN calls of JVM targets are invoked in a workspace THE SYSTEM
+  SHALL decode each argument of the literal grammar into the type of its
+  parameter, finding it under any spelling of the parameter's name, whether an
+  integer, a decimal, a string, a boolean, a null or an ISO-8601 datetime, and
+  return for each call, in order, the typed value it returned, with times as
+  ISO-8601, or the name of the class of the exception it threw.
+- **SP-1117~1**: WHEN a call does not fit its method, kills the process or exceeds
+  its deadline THE SYSTEM SHALL observe the call as raising `ArgumentError`,
+  `Crash` or `Timeout` and answer the calls after it in a fresh JVM.
+- **SP-1118~1**: WHEN calls are invoked in the workspaces of one project THE
+  SYSTEM SHALL resolve its test classpath once and share it between workspaces
+  whose build files are the same.
+- **SP-1120~1**: WHEN the name of a parameter is spelled for a spec THE SYSTEM
+  SHALL write its words in lower case joined by underscores, and write an
+  identifier already so spelled as it is.
+- **SP-1121~1**: WHEN `init` inspects a Maven or Gradle project THE SYSTEM SHALL
+  name the ecosystem in the configuration it writes.
+- **SP-1122~1**: WHEN an honest host answers every request for a Maven project
+  THE SYSTEM SHALL block the criterion whose weak test lets a validated mutant
+  survive and pass the criteria whose tests kill every validated mutant.
+- **SP-1123~1**: WHEN the EcosystemContract runs on Maven with Java, Gradle with
+  Java and Gradle with Kotlin THE SYSTEM SHALL pass its six cases on each.
 
 ## Spec values and policy
 

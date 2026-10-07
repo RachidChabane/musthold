@@ -1,0 +1,275 @@
+{
+  "schema_version": "1.2",
+  "tool": {
+    "name": "shallnot",
+    "version": "831c5454a564"
+  },
+  "run": {
+    "advisory": false,
+    "fail_on": "error",
+    "id_pattern": "[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*",
+    "statement_canonicalization": "c1",
+    "focus": {
+      "everything": false,
+      "files": [
+        "specs/parcel.md"
+      ],
+      "ids": []
+    },
+    "spec_files": [
+      "specs/parcel.md"
+    ],
+    "test_roots": [
+      "src"
+    ],
+    "results_files": [
+      "target/surefire-reports/TEST-com.example.parcel.RatesTest.xml"
+    ]
+  },
+  "verdict": "pass",
+  "exit_code": 0,
+  "summary": {
+    "requirements": {
+      "known": 3,
+      "in_focus": 3,
+      "covered": 3,
+      "failed": 0,
+      "skipped": 0,
+      "not_run": 0,
+      "uncovered": 0,
+      "non_testable": 0
+    },
+    "tests": {
+      "total": 9,
+      "bound": 8,
+      "untagged": 1
+    },
+    "findings": {
+      "error": 0,
+      "warning": 0,
+      "info": 1,
+      "blocking": 0
+    }
+  },
+  "requirements": [
+    {
+      "id": "PAR-1",
+      "revision": 1,
+      "ref": "PAR-1~1",
+      "statement": "WHEN an order has line items THE SYSTEM SHALL total each line as its unit price times its quantity. - Example: line_total(unit_price=4.50, quantity=3) => 13.50",
+      "statement_digest": "d4871e5ff0b56c2d5d53b0c85ff550d915930154b7d07acf921c98ad879382f0",
+      "status": "active",
+      "location": {
+        "file": "specs/parcel.md",
+        "line": 7
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "line_total",
+          "args": {
+            "quantity": {
+              "type": "integer",
+              "value": "3"
+            },
+            "unit_price": {
+              "type": "decimal",
+              "value": "4.50"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "decimal",
+            "value": "13.50"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "multiplies the unit price by the quantity [verifies PAR-1~1]",
+          "classname": "com.example.parcel.RatesTest",
+          "suite": "com.example.parcel.RatesTest",
+          "outcome": "passed",
+          "results_file": "target/surefire-reports/TEST-com.example.parcel.RatesTest.xml",
+          "source": {
+            "file": "src/test/java/com/example/parcel/RatesTest.java",
+            "line": 15
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "PAR-2",
+      "revision": 1,
+      "ref": "PAR-2~1",
+      "statement": "WHEN a discount percentage is applied THE SYSTEM SHALL reduce the total by that percentage, limited to the range 0 to 100. - Example: discounted(total=200.00, percent=10) => 180.00 - Example: discounted(total=80.00, percent=150) => 0.00",
+      "statement_digest": "cfff1d80205e6859b744976072dd552d4144806eae307f366b629019f40cd7fd",
+      "status": "active",
+      "location": {
+        "file": "specs/parcel.md",
+        "line": 10
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "discounted",
+          "args": {
+            "percent": {
+              "type": "integer",
+              "value": "10"
+            },
+            "total": {
+              "type": "decimal",
+              "value": "200.00"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "decimal",
+            "value": "180.00"
+          }
+        },
+        {
+          "index": 2,
+          "operation": "discounted",
+          "args": {
+            "percent": {
+              "type": "integer",
+              "value": "150"
+            },
+            "total": {
+              "type": "decimal",
+              "value": "80.00"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "decimal",
+            "value": "0.00"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "percentage discount takes -5 percent off 80.00 [verifies PAR-2~1]",
+          "classname": "com.example.parcel.RatesTest",
+          "suite": "com.example.parcel.RatesTest",
+          "outcome": "passed",
+          "results_file": "target/surefire-reports/TEST-com.example.parcel.RatesTest.xml",
+          "source": {
+            "file": "src/test/java/com/example/parcel/RatesTest.java",
+            "line": 26
+          }
+        },
+        {
+          "name": "percentage discount takes 0 percent off 19.99 [verifies PAR-2~1]",
+          "classname": "com.example.parcel.RatesTest",
+          "suite": "com.example.parcel.RatesTest",
+          "outcome": "passed",
+          "results_file": "target/surefire-reports/TEST-com.example.parcel.RatesTest.xml",
+          "source": {
+            "file": "src/test/java/com/example/parcel/RatesTest.java",
+            "line": 26
+          }
+        },
+        {
+          "name": "percentage discount takes 10 percent off 200.00 [verifies PAR-2~1]",
+          "classname": "com.example.parcel.RatesTest",
+          "suite": "com.example.parcel.RatesTest",
+          "outcome": "passed",
+          "results_file": "target/surefire-reports/TEST-com.example.parcel.RatesTest.xml",
+          "source": {
+            "file": "src/test/java/com/example/parcel/RatesTest.java",
+            "line": 26
+          }
+        },
+        {
+          "name": "percentage discount takes 150 percent off 80.00 [verifies PAR-2~1]",
+          "classname": "com.example.parcel.RatesTest",
+          "suite": "com.example.parcel.RatesTest",
+          "outcome": "passed",
+          "results_file": "target/surefire-reports/TEST-com.example.parcel.RatesTest.xml",
+          "source": {
+            "file": "src/test/java/com/example/parcel/RatesTest.java",
+            "line": 26
+          }
+        },
+        {
+          "name": "percentage discount takes 50 percent off 80.00 [verifies PAR-2~1]",
+          "classname": "com.example.parcel.RatesTest",
+          "suite": "com.example.parcel.RatesTest",
+          "outcome": "passed",
+          "results_file": "target/surefire-reports/TEST-com.example.parcel.RatesTest.xml",
+          "source": {
+            "file": "src/test/java/com/example/parcel/RatesTest.java",
+            "line": 26
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "PAR-3",
+      "revision": 1,
+      "ref": "PAR-3~1",
+      "statement": "WHEN an order total reaches 50 THE SYSTEM SHALL waive the shipping fee.",
+      "statement_digest": "09e30dcf9c9bf5b2cc0bf920485eef2d816be96e461e84fde3c9fd3dea6cdec5",
+      "status": "active",
+      "location": {
+        "file": "specs/parcel.md",
+        "line": 17
+      },
+      "in_focus": true,
+      "examples": [],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "is charged below fifty",
+          "classname": "shipping [verifies PAR-3~1]",
+          "suite": "com.example.parcel.RatesTest",
+          "outcome": "passed",
+          "results_file": "target/surefire-reports/TEST-com.example.parcel.RatesTest.xml",
+          "source": {
+            "file": "src/test/java/com/example/parcel/RatesTest.java",
+            "line": 40
+          }
+        },
+        {
+          "name": "is waived from fifty",
+          "classname": "shipping [verifies PAR-3~1]",
+          "suite": "com.example.parcel.RatesTest",
+          "outcome": "passed",
+          "results_file": "target/surefire-reports/TEST-com.example.parcel.RatesTest.xml",
+          "source": {
+            "file": "src/test/java/com/example/parcel/RatesTest.java",
+            "line": 40
+          }
+        }
+      ],
+      "extensions": {}
+    }
+  ],
+  "out_of_scope": [],
+  "findings": [
+    {
+      "category": "untagged_test",
+      "severity": "info",
+      "blocking": false,
+      "message": "test \"com.example.parcel.RatesTest › is zero for no units\" verifies no stated requirement",
+      "location": {
+        "file": "target/surefire-reports/TEST-com.example.parcel.RatesTest.xml"
+      },
+      "test": {
+        "name": "is zero for no units",
+        "classname": "com.example.parcel.RatesTest",
+        "results_file": "target/surefire-reports/TEST-com.example.parcel.RatesTest.xml"
+      }
+    }
+  ],
+  "extensions": {}
+}
