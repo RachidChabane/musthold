@@ -16,6 +16,9 @@ from pilot.domain.amendment import (
     AMENDED_COMMIT_FILE,
     AMENDED_TOKEN_FILE,
     AMENDMENT_FILENAME,
+    RECOMPUTED_FILES,
+    TRACEABILITY_FILE,
+    canonical_traceability,
     SUPERSEDED_COMMIT_FILE,
     SUPERSEDED_TOKEN_FILE,
     AmendmentFacts,
@@ -96,6 +99,8 @@ def _changed_paths(root: Path, process: ProcessRunner, old: str | None, new: str
     if old is None or new is None:
         return None
     result = process.run([GIT, "diff", "--name-only", "--relative", SUPERSEDED_PREREG_TAG, PREREG_TAG, "--", "."], root)
+    if result.returncode != 0:
+        return None
     return tuple(line for line in result.stdout.splitlines() if line.strip())
 
 
@@ -142,7 +147,21 @@ def collect_facts(
         source_sums=sealed_sums(root / RUNS_DIRNAME / source_run_id),
         target_listing=_target_listing(run_dir, imports),
         imports=imports,
+        target_file_digests={name: file_digest(run_dir / name) if (run_dir / name).is_file() else None for name in RECOMPUTED_FILES},
+        traceability=(
+            _canonical(root / RUNS_DIRNAME / source_run_id / TRACEABILITY_FILE),
+            _canonical(run_dir / TRACEABILITY_FILE),
+        ),
     )
+
+
+def _canonical(path: Path) -> dict[str, Any] | None:
+    if not path.is_file():
+        return None
+    try:
+        return canonical_traceability(json.loads(path.read_text(encoding=ENCODING)))
+    except (KeyError, ValueError, TypeError):
+        return None
 
 
 def _target_listing(run_dir: Path, imports: Mapping[str, Any] | None) -> dict[str, str]:

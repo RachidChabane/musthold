@@ -15,6 +15,8 @@ from pilot.domain.import_manifest import (
     render_sums,
 )
 
+TRACEABILITY = {"verdict": "pass", "summary": {"tests": {"total": 1}}, "findings": [],
+                "requirements": [{"ref": "PARK-1~1", "tests": [{"name": "a"}]}]}
 GENERATION_IDS = OPUS_GENERATION_IDS + TERRA_GENERATION_IDS + RETIRED_CALL_IDS
 
 
@@ -36,6 +38,9 @@ def build_run01(directory: Path, *, seal: bool = True) -> Path:
     write(directory / "plan.json", json.dumps(plan))
     write(directory / "DEVIATIONS.md", "# Deviations\n")
     write(directory / "manifest.json", json.dumps({"run_id": "run-01"}))
+    write(directory / "bindings.json", json.dumps({"tests/t.py::a": "PARK-1~1"}))
+    write(directory / "reference.json", json.dumps({"runs": [{"tests/t.py::a": "passed"}] * 3, "passed_all": True}))
+    write(directory / "traceability.json", json.dumps(TRACEABILITY))
     if seal:
         write(directory / "SHA256SUMS", render_sums(file_digests(directory, exclude=("SHA256SUMS",))))
     return directory

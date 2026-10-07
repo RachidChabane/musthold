@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-from run01_fixture import build_run01
+from run01_fixture import TRACEABILITY, build_run01
 
 from pilot.adapters.amendment_facts import collect_facts
 from pilot.adapters.process import SubprocessRunner
@@ -81,6 +82,10 @@ def experiment(tmp_path):
     write(exp / "freeze" / "a1-commit.txt", git(repo, "rev-parse", f"{PREREG_TAG}^{{commit}}"))
     write(exp / "freeze" / "a1-commit.tsr", "token")
     import_run(DirectoryImportSource(exp / "runs" / "run-01"), RunDirectory(exp / "runs" / "run-02"))
+    for name in ("bindings.json", "reference.json"):
+        shutil.copy(exp / "runs" / "run-01" / name, exp / "runs" / "run-02" / name)
+    moved = {**TRACEABILITY, "results": "/other/junit.xml"}
+    write(exp / "runs" / "run-02" / "traceability.json", json.dumps(moved))
     write(exp / "runs" / "run-02" / "timing.json", json.dumps({"canary": {"started": RUN_START.isoformat(), "finished": RUN_START.isoformat(), "seconds": 1.0}}))
     return exp
 
@@ -145,3 +150,27 @@ def test_an_import_that_no_longer_matches_the_run_is_refused(experiment):
 def test_the_verdict_does_not_depend_on_the_working_directory(experiment, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert problems(experiment) == []
+
+
+def test_recomputed_bindings_that_differ_from_the_sealed_run_are_refused(experiment):
+    (experiment / "runs" / "run-02" / "bindings.json").write_text("{}")
+    assert any("bindings.json of the decisional run differs" in p for p in problems(experiment))
+
+
+def test_a_traceability_report_that_only_moved_paths_is_equal_and_a_changed_link_is_not(experiment):
+    assert problems(experiment) == []
+    changed = {**TRACEABILITY, "requirements": [{"ref": "PARK-2~1", "tests": [{"name": "a"}]}]}
+    (experiment / "runs" / "run-02" / "traceability.json").write_text(json.dumps(changed))
+    assert any("traceability.json" in p and "differs" in p for p in problems(experiment))
+
+
+def test_a_git_failure_is_refused_not_read_as_no_change(experiment, monkeypatch):
+    class Failing(SubprocessRunner):
+        def run(self, argv, cwd, **kw):
+            if argv[:2] == ["git", "diff"]:
+                from pilot.adapters.process import ProcessResult
+                return ProcessResult(128, "", "fatal")
+            return super().run(argv, cwd, **kw)
+
+    facts = collect_facts(experiment, "run-02", Failing(), FakeTimestamps(experiment))
+    assert any("could not list" in p for p in evaluate_amendment(facts))

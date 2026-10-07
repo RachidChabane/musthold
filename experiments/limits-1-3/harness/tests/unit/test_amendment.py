@@ -25,7 +25,8 @@ from pilot.domain.amendment import (
 
 OLD, NEW = "a" * 40, "b" * 40
 OLD_DIGEST, NEW_DIGEST = hashlib.sha256(OLD.encode()).hexdigest(), hashlib.sha256(NEW.encode()).hexdigest()
-SEALED = {"raw/x/result.json": "1" * 64}
+SEALED = {"raw/x/result.json": "1" * 64, "bindings.json": "b" * 64, "reference.json": "c" * 64}
+CANON = {"verdict": "pass", "summary": {}, "findings": [], "links": [("PARK-1~1", "t")]}
 
 
 def facts(**changes):
@@ -41,6 +42,8 @@ def facts(**changes):
         earliest_started=datetime(2026, 10, 9, tzinfo=UTC),
         source_listing=dict(SEALED), source_sums=dict(SEALED), target_listing={"raw/x/result.json": "1" * 64},
         imports={"entries": [{"source_path": "raw/x/result.json", "target_path": "raw/x/result.json", "digest": "1" * 64}]},
+        target_file_digests={"bindings.json": "b" * 64, "reference.json": "c" * 64},
+        traceability=(CANON, CANON),
     )
     return AmendmentFacts(**{**base, **changes})
 
@@ -96,6 +99,30 @@ def test_the_amended_token_must_precede_the_first_stage_of_the_run():
 def test_the_sealed_run_must_match_its_sums_and_exist():
     assert any("sealed run" in p for p in evaluate_amendment(facts(source_listing={"raw/x/result.json": "2" * 64})))
     assert any("no SHA256SUMS" in p for p in evaluate_amendment(facts(source_sums=None)))
+
+
+def test_bindings_reference_and_traceability_of_the_two_runs_must_be_equal():
+    assert any("bindings.json of the decisional run differs" in p for p in evaluate_amendment(facts(target_file_digests={"bindings.json": "0" * 64, "reference.json": "c" * 64})))
+    assert any("reference.json" in p and "differs" in p for p in evaluate_amendment(facts(target_file_digests={"bindings.json": "b" * 64, "reference.json": "0" * 64})))
+    assert any("no bindings.json to compare" in p for p in evaluate_amendment(facts(target_file_digests={"reference.json": "c" * 64})))
+    other = {**CANON, "links": [("PARK-2~1", "t")]}
+    assert any("traceability.json" in p and "differs" in p for p in evaluate_amendment(facts(traceability=(CANON, other))))
+    assert any("traceability.json" in p and "missing" in p for p in evaluate_amendment(facts(traceability=(None, CANON))))
+
+
+def test_canonical_traceability_ignores_paths_and_order():
+    from pilot.domain.amendment import canonical_traceability
+
+    a = {"verdict": "pass", "summary": {"n": 1}, "findings": [{"category": "b"}, {"category": "a"}], "results": "/tmp/x/junit.xml",
+         "requirements": [{"ref": "PARK-2~1", "tests": [{"name": "t2"}]}, {"ref": "PARK-1~1", "tests": [{"name": "t1"}]}]}
+    b = {**a, "results": "/elsewhere/junit.xml", "findings": [{"category": "a"}, {"category": "b"}], "requirements": list(reversed(a["requirements"]))}
+    assert canonical_traceability(a) == canonical_traceability(b)
+
+
+def test_git_failing_to_list_the_changed_paths_is_a_problem_and_a_non_mapping_digest_object_is_refused():
+    assert any("could not list" in p for p in evaluate_amendment(facts(changed_paths=None)))
+    bad = {"superseded_tag": "old", "superseded_commit": OLD, "declared_paths": ["harness/", "prereg/PREREG.md"], "import_digests": "ab" * 32}
+    assert any("no import digests" in p for p in evaluate_amendment(facts(amendment=bad)))
 
 
 def test_the_imports_must_match_the_run_and_the_amendment():
