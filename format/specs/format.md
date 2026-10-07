@@ -66,6 +66,22 @@ Go tests of the module in CI.
   `extensions.operatorScreen` THE SYSTEM SHALL keep them through decoding and
   encoding and check the decision's basis and confidences.
 
+## Pending criteria and ledger layout
+
+- **SP-147~1**: WHEN a module's pending file is decoded THE SYSTEM SHALL require
+  a module name that is one path segment and entries that each name a criterion
+  `ID~REV` with a revision from 1 on and a reason of the closed set
+  `awaiting_host`, `awaiting_proof`, `awaiting_host_judgment` and
+  `host_unresponsive`, strictly ascending by criterion and then reason, ignore
+  unknown members, and report `missing_field`, `requirement`, `unknown_value` or
+  `unsorted` for a violation.
+- **SP-148~1**: WHEN the path of a proof is built or read THE SYSTEM SHALL give
+  `proofs/<module>/<subject key>/<cacheKey>.dsse.json` for a signed proof and
+  `<module>/<subject key>/<cacheKey>.json` for a bare statement, accept a path
+  only when its module and subject key are one path segment and its cache key is
+  a SHA-256 hex digest, and derive the subject key from the subject name with its
+  `%`, `/` and `\` percent-encoded, so that distinct subjects keep distinct keys.
+
 ## Executors and corroboration
 
 - **SP-147~1**: WHEN a predicate carries `extensions.hostExclusions` THE SYSTEM
