@@ -1,0 +1,13 @@
+proofs:
+  alignment: false
+  discriminating-power: true
+  completeness: false
+ecosystems:
+  - pytest
+operations:
+  line_total:
+    python: parcel.rates:line_total
+  discounted:
+    python: parcel.rates:discounted
+  shipping_fee:
+    python: parcel.rates:shipping_fee

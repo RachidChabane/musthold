@@ -261,3 +261,170 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-161~1**: WHEN the coverage of a pytest suite is recorded THE SYSTEM SHALL
   give, per test, the functions and methods of the project's source files that it
   executed, naming nested definitions by their qualified path.
+
+## Spec values and policy
+
+- **SP-162~1**: WHEN two literals or two observations are compared THE SYSTEM
+  SHALL treat integers and decimals as equal when they denote the same number
+  whatever their spelling, compare every other type by type and text, and treat
+  two raised exceptions as the same behaviour exactly when they have the same
+  name.
+- **SP-163~1**: WHEN the decision policy is built THE SYSTEM SHALL default to
+  `tau_judge` 0.70, two judges, `tau_screen` 0.20, three deciders, `min_valid` 3,
+  `min_sites` 2, three rounds, `K_op` 400, 40 host tickets, the `corroborated`
+  pass basis and the `restricted` isolation floor, refuse a threshold outside
+  [0,1], a count below one and an unknown basis or isolation, and give another
+  digest when any parameter changes.
+
+## Decisions on mutants
+
+- **SP-164~1**: WHEN a mutant is a sentinel THE SYSTEM SHALL decide it EQUIVALENT
+  by construction, and WHEN a mutant fails the examples of one criterion alone
+  THE SYSTEM SHALL decide it VALID for that criterion on the basis of the spec
+  example with full confidence and the failed example as corroboration, failing
+  examples of several criteria SHALL make it collateral when the criterion is
+  among them, and a mutant failing examples of other criteria only SHALL be
+  decided NOT_VIOLATING and off target.
+- **SP-165~1**: WHEN the judges rule a mutant VALID THE SYSTEM SHALL accept it
+  only when every judge agrees at or above `tau_judge`, a witness is confirmed by
+  execution, the mutant builds and the tests of every other criterion pass, and
+  for a killed mutant a test of the criterion that killed no sentinel killed it
+  and every response keeps judged credit under the isolation floor, and SHALL
+  otherwise leave it UNDETERMINED, a survivor keeping its power to block under a
+  response below the floor.
+- **SP-166~1**: WHEN the judges rule a surviving mutant EQUIVALENT THE SYSTEM SHALL
+  accept it only when the differential search found no difference and the pass
+  basis is not `executed-only`, WHEN they rule it NOT_VIOLATING THE SYSTEM SHALL
+  accept it only under the `judged` basis and count it as a host exclusion, and
+  WHEN execution refutes an answer, which is EQUIVALENT for a killed mutant or a
+  mutant whose behaviour differs, or a witness that execution does not confirm,
+  THE SYSTEM SHALL name the contradiction so that the answer is rejected.
+- **SP-167~1**: WHEN the outcome of a criterion is decided THE SYSTEM SHALL block
+  on a failing reference, a failing example or a surviving VALID mutant, escalate
+  on an undetermined survivor, the absence of a killed VALID mutant, a test that
+  killed a sentinel, an exhausted budget or an unresponsive host, and pass only
+  when a killed VALID mutant was credited and nothing else remains, blocking
+  before escalating.
+- **SP-168~1**: WHEN the search for mutants is checked for its end THE SYSTEM SHALL
+  stop on a block, and otherwise once `min_valid` VALID mutants cover `min_sites`
+  distinct sites with at least one killed.
+- **SP-169~1**: WHEN screen answers are read THE SYSTEM SHALL take P(VIOLATES) as
+  the mean of the answers' probabilities, which for votes without confidence is
+  their share of VIOLATES, and flag a survivor into the pool at or above
+  `tau_screen`.
+
+## Differential search
+
+- **SP-170~1**: WHEN inputs are drawn for an operation THE SYSTEM SHALL give the
+  same inputs for the same pool, signature and seed, sweep each parameter over
+  both sides of every number of the code and of the examples before it draws
+  random combinations, never repeat an input and never exceed the number asked.
+- **SP-171~1**: WHEN the observations on the reference and on a mutant are
+  compared THE SYSTEM SHALL report no difference when they agree, and otherwise
+  the simplest inputs on which the reference returns and the mutant differs, at
+  most three.
+
+## Coverage
+
+- **SP-172~1**: WHEN coverage is queried THE SYSTEM SHALL list the units executed
+  by given tests as entry functions, sorted and without duplicates, and the tests
+  that executed a unit or a definition nested in it.
+
+## Prompts
+
+- **SP-173~1**: WHEN a request prompt is built THE SYSTEM SHALL name no criterion
+  by its identifier, show a generation request no test, change the template digest
+  exactly when the prompt text or the response schema changes, and carry at most
+  64 questions in a closed request.
+- **SP-174~1**: WHEN an executor's output is read THE SYSTEM SHALL give the
+  generated mutants, the judged answer with its confidence and witness, an
+  equivalence answer other than EQUIVALENT as undetermined, and the screen answers
+  by question id, and a vote that states no confidence SHALL count as full
+  confidence.
+
+## Execution of mutants
+
+- **SP-175~1**: WHEN a mutant is executed THE SYSTEM SHALL run the tests that
+  executed the edited definitions, or every test for a sentinel, a module-level
+  edit or an unknown coverage, report a test outside the selection as survived,
+  rerun every kill once and count a kill that does not repeat as survived, and
+  return the memoized result for the same mutant and suite.
+- **SP-176~1**: WHEN a witness is confirmed THE SYSTEM SHALL confirm it when the
+  reference returns what the judge expects and the mutant does not, refuse it
+  when execution says otherwise and report it absent when it cannot be run, and
+  WHEN the examples are run THE SYSTEM SHALL list the criteria whose examples the
+  mutant fails.
+- **SP-194~1**: WHEN a mutant workspace is requested for use THE SYSTEM SHALL
+  splice and build it first, report a mutant that does not splice or build
+  without calling the use, call the use with the live workspace otherwise and
+  release the workspace afterwards.
+
+## Host tickets
+
+- **SP-177~1**: WHEN a proof asks the host for an answer THE SYSTEM SHALL emit one
+  ticket per vote, record the request in the queue, reissue a rejected or
+  expired ticket with a new nonce, abandon it as unresponsive after the last
+  emission, read a vote only from its accepted, validated or consumed state,
+  move accepted votes to validated and validated ones to consumed, supersede
+  emitted tickets nobody asked for in the wave, and list the tickets still
+  waiting.
+- **SP-178~1**: WHEN tickets are listed THE SYSTEM SHALL list only the tickets in
+  state `emitted`, with the role and the view an executor sees, and WHEN a ticket
+  is shown THE SYSTEM SHALL move it to `fetched` and refuse another emission of
+  it.
+- **SP-179~1**: WHEN an answer is submitted THE SYSTEM SHALL accept it only for the
+  ticket and the nonce of the issue after the response schema holds, allow one
+  correction before it rejects, refuse a different second answer as a
+  resubmission conflict, record a submission without a capability as exposed and
+  an executor profile that cannot claim more than inline, and keep the profile
+  and the exposure out of replayed and relayed answers.
+- **SP-180~1**: WHEN recorded answers are replayed THE SYSTEM SHALL answer every
+  pending ticket from the recording of its request through the same checks and
+  fail with a miss when a request has no recording, and WHEN answers are recorded
+  THE SYSTEM SHALL keep each output and its executor under the request id.
+
+## The prove use case
+
+- **SP-181~1**: WHEN `prove` runs THE SYSTEM SHALL exit 3 while tickets wait for the
+  host, 1 when a criterion blocks or escalates, 0 otherwise, advance one wave per
+  run, give the same requests when run again, and refuse `--resume` when no
+  request was ever emitted.
+- **SP-182~1**: WHEN an honest host answers every request THE SYSTEM SHALL block a
+  criterion whose weak test lets a validated mutant survive and pass criteria
+  whose tests kill every validated mutant, writing one Statement per criterion.
+- **SP-183~1**: WHEN the host forges, omits, replays with a stale nonce or breaks the
+  schema of its answers THE SYSTEM SHALL never pass a criterion.
+- **SP-184~1**: WHEN any assignment of judge answers is considered, including the most
+  favourable one, THE SYSTEM SHALL never block or credit a mutant on judged
+  evidence without executed corroboration.
+- **SP-185~1**: WHEN the same votes are consumed in any order THE SYSTEM SHALL write the
+  same Statement, with no nonce, time or consumption order in it.
+- **SP-186~1**: WHEN any input of a proof changes THE SYSTEM SHALL give another cache key,
+  the inputs being the statement, the test sources, the code tree, the reference
+  results, the examples and their bindings, the policy, the prompt templates, the
+  mutant set, the models and the host responses.
+- **SP-187~1**: WHEN a criterion has no host tickets left THE SYSTEM SHALL leave the
+  judgments it could not ask for UNDETERMINED with the reason `budget_exhausted`
+  and escalate the criterion, never pass it.
+- **SP-188~1**: WHEN a criterion's inputs are unchanged since its last Statement and
+  `--changed` selects it THE SYSTEM SHALL not prove it again and report its stored
+  outcome.
+- **SP-189~1**: WHEN a Statement is written THE SYSTEM SHALL validate it against the
+  embedded schemas, write it under `.spec-proof/cache/discriminating-power`, and
+  keep mutant bodies only in the user cache outside the work tree.
+- **SP-190~1**: WHEN the ecosystem cannot probe calls THE SYSTEM SHALL ask the host for
+  nothing, report the skipped searches as findings and escalate every criterion
+  that has no VALID mutant.
+
+## Configuration and command line
+
+- **SP-191~1**: WHEN the project configuration names operations and policy parameters
+  THE SYSTEM SHALL bind each operation per ecosystem or language, apply the
+  parameters over the defaults, refuse an invalid parameter, and write both back
+  in a fixed order.
+- **SP-192~1**: WHEN `request`, `systemone` or `doctor` runs THE SYSTEM SHALL list,
+  show and submit tickets, export closed requests and import their answers from a
+  relay, report the checks of the project, and exit 1 for a refusal of the
+  protocol and 2 for a tool failure.
+- **SP-193~1**: WHEN `prove` is given conflicting flags or unexpected arguments THE
+  SYSTEM SHALL refuse them before it runs anything.

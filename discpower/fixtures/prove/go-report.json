@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.2",
+  "tool": {
+    "name": "shallnot",
+    "version": "v0.5.0"
+  },
+  "requirements": [
+    {
+      "id": "PAR-1",
+      "revision": 1,
+      "ref": "PAR-1~1",
+      "statement": "WHEN an order has line items THE SYSTEM SHALL total each line as its unit price times its quantity.",
+      "status": "active",
+      "statement_digest": "d0c5c9363af1e3b1ca3335d338595f878df6190aaf315552303604dd3867bf20",
+      "tests": [
+        {
+          "name": "TestLineTotal/multiplies_the_unit_price_by_the_quantity_[verifies_PAR-1~1]",
+          "classname": "example.com/parcel",
+          "suite": "go",
+          "outcome": "passed",
+          "source": {
+            "file": "rates_test.go",
+            "line": 9
+          }
+        }
+      ],
+      "examples": []
+    },
+    {
+      "id": "PAR-2",
+      "revision": 1,
+      "ref": "PAR-2~1",
+      "statement": "WHEN a discount percentage is applied THE SYSTEM SHALL reduce the total by that percentage, limited to the range 0 to 100.",
+      "status": "active",
+      "statement_digest": "04fa9f4b8238a4b7fa626572b7e5aeb31d5fd34dfac8834e9508b90f8d9cc9c9",
+      "tests": [
+        {
+          "name": "TestDiscounted/takes_-5_percent_off_8000_[verifies_PAR-2~1]",
+          "classname": "example.com/parcel",
+          "suite": "go",
+          "outcome": "passed",
+          "source": {
+            "file": "rates_test.go",
+            "line": 31
+          }
+        },
+        {
+          "name": "TestDiscounted/takes_0_percent_off_1999_[verifies_PAR-2~1]",
+          "classname": "example.com/parcel",
+          "suite": "go",
+          "outcome": "passed",
+          "source": {
+            "file": "rates_test.go",
+            "line": 31
+          }
+        },
+        {
+          "name": "TestDiscounted/takes_10_percent_off_20000_[verifies_PAR-2~1]",
+          "classname": "example.com/parcel",
+          "suite": "go",
+          "outcome": "passed",
+          "source": {
+            "file": "rates_test.go",
+            "line": 31
+          }
+        },
+        {
+          "name": "TestDiscounted/takes_150_percent_off_8000_[verifies_PAR-2~1]",
+          "classname": "example.com/parcel",
+          "suite": "go",
+          "outcome": "passed",
+          "source": {
+            "file": "rates_test.go",
+            "line": 31
+          }
+        },
+        {
+          "name": "TestDiscounted/takes_50_percent_off_8000_[verifies_PAR-2~1]",
+          "classname": "example.com/parcel",
+          "suite": "go",
+          "outcome": "passed",
+          "source": {
+            "file": "rates_test.go",
+            "line": 31
+          }
+        }
+      ],
+      "examples": []
+    },
+    {
+      "id": "PAR-3",
+      "revision": 1,
+      "ref": "PAR-3~1",
+      "statement": "WHEN an order total reaches 50 THE SYSTEM SHALL waive the shipping fee.",
+      "status": "active",
+      "statement_digest": "89e6c3fc82e77e6f357693a81b2be675692858c08cb1834394252c1367ada67a",
+      "tests": [
+        {
+          "name": "TestShippingFee/is_waived_from_fifty_[verifies_PAR-3~1]",
+          "classname": "example.com/parcel",
+          "suite": "go",
+          "outcome": "passed",
+          "source": {
+            "file": "rates_test.go",
+            "line": 40
+          }
+        }
+      ],
+      "examples": []
+    }
+  ],
+  "findings": [],
+  "extensions": {}
+}
