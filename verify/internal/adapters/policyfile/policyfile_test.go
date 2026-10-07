@@ -12,7 +12,7 @@ import (
 	"github.com/RachidChabane/spec-proof/verify/internal/testkit"
 )
 
-const verifiesPolicyFile = " [verifies SP-161~1]"
+const verifiesPolicyFile = " [verifies SP-210~1]"
 
 func TestLoad(t *testing.T) {
 	t.Run("a policy file gives its keys and the digest of its exact bytes"+verifiesPolicyFile, func(t *testing.T) {

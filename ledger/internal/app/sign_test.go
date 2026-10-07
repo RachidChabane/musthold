@@ -11,7 +11,7 @@ import (
 	"github.com/RachidChabane/spec-proof/ledger/internal/testkit"
 )
 
-const verifiesSign = " [verifies SP-151~1]"
+const verifiesSign = " [verifies SP-200~1]"
 
 type fakeSource struct{ statements []app.Statement }
 

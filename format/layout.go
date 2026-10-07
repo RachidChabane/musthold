@@ -14,8 +14,12 @@ const (
 	MutantsDirectory = "mutants"
 	// SeedsDirectory holds `<head sha>.json`, the seed of a head commit.
 	SeedsDirectory = "seeds"
-	// TrustDirectory holds the snapshot of the TUF repository of the trusted root.
+	// TrustDirectory holds the snapshots of the TUF repository of the trusted root,
+	// each below `trust/<snapshot id>/`. The id is the SHA-256 of the snapshot's
+	// timestamp file, the one file of a snapshot that changes in place.
 	TrustDirectory = "trust"
+	// TrustTimestampFile is the TUF timestamp file of a snapshot.
+	TrustTimestampFile = "timestamp.json"
 
 	// BundleSuffix ends the name of a signed proof.
 	BundleSuffix = ".dsse.json"

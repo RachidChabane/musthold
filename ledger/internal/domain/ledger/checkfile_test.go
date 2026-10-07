@@ -18,8 +18,8 @@ type plainPayloads struct{}
 func (plainPayloads) Payload(bundle []byte) ([]byte, error) { return bundle, nil }
 
 const (
-	verifiesProofCheck = " [verifies SP-154~1]"
-	verifiesAudit      = " [verifies SP-158~1]"
+	verifiesProofCheck = " [verifies SP-203~1]"
+	verifiesAudit      = " [verifies SP-207~1]"
 )
 
 func TestCheckFileProofs(t *testing.T) {
@@ -111,20 +111,30 @@ func TestCheckFileOthers(t *testing.T) {
 		}
 	})
 
-	t.Run("a trust target is named by the digest of its content"+verifiesMutantsSeedsTrust, func(t *testing.T) {
+	t.Run("a trust file sits below the id of its snapshot and a target is named by its digest"+verifiesMutantsSeedsTrust, func(t *testing.T) {
+		timestamp := []byte(`{"signed":{"version":3}}`)
+		id := ledger.SnapshotID(timestamp)
 		content := []byte(`{"trusted":"root"}`)
-		named := ledger.TrustPath("targets/" + format.SHA256Hex(content) + ".trusted_root.json")
+		named := ledger.TrustPath(id, "targets/"+format.SHA256Hex(content)+".trusted_root.json")
 		if err := ledger.CheckFile(named, content, plainPayloads{}); err != nil {
 			t.Fatal(err)
 		}
 		if err := ledger.CheckFile(named, []byte("tampered"), plainPayloads{}); !errors.Is(err, refusal.ErrRefused) {
 			t.Fatalf("tampered target: error %v", err)
 		}
-		if err := ledger.CheckFile(ledger.TrustPath("2.root.json"), content, plainPayloads{}); err != nil {
+		if err := ledger.CheckFile(ledger.TrustPath(id, "2.root.json"), content, plainPayloads{}); err != nil {
 			t.Fatalf("metadata file: %v", err)
 		}
-		if err := ledger.CheckFile("trust/../escape", content, plainPayloads{}); !errors.Is(err, refusal.ErrRefused) {
-			t.Fatalf("escaping path: error %v", err)
+		if err := ledger.CheckFile(ledger.TrustPath(id, "timestamp.json"), timestamp, plainPayloads{}); err != nil {
+			t.Fatalf("timestamp file: %v", err)
+		}
+		if err := ledger.CheckFile(ledger.TrustPath(id, "timestamp.json"), []byte(`{"signed":{"version":4}}`), plainPayloads{}); !errors.Is(err, refusal.ErrRefused) {
+			t.Fatalf("a timestamp file in the snapshot of another: error %v", err)
+		}
+		for _, bad := range []string{"trust/root.json", "trust/short/root.json", "trust/" + id, "trust/" + id + "/../escape", "trust/../escape"} {
+			if err := ledger.CheckFile(bad, content, plainPayloads{}); !errors.Is(err, refusal.ErrRefused) {
+				t.Errorf("%s: error %v", bad, err)
+			}
 		}
 	})
 }

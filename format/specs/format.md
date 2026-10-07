@@ -68,27 +68,27 @@ Go tests of the module in CI.
 
 ## Pending criteria and ledger layout
 
-- **SP-147~1**: WHEN a module's pending file is decoded THE SYSTEM SHALL require
+- **SP-196~1**: WHEN a module's pending file is decoded THE SYSTEM SHALL require
   a module name that is one path segment and entries that each name a criterion
   `ID~REV` with a revision from 1 on and a reason of the closed set
   `awaiting_host`, `awaiting_proof`, `awaiting_host_judgment` and
   `host_unresponsive`, strictly ascending by criterion and then reason, ignore
   unknown members, and report `missing_field`, `requirement`, `unknown_value` or
   `unsorted` for a violation.
-- **SP-148~1**: WHEN the path of a proof is built or read THE SYSTEM SHALL give
+- **SP-197~1**: WHEN the path of a proof is built or read THE SYSTEM SHALL give
   `proofs/<module>/<subject key>/<cacheKey>.dsse.json` for a signed proof and
   `<module>/<subject key>/<cacheKey>.json` for a bare statement, accept a path
   only when its module and subject key are one path segment and its cache key is
   a SHA-256 hex digest, and derive the subject key from the subject name with its
   `%`, `/` and `\` percent-encoded, so that distinct subjects keep distinct keys.
 
-- **SP-149~1**: WHEN statement bytes are admitted for signing or for verified
+- **SP-198~1**: WHEN statement bytes are admitted for signing or for verified
   storage THE SYSTEM SHALL decode and validate them, refuse bytes that are not
   their own RFC 8785 canonical form, refuse a predicate type outside the format,
   and place the statement at its module, the subject key of its subject and its
   cache key, so that a statement stored anywhere else is refused.
 
-- **SP-150~1**: WHEN a statement is wrapped for an Ed25519 identity THE SYSTEM
+- **SP-199~1**: WHEN a statement is wrapped for an Ed25519 identity THE SYSTEM
   SHALL carry the exact statement bytes as the base64 payload of a DSSE envelope
   of the in-toto payload type, sign their DSSE pre-authentication encoding,
   identify the key by the hex SHA-256 of its raw public key, serialize the
@@ -96,6 +96,10 @@ Go tests of the module in CI.
   payload type, an undecodable payload or signature, no signature or a signature
   without key identifier; and WHEN a signed proof file is read THE SYSTEM SHALL
   tell a bare envelope from a Sigstore bundle by its top-level members.
+
+- **SP-225~1**: WHEN the TUF root of the public-good Sigstore instance is asked THE
+  SYSTEM SHALL give the root embedded in the library as a parseable TUF root
+  document, and a copy of it each time.
 
 ## Executors and corroboration
 

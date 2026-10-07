@@ -18,7 +18,7 @@ import (
 	"github.com/RachidChabane/spec-proof/ledger/internal/testkit"
 )
 
-const verifiesEd25519 = " [verifies SP-152~1]"
+const verifiesEd25519 = " [verifies SP-201~1]"
 
 func noEnvironment(string) (string, bool) { return "", false }
 

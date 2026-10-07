@@ -15,7 +15,7 @@ import (
 	"github.com/RachidChabane/spec-proof/verify/internal/testkit"
 )
 
-const verifiesEd25519 = " [verifies SP-162~1]"
+const verifiesEd25519 = " [verifies SP-211~1]"
 
 func verifierPinning(t testing.TB, identities ...testkit.Identity) *ed25519verifier.Verifier {
 	t.Helper()

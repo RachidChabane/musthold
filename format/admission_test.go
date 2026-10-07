@@ -11,7 +11,7 @@ import (
 	"github.com/RachidChabane/spec-proof/format"
 )
 
-const verifiesAdmission = " [verifies SP-149~1]"
+const verifiesAdmission = " [verifies SP-198~1]"
 
 func canonicalGolden(t *testing.T, name string) []byte {
 	t.Helper()

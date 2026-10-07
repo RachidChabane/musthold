@@ -14,7 +14,7 @@ import (
 	"github.com/RachidChabane/spec-proof/ledger/internal/testkit"
 )
 
-const verifiesManifest = " [verifies SP-151~1]"
+const verifiesManifest = " [verifies SP-200~1]"
 
 func statementsOf(t *testing.T) []app.Statement {
 	t.Helper()

@@ -2,6 +2,9 @@ package cli_test
 
 import (
 	"bytes"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +14,7 @@ import (
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/signing/ed25519signer"
 	"github.com/RachidChabane/spec-proof/ledger/internal/cli"
+	"github.com/RachidChabane/spec-proof/ledger/internal/domain/ledger"
 	"github.com/RachidChabane/spec-proof/ledger/internal/testkit"
 )
 
@@ -27,6 +31,7 @@ type machine struct {
 	t        *testing.T
 	identity testkit.Ed25519Identity
 	env      map[string]string
+	tufRoot  []byte
 }
 
 func newMachine(t *testing.T) *machine {
@@ -44,6 +49,7 @@ func (m *machine) run(args ...string) runResult {
 		},
 		Clock:          fixedClock{},
 		GitEnvironment: testkit.GitEnvironment(m.t),
+		TUFRoot:        m.tufRoot,
 	}
 	var stdout, stderr bytes.Buffer
 	code := cli.Run(environment, binary, args, &stdout, &stderr)
@@ -70,15 +76,16 @@ func (m *machine) signedDirectory() string {
 }
 
 const (
-	verifiesSignFlow  = " [verifies SP-152~1]"
-	verifiesAppendCLI = " [verifies SP-154~1]"
-	verifiesExported  = " [verifies SP-157~1]"
-	verifiesAudited   = " [verifies SP-158~1]"
-	verifiesSeedCLI   = " [verifies SP-159~1]"
-	verifiesExitCodes = " [verifies SP-160~1]"
-	verifiesSeedFiles = " [verifies SP-155~1]"
-	verifiesRemoteCLI = " [verifies SP-156~1]"
-	verifiesSignGate  = " [verifies SP-151~1]"
+	verifiesSignFlow  = " [verifies SP-201~1]"
+	verifiesAppendCLI = " [verifies SP-203~1]"
+	verifiesExported  = " [verifies SP-206~1]"
+	verifiesAudited   = " [verifies SP-207~1]"
+	verifiesSeedCLI   = " [verifies SP-208~1]"
+	verifiesExitCodes = " [verifies SP-209~1]"
+	verifiesSeedFiles = " [verifies SP-204~1]"
+	verifiesRemoteCLI = " [verifies SP-205~1]"
+	verifiesSignGate  = " [verifies SP-200~1]"
+	verifiesFetchSP   = " [verifies SP-226~1]"
 )
 
 func TestSignThenAppendExportAudit(t *testing.T) {
@@ -137,14 +144,16 @@ func TestSignThenAppendExportAudit(t *testing.T) {
 		cacheKey := strings.Repeat("ab", 32)
 		testkit.WriteFile(t, filepath.Join(mutants, cacheKey+".age"), []byte("age-encryption.org/v1\nciphertext"))
 		testkit.WriteFile(t, filepath.Join(trust, "1.root.json"), []byte(`{"signed":{}}`))
+		testkit.WriteFile(t, filepath.Join(trust, "timestamp.json"), []byte(`{"signed":{"version":1}}`))
 		head := strings.Repeat("12", 20)
 		result := m.mustRun("ledger", "append", "--repo", repository, "--mutants", mutants, "--trust", trust,
 			"--head-sha", head, "--run-id", "100")
-		if !strings.Contains(result.stdout, "3 files added") {
+		if !strings.Contains(result.stdout, "4 files added") {
 			t.Fatalf("stdout %q", result.stdout)
 		}
+		snapshot := ledger.SnapshotID([]byte(`{"signed":{"version":1}}`))
 		listing := testkit.Git(t, repository, "ls-tree", "-r", "--name-only", "refs/heads/"+format.LedgerBranch)
-		for _, want := range []string{"mutants/" + cacheKey + ".age", "trust/1.root.json", "seeds/" + head + ".json"} {
+		for _, want := range []string{"mutants/" + cacheKey + ".age", "trust/" + snapshot + "/1.root.json", "trust/" + snapshot + "/timestamp.json", "seeds/" + head + ".json"} {
 			if !strings.Contains(listing, want) {
 				t.Errorf("ledger lacks %s", want)
 			}
@@ -170,7 +179,7 @@ func TestSignThenAppendExportAudit(t *testing.T) {
 
 	t.Run("the ledger is audited clean"+verifiesAudited, func(t *testing.T) {
 		result := m.mustRun("ledger", "audit", "--repo", repository)
-		if !strings.Contains(result.stdout, "append-only and content-addressed: 2 commits, 6 files") {
+		if !strings.Contains(result.stdout, "append-only and content-addressed: 2 commits, 7 files") {
 			t.Fatalf("stdout %q", result.stdout)
 		}
 	})
@@ -178,7 +187,7 @@ func TestSignThenAppendExportAudit(t *testing.T) {
 	t.Run("the proofs and the trust snapshot are exported and nothing else"+verifiesExported, func(t *testing.T) {
 		destination := filepath.Join(t.TempDir(), "export")
 		result := m.mustRun("ledger", "export", "--repo", repository, "--to", destination)
-		if !strings.Contains(result.stdout, "exported 3 proofs and 1 trust files") {
+		if !strings.Contains(result.stdout, "exported 3 proofs and 2 trust files") {
 			t.Fatalf("stdout %q", result.stdout)
 		}
 		for _, statement := range testkit.ValidStatements(t) {
@@ -226,6 +235,136 @@ func TestSignThenAppendExportAudit(t *testing.T) {
 		result := m.run("ledger", "audit", "--repo", forged)
 		if result.code != cli.ExitBlocked || !strings.Contains(result.stdout, "content_addressed") {
 			t.Fatalf("exit %d stdout %q", result.code, result.stdout)
+		}
+	})
+}
+
+func TestTrustSnapshotRefresh(t *testing.T) {
+	m := newMachine(t)
+	repository := testkit.NewBareRepository(t)
+	snapshot := func(version int) string {
+		directory := t.TempDir()
+		testkit.WriteFile(t, filepath.Join(directory, "1.root.json"), []byte(`{"signed":{"type":"root"}}`))
+		testkit.WriteFile(t, filepath.Join(directory, "timestamp.json"), []byte(fmt.Sprintf(`{"signed":{"version":%d}}`, version)))
+		return directory
+	}
+
+	t.Run("a refreshed snapshot is appended next to the first, never over it"+verifiesSeedFiles, func(t *testing.T) {
+		for _, version := range []int{1, 2} {
+			if result := m.run("ledger", "append", "--repo", repository, "--trust", snapshot(version)); result.code != cli.ExitClean {
+				t.Fatalf("snapshot %d: exit %d: %s", version, result.code, result.stderr)
+			}
+		}
+		listing := testkit.Git(t, repository, "ls-tree", "-r", "--name-only", "refs/heads/"+format.LedgerBranch)
+		if got := strings.Count(listing, "timestamp.json"); got != 2 {
+			t.Fatalf("%d timestamp files in the ledger:\n%s", got, listing)
+		}
+	})
+
+	t.Run("appending a snapshot again is a no-op"+verifiesSeedFiles, func(t *testing.T) {
+		before := testkit.Git(t, repository, "rev-parse", "refs/heads/"+format.LedgerBranch)
+		m.mustRun("ledger", "append", "--repo", repository, "--trust", snapshot(2))
+		if after := testkit.Git(t, repository, "rev-parse", "refs/heads/"+format.LedgerBranch); after != before {
+			t.Fatal("the ledger moved")
+		}
+	})
+
+	t.Run("the audit finds the snapshots content-addressed"+verifiesAudited, func(t *testing.T) {
+		if result := m.run("ledger", "audit", "--repo", repository); result.code != cli.ExitClean {
+			t.Fatalf("exit %d: %s%s", result.code, result.stdout, result.stderr)
+		}
+	})
+
+	t.Run("the export carries the snapshot with the newest timestamp, flat"+verifiesExported, func(t *testing.T) {
+		destination := filepath.Join(t.TempDir(), "export")
+		result := m.mustRun("ledger", "export", "--repo", repository, "--to", destination)
+		if !strings.Contains(result.stdout, "exported 0 proofs and 2 trust files") {
+			t.Fatalf("stdout %q", result.stdout)
+		}
+		got, err := os.ReadFile(filepath.Join(destination, "trust", "timestamp.json"))
+		if err != nil || string(got) != `{"signed":{"version":2}}` {
+			t.Fatalf("exported timestamp %q: %v", got, err)
+		}
+		if _, err := os.Stat(filepath.Join(destination, "trust", "1.root.json")); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("a snapshot appended later with an older timestamp does not replace the newest"+verifiesExported, func(t *testing.T) {
+		m.mustRun("ledger", "append", "--repo", repository, "--trust", snapshot(1))
+		destination := filepath.Join(t.TempDir(), "export")
+		m.mustRun("ledger", "export", "--repo", repository, "--to", destination)
+		got, _ := os.ReadFile(filepath.Join(destination, "trust", "timestamp.json"))
+		if string(got) != `{"signed":{"version":2}}` {
+			t.Fatalf("exported timestamp %q", got)
+		}
+	})
+
+	t.Run("a directory that is not a snapshot is refused with exit 1"+verifiesSeedFiles, func(t *testing.T) {
+		directory := t.TempDir()
+		testkit.WriteFile(t, filepath.Join(directory, "1.root.json"), []byte("{}"))
+		if result := m.run("ledger", "append", "--repo", repository, "--trust", directory); result.code != cli.ExitBlocked {
+			t.Fatalf("exit %d: %s", result.code, result.stderr)
+		}
+	})
+}
+
+func TestFetchTrust(t *testing.T) {
+	trustedRoot := []byte(`{"mediaType":"application/vnd.dev.sigstore.trustedroot+json;version=0.1"}`)
+	tuf := testkit.NewTUFRepository(t, trustedRoot)
+	server := httptest.NewServer(http.FileServer(http.Dir(tuf.Directory)))
+	defer server.Close()
+	m := newMachine(t)
+	m.tufRoot = tuf.Root
+	snapshot := filepath.Join(t.TempDir(), "snapshot")
+
+	t.Run("a verified TUF snapshot is fetched into a directory"+verifiesFetchSP, func(t *testing.T) {
+		result := m.mustRun("ledger", "fetch-trust", "--mirror", server.URL, "--out", snapshot)
+		if !strings.Contains(result.stdout, "fetched 4 TUF files") {
+			t.Fatalf("stdout %q", result.stdout)
+		}
+		for _, file := range tuf.Files {
+			if _, err := os.Stat(filepath.Join(snapshot, filepath.FromSlash(file))); err != nil {
+				t.Errorf("snapshot lacks %s", file)
+			}
+		}
+		if again := m.run("ledger", "fetch-trust", "--mirror", server.URL, "--out", snapshot); again.code != cli.ExitBlocked {
+			t.Fatalf("fetch into a directory that holds files: exit %d", again.code)
+		}
+	})
+
+	t.Run("the fetched snapshot is appended, audited and exported flat"+verifiesFetchSP, func(t *testing.T) {
+		repository := testkit.NewBareRepository(t)
+		m.mustRun("ledger", "append", "--repo", repository, "--trust", snapshot)
+		if result := m.run("ledger", "audit", "--repo", repository); result.code != cli.ExitClean {
+			t.Fatalf("exit %d: %s%s", result.code, result.stdout, result.stderr)
+		}
+		destination := filepath.Join(t.TempDir(), "export")
+		m.mustRun("ledger", "export", "--repo", repository, "--to", destination)
+		for _, file := range tuf.Files {
+			want, _ := os.ReadFile(filepath.Join(snapshot, filepath.FromSlash(file)))
+			got, err := os.ReadFile(filepath.Join(destination, "trust", filepath.FromSlash(file)))
+			if err != nil || !bytes.Equal(got, want) {
+				t.Errorf("exported %s differs: %v", file, err)
+			}
+		}
+	})
+
+	t.Run("a mirror that does not chain to the root is a tool failure and writes nothing"+verifiesFetchSP, func(t *testing.T) {
+		other := newMachine(t)
+		other.tufRoot = testkit.NewTUFRepository(t, trustedRoot).Root
+		out := filepath.Join(t.TempDir(), "snapshot")
+		if result := other.run("ledger", "fetch-trust", "--mirror", server.URL, "--out", out); result.code != cli.ExitToolFailure {
+			t.Fatalf("exit %d: %s", result.code, result.stderr)
+		}
+		if _, err := os.Stat(out); err == nil {
+			t.Fatal("a snapshot directory was written")
+		}
+	})
+
+	t.Run("the output directory is required"+verifiesFetchSP, func(t *testing.T) {
+		if result := m.run("ledger", "fetch-trust"); result.code != cli.ExitToolFailure {
+			t.Fatalf("exit %d", result.code)
 		}
 	})
 }

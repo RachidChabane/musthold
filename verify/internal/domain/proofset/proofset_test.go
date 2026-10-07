@@ -12,7 +12,7 @@ import (
 	"github.com/RachidChabane/spec-proof/verify/internal/domain/proofset"
 )
 
-const verifiesManifest = " [verifies SP-166~1]"
+const verifiesManifest = " [verifies SP-215~1]"
 
 func location(module, subject string, keyByte string) format.ProofLocation {
 	return format.ProofLocation{Module: module, SubjectKey: subject, CacheKey: strings.Repeat(keyByte, 64)}

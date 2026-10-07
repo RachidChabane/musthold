@@ -2,7 +2,6 @@ package ledger
 
 import (
 	"regexp"
-	"strings"
 
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/ledger/internal/domain/refusal"
@@ -35,15 +34,16 @@ type PayloadReader interface {
 	Payload(bundle []byte) ([]byte, error)
 }
 
-// targetPathPattern matches a file of a consistent TUF snapshot, whose name
-// starts with the digest of its content.
-var targetPathPattern = regexp.MustCompile(`^` + format.TrustDirectory + `/targets/([0-9a-f]{64})\.[^/]+$`)
+// targetPathPattern matches a target file of a consistent TUF snapshot, below the
+// snapshot: its name starts with the digest of its content.
+var targetPathPattern = regexp.MustCompile(`^targets/([0-9a-f]{64})\.[^/]+$`)
 
 // CheckFile checks that a file belongs in the ledger at its path: the content of
 // a proof is a bundle of an admitted, CI-produced statement stored under its own
 // module, subject key and cache key; a mutant file is age ciphertext named by its
 // cache key; a seed is the one its head commit and run give; a file of the trust
-// snapshot has a relative path, and a target is named by its digest.
+// snapshot sits below the id of its snapshot, which is the digest of the timestamp
+// file, and a target is named by its digest.
 func CheckFile(path string, content []byte, payloads PayloadReader) error {
 	switch Classify(path) {
 	case CategoryProof:
@@ -107,11 +107,14 @@ func checkSeed(path string, content []byte) error {
 }
 
 func checkTrust(path string, content []byte) error {
-	relative := strings.TrimPrefix(path, format.TrustDirectory+pathSeparator)
-	if !IsRelativeFilePath(relative) {
-		return refusal.Newf("%s is not a relative file path of the trust snapshot", path)
+	snapshotID, relative, ok := ParseTrustPath(path)
+	if !ok {
+		return refusal.Newf("%s is not %s/<snapshot id>/<file>", path, format.TrustDirectory)
 	}
-	if match := targetPathPattern.FindStringSubmatch(path); match != nil && format.SHA256Hex(content) != match[1] {
+	if relative == format.TrustTimestampFile && SnapshotID(content) != snapshotID {
+		return refusal.Newf("%s is not in the snapshot named by the digest of its content", path)
+	}
+	if match := targetPathPattern.FindStringSubmatch(relative); match != nil && format.SHA256Hex(content) != match[1] {
 		return refusal.Newf("%s is not named by the digest of its content", path)
 	}
 	return nil

@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	verifiesSigstoreRun  = " [verifies SP-163~1]"
-	verifiesTrustedRoot  = " [verifies SP-174~1]"
-	verifiesMixedSchemes = " [verifies SP-164~1]"
+	verifiesSigstoreRun  = " [verifies SP-212~1]"
+	verifiesTrustedRoot  = " [verifies SP-223~1]"
+	verifiesMixedSchemes = " [verifies SP-213~1]"
 )
 
 func runWith(environment cli.Environment, args ...string) result {

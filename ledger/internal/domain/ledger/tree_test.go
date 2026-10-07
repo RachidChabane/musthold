@@ -12,7 +12,7 @@ import (
 	"github.com/RachidChabane/spec-proof/ledger/internal/testkit"
 )
 
-const verifiesAppend = " [verifies SP-154~1]"
+const verifiesAppend = " [verifies SP-203~1]"
 
 func addition(path, content string) ledger.Addition {
 	return ledger.Addition{Path: path, Content: []byte(content)}

@@ -9,7 +9,7 @@ import (
 	"github.com/RachidChabane/spec-proof/format"
 )
 
-const verifiesLayout = " [verifies SP-148~1]"
+const verifiesLayout = " [verifies SP-197~1]"
 
 var layoutCacheKey = strings.Repeat("ab", 32)
 

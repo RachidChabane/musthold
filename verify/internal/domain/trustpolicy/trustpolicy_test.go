@@ -11,7 +11,7 @@ import (
 	"github.com/RachidChabane/spec-proof/verify/internal/domain/trustpolicy"
 )
 
-const verifiesPolicy = " [verifies SP-161~1]"
+const verifiesPolicy = " [verifies SP-210~1]"
 
 func publicKey(seed byte) string {
 	private := ed25519.NewKeyFromSeed([]byte(strings.Repeat(string([]byte{seed}), ed25519.SeedSize)))

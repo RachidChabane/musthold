@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	verifiesSeed    = " [verifies SP-155~1]"
-	verifiesSeedSHA = " [verifies SP-159~1]"
+	verifiesSeed    = " [verifies SP-204~1]"
+	verifiesSeedSHA = " [verifies SP-208~1]"
 )
 
 var headSHA = strings.Repeat("ab", 20)

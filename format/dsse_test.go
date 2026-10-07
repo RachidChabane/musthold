@@ -12,7 +12,7 @@ import (
 	"github.com/RachidChabane/spec-proof/format"
 )
 
-const verifiesDSSE = " [verifies SP-150~1]"
+const verifiesDSSE = " [verifies SP-199~1]"
 
 func testKey(t testing.TB) (ed25519.PublicKey, ed25519.PrivateKey) {
 	t.Helper()

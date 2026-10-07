@@ -10,7 +10,7 @@ import (
 	"github.com/RachidChabane/spec-proof/ledger/internal/testkit"
 )
 
-const verifiesSchemas = " [verifies SP-151~1]"
+const verifiesSchemas = " [verifies SP-200~1]"
 
 func checker(t *testing.T) *schemacheck.Checker {
 	t.Helper()

@@ -27,9 +27,9 @@ import (
 const tamperStride = 11
 
 const (
-	verifiesBundle = " [verifies SP-163~1]"
-	verifiesRoot   = " [verifies SP-174~1]"
-	verifiesEmbed  = " [verifies SP-175~1]"
+	verifiesBundle = " [verifies SP-212~1]"
+	verifiesRoot   = " [verifies SP-223~1]"
+	verifiesEmbed  = " [verifies SP-224~1]"
 )
 
 func readTestdata(t testing.TB, elements ...string) []byte {

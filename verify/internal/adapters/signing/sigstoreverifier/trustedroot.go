@@ -2,7 +2,6 @@ package sigstoreverifier
 
 import (
 	"context"
-	_ "embed" // the public-good TUF root is embedded as a byte slice
 	"errors"
 	"fmt"
 	"net/http"
@@ -27,14 +26,11 @@ const trustedRootTarget = "trusted_root.json"
 // reads a snapshot directory. It is never contacted: the snapshot fetcher strips it.
 const snapshotBaseURL = "https://tuf-snapshot.invalid"
 
-//go:embed embedded/public-good-root.json
-var publicGoodRoot []byte
-
 // PublicGoodRoot returns the TUF root of the public-good Sigstore instance that is
 // embedded in the binary. Every trusted root is verified back to it, or to the root
 // a caller passes in its place.
 func PublicGoodRoot() []byte {
-	return append([]byte(nil), publicGoodRoot...)
+	return format.PublicGoodTUFRoot()
 }
 
 // TrustedRoot is a trusted root that TUF verified, with the digest of its exact

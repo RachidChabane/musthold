@@ -9,7 +9,7 @@ import (
 	"github.com/RachidChabane/spec-proof/ledger/internal/domain/ledger"
 )
 
-const verifiesMutantsSeedsTrust = " [verifies SP-155~1]"
+const verifiesMutantsSeedsTrust = " [verifies SP-204~1]"
 
 var cacheKey = strings.Repeat("c", 64)
 
@@ -18,7 +18,7 @@ func TestClassify(t *testing.T) {
 		"proofs/m/s/" + cacheKey + ".dsse.json":      ledger.CategoryProof,
 		"mutants/" + cacheKey + ".age":               ledger.CategoryMutant,
 		"seeds/" + strings.Repeat("a", 40) + ".json": ledger.CategorySeed,
-		"trust/root.json":                            ledger.CategoryTrust,
+		"trust/" + cacheKey + "/root.json":           ledger.CategoryTrust,
 		"README.md":                                  ledger.CategoryUnknown,
 		"other/file":                                 ledger.CategoryUnknown,
 		"proofs":                                     ledger.CategoryUnknown,

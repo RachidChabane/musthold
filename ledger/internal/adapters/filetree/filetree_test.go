@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	verifiesSignInput = " [verifies SP-151~1]"
-	verifiesAppendDir = " [verifies SP-155~1]"
-	verifiesExport    = " [verifies SP-157~1]"
+	verifiesSignInput = " [verifies SP-200~1]"
+	verifiesAppendDir = " [verifies SP-204~1]"
+	verifiesExport    = " [verifies SP-206~1]"
 )
 
 func TestStatementDir(t *testing.T) {
@@ -112,6 +112,32 @@ func TestAdditionDir(t *testing.T) {
 		}
 		if len(additions) != 2 || additions[0].Path != "trust/root.json" || additions[1].Path != "trust/targets/a.json" {
 			t.Fatalf("additions %+v", additions)
+		}
+	})
+
+	t.Run("a trust snapshot is listed below the digest of its timestamp file"+verifiesAppendDir, func(t *testing.T) {
+		root := t.TempDir()
+		timestamp := []byte(`{"signed":{"version":2}}`)
+		testkit.WriteFile(t, filepath.Join(root, "timestamp.json"), timestamp)
+		testkit.WriteFile(t, filepath.Join(root, "2.root.json"), []byte("r"))
+		additions, err := filetree.TrustSnapshotDir{Root: root}.Additions()
+		if err != nil {
+			t.Fatal(err)
+		}
+		id := ledger.SnapshotID(timestamp)
+		if len(additions) != 2 || additions[0].Path != "trust/"+id+"/2.root.json" || additions[1].Path != "trust/"+id+"/timestamp.json" {
+			t.Fatalf("additions %+v", additions)
+		}
+	})
+
+	t.Run("a directory without a timestamp file is not a trust snapshot"+verifiesAppendDir, func(t *testing.T) {
+		root := t.TempDir()
+		testkit.WriteFile(t, filepath.Join(root, "2.root.json"), []byte("r"))
+		if _, err := (filetree.TrustSnapshotDir{Root: root}).Additions(); !errors.Is(err, refusal.ErrRefused) {
+			t.Fatalf("error %v", err)
+		}
+		if _, err := (filetree.TrustSnapshotDir{Root: filepath.Join(t.TempDir(), "absent")}).Additions(); !errors.Is(err, refusal.ErrRefused) {
+			t.Fatalf("an absent directory: error %v", err)
 		}
 	})
 

@@ -16,12 +16,12 @@ import (
 )
 
 const (
-	verifiesSignedRun = " [verifies SP-164~1]"
-	verifiesLocalRun  = " [verifies SP-165~1]"
-	verifiesManifest  = " [verifies SP-166~1]"
-	verifiesPending   = " [verifies SP-167~1]"
-	verifiesReplay    = " [verifies SP-168~1]"
-	verifiesCommand   = " [verifies SP-169~1]"
+	verifiesSignedRun = " [verifies SP-213~1]"
+	verifiesLocalRun  = " [verifies SP-214~1]"
+	verifiesManifest  = " [verifies SP-215~1]"
+	verifiesPending   = " [verifies SP-216~1]"
+	verifiesReplay    = " [verifies SP-217~1]"
+	verifiesCommand   = " [verifies SP-218~1]"
 )
 
 type result struct {

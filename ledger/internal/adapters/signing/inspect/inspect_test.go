@@ -13,7 +13,7 @@ import (
 	"github.com/RachidChabane/spec-proof/ledger/internal/testkit"
 )
 
-const verifiesInspect = " [verifies SP-154~1]"
+const verifiesInspect = " [verifies SP-203~1]"
 
 var statement = []byte(`{"_type":"https://in-toto.io/Statement/v1","subject":[],"predicateType":"x","predicate":{}}`)
 

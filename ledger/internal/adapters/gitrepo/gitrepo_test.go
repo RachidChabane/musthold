@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	verifiesPlumbing = " [verifies SP-154~1]"
-	verifiesRemote   = " [verifies SP-156~1]"
-	verifiesAuditGit = " [verifies SP-158~1]"
+	verifiesPlumbing = " [verifies SP-203~1]"
+	verifiesRemote   = " [verifies SP-205~1]"
+	verifiesAuditGit = " [verifies SP-207~1]"
 )
 
 var commitTime = time.Date(2026, time.March, 1, 12, 0, 0, 0, time.UTC)

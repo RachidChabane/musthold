@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/filetree"
 	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/gitrepo"
 	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/signing/inspect"
+	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/signing/trustroot"
 	"github.com/RachidChabane/spec-proof/ledger/internal/app"
 	"github.com/RachidChabane/spec-proof/ledger/internal/domain/ledger"
 	"github.com/RachidChabane/spec-proof/ledger/internal/domain/refusal"
@@ -29,6 +31,8 @@ func runLedger(environment Environment, args []string, stdout, _ io.Writer) erro
 		return runAudit(environment, rest, stdout)
 	case seedSubcommand:
 		return runSeed(environment, rest, stdout)
+	case fetchTrustSubcommand:
+		return runFetchTrust(environment, rest, stdout)
 	default:
 		return fmt.Errorf("%w: ledger: unknown subcommand %q", errUsage, subcommand)
 	}
@@ -81,7 +85,7 @@ func additionSources(signed, mutants, trust, headSHA, runID string) (filetree.Ad
 		sources = append(sources, filetree.AdditionDir{Root: mutants, Prefix: format.MutantsDirectory})
 	}
 	if trust != "" {
-		sources = append(sources, filetree.AdditionDir{Root: trust, Prefix: format.TrustDirectory})
+		sources = append(sources, filetree.TrustSnapshotDir{Root: trust})
 	}
 	if (headSHA == "") != (runID == "") {
 		return nil, fmt.Errorf("--head-sha and --run-id go together")
@@ -140,6 +144,32 @@ func runAudit(environment Environment, args []string, stdout io.Writer) error {
 		return refusal.Newf("the ledger breaks %d properties", len(report.Findings))
 	}
 	fmt.Fprintf(stdout, "ledger is append-only and content-addressed: %d commits, %d files\n", report.Commits, report.Files)
+	return nil
+}
+
+func runFetchTrust(environment Environment, args []string, stdout io.Writer) error {
+	flags := newFlagSet(fetchTrustSubcommand)
+	out := flags.String("out", "", "directory the TUF snapshot is written to, for `ledger append --trust`")
+	mirror := flags.String("mirror", trustroot.PublicGoodMirror, "TUF mirror of the trusted root")
+	if err := parse(flags, args); err != nil {
+		return err
+	}
+	if err := requireFlag(flags, "out", *out); err != nil {
+		return err
+	}
+	tufRoot := environment.TUFRoot
+	if tufRoot == nil {
+		tufRoot = format.PublicGoodTUFRoot()
+	}
+	service := app.FetchTrustService{
+		Source: trustroot.Mirror{Root: tufRoot, URL: *mirror},
+		Sink:   filetree.ExportDir{Root: *out},
+	}
+	count, err := service.Run(context.Background())
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(stdout, "fetched %d TUF files from %s into %s\n", count, *mirror, *out)
 	return nil
 }
 

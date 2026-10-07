@@ -9,7 +9,7 @@ import (
 	"github.com/RachidChabane/spec-proof/verify/internal/domain/proofset"
 )
 
-const verifiesOutput = " [verifies SP-168~1]"
+const verifiesOutput = " [verifies SP-217~1]"
 
 func entries(t *testing.T, directory string) []string {
 	t.Helper()

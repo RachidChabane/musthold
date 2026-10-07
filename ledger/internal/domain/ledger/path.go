@@ -80,9 +80,20 @@ func ParseSeedPath(path string) (headSHA string, ok bool) {
 	return headSHA, found && headSHAPattern.MatchString(headSHA)
 }
 
-// TrustPath is the path of a file of the trusted-root snapshot.
-func TrustPath(relative string) string {
-	return format.TrustDirectory + pathSeparator + relative
+// TrustPath is the path of a file of the trusted-root snapshot with the given id.
+func TrustPath(snapshotID, relative string) string {
+	return format.TrustDirectory + pathSeparator + snapshotID + pathSeparator + relative
+}
+
+// ParseTrustPath reads a path as a file of a trust snapshot: the snapshot id and the
+// path of the file below the snapshot.
+func ParseTrustPath(path string) (snapshotID, relative string, ok bool) {
+	rest, found := strings.CutPrefix(path, format.TrustDirectory+pathSeparator)
+	if !found {
+		return "", "", false
+	}
+	snapshotID, relative, found = strings.Cut(rest, pathSeparator)
+	return snapshotID, relative, found && format.IsSHA256Hex(snapshotID) && IsRelativeFilePath(relative)
 }
 
 // IsRelativeFilePath reports whether path is a relative POSIX path of path

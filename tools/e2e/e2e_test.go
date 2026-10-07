@@ -32,10 +32,10 @@ const (
 	directoryMode  = 0o755
 	fileMode       = 0o644
 	flippedBit     = 0x01
-	verifiesChain  = " [verifies SP-170~1]"
-	verifiesTamper = " [verifies SP-171~1]"
-	verifiesReplay = " [verifies SP-172~1]"
-	verifiesRunner = " [verifies SP-173~1]"
+	verifiesChain  = " [verifies SP-219~1]"
+	verifiesTamper = " [verifies SP-220~1]"
+	verifiesReplay = " [verifies SP-221~1]"
+	verifiesRunner = " [verifies SP-222~1]"
 )
 
 var goldenStatements = []struct{ file, module string }{

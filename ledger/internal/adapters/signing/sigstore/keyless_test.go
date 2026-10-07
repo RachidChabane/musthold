@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	verifiesKeyless = " [verifies SP-153~1]"
+	verifiesKeyless = " [verifies SP-202~1]"
 
 	// The Rekor entry type and version of a DSSE log entry.
 	rekorKind    = "dsse"

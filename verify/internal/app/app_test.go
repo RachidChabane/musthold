@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	verifiesAdmission = " [verifies SP-164~1]"
-	verifiesLocal     = " [verifies SP-165~1]"
-	verifiesPending   = " [verifies SP-167~1]"
+	verifiesAdmission = " [verifies SP-213~1]"
+	verifiesLocal     = " [verifies SP-214~1]"
+	verifiesPending   = " [verifies SP-216~1]"
 )
 
 // payloadVerifier treats a bundle as its own statement and refuses the bytes

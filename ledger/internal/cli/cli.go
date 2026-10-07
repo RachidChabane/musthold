@@ -34,6 +34,8 @@ const (
 	exportSubcommand = "export"
 	auditSubcommand  = "audit"
 	seedSubcommand   = "seed"
+
+	fetchTrustSubcommand = "fetch-trust"
 )
 
 const usageText = `usage:
@@ -43,6 +45,7 @@ const usageText = `usage:
   %[1]s ledger export --to DIR [--repo DIR]
   %[1]s ledger audit [--repo DIR]
   %[1]s ledger seed --head-sha SHA --run-id ID [--repo DIR]
+  %[1]s ledger fetch-trust --out DIR [--mirror URL]
 `
 
 // Environment is what the binary reads from the machine it runs on.
@@ -51,6 +54,9 @@ type Environment struct {
 	Clock     app.Clock
 	// GitEnvironment is appended to the environment of every git command.
 	GitEnvironment []string
+	// TUFRoot is the TUF root a trust snapshot is verified back to; nil means the
+	// public-good root embedded in the library.
+	TUFRoot []byte
 }
 
 // errUsage marks a command line that does not parse.

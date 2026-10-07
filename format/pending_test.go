@@ -8,7 +8,7 @@ import (
 	"github.com/RachidChabane/spec-proof/format"
 )
 
-const verifiesPending = " [verifies SP-147~1]"
+const verifiesPending = " [verifies SP-196~1]"
 
 func TestDecodePending(t *testing.T) {
 	valid := `{"module":"discpower","pending":[` +
