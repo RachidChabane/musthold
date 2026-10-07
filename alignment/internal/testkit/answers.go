@@ -26,11 +26,11 @@ const (
 	sigHeader     = "=== Public signatures ==="
 )
 
-// Spellings of the same behaviour in the Python and the Go fixtures.
+// Spellings of the same behaviour in the fixtures of every language.
 var (
-	rejectSpellings   = []string{"raises", "errors.Is"}
-	shippingSpellings = []string{"shipping_cost", "ShippingCost"}
-	weakSpellings     = []string{"is not None", "== 0"}
+	rejectSpellings   = []string{"raises", "errors.Is", "toThrow", "assertThrows"}
+	shippingSpellings = []string{"shipping_cost", "ShippingCost", "shippingCost"}
+	weakSpellings     = []string{"is not None", "== 0", "toBeDefined", "assertNotNull"}
 )
 
 func mentions(text string, spellings []string) bool {

@@ -440,3 +440,13 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-1230~1**: WHEN the maskers of the command line are listed THE SYSTEM SHALL
   serve the test files of Python, Go, JavaScript, TypeScript, Java and Kotlin, each by
   one masker.
+- **SP-1240~1**: WHEN an honest host answers every request of a TypeScript project
+  THE SYSTEM SHALL write, for each test, the Statement whose verdict agrees with the
+  matrix and the judge, as it does for a Python project.
+- **SP-1241~1**: WHEN a forger answers every request of a TypeScript project THE
+  SYSTEM SHALL give no ALIGNED to a test whose matrix refutes it.
+- **SP-1242~1**: WHEN an honest host answers every request of a Java project THE
+  SYSTEM SHALL write, for each test, the Statement whose verdict agrees with the
+  matrix and the judge, as it does for a Python project.
+- **SP-1243~1**: WHEN a forger answers every request of a Java project THE SYSTEM
+  SHALL give no ALIGNED to a test whose matrix refutes it.
