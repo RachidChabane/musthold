@@ -1,4 +1,6 @@
-"""The daily call budget: new model calls per UTC day and CLI, persisted in the run directory.
+"""The nightly call budget: new model calls per run-window night and CLI, persisted in the run directory.
+
+A night is identified by the local date on which its window opened; without a window it is the local date.
 
 A resumed call (its raw record exists) costs nothing, so a rerun after a pause spends
 only on calls that were never made.
@@ -19,7 +21,7 @@ CALL_BUDGET_PAUSE_TEXT: Final = "call budget reached"
 
 
 class CallBudgetReached(QuotaExhausted):
-    """The CLI has made its budget of new calls for the UTC day; a rerun on another day resumes."""
+    """The CLI has made its budget of new calls for the night; a rerun on another night resumes."""
 
 
 def calls_on(ledger: Mapping[str, Mapping[str, int]], day: date, cli: Cli) -> int:

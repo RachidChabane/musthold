@@ -6,7 +6,7 @@ import sys
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from pathlib import Path
 
 from pilot.adapters.arm_p_items import DirectoryArmPItems
@@ -87,8 +87,9 @@ def recorded_results(raw_dir: Path) -> Callable[[str], bool]:
     return lambda call_id: (raw_dir / call_id / RESULT_FILENAME).is_file()
 
 
-def utc_today() -> date:
-    return datetime.now(UTC).date()
+def window_night(window: RunWindow | None) -> Callable[[], date]:
+    """The budget day: the local date on which the run window's night opened."""
+    return lambda: window.night_of(datetime.now()) if window is not None else datetime.now().date()
 
 
 @dataclass(frozen=True)
@@ -118,7 +119,7 @@ def pipeline_world(
     store = RunDirectory(layout.run_dir(run_id))
     recorded = recorded_results(raw_dir)
     baselines = load_baselines(layout.canary_dir(run_id))
-    budgeted = BudgetedModelPort(stack.router, store, call_budget, utc_today, recorded, run_window)
+    budgeted = BudgetedModelPort(stack.router, store, call_budget, window_night(run_window), recorded, run_window)
     caller = ModelCaller(
         budgeted, baselines, prompts.system_prompt(), log_to_stderr, MAX_CONCURRENT_MODEL_CALLS, recorded=recorded
     )

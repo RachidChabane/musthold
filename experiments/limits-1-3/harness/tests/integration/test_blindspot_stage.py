@@ -280,3 +280,24 @@ def test_after_the_window_closes_no_call_is_made_and_every_luna_call_is_blocked(
     status = store.read_json("exploratory_status.json")["luna"]
     assert len(status) == 6 and set(status.values()) == {"blocked"}
     assert "luna" not in (world / "runs" / "r1" / "DEVIATIONS.md").read_text().lower()
+
+
+def test_a_failed_luna_canary_blocks_every_luna_call_without_a_deviation_or_a_call(ran, tmp_path):
+    from pilot.application.canary import CanaryFailed
+
+    _, _, shared, _ = ran
+    world = tmp_path / "world"
+    shutil.copytree(shared, world)
+    model = WritingModel()
+    luna_deps, store = luna(world, model, tmp_path, NOW_OPEN)
+
+    def failing():
+        raise CanaryFailed("gpt-6-luna__codex/generate: payload violates schema")
+
+    from dataclasses import replace as _replace
+
+    run_luna(_replace(luna_deps, run_canary=failing))
+    assert model.requests == []
+    status = store.read_json("exploratory_status.json")["luna"]
+    assert len(status) == 6 and set(status.values()) == {"blocked"}
+    assert "luna" not in (world / "runs" / "r1" / "DEVIATIONS.md").read_text().lower()

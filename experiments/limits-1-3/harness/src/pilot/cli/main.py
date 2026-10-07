@@ -56,7 +56,7 @@ def _add_run(parser: argparse.ArgumentParser) -> None:
     _add_window(parser)
     parser.add_argument(
         "--call-budget", type=int, default=DEFAULT_CALL_BUDGET,
-        help="new model calls per UTC day and CLI before the verb stops cleanly (exit 3)",
+        help="new model calls per run-window night and CLI before the verb stops cleanly (exit 3)",
     )
 
 

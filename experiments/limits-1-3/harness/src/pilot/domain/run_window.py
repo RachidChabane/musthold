@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime, time
+from datetime import date, datetime, time, timedelta
 from typing import Final
 
 from pilot.domain.quota import QuotaExhausted
@@ -45,6 +45,12 @@ class RunWindow:
         if window.start == window.end:
             raise InvalidRunWindow("run window start and end are equal")
         return window
+
+    def night_of(self, now: datetime) -> date:
+        """The local date on which the window that contains `now` opened; any other moment keeps its own date."""
+        if self.start > self.end and now.time() < self.end:
+            return now.date() - timedelta(days=1)
+        return now.date()
 
     def is_open(self, now: datetime) -> bool:
         moment = now.time()

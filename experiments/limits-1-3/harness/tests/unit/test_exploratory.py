@@ -151,3 +151,13 @@ def test_a_call_that_ended_missing_after_its_retry_is_marked_missing_not_complet
     caller, ledger = windowed(tmp_path, Failing(), utc(2026, 10, 12))
     caller.call_all("stage", specs("a"))
     assert ledger.statuses() == {"luna": {"a": "missing"}}
+
+
+def test_a_window_that_has_not_opened_is_a_pause_with_exit_3_and_no_deviation_entry(tmp_path, capsys):
+    from pilot.cli.pipeline_commands import _guarded
+
+    def stop():
+        raise WindowNotOpen("luna opens at 2026-10-10")
+
+    logged = []
+    assert _guarded("run-luna", stop, logged.append) == 3 and logged == []

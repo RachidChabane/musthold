@@ -69,7 +69,6 @@ ABORTS = (
     ImportRefused,
     InvalidRunWindow,
     BlindSpotPreconditionFailed,
-    WindowNotOpen,
 )
 
 
@@ -91,6 +90,9 @@ def _run_quota_log(args: Namespace) -> QuotaLog:
 def _guarded(verb: str, action: Callable[[], int], quota_log: QuotaLog | None = None) -> int:
     try:
         return action()
+    except WindowNotOpen as stop:
+        print(f"{verb}: {stop}; rerun once the window has opened", file=sys.stderr)
+        return EXIT_QUOTA_EXHAUSTED
     except RunWindowClosed as stop:
         if quota_log is not None:
             quota_log(RUN_WINDOW_PAUSE_TEXT)
@@ -99,7 +101,7 @@ def _guarded(verb: str, action: Callable[[], int], quota_log: QuotaLog | None = 
     except CallBudgetReached as stop:
         if quota_log is not None:
             quota_log(CALL_BUDGET_PAUSE_TEXT)
-        print(f"{verb}: {CALL_BUDGET_PAUSE_TEXT} ({stop}); rerun the same command on another UTC day to resume", file=sys.stderr)
+        print(f"{verb}: {CALL_BUDGET_PAUSE_TEXT} ({stop}); rerun the same command on another night to resume", file=sys.stderr)
         return EXIT_QUOTA_EXHAUSTED
     except QuotaExhausted as stop:
         if quota_log is not None:

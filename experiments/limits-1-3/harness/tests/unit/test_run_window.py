@@ -102,3 +102,24 @@ def test_the_run_window_verb_exits_3_outside_and_0_when_disabled():
     now = datetime.now().time()
     closed = f"{(now.hour + 2) % 24:02d}:00-{(now.hour + 3) % 24:02d}:00"
     assert main(["run-window", "--run-window", closed]) == 3
+
+
+def test_the_budget_night_is_the_local_date_the_window_opened_not_the_utc_day():
+    window = RunWindow.parse("21:00-07:30")
+    assert window.night_of(datetime(2026, 10, 12, 21, 0)) == date(2026, 10, 12)
+    assert window.night_of(datetime(2026, 10, 12, 23, 59)) == date(2026, 10, 12)
+    assert window.night_of(datetime(2026, 10, 13, 2, 0)) == date(2026, 10, 12)
+    assert window.night_of(datetime(2026, 10, 13, 7, 29)) == date(2026, 10, 12)
+    assert window.night_of(datetime(2026, 10, 13, 12, 0)) == date(2026, 10, 13)
+    assert RunWindow.parse("09:00-17:00").night_of(datetime(2026, 10, 13, 3, 0)) == date(2026, 10, 13)
+
+
+def test_one_night_spends_one_budget_across_utc_midnight(tmp_path):
+    from pilot.domain.call_budget import CallBudgetReached
+
+    window = RunWindow.parse("21:00-07:30")
+    before, after = datetime(2026, 10, 12, 23, 0), datetime(2026, 10, 13, 2, 0)
+    BudgetedModelPort(Counting(), RunDirectory(tmp_path), 1, lambda: window.night_of(before), lambda c: False).call(request("a"), None)
+    late = BudgetedModelPort(Counting(), RunDirectory(tmp_path), 1, lambda: window.night_of(after), lambda c: False)
+    with pytest.raises(CallBudgetReached):
+        late.call(request("b"), None)

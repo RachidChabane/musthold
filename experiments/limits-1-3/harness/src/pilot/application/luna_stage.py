@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 
+from pilot.application.canary import CanaryFailed
 from pilot.application.arm_t import ensure_plan, generate_mutants
 from pilot.application.blind_spot_stage import BlindSpotDependencies, BlindSpotPreconditionFailed, process_source_mutants
 from pilot.application.exploratory_calls import Clock, ExploratoryLedger, WindowedCaller, WindowNotOpen, utc_now
@@ -17,7 +18,7 @@ from pilot.application.provenance import ensure_manifest
 from pilot.application.test_writing_stage import filter_against_reference, write_suites
 from pilot.application.writer_kill_stage import ensure_writer_kills
 from pilot.domain.arms import ARM_L
-from pilot.domain.exploratory import LUNA_WINDOW, STREAM_LUNA, Window
+from pilot.domain.exploratory import LUNA_WINDOW, STREAM_LUNA, CallStatus, Window
 from pilot.domain.model_slate import PRIMARY_WRITERS, MutantSource, Writer
 from pilot.domain.pipeline_constants import BINDINGS_FILENAME, PROCESSING_FILENAME, REFERENCE_FILENAME
 from pilot.domain.run_plan import KIND_GENERATE, KIND_WRITE_TESTS
@@ -44,8 +45,13 @@ def run_luna(deps: LunaDependencies) -> None:
     plan = ensure_plan(base, base.criteria())
     ctx = replace(base, caller=WindowedCaller(base.caller, STREAM_LUNA, deps.ledger, deps.window, deps.clock))
     if deps.window.is_open(deps.clock()):
-        with core.timer.stage("luna-canary"):
-            deps.run_canary()
+        try:
+            with core.timer.stage("luna-canary"):
+                deps.run_canary()
+        except CanaryFailed:
+            deps.ledger.mark(STREAM_LUNA, {call.call_id: CallStatus.BLOCKED for call in plan.luna})
+            base.log("[luna] canary failed; every luna call is blocked")
+            return
     with core.timer.stage("luna-calls"):
         write_suites(ctx, [call for call in plan.luna if call.kind == KIND_WRITE_TESTS], core.pins)
         filter_against_reference(ctx, deps.blind_spot.suites, Writer.LUNA)
