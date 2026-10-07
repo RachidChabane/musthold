@@ -88,6 +88,14 @@ Go tests of the module in CI.
   and place the statement at its module, the subject key of its subject and its
   cache key, so that a statement stored anywhere else is refused.
 
+- **SP-150~1**: WHEN a statement is wrapped for an Ed25519 identity THE SYSTEM
+  SHALL carry the exact statement bytes as the base64 payload of a DSSE envelope
+  of the in-toto payload type, sign their DSSE pre-authentication encoding,
+  identify the key by the hex SHA-256 of its raw public key, serialize the
+  envelope in RFC 8785 canonical form, and refuse an envelope with another
+  payload type, an undecodable payload or signature, no signature or a signature
+  without key identifier.
+
 ## Executors and corroboration
 
 - **SP-147~1**: WHEN a predicate carries `extensions.hostExclusions` THE SYSTEM
