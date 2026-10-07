@@ -227,6 +227,39 @@ traces them to the Go tests of the module in CI.
   raised, list the criteria of the specs that wait as `awaiting_host`, write no
   Statement for them and leave the pending file empty once nothing waits.
 
+- **SP-544~1**: WHEN `prove` is given conflicting flags or unexpected arguments THE
+  SYSTEM SHALL fail without acting, and WHEN a command is unknown or missing THE
+  SYSTEM SHALL fail with a usage line.
+- **SP-545~1**: WHEN `request list|show|submit` runs THE SYSTEM SHALL list, show and
+  accept answers through the same checks as the host protocol, a refused answer
+  SHALL exit as a refusal, not a tool failure, and the real binary SHALL be
+  driven to the same Statement by the real fake host.
+- **SP-546~1**: WHEN `systemone export` runs THE SYSTEM SHALL list the closed
+  requests that wait for their first vote, and WHEN `systemone import` runs THE
+  SYSTEM SHALL accept the answers of a relay under its source, as an executor of
+  the relay channel, ask no host vote next to them, and record the confidence
+  and the source the endpoint gave.
+- **SP-547~1**: WHEN `doctor` runs THE SYSTEM SHALL check Shallnot, the version
+  control tool, the configuration, the host store and the journal chain, and exit
+  2 when a check fails.
+- **SP-548~1**: WHEN an honest host answers every request and the Statements of the
+  discriminating-power and alignment modules are present THE SYSTEM SHALL ask
+  only about the changed units those Statements do not justify, write one
+  advisory Statement per spec with the dimension, unjustified change,
+  unconstrained behaviour and clarity questions, and leave nothing pending.
+- **SP-549~1**: WHEN no Statement of another module is present THE SYSTEM SHALL ask
+  about every changed unit, raise no unconstrained behaviour question and record
+  no `proof` input.
+- **SP-550~1**: WHEN the host forges, breaks, omits or replays stale answers THE
+  SYSTEM SHALL accept none that breaks the protocol, end a rejected ticket as
+  `host_unresponsive` with no question made up for it, keep waiting for an
+  omitted answer, and leave only valid advisory Statements without a verdict.
+- **SP-551~1**: WHEN the host answers the tickets in any order THE SYSTEM SHALL write
+  the same Statement.
+- **SP-552~1**: WHEN recorded answers are replayed THE SYSTEM SHALL write
+  byte-identical Statements in one command and fail hard on a request with no
+  recording.
+
 ## Architecture
 
 - **SP-553~1**: WHEN the package `internal/domain` is inspected THE SYSTEM SHALL
