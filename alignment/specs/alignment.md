@@ -356,3 +356,14 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   parameter values in the masked unit and SHALL NOT refuse it for the text of the id
   its run carries, as in `test_total[10-200-180.0]`, while a run of three
   consecutive words of the name of the function keeps refusing it.
+
+## Rewriting source text
+
+- **SP-1215~1**: WHEN a masker rewrites source text by spans THE SYSTEM SHALL apply
+  the replacements that fall inside the span asked for, drop one nested in a longer
+  one, remove the line a removed comment leaves empty and nothing else of it, and
+  strip trailing blanks and collapse blank lines.
+- **SP-1216~1**: WHEN the name a runner reports for a test is read THE SYSTEM SHALL
+  take out its citation tags and unify the separators between the titles it joins,
+  and match the title of a test against it with every placeholder standing for any
+  text.
