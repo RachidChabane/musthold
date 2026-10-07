@@ -262,6 +262,37 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   give, per test, the functions and methods of the project's source files that it
   executed, naming nested definitions by their qualified path.
 
+## Go probes
+
+- **SP-950~1**: WHEN the signature of a bound Go target `import/path:Function` or
+  `import/path:Type.Method` is asked THE SYSTEM SHALL report the parameters of the
+  exported function or method as the package declares them, named in snake case
+  and each with a type hint from the types of the package, leave out a leading
+  `context.Context` and a variadic parameter, and SHALL refuse a target that is
+  malformed, unexported, absent, generic, or not a function or a method of a
+  defined type.
+- **SP-951~1**: WHEN calls of Go targets are invoked in a workspace THE SYSTEM
+  SHALL return for each call, in order, the typed value it returned, null when it
+  returns nothing, the name of the exported error variable of the package that
+  the error it returned or panicked with is or wraps, else the name of the type of
+  that error, and `Panic` for a panic with another value.
+- **SP-952~1**: WHEN a call is made THE SYSTEM SHALL decode each argument of the
+  literal grammar into the type of its parameter, whether an integer, a float, a
+  string, a boolean, a null, an ISO-8601 datetime or a library number that reads
+  text, find it under any spelling of the name of the parameter, and observe a
+  call whose arguments do not fit as raising `ArgumentError` without running the
+  code.
+- **SP-953~1**: WHEN calls are invoked THE SYSTEM SHALL run the code of the
+  workspace it is given through a program built inside its module, so that
+  internal packages are reachable, write nothing into the workspace, and report a
+  program that does not build as an error that carries the compiler's message.
+- **SP-954~1**: WHEN a call exceeds its deadline or ends the process THE
+  SYSTEM SHALL observe the call as raising and answer the calls after
+  it in a new process, and SHALL report a program that cannot read its request or
+  write its response as an error.
+- **SP-955~1**: WHEN a call is repeated THE SYSTEM SHALL observe the same thing,
+  with times in UTC and the default random source seeded the same way.
+
 ## Spec values and policy
 
 - **SP-162~1**: WHEN two literals or two observations are compared THE SYSTEM
@@ -398,9 +429,10 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-189~1**: WHEN a Statement is written THE SYSTEM SHALL validate it against the
   embedded schemas, write it under `.spec-proof/cache/discriminating-power`, and
   keep mutant bodies only in the user cache outside the work tree.
-- **SP-190~1**: WHEN the ecosystem cannot probe calls THE SYSTEM SHALL ask the host for
-  nothing, report the skipped searches as findings and escalate every criterion
-  that has no VALID mutant.
+- **SP-190~2**: WHEN no search can run, because the ecosystem cannot probe calls or the
+  project binds no operation, THE SYSTEM SHALL ask the host for nothing, report the
+  skipped searches as findings and escalate every criterion that has no VALID
+  mutant.
 
 ## Configuration and command line
 

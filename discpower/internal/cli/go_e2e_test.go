@@ -16,7 +16,7 @@ const (
 	goReport  = "../../fixtures/prove/go-report.json"
 )
 
-// newGoHarness copies the Go fixture project, whose ecosystem cannot probe calls.
+// newGoHarness copies the Go fixture project, which binds no operation.
 func newGoHarness(t *testing.T) *harness {
 	t.Helper()
 	report, err := filepath.Abs(goReport)
@@ -33,11 +33,11 @@ func newGoHarness(t *testing.T) *harness {
 	return h
 }
 
-func TestProveWithoutAProber(t *testing.T) {
+func TestProveWithoutAnOperation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("runs the Go fixture's tests against many mutants")
 	}
-	t.Run("an ecosystem that cannot probe asks the host for nothing and escalates [verifies SP-190~1]", func(t *testing.T) {
+	t.Run("a project that binds no operation asks the host for nothing and escalates [verifies SP-190~2]", func(t *testing.T) {
 		h := newGoHarness(t)
 		code, output, stderr := h.run(nil, proveCommand, allFlag)
 		if code != cli.ExitBlocked {
