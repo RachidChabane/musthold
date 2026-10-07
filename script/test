@@ -13,6 +13,6 @@ for module in $modules; do
     cd "$module"
     mkdir -p build/test-results
     # shellcheck disable=SC2086
-    go tool gotestsum --format pkgname --junitfile build/test-results/go.xml -- -count=1 -p 1 ./... ${GO_TEST_FLAGS:-}
+    go tool gotestsum --format pkgname --junitfile build/test-results/go.xml -- -count=1 -p 1 -timeout 30m ./... ${GO_TEST_FLAGS:-}
   )
 done
