@@ -1,0 +1,13 @@
+proofs:
+  alignment: false
+  discriminating-power: true
+  completeness: false
+ecosystems:
+  - maven
+operations:
+  line_total:
+    maven: com.example.parcel.Rates:lineTotal
+  discounted:
+    maven: com.example.parcel.Rates:discounted
+  shipping_fee:
+    maven: com.example.parcel.Rates:shippingFee

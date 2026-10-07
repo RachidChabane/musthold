@@ -1,0 +1,56 @@
+{
+  "PAR-1~1": [
+    {
+      "name": "multiplies the unit price by the quantity [verifies PAR-1~1]",
+      "classname": "com.example.parcel.RatesTest",
+      "file": "src/test/java/com/example/parcel/RatesTest.java",
+      "line": 15
+    }
+  ],
+  "PAR-2~1": [
+    {
+      "name": "percentage discount takes -5 percent off 80.00 [verifies PAR-2~1]",
+      "classname": "com.example.parcel.RatesTest",
+      "file": "src/test/java/com/example/parcel/RatesTest.java",
+      "line": 26
+    },
+    {
+      "name": "percentage discount takes 0 percent off 19.99 [verifies PAR-2~1]",
+      "classname": "com.example.parcel.RatesTest",
+      "file": "src/test/java/com/example/parcel/RatesTest.java",
+      "line": 26
+    },
+    {
+      "name": "percentage discount takes 10 percent off 200.00 [verifies PAR-2~1]",
+      "classname": "com.example.parcel.RatesTest",
+      "file": "src/test/java/com/example/parcel/RatesTest.java",
+      "line": 26
+    },
+    {
+      "name": "percentage discount takes 150 percent off 80.00 [verifies PAR-2~1]",
+      "classname": "com.example.parcel.RatesTest",
+      "file": "src/test/java/com/example/parcel/RatesTest.java",
+      "line": 26
+    },
+    {
+      "name": "percentage discount takes 50 percent off 80.00 [verifies PAR-2~1]",
+      "classname": "com.example.parcel.RatesTest",
+      "file": "src/test/java/com/example/parcel/RatesTest.java",
+      "line": 26
+    }
+  ],
+  "PAR-3~1": [
+    {
+      "name": "is charged below fifty",
+      "classname": "shipping [verifies PAR-3~1]",
+      "file": "src/test/java/com/example/parcel/RatesTest.java",
+      "line": 40
+    },
+    {
+      "name": "is waived from fifty",
+      "classname": "shipping [verifies PAR-3~1]",
+      "file": "src/test/java/com/example/parcel/RatesTest.java",
+      "line": 40
+    }
+  ]
+}

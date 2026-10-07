@@ -1,0 +1,13 @@
+proofs:
+  alignment: false
+  discriminating-power: true
+  completeness: false
+ecosystems:
+  - gradle
+operations:
+  line_total:
+    gradle: parcel.RatesKt:lineTotal
+  discounted:
+    gradle: parcel.RatesKt:discounted
+  shipping_fee:
+    gradle: parcel.RatesKt:shippingFee

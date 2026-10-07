@@ -1,0 +1,50 @@
+{
+  "PAR-1~1": [
+    {
+      "name": "multiplies the unit price by the quantity [verifies PAR-1~1]",
+      "classname": "parcel.RatesTest",
+      "file": "src/test/kotlin/parcel/RatesTest.kt",
+      "line": 12
+    }
+  ],
+  "PAR-2~1": [
+    {
+      "name": "takes -5 percent off 8000 [verifies PAR-2~1]",
+      "classname": "parcel.RatesTest",
+      "file": "src/test/kotlin/parcel/RatesTest.kt",
+      "line": 23
+    },
+    {
+      "name": "takes 0 percent off 1999 [verifies PAR-2~1]",
+      "classname": "parcel.RatesTest",
+      "file": "src/test/kotlin/parcel/RatesTest.kt",
+      "line": 23
+    },
+    {
+      "name": "takes 10 percent off 20000 [verifies PAR-2~1]",
+      "classname": "parcel.RatesTest",
+      "file": "src/test/kotlin/parcel/RatesTest.kt",
+      "line": 23
+    },
+    {
+      "name": "takes 150 percent off 8000 [verifies PAR-2~1]",
+      "classname": "parcel.RatesTest",
+      "file": "src/test/kotlin/parcel/RatesTest.kt",
+      "line": 23
+    },
+    {
+      "name": "takes 50 percent off 8000 [verifies PAR-2~1]",
+      "classname": "parcel.RatesTest",
+      "file": "src/test/kotlin/parcel/RatesTest.kt",
+      "line": 23
+    }
+  ],
+  "PAR-3~1": [
+    {
+      "name": "is waived from fifty [verifies PAR-3~1]",
+      "classname": "parcel.RatesTest",
+      "file": "src/test/kotlin/parcel/RatesTest.kt",
+      "line": 36
+    }
+  ]
+}

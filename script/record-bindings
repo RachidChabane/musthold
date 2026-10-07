@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Record what Shallnot binds in an ecosystem fixture: run `shallnot check` over the
+# fixture's specs, tests and JUnit results, then write the full report and the
+# bound-tests file the EcosystemContract reads.
+#
+#   script/record-bindings FIXTURE_DIR RESULTS_PATH TESTS_PATH BINDINGS_OUT [REPORT_OUT]
+#
+# RESULTS_PATH and TESTS_PATH are relative to FIXTURE_DIR, which must hold a fresh
+# run of the fixture's suite (run it in a scratch copy, never in the repository).
+# shallnot is taken from PATH, else from .tools/bin.
+set -euo pipefail
+
+readonly EXIT_USAGE=2
+readonly SPECS_PATH="specs"
+
+if [ "$#" -lt 4 ] || [ "$#" -gt 5 ]; then
+  echo "usage: $0 FIXTURE_DIR RESULTS_PATH TESTS_PATH BINDINGS_OUT [REPORT_OUT]" >&2
+  exit "${EXIT_USAGE}"
+fi
+
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fixture="$(cd "$1" && pwd)"
+results="$2"
+tests="$3"
+bindings_out="$(cd "$(dirname "$4")" && pwd)/$(basename "$4")"
+report_out="${5:-$(mktemp)}"
+report_out="$(cd "$(dirname "${report_out}")" && pwd)/$(basename "${report_out}")"
+
+if [ -x "${repo}/.tools/bin/shallnot" ]; then
+  export PATH="${repo}/.tools/bin:${PATH}"
+fi
+command -v shallnot >/dev/null 2>&1 || { echo "record-bindings: shallnot is required" >&2; exit "${EXIT_USAGE}"; }
+command -v jq >/dev/null 2>&1 || { echo "record-bindings: jq is required" >&2; exit "${EXIT_USAGE}"; }
+
+(
+  cd "${fixture}"
+  shallnot check --specs "${SPECS_PATH}" --focus "${SPECS_PATH}" --tests "${tests}" --results "${results}" --json-out "${report_out}" >/dev/null
+)
+
+jq --indent 2 '[.requirements[] | {key: .ref, value: [.tests[] | {name: .name, classname: .classname, file: .source.file, line: .source.line}]}] | from_entries' \
+  "${report_out}" >"${bindings_out}"
