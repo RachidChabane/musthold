@@ -1,0 +1,1 @@
+Which single requirement do the test's assertions verify: the requirement whose required observable behaviour they check? Answer NONE if the assertions check behaviour that no listed requirement requires.

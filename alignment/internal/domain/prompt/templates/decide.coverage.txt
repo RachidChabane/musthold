@@ -1,0 +1,1 @@
+How much of the requirement the test checks do its assertions cover? FULL: the requirement's required outcome under its stated condition. PARTIAL: a correct but strict subset of its clauses. WEAK: an implementation violating the requirement would plausibly still pass. NONE: the test checks no requirement.

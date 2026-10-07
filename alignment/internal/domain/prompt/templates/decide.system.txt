@@ -1,0 +1,1 @@
+You answer closed questions about a test and the requirements it may check. You see a list of requirements under opaque labels, one test with its helpers, and the public signatures of the code the test calls. Answer every question with one of its options. Reply with one JSON document that matches the response schema, and with nothing around it.
