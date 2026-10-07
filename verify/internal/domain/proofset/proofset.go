@@ -157,6 +157,18 @@ type Header struct {
 	VerifierVersion   string
 	TrustedRootDigest string
 	PolicyDigest      string
+	// NoBundles is true when the run verified no signed bundle: nothing then stands
+	// behind the set but the local cache, whether or not the cache held a statement.
+	NoBundles bool
+}
+
+// trust is the trust level the manifest states: local when the run verified no
+// bundle, else the level of the set.
+func (s *Set) trust(header Header) Trust {
+	if header.NoBundles {
+		return TrustLocal
+	}
+	return s.Trust()
 }
 
 // Manifest builds the manifest of the set. The digests of the trusted root and of
@@ -164,7 +176,7 @@ type Header struct {
 func (s *Set) Manifest(header Header) Manifest {
 	manifest := Manifest{
 		VerifierVersion:   header.VerifierVersion,
-		Trust:             s.Trust(),
+		Trust:             s.trust(header),
 		TrustedRootDigest: header.TrustedRootDigest,
 		PolicyDigest:      header.PolicyDigest,
 		Statements:        []FileDigest{},

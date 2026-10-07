@@ -8,7 +8,7 @@ tests of the module in CI.
 
 - **SP-104~1**: WHEN the `spec-proof-verify` binary is run with the `version`
   argument THE SYSTEM SHALL print its version.
-- **SP-218~1**: WHEN the binary is run THE SYSTEM SHALL take `--bundles DIR`,
+- **SP-218~2**: WHEN the binary is run THE SYSTEM SHALL take `--bundles DIR`,
   `--accept-local DIR`, `--offline` and `--out DIR` and nothing else, require
   `--out` and at least one of `--bundles` and `--accept-local`, read the trust
   policy `trust-policy.yaml` and the pending directory from the directory that
@@ -16,6 +16,14 @@ tests of the module in CI.
   a statement or a pending file was rejected, and 2 for a command line that does
   not parse or a failure of the tool, explaining every non-zero exit on the error
   stream.
+- **SP-1640~1**: WHEN the binary is run with `-h`, `--help` or `help` THE SYSTEM
+  SHALL print its forms and each flag it takes on the output stream and exit 0,
+  and WHEN a flag is unknown THE SYSTEM SHALL print the failure and the same
+  usage on the error stream and exit 2.
+- **SP-1641~1**: WHEN `--accept-local` is given without `--bundles` THE SYSTEM
+  SHALL state the trust `local` in the manifest whether or not the cache holds a
+  statement, and state no digest of a trusted root or of a policy, so that a
+  manifest never claims signatures nothing verified.
 
 ## Trust policy
 

@@ -21,7 +21,9 @@ const (
 	verifiesManifest  = " [verifies SP-215~1]"
 	verifiesPending   = " [verifies SP-216~1]"
 	verifiesReplay    = " [verifies SP-217~1]"
-	verifiesCommand   = " [verifies SP-218~1]"
+	verifiesCommand   = " [verifies SP-218~2]"
+	verifiesHelp      = " [verifies SP-1640~1]"
+	verifiesEmptyRun  = " [verifies SP-1641~1]"
 )
 
 type result struct {
@@ -232,6 +234,18 @@ func TestLocalRun(t *testing.T) {
 		}
 	})
 
+	t.Run("an empty local cache gives a manifest of trust local with no digest of a root or a policy"+verifiesEmptyRun, func(t *testing.T) {
+		layout := testkit.NewLayout(t)
+		cache := testkit.WriteCache(t, nil)
+		if outcome := run("--accept-local", cache, "--out", layout.Verified); outcome.code != cli.ExitClean {
+			t.Fatalf("exit %d: %s", outcome.code, outcome.stderr)
+		}
+		manifest, raw := readManifest(t, layout.Verified)
+		if manifest.Trust != "local" || len(manifest.Statements) != 0 || manifest.PolicyDigest != "" || manifest.TrustedRootDigest != "" {
+			t.Fatalf("manifest %s", raw)
+		}
+	})
+
 	t.Run("a statement produced by CI in the local cache is refused"+verifiesLocalRun, func(t *testing.T) {
 		layout := testkit.NewLayout(t)
 		cache := testkit.WriteCache(t, statements[:1])
@@ -322,6 +336,27 @@ func TestCommandLine(t *testing.T) {
 			}
 		})
 	}
+
+	for _, request := range []string{"-h", "--help", "help"} {
+		t.Run(request+" prints the forms and the flags on the output stream and exits 0"+verifiesHelp, func(t *testing.T) {
+			outcome := run(request)
+			if outcome.code != cli.ExitClean || outcome.stderr != "" || strings.Contains(outcome.stdout, "help requested") {
+				t.Fatalf("exit %d, stderr %q", outcome.code, outcome.stderr)
+			}
+			for _, want := range []string{"usage:", "--bundles", "--accept-local", "--offline", "--out", "version"} {
+				if !strings.Contains(outcome.stdout, want) {
+					t.Errorf("usage lacks %q:\n%s", want, outcome.stdout)
+				}
+			}
+		})
+	}
+
+	t.Run("an unknown flag prints the failure and the usage on the error stream and exits 2"+verifiesHelp, func(t *testing.T) {
+		outcome := run("--zz-undefined")
+		if outcome.code != cli.ExitToolFailure || outcome.stdout != "" || !strings.Contains(outcome.stderr, "flag provided but not defined: -zz-undefined") || !strings.Contains(outcome.stderr, "--accept-local") {
+			t.Fatalf("exit %d: %q", outcome.code, outcome.stderr)
+		}
+	})
 
 	t.Run("a missing bundles directory is a tool failure"+verifiesCommand, func(t *testing.T) {
 		layout := testkit.NewLayout(t)

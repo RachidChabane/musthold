@@ -154,3 +154,18 @@ func TestManifestContract(t *testing.T) {
 		}
 	})
 }
+
+func TestTrustOfAnEmptySet(t *testing.T) {
+	t.Run("a run that verified no bundle states trust local even with no statement [verifies SP-1641~1]", func(t *testing.T) {
+		manifest := proofset.New().Manifest(proofset.Header{VerifierVersion: "1", NoBundles: true})
+		if manifest.Trust != proofset.TrustLocal || manifest.TrustedRootDigest != "" || manifest.PolicyDigest != "" {
+			t.Fatalf("manifest %+v", manifest)
+		}
+	})
+	t.Run("a run that verified bundles keeps the trust of its set [verifies SP-1641~1]", func(t *testing.T) {
+		manifest := proofset.New().Manifest(proofset.Header{VerifierVersion: "1"})
+		if manifest.Trust != proofset.TrustSigned {
+			t.Fatalf("manifest %+v", manifest)
+		}
+	})
+}

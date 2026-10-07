@@ -95,7 +95,7 @@ func (s VerifyService) Run() (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
-	header := proofset.Header{VerifierVersion: s.Version}
+	header := proofset.Header{VerifierVersion: s.Version, NoBundles: !s.Signed}
 	if s.Signed {
 		header.TrustedRootDigest, header.PolicyDigest = s.TrustedRootDigest, s.PolicyDigest
 	}

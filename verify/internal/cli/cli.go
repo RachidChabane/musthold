@@ -4,12 +4,12 @@ package cli
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"path/filepath"
 
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/cliconv"
 	"github.com/RachidChabane/spec-proof/verify/internal/adapters/filesource"
 	"github.com/RachidChabane/spec-proof/verify/internal/adapters/verifiedout"
 	"github.com/RachidChabane/spec-proof/verify/internal/app"
@@ -26,6 +26,9 @@ const (
 )
 
 const versionCommand = "version"
+
+// helpFlag is the flag the word `help` stands for.
+const helpFlag = "-h"
 
 // trustPolicyFileName is the name of the trust policy below the directory that holds
 // the verified directory (`.spec-proof`).
@@ -55,7 +58,13 @@ func Run(environment Environment, binary string, args []string, stdout, stderr i
 		fmt.Fprintln(stdout, version.Line(binary))
 		return ExitClean
 	}
-	err := run(environment, args, stdout)
+	if len(args) == 1 && args[0] == cliconv.HelpCommand {
+		args = []string{helpFlag}
+	}
+	err := run(environment, binary, args, stdout)
+	if code, handled := cliconv.Handle(err, binary, stdout, stderr); handled {
+		return code
+	}
 	switch {
 	case err == nil:
 		return ExitClean
@@ -77,20 +86,20 @@ type options struct {
 	offline                   bool
 }
 
-func parseOptions(args []string) (options, error) {
+func parseOptions(binary string, args []string) (options, error) {
 	var opts options
-	flags := flag.NewFlagSet("verify", flag.ContinueOnError)
-	flags.SetOutput(io.Discard)
+	flags := cliconv.NewFlagSet(binary, "").WithSynopsis(fmt.Sprintf(usageText, binary))
 	flags.StringVar(&opts.bundles, "bundles", "", "directory written by `ledger export`")
 	flags.StringVar(&opts.acceptLocal, "accept-local", "", "local cache directory whose unsigned statements are admitted")
 	flags.BoolVar(&opts.offline, "offline", false, "read the trusted root from the trust snapshot of --bundles, not from the network")
 	flags.StringVar(&opts.out, "out", "", "verified directory to write")
-	if err := flags.Parse(args); err != nil {
-		return options{}, fmt.Errorf("%w: %v", errUsage, err)
+	rest, err := flags.ParseArguments(args)
+	if err != nil {
+		return options{}, err
 	}
 	switch {
-	case flags.NArg() > 0:
-		return options{}, fmt.Errorf("%w: unexpected argument %q", errUsage, flags.Arg(0))
+	case len(rest) > 0:
+		return options{}, fmt.Errorf("%w: unexpected argument %q", errUsage, rest[0])
 	case opts.out == "":
 		return options{}, fmt.Errorf("%w: --out is required", errUsage)
 	case opts.bundles == "" && opts.acceptLocal == "":
@@ -101,8 +110,8 @@ func parseOptions(args []string) (options, error) {
 	return opts, nil
 }
 
-func run(environment Environment, args []string, stdout io.Writer) error {
-	opts, err := parseOptions(args)
+func run(environment Environment, binary string, args []string, stdout io.Writer) error {
+	opts, err := parseOptions(binary, args)
 	if err != nil {
 		return err
 	}
