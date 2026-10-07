@@ -208,9 +208,9 @@ harness whose configuration the project already holds, and `--hooks none`
 installs none.
 
 - **Codex CLI.** `init` writes `.codex/agents/*.toml`, `.codex/hooks.json` and
-  `.agents/skills/<module>-fulfil/SKILL.md`. Codex runs project hooks when
-  `hooks = true` is set under `[features]` in its `config.toml` and the project
-  is trusted. Codex executors keep the shell, so isolation is `unrestricted`.
+  `.agents/skills/<module>-fulfil/SKILL.md`. Codex executors keep the shell, so
+  isolation is `unrestricted`. Codex reads these files only after the two reviews
+  in [Codex: trust the project and its hooks](#codex-trust-the-project-and-its-hooks).
 - **Copilot CLI.** `init` writes `.github/agents/*.agent.md`,
   `.github/hooks/<module>.json` and `.github/skills/<module>-fulfil/SKILL.md`.
   Isolation is `restricted-unverified`.
@@ -222,3 +222,33 @@ installs none.
 
 Judged answers from harnesses below the isolation floor keep their power to block
 and escalate but earn no pass credit; see [trust model](trust-model.md#harness-isolation).
+
+### Codex: trust the project and its hooks
+
+Codex loads a project's `.codex/agents/` and `.codex/hooks.json` only from a
+trusted project, and runs a project hook only after you review it.
+
+1. **Trust the project.** Accept the prompt Codex shows the first time it starts
+   in the project, or add the project to `~/.codex/config.toml`:
+
+   ```toml
+   [projects."/absolute/path/to/project"]
+   trust_level = "trusted"
+   ```
+
+2. **Review the hooks.** Start `codex` interactively in the project. The "Hooks need
+   review" screen lists the hooks of `.codex/hooks.json`: read each command (every
+   one runs a spec-proof binary with `hook`) and trust them. Codex stores the hash of
+   each trusted hook under `[hooks.state]` in `~/.codex/config.toml`, so a hook whose
+   command changes, for instance after `init` or `enable` rewrites the file, needs
+   a new review.
+
+To check the result, look for one `[hooks.state."<project>/.codex/hooks.json:…"]`
+table with a `trusted_hash` per hook in `~/.codex/config.toml`.
+
+An untrusted hook does not run, in interactive sessions and under `codex exec`
+alike, and neither does any hook of a `codex exec --ignore-user-config` run.
+Without the hooks, the executor tool guard and the subagent records do not run.
+`codex exec
+--dangerously-bypass-hook-trust` runs the hooks without the review for one
+invocation; keep it for automation that vets the hook commands itself.
