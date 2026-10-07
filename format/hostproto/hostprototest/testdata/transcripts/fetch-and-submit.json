@@ -1,0 +1,149 @@
+{
+  "name": "fetch-and-submit",
+  "samplingEnabled": false,
+  "client": [
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "initialize",
+      "params": {
+        "protocolVersion": "2025-06-18",
+        "capabilities": {},
+        "clientInfo": {
+          "name": "fake-client",
+          "version": "1.0.0"
+        }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notifications/initialized"
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "method": "tools/call",
+      "params": {
+        "name": "fetch_request",
+        "arguments": {
+          "ticket": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5.0.1",
+          "cap": ""
+        }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "method": "tools/call",
+      "params": {
+        "name": "submit_response",
+        "arguments": {
+          "ticket": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5.0.1",
+          "nonce": "0102030405060708090a0b0c0d0e0f10",
+          "output": {
+            "validity": "VALID"
+          },
+          "cap": ""
+        }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 4,
+      "method": "tools/call",
+      "params": {
+        "name": "submit_response",
+        "arguments": {
+          "ticket": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5.0.1",
+          "nonce": "0102030405060708090a0b0c0d0e0f10",
+          "output": {
+            "validity": "MAYBE"
+          },
+          "cap": ""
+        }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 5,
+      "method": "tools/call",
+      "params": {
+        "name": "fetch_request",
+        "arguments": {
+          "ticket": "",
+          "cap": ""
+        }
+      }
+    }
+  ],
+  "server": [
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "capabilities": {
+          "tools": {
+            "listChanged": false
+          }
+        },
+        "protocolVersion": "2025-06-18",
+        "serverInfo": {
+          "name": "spec-proof-fake",
+          "version": "0.0.0"
+        }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "result": {
+        "content": [
+          {
+            "text": "{\"ticket\":\"bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5.0.1\",\"nonce\":\"0102030405060708090a0b0c0d0e0f10\",\"system\":\"You judge whether a mutant violates a criterion.\",\"user\":\"Criterion: a stay of 15 minutes or less is free. Mutant diff follows.\",\"responseSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"validity\"],\"properties\":{\"validity\":{\"enum\":[\"VALID\",\"EQUIVALENT\",\"NOT_VIOLATING\",\"UNDETERMINED\"]}}}}",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "result": {
+        "content": [
+          {
+            "text": "receipt bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5.0.1",
+            "type": "text"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 4,
+      "result": {
+        "content": [
+          {
+            "text": "{\"schemaErrors\":[\"validity must be one of VALID, EQUIVALENT, NOT_VIOLATING, UNDETERMINED\"]}",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 5,
+      "result": {
+        "content": [
+          {
+            "text": "unknown ticket",
+            "type": "text"
+          }
+        ],
+        "isError": true
+      }
+    }
+  ]
+}

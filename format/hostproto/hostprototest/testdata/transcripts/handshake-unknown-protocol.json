@@ -1,0 +1,37 @@
+{
+  "name": "handshake-unknown-protocol",
+  "samplingEnabled": false,
+  "client": [
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "initialize",
+      "params": {
+        "protocolVersion": "2099-01-01",
+        "capabilities": {},
+        "clientInfo": {
+          "name": "new",
+          "version": "9"
+        }
+      }
+    }
+  ],
+  "server": [
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "capabilities": {
+          "tools": {
+            "listChanged": false
+          }
+        },
+        "protocolVersion": "2025-06-18",
+        "serverInfo": {
+          "name": "spec-proof-fake",
+          "version": "0.0.0"
+        }
+      }
+    }
+  ]
+}

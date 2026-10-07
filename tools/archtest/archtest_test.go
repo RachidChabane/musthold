@@ -26,6 +26,9 @@ const (
 	s1relayModule      = "s1relay"
 
 	formatTestSupportDir = "formattest"
+	hostprotoDir         = "hostproto"
+	mcpstdioDir          = "mcpstdio"
+	hostprototestDir     = "hostprototest"
 
 	netPackage      = "net"
 	netHTTPPackage  = "net/http"
@@ -67,6 +70,33 @@ func modulePath(module string) string {
 
 func moduleDir(module string) string {
 	return path.Join(repositoryDir, module)
+}
+
+func formatPackage(subpath ...string) string {
+	return path.Join(append([]string{modulePath(formatModule)}, subpath...)...)
+}
+
+// isUnder reports whether pkg is the package root or one of its descendants.
+func isUnder(pkg, root string) bool {
+	return pkg == root || strings.HasPrefix(pkg, root+pathSeparator)
+}
+
+// isFormatTestSupport reports whether a package of the format module is test
+// support, which may use the operating system: the vectors' generators and the
+// host protocol's test support with its fake host.
+func isFormatTestSupport(pkg string) bool {
+	return isUnder(pkg, formatPackage(formatTestSupportDir)) || isUnder(pkg, formatPackage(hostprotoDir, hostprototestDir))
+}
+
+// reachesAny lists the packages of a dependency list that are under any root.
+func reachesAny(dependencies []string, roots ...string) []string {
+	var found []string
+	for _, dependency := range dependencies {
+		if slices.ContainsFunc(roots, func(root string) bool { return isUnder(dependency, root) }) {
+			found = append(found, dependency)
+		}
+	}
+	return found
 }
 
 // moduleOf returns the module a first-party import path belongs to, and false
@@ -237,9 +267,9 @@ func TestModulesAreIndependent(t *testing.T) {
 }
 
 func TestFormatIsPure(t *testing.T) {
-	t.Run("format imports no os, io/fs, os/exec or net and links no networking [verifies SP-106~1]", func(t *testing.T) {
+	t.Run("format imports no os, io/fs, os/exec or net and links no networking [verifies SP-106~2]", func(t *testing.T) {
 		for pkg, imports := range directImports(t, formatModule, "./...", false) {
-			if strings.HasPrefix(pkg, modulePath(formatModule)+pathSeparator+formatTestSupportDir) {
+			if isFormatTestSupport(pkg) {
 				continue
 			}
 			if found := formatCoreViolations(imports); len(found) > 0 {
@@ -253,7 +283,7 @@ func TestFormatIsPure(t *testing.T) {
 		}
 	})
 
-	t.Run("the rule detects each forbidden import [verifies SP-106~1]", func(t *testing.T) {
+	t.Run("the rule detects each forbidden import [verifies SP-106~2]", func(t *testing.T) {
 		got := formatCoreViolations([]string{"fmt", "os", "net/url", "os/exec", "io/fs", "strings", "net"})
 		if len(got) != 5 {
 			t.Fatalf("violations = %v", got)
@@ -321,6 +351,68 @@ func TestVerifierLinksNoProcessPackage(t *testing.T) {
 	t.Run("the rule detects os/exec [verifies SP-39~1]", func(t *testing.T) {
 		if got := processViolations([]string{"os", "os/exec", "os/signal"}); len(got) != 1 {
 			t.Fatalf("violations = %v", got)
+		}
+	})
+}
+
+func TestHostProtocolLayering(t *testing.T) {
+	supportRoots := []string{formatPackage(formatTestSupportDir), formatPackage(hostprotoDir, hostprototestDir)}
+
+	t.Run("the format root and the host protocol link neither the MCP codec nor test support [verifies SP-143~1]", func(t *testing.T) {
+		forbidden := append([]string{formatPackage(hostprotoDir, mcpstdioDir)}, supportRoots...)
+		for _, pattern := range []string{".", "./" + hostprotoDir} {
+			if found := reachesAny(dependencies(t, formatModule, pattern), forbidden...); len(found) > 0 {
+				t.Errorf("%s links %v", pattern, found)
+			}
+		}
+	})
+
+	t.Run("the MCP codec links no test support [verifies SP-143~1]", func(t *testing.T) {
+		pattern := "./" + hostprotoDir + pathSeparator + mcpstdioDir
+		if found := reachesAny(dependencies(t, formatModule, pattern), supportRoots...); len(found) > 0 {
+			t.Errorf("the codec links %v", found)
+		}
+	})
+
+	t.Run("no binary of a shipped module links the test support of the format module [verifies SP-144~1]", func(t *testing.T) {
+		for _, module := range modules {
+			if module == formatModule {
+				continue
+			}
+			if found := reachesAny(dependencies(t, module, "./cmd/..."), supportRoots...); len(found) > 0 {
+				t.Errorf("%s links %v", module, found)
+			}
+		}
+	})
+
+	t.Run("the rule detects a package under a test support root [verifies SP-144~1]", func(t *testing.T) {
+		got := reachesAny([]string{
+			"fmt",
+			formatPackage(hostprotoDir, hostprototestDir),
+			formatPackage(hostprotoDir, hostprototestDir, "cmd", "fakehost"),
+			formatPackage(formatTestSupportDir, "proofs"),
+			formatPackage(hostprotoDir, hostprototestDir+"x"),
+			formatPackage(hostprotoDir),
+		}, supportRoots...)
+		if len(got) != 3 {
+			t.Fatalf("violations = %v", got)
+		}
+	})
+
+	t.Run("test support packages of the format module are recognised as such [verifies SP-106~2]", func(t *testing.T) {
+		cases := map[string]bool{
+			formatPackage(formatTestSupportDir, "golden"):                    true,
+			formatPackage(hostprotoDir, hostprototestDir):                    true,
+			formatPackage(hostprotoDir, hostprototestDir, "cmd", "fakehost"): true,
+			formatPackage(hostprotoDir):                                      false,
+			formatPackage(hostprotoDir, mcpstdioDir):                         false,
+			formatPackage(hostprotoDir, hostprototestDir+"x"):                false,
+			modulePath(formatModule):                                         false,
+		}
+		for pkg, want := range cases {
+			if got := isFormatTestSupport(pkg); got != want {
+				t.Errorf("%s: %v, want %v", pkg, got, want)
+			}
 		}
 	})
 }

@@ -92,6 +92,144 @@ Go tests of the module in CI.
   and `inline` from the strongest to the weakest, and rank an unknown level
   below every floor.
 
+## Host protocol: requests and tickets
+
+- **SP-117~1**: WHEN a request is validated THE SYSTEM SHALL require the request
+  type URI of its major version, a named module, a kind of the closed set, a role
+  `plugin:agent` whose agent serves the kind, a shape that is closed exactly for
+  `decide.closed` and carries its question set exactly then, a round and a seed
+  exactly for generation kinds, a user prompt and a template digest, a response
+  schema whose root is an object, an output limit within the ceiling, strictly
+  ascending inputs of known roles with SHA-256 digests, and a cache key; and the
+  view an executor receives SHALL carry the ticket, its nonce, the prompt, the
+  response schema and the question set only.
+- **SP-118~1**: WHEN a request id is computed THE SYSTEM SHALL hash the RFC 8785
+  bytes of the request document with `module.version` removed, so that the id is
+  the same for any member order, unchanged by a module version bump, and changed
+  by any other difference; and a document without a module object SHALL have no
+  id.
+- **SP-119~1**: WHEN a ticket is issued THE SYSTEM SHALL name it
+  `<requestId>.<vote>.<emission>`, draw its 128-bit nonce from the entropy
+  source it is given and keep the nonce out of the request id; WHEN a text is read
+  as a ticket THE SYSTEM SHALL accept only that exact form, and SHALL find a
+  ticket in a prompt only when the prompt holds exactly one; and a response SHALL
+  carry a request id, a vote, a nonce, a JSON output within the size limit and a
+  valid executor profile.
+
+## Host protocol: lifecycle and binding
+
+- **SP-120~1**: WHEN a ticket changes state THE SYSTEM SHALL allow only the moves
+  of the lifecycle table (`emitted` to `fetched` or `superseded`; `fetched` to
+  `accepted`, `expired` or `rejected`; `accepted` to `validated` or `rejected`;
+  `rejected` and `expired` to `emitted` or `abandoned`; `validated` to
+  `consumed`), refuse every other move without changing the entry, and treat
+  `consumed`, `superseded` and `abandoned` as terminal.
+- **SP-121~1**: WHEN a ticket is fetched, answered, expired or reissued THE SYSTEM
+  SHALL bind a fetch to one capability, allow one schema correction before it
+  rejects, expire a fetched ticket after 20 minutes, reissue a rejected or expired
+  ticket with a new nonce while fewer than three emissions were made and abandon
+  it as `host_unresponsive` after that, and make only a validated answer
+  consumable.
+- **SP-122~1**: WHEN a submission is checked THE SYSTEM SHALL require the ticket
+  identifier, the nonce, a state that takes an answer, the schema digest recorded
+  at emission and, when attestation is required, a capability of an agent
+  started for the request's role that is not bound to another ticket, and SHALL
+  reject any submission in which one of them differs.
+- **SP-123~1**: WHEN a capability is made THE SYSTEM SHALL join the agent
+  identifier and the lowercase hex HMAC-SHA256 of that identifier under the
+  per-install secret, and WHEN it is verified THE SYSTEM SHALL compare in
+  constant time and refuse any other secret, agent, MAC or spelling.
+- **SP-124~1**: WHEN a second, different output arrives for an accepted ticket THE
+  SYSTEM SHALL refuse it as `resubmission_conflict`, keep the first answer and
+  journal the conflict, and SHALL treat the same output again as a replay.
+- **SP-125~1**: WHEN a Store adapter is tested THE SYSTEM SHALL provide a contract
+  suite and a reference store that satisfy it: content-addressed requests,
+  entries created once per key and updated atomically, responses created once,
+  a journal that stays a valid chain under concurrent appends, and a stable
+  secret.
+- **SP-126~1**: WHEN events are journaled THE SYSTEM SHALL chain each record to
+  the digest of its predecessor from a genesis digest, SHALL refuse a chain in
+  which a record was edited, removed, reordered or renumbered, and SHALL derive
+  the roster of started executors from the journal.
+
+## Host protocol: hooks and channels
+
+- **SP-127~1**: WHEN a Claude Code hook payload is decoded THE SYSTEM SHALL read
+  PreToolUse on the Agent tool and on MCP tools, SubagentStart, SubagentStop and
+  PostToolUse into a harness-neutral event with the agent, the tool, its input,
+  the transcript path, the last message, the resolved model and the usage, and
+  SHALL refuse a payload of another hook, without its required field, or
+  malformed.
+- **SP-128~1**: WHEN a Codex or a Copilot hook payload is decoded THE SYSTEM SHALL
+  read the fields each documents into the same event, including Copilot's
+  arguments given as a JSON string.
+- **SP-129~1**: WHEN a hook answers THE SYSTEM SHALL rebuild an executor launch
+  from its role and its single ticket with no model and no padding and in the
+  foreground, refuse a launch of any other role or without a single ticket,
+  inject the capability into an MCP tool input, and render the decision in the
+  output format of each harness.
+- **SP-130~1**: WHEN an executor transcript is checked THE SYSTEM SHALL read its
+  tool calls in order and accept only `fetch_request(t)`, `submit_response(t)` and
+  at most one corrective `submit_response(t)` for its own ticket.
+- **SP-131~1**: WHEN a channel is selected THE SYSTEM SHALL choose from observed
+  state only: the plugin subagent when its plugin and server are present, then
+  sampling when declared and enabled, then the main agent; derive the isolation
+  from what the harness enforces; and report the subagent channel as pending
+  rather than degraded when attestation is required and its hooks are missing.
+- **SP-132~1**: WHEN the host protocol vectors are replayed THE SYSTEM SHALL give
+  the request ids, capabilities, ticket parses, lifecycle matrix, decoded hook
+  events and rendered decisions the committed vectors state.
+- **SP-133~1**: WHEN a decision function is checked for monotonicity THE SYSTEM
+  SHALL report any step at which adding a response that points toward block or
+  escalate lowers the severity of the decision.
+
+## MCP stdio codec
+
+- **SP-134~1**: WHEN MCP messages are framed THE SYSTEM SHALL read
+  newline-delimited JSON-RPC 2.0 from an `io.Reader` and write it to an
+  `io.Writer`, skip blank lines, accept CRLF, consume and report a frame above
+  the byte limit without losing the following ones, classify each message as a
+  request, a notification or a response, and refuse any frame that is not one,
+  including an id that is neither a string nor a number.
+- **SP-135~1**: WHEN a client initializes the session THE SYSTEM SHALL negotiate
+  the newest supported protocol revision, announce the tools capability and the
+  server identity, record whether the client declared sampling, refuse a
+  second initialize and a request other than ping before it.
+- **SP-136~1**: WHEN tools are listed THE SYSTEM SHALL give `fetch_request` and
+  `submit_response` closed schemas whose members are all required, with the
+  capability member described as set by the harness and to be left empty, and
+  SHALL add `drain` only when the client declared sampling and the policy
+  enables it.
+- **SP-137~1**: WHEN a tool is called THE SYSTEM SHALL decode its arguments
+  strictly against the closed schema, answer a missing, unknown or mistyped
+  member as an invalid-params error, an unknown or unlisted tool likewise, and a
+  failure of the executor service as a tool error; `fetch_request` SHALL return
+  the executor view and `submit_response` the bare receipt or the schema errors.
+- **SP-138~1**: WHEN ping, notifications, unknown methods and malformed frames
+  arrive THE SYSTEM SHALL answer ping with an empty result, answer no
+  notification, answer an unknown method as not found, answer a malformed frame
+  with a parse or invalid-request error carrying a null id, answer each request
+  exactly once, and stop at the end of input or of the context.
+- **SP-139~1**: WHEN `drain` serves a ticket THE SYSTEM SHALL ask the client for
+  `sampling/createMessage` with no included context and no tools, answer pings
+  while it waits, queue other requests until the tool call ends, and report a
+  refusal of the client as a tool error.
+
+## Host protocol: test support
+
+- **SP-140~1**: WHEN a fake host plays one of the personas honest, forger,
+  omitter, stale, breaker, leaker, padder, model-swapper, hookless, unrestricted,
+  selector, churner or slow against a host THE SYSTEM SHALL give the verdict
+  asserted for that persona, and SHALL report an outcome that does not match it.
+- **SP-141~1**: WHEN the golden JSON-RPC transcripts are replayed against the
+  fake executor service THE SYSTEM SHALL write the server lines the transcripts
+  commit, and the committed transcripts SHALL be those the scripts record.
+- **SP-142~1**: WHEN a fake host drives a module through its command line THE
+  SYSTEM SHALL list the pending tickets, show each ticket before it answers
+  except for the forger, submit the output its persona gives, report each
+  submission, reach nothing a hook is needed for, and fail on a module whose
+  listing is unreadable.
+
 ## Schemas and golden vectors
 
 - **SP-22~1**: WHEN the embedded schemas are listed THE SYSTEM SHALL give each

@@ -1,0 +1,41 @@
+{
+  "name": "handshake-older-protocol",
+  "samplingEnabled": false,
+  "client": [
+    {
+      "jsonrpc": "2.0",
+      "id": "a",
+      "method": "initialize",
+      "params": {
+        "protocolVersion": "2024-11-05",
+        "capabilities": {},
+        "clientInfo": {
+          "name": "old",
+          "version": "0"
+        }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notifications/initialized"
+    }
+  ],
+  "server": [
+    {
+      "jsonrpc": "2.0",
+      "id": "a",
+      "result": {
+        "capabilities": {
+          "tools": {
+            "listChanged": false
+          }
+        },
+        "protocolVersion": "2024-11-05",
+        "serverInfo": {
+          "name": "spec-proof-fake",
+          "version": "0.0.0"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,127 @@
+{
+  "name": "sampling-declared-and-enabled",
+  "samplingEnabled": true,
+  "client": [
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "initialize",
+      "params": {
+        "protocolVersion": "2025-06-18",
+        "capabilities": {
+          "sampling": {}
+        },
+        "clientInfo": {
+          "name": "fake-client",
+          "version": "1.0.0"
+        }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "method": "notifications/initialized"
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "method": "tools/list"
+    }
+  ],
+  "server": [
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "capabilities": {
+          "tools": {
+            "listChanged": false
+          }
+        },
+        "protocolVersion": "2025-06-18",
+        "serverInfo": {
+          "name": "spec-proof-fake",
+          "version": "0.0.0"
+        }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "result": {
+        "tools": [
+          {
+            "name": "fetch_request",
+            "description": "Fetch the prompt, the response schema and the nonce of your ticket.",
+            "inputSchema": {
+              "additionalProperties": false,
+              "properties": {
+                "cap": {
+                  "description": "set by the harness; leave empty",
+                  "type": "string"
+                },
+                "ticket": {
+                  "description": "The ticket named in your task.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "ticket",
+                "cap"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "name": "submit_response",
+            "description": "Submit your answer: a JSON object that matches the response schema of your ticket.",
+            "inputSchema": {
+              "additionalProperties": false,
+              "properties": {
+                "cap": {
+                  "description": "set by the harness; leave empty",
+                  "type": "string"
+                },
+                "nonce": {
+                  "description": "The nonce returned by fetch_request.",
+                  "type": "string"
+                },
+                "output": {
+                  "description": "Your answer, a JSON object matching the response schema.",
+                  "type": "object"
+                },
+                "ticket": {
+                  "description": "The ticket named in your task.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "ticket",
+                "nonce",
+                "output",
+                "cap"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "name": "drain",
+            "description": "Serve the pending tickets of a module through sampling.",
+            "inputSchema": {
+              "additionalProperties": false,
+              "properties": {
+                "module": {
+                  "description": "The module whose pending tickets to serve.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "module"
+              ],
+              "type": "object"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,1044 @@
+{
+  "requestIds": [
+    {
+      "name": "judge validity",
+      "request": {
+        "type": "https://rachid-chabane.com/host-protocol/request/v1",
+        "module": {
+          "name": "spec-proof-dp",
+          "version": "0.1.0"
+        },
+        "kind": "judge.validity",
+        "role": "spec-proof-dp:judge",
+        "shape": "open",
+        "prompt": {
+          "system": "You judge whether a mutant violates a criterion.",
+          "user": "Criterion: a stay of 15 minutes or less is free. Mutant diff follows.",
+          "templateDigest": "dea94dccf7340a05dd63f74d8f1e2b986300931036289bae894419005ef65fca"
+        },
+        "responseSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "validity"
+          ],
+          "properties": {
+            "validity": {
+              "enum": [
+                "VALID",
+                "EQUIVALENT",
+                "NOT_VIOLATING",
+                "UNDETERMINED"
+              ]
+            }
+          }
+        },
+        "limits": {
+          "maxOutputBytes": 262144
+        },
+        "inputs": [
+          {
+            "role": "code_tree",
+            "digest": "53a040fbef9bcc101d4030b337ee0795ad50ac12180def7cc030036ff23f2421"
+          },
+          {
+            "role": "spec",
+            "digest": "d4f02eaafd1a9e9de7d10972ca8e47fa7a985825c3c9c1e249c72683cb3e4f19"
+          }
+        ],
+        "cacheKey": "89dd5bff4fb6fd83ee0679edfb07756d0d22222a414f0c3ac6fd92c120e4fe4f"
+      },
+      "id": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5"
+    },
+    {
+      "name": "another module version",
+      "request": {
+        "type": "https://rachid-chabane.com/host-protocol/request/v1",
+        "module": {
+          "name": "spec-proof-dp",
+          "version": "9.9.9"
+        },
+        "kind": "judge.validity",
+        "role": "spec-proof-dp:judge",
+        "shape": "open",
+        "prompt": {
+          "system": "You judge whether a mutant violates a criterion.",
+          "user": "Criterion: a stay of 15 minutes or less is free. Mutant diff follows.",
+          "templateDigest": "dea94dccf7340a05dd63f74d8f1e2b986300931036289bae894419005ef65fca"
+        },
+        "responseSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "validity"
+          ],
+          "properties": {
+            "validity": {
+              "enum": [
+                "VALID",
+                "EQUIVALENT",
+                "NOT_VIOLATING",
+                "UNDETERMINED"
+              ]
+            }
+          }
+        },
+        "limits": {
+          "maxOutputBytes": 262144
+        },
+        "inputs": [
+          {
+            "role": "code_tree",
+            "digest": "53a040fbef9bcc101d4030b337ee0795ad50ac12180def7cc030036ff23f2421"
+          },
+          {
+            "role": "spec",
+            "digest": "d4f02eaafd1a9e9de7d10972ca8e47fa7a985825c3c9c1e249c72683cb3e4f19"
+          }
+        ],
+        "cacheKey": "89dd5bff4fb6fd83ee0679edfb07756d0d22222a414f0c3ac6fd92c120e4fe4f"
+      },
+      "id": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5"
+    },
+    {
+      "name": "generation",
+      "request": {
+        "type": "https://rachid-chabane.com/host-protocol/request/v1",
+        "module": {
+          "name": "spec-proof-dp",
+          "version": "0.1.0"
+        },
+        "kind": "generate.targeted",
+        "role": "spec-proof-dp:generator",
+        "shape": "open",
+        "prompt": {
+          "system": "You judge whether a mutant violates a criterion.",
+          "user": "Criterion: a stay of 15 minutes or less is free. Mutant diff follows.",
+          "templateDigest": "dea94dccf7340a05dd63f74d8f1e2b986300931036289bae894419005ef65fca"
+        },
+        "responseSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "validity"
+          ],
+          "properties": {
+            "validity": {
+              "enum": [
+                "VALID",
+                "EQUIVALENT",
+                "NOT_VIOLATING",
+                "UNDETERMINED"
+              ]
+            }
+          }
+        },
+        "round": 1,
+        "seed": "19b25856e1c150ca834cffc8b59b23adbd0ec0389e58eb22b3b64768098d002b",
+        "limits": {
+          "maxOutputBytes": 262144
+        },
+        "inputs": [
+          {
+            "role": "code_tree",
+            "digest": "53a040fbef9bcc101d4030b337ee0795ad50ac12180def7cc030036ff23f2421"
+          },
+          {
+            "role": "spec",
+            "digest": "d4f02eaafd1a9e9de7d10972ca8e47fa7a985825c3c9c1e249c72683cb3e4f19"
+          }
+        ],
+        "cacheKey": "89dd5bff4fb6fd83ee0679edfb07756d0d22222a414f0c3ac6fd92c120e4fe4f"
+      },
+      "id": "53cd8802a3ddfbbcc7b641768af2ffb5ec970245a9185c64601c5c3c0d3e8d10"
+    },
+    {
+      "name": "closed question",
+      "request": {
+        "type": "https://rachid-chabane.com/host-protocol/request/v1",
+        "module": {
+          "name": "spec-proof-dp",
+          "version": "0.1.0"
+        },
+        "kind": "decide.closed",
+        "role": "spec-proof-dp:decider",
+        "shape": "closed",
+        "prompt": {
+          "system": "You judge whether a mutant violates a criterion.",
+          "user": "Criterion: a stay of 15 minutes or less is free. Mutant diff follows.",
+          "templateDigest": "dea94dccf7340a05dd63f74d8f1e2b986300931036289bae894419005ef65fca"
+        },
+        "responseSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "validity"
+          ],
+          "properties": {
+            "validity": {
+              "enum": [
+                "VALID",
+                "EQUIVALENT",
+                "NOT_VIOLATING",
+                "UNDETERMINED"
+              ]
+            }
+          }
+        },
+        "closed": {
+          "questions": [
+            {
+              "id": "q1",
+              "choice": [
+                "VIOLATES",
+                "CONSISTENT"
+              ]
+            }
+          ]
+        },
+        "limits": {
+          "maxOutputBytes": 262144
+        },
+        "inputs": [
+          {
+            "role": "code_tree",
+            "digest": "53a040fbef9bcc101d4030b337ee0795ad50ac12180def7cc030036ff23f2421"
+          },
+          {
+            "role": "spec",
+            "digest": "d4f02eaafd1a9e9de7d10972ca8e47fa7a985825c3c9c1e249c72683cb3e4f19"
+          }
+        ],
+        "cacheKey": "89dd5bff4fb6fd83ee0679edfb07756d0d22222a414f0c3ac6fd92c120e4fe4f"
+      },
+      "id": "5eaa71658a9930dc6504bb018ff47c7a8cab3b5590c50116f3045758463f7eb0"
+    }
+  ],
+  "capabilities": [
+    {
+      "secret": "fixture-secret-0123456789abcdef",
+      "agentId": "agent-0001",
+      "cap": "agent-0001.a4e8ad691656ec20f7b74d1d1af16630b1c768fd00c6d578d10c543971cfc300",
+      "digest": "41ea6c44bb0c69aee88d495adde123ab155b6c77f4b964ce1e543405503a99f3"
+    },
+    {
+      "secret": "fixture-secret-0123456789abcdef",
+      "agentId": "a4d2c8f1e0b3a297",
+      "cap": "a4d2c8f1e0b3a297.d638ab468c7d0e4ed4a1f504bea6ef814fd67a2c254b2dcde547b2711d64ef4f",
+      "digest": "a0c5b72a72d4a85979f246c0ec89419830c87d391d1594f79022293682278e2a"
+    }
+  ],
+  "tickets": [
+    {
+      "text": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5.0.1",
+      "valid": true,
+      "emission": 1
+    },
+    {
+      "text": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5.2.3",
+      "valid": true,
+      "vote": 2,
+      "emission": 3
+    },
+    {
+      "text": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5.0.0",
+      "valid": false
+    },
+    {
+      "text": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5.-1.1",
+      "valid": false
+    },
+    {
+      "text": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5.01.1",
+      "valid": false
+    },
+    {
+      "text": "BBB0107006FAD4ABD4746FC925C050DFF762F20370B46E56C92E74FE9EF5F7A5.0.1",
+      "valid": false
+    },
+    {
+      "text": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5",
+      "valid": false
+    }
+  ],
+  "transitions": [
+    {
+      "from": "emitted",
+      "to": "emitted",
+      "legal": false
+    },
+    {
+      "from": "emitted",
+      "to": "fetched",
+      "legal": true
+    },
+    {
+      "from": "emitted",
+      "to": "accepted",
+      "legal": false
+    },
+    {
+      "from": "emitted",
+      "to": "rejected",
+      "legal": false
+    },
+    {
+      "from": "emitted",
+      "to": "expired",
+      "legal": false
+    },
+    {
+      "from": "emitted",
+      "to": "validated",
+      "legal": false
+    },
+    {
+      "from": "emitted",
+      "to": "consumed",
+      "legal": false
+    },
+    {
+      "from": "emitted",
+      "to": "superseded",
+      "legal": true
+    },
+    {
+      "from": "emitted",
+      "to": "abandoned",
+      "legal": false
+    },
+    {
+      "from": "fetched",
+      "to": "emitted",
+      "legal": false
+    },
+    {
+      "from": "fetched",
+      "to": "fetched",
+      "legal": false
+    },
+    {
+      "from": "fetched",
+      "to": "accepted",
+      "legal": true
+    },
+    {
+      "from": "fetched",
+      "to": "rejected",
+      "legal": true
+    },
+    {
+      "from": "fetched",
+      "to": "expired",
+      "legal": true
+    },
+    {
+      "from": "fetched",
+      "to": "validated",
+      "legal": false
+    },
+    {
+      "from": "fetched",
+      "to": "consumed",
+      "legal": false
+    },
+    {
+      "from": "fetched",
+      "to": "superseded",
+      "legal": false
+    },
+    {
+      "from": "fetched",
+      "to": "abandoned",
+      "legal": false
+    },
+    {
+      "from": "accepted",
+      "to": "emitted",
+      "legal": false
+    },
+    {
+      "from": "accepted",
+      "to": "fetched",
+      "legal": false
+    },
+    {
+      "from": "accepted",
+      "to": "accepted",
+      "legal": false
+    },
+    {
+      "from": "accepted",
+      "to": "rejected",
+      "legal": true
+    },
+    {
+      "from": "accepted",
+      "to": "expired",
+      "legal": false
+    },
+    {
+      "from": "accepted",
+      "to": "validated",
+      "legal": true
+    },
+    {
+      "from": "accepted",
+      "to": "consumed",
+      "legal": false
+    },
+    {
+      "from": "accepted",
+      "to": "superseded",
+      "legal": false
+    },
+    {
+      "from": "accepted",
+      "to": "abandoned",
+      "legal": false
+    },
+    {
+      "from": "rejected",
+      "to": "emitted",
+      "legal": true
+    },
+    {
+      "from": "rejected",
+      "to": "fetched",
+      "legal": false
+    },
+    {
+      "from": "rejected",
+      "to": "accepted",
+      "legal": false
+    },
+    {
+      "from": "rejected",
+      "to": "rejected",
+      "legal": false
+    },
+    {
+      "from": "rejected",
+      "to": "expired",
+      "legal": false
+    },
+    {
+      "from": "rejected",
+      "to": "validated",
+      "legal": false
+    },
+    {
+      "from": "rejected",
+      "to": "consumed",
+      "legal": false
+    },
+    {
+      "from": "rejected",
+      "to": "superseded",
+      "legal": false
+    },
+    {
+      "from": "rejected",
+      "to": "abandoned",
+      "legal": true
+    },
+    {
+      "from": "expired",
+      "to": "emitted",
+      "legal": true
+    },
+    {
+      "from": "expired",
+      "to": "fetched",
+      "legal": false
+    },
+    {
+      "from": "expired",
+      "to": "accepted",
+      "legal": false
+    },
+    {
+      "from": "expired",
+      "to": "rejected",
+      "legal": false
+    },
+    {
+      "from": "expired",
+      "to": "expired",
+      "legal": false
+    },
+    {
+      "from": "expired",
+      "to": "validated",
+      "legal": false
+    },
+    {
+      "from": "expired",
+      "to": "consumed",
+      "legal": false
+    },
+    {
+      "from": "expired",
+      "to": "superseded",
+      "legal": false
+    },
+    {
+      "from": "expired",
+      "to": "abandoned",
+      "legal": true
+    },
+    {
+      "from": "validated",
+      "to": "emitted",
+      "legal": false
+    },
+    {
+      "from": "validated",
+      "to": "fetched",
+      "legal": false
+    },
+    {
+      "from": "validated",
+      "to": "accepted",
+      "legal": false
+    },
+    {
+      "from": "validated",
+      "to": "rejected",
+      "legal": false
+    },
+    {
+      "from": "validated",
+      "to": "expired",
+      "legal": false
+    },
+    {
+      "from": "validated",
+      "to": "validated",
+      "legal": false
+    },
+    {
+      "from": "validated",
+      "to": "consumed",
+      "legal": true
+    },
+    {
+      "from": "validated",
+      "to": "superseded",
+      "legal": false
+    },
+    {
+      "from": "validated",
+      "to": "abandoned",
+      "legal": false
+    },
+    {
+      "from": "consumed",
+      "to": "emitted",
+      "legal": false
+    },
+    {
+      "from": "consumed",
+      "to": "fetched",
+      "legal": false
+    },
+    {
+      "from": "consumed",
+      "to": "accepted",
+      "legal": false
+    },
+    {
+      "from": "consumed",
+      "to": "rejected",
+      "legal": false
+    },
+    {
+      "from": "consumed",
+      "to": "expired",
+      "legal": false
+    },
+    {
+      "from": "consumed",
+      "to": "validated",
+      "legal": false
+    },
+    {
+      "from": "consumed",
+      "to": "consumed",
+      "legal": false
+    },
+    {
+      "from": "consumed",
+      "to": "superseded",
+      "legal": false
+    },
+    {
+      "from": "consumed",
+      "to": "abandoned",
+      "legal": false
+    },
+    {
+      "from": "superseded",
+      "to": "emitted",
+      "legal": false
+    },
+    {
+      "from": "superseded",
+      "to": "fetched",
+      "legal": false
+    },
+    {
+      "from": "superseded",
+      "to": "accepted",
+      "legal": false
+    },
+    {
+      "from": "superseded",
+      "to": "rejected",
+      "legal": false
+    },
+    {
+      "from": "superseded",
+      "to": "expired",
+      "legal": false
+    },
+    {
+      "from": "superseded",
+      "to": "validated",
+      "legal": false
+    },
+    {
+      "from": "superseded",
+      "to": "consumed",
+      "legal": false
+    },
+    {
+      "from": "superseded",
+      "to": "superseded",
+      "legal": false
+    },
+    {
+      "from": "superseded",
+      "to": "abandoned",
+      "legal": false
+    },
+    {
+      "from": "abandoned",
+      "to": "emitted",
+      "legal": false
+    },
+    {
+      "from": "abandoned",
+      "to": "fetched",
+      "legal": false
+    },
+    {
+      "from": "abandoned",
+      "to": "accepted",
+      "legal": false
+    },
+    {
+      "from": "abandoned",
+      "to": "rejected",
+      "legal": false
+    },
+    {
+      "from": "abandoned",
+      "to": "expired",
+      "legal": false
+    },
+    {
+      "from": "abandoned",
+      "to": "validated",
+      "legal": false
+    },
+    {
+      "from": "abandoned",
+      "to": "consumed",
+      "legal": false
+    },
+    {
+      "from": "abandoned",
+      "to": "superseded",
+      "legal": false
+    },
+    {
+      "from": "abandoned",
+      "to": "abandoned",
+      "legal": false
+    }
+  ],
+  "hooks": [
+    {
+      "harness": "claude-code",
+      "kind": "pre-tool",
+      "payload": {
+        "session_id": "s1",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Agent",
+        "tool_input": {
+          "subagent_type": "spec-proof-dp:judge",
+          "description": "judge",
+          "prompt": "ticket x",
+          "model": "haiku"
+        },
+        "tool_use_id": "toolu_1"
+      },
+      "event": {
+        "harness": "claude-code",
+        "kind": "pre-tool",
+        "sessionId": "s1",
+        "toolName": "Agent",
+        "toolInput": {
+          "subagent_type": "spec-proof-dp:judge",
+          "description": "judge",
+          "prompt": "ticket x",
+          "model": "haiku"
+        },
+        "toolUseId": "toolu_1",
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        }
+      }
+    },
+    {
+      "harness": "claude-code",
+      "kind": "pre-tool",
+      "payload": {
+        "hook_event_name": "PreToolUse",
+        "tool_name": "mcp__plugin_spec-proof-dp_exec__fetch_request",
+        "tool_input": {
+          "ticket": "t",
+          "cap": ""
+        },
+        "agent_id": "agent-0001",
+        "agent_type": "spec-proof-dp:judge"
+      },
+      "event": {
+        "harness": "claude-code",
+        "kind": "pre-tool",
+        "agentId": "agent-0001",
+        "agentType": "spec-proof-dp:judge",
+        "toolName": "mcp__plugin_spec-proof-dp_exec__fetch_request",
+        "toolInput": {
+          "ticket": "t",
+          "cap": ""
+        },
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        }
+      }
+    },
+    {
+      "harness": "claude-code",
+      "kind": "subagent-start",
+      "payload": {
+        "hook_event_name": "SubagentStart",
+        "session_id": "s1",
+        "agent_id": "agent-0001",
+        "agent_type": "spec-proof-dp:judge"
+      },
+      "event": {
+        "harness": "claude-code",
+        "kind": "subagent-start",
+        "sessionId": "s1",
+        "agentId": "agent-0001",
+        "agentType": "spec-proof-dp:judge",
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        }
+      }
+    },
+    {
+      "harness": "claude-code",
+      "kind": "subagent-stop",
+      "payload": {
+        "hook_event_name": "SubagentStop",
+        "agent_id": "agent-0001",
+        "agent_type": "spec-proof-dp:judge",
+        "agent_transcript_path": "/s/subagents/agent-0001.jsonl",
+        "last_assistant_message": "receipt"
+      },
+      "event": {
+        "harness": "claude-code",
+        "kind": "subagent-stop",
+        "agentId": "agent-0001",
+        "agentType": "spec-proof-dp:judge",
+        "transcriptPath": "/s/subagents/agent-0001.jsonl",
+        "lastMessage": "receipt",
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        }
+      }
+    },
+    {
+      "harness": "claude-code",
+      "kind": "post-tool",
+      "payload": {
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Agent",
+        "tool_response": {
+          "status": "completed",
+          "resolvedModel": "claude-sonnet-5-5",
+          "totalTokens": 10,
+          "usage": {
+            "input_tokens": 6,
+            "output_tokens": 4
+          }
+        }
+      },
+      "event": {
+        "harness": "claude-code",
+        "kind": "post-tool",
+        "toolName": "Agent",
+        "resolvedModel": "claude-sonnet-5-5",
+        "usage": {
+          "inputTokens": 6,
+          "outputTokens": 4,
+          "totalTokens": 10
+        }
+      }
+    },
+    {
+      "harness": "codex",
+      "kind": "pre-tool",
+      "payload": {
+        "session_id": "thr_1",
+        "hook_event_name": "PreToolUse",
+        "turn_id": "turn_4",
+        "tool_name": "mcp__exec__fetch_request",
+        "tool_use_id": "call_7",
+        "tool_input": {
+          "ticket": "t"
+        }
+      },
+      "event": {
+        "harness": "codex",
+        "kind": "pre-tool",
+        "sessionId": "thr_1",
+        "toolName": "mcp__exec__fetch_request",
+        "toolInput": {
+          "ticket": "t"
+        },
+        "toolUseId": "call_7",
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        }
+      }
+    },
+    {
+      "harness": "codex",
+      "kind": "subagent-stop",
+      "payload": {
+        "hook_event_name": "SubagentStop",
+        "agent_id": "agent_xyz",
+        "agent_type": "code_review",
+        "agent_transcript_path": "/p/t.jsonl",
+        "last_assistant_message": "done"
+      },
+      "event": {
+        "harness": "codex",
+        "kind": "subagent-stop",
+        "agentId": "agent_xyz",
+        "agentType": "code_review",
+        "transcriptPath": "/p/t.jsonl",
+        "lastMessage": "done",
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        }
+      }
+    },
+    {
+      "harness": "copilot-cli",
+      "kind": "pre-tool",
+      "payload": {
+        "sessionId": "s",
+        "timestamp": 1,
+        "toolName": "spec-proof-dp-exec/fetch_request",
+        "toolArgs": "{\"ticket\":\"t\"}"
+      },
+      "event": {
+        "harness": "copilot-cli",
+        "kind": "pre-tool",
+        "sessionId": "s",
+        "toolName": "spec-proof-dp-exec/fetch_request",
+        "toolInput": {
+          "ticket": "t"
+        },
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        }
+      }
+    },
+    {
+      "harness": "copilot-cli",
+      "kind": "subagent-stop",
+      "payload": {
+        "sessionId": "s",
+        "transcriptPath": "/t.jsonl",
+        "agentId": "a1",
+        "agentType": "x:judge",
+        "response": "receipt"
+      },
+      "event": {
+        "harness": "copilot-cli",
+        "kind": "subagent-stop",
+        "sessionId": "s",
+        "agentId": "a1",
+        "agentType": "x:judge",
+        "transcriptPath": "/t.jsonl",
+        "lastMessage": "receipt",
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        }
+      }
+    }
+  ],
+  "decisions": [
+    {
+      "harness": "claude-code",
+      "kind": "pre-tool",
+      "reason": "because",
+      "updatedInput": {
+        "cap": "agent-0001.mac"
+      },
+      "output": {
+        "hookSpecificOutput": {
+          "hookEventName": "PreToolUse",
+          "permissionDecision": "allow",
+          "permissionDecisionReason": "because",
+          "updatedInput": {
+            "cap": "agent-0001.mac"
+          }
+        }
+      }
+    },
+    {
+      "harness": "claude-code",
+      "kind": "pre-tool",
+      "reason": "because",
+      "output": {
+        "hookSpecificOutput": {
+          "hookEventName": "PreToolUse",
+          "permissionDecision": "deny",
+          "permissionDecisionReason": "because"
+        }
+      }
+    },
+    {
+      "harness": "claude-code",
+      "kind": "subagent-stop",
+      "block": true,
+      "reason": "because",
+      "output": {
+        "decision": "block",
+        "reason": "because"
+      }
+    },
+    {
+      "harness": "claude-code",
+      "kind": "subagent-stop",
+      "output": {}
+    },
+    {
+      "harness": "codex",
+      "kind": "pre-tool",
+      "reason": "because",
+      "updatedInput": {
+        "cap": "agent-0001.mac"
+      },
+      "output": {
+        "hookSpecificOutput": {
+          "hookEventName": "PreToolUse",
+          "permissionDecision": "allow",
+          "permissionDecisionReason": "because",
+          "updatedInput": {
+            "cap": "agent-0001.mac"
+          }
+        }
+      }
+    },
+    {
+      "harness": "codex",
+      "kind": "pre-tool",
+      "reason": "because",
+      "output": {
+        "hookSpecificOutput": {
+          "hookEventName": "PreToolUse",
+          "permissionDecision": "deny",
+          "permissionDecisionReason": "because"
+        }
+      }
+    },
+    {
+      "harness": "codex",
+      "kind": "subagent-stop",
+      "block": true,
+      "reason": "because",
+      "output": {
+        "decision": "block",
+        "reason": "because"
+      }
+    },
+    {
+      "harness": "codex",
+      "kind": "subagent-stop",
+      "output": {}
+    },
+    {
+      "harness": "copilot-cli",
+      "kind": "pre-tool",
+      "reason": "because",
+      "updatedInput": {
+        "cap": "agent-0001.mac"
+      },
+      "output": {
+        "permissionDecision": "allow",
+        "permissionDecisionReason": "because",
+        "modifiedArgs": {
+          "cap": "agent-0001.mac"
+        }
+      }
+    },
+    {
+      "harness": "copilot-cli",
+      "kind": "pre-tool",
+      "reason": "because",
+      "output": {
+        "permissionDecision": "deny",
+        "permissionDecisionReason": "because"
+      }
+    },
+    {
+      "harness": "copilot-cli",
+      "kind": "subagent-stop",
+      "block": true,
+      "reason": "because",
+      "output": {
+        "decision": "block",
+        "reason": "because"
+      }
+    },
+    {
+      "harness": "copilot-cli",
+      "kind": "subagent-stop",
+      "output": {}
+    }
+  ]
+}
