@@ -114,9 +114,17 @@ func (h *harness) env(stdin []byte) (cli.Env, *bytes.Buffer, *bytes.Buffer) {
 	return cli.Env{
 		Binary: binaryName, Stdin: bytes.NewReader(stdin), Stdout: &stdout, Stderr: &stderr,
 		WorkDir: h.root, HomeDir: h.state,
-		LookupEnv: func(name string) (string, bool) { value, found := variables[name]; return value, found },
-		Now:       func() time.Time { return h.now },
-		Entropy:   h.entropy,
+		LookupEnv: func(name string) (string, bool) {
+			if value, found := variables[name]; found {
+				return value, true
+			}
+			if strings.HasPrefix(name, "SPEC_PROOF_CI_") {
+				return os.LookupEnv(name)
+			}
+			return "", false
+		},
+		Now:     func() time.Time { return h.now },
+		Entropy: h.entropy,
 	}, &stdout, &stderr
 }
 

@@ -508,3 +508,32 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   runs; give Codex read-only agents carrying the executor server, hook entries and
   a skill; give Copilot agents naming server and tool pairs, a hooks file and a
   skill; and carry no text about their own authoring.
+
+## CI authority
+
+- **SP-246~1**: WHEN a host bundle is made or read THE SYSTEM SHALL list the
+  responses in a manifest with the module, the head commit, the journal digest and
+  the marks the journal holds, give the same bytes for the same responses in any
+  order, refuse files that are not a consistent bundle, name the ref of a commit
+  under `refs/spec-proof/host/discpower`, refuse a bundle of another version only
+  when requests found no answer and name both versions, derive the CI seed from the
+  commit and the first run only, and carry CI-issued requests in full so that their
+  ids can be recomputed.
+- **SP-247~1**: WHEN `host push` runs THE SYSTEM SHALL publish every answered ticket
+  with the profile it is credited with and the marks against it as a tree under the
+  ref of the head commit with git plumbing, replace a ref that exists, publish the
+  ref to a remote when asked, touch neither the working tree nor the current
+  branch, refuse a store whose journal chain is broken and publish nothing when
+  nothing is answered.
+- **SP-248~1**: WHEN `host pull --ci-run ID` runs THE SYSTEM SHALL download the
+  artifact of the run with `gh`, refuse a download that fails or a bundle that is
+  not one, and make tickets of the requests it holds once, with the votes and the
+  queue metadata CI gave them.
+- **SP-249~1**: WHEN `prove --ci` runs THE SYSTEM SHALL draw the seed of the head
+  commit from the first CI run, record it and reuse it on every later run of the
+  commit, produce the Statements as CI, serve the tickets it is asking for from the
+  bundle given with `--import-host` through the same checks as any answer, ignore
+  what the bundle holds that it does not ask for, leave the other tickets pending,
+  mark again what the pushing host marked, refuse a bundle of another version that
+  left requests unanswered, and leave the requests that remain where the CI job
+  uploads them from.

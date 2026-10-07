@@ -35,7 +35,7 @@ const (
 )
 
 // commands lists the commands in the order the usage names them.
-var commands = []string{commandVersion, commandProve, commandRequest, commandSystemOne, commandDoctor, commandInit, commandEnable, commandDisable, commandMCP, commandHook}
+var commands = []string{commandVersion, commandProve, commandRequest, commandSystemOne, commandDoctor, commandInit, commandEnable, commandDisable, commandMCP, commandHook, commandHost}
 
 // Environment variables the binary reads.
 const (
@@ -104,6 +104,8 @@ func Run(env Env, args []string) int {
 		return env.finish(env.enable(rest))
 	case command == commandDisable:
 		return env.finish(env.disable(rest))
+	case command == commandHost:
+		return env.finish(env.host(rest))
 	case command == commandMCP:
 		return env.finish(env.mcp(rest))
 	case command == commandHook:

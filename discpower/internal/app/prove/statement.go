@@ -215,7 +215,7 @@ func (r *critRun) predicate(inputs []format.Input, cacheKey string, correctCodeP
 		Requirement: format.Requirement{ID: r.c.Ref.ID, Revision: r.c.Ref.Revision, StatementCanonicalization: format.StatementCanonicalizationC1},
 		Core: format.Core{
 			Module: r.p.settings.Module, Inputs: inputs, CacheKey: cacheKey,
-			ProducedBy: format.ProducedByLocal, Extensions: extensions,
+			ProducedBy: r.p.producedBy(), Extensions: extensions,
 		},
 		Tests:             tests,
 		CorrectCodePasses: format.Executed(correctCodePasses),
@@ -316,4 +316,12 @@ func canonicalWitnesses(witnesses []power.Witness) (string, error) {
 		return "", err
 	}
 	return digestText(string(encoded)), nil
+}
+
+// producedBy is where the Statements of the run are produced.
+func (p *project) producedBy() format.ProducedBy {
+	if p.settings.ProducedBy == "" {
+		return format.ProducedByLocal
+	}
+	return p.settings.ProducedBy
 }

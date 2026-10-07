@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -41,7 +42,9 @@ func (u UseCase) Run(ctx context.Context, options Options) (Result, error) {
 		if err != nil || result.PendingTickets == 0 || u.Deps.Replay == nil {
 			return result, err
 		}
-		if err := u.Deps.Replay.Serve(result.pending); err != nil {
+		if err := u.Deps.Replay.Serve(result.pending); errors.Is(err, ErrNothingServed) {
+			return result, nil
+		} else if err != nil {
 			return result, err
 		}
 	}

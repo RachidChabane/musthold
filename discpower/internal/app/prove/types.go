@@ -8,6 +8,7 @@
 package prove
 
 import (
+	"errors"
 	"io"
 	"io/fs"
 	"time"
@@ -62,7 +63,13 @@ type Settings struct {
 	Module format.Module
 	// Plugin is the plugin the executor roles belong to.
 	Plugin string
+	// ProducedBy tells where the Statements are produced; empty means locally.
+	ProducedBy format.ProducedBy
 }
+
+// ErrNothingServed is returned by a Replayer that answered none of the pending
+// tickets: the run ends with them pending instead of asking again.
+var ErrNothingServed = errors.New("the replay answered no pending ticket")
 
 // Replayer serves the pending tickets from recorded answers, the way a script
 // would, and fails hard on a ticket it holds no recording for.

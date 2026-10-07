@@ -21,6 +21,8 @@ const (
 	flagRecord  = "record"
 	flagReplay  = "replay"
 	flagRoot    = "root"
+	flagCI      = "ci"
+	flagImport  = "import-host"
 )
 
 // Usage errors of `prove`: a command line the binary cannot act on is a tool
@@ -30,6 +32,8 @@ var (
 	errRecordAndReplay  = errors.New("--record and --replay exclude each other")
 	errNothingToResume  = errors.New("nothing to resume: no request was ever emitted")
 	errUnexpectedParams = errors.New("unexpected arguments")
+	errImportWithoutCI  = errors.New("--import-host needs --ci")
+	errCIAndReplay      = errors.New("--ci excludes --record and --replay")
 )
 
 // newFlags builds a flag set that reports to stderr and never exits.
@@ -63,6 +67,8 @@ func (e Env) prove(args []string) outcome {
 	record := set.String(flagRecord, "", "directory to record the consumed answers in")
 	replay := set.String(flagReplay, "", "directory of recorded answers to serve the requests from")
 	root := set.String(flagRoot, "", "project root (default: the working directory)")
+	ci := set.Bool(flagCI, false, "run as CI does: draw the seed of the commit and mark the Statements as produced by CI")
+	importDir := set.String(flagImport, "", "with --ci: directory holding the bundle a push published")
 	rest, err := parseInterleaved(set, args)
 	switch {
 	case err != nil:
@@ -73,15 +79,19 @@ func (e Env) prove(args []string) outcome {
 		return outcome{err: errChangedAndAll}
 	case *record != "" && *replay != "":
 		return outcome{err: errRecordAndReplay}
+	case *importDir != "" && !*ci:
+		return outcome{err: errImportWithoutCI}
+	case *ci && (*record != "" || *replay != ""):
+		return outcome{err: errCIAndReplay}
 	}
 	selection := prove.SelectChanged
 	if *all {
 		selection = prove.SelectAll
 	}
-	return e.runProve(*root, prove.Options{Selection: selection, Resume: *resume}, *record, *replay)
+	return e.runProve(*root, prove.Options{Selection: selection, Resume: *resume}, *record, *replay, ciRun{enabled: *ci, importDir: *importDir})
 }
 
-func (e Env) runProve(rootFlag string, options prove.Options, record, replay string) outcome {
+func (e Env) runProve(rootFlag string, options prove.Options, record, replay string, ci ciRun) outcome {
 	project, err := e.openProject(rootFlag)
 	if err != nil {
 		return outcome{err: err}
@@ -105,11 +115,19 @@ func (e Env) runProve(rootFlag string, options prove.Options, record, replay str
 			Recordings: recordings.Directory{Dir: replay},
 		}
 	}
-	result, err := prove.UseCase{Deps: project.deps, Settings: project.proveSettings()}.Run(context.Background(), options)
+	settings := project.proveSettings()
+	finish, err := e.prepareCI(project, &settings, ci)
+	if err != nil {
+		return outcome{err: err}
+	}
+	result, err := prove.UseCase{Deps: project.deps, Settings: settings}.Run(context.Background(), options)
 	if err != nil {
 		return outcome{err: err}
 	}
 	printResult(e.Stdout, result)
+	if err := finish(result); err != nil {
+		return outcome{err: err}
+	}
 	return outcome{code: result.ExitCode()}
 }
 
