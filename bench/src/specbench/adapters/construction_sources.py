@@ -58,12 +58,23 @@ def go_module_of(go_mod: str | None) -> str:
     return ""
 
 
+Stabiliser = Callable[[ProbedTask, tuple[str, ...], tuple[str, ...]], tuple[tuple[str, ...], tuple[str, ...]]]
+
+
 class MirrorConstructionSources:
-    def __init__(self, mirrors: GitMirrors, history_of: Callable[[Path], GitHistory], gh: GhClient, work: Path) -> None:
+    def __init__(
+        self,
+        mirrors: GitMirrors,
+        history_of: Callable[[Path], GitHistory],
+        gh: GhClient,
+        work: Path,
+        stabilise: Stabiliser,
+    ) -> None:
         self._mirrors = mirrors
         self._history_of = history_of
         self._gh = gh
         self._work = work
+        self._stabilise = stabilise
 
     def gather(self, task: ProbedTask) -> ConstructionInputs:
         candidate = task.candidate
@@ -121,8 +132,11 @@ class MirrorConstructionSources:
             json.loads((self._work / PROBE_DIRECTORY / f"{task.task_id}{TESTS_SUFFIX}").read_text(encoding=ENCODING)),
             "tests",
         )
-        u_ids = tuple(text(t, "u") for t in sequence(recorded.get("u"), "u"))
-        r_ids = tuple(text(t, "r") for t in sequence(recorded.get("r"), "r"))
+        u_ids, r_ids = self._stabilise(
+            task,
+            tuple(text(t, "u") for t in sequence(recorded.get("u"), "u")),
+            tuple(text(t, "r") for t in sequence(recorded.get("r"), "r")),
+        )
         test_paths = [p for p in changed if is_test_path(language, p)]
         overlay = {
             p: content.encode(ENCODING) for p in test_paths if (content := history.file_at(candidate.merge_sha, p))

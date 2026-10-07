@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import date
 from pathlib import Path
 
 from specbench.adapters.selection_store import read_attrition, write_selection
@@ -12,7 +11,8 @@ from specbench.domain.languages import Language
 from specbench.domain.mining import Rejection, Stage
 from specbench.domain.oracle import Outcome
 from specbench.domain.selection import ProbedTask
-from specbench.domain.task import Toolchain, parse_task
+from specbench.domain.task import parse_task
+from support.selections import candidate, probed
 
 SEED = 20261007
 
@@ -71,29 +71,6 @@ GO_DIFF = """diff --git a/fee/fee_test.go b/fee/fee_test.go
 +		t.Fatal("no")
 +	}
 """
-
-
-def candidate(repository: str, language: Language = Language.PYTHON, number: int = 1) -> Candidate:
-    return Candidate(
-        repository=repository,
-        language=language,
-        stars=500,
-        spdx_id="MIT",
-        pull_number=number,
-        title="feat: add a thing",
-        merged_on=date(2026, 8, 1),
-        base_sha="a" * 40,
-        merge_sha="b" * 40,
-        non_test_files=("pkg/a.py",),
-        non_test_lines=40,
-        test_files=("tests/test_a.py",),
-        licence_path="LICENSE",
-        notice_path=None,
-    )
-
-
-def probed(c: Candidate) -> ProbedTask:
-    return ProbedTask(c, "c" * 40, Toolchain("python", "3.13.14"), {"uv.lock": "d" * 64}, 2, 5, 9, "e" * 64)
 
 
 def test_added_lines_follow_the_new_file_numbering() -> None:

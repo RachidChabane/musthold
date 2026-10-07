@@ -93,12 +93,14 @@ class CorpusRepository(Protocol):
 
 @dataclass(frozen=True)
 class EnvRequest:
-    """A tree to build an environment for; `tooling` names Python packages the oracle needs beyond the lockfile."""
+    """A tree to build an environment for; `tooling` names Python packages the oracle needs beyond the lockfile,
+    `python` the interpreter of a Python environment."""
 
     language: Language
     source_tree: Path
     destination: Path
     tooling: tuple[str, ...] = ()
+    python: Path | None = None
 
 
 @dataclass(frozen=True)

@@ -9,6 +9,11 @@
 # Exit 0: every language has its tasks sealed. 1: a task or language is unfinished. 3: paused (window, budget, quota);
 # rerun in the next window. 4: the machine is short of memory; nothing was started.
 #
+# The per-night cap is per CLI per day and is shared with every other job that calls Claude that night (for example a
+# pilot run that resumes nightly): pass --budget as the cap minus what the other job uses, or do not run both on one night.
+# Launch it detached (cron, nohup or a background job) and never wait on it in a command that can time out: killing the
+# waiting command kills the run, which resumes safely but loses the night's progress on the task in flight.
+#
 # Defaults: selection bench/selection/<seed>, mining bench/mining/<seed>, corpus bench/corpus, mirrors
 # bench/corpus/mirrors, work $SPECBENCH_WORK (outside the repository: every construction file there is sealed material).
 set -euo pipefail

@@ -38,6 +38,7 @@ from specbench.domain.languages import Language, is_test_path
 from specbench.domain.mining import Rejection, Stage, has_lockfiles, heavy_dependency, lockfiles_for
 from specbench.domain.selection import ProbedTask
 from specbench.domain.task import Toolchain
+from specbench.domain.toolchain import PYTHON_VERSION_FILE, declared_requirement, format_version, python_for
 
 PROBE_DIRECTORY: Final = "probe"
 ENVIRONMENT_DIRECTORY: Final = "envs"
@@ -49,6 +50,8 @@ SUITE_SOURCE_SUFFIX: Final = {Language.PYTHON: ".py", Language.GO: "_test.go"}
 ENCODING: Final = "utf-8"
 
 SuiteRunnerFactory = Callable[[Language, Path], SuiteRunner]
+InterpreterFactory = Callable[[str], Path]
+"""The interpreter of a `major.minor` Python version, installed on demand."""
 
 
 def suite_runner_for(language: Language, env_dir: Path, runner: ProcessRunner) -> SuiteRunner:
@@ -80,12 +83,14 @@ class OfflineProbe:
         builder: EnvBuilder,
         suites: SuiteRunnerFactory,
         work: Path,
+        interpreters: InterpreterFactory,
     ) -> None:
         self._mirrors = mirrors
         self._history_of = history_of
         self._builder = builder
         self._suites = suites
         self._work = work
+        self._interpreters = interpreters
 
     def probe(self, candidate: Candidate) -> ProbedTask | Rejection:
         path = verdict_path(self._work, candidate)
@@ -156,7 +161,8 @@ class OfflineProbe:
             heavy = _heavy_lock(language, base_tree)
             if heavy is not None:
                 return Rejection(Stage.ENVIRONMENT_BUILD, f"the lockfile pulls {heavy}, beyond the machine's budget")
-            built = self._builder.build(EnvRequest(language, base_tree, env_dir, tooling))
+            python = self._python_of(language, base_tree)
+            built = self._builder.build(EnvRequest(language, base_tree, env_dir, tooling, python))
         suite = self._suites(language, env_dir)
         with trees.materialize(TreeSpec(candidate.merge_sha)) as merge_tree:
             merge_outcomes = suite.run_all(merge_tree)
@@ -183,6 +189,18 @@ class OfflineProbe:
             merge_total=ground.merge_total,
             ground_digest=_ground_digest(ground),
         )
+
+    def _python_of(self, language: Language, tree: Path) -> Path | None:
+        """The interpreter the upstream's own pin or `requires-python` selects; none for a Go task."""
+        if language is not Language.PYTHON:
+            return None
+
+        def read(name: str) -> str | None:
+            path = tree / name
+            return path.read_text(encoding=ENCODING, errors="replace") if path.is_file() else None
+
+        requires = declared_requirement(read("uv.lock"), read("pyproject.toml"))
+        return self._interpreters(format_version(python_for(read(PYTHON_VERSION_FILE), requires)))
 
     def _store_tests(self, candidate: Candidate, ground: GroundTests) -> None:
         path = self._work / PROBE_DIRECTORY / f"{task_id_for(candidate)}{TESTS_SUFFIX}"

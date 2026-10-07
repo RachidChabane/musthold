@@ -63,6 +63,7 @@ class PythonUvStrategy:
     def build(self, runner: ProcessRunner, request: EnvRequest, extra_env: Mapping[str, str]) -> str:
         venv = request.destination / VENV_DIRECTORY
         env = {**UV_ENV, **extra_env}
+        interpreter = ["--python", str(request.python)] if request.python is not None else []
         if (request.source_tree / UV_LOCK).is_file():
             sync_env = {**env, "UV_PROJECT_ENVIRONMENT": str(venv)}
             _checked(
@@ -73,6 +74,7 @@ class PythonUvStrategy:
                         "--frozen",
                         "--no-install-project",
                         "--all-groups",
+                        *interpreter,
                         "--project",
                         str(request.source_tree),
                     ],
@@ -82,7 +84,7 @@ class PythonUvStrategy:
                 "uv sync",
             )
         elif (request.source_tree / REQUIREMENTS).is_file():
-            _checked(runner.run(["uv", "venv", str(venv)], request.source_tree, env), "uv venv")
+            _checked(runner.run(["uv", "venv", *interpreter, str(venv)], request.source_tree, env), "uv venv")
             _checked(
                 runner.run(
                     [
@@ -150,3 +152,22 @@ class NativeEnvBuilder:
         record = {"language": request.language.value, "lockfile_digests": digests, "toolchain_version": version}
         (request.destination / ENV_RECORD_NAME).write_text(canonical_json(record), encoding="utf-8")
         return BuiltEnvironment(request.language, request.destination, digests, version)
+
+
+class MisePythons:
+    """Interpreters located through mise, which owns every language runtime on this machine.
+
+    A version already installed is used as it is, and only a missing one is installed: asking mise to install a
+    release line that is present would add a newer patch release and change the machine's active interpreter.
+    """
+
+    def __init__(self, runner: ProcessRunner) -> None:
+        self._runner = runner
+
+    def interpreter(self, version: str) -> Path:
+        spec = f"python@{version}"
+        located = self._runner.run(["mise", "where", spec])
+        if located.returncode != 0:
+            _checked(self._runner.run(["mise", "install", spec]), f"mise install {spec}")
+            located = _checked(self._runner.run(["mise", "where", spec]), f"mise where {spec}")
+        return Path(located.stdout.strip()) / "bin" / "python3"

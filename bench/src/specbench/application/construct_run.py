@@ -93,6 +93,7 @@ class ConstructionRun:
         seals: SealStore,
         statuses: StatusStore,
         checkpoint: Callable[[], None],
+        recoverable: tuple[type[Exception], ...] = (),
     ) -> None:
         self._sources = sources
         self._construction = construction
@@ -101,6 +102,7 @@ class ConstructionRun:
         self._seals = seals
         self._statuses = statuses
         self._checkpoint = checkpoint
+        self._recoverable = recoverable
 
     def run(self, selection: Selection, tasks_per_language: int) -> RunSummary:
         sealed: list[str] = []
@@ -138,7 +140,10 @@ class ConstructionRun:
             return self._drop(task.task_id, built.stage.value, built.reason)
         self._statuses.write_plain(built)
         self._checkpoint()
-        report = self._verifier_for(task).verify(built.task, oracle_from_bundle(built.bundle), built.bundle)
+        try:
+            report = self._verifier_for(task).verify(built.task, oracle_from_bundle(built.bundle), built.bundle)
+        except self._recoverable as error:
+            return self._drop(task.task_id, DropStage.VERIFICATION.value, f"verification aborted: {error}")
         self._statuses.write_verification(task.task_id, report)
         if not report.verified:
             return self._drop(task.task_id, DropStage.VERIFICATION.value, _failing(report))

@@ -100,4 +100,5 @@ def probe_for(tmp_path: Path, upstream: Path, builder: FakeBuilder | None = None
         builder or FakeBuilder(),
         lambda language, env_dir: PytestSuiteRunner(Path(sys.executable), denied),
         tmp_path / "work",
+        lambda version: Path(sys.executable),
     )

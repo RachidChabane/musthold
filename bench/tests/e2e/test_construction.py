@@ -169,7 +169,9 @@ class World:
         plain = SubprocessRunner()
         denied = denied_runner()
         mirrors = GitMirrors(self.root / "mirrors", plain)
-        sources = MirrorConstructionSources(mirrors, lambda clone: GitHistory(clone, plain), FakeGitHub(), self.work)
+        sources = MirrorConstructionSources(
+            mirrors, lambda clone: GitHistory(clone, plain), FakeGitHub(), self.work, lambda _task, u, r: (u, r)
+        )
         keys = {
             "spec": SchemaName.SPEC,
             "review": SchemaName.REVIEW,

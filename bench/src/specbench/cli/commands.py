@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -14,6 +15,8 @@ from specbench.adapters.construction_sources import MirrorConstructionSources
 from specbench.adapters.construction_store import FileStatusStore
 from specbench.adapters.env_builder import (
     PYTHON_ORACLE_TOOLING,
+    EnvironmentBuildError,
+    MisePythons,
     NativeEnvBuilder,
     go_offline_environment,
     python_executable,
@@ -27,8 +30,9 @@ from specbench.adapters.gh_miner import (
     ThrottledGhClient,
     compact_archive,
 )
-from specbench.adapters.git_history import GitHistory, GitMirrors
-from specbench.adapters.git_trees import GitTreeFactory
+from specbench.adapters.git_history import GitError, GitHistory, GitMirrors
+from specbench.adapters.git_trees import GitTreeFactory, TreeBuildError
+from specbench.adapters.ground_stability import StableGround
 from specbench.adapters.mining_store import ATTRITION_FILE, CANDIDATES_FILE, MINING_FILE, write_mining
 from specbench.adapters.network_sandbox import NetworkDeniedRunner
 from specbench.adapters.offline_probe import OfflineProbe, environment_directory, suite_runner_for
@@ -155,6 +159,7 @@ def run_select(
         NativeEnvBuilder(plain),
         lambda language, env_dir: suite_runner_for(language, env_dir, denied),
         work_dir,
+        MisePythons(plain).interpreter,
     )
     selection = select_feasible(ranking_by_language(seed, candidates), probe, tasks_per_language, reserves_per_language)
     write_selection(
@@ -168,6 +173,7 @@ def run_select(
     return EXIT_OK
 
 
+VERIFICATION_ABORTS: Final = (subprocess.TimeoutExpired, TreeBuildError, EnvironmentBuildError, GitError)
 CONSTRUCTION_DIRECTORY: Final = "construction"
 GH_ARCHIVE_DIRECTORY: Final = "gh"
 SCHEMA_KEYS: Final = {
@@ -210,7 +216,12 @@ def run_construct(
     denied.assert_denied()
     mirrors = GitMirrors(mirrors_dir, MemoryFloorRunner(SubprocessRunner(MIRROR_TIMEOUT_SECONDS), system_free_percent))
     gh = RecordingGhClient(ThrottledGhClient(GhCliClient(SubprocessRunner())), layout.root / GH_ARCHIVE_DIRECTORY)
-    sources = MirrorConstructionSources(mirrors, lambda clone: GitHistory(clone, plain), gh, work_dir)
+    stable = StableGround(
+        work_dir,
+        lambda task: GitTreeFactory(mirrors.path_of(task.candidate.repository)),
+        lambda task: suite_runner_for(task.candidate.language, environment_directory(work_dir, task.task_id), denied),
+    )
+    sources = MirrorConstructionSources(mirrors, lambda clone: GitHistory(clone, plain), gh, work_dir, stable.stabilise)
     construction = TaskConstruction(
         model,
         load_prompts(),
@@ -229,7 +240,9 @@ def run_construct(
         )
 
     statuses = FileStatusStore(layout.root)
-    run = ConstructionRun(sources, construction, verifier_for, corpus, AgeSealStore(), statuses, gate.require_open)
+    run = ConstructionRun(
+        sources, construction, verifier_for, corpus, AgeSealStore(), statuses, gate.require_open, VERIFICATION_ABORTS
+    )
     selection = read_selection(selection_dir, read_candidates(mining_dir / CANDIDATES_FILE), work_dir)
     summary = run.run(selection, tasks_per_language)
     _copy_notices(selection_dir, corpus, summary.sealed, selection)

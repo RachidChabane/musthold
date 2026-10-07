@@ -77,6 +77,7 @@ NO_REPAIR: Final = ""
 class DropStage(StrEnum):
     """The stage at which a task leaves construction; each is logged with its reason."""
 
+    GROUND = "ground"
     SPEC = "spec"
     LEAK = "leak"
     H_TESTS = "h-tests"
@@ -171,6 +172,8 @@ class TaskConstruction:
 
     def _build(self, inputs: ConstructionInputs) -> Constructed:
         task_id = inputs.task.task_id
+        if not inputs.human.u_ids:
+            raise ConstructionFailure(DropStage.GROUND, "no fail-to-pass test passes stably at merge")
         draft = self._final_spec(inputs)
         spec_text = render_spec(task_id, draft)
         h_files, h_tests = self._write_h_tests(inputs, draft, spec_text)

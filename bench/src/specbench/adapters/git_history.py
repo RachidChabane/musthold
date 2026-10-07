@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Final
@@ -75,5 +76,8 @@ class GitHistory:
         return self._git("diff", f"-U{context}", "--no-color", base, merge, "--", *paths)
 
     def file_at(self, sha: str, path: str) -> str | None:
-        result = self._runner.run([GIT, "-C", str(self._clone), "show", f"{sha}:{path}"])
-        return result.stdout if result.returncode == 0 else None
+        """The text of a file at a commit with its line endings untouched, so a patch built from it applies."""
+        completed = subprocess.run(
+            [GIT, "-C", str(self._clone), "show", f"{sha}:{path}"], capture_output=True, check=False
+        )
+        return completed.stdout.decode("utf-8", errors="replace") if completed.returncode == 0 else None
