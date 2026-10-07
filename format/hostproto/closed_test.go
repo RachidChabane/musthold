@@ -144,7 +144,7 @@ func TestClosedResponseSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Run("the schema asks for one answer per question whose choice is one of its options [verifies SP-403~1]", func(t *testing.T) {
+	t.Run("the schema asks for one answer per question whose choice is one of its options [verifies SP-403~2]", func(t *testing.T) {
 		var document struct {
 			Properties struct {
 				Answers struct {
@@ -177,12 +177,12 @@ func TestClosedResponseSchema(t *testing.T) {
 		}
 	})
 
-	t.Run("answers are read by id and written in the order of the questions [verifies SP-403~1]", func(t *testing.T) {
+	t.Run("answers are read by id and written in the order of the questions [verifies SP-403~2]", func(t *testing.T) {
 		answers, err := hostproto.ParseClosedAnswers([]byte(`{"answers":[{"id":"coverage","choice":"HIGH"},{"id":"pick","choice":"A","confidence":0.8}]}`))
 		if err != nil {
 			t.Fatal(err)
 		}
-		if answers["pick"] != (hostproto.ClosedAnswer{Choice: "A", Confidence: 0.8, HasConfidence: true}) || answers["coverage"].HasConfidence {
+		if pick := answers["pick"]; pick.Choice != "A" || pick.Confidence != 0.8 || !pick.HasConfidence || pick.Probabilities != nil || answers["coverage"].HasConfidence {
 			t.Fatalf("answers = %+v", answers)
 		}
 		answers["claims"] = hostproto.ClosedAnswer{Choice: "true"}
@@ -206,7 +206,7 @@ func TestClosedResponseSchema(t *testing.T) {
 func TestSystemOneRendering(t *testing.T) {
 	set := mixedSet()
 
-	t.Run("the questions are named, typed and carry their criteria, in order [verifies SP-404~1]", func(t *testing.T) {
+	t.Run("the questions are named, typed and carry their criteria, in order [verifies SP-404~2]", func(t *testing.T) {
 		body, err := set.SystemOneRequest("tev1:0.8b")
 		if err != nil {
 			t.Fatal(err)
@@ -223,7 +223,7 @@ func TestSystemOneRendering(t *testing.T) {
 		}
 	})
 
-	t.Run("a noul question without criteria sends none [verifies SP-404~1]", func(t *testing.T) {
+	t.Run("a noul question without criteria sends none [verifies SP-404~2]", func(t *testing.T) {
 		bare := hostproto.ClosedSet{State: "s", Questions: []hostproto.ClosedQuestion{{ID: "q", Type: hostproto.ClosedNoul, Instructions: "Is it?"}}}
 		body, err := bare.SystemOneRequest("m")
 		if err != nil {
@@ -240,7 +240,7 @@ func TestSystemOneRendering(t *testing.T) {
 		`"coverage":{"type":"score","score":1.6,"legend":["LOW","MID","HIGH"],"confidence":0.7}},` +
 		`"usage":{"input_tokens":10,"output_tokens":1}}`
 
-	t.Run("the response of the endpoint becomes the answers of the set [verifies SP-404~1]", func(t *testing.T) {
+	t.Run("the response of the endpoint becomes the answers of the set [verifies SP-404~2]", func(t *testing.T) {
 		document, err := set.AnswersFromSystemOne([]byte(response))
 		if err != nil {
 			t.Fatal(err)
@@ -262,7 +262,7 @@ func TestSystemOneRendering(t *testing.T) {
 		}
 	})
 
-	t.Run("a noul probability of one half is true and a score is clamped to its levels [verifies SP-404~1]", func(t *testing.T) {
+	t.Run("a noul probability of one half is true and a score is clamped to its levels [verifies SP-404~2]", func(t *testing.T) {
 		document, err := set.AnswersFromSystemOne([]byte(`{"answers":{"pick":{"type":"choice","choice":"A"},"claims":{"type":"noul","noul":0.5},"coverage":{"type":"score","score":9}}}`))
 		if err != nil {
 			t.Fatal(err)
@@ -278,7 +278,88 @@ func TestSystemOneRendering(t *testing.T) {
 		}
 	})
 
-	t.Run("a response that leaves a question unanswered or answers it with another type is refused [verifies SP-404~1]", func(t *testing.T) {
+	t.Run("the probabilities of the endpoint travel with the answer, apart from its confidence [verifies SP-404~2]", func(t *testing.T) {
+		document, err := set.AnswersFromSystemOne([]byte(response))
+		if err != nil {
+			t.Fatal(err)
+		}
+		answers, err := hostproto.ParseClosedAnswers(document)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if probability, given := answers["pick"].ProbabilityOf("A"); !given || probability != 0.1 {
+			t.Errorf("P(A) = %v, %v", probability, given)
+		}
+		if probability, given := answers["pick"].ProbabilityOf("B"); !given || probability != 0.8 {
+			t.Errorf("P(B) = %v, %v", probability, given)
+		}
+		if probability, given := answers["claims"].ProbabilityOf(hostproto.NoulTrue); !given || probability != 0.2 {
+			t.Errorf("P(true) = %v, %v", probability, given)
+		}
+		if _, given := answers["coverage"].ProbabilityOf("HIGH"); given {
+			t.Error("a score answer carries option probabilities")
+		}
+	})
+
+	t.Run("a probability that is not on an option or lies outside [0,1] is dropped, and an endpoint that gave none gives none [verifies SP-404~2]", func(t *testing.T) {
+		document, err := set.AnswersFromSystemOne([]byte(`{"answers":{"pick":{"type":"choice","choice":"A","probabilities":{"A":1.5,"B":0.3,"Z":0.7}},"claims":{"type":"noul","noul":0.5},"coverage":{"type":"score","score":1}}}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		answers, _ := hostproto.ParseClosedAnswers(document)
+		if len(answers["pick"].Probabilities) != 1 {
+			t.Fatalf("probabilities = %v", answers["pick"].Probabilities)
+		}
+		if _, given := answers["pick"].ProbabilityOf("B"); !given {
+			t.Fatal("a probability on an option was dropped")
+		}
+		bare, _ := set.AnswersFromSystemOne([]byte(`{"answers":{"pick":{"type":"choice","choice":"A"},"claims":{"type":"noul","noul":0.5},"coverage":{"type":"score","score":1}}}`))
+		answers, _ = hostproto.ParseClosedAnswers(bare)
+		if answers["pick"].Probabilities != nil {
+			t.Fatalf("probabilities = %v", answers["pick"].Probabilities)
+		}
+	})
+
+	t.Run("the response schema allows probabilities on the options of each question and nowhere else [verifies SP-403~2]", func(t *testing.T) {
+		schema, err := set.ResponseSchema()
+		if err != nil {
+			t.Fatal(err)
+		}
+		var document struct {
+			Properties struct {
+				Answers struct {
+					Items struct {
+						OneOf []struct {
+							Properties struct {
+								Probabilities struct {
+									AdditionalProperties bool                `json:"additionalProperties"`
+									Properties           map[string]struct{} `json:"properties"`
+								} `json:"probabilities"`
+							} `json:"properties"`
+						} `json:"oneOf"`
+					} `json:"items"`
+				} `json:"answers"`
+			} `json:"properties"`
+		}
+		if err := json.Unmarshal(schema, &document); err != nil {
+			t.Fatal(err)
+		}
+		forms := document.Properties.Answers.Items.OneOf
+		wantOptions := [][]string{{"A", "B", "NONE"}, {"false", "true"}, {"HIGH", "LOW", "MID"}}
+		for index, form := range forms {
+			probabilities := form.Properties.Probabilities
+			names := make([]string, 0, len(probabilities.Properties))
+			for name := range probabilities.Properties {
+				names = append(names, name)
+			}
+			slices.Sort(names)
+			if probabilities.AdditionalProperties || !slices.Equal(names, wantOptions[index]) {
+				t.Errorf("form %d allows probabilities %+v", index, probabilities)
+			}
+		}
+	})
+
+	t.Run("a response that leaves a question unanswered or answers it with another type is refused [verifies SP-404~2]", func(t *testing.T) {
 		for name, document := range map[string]string{
 			"missing":     `{"answers":{"pick":{"type":"choice","choice":"A"}}}`,
 			"wrong type":  `{"answers":{"pick":{"type":"noul","noul":0.9},"claims":{"type":"noul","noul":0.1},"coverage":{"type":"score","score":1}}}`,
@@ -292,7 +373,7 @@ func TestSystemOneRendering(t *testing.T) {
 		}
 	})
 
-	t.Run("each question type has its confidence mapping [verifies SP-404~1]", func(t *testing.T) {
+	t.Run("each question type has its confidence mapping [verifies SP-404~2]", func(t *testing.T) {
 		want := map[hostproto.ClosedType]string{
 			hostproto.ClosedChoice: format.MappingSystemOneChoice, hostproto.ClosedNoul: format.MappingSystemOneNoul, hostproto.ClosedScore: format.MappingSystemOneScore,
 		}
@@ -308,7 +389,7 @@ func TestSystemOneRendering(t *testing.T) {
 }
 
 func TestAnswersForAView(t *testing.T) {
-	t.Run("the response of an endpoint is translated with the question set the view shows [verifies SP-404~1]", func(t *testing.T) {
+	t.Run("the response of an endpoint is translated with the question set the view shows [verifies SP-404~2]", func(t *testing.T) {
 		request := hostprototest.ClosedRequest()
 		view := request.ViewFor(hostprototest.Ticket(request, 0, 1))
 		document, err := hostproto.AnswersFromSystemOneFor(view, []byte(hostprototest.ClosedSystemOneResponse))
@@ -321,7 +402,7 @@ func TestAnswersForAView(t *testing.T) {
 		}
 	})
 
-	t.Run("a view without a question set has no answers to give [verifies SP-404~1]", func(t *testing.T) {
+	t.Run("a view without a question set has no answers to give [verifies SP-404~2]", func(t *testing.T) {
 		open := hostprototest.Request()
 		view := open.ViewFor(hostprototest.Ticket(open, 0, 1))
 		if _, err := hostproto.AnswersFromSystemOneFor(view, []byte(hostprototest.ClosedSystemOneResponse)); !errors.Is(err, hostproto.ErrNoClosedQuestions) {

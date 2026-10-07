@@ -209,6 +209,22 @@
                       },
                       "id": {
                         "const": "q1"
+                      },
+                      "probabilities": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "CONSISTENT": {
+                            "maximum": 1,
+                            "minimum": 0,
+                            "type": "number"
+                          },
+                          "VIOLATES": {
+                            "maximum": 1,
+                            "minimum": 0,
+                            "type": "number"
+                          }
+                        },
+                        "type": "object"
                       }
                     },
                     "required": [
@@ -264,7 +280,7 @@
         ],
         "cacheKey": "89dd5bff4fb6fd83ee0679edfb07756d0d22222a414f0c3ac6fd92c120e4fe4f"
       },
-      "id": "d2b0ba4beac38544c9631f114f6f97d165f4c2a7b70cf45d52186238b6f09bae"
+      "id": "efc5ab79983abd60e1ed03894296c105fdf35fb6a42896b0c7300889f3acb580"
     }
   ],
   "capabilities": [

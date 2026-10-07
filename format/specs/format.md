@@ -167,18 +167,19 @@ Go tests of the module in CI.
   instructions, each of the type `choice` (2 to 26 options), `score` (at least 2
   levels, lowest first) or `noul` (no options, or `true` then `false`), whose
   options have distinct non-empty names and a criteria text.
-- **SP-403~1**: WHEN a response schema is built for a question set THE SYSTEM
+- **SP-403~2**: WHEN a response schema is built for a question set THE SYSTEM
   SHALL require one answer per question, by id, whose choice is an option of that
-  question (`true` or `false` for a noul question) and whose confidence is
-  optional, and WHEN answers are read or written THE SYSTEM SHALL keep them in the
+  question (`true` or `false` for a noul question) and whose confidence and
+  probabilities of its options are optional, and WHEN answers are read or written THE SYSTEM SHALL keep them in the
   order of the questions.
-- **SP-404~1**: WHEN a question set is rendered for a `/v1/systemone` endpoint THE
+- **SP-404~2**: WHEN a question set is rendered for a `/v1/systemone` endpoint THE
   SYSTEM SHALL name the questions in order with their type, instructions and
   criteria (option to description for a choice, ordered descriptions for a score,
   `true` and `false` for a noul), and WHEN the endpoint's response is read THE
-  SYSTEM SHALL turn a choice into its option and confidence, a noul into `true` from
-  probability one half with the confidence `max(p, 1-p)`, and a score into the
-  nearest level, and SHALL refuse a response that leaves a question unanswered.
+  SYSTEM SHALL turn a choice into its option, its confidence and the probability of each
+  option, a noul into `true` from probability one half with the confidence
+  `max(p, 1-p)` and the probabilities `p` and `1-p`, and a score into the nearest
+  level, keep the confidence apart from the probabilities, and SHALL refuse a response that leaves a question unanswered.
 - **SP-405~1**: WHEN the closed requests of a listing are exported to a relay THE
   SYSTEM SHALL list the first vote of each with its ticket, nonce and question set.
 

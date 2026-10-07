@@ -113,6 +113,7 @@ const (
 	memberID      = "id"
 	memberChoice  = "choice"
 	memberConf    = "confidence"
+	memberProbs   = "probabilities"
 )
 
 // Marshal encodes the set as the `closed` member of a request.
@@ -232,6 +233,7 @@ func (s ClosedSet) ResponseSchema() (json.RawMessage, error) {
 				memberID:     map[string]any{"const": question.ID},
 				memberChoice: map[string]any{"type": "string", "enum": question.choiceNames()},
 				memberConf:   map[string]any{"type": "number", "minimum": format.MinConfidence, "maximum": format.MaxConfidence},
+				memberProbs:  probabilitiesSchema(question.choiceNames()),
 			},
 		}
 		required[index] = map[string]any{
@@ -250,11 +252,33 @@ func (s ClosedSet) ResponseSchema() (json.RawMessage, error) {
 	})
 }
 
+// probabilitiesSchema is the schema of the optional probabilities of an answer:
+// one number in [0,1] per option of the question.
+func probabilitiesSchema(options []string) map[string]any {
+	properties := make(map[string]any, len(options))
+	for _, option := range options {
+		properties[option] = map[string]any{"type": "number", "minimum": format.MinConfidence, "maximum": format.MaxConfidence}
+	}
+	return map[string]any{"type": "object", "additionalProperties": false, "properties": properties}
+}
+
 // ClosedAnswer is the answer to one closed question.
 type ClosedAnswer struct {
-	Choice        string
+	Choice string
+	// Confidence is how concentrated the answerer's probabilities are, which says
+	// nothing about the probability of any one option.
 	Confidence    float64
 	HasConfidence bool
+	// Probabilities is the probability the answerer gave to each option, when it
+	// gave them.
+	Probabilities map[string]float64
+}
+
+// ProbabilityOf is the probability the answerer gave to the option, and whether
+// it gave one.
+func (a ClosedAnswer) ProbabilityOf(option string) (float64, bool) {
+	probability, given := a.Probabilities[option]
+	return probability, given
 }
 
 // ParseClosedAnswers reads a response that satisfies the response schema of a set
@@ -262,9 +286,10 @@ type ClosedAnswer struct {
 func ParseClosedAnswers(output []byte) (map[string]ClosedAnswer, error) {
 	var document struct {
 		Answers []struct {
-			ID         string   `json:"id"`
-			Choice     string   `json:"choice"`
-			Confidence *float64 `json:"confidence"`
+			ID            string             `json:"id"`
+			Choice        string             `json:"choice"`
+			Confidence    *float64           `json:"confidence"`
+			Probabilities map[string]float64 `json:"probabilities"`
 		} `json:"answers"`
 	}
 	if err := json.Unmarshal(output, &document); err != nil {
@@ -272,7 +297,7 @@ func ParseClosedAnswers(output []byte) (map[string]ClosedAnswer, error) {
 	}
 	answers := make(map[string]ClosedAnswer, len(document.Answers))
 	for _, answer := range document.Answers {
-		closed := ClosedAnswer{Choice: answer.Choice}
+		closed := ClosedAnswer{Choice: answer.Choice, Probabilities: answer.Probabilities}
 		if answer.Confidence != nil {
 			closed.Confidence, closed.HasConfidence = *answer.Confidence, true
 		}
@@ -293,6 +318,9 @@ func (s ClosedSet) AnswerDocument(answers map[string]ClosedAnswer) ([]byte, erro
 		entry := map[string]any{memberID: question.ID, memberChoice: answer.Choice}
 		if answer.HasConfidence {
 			entry[memberConf] = answer.Confidence
+		}
+		if len(answer.Probabilities) > 0 {
+			entry[memberProbs] = answer.Probabilities
 		}
 		list = append(list, entry)
 	}
@@ -416,10 +444,11 @@ var ErrSystemOneResponse = errors.New("the system one response does not answer t
 func (s ClosedSet) AnswersFromSystemOne(response []byte) ([]byte, error) {
 	var document struct {
 		Answers map[string]struct {
-			Choice     *string  `json:"choice"`
-			Noul       *float64 `json:"noul"`
-			Score      *float64 `json:"score"`
-			Confidence *float64 `json:"confidence"`
+			Choice        *string            `json:"choice"`
+			Noul          *float64           `json:"noul"`
+			Score         *float64           `json:"score"`
+			Confidence    *float64           `json:"confidence"`
+			Probabilities map[string]float64 `json:"probabilities"`
 		} `json:"answers"`
 	}
 	if err := json.Unmarshal(response, &document); err != nil {
@@ -434,7 +463,7 @@ func (s ClosedSet) AnswersFromSystemOne(response []byte) ([]byte, error) {
 		var answer ClosedAnswer
 		switch {
 		case question.Type == ClosedChoice && given.Choice != nil:
-			answer = ClosedAnswer{Choice: *given.Choice}
+			answer = ClosedAnswer{Choice: *given.Choice, Probabilities: probabilitiesOf(question, given.Probabilities)}
 			answer.Confidence, answer.HasConfidence = optional(given.Confidence)
 		case question.Type == ClosedNoul && given.Noul != nil:
 			answer = noulAnswer(*given.Noul)
@@ -460,10 +489,27 @@ func optional(value *float64) (float64, bool) {
 }
 
 func noulAnswer(probability float64) ClosedAnswer {
+	probabilities := map[string]float64{NoulTrue: probability, NoulFalse: 1 - probability}
 	if probability >= halfProbability {
-		return ClosedAnswer{Choice: NoulTrue, Confidence: probability, HasConfidence: true}
+		return ClosedAnswer{Choice: NoulTrue, Confidence: probability, HasConfidence: true, Probabilities: probabilities}
 	}
-	return ClosedAnswer{Choice: NoulFalse, Confidence: 1 - probability, HasConfidence: true}
+	return ClosedAnswer{Choice: NoulFalse, Confidence: 1 - probability, HasConfidence: true, Probabilities: probabilities}
+}
+
+// probabilitiesOf keeps the probabilities the endpoint gave to the options of the
+// question; an endpoint that gave none, or a probability outside [0,1], gives none.
+func probabilitiesOf(question ClosedQuestion, given map[string]float64) map[string]float64 {
+	kept := make(map[string]float64, len(given))
+	for _, option := range question.OptionNames() {
+		probability, stated := given[option]
+		if stated && probability >= format.MinConfidence && probability <= format.MaxConfidence {
+			kept[option] = probability
+		}
+	}
+	if len(kept) == 0 {
+		return nil
+	}
+	return kept
 }
 
 // levelNear is the name of the level of a score question nearest to the score.

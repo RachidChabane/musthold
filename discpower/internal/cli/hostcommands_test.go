@@ -353,7 +353,8 @@ func TestSystemOne(t *testing.T) {
 			t.Fatalf("response %+v (%v)", response, err)
 		}
 		answers, err := hostproto.ParseClosedAnswers(response.Output)
-		if err != nil || answers[hostprototest.ClosedQuestionID] != (hostproto.ClosedAnswer{Choice: "VIOLATES", Confidence: 0.9, HasConfidence: true}) {
+		stored := answers[hostprototest.ClosedQuestionID]
+		if violates, _ := stored.ProbabilityOf("VIOLATES"); err != nil || stored.Choice != "VIOLATES" || stored.Confidence != 0.9 || !stored.HasConfidence || violates != 0.9 {
 			t.Fatalf("the stored output %s is not the translation of the endpoint response (%v)", response.Output, err)
 		}
 		if f.journaled(hostproto.EventExposed) {
