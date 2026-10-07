@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# Installs the night jobs as launchd agents of the current user (macOS), so they
+# start from the operating system's scheduler whatever the state of any session:
+#
+#   local.user.spec-proof.pilot     daily at 21:07, script/night-jobs pilot
+#   local.user.spec-proof.canaries  daily at 23:13, script/night-jobs canaries
+#
+#   script/install-night-jobs            install or reload both agents
+#   script/install-night-jobs --remove   unload and delete both agents
+#
+# PATH holds the directories where the tools resolve on this machine; override it
+# with NIGHT_JOBS_PATH. Logs go to ~/Library/Logs/spec-proof.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly REPO="${PWD}"
+readonly AGENTS_DIR="${HOME}/Library/LaunchAgents"
+readonly LOG_DIR="${HOME}/Library/Logs/spec-proof"
+readonly LABEL_PREFIX="local.user.spec-proof"
+readonly DEFAULT_PATH="${HOME}/dev-env/1-tools/shims:${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+readonly JOB_PATH="${NIGHT_JOBS_PATH:-${DEFAULT_PATH}}"
+readonly SHALLNOT_SRC_PATH="${SHALLNOT_SRC:-${REPO}/../shallnot-proof-gate}"
+readonly NICE_LEVEL=10
+# job name, hour, minute
+readonly JOBS=("pilot 21 7" "canaries 23 13")
+
+domain() {
+  echo "gui/$(id -u)"
+}
+
+plist_path() {
+  echo "${AGENTS_DIR}/${LABEL_PREFIX}.$1.plist"
+}
+
+write_plist() {
+  local name="$1" hour="$2" minute="$3"
+  cat >"$(plist_path "${name}")" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>${LABEL_PREFIX}.${name}</string>
+  <key>ProgramArguments</key>
+  <array><string>${REPO}/script/night-jobs</string><string>${name}</string></array>
+  <key>WorkingDirectory</key><string>${REPO}</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>${JOB_PATH}</string>
+    <key>HOME</key><string>${HOME}</string>
+    <key>SHALLNOT_SRC</key><string>${SHALLNOT_SRC_PATH}</string>
+  </dict>
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>${hour}</integer><key>Minute</key><integer>${minute}</integer></dict>
+  <key>Nice</key><integer>${NICE_LEVEL}</integer>
+  <key>ProcessType</key><string>Background</string>
+  <key>StandardOutPath</key><string>${LOG_DIR}/${name}.log</string>
+  <key>StandardErrorPath</key><string>${LOG_DIR}/${name}.log</string>
+</dict>
+</plist>
+EOF
+  plutil -lint "$(plist_path "${name}")" >/dev/null
+}
+
+unload() {
+  launchctl bootout "$(domain)" "$(plist_path "$1")" 2>/dev/null || true
+}
+
+install() {
+  mkdir -p "${AGENTS_DIR}" "${LOG_DIR}"
+  local job name hour minute
+  for job in "${JOBS[@]}"; do
+    read -r name hour minute <<<"${job}"
+    write_plist "${name}" "${hour}" "${minute}"
+    unload "${name}"
+    launchctl bootstrap "$(domain)" "$(plist_path "${name}")"
+    echo "installed ${LABEL_PREFIX}.${name} at $(printf '%02d:%02d' "${hour}" "${minute}")"
+  done
+}
+
+remove() {
+  local job name
+  for job in "${JOBS[@]}"; do
+    read -r name _ _ <<<"${job}"
+    unload "${name}"
+    rm -f "$(plist_path "${name}")"
+    echo "removed ${LABEL_PREFIX}.${name}"
+  done
+}
+
+case "${1:-}" in
+  "") install ;;
+  --remove) remove ;;
+  *)
+    echo "usage: script/install-night-jobs [--remove]" >&2
+    exit 2
+    ;;
+esac

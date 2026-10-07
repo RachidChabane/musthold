@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# Entry point of the scheduled night jobs, meant to be started by the operating
+# system's scheduler (launchd on macOS), not by an interactive session.
+#
+#   script/night-jobs pilot     resume the amended pilot run (run-02) unless it is
+#                               already running or finished
+#   script/night-jobs canaries  run the live canaries of the host plugins once per
+#                               night: Claude Code, then Codex, then Copilot
+#
+# Every step keeps its own guards: the run window, the nightly call budget and
+# script/mem-guard. Output goes to $NIGHT_JOBS_LOG_DIR (default
+# ~/Library/Logs/spec-proof).
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly ROOT="${PWD}"
+readonly LOG_DIR="${NIGHT_JOBS_LOG_DIR:-${HOME}/Library/Logs/spec-proof}"
+readonly PILOT_DIR="experiments/limits-1-3"
+readonly PILOT_RUN="run-02"
+readonly CANARY_STAMP_DIR="${LOG_DIR}/canary-nights"
+readonly SHALLNOT_SRC_DEFAULT="${ROOT}/../shallnot-proof-gate"
+readonly EXIT_PAUSED=3
+
+mkdir -p "${LOG_DIR}" "${CANARY_STAMP_DIR}"
+
+log() {
+  echo "[night-jobs $(date -u +%Y-%m-%dT%H:%M:%SZ)] $*"
+}
+
+run_pilot() {
+  local markers="${PILOT_DIR}/runs/${PILOT_RUN}/driver"
+  if [[ -f "${markers}/report-lint.done" ]]; then
+    log "pilot: ${PILOT_RUN} is finished"
+    return 0
+  fi
+  if pgrep -f "script/run-pilot ${PILOT_RUN}" >/dev/null; then
+    log "pilot: ${PILOT_RUN} is already running"
+    return 0
+  fi
+  log "pilot: resuming ${PILOT_RUN}"
+  (cd "${PILOT_DIR}" && caffeinate -is ./script/run-pilot "${PILOT_RUN}")
+}
+
+run_canary() {
+  local harness="$1"
+  shift
+  log "canary: ${harness}"
+  set +e
+  "script/canary-${harness}" "$@"
+  local status=$?
+  set -e
+  log "canary: ${harness} exit ${status}"
+}
+
+run_canaries() {
+  local night stamp
+  night="$(date +%Y-%m-%d)"
+  stamp="${CANARY_STAMP_DIR}/${night}.done"
+  if [[ -f "${stamp}" ]]; then
+    log "canaries: already run for the night of ${night}"
+    return 0
+  fi
+  export SHALLNOT_SRC="${SHALLNOT_SRC:-${SHALLNOT_SRC_DEFAULT}}"
+  log "canaries: building"
+  script/canary-build
+  run_canary claude --shared-home
+  run_canary codex
+  run_canary copilot
+  touch "${stamp}"
+}
+
+main() {
+  case "${1:-}" in
+    pilot) run_pilot ;;
+    canaries) run_canaries ;;
+    *)
+      echo "usage: script/night-jobs pilot | canaries" >&2
+      return 2
+      ;;
+  esac
+}
+
+main "$@" || {
+  status=$?
+  [[ ${status} -eq ${EXIT_PAUSED} ]] && log "paused (exit ${EXIT_PAUSED}); the next night resumes"
+  exit "${status}"
+}
