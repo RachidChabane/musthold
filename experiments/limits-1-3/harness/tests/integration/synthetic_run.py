@@ -273,7 +273,7 @@ class _RunBuilder:
         for writer in ("S", "O"):
             for mid in sorted(evaluated):
                 draw = int(hashlib.sha256(f"{writer}{mid}".encode()).hexdigest(), 16) % 5
-                results = {f"tests/test_park_{c}.py::{n}": "killed" if draw >= 2 and n == "test_a" else ("error" if draw == 0 and n == "test_b" else "survived")
+                results = {f"tests/test_park_{c}__{n}.py::{n}": "killed" if draw >= 2 and n == "test_a" else ("error" if draw == 0 and n == "test_b" else "survived")
                            for c in CRITERIA for n in ("test_a", "test_b")}
                 rows.append({"writer": writer, "mutant_id": mid, "results": results})
         dump_lines(self.run / "writer_kills.jsonl", rows)
