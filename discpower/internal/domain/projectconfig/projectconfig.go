@@ -29,6 +29,8 @@ type Settings struct {
 	Operations map[string]map[string]string
 	// PolicyOverrides are the decision parameters the project sets.
 	PolicyOverrides PolicyOverrides
+	// Host holds the settings of the host harness.
+	Host HostSettings
 }
 
 // Default returns the settings `spec-proof init` writes: every proof disabled and

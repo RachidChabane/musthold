@@ -428,3 +428,10 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   protocol and 2 for a tool failure.
 - **SP-193~1**: WHEN `prove` is given conflicting flags or unexpected arguments THE
   SYSTEM SHALL refuse them before it runs anything.
+
+## Host harness
+
+- **SP-196~1**: WHEN the project configuration has a `host` section THE SYSTEM SHALL
+  read `sampling` and `require_attestation` from it, keep attestation required and
+  sampling off when they are absent, refuse an unknown or mistyped member, and
+  tolerate the sections other modules keep in the same file.

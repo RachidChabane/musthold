@@ -23,6 +23,11 @@ const (
 	keyEcosystems = "ecosystems"
 	keyOperations = "operations"
 	keyPolicy     = "policy"
+	keyHost       = "host"
+
+	keySampling           = "sampling"
+	keyRequireAttestation = "require_attestation"
+	samplingOn            = "on"
 )
 
 // indentWidth is the number of spaces per YAML indentation level.
@@ -34,6 +39,18 @@ type document struct {
 	Ecosystems []string                     `yaml:"ecosystems"`
 	Operations map[string]map[string]string `yaml:"operations"`
 	Policy     policyDocument               `yaml:"policy"`
+	Host       hostDocument                 `yaml:"host"`
+
+	// Sections of the other modules share the file; this module reads none of them.
+	Alignment    yaml.Node `yaml:"alignment"`
+	Completeness yaml.Node `yaml:"completeness"`
+	SystemOne    yaml.Node `yaml:"systemone"`
+}
+
+// hostDocument is the YAML shape of the host settings.
+type hostDocument struct {
+	Sampling           bool  `yaml:"sampling"`
+	RequireAttestation *bool `yaml:"require_attestation"`
 }
 
 // policyDocument is the YAML shape of the decision parameters; an absent member
@@ -88,6 +105,7 @@ func Decode(data []byte) (projectconfig.Settings, error) {
 	}
 	settings.Operations = doc.Operations
 	settings.PolicyOverrides = doc.Policy.overrides()
+	settings.Host = projectconfig.HostSettings{Sampling: doc.Host.Sampling, RequireAttestation: doc.Host.RequireAttestation}
 	if err := settings.Validate(); err != nil {
 		return projectconfig.Settings{}, err
 	}
@@ -125,6 +143,10 @@ func Encode(settings projectconfig.Settings) ([]byte, error) {
 		root.Content = append(root.Content, scalar(keyPolicy), node)
 	}
 
+	if !settings.Host.IsDefault() {
+		root.Content = append(root.Content, scalar(keyHost), hostNode(settings.Host))
+	}
+
 	var out bytes.Buffer
 	encoder := yaml.NewEncoder(&out)
 	encoder.SetIndent(indentWidth)
@@ -135,6 +157,18 @@ func Encode(settings projectconfig.Settings) ([]byte, error) {
 		return nil, fmt.Errorf("encode configuration: %w", err)
 	}
 	return out.Bytes(), nil
+}
+
+// hostNode renders the host settings that differ from the defaults.
+func hostNode(host projectconfig.HostSettings) *yaml.Node {
+	node := &yaml.Node{Kind: yaml.MappingNode}
+	if host.Sampling {
+		node.Content = append(node.Content, scalar(keySampling), scalar(samplingOn))
+	}
+	if host.RequireAttestation != nil {
+		node.Content = append(node.Content, scalar(keyRequireAttestation), scalar(strconv.FormatBool(*host.RequireAttestation)))
+	}
+	return node
 }
 
 func scalar(value string) *yaml.Node {
