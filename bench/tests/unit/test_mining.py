@@ -1,23 +1,30 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from datetime import date
 from pathlib import Path
 
 import pytest
 
 from specbench.adapters.gh_miner import (
+    GhCliClient,
     GhNotFound,
     GitHubSource,
     MissingRecording,
+    RateLimited,
     RecordingGhClient,
     ReplayGhClient,
+    ThrottledGhClient,
+    project_response,
 )
 from specbench.adapters.mining_store import write_mining
 from specbench.application.mine import mine
+from specbench.application.ports import ProcessResult
 from specbench.domain import licence
 from specbench.domain.candidates import attrition_counts, select_sample, task_id_for
 from specbench.domain.languages import Language, is_non_test_source_path, is_test_path
 from specbench.domain.mining import (
+    MAX_REPOSITORY_SIZE_KB,
     ChangedFile,
     MiningConfig,
     PullRequest,
@@ -175,17 +182,30 @@ def test_mine_applies_every_filter_and_logs_attrition() -> None:
     assert stages["acme/gopher#1"] is Stage.NON_TEST_FILES
     assert {c.repository for c in result.candidates} == {"acme/alpha", "acme/beta", "acme/gamma", "acme/goblin"}
     assert len(attrition_counts(result.attrition)) == len(Stage)
+    assert attrition_counts(result.attrition)[Stage.NOT_SELECTED.value] == 0
 
 
-def test_at_most_two_tasks_per_repository_and_the_rest_are_logged() -> None:
+def test_at_most_one_task_per_repository_and_the_rest_are_logged() -> None:
     result = mine(GitHubSource(FakeGitHub(world())), CONFIG)
     beta = [c for c in result.candidates if c.repository == "acme/beta"]
-    assert len(beta) == 2
+    assert len(beta) == 1
     capped = [e.subject for e in result.attrition if e.stage is Stage.REPOSITORY_CAP]
-    assert sum(subject.startswith("acme/beta#") for subject in capped) == 3
-    assert all(
-        sum(c.repository == name for c in result.candidates) <= 2 for name in {c.repository for c in result.candidates}
-    )
+    assert sum(subject.startswith("acme/beta#") for subject in capped) == 4
+    assert len({c.repository for c in result.candidates}) == len(result.candidates)
+
+
+def test_a_pull_request_failing_the_feature_signal_is_rejected_from_the_search_result_alone() -> None:
+    github = FakeGitHub([WorldRepo("acme/theta", pulls=[WorldPull(1, title="fix: crash")])])
+    result = mine(GitHubSource(github), CONFIG)
+    assert [(e.subject, e.stage) for e in result.attrition] == [("acme/theta#1", Stage.FEATURE_SIGNAL)]
+    assert not any("pulls/" in line for line in github.paths)
+
+
+def test_a_repository_above_the_mirror_size_is_rejected_before_any_pull_request_is_read() -> None:
+    github = FakeGitHub([WorldRepo("acme/huge", size_kb=MAX_REPOSITORY_SIZE_KB + 1)])
+    result = mine(GitHubSource(github), CONFIG)
+    assert [(e.subject, e.stage) for e in result.attrition] == [("acme/huge", Stage.REPOSITORY_SIZE)]
+    assert "search/issues" not in github.paths
 
 
 def test_the_seed_fixes_the_order_and_the_sample_uses_distinct_repositories() -> None:
@@ -194,17 +214,13 @@ def test_the_seed_fixes_the_order_and_the_sample_uses_distinct_repositories() ->
     assert [c.label for c in first.candidates] == [c.label for c in again.candidates]
     other = mine(GitHubSource(FakeGitHub(world())), MiningConfig(SEED + 1, CONFIG.freeze_date, CONFIG.languages, 3))
     assert {c.label for c in other.candidates} != set()
-    sample = select_sample(SEED, first.candidates, per_language=2)
-    python = [c.repository for c in sample if c.language is Language.PYTHON]
+    sample = select_sample(SEED, first.candidates, per_language=2, reserves_per_language=1)
+    python = [c.repository for c in sample.tasks if c.language is Language.PYTHON]
     assert len(python) == len(set(python)) == 2
-    assert [c.repository for c in sample if c.language is Language.GO] == ["acme/goblin"]
-
-
-def test_candidates_outside_the_sample_are_logged_as_not_selected() -> None:
-    result = mine(GitHubSource(FakeGitHub(world())), CONFIG)
-    unselected = {e.subject for e in result.attrition if e.stage is Stage.NOT_SELECTED}
-    assert unselected == {c.label for c in result.candidates} - {c.label for c in result.sample}
-    assert attrition_counts(result.attrition)["not-selected"] == len(unselected) > 0
+    assert [c.repository for c in sample.tasks if c.language is Language.GO] == ["acme/goblin"]
+    reserve = [c.repository for c in sample.reserves if c.language is Language.PYTHON]
+    assert len(reserve) == 1 and reserve[0] not in python
+    assert not sample.reserves or all(c.language is Language.PYTHON for c in sample.reserves)
 
 
 def test_a_recorder_resumes_from_its_archive_without_calling_the_network_again(tmp_path: Path) -> None:
@@ -250,3 +266,72 @@ def test_every_response_is_archived_including_missing_resources(tmp_path: Path) 
 def test_replay_refuses_an_unrecorded_request(tmp_path: Path) -> None:
     with pytest.raises(MissingRecording):
         ReplayGhClient(tmp_path).get("search/repositories", {"q": "x"})
+
+
+def test_search_requests_are_spaced_and_core_requests_are_not() -> None:
+    clock = [0.0]
+    sleeps: list[float] = []
+
+    def sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+        clock[0] += seconds
+
+    client = ThrottledGhClient(FakeGitHub(world()), sleep, lambda: clock[0], search_interval=2.0)
+    client.get("repos/acme/alpha/contents")
+    client.get("repos/acme/alpha/contents")
+    assert sleeps == []
+    client.get("search/repositories", {"q": "language:Python license:mit", "page": "1"})
+    client.get("search/repositories", {"q": "language:Python license:mit", "page": "2"})
+    assert sleeps == [2.0]
+    clock[0] += 5.0
+    client.get("search/repositories", {"q": "language:Python license:mit", "page": "3"})
+    assert sleeps == [2.0]
+
+
+def test_a_replay_through_the_recorder_never_sleeps(tmp_path: Path) -> None:
+    sleeps: list[float] = []
+    live = FakeGitHub(world())
+    first = RecordingGhClient(ThrottledGhClient(live, sleeps.append, lambda: 0.0), tmp_path)
+    mine(GitHubSource(first), CONFIG)
+    assert sleeps
+    sleeps.clear()
+    mine(GitHubSource(RecordingGhClient(ThrottledGhClient(live, sleeps.append, lambda: 0.0), tmp_path)), CONFIG)
+    assert sleeps == []
+
+
+def test_the_archive_never_holds_upstream_code_and_keeps_only_the_fields_the_bench_reads() -> None:
+    files = [{"filename": "a.py", "status": "modified", "additions": 1, "deletions": 0, "patch": "@@ secret code"}]
+    assert project_response("repos/o/r/pulls/1/files", files) == [
+        {"filename": "a.py", "status": "modified", "additions": 1, "deletions": 0}
+    ]
+    issue = {
+        "number": 4,
+        "title": "feat: x",
+        "body": "long text",
+        "user": {"login": "someone"},
+        "labels": [{"name": "enhancement", "color": "fff"}],
+        "pull_request": {"merged_at": "2026-08-01T00:00:00Z", "url": "https://example"},
+    }
+    projected = project_response("search/issues", {"items": [issue], "total_count": 1})
+    assert projected == {
+        "items": [
+            {
+                "number": 4,
+                "title": "feat: x",
+                "labels": [{"name": "enhancement"}],
+                "pull_request": {"merged_at": "2026-08-01T00:00:00Z"},
+            }
+        ],
+        "total_count": 1,
+    }
+
+
+def test_a_rate_limited_response_is_reported_as_such() -> None:
+    class Limited:
+        def run(
+            self, argv: Sequence[str], cwd: Path | None = None, env: Mapping[str, str] | None = None
+        ) -> ProcessResult:
+            return ProcessResult(1, "", "gh: API rate limit exceeded for user (HTTP 403)")
+
+    with pytest.raises(RateLimited):
+        GhCliClient(Limited()).get("search/issues", {"q": "x"})

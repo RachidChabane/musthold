@@ -7,6 +7,7 @@ failure) is MISSING, which counts as a failure, as ADR 0004's defect definition 
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -21,6 +22,8 @@ JUNIT_FILE: Final = "report.xml"
 GO_MODULE_FILE: Final = "go.mod"
 GO_PACKAGE_SEPARATOR: Final = "::"
 GO_ACTIONS: Final = {"pass": Outcome.PASSED, "fail": Outcome.FAILED}
+PYTHON_PATH_ENV: Final = "PYTHONPATH"
+PYTHON_SOURCE_ROOTS: Final = ("", "src")
 PYTEST_ARGUMENTS: Final = (
     "-m",
     "pytest",
@@ -31,6 +34,12 @@ PYTEST_ARGUMENTS: Final = (
     "-q",
     "--continue-on-collection-errors",
 )
+
+
+def python_path_for(tree: Path) -> dict[str, str]:
+    """The tree itself and its `src` directory on `PYTHONPATH`: the project is imported from the tree, never installed."""
+    roots = [str(tree / root) if root else str(tree) for root in PYTHON_SOURCE_ROOTS]
+    return {PYTHON_PATH_ENV: os.pathsep.join(roots)}
 
 
 def _unique(items: Sequence[str]) -> list[str]:
@@ -74,9 +83,27 @@ class PytestOracleRunner:
         files = _unique([t.test_id.split(NODE_SEPARATOR)[0] for t in tests])
         with tempfile.TemporaryDirectory(prefix="specbench-junit-") as scratch:
             report = Path(scratch) / JUNIT_FILE
-            self._runner.run([str(self._python), *PYTEST_ARGUMENTS, f"--junitxml={report}", *files], cwd=tree)
+            self._runner.run(
+                [str(self._python), *PYTEST_ARGUMENTS, f"--junitxml={report}", *files], tree, python_path_for(tree)
+            )
             reported = parse_junit(tree, report.read_text(encoding="utf-8")) if report.is_file() else {}
         return {t.test_id: reported.get(t.test_id, Outcome.MISSING) for t in tests}
+
+
+class PytestSuiteRunner:
+    """Runs the whole suite of a tree with the task environment's interpreter and reports every test it ran."""
+
+    def __init__(self, python: Path, runner: ProcessRunner) -> None:
+        self._python = python
+        self._runner = runner
+
+    def run_all(self, tree: Path) -> Mapping[str, Outcome]:
+        with tempfile.TemporaryDirectory(prefix="specbench-junit-") as scratch:
+            report = Path(scratch) / JUNIT_FILE
+            self._runner.run(
+                [str(self._python), *PYTEST_ARGUMENTS, f"--junitxml={report}"], tree, python_path_for(tree)
+            )
+            return parse_junit(tree, report.read_text(encoding="utf-8")) if report.is_file() else {}
 
 
 def _module_path(tree: Path) -> str:
@@ -124,3 +151,18 @@ class GoTestOracleRunner:
             )
             reported.update(parse_go_events(module, result.stdout))
         return {t.test_id: reported.get(t.test_id, Outcome.MISSING) for t in tests}
+
+
+class GoSuiteRunner:
+    """Runs `go test ./...` with one package build in flight and reports every top-level test."""
+
+    def __init__(self, runner: ProcessRunner, environment: Mapping[str, str]) -> None:
+        self._runner = runner
+        self._environment = dict(environment)
+
+    def run_all(self, tree: Path) -> Mapping[str, Outcome]:
+        module = _module_path(tree)
+        result = self._runner.run(
+            ["go", "test", "-json", "-count=1", "-p", "1", "./..."], cwd=tree, env=self._environment
+        )
+        return parse_go_events(module, result.stdout)

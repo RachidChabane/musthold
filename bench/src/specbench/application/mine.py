@@ -9,6 +9,7 @@ from specbench.application.ports import MiningSource
 from specbench.domain.candidates import (
     AttritionEntry,
     Candidate,
+    Sample,
     attrition_counts,
     build_candidate,
     select_sample,
@@ -26,6 +27,7 @@ from specbench.domain.mining import (
     check_base,
     check_pull_request,
     check_repository,
+    check_summary,
     seeded_key,
 )
 
@@ -37,7 +39,7 @@ class MiningResult:
     config: MiningConfig
     candidates: tuple[Candidate, ...]
     attrition: tuple[AttritionEntry, ...]
-    sample: tuple[Candidate, ...]
+    sample: Sample
     unexamined_repositories: Mapping[str, int]
 
     def manifest_record(self) -> dict[str, JsonValue]:
@@ -46,7 +48,8 @@ class MiningResult:
             "candidates": len(self.candidates),
             "freeze_date": None if self.config.freeze_date is None else self.config.freeze_date.isoformat(),
             "languages": [language.value for language in self.config.languages],
-            "sample": [{"task_id": task_id_for(c), "repository": c.repository} for c in self.sample],
+            "reserves": [{"task_id": task_id_for(c), "repository": c.repository} for c in self.sample.reserves],
+            "sample": [{"task_id": task_id_for(c), "repository": c.repository} for c in self.sample.tasks],
             "schema": MINING_SCHEMA,
             "seed": self.config.seed,
             "unexamined_repositories": dict(sorted(self.unexamined_repositories.items())),
@@ -68,18 +71,22 @@ def _mine_repository(
 ) -> tuple[list[Candidate], list[AttritionEntry]]:
     accepted: list[Candidate] = []
     attrition: list[AttritionEntry] = []
-    numbers = sorted(
-        source.merged_pull_numbers(repository, MERGE_WINDOW_START),
-        key=lambda n: seeded_key(config.seed, f"{repository.full_name}#{n}"),
+    summaries = sorted(
+        source.merged_pull_summaries(repository, MERGE_WINDOW_START),
+        key=lambda s: seeded_key(config.seed, f"{repository.full_name}#{s.number}"),
     )
-    for number in numbers:
-        label = f"{repository.full_name}#{number}"
+    for summary in summaries:
+        label = f"{repository.full_name}#{summary.number}"
         if len(accepted) >= MAX_TASKS_PER_REPOSITORY:
             attrition.append(
-                AttritionEntry(label, Stage.REPOSITORY_CAP, f"{MAX_TASKS_PER_REPOSITORY} tasks already taken")
+                AttritionEntry(label, Stage.REPOSITORY_CAP, f"{MAX_TASKS_PER_REPOSITORY} task already taken")
             )
             continue
-        pull = source.pull_request(repository, number)
+        rejection = check_summary(summary)
+        if rejection is not None:
+            attrition.append(AttritionEntry(label, rejection.stage, rejection.reason))
+            continue
+        pull = source.pull_request(repository, summary.number)
         if pull is None:
             attrition.append(AttritionEntry(label, Stage.FEATURE_SIGNAL, "pull request not readable"))
             continue
@@ -113,13 +120,10 @@ def mine(source: MiningSource, config: MiningConfig) -> MiningResult:
             candidates.extend(found)
             productive += 1 if found else 0
     sample = select_sample(config.seed, candidates)
-    attrition.extend(
-        AttritionEntry(c.label, Stage.NOT_SELECTED, "outside the seeded sample") for c in candidates if c not in sample
-    )
     return MiningResult(
         config=config,
         candidates=tuple(candidates),
         attrition=tuple(attrition),
-        sample=tuple(sample),
+        sample=sample,
         unexamined_repositories=unexamined,
     )

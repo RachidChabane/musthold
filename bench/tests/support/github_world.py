@@ -37,6 +37,7 @@ class WorldRepo:
     language: str = "Python"
     spdx_id: str = "MIT"
     stars: int = 500
+    size_kb: int = 2_000
     licence_text: str = MIT_TEXT
     root_files: tuple[str, ...] = ("LICENSE", "uv.lock", "pyproject.toml")
     workflows: tuple[str, ...] = ("ci.yml",)
@@ -47,10 +48,12 @@ class FakeGitHub:
     def __init__(self, repos: list[WorldRepo]) -> None:
         self._repos = {r.full_name: r for r in repos}
         self.requests: list[str] = []
+        self.paths: list[str] = []
 
     def get(self, path: str, params: Mapping[str, str] | None = None) -> JsonValue:
         params = params or {}
         self.requests.append(request_key(path, params))
+        self.paths.append(path)
         if path == "search/repositories":
             return self._search_repositories(params)
         if path == "search/issues":
@@ -79,6 +82,7 @@ class FakeGitHub:
                 "stargazers_count": r.stars,
                 "license": {"spdx_id": r.spdx_id},
                 "default_branch": "main",
+                "size": r.size_kb,
             }
             for r in self._repos.values()
             if r.language == language.group(1) and r.spdx_id == wanted[licence.group(1)]
@@ -89,7 +93,11 @@ class FakeGitHub:
         repo = re.search(r"repo:(\S+)", params["q"])
         assert repo is not None
         pulls = self._repos[repo.group(1)].pulls if params["page"] == "1" else []
-        return {"items": [{"number": p.number} for p in pulls]}
+        return {
+            "items": [
+                {"number": p.number, "title": p.title, "labels": [{"name": label} for label in p.labels]} for p in pulls
+            ]
+        }
 
     def _repo_resource(self, repo: WorldRepo, rest: str, params: Mapping[str, str]) -> JsonValue:
         pull = re.match(r"^pulls/(\d+)(/files)?$", rest)

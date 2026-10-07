@@ -59,7 +59,6 @@ def test_task_text_is_the_same_whatever_the_dictionary_order() -> None:
         {"base_sha": "xyz"},
         {"pull_number": 0},
         {"licence": {"spdx_id": "GPL-3.0-only", "path": "LICENSE", "notice_path": None}},
-        {"criteria": []},
         {"criteria": [{"id": "OTHER-TASK-1", "status": "new"}]},
         {"criteria": [{"id": f"{TASK_ID}-1", "status": "new"}, {"id": f"{TASK_ID}-1", "status": "new"}]},
         {"lockfile_digests": {"uv.lock": "short"}},
@@ -80,3 +79,10 @@ def test_criterion_status_flags_new_or_revised() -> None:
 def test_task_json_helper_is_canonical() -> None:
     assert task_json() == make_task().to_canonical_json()
     assert make_task(language=Language.GO).language is Language.GO
+
+
+def test_a_selected_task_has_no_criteria_and_is_not_constructed() -> None:
+    selected = make_task(criteria=())
+    assert parse_task(selected.to_canonical_json()) == selected
+    assert not selected.is_constructed
+    assert make_task().is_constructed

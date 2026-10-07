@@ -1,4 +1,8 @@
-"""Native per-task environments from lockfiles: uv for Python, `go mod download` for Go (a Strategy per language)."""
+"""Native per-task environments from lockfiles: uv for Python, `go mod download` for Go (a Strategy per language).
+
+A Python environment holds the locked dependencies but not the project itself: tests import the project from the
+tree under test (see `python_path_for`), so one environment serves the base, the merge and every mutated tree.
+"""
 
 from __future__ import annotations
 
@@ -18,6 +22,9 @@ UV_LOCK: Final = "uv.lock"
 REQUIREMENTS: Final = "requirements.txt"
 UV_ENV: Final = {"UV_PYTHON_DOWNLOADS": "never", "UV_PYTHON_PREFERENCE": "only-system"}
 GO_ENV: Final = {"GOFLAGS": "-mod=readonly"}
+GO_OFFLINE_ENV: Final = {"GOPROXY": "off", "GOTOOLCHAIN": "local"}
+PYTHON_ORACLE_TOOLING: Final = ("pytest", "hypothesis")
+"""Packages every Python task environment holds: the test runner and the property-based tests' library."""
 
 
 class EnvironmentBuildError(RuntimeError):
@@ -30,6 +37,11 @@ def python_executable(destination: Path) -> Path:
 
 def go_environment(destination: Path) -> dict[str, str]:
     return {**GO_ENV, "GOMODCACHE": str(destination / GO_MODULE_CACHE_DIRECTORY)}
+
+
+def go_offline_environment(destination: Path) -> dict[str, str]:
+    """The Go environment of a test run: the module cache of the task, no proxy and no toolchain download."""
+    return {**go_environment(destination), **GO_OFFLINE_ENV}
 
 
 def _checked(result: ProcessResult, what: str) -> ProcessResult:
@@ -54,7 +66,17 @@ class PythonUvStrategy:
             sync_env = {**env, "UV_PROJECT_ENVIRONMENT": str(venv)}
             _checked(
                 runner.run(
-                    ["uv", "sync", "--frozen", "--project", str(request.source_tree)], request.source_tree, sync_env
+                    [
+                        "uv",
+                        "sync",
+                        "--frozen",
+                        "--no-install-project",
+                        "--all-groups",
+                        "--project",
+                        str(request.source_tree),
+                    ],
+                    request.source_tree,
+                    sync_env,
                 ),
                 "uv sync",
             )
@@ -78,6 +100,15 @@ class PythonUvStrategy:
             )
         else:
             raise EnvironmentBuildError(f"no {UV_LOCK} or {REQUIREMENTS} in {request.source_tree}")
+        if request.tooling:
+            _checked(
+                runner.run(
+                    ["uv", "pip", "install", "--python", str(python_executable(request.destination)), *request.tooling],
+                    request.source_tree,
+                    env,
+                ),
+                "uv pip install tooling",
+            )
         version = _checked(
             runner.run([str(python_executable(request.destination)), "--version"], None, env), "python --version"
         )

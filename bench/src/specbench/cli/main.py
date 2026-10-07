@@ -12,6 +12,7 @@ from typing import Final
 
 from specbench.adapters.env_builder import EnvironmentBuildError
 from specbench.adapters.gh_miner import GhError
+from specbench.adapters.git_history import GitError
 from specbench.adapters.git_trees import TreeBuildError
 from specbench.adapters.process import MachineUnsafe
 from specbench.adapters.sealed_store import InsideRepositoryError
@@ -23,20 +24,21 @@ from specbench.cli.commands import Console
 from specbench.domain.canonical import CanonicalError
 from specbench.domain.jsonread import RecordError
 from specbench.domain.languages import Language
-from specbench.domain.mining import SAMPLE_TASKS_PER_LANGUAGE
+from specbench.domain.mining import RESERVE_TASKS_PER_LANGUAGE, SAMPLE_TASKS_PER_LANGUAGE
 from specbench.domain.pacing import DEFAULT_RUN_WINDOW, EXIT_PAUSED, RUN_WINDOW_ENV, InvalidRunWindow, RunPaused
 from specbench.domain.sealing import SealingError
 from specbench.domain.verification import VERIFICATION_RUNS
 from specbench.domain.workspace import WorkspaceLeak
 
 DEFAULT_SEED: Final = 20261007
-DEFAULT_PER_LANGUAGE: Final = 2 * SAMPLE_TASKS_PER_LANGUAGE
+DEFAULT_PER_LANGUAGE: Final = 4 * SAMPLE_TASKS_PER_LANGUAGE
 USAGE_ERROR: Final = 2
 EXPECTED_FAILURES: Final = (
     CanonicalError,
     EnvironmentBuildError,
     FileNotFoundError,
     GhError,
+    GitError,
     InsideRepositoryError,
     InvalidRunWindow,
     ModelNotFrozen,
@@ -72,6 +74,14 @@ def _add_mining_verbs(add: AddVerb) -> None:
     mine.add_argument("--freeze-date", type=date.fromisoformat, default=None)
     mine.add_argument("--per-language", type=int, default=DEFAULT_PER_LANGUAGE)
     mine.add_argument("--dry-run", action="store_true", help="serve archived responses; no network")
+
+    select = add("select", help="probe mined candidates offline in seeded order and keep the feasible tasks")
+    select.add_argument("--mining", type=_path, required=True, help="the directory `mine` wrote")
+    select.add_argument("--mirrors", type=_path, required=True, help="bare local clones of upstream repositories")
+    select.add_argument("--work", type=_path, required=True, help="environments and verdicts, outside the repository")
+    select.add_argument("--out", type=_path, required=True)
+    select.add_argument("--tasks-per-language", type=int, default=SAMPLE_TASKS_PER_LANGUAGE)
+    select.add_argument("--reserves-per-language", type=int, default=RESERVE_TASKS_PER_LANGUAGE)
 
     keygen = add("keygen", help="create an age identity outside the repository and add its recipient")
     keygen.add_argument("--identity", type=_path, required=True)
@@ -137,6 +147,9 @@ def _add_run_verbs(add: AddVerb) -> None:
 def _handlers() -> dict[str, Handler]:
     return {
         "mine": lambda a, c: commands.run_mine(a.out, a.archive, a.seed, a.freeze_date, a.per_language, a.dry_run, c),
+        "select": lambda a, c: commands.run_select(
+            a.mining, a.mirrors, a.work, a.out, a.tasks_per_language, a.reserves_per_language, c
+        ),
         "keygen": lambda a, c: commands.run_keygen(a.identity, a.recipients, c),
         "seal": lambda a, c: commands.run_seal(a.corpus, a.plain, c),
         "unseal": lambda a, c: commands.run_unseal(a.corpus, a.identity, a.task_id, a.out, c),

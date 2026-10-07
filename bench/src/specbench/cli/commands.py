@@ -9,11 +9,25 @@ from pathlib import Path
 from typing import Final, cast
 
 from specbench.adapters.clock import SystemClock
-from specbench.adapters.env_builder import NativeEnvBuilder, go_environment, python_executable
+from specbench.adapters.env_builder import (
+    PYTHON_ORACLE_TOOLING,
+    NativeEnvBuilder,
+    go_offline_environment,
+    python_executable,
+)
 from specbench.adapters.file_corpus import FileCorpus, read_plain_task
-from specbench.adapters.gh_miner import GhCliClient, GitHubSource, RecordingGhClient, ReplayGhClient
+from specbench.adapters.gh_miner import (
+    GhCliClient,
+    GitHubSource,
+    RecordingGhClient,
+    ReplayGhClient,
+    ThrottledGhClient,
+)
+from specbench.adapters.git_history import GitHistory, GitMirrors
 from specbench.adapters.git_trees import GitTreeFactory
-from specbench.adapters.mining_store import write_mining
+from specbench.adapters.mining_store import ATTRITION_FILE, CANDIDATES_FILE, MINING_FILE, write_mining
+from specbench.adapters.network_sandbox import NetworkDeniedRunner
+from specbench.adapters.offline_probe import OfflineProbe, suite_runner_for
 from specbench.adapters.operator_engine import UnavailableOperatorEngine
 from specbench.adapters.oracle_runners import GoTestOracleRunner, PytestOracleRunner
 from specbench.adapters.process import MemoryFloorRunner, SubprocessRunner, system_free_percent
@@ -25,6 +39,7 @@ from specbench.adapters.sealed_store import (
     refuse_inside_repository,
     write_identity_file,
 )
+from specbench.adapters.selection_store import read_attrition, read_candidates, write_selection
 from specbench.adapters.workspace_repo import DiskTreeReader, write_workspace_repo
 from specbench.analysis.estimate import AnalysisConfig
 from specbench.analysis.lint import lint_report
@@ -34,7 +49,9 @@ from specbench.application.build_workspace import build_agent_workspace
 from specbench.application.corpus import seal_task, unseal_task, verify_corpus
 from specbench.application.mine import mine
 from specbench.application.ports import EnvRequest, OracleRunner, ProcessRunner
+from specbench.application.select_tasks import select_feasible
 from specbench.application.verify_task import TaskVerifier
+from specbench.domain.candidates import ranking_by_language
 from specbench.domain.canonical import JsonValue, canonical_json, canonical_results_json
 from specbench.domain.languages import Language
 from specbench.domain.manifest import RunLayout
@@ -77,13 +94,59 @@ def run_mine(
     out: Path, archive: Path, seed: int, freeze_date: date | None, per_language: int, dry_run: bool, console: Console
 ) -> int:
     config = MiningConfig(seed, freeze_date, tuple(Language), per_language)
-    client = ReplayGhClient(archive) if dry_run else RecordingGhClient(GhCliClient(SubprocessRunner()), archive)
+    client = (
+        ReplayGhClient(archive)
+        if dry_run
+        else RecordingGhClient(ThrottledGhClient(GhCliClient(SubprocessRunner())), archive)
+    )
     result = mine(GitHubSource(client), config)
     write_mining(result, out)
     counts = result.manifest_record()["attrition"]
     console.say(
-        f"mined {len(result.candidates)} candidates, sample of {len(result.sample)}; attrition {json.dumps(counts)}"
+        f"mined {len(result.candidates)} candidates, sample of {len(result.sample.tasks)} tasks and "
+        f"{len(result.sample.reserves)} reserves; attrition {json.dumps(counts)}"
     )
+    return EXIT_OK
+
+
+SUITE_TIMEOUT_SECONDS: Final = 900
+MIRROR_TIMEOUT_SECONDS: Final = 3600
+
+
+def run_select(
+    mining_dir: Path,
+    mirrors_dir: Path,
+    work_dir: Path,
+    out: Path,
+    tasks_per_language: int,
+    reserves_per_language: int,
+    console: Console,
+) -> int:
+    """Probe the mined candidates in seeded order and keep the first feasible tasks and reserves."""
+    refuse_inside_repository(work_dir, find_repository_root(mining_dir), "work directory")
+    mining = cast(dict[str, JsonValue], json.loads((mining_dir / MINING_FILE).read_text(encoding=ENCODING)))
+    seed = int(str(mining["seed"]))
+    candidates = read_candidates(mining_dir / CANDIDATES_FILE)
+    denied = NetworkDeniedRunner(MemoryFloorRunner(SubprocessRunner(SUITE_TIMEOUT_SECONDS), system_free_percent))
+    denied.assert_denied()
+    plain = _runner()
+    mirrors = GitMirrors(mirrors_dir, MemoryFloorRunner(SubprocessRunner(MIRROR_TIMEOUT_SECONDS), system_free_percent))
+    probe = OfflineProbe(
+        mirrors,
+        lambda clone: GitHistory(clone, plain),
+        NativeEnvBuilder(plain),
+        lambda language, env_dir: suite_runner_for(language, env_dir, denied),
+        work_dir,
+    )
+    selection = select_feasible(ranking_by_language(seed, candidates), probe, tasks_per_language, reserves_per_language)
+    write_selection(
+        out,
+        seed,
+        selection,
+        read_attrition(mining_dir / ATTRITION_FILE),
+        lambda task, name: GitHistory(mirrors.path_of(task.candidate.repository), plain).file_at(task.base_sha, name),
+    )
+    console.say(f"selected {len(selection.tasks)} tasks and {len(selection.reserves)} reserves into {out}")
     return EXIT_OK
 
 
@@ -127,7 +190,8 @@ def run_verify_corpus(corpus_dir: Path, identity_path: Path | None, console: Con
 
 
 def run_build_env(language: Language, source: Path, destination: Path, console: Console) -> int:
-    built = NativeEnvBuilder(_runner()).build(EnvRequest(language, source, destination))
+    tooling = PYTHON_ORACLE_TOOLING if language is Language.PYTHON else ()
+    built = NativeEnvBuilder(_runner()).build(EnvRequest(language, source, destination, tooling))
     console.say(f"built {language.value} environment {built.toolchain_version} at {destination}")
     return EXIT_OK
 
@@ -136,7 +200,7 @@ def _oracle_runner(language: Language, env_dir: Path, python: Path | None) -> Or
     runner = _runner()
     if language is Language.PYTHON:
         return PytestOracleRunner(python or python_executable(env_dir), runner)
-    return GoTestOracleRunner(runner, go_environment(env_dir))
+    return GoTestOracleRunner(runner, go_offline_environment(env_dir))
 
 
 def run_verify_task(

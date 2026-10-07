@@ -3,3 +3,5 @@ __pycache__/
 .hypothesis/
 .import_linter_cache/
 .ruff_cache/
+.scratch/
+/corpus/mirrors/

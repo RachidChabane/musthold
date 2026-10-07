@@ -9,7 +9,10 @@
 BENCH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="$(cd "${BENCH_DIR}/.." && pwd)"
 MEM_GUARD="${REPO_ROOT}/script/mem-guard"
-readonly BENCH_DIR REPO_ROOT MEM_GUARD
+# Environments, probe verdicts and every sealed or plaintext construction file live here, outside the repository.
+SPECBENCH_WORK="${SPECBENCH_WORK:-${HOME}/.specbench-work}"
+readonly BENCH_DIR REPO_ROOT MEM_GUARD SPECBENCH_WORK
+export SPECBENCH_WORK
 
 # run_light CMD...: a short command that needs no memory guard.
 run_light() {

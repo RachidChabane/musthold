@@ -10,12 +10,14 @@ from pathlib import Path
 from typing import Protocol
 
 from specbench.domain.arms import Harness
+from specbench.domain.candidates import Candidate
 from specbench.domain.canonical import JsonValue
 from specbench.domain.languages import Language
-from specbench.domain.mining import BaseSnapshot, PullRequest, Repository
+from specbench.domain.mining import BaseSnapshot, PullRequest, PullSummary, Rejection, Repository
 from specbench.domain.oracle import OracleTest, Outcome
 from specbench.domain.pacing import CallLedger
 from specbench.domain.sealing import CorpusLock, SealedBundle
+from specbench.domain.selection import ProbedTask
 from specbench.domain.sessions import CallRecord, HostRequest, HostResponse, SessionRequest, SessionResult
 
 
@@ -30,7 +32,7 @@ class MiningSource(Protocol):
 
     def repositories(self, language: Language) -> Sequence[Repository]: ...
 
-    def merged_pull_numbers(self, repository: Repository, since: date) -> Sequence[int]: ...
+    def merged_pull_summaries(self, repository: Repository, since: date) -> Sequence[PullSummary]: ...
 
     def pull_request(self, repository: Repository, number: int) -> PullRequest | None: ...
 
@@ -82,9 +84,12 @@ class CorpusRepository(Protocol):
 
 @dataclass(frozen=True)
 class EnvRequest:
+    """A tree to build an environment for; `tooling` names Python packages the oracle needs beyond the lockfile."""
+
     language: Language
     source_tree: Path
     destination: Path
+    tooling: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -126,6 +131,12 @@ class OracleRunner(Protocol):
     def run(self, tree: Path, tests: Sequence[OracleTest]) -> Mapping[str, Outcome]: ...
 
 
+class SuiteRunner(Protocol):
+    """Runs every test of a tree and reports one outcome per test that ran."""
+
+    def run_all(self, tree: Path) -> Mapping[str, Outcome]: ...
+
+
 @dataclass(frozen=True)
 class OperatorMutants:
     mutants: Mapping[str, TreeSpec]
@@ -153,6 +164,12 @@ class HostExecutor(Protocol):
     """Strategy: executes a product request in an isolated, blind subagent and returns its response."""
 
     def execute(self, request: HostRequest) -> HostResponse: ...
+
+
+class FeasibilityProbe(Protocol):
+    """Establishes that a candidate builds, runs its tests offline and has a fail-to-pass set, or says why not."""
+
+    def probe(self, candidate: Candidate) -> ProbedTask | Rejection: ...
 
 
 class CallStore(Protocol):

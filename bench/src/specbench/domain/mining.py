@@ -19,8 +19,10 @@ MIN_NON_TEST_FILES: Final = 1
 MAX_NON_TEST_FILES: Final = 6
 MIN_NON_TEST_LINES: Final = 30
 MAX_NON_TEST_LINES: Final = 400
-MAX_TASKS_PER_REPOSITORY: Final = 2
+MAX_TASKS_PER_REPOSITORY: Final = 1
+MAX_REPOSITORY_SIZE_KB: Final = 100_000
 SAMPLE_TASKS_PER_LANGUAGE: Final = 3
+RESERVE_TASKS_PER_LANGUAGE: Final = 2
 WORKFLOW_DIRECTORY: Final = ".github/workflows"
 WORKFLOW_SUFFIXES: Final = (".yml", ".yaml")
 CHANGED_TEST_STATUSES: Final = frozenset({"added", "modified", "renamed", "changed"})
@@ -46,6 +48,7 @@ class Stage(Enum):
     LANGUAGE = "language"
     LICENCE_API = "licence-api"
     STARS = "stars"
+    REPOSITORY_SIZE = "repository-size"
     LICENCE_FILE = "licence-file"
     CI_WORKFLOW = "ci-workflow"
     LOCKFILE = "lockfile"
@@ -55,6 +58,10 @@ class Stage(Enum):
     NON_TEST_LINES = "non-test-lines"
     TESTS_CHANGED = "tests-changed"
     REPOSITORY_CAP = "repository-cap"
+    ENVIRONMENT_BUILD = "environment-build"
+    MERGE_DIFF = "merge-diff"
+    OFFLINE_TESTS = "offline-tests"
+    NO_FAIL_TO_PASS = "no-fail-to-pass"
     NOT_SELECTED = "not-selected"
 
 
@@ -80,6 +87,16 @@ class Repository:
     stars: int
     spdx_id: str | None
     default_branch: str
+    size_kb: int
+
+
+@dataclass(frozen=True)
+class PullSummary:
+    """What a pull-request search result shows before the pull request itself is read."""
+
+    number: int
+    title: str
+    labels: frozenset[str]
 
 
 @dataclass(frozen=True)
@@ -134,6 +151,10 @@ def check_repository(repository: Repository, config: MiningConfig) -> Rejection 
         return Rejection(Stage.STARS, f"{repository.stars} stars, at least {MIN_STARS} required")
     if repository.language not in config.languages:
         return Rejection(Stage.LANGUAGE, f"language {repository.language.value} is not sampled")
+    if repository.size_kb > MAX_REPOSITORY_SIZE_KB:
+        return Rejection(
+            Stage.REPOSITORY_SIZE, f"{repository.size_kb} KB, at most {MAX_REPOSITORY_SIZE_KB} KB are mirrored"
+        )
     return None
 
 
@@ -171,6 +192,13 @@ def is_feature_pull_request(title: str, labels: frozenset[str]) -> bool:
     if labels & FEATURE_LABELS:
         return True
     return FEATURE_TITLE.match(title) is not None and NON_FEATURE_TITLE.match(title) is None
+
+
+def check_summary(summary: PullSummary) -> Rejection | None:
+    """The feature signal on a search result, so a pull request that fails it is never fetched."""
+    if not is_feature_pull_request(summary.title, summary.labels):
+        return Rejection(Stage.FEATURE_SIGNAL, "neither a feature label nor a feature title")
+    return None
 
 
 def non_test_changes(language: Language, files: tuple[ChangedFile, ...]) -> tuple[ChangedFile, ...]:

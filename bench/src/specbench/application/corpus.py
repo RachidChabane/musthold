@@ -25,6 +25,8 @@ class UnsealedTask:
 def seal_task(corpus: CorpusRepository, seals: SealStore, task_json: str, bundle: SealedBundle) -> LockEntry:
     """Seal a task's bundle to the corpus recipients, write it beside its `task.json`, and record its digests in the lock."""
     task = parse_task(task_json)
+    if not task.is_constructed:
+        raise SealingError(f"task {task.task_id} has no criteria: it is selected but not constructed")
     ciphertext = seals.seal(bundle, corpus.read_recipients())
     corpus.write_task(task.language, task.task_id, task_json, ciphertext)
     entry = lock_entry_for(task.task_id, task.language, task_json, bundle)

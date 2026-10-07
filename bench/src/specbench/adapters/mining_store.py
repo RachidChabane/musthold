@@ -24,11 +24,14 @@ def _lines(records: Iterable[dict[str, JsonValue]]) -> str:
 def write_mining(result: MiningResult, directory: Path) -> list[Path]:
     """Write the four outputs of a mining run and return their paths."""
     directory.mkdir(parents=True, exist_ok=True)
-    sample = [{"task_id": task_id_for(c), **c.to_record()} for c in result.sample]
+    sample = {
+        "reserves": [{"task_id": task_id_for(c), **c.to_record()} for c in result.sample.reserves],
+        "tasks": [{"task_id": task_id_for(c), **c.to_record()} for c in result.sample.tasks],
+    }
     contents = {
         CANDIDATES_FILE: _lines(c.to_record() for c in result.candidates),
         ATTRITION_FILE: _lines(a.to_record() for a in result.attrition),
-        SAMPLE_FILE: canonical_json(list(sample)),
+        SAMPLE_FILE: canonical_json(sample),
         MINING_FILE: canonical_json(result.manifest_record()),
     }
     paths: list[Path] = []

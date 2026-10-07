@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import base64
 import json
-from collections.abc import Mapping
+import time
+from collections.abc import Callable, Mapping
 from datetime import date
 from pathlib import Path
 from typing import Final, cast
@@ -21,6 +22,7 @@ from specbench.domain.mining import (
     BaseSnapshot,
     ChangedFile,
     PullRequest,
+    PullSummary,
     Repository,
 )
 
@@ -32,6 +34,25 @@ STATUS_NOT_FOUND: Final = 404
 NOT_FOUND_MARKER: Final = "HTTP 404"
 RESPONSES_DIRECTORY: Final = "responses"
 REQUEST_KEY_LENGTH: Final = 32
+SEARCH_PATH_PREFIX: Final = "search/"
+SEARCH_INTERVAL_SECONDS: Final = 2.1
+"""The search API allows 30 requests per minute; spacing them 2.1 s apart stays under it."""
+RATE_LIMIT_MARKERS: Final = ("rate limit", "secondary rate", "abuse detection")
+FILE_PATCH_FIELD: Final = "patch"
+SEARCH_ISSUE_FIELDS: Final = ("number", "title", "html_url", "created_at", "closed_at")
+SEARCH_REPOSITORY_FIELDS: Final = (
+    "full_name",
+    "stargazers_count",
+    "default_branch",
+    "size",
+    "language",
+    "html_url",
+    "clone_url",
+    "pushed_at",
+    "archived",
+    "fork",
+    "license",
+)
 
 
 class GhError(RuntimeError):
@@ -40,6 +61,10 @@ class GhError(RuntimeError):
 
 class GhNotFound(GhError):
     """The requested resource does not exist (HTTP 404)."""
+
+
+class RateLimited(GhError):
+    """GitHub refused a request for rate-limit reasons; rerunning later resumes from the archive."""
 
 
 class MissingRecording(GhError):
@@ -65,12 +90,88 @@ class GhCliClient:
         if result.returncode != 0:
             if NOT_FOUND_MARKER in result.stderr:
                 raise GhNotFound(path)
+            if any(marker in result.stderr.lower() for marker in RATE_LIMIT_MARKERS):
+                raise RateLimited(f"gh api {path}: {result.stderr.strip()}")
             raise GhError(f"gh api {path} failed: {result.stderr.strip()}")
         return json.loads(result.stdout)
 
 
+class ThrottledGhClient:
+    """Decorator that spaces search requests so the search API's 30 per minute is never exceeded.
+
+    It sits below `RecordingGhClient`: a request served from the archive never reaches it, so replays never sleep.
+    """
+
+    def __init__(
+        self,
+        inner: GhClient,
+        sleep: Callable[[float], None] = time.sleep,
+        monotonic: Callable[[], float] = time.monotonic,
+        search_interval: float = SEARCH_INTERVAL_SECONDS,
+    ) -> None:
+        self._inner = inner
+        self._sleep = sleep
+        self._monotonic = monotonic
+        self._interval = search_interval
+        self._last_search: float | None = None
+
+    def get(self, path: str, params: Mapping[str, str] | None = None) -> JsonValue:
+        if path.startswith(SEARCH_PATH_PREFIX):
+            if self._last_search is not None:
+                wait = self._last_search + self._interval - self._monotonic()
+                if wait > 0:
+                    self._sleep(wait)
+            self._last_search = self._monotonic()
+        return self._inner.get(path, params)
+
+
+def _picked(item: object, fields: tuple[str, ...]) -> dict[str, JsonValue]:
+    body = mapping(item, "item")
+    return {name: cast(JsonValue, body[name]) for name in fields if name in body}
+
+
+def project_response(path: str, response: JsonValue) -> JsonValue:
+    """The archived form of a response: only what the bench reads, and never a code payload.
+
+    Pull-request file listings drop `patch` (upstream source and tests); search results keep the
+    fields the filters and the construction inputs use. Other responses are archived unchanged.
+    """
+    if path == "search/issues":
+        body = mapping(response, "search")
+        return {
+            "items": [
+                {
+                    **_picked(item, SEARCH_ISSUE_FIELDS),
+                    "labels": [
+                        {"name": mapping(label, "label").get("name")}
+                        for label in sequence(mapping(item, "item").get("labels", []), "labels")
+                    ],
+                    "pull_request": _picked(mapping(item, "item").get("pull_request") or {}, ("merged_at",)),
+                }
+                for item in sequence(body.get("items", []), "items")
+            ],
+            "total_count": cast(JsonValue, body.get("total_count")),
+        }
+    if path == "search/repositories":
+        body = mapping(response, "search")
+        return {
+            "items": [_picked(item, SEARCH_REPOSITORY_FIELDS) for item in sequence(body.get("items", []), "items")],
+            "total_count": cast(JsonValue, body.get("total_count")),
+        }
+    if path.endswith("/files") and isinstance(response, list):
+        return [
+            {k: cast(JsonValue, v) for k, v in mapping(entry, "file").items() if k != FILE_PATCH_FIELD}
+            for entry in response
+        ]
+    return response
+
+
 class RecordingGhClient:
-    """Decorator that archives every response, 404 included, under `<archive>/responses/<request key>.json`."""
+    """Decorator that archives every response, 404 included, under `<archive>/responses/<request key>.json`.
+
+    The archive holds the projection of each response (see `project_response`), and the caller receives
+    that same projection, so a fresh run and a replay read identical bytes.
+    """
 
     def __init__(self, inner: GhClient, archive: Path) -> None:
         self._inner = inner
@@ -82,7 +183,7 @@ class RecordingGhClient:
             return ReplayGhClient(self._directory.parent).get(path, params)
         status, response = STATUS_OK, None
         try:
-            response = self._inner.get(path, params)
+            response = project_response(path, self._inner.get(path, params))
         except GhNotFound:
             status = STATUS_NOT_FOUND
         document: dict[str, JsonValue] = {
@@ -130,6 +231,19 @@ def _repository(item: object, language: Language) -> Repository:
         stars=integer(body.get("stargazers_count"), "stargazers_count"),
         spdx_id=spdx,
         default_branch=text(body.get("default_branch"), "default_branch"),
+        size_kb=integer(body.get("size"), "size"),
+    )
+
+
+def _summary(item: object) -> PullSummary:
+    body = mapping(item, "issue")
+    return PullSummary(
+        number=integer(body.get("number"), "number", 1),
+        title=text(body.get("title"), "title"),
+        labels=frozenset(
+            text(mapping(label, "label").get("name"), "label name").lower()
+            for label in sequence(body.get("labels", []), "labels")
+        ),
     )
 
 
@@ -161,8 +275,8 @@ class GitHubSource:
                     break
         return list(found.values())
 
-    def merged_pull_numbers(self, repository: Repository, since: date) -> list[int]:
-        numbers: list[int] = []
+    def merged_pull_summaries(self, repository: Repository, since: date) -> list[PullSummary]:
+        summaries: list[PullSummary] = []
         for page in range(1, SEARCH_PAGES + 1):
             response = self._client.get(
                 "search/issues",
@@ -173,10 +287,10 @@ class GitHubSource:
                 },
             )
             items = sequence(mapping(response, "search").get("items"), "items")
-            numbers += [integer(mapping(i, "issue").get("number"), "number", 1) for i in items]
+            summaries += [_summary(item) for item in items]
             if len(items) < PER_PAGE:
                 break
-        return numbers
+        return summaries
 
     def _changed_files(self, base_path: str) -> list[object]:
         files: list[object] = []

@@ -81,6 +81,11 @@ class Task:
     toolchain: Toolchain
     criteria: tuple[Criterion, ...]
 
+    @property
+    def is_constructed(self) -> bool:
+        """A task has criteria once its spec is written; a selected task has none yet and cannot be sealed."""
+        return bool(self.criteria)
+
     def to_record(self) -> dict[str, JsonValue]:
         return {
             "base_sha": self.base_sha,
@@ -103,8 +108,6 @@ class Task:
 
 def _criteria(value: object, task_id: str) -> tuple[Criterion, ...]:
     entries = sequence(value, "criteria")
-    if not entries:
-        raise TaskError("criteria must not be empty")
     criteria: list[Criterion] = []
     for index, raw in enumerate(entries):
         entry = mapping(raw, f"criteria[{index}]")
