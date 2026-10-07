@@ -150,13 +150,70 @@ func httpViolation(pkg string, imports []string) bool {
 	})
 }
 
-// processViolations lists the process-spawning packages a dependency list
-// contains.
-func processViolations(dependencies []string) []string {
+// processImporters lists the packages of a dependency listing that import os/exec.
+// A listing line is "<import path>|<imports separated by spaces>".
+func processImporters(listing string) []string {
 	var found []string
-	for _, dependency := range dependencies {
-		if dependency == osExecPackage {
-			found = append(found, dependency)
+	for _, line := range strings.Split(strings.TrimSpace(listing), "\n") {
+		fields := strings.SplitN(line, listFieldSeparator, listFieldCount)
+		if len(fields) == listFieldCount && slices.Contains(strings.Fields(fields[1]), osExecPackage) {
+			found = append(found, fields[0])
+		}
+	}
+	slices.Sort(found)
+	return found
+}
+
+// execAllowlist names the upstream packages that import os/exec in code the
+// verifier never runs, each with the reason. The set of importers reachable from
+// the verifier must equal it, so a dependency change that adds or removes one is
+// reviewed.
+var execAllowlist = []struct{ importPath, reason string }{
+	{"github.com/digitorus/pkcs7", "a test helper of the library, compiled into it, runs openssl"},
+	{"github.com/google/certificate-transparency-go/x509", "root_darwin.go reads the macOS system roots with the security tool"},
+	{"github.com/in-toto/in-toto-golang/in_toto", "runlib.go runs the commands of an in-toto layout"},
+}
+
+func allowedExecImporters() []string {
+	allowed := make([]string, 0, len(execAllowlist))
+	for _, entry := range execAllowlist {
+		allowed = append(allowed, entry.importPath)
+	}
+	slices.Sort(allowed)
+	return allowed
+}
+
+// verifierExecImporters lists the packages the verifier links on the given
+// platform that import os/exec.
+func verifierExecImporters(t *testing.T, goos string) []string {
+	t.Helper()
+	command := exec.Command("go", "list", "-C", moduleDir(verifyModule), "-deps", "-f", listImportsTemplate, "./cmd/...")
+	command.Env = append(os.Environ(), "GOOS="+goos)
+	output, err := command.Output()
+	if err != nil {
+		t.Fatalf("go list for %s: %v", goos, err)
+	}
+	return processImporters(string(output))
+}
+
+// linkedProcessSymbols builds the verifier and lists the symbols of os/exec its
+// binary holds: a binary whose linker pruned every use of the package holds none.
+func linkedProcessSymbols(t *testing.T, cgo string) []string {
+	t.Helper()
+	binary := path.Join(t.TempDir(), "spec-proof-verify")
+	build := exec.Command("go", "build", "-C", moduleDir(verifyModule), "-p", "1", "-o", binary, "./cmd/spec-proof-verify")
+	build.Env = append(os.Environ(), "CGO_ENABLED="+cgo)
+	if output, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("build the verifier: %v\n%s", err, output)
+	}
+	symbols, err := exec.Command("go", "tool", "nm", binary).Output()
+	if err != nil {
+		t.Fatalf("go tool nm: %v", err)
+	}
+	var found []string
+	for _, line := range strings.Split(string(symbols), "\n") {
+		if strings.Contains(line, osExecPackage+".") {
+			found = append(found, strings.TrimSpace(line))
 		}
 	}
 	return found
@@ -341,16 +398,48 @@ func TestNetworkIsConfined(t *testing.T) {
 	})
 }
 
-func TestVerifierLinksNoProcessPackage(t *testing.T) {
-	t.Run("spec-proof-verify links no os/exec [verifies SP-39~1]", func(t *testing.T) {
-		if found := processViolations(dependencies(t, verifyModule, "./cmd/...")); len(found) > 0 {
-			t.Errorf("the verifier links %v", found)
+func TestVerifierStartsNoProcess(t *testing.T) {
+	platforms := []string{"linux", "darwin", "windows"}
+
+	t.Run("the packages that import os/exec below the verifier are exactly the allowlist [verifies SP-39~2]", func(t *testing.T) {
+		union := map[string]bool{}
+		for _, goos := range platforms {
+			for _, importer := range verifierExecImporters(t, goos) {
+				union[importer] = true
+			}
+		}
+		var found []string
+		for importer := range union {
+			found = append(found, importer)
+		}
+		slices.Sort(found)
+		if want := allowedExecImporters(); !slices.Equal(found, want) {
+			t.Errorf("importers of os/exec reachable from the verifier: %v, allowlist: %v", found, want)
 		}
 	})
 
-	t.Run("the rule detects os/exec [verifies SP-39~1]", func(t *testing.T) {
-		if got := processViolations([]string{"os", "os/exec", "os/signal"}); len(got) != 1 {
-			t.Fatalf("violations = %v", got)
+	t.Run("no package of the verifier module imports os/exec [verifies SP-39~2]", func(t *testing.T) {
+		for _, goos := range platforms {
+			for _, importer := range verifierExecImporters(t, goos) {
+				if isUnder(importer, modulePath(verifyModule)) {
+					t.Errorf("%s imports os/exec on %s", importer, goos)
+				}
+			}
+		}
+	})
+
+	t.Run("the verifier binary holds no symbol of os/exec, with and without cgo [verifies SP-39~2]", func(t *testing.T) {
+		for _, cgo := range []string{"1", "0"} {
+			if found := linkedProcessSymbols(t, cgo); len(found) > 0 {
+				t.Errorf("CGO_ENABLED=%s: the binary links %v", cgo, found[:min(len(found), 5)])
+			}
+		}
+	})
+
+	t.Run("the rule finds the importers of os/exec [verifies SP-39~2]", func(t *testing.T) {
+		listing := "a|fmt os\nb|os/exec io\nc|os/signal\nd|os/exec"
+		if got := processImporters(listing); !slices.Equal(got, []string{"b", "d"}) {
+			t.Fatalf("importers = %v", got)
 		}
 	})
 }

@@ -24,5 +24,11 @@ module in CI.
   codec, and SHALL leave all three without test support.
 - **SP-144~1**: WHEN the binaries of every module other than `format` are linked
   THE SYSTEM SHALL contain no package of the test support of `format`.
-- **SP-39~1**: WHEN the `spec-proof-verify` binary is linked THE SYSTEM SHALL
-  contain no `os/exec`.
+- **SP-39~2**: WHEN the `spec-proof-verify` binary is linked THE SYSTEM SHALL
+  hold no symbol of `os/exec`, with and without cgo, no package of the `verify`
+  module SHALL import `os/exec`, and the set of packages reachable from the
+  binary on linux, darwin and windows that import `os/exec` SHALL equal the
+  allowlist of the test, which names `github.com/digitorus/pkcs7`,
+  `github.com/google/certificate-transparency-go/x509` and
+  `github.com/in-toto/in-toto-golang/in_toto` with a reason each, so that a
+  dependency change that adds or removes an importer fails until reviewed.

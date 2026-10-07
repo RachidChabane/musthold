@@ -16,14 +16,6 @@ require (
 
 replace github.com/RachidChabane/spec-proof/format => ../format
 
-// Copies without the code that starts a process, which the verifier never runs
-// (script/exec-free-deps).
-replace (
-	github.com/digitorus/pkcs7 => ./third_party/pkcs7
-	github.com/google/certificate-transparency-go => ./third_party/certificate-transparency-go
-	github.com/in-toto/in-toto-golang => ./third_party/in-toto-golang
-)
-
 require (
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/bitfield/gotestdox v0.2.2 // indirect
