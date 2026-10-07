@@ -22,9 +22,11 @@ const DefaultTimeout = 5 * time.Minute
 const rootDirectory = "."
 
 var (
-	// outputDirectories are never copied into workspaces: reports and build
-	// outputs the project regenerates.
-	outputDirectories = []string{"coverage", ".nyc_output", "dist"}
+	// outputDirectories are never copied into workspaces: coverage reports the
+	// project regenerates. The workspace manager leaves them out at every depth,
+	// node_modules included, so only names no package ships a directory by are
+	// listed.
+	outputDirectories = []string{"coverage", ".nyc_output"}
 	// dependencyDirectories hold installed packages.
 	dependencyDirectories = []string{"node_modules"}
 	// testFileGlobs name the files that hold tests, their setup or the tooling

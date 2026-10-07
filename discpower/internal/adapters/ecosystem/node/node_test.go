@@ -233,8 +233,8 @@ func TestBuildCheck(t *testing.T) {
 
 func TestLayout(t *testing.T) {
 	layout := jestStrategy(nil, nil).Layout()
-	t.Run("build outputs are excluded and node_modules is a dependency directory [verifies SP-1016~1]", func(t *testing.T) {
-		for _, excluded := range []string{"coverage", "dist", ".nyc_output"} {
+	t.Run("coverage reports are excluded and node_modules is a dependency directory [verifies SP-1016~1]", func(t *testing.T) {
+		for _, excluded := range []string{"coverage", ".nyc_output"} {
 			if !contains(layout.ExcludedDirs, excluded) {
 				t.Errorf("%s is not excluded: %v", excluded, layout.ExcludedDirs)
 			}
