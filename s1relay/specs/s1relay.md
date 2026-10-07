@@ -95,3 +95,14 @@ to the Go tests of the module in CI.
   into a stub endpoint THE SYSTEM SHALL leave none of them waiting for a first
   vote and record their answers under the relay source, so that the module
   carries on with them.
+
+## Plugin
+
+- **SP-830~1**: WHEN the Claude Code plugin of the relay is generated THE SYSTEM
+  SHALL produce its files from one definition, the same bytes on every run, and
+  the committed tree under `plugin/claude` SHALL equal what the generator produces.
+- **SP-831~1**: WHEN the plugin files are read against the formats Claude Code
+  documents THE SYSTEM SHALL give a manifest that names the plugin `spec-proof-s1`
+  with a version and a description, and one skill that runs `spec-proof-s1 drain
+  --module` for each proof module, pre-approves nothing else, and carries no text
+  about its own authoring.
