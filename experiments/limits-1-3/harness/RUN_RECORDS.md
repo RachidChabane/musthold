@@ -48,9 +48,9 @@ Files of the amended protocol:
 | `plan.json` | the first verb that needs it | `{arm_t, contrast_x, terra_x, writers, luna}`, each a list of `{call_id, criterion, model, cli, nonce, imported, writer\|null, kind\|null}` |
 | `mutant_sources.json` | `run-blindspot`, `run-luna` | `{S\|O\|op\|terra\|luna: [mutant_id]}`: membership per source, also for a mutant whose document sits under another arm |
 | `suites/<W>.json` | `run-blindspot` (S, O), `run-luna` (L) | `{criterion: {writer, criterion, call_id, status: ok\|missing, reference_checked, tests: [{name, source, status: kept\|rejected_static\|dropped_reference, reason\|null}]}}` |
-| `writer_kills.jsonl` | `run-blindspot`, `run-luna` | `{writer, mutant_id, results: {nodeid: killed\|survived\|error\|flaky}}` for every evaluated mutant; node ids are `tests/test_park_<n>.py::<name>` |
-| `exploratory_status.json` | `run-secondary`, `run-luna` | `{secondary\|luna: {call_id: complete\|blocked\|pending}}` |
-| `call_budget.json` | every model-calling verb | `{<UTC date>: {claude\|codex: new calls}}` |
+| `writer_kills.jsonl` | `run-blindspot`, `run-luna` | `{writer, mutant_id, results: {nodeid: killed\|survived\|error\|flaky}}` for every evaluated mutant; node ids are `tests/test_park_<n>__<name>.py::<name>` |
+| `exploratory_status.json` | `run-secondary`, `run-luna` | `{secondary\|luna: {call_id: complete\|missing\|blocked\|pending}}` |
+| `call_budget.json` | every model-calling verb | `{<local date the window opened>: {claude\|codex: new calls}}` |
 | `SHA256SUMS` | the seal of a run | `sha256sum` lines of every other file of the run directory |
 
 A resumed call (its `raw/<call_id>/result.json` exists) counts neither against the call budget nor
@@ -62,17 +62,28 @@ Model calls are made only inside the run window: every day from 21:00 to 07:30 l
 (`--run-window HH:MM-HH:MM`, or the environment variable `PILOT_RUN_WINDOW`; `always` disables it). The
 window may cross midnight. Outside the window a verb makes no new call, stops with exit code 3 and logs
 `- quota-pause | endpoints: none | run window closed`; a rerun inside the window resumes it. The daily
-call budget (`--call-budget`, default 250 new calls per UTC day and CLI) is a second cap with the entry
+call budget (`--call-budget`, default 250 new calls per run-window night and CLI; a night is identified by the local date on which its window opened) is a second cap with the entry
 `call budget reached`. `script/run-pilot` starts a model-calling step only inside the window; it asks
 `script/run-window`, which exits 0 inside and 3 outside.
 
 ## Sealing run-01 and importing it
 
-The seal is a procedure of the operator, in this order:
+The seal is a procedure of the operator, in this order. Every command runs from `experiments/limits-1-3/`.
 
-1. `log-deviation --run-id run-01 protocol all "superseded by prereg-limits-1-3-a1; no analysis output exists"`.
-2. Write `runs/run-01/SHA256SUMS`: `(cd runs/run-01 && find . -type f ! -name SHA256SUMS | sed 's|^\./||' | LC_ALL=C sort | xargs shasum -a 256 | sed 's/ \*/  /' > SHA256SUMS)`.
-3. `script/import-run-01 --run-id run-02 --plan-only` prints the digests of the files an import would carry;
-   they become the `import_digests` object of `prereg/amendment.json`.
-4. Commit run-01 as it is, then the amendment, then create the tag `prereg-limits-1-3-a1`.
-5. After the tag and the timestamp: `script/canary --run-id run-02`, then `script/import-run-01 --run-id run-02`.
+1. `./script/log-deviation --run-id run-01 --kind protocol --endpoints all --text "superseded by prereg-limits-1-3-a1; no analysis output exists"`.
+2. Write the seal, covering every file of the run directory except the seal itself:
+   `(cd runs/run-01 && find . -type f ! -name SHA256SUMS | sed 's|^\./||' | LC_ALL=C sort | xargs shasum -a 256 | sed 's/ \*/  /' > SHA256SUMS)`.
+   Remove any `.DS_Store` first; the import refuses a file the seal does not cover.
+3. `./script/import-run-01 --run-id run-02 --plan-only` prints `{"import_digests": {...}}`; replace the
+   value of `import_digests` in `prereg/amendment.json` with that object (for example
+   `jq --slurpfile d <(./script/import-run-01 --run-id run-02 --plan-only) '.import_digests = $d[0].import_digests' prereg/amendment.json`).
+   Nothing is written under `runs/run-02` by this command.
+4. Commit `runs/run-01` and nothing else under `runs/` (`git add runs/run-01`), then the amended documents,
+   then create the annotated tag `prereg-limits-1-3-a1`; write `freeze/a1-commit.txt` with the peeled commit,
+   obtain `freeze/a1-commit.tsq` and `.tsr`, commit them (never `runs/run-02`).
+5. After the tag and the timestamp: `./script/canary --run-id run-02`, then `./script/import-run-01 --run-id run-02`,
+   then `./script/run-pilot run-02`.
+
+`amendment-check` also requires `bindings.json` and `reference.json` of `run-02` to have the SHA-256 of the
+same paths in run-01's `SHA256SUMS`, and `traceability.json` to equal run-01's in verdict, summary, finding
+categories and links.

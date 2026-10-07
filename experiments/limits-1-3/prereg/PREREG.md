@@ -39,7 +39,7 @@ An import-linter contract forbids `domain`, `application` and `adapters` from
 importing `analysis`. The pipeline verbs (`run-core`, `run-blindspot`, `run-secondary`, `run-luna`) never open
 `prereg/labels.yaml`, `prereg/oracle/`, `prereg/violations/` or
 `prereg/refactor/`, `prereg/planted/`, `prereg/arm_p/labels.yaml` or
-`prereg/arm_p/items/planted_map.json`, and read the arm-P bodies only from the
+`prereg/arm_p/items/planted_map.json`, `prereg/isolation_table.json` or `prereg/label_matrix.csv`, and read the arm-P bodies only from the
 files of `prereg/arm_p/items/` named `<mutant_id>.json`; a harness test asserts
 that no module reachable from those verbs names these paths. The
 pre-registration tools (`verify-labels`, `runner-crosscheck`, `assemble-arm-p`)
@@ -222,8 +222,7 @@ which author, R-OAI and R-AUTHOR agree on the 6-class label.
 ### 4.1 Pins (`prereg/models.lock.json`)
 
 One frozen host model, H = `claude-sonnet-5-5`, executes every product role. The contrast model, X =
-`claude-opus-5-5`, is a measurement contrast and never a product role. Plugin subagents run on the session
-model, so the product never computes a two-model consensus.
+`claude-opus-5-5`, is a measurement contrast and never a product role.
 
 | Role | Model | CLI |
 |---|---|---|
@@ -287,14 +286,16 @@ Isolation checks per call: `events.jsonl` contains only `agent_message` and
   (model, call type) that the run calls on the Claude CLI, with that call type's real schema; it measures the
   token and turn baselines and verifies pins, flags and schemas. The pairs are: H on generate, validity,
   alignment, probe and write_tests; X on generate, write_tests, alignment and audit. Terra is never
-  canaried; luna is canaried by `run-luna` on generate and write_tests. Any failure aborts; the fix is a
-  `protocol` entry of `DEVIATIONS.md`. `canary` and `import-run-01` write `timing.json` entries.
+  canaried; luna is canaried by `run-luna` on generate and write_tests. Any failure of the canary of the Claude pairs aborts;
+  the fix is a `protocol` entry of `DEVIATIONS.md`. A failed luna canary marks every luna call blocked in
+  `exploratory_status.json` and logs no deviation. `canary` and `import-run-01` write `timing.json` entries.
 - Pacing. Model calls are made only inside the run window: every day from 21:00 to 07:30 local time by
   default, configurable by `--run-window HH:MM-HH:MM` or `PILOT_RUN_WINDOW`; a window whose end precedes
   its start crosses midnight, and the window is open at its start and closed at its end. A verb that
   finds the window closed makes no new call, stops with exit code 3 and logs a `quota-pause` entry with
   the text `run window closed`; a rerun inside the window resumes it. A second cap, `--call-budget N`
-  (default 250 new calls per UTC day and CLI), stops a verb the same way with the text
+  (default 250 new calls per run-window night and CLI; a night is identified by the local date on which its
+  window opened, so one night spends one budget across midnight), stops a verb the same way with the text
   `call budget reached`. The budget is a ledger in `runs/<run-id>/call_budget.json` that counts only new
   calls. `script/run-pilot` starts a model-calling step only inside the window.
 - On subscription quota or rate-limit exhaustion the verb stops and logs a
@@ -451,7 +452,7 @@ Classes per (mutant m, criterion c), τ = 0.70, V-H1 and V-H2 being the two vote
 
 | Class | Rule | May reach |
 |---|---|---|
-| VALID_w,c | both votes VIOLATED for c with confidence ≥ τ, and ≥ 1 confirmed witness for c; judged confidence = min of the two | matrix pool, D7, the D8 frozen reading |
+| VALID_w,c | both votes VIOLATED for c with confidence ≥ τ, and ≥ 1 confirmed witness for c; judged confidence = min of the two | matrix pool, D7, D8-all |
 | VALID_x,c | VALID_w,c; F0 passed; no reproduced kill and no error on any test whose Shallnot binding D(t) ≠ c | gate (BLOCK, pass credit), D6, D8 |
 | EQUIVALENT | no reproduced kill, F3 NO_DIFF_FOUND or SKIPPED, both votes `equivalent=true` with confidence ≥ τ | as stated |
 | UNATTRIBUTED | a reproduced kill or F3 DIFFERS, and both votes NOT_VIOLATED for every criterion with confidence ≥ τ | as stated |
@@ -508,7 +509,8 @@ recorded nonce).
   see fixture tests, the oracle, mutants or labels.
 - Output (`prereg/schemas/write_tests.schema.json`): `{tests: [{name, source}]}`, 2 to 5 tests. `source` is
   the import lines the test needs and one function named `name`. The harness adds
-  `@pytest.mark.verifies(<ref>)` and writes one module per criterion, `tests/test_park_<n>.py`.
+  `@pytest.mark.verifies(<ref>)` and writes one module per test, `tests/test_park_<n>__<name>.py`, so that a test whose import fails to collect
+  errors that test alone.
 - Static check: a deterministic AST check allows imports only from the Python standard library, `pytest`
   and `parkfee`, at any depth of the source, and nothing at top level but imports and the one function. A
   test that fails the check is rejected and kept in the record.
@@ -692,14 +694,13 @@ oracle-valid for their target; the precision of the VALID_w primary-matrix mutan
 N7 is the oracle-valid base rate of the host's arm T. D7 counts an r-item when it is VALID_w for its
 declared criterion and an n1-item when it is VALID_w for any criterion, COLLATERAL included; the r-items
 that no other binding's test kills (16 of 20) are reported beside it. D8 counts primary-matrix VALID_x
-mutants per criterion over C_D8. D8 is the only re-based band: a threshold of 10/10 on the gate pool is
-structurally unreachable when isolation removes every mutant of a criterion, and a looser threshold would
-let any one criterion fail, so the rule fixes the denominator. C_D8 is the set of criteria with at least one
+mutants per criterion over C_D8: GO when every criterion of C_D8 has at least two, NO-GO when three or more
+have fewer. C_D8 is the set of criteria with at least one
 hand-written violation (`PARK-n_{a,b,c}`) that no test bound to another criterion kills; the `isolation-table`
 verb computes it from `label_matrix.csv` and the Shallnot bindings into `prereg/isolation_table.json`, and it
-is the ten criteria minus PARK-3. GO keeps "every criterion"; NO-GO keeps "three or more criteria short".
+is the ten criteria minus PARK-3.
 PARK-3's VALID_x count is reported by name; PARK-5 and PARK-8, with one surviving violation each, stay in
-the denominator and are named in advance as exposed. The frozen reading of D8 (≥ 2 VALID_w primary-matrix
+the denominator and are named in advance as exposed. D8-all (≥ 2 VALID_w primary-matrix
 arm-T mutants over all 10 criteria: GO 10/10, NO-GO ≤ 7/10) is reported and feeds no switch. D9 to D11 use
 J-H and the matrix over the VALID_w pool. Mean DC is taken over the tests whose criterion has at least one
 VALID_w mutant.
@@ -746,8 +747,14 @@ Switch rules, fixed without access to any pilot output. If an endpoint is INCONC
 | SW5 (exploratory) | V-H1 alone meets D6's GO band on pilot data | Pass-credit judgments on killed mutants use V-H1 only. Survivors keep two votes. |
 | SW6 | F7 amber or red | `max_rounds` = 2, `shadow_rate` = 0.05, `max_reasoning_calls` = 24. |
 
+Switch parameters. `min_valid` = 3, `min_sites` = 2, `max_rounds` = 3, `shadow_rate` = 0.10, `align_k` = 5 and
+`max_reasoning_calls` = 40 are the defaults that SW2 to SW6 change. The footprint of a criterion is the union
+of the functions executed by its bound tests and examples and those the diff touches, closed over the static
+call graph. Owner attribution is a verdict of the criterion's owner, or an example of the specification
+that the mutant alone fails; a BLOCK or pass credit that needs it is not given on a judged VALID.
+
 SW1 reads D6 on VALID_x because blocks use VALID_x, and D7 on VALID_w because D7 measures the judges. SW2a
-reads D8 over C_D8 because the frozen reading is non-decisional. SW5 reads V-H1 because the two host votes
+reads D8 over C_D8 because D8-all is non-decisional. SW5 reads V-H1 because the two host votes
 are the product's validity rule.
 
 Composite: REDESIGN(components) if any NO-GO, the component named by the §9.4
@@ -797,7 +804,7 @@ to their labels.
   (B = 10,000, seed 20261006, 95%). The reading is fixed in advance and the first rule that holds wins:
   lower bound > 0 reads "shared blind spot indicated" (the report adds when the upper bound is also below
   0.10); otherwise upper bound < 0.10 reads "no material shared blind spot"; otherwise "undetermined", the
-  expected reading at |C*| ≤ 10. An empty C* reads "undetermined".
+  expected reading at |C*| ≤ 10. The reading is "undetermined" whenever |C*| < 3, whatever the interval, and for an empty C*.
 - Also reported: the 2 × 3 table e(W, M) with counts; the location split (the share of escaping model
   mutants whose edited definition also hosts an escaping operator mutant of the same criterion and writer, a
   coverage hole, versus one that does not, a model-specific blind spot); the exploratory cells, labelled
@@ -843,7 +850,7 @@ to their labels.
 F1 valid outputs, over the model calls (one per `raw/<call_id>/`), ≥ 95% green,
 85–95% amber, else red. F2 isolation violations: 0 green, else red. F3 missing
 rate of the worst judge (as P5) ≤ 5% green, ≤ 15% amber. F4 arm-T stillborn ≤
-20% green, ≤ 40% amber. F5 criteria with ≥ 2 VALID_w primary-matrix arm-T mutants, counted over all 10 criteria (the frozen reading of D8): 10 green, 8–9 amber. F6
+20% green, ≤ 40% amber. F5 criteria with ≥ 2 VALID_w primary-matrix arm-T mutants, counted over all 10 criteria (D8-all): 10 green, 8–9 amber. F6
 runner cross-check exact: green, else red. F7 mean Claude cost per criterion on
 the production path (G-H, V-H1, V-H2, J-H NAME-MASKED) ≤ 5 USD green, ≤ 15 USD amber (the maximum is reported). F8
 wall clock, the sum of the stage durations in `timing.json`, ≤ 12 h green, ≤ 36
@@ -891,7 +898,11 @@ verb runs under `script/mem-guard` and `nice`; model calls follow the run window
 2. `import-run-01`, then `relabel` as a zero-call resume. `import-run-01` refuses unless every source file
    matches the `SHA256SUMS` of the sealed `runs/run-01`, refuses if any target path exists, copies by digest
    and writes `imports.json` (source path, digest, role). The expected set is exact: 10 completed X
-   generations, 5 completed terra generations, both relabels, 12 canary baselines and one retired attempt.
+   generations, 5 completed terra generations, both relabels and 12 canary baselines are copied; the one
+   retired attempt (a call without a result) is listed in `imports.json` and not copied. It reads
+   `plan.json` of `runs/run-01` for the original nonces of the imported calls. `runs/run-01` is sealed by a
+   `protocol | all` entry in its `DEVIATIONS.md` and a `SHA256SUMS`, committed before the tag, and never
+   analysed; the report gives its counts per kind.
 3. `run-core`: traceability, then arm-T generation (50 calls of H), arm P, F0 to F3, V-H1 and V-H2 with
    witnesses, isolation, J-H NAME-MASKED (190 calls) and the leakage probe (114 calls).
 4. `run-blindspot`: new M_X calls (20), T_S and T_O (10 each), the reference filter; arm-O enumeration;
@@ -905,7 +916,9 @@ verb runs under `script/mem-guard` and `nice`; model calls follow the run window
    writer kill vectors; `oracle-classify` then classifies the luna mutants. Each call's status goes to
    `exploratory_status.json`. Anything incomplete at the close is reported BLOCKED in the exploratory tables
    only.
-8. Once the secondary stream and luna are complete or closed: `amendment-check`, `analyze`, `report-lint`.
+8. Once the secondary stream and luna are both complete or closed: `amendment-check`, `analyze`,
+   `report-lint`. Steps 6 and 7 are independent streams: `script/run-pilot` tries each on every invocation, and
+   a pause of one never keeps the other from starting.
 
 `amendment-check` runs first in `analyze` and refuses unless all of the following hold: both tags exist;
 `git diff --name-only --relative prereg-limits-1-3 prereg-limits-1-3-a1 -- .`, run from the experiment
@@ -913,7 +926,10 @@ root, is a subset of the paths declared in `prereg/amendment.json`; each `freeze
 peeled tag; each token's message imprint (`openssl ts -reply -text`) equals the SHA-256 of its
 `*-commit.txt`; the genTime of the `prereg-limits-1-3-a1` token precedes the earliest `started` in the
 run's `timing.json`; `runs/run-01` matches its `SHA256SUMS`; `imports.json` matches the run and
-`amendment.json`. The check verifies the imprint and the genTime ordering, not the timestamp authority's
+`amendment.json`; `bindings.json` and `reference.json` of the run have the SHA-256 recorded for the same
+paths in the `SHA256SUMS` of `runs/run-01`, and the `traceability.json` of the run equals the sealed run's in
+its verdict, summary, finding categories and links (the report embeds the path it was produced under, so
+the comparison is over that canonical form). The check verifies the imprint and the genTime ordering, not the timestamp authority's
 certificate chain.
 
 A rerun is allowed only for a P4 or P7 infrastructure failure, before any analysis output exists, and is
