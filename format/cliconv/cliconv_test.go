@@ -66,8 +66,16 @@ func TestFlagSetUsage(t *testing.T) {
 			t.Errorf("synopsis = %q", got)
 		}
 	})
+	t.Run("a command with several forms spells them out in its synopsis"+verifiesHelp, func(t *testing.T) {
+		set := cliconv.NewFlagSet("tool", "").WithSynopsis("usage:\n  tool version\n  tool --out DIR\n")
+		set.String("out", "", "output directory")
+		want := "usage:\n  tool version\n  tool --out DIR\n\nflags:\n  --out string  output directory\n"
+		if got := set.Usage(); got != want {
+			t.Errorf("usage = %q, want %q", got, want)
+		}
+	})
 	t.Run("a command without flags prints its synopsis only"+verifiesHelp, func(t *testing.T) {
-		if got := cliconv.NewFlagSet("tool version", "").Usage(); got != "usage: tool version [flags]\n" {
+		if got := cliconv.NewFlagSet("tool version", "").Usage(); got != "usage: tool version\n" {
 			t.Errorf("usage = %q", got)
 		}
 	})
@@ -77,6 +85,20 @@ func TestFlagSetUsage(t *testing.T) {
 		}
 		if got := cliconv.VerbsUsage("tool", "request", []string{"list", "show"}); got != "usage: tool request <list|show>\n" {
 			t.Errorf("verbs = %q", got)
+		}
+	})
+}
+
+func TestNeedsVerb(t *testing.T) {
+	t.Run("the refusal lists the verbs the command takes"+verifiesHelp, func(t *testing.T) {
+		if got := cliconv.NeedsVerb("request", []string{"list", "show", "submit"}); got != "request needs one of list, show or submit" {
+			t.Errorf("text = %q", got)
+		}
+		if got := cliconv.NeedsVerb("host", []string{"push", "pull"}); got != "host needs one of push or pull" {
+			t.Errorf("text = %q", got)
+		}
+		if got := cliconv.NeedsVerb("solo", []string{"only"}); got != "solo needs one of only" {
+			t.Errorf("text = %q", got)
 		}
 	})
 }

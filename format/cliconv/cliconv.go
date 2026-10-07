@@ -38,6 +38,10 @@ const (
 	flagsPlaceholder = "[flags]"
 	flagsHeading     = "flags:"
 	lineBreak        = "\n"
+
+	needsPhrase           = " needs one of "
+	verbListSeparator     = ", "
+	verbListLastSeparator = " or "
 )
 
 // helpArguments are the spellings of the flag that asks for help; the flag
@@ -76,6 +80,7 @@ func (e UsageError) Unwrap() error { return e.Err }
 type FlagSet struct {
 	*flag.FlagSet
 	arguments string
+	synopsis  string
 }
 
 // NewFlagSet builds the flag set of a command called name, which takes the given
@@ -86,16 +91,37 @@ func NewFlagSet(name, arguments string) *FlagSet {
 	return &FlagSet{FlagSet: set, arguments: arguments}
 }
 
+// WithSynopsis replaces the synopsis line the usage derives from the name and the
+// arguments, for a command whose forms need spelling out; the text ends in a line
+// break.
+func (s *FlagSet) WithSynopsis(synopsis string) *FlagSet {
+	s.synopsis = synopsis
+	return s
+}
+
 // Usage is the text that describes the command: its synopsis, then each flag with
 // its value and its default.
 func (s *FlagSet) Usage() string {
-	var out strings.Builder
-	out.WriteString(usagePrefix + Line(s.Name(), s.arguments, flagsPlaceholder) + lineBreak)
 	rows := flagRows(s.FlagSet)
-	if len(rows) == 0 {
-		return out.String()
+	synopsis := s.synopsis
+	if synopsis == "" {
+		synopsis = usagePrefix + Line(s.Name(), s.arguments, placeholderOf(len(rows))) + lineBreak
 	}
-	out.WriteString(lineBreak + flagsHeading + lineBreak)
+	if len(rows) == 0 {
+		return synopsis
+	}
+	return synopsis + lineBreak + flagsHeading + lineBreak + renderRows(rows)
+}
+
+func placeholderOf(flags int) string {
+	if flags == 0 {
+		return ""
+	}
+	return flagsPlaceholder
+}
+
+func renderRows(rows []flagRow) string {
+	var out strings.Builder
 	width := 0
 	for _, row := range rows {
 		width = max(width, len(row.label))
@@ -167,6 +193,17 @@ func CommandsUsage(binary string, commands []string) string {
 // VerbsUsage is the usage text of a command that takes a verb.
 func VerbsUsage(binary, command string, verbs []string) string {
 	return usagePrefix + binary + fieldSeparator + command + fieldSeparator + "<" + strings.Join(verbs, commandSeparator) + ">" + lineBreak
+}
+
+// NeedsVerb is the refusal text of a command that takes a verb and got none:
+// `request needs one of list, show or submit`.
+func NeedsVerb(command string, verbs []string) string {
+	last := len(verbs) - 1
+	list := verbs[0]
+	if last > 0 {
+		list = strings.Join(verbs[:last], verbListSeparator) + verbListLastSeparator + verbs[last]
+	}
+	return command + needsPhrase + list
 }
 
 // Handle gives the text and the exit code the convention prescribes for the
