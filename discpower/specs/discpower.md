@@ -497,3 +497,14 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   tickets of one project share one host directory.
 - **SP-240~1**: WHEN the fake-host personas drive the module through its command
   line THE SYSTEM SHALL give each the verdict ADR 0005 asserts for it.
+- **SP-241~1**: WHEN the host files are generated THE SYSTEM SHALL produce them from
+  one definition, the same bytes on every run, and the committed trees of the
+  plugin and the harness scaffolds SHALL equal what the generator produces.
+- **SP-242~1**: WHEN the host files of a harness are read against the formats that
+  harness documents THE SYSTEM SHALL give the Claude Code plugin its manifest, its
+  executor server, three agents holding exactly the two executor tools with the
+  inherited model, a blind context and four turns, its four hooks under matchers
+  that select the executor alone, and a skill that pre-approves what its loop
+  runs; give Codex read-only agents carrying the executor server, hook entries and
+  a skill; give Copilot agents naming server and tool pairs, a hooks file and a
+  skill; and carry no text about their own authoring.

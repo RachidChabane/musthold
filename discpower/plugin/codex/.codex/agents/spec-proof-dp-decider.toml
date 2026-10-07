@@ -1,0 +1,8 @@
+name = "spec-proof-dp-decider"
+description = "Executes one closed-question ticket of spec-proof-dp as a blind executor. Launch it only through the spec-proof-dp-fulfil skill, with a prompt that is the ticket."
+developer_instructions = "Fetch the ticket in your task, follow its instructions, submit JSON matching its schema, reply only with the receipt."
+sandbox_mode = "read-only"
+
+[mcp_servers.spec-proof-dp-exec]
+command = "spec-proof-dp"
+args = ["mcp", "--role", "executor", "--harness", "codex"]

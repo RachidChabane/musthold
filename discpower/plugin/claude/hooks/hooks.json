@@ -1,0 +1,52 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "spec-proof-dp hook post-tool --harness claude",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Agent|mcp__plugin_spec-proof-dp_exec__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "spec-proof-dp hook pre-tool --harness claude",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "^spec-proof-dp:(generator|judge|decider)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "spec-proof-dp hook subagent-start --harness claude",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "^spec-proof-dp:(generator|judge|decider)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "spec-proof-dp hook subagent-stop --harness claude",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

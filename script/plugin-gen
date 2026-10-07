@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Regenerate the committed plugin trees of the discriminating-power module
+# (discpower/plugin/{claude,codex,copilot}) from the generator they come from.
+# `script/test discpower` fails when a committed tree differs from the generator.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/../discpower"
+
+GOMAXPROCS=2 nice -n 10 go test -p 1 -count=1 ./internal/domain/hostfiles -run TestCommittedFilesAreGenerated -update
