@@ -1,0 +1,7 @@
+proofs:
+  completeness: true
+ecosystems:
+  - junit
+operations:
+  invoice_total:
+    java: ledger.Totals#invoiceTotal

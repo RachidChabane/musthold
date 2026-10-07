@@ -389,6 +389,24 @@ traces them to the Go tests of the module in CI.
   is new or whose code differs, and none for a unit whose syntax tree is the same
   whatever its formatting, comments and documentation comments.
 
+## Java sources
+
+- **SP-1303~1**: WHEN the units of a Java file are listed THE SYSTEM SHALL give one
+  unit per method and per constructor, the constructors and the static initializers
+  of a class answering to the name of the class, one assignment per static final
+  field, per field of an interface and per constant of an enumeration, and
+  qualify the members of a nested type by the types around it.
+- **SP-1304~1**: WHEN the tests of a Java file are listed THE SYSTEM SHALL serve as
+  test files the files below a `test` directory and those named `*Test`, `*Tests`,
+  `*IT`, `*TestCase` or `Test*`, give one unit of kind test per method annotated as
+  a test of JUnit 5, with the pattern of the labels a runner reports for it, and let
+  it mention the hooks, the initializers and the instance fields of the classes
+  around it.
+- **SP-1305~1**: WHEN the units of a changed Java file are compared with those
+  before the change THE SYSTEM SHALL give one hunk per unit that is new or whose
+  code differs, and none for a unit whose syntax tree is the same whatever its
+  formatting, comments and Javadoc.
+
 ## Tests and operations that justify changes
 
 - **SP-1309~1**: WHEN a changed unit is justified by an ALIGNED test THE SYSTEM
