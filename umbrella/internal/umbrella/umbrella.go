@@ -3,7 +3,9 @@
 // the relay beside the thin plugin, and the thin plugin itself. The thin plugin
 // declares its dependencies and holds one skill, `prove-all`, that runs the fulfil
 // loop of each module that is present; it holds no logic of its own. The committed
-// files under `umbrella/` are generated here. The package knows no I/O.
+// files under `umbrella/` are generated here, and so is the marketplace at the
+// repository root, which is the one `/plugin marketplace add RachidChabane/spec-proof`
+// reads. The package knows no I/O.
 package umbrella
 
 import (
@@ -28,6 +30,11 @@ const (
 
 	// MarketplacePath is where the marketplace file lives, relative to `umbrella/`.
 	MarketplacePath = ".claude-plugin/marketplace.json"
+	// RootMarketplacePath is where the marketplace file of the repository root
+	// lives, relative to the repository root.
+	RootMarketplacePath = ".claude-plugin/marketplace.json"
+	// UmbrellaDirectory is the directory of the umbrella in the repository.
+	UmbrellaDirectory = "umbrella"
 	// PluginDirectory is the thin plugin's tree, relative to `umbrella/`.
 	PluginDirectory = "plugins/" + PluginName
 
@@ -136,7 +143,10 @@ func SubdirSource(repository, path string) any {
 	return gitSubdir{Source: "git-subdir", URL: repository, Path: path}
 }
 
-func marketplaceFile() (File, error) {
+// marketplaceFile builds the marketplace at path, whose relative plugin sources
+// are resolved against the directory that holds the marketplace's `.claude-plugin`
+// directory: thinPluginSource is where the thin plugin's tree is from there.
+func marketplaceFile(path, thinPluginSource string) (File, error) {
 	listing := marketplace{Name: MarketplaceName, Owner: owner{Name: ownerName, URL: ownerURL}}
 	listing.Metadata.Description = "spec-proof: proofs that the tests of a project check what its requirements say, for coding agents."
 	listing.Plugins = append(listing.Plugins, marketplaceEntry{
@@ -148,11 +158,11 @@ func marketplaceFile() (File, error) {
 		})
 	}
 	listing.Plugins = append(listing.Plugins, marketplaceEntry{
-		Name: PluginName, Source: "./" + PluginDirectory,
+		Name: PluginName, Source: thinPluginSource,
 		Description: "Installs Shallnot and every spec-proof module and runs them together with the prove-all skill.",
 	})
 	content, err := encodeJSON(listing)
-	return File{Path: MarketplacePath, Content: content}, err
+	return File{Path: path, Content: content}, err
 }
 
 type pluginManifest struct {
@@ -233,10 +243,29 @@ func joinWithAnd(items []string) string {
 	return strings.Join(items[:last], ", ") + " and " + items[last]
 }
 
+func umbrellaMarketplaceFile() (File, error) {
+	return marketplaceFile(MarketplacePath, "./"+PluginDirectory)
+}
+
+func rootMarketplaceFile() (File, error) {
+	return marketplaceFile(RootMarketplacePath, "./"+UmbrellaDirectory+"/"+PluginDirectory)
+}
+
+// RootFiles returns every generated file of the repository root, relative to the
+// root: the marketplace that lists the same plugins as the umbrella's own, with the
+// thin plugin's path taken from the root.
+func RootFiles() ([]File, error) {
+	file, err := rootMarketplaceFile()
+	if err != nil {
+		return nil, err
+	}
+	return []File{file}, nil
+}
+
 // Files returns every generated file of the umbrella, relative to `umbrella/`.
 func Files() ([]File, error) {
 	var files []File
-	for _, build := range []func() (File, error){marketplaceFile, pluginManifestFile, skillFile} {
+	for _, build := range []func() (File, error){umbrellaMarketplaceFile, pluginManifestFile, skillFile} {
 		file, err := build()
 		if err != nil {
 			return nil, err

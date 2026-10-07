@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Regenerate the committed plugin trees from the generators they come from:
 #   <module>/plugin/{claude,codex,copilot} of each proof module,
-#   s1relay/plugin/claude, and the marketplace and thin plugin of umbrella/.
+#   s1relay/plugin/claude, the marketplace and thin plugin of umbrella/, and the
+#   marketplace at the repository root (.claude-plugin/marketplace.json).
 # `script/test <module>` fails when a committed tree differs from its generator.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -12,7 +13,7 @@ readonly GENERATORS=(
   "alignment ./internal/domain/hostfiles TestCommittedFilesAreGenerated"
   "completeness ./internal/domain/hostfiles TestCommittedFilesAreGenerated"
   "s1relay ./internal/plugin TestCommittedTreeIsGenerated"
-  "umbrella ./internal/umbrella TestGeneratedFiles"
+  "umbrella ./internal/umbrella TestGenerated.*Files"
 )
 
 for generator in "${GENERATORS[@]}"; do

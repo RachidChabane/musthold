@@ -29,6 +29,13 @@ spec format. `shallnot gate` traces them to the Go tests of the module in CI.
   `prove` and `request list` of each module and the `drain` of the relay and so no
   command that answers a request, never answer a request itself, and carry no text
   about its own authoring.
+- **SP-906~1**: WHEN the umbrella files are generated THE SYSTEM SHALL also produce
+  the marketplace at the root of the repository, which is the only one
+  `/plugin marketplace add RachidChabane/spec-proof` reads, from the same definition
+  as the umbrella's own: the same name, owner and plugins in the same order, with the
+  thin plugin reached by `./umbrella/plugins/spec-proof` from the root, and the
+  committed file SHALL equal what the generator produces, with no other file under
+  the root's marketplace directory.
 - **SP-824~1**: WHEN the marketplace and the skill are compared with the committed
   trees of the modules THE SYSTEM SHALL find, for each module and for the relay,
   a plugin tree whose manifest bears the name the marketplace lists, a fulfil

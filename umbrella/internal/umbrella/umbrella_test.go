@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -68,6 +69,143 @@ func committedFiles(t *testing.T) map[string]string {
 		}
 	}
 	return byPath
+}
+
+func generatedRoot(t *testing.T) map[string]string {
+	t.Helper()
+	files, err := umbrella.RootFiles()
+	if err != nil {
+		t.Fatal(err)
+	}
+	byPath := map[string]string{}
+	for _, file := range files {
+		byPath[file.Path] = string(file.Content)
+	}
+	return byPath
+}
+
+// committedRootFiles reads every file below the paths of the repository root
+// that the generator owns: the marketplace directory the root is added by.
+func committedRootFiles(t *testing.T) map[string]string {
+	t.Helper()
+	byPath := map[string]string{}
+	root := filepath.Join(repositoryRoot, ".claude-plugin")
+	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil || entry.IsDir() {
+			return walkErr
+		}
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		relative, err := filepath.Rel(repositoryRoot, path)
+		if err != nil {
+			return err
+		}
+		byPath[filepath.ToSlash(relative)] = string(content)
+		return nil
+	})
+	if err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	return byPath
+}
+
+func TestGeneratedRootFiles(t *testing.T) {
+	t.Run("the marketplace at the repository root is what the generator produces, byte for byte, and generating twice gives the same bytes [verifies SP-906~1]", func(t *testing.T) {
+		want := generatedRoot(t)
+		if *update {
+			if err := os.RemoveAll(filepath.Join(repositoryRoot, ".claude-plugin")); err != nil {
+				t.Fatal(err)
+			}
+			for path, content := range want {
+				target := filepath.Join(repositoryRoot, filepath.FromSlash(path))
+				if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(target, []byte(content), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
+		got := committedRootFiles(t)
+		for path, content := range want {
+			if got[path] != content {
+				t.Errorf("%s differs from the generator: run script/plugin-gen", path)
+			}
+		}
+		for path := range got {
+			if _, expected := want[path]; !expected {
+				t.Errorf("%s is committed but not generated", path)
+			}
+		}
+		if !slices.Equal(slices.Sorted(maps.Keys(want)), []string{umbrella.RootMarketplacePath}) {
+			t.Errorf("the root files are %v", slices.Sorted(maps.Keys(want)))
+		}
+		again := generatedRoot(t)
+		for path, content := range want {
+			if again[path] != content {
+				t.Errorf("%s differs between two runs", path)
+			}
+		}
+	})
+}
+
+func readRootListing(t *testing.T) listing {
+	t.Helper()
+	var found listing
+	if err := json.Unmarshal([]byte(generatedRoot(t)[umbrella.RootMarketplacePath]), &found); err != nil {
+		t.Fatal(err)
+	}
+	return found
+}
+
+func TestRootMarketplace(t *testing.T) {
+	root, own := readRootListing(t), readListing(t)
+
+	t.Run("the root marketplace lists the plugins of the umbrella's own, in the same order, and differs from it in the path of the thin plugin alone [verifies SP-906~1]", func(t *testing.T) {
+		if root.Name != own.Name || root.Owner != own.Owner || len(root.Plugins) != len(own.Plugins) {
+			t.Fatalf("root = %+v, own = %+v", root, own)
+		}
+		last := len(root.Plugins) - 1
+		for index := range root.Plugins[:last] {
+			if root.Plugins[index].Name != own.Plugins[index].Name || string(root.Plugins[index].Source) != string(own.Plugins[index].Source) ||
+				root.Plugins[index].Description != own.Plugins[index].Description {
+				t.Errorf("plugin %d is %+v at the root and %+v in the umbrella", index, root.Plugins[index], own.Plugins[index])
+			}
+		}
+		if root.Plugins[last].Name != own.Plugins[last].Name || root.Plugins[last].Description != own.Plugins[last].Description {
+			t.Errorf("the thin plugin is %+v at the root and %+v in the umbrella", root.Plugins[last], own.Plugins[last])
+		}
+	})
+
+	t.Run("the thin plugin is reached from the repository root, and the tree it names holds its manifest [verifies SP-906~1]", func(t *testing.T) {
+		thin := root.Plugins[len(root.Plugins)-1]
+		path, relative := thin.relative()
+		if !relative || path != "./"+umbrella.UmbrellaDirectory+"/"+umbrella.PluginDirectory {
+			t.Fatalf("source = %s", thin.Source)
+		}
+		manifest := filepath.Join(repositoryRoot, filepath.FromSlash(path), filepath.FromSlash(manifestFile))
+		if _, err := os.Stat(manifest); err != nil {
+			t.Fatalf("the root marketplace points at a tree without a manifest: %v", err)
+		}
+	})
+
+	t.Run("every plugin the root marketplace lists by a path in this repository has its committed tree [verifies SP-906~1]", func(t *testing.T) {
+		for _, plugin := range root.Plugins {
+			if path, relative := plugin.relative(); relative {
+				if _, err := os.Stat(filepath.Join(repositoryRoot, filepath.FromSlash(path), filepath.FromSlash(manifestFile))); err != nil {
+					t.Errorf("%s: %v", plugin.Name, err)
+				}
+				continue
+			}
+			if source := plugin.subdir(t); source.URL == "RachidChabane/spec-proof" {
+				if _, err := os.Stat(filepath.Join(repositoryRoot, filepath.FromSlash(source.Path), filepath.FromSlash(manifestFile))); err != nil {
+					t.Errorf("%s: %v", plugin.Name, err)
+				}
+			}
+		}
+	})
 }
 
 func TestGeneratedFiles(t *testing.T) {
