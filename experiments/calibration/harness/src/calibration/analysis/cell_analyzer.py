@@ -13,6 +13,7 @@ from calibration.analysis.cell_record import (
     CellRecordParts,
     blocked_record,
     cell_record,
+    false_aligned_csv,
     key_identifiers,
     model_label,
     reliability_csv,
@@ -21,26 +22,17 @@ from calibration.analysis.cell_record import (
 from calibration.analysis.conclusions import conclusion
 from calibration.analysis.determinism import DeterminismFigures
 from calibration.analysis.model import CellData
-from calibration.analysis.sensitivity import cell_sensitivities
+from calibration.analysis.sensitivity import cell_sensitivities, summary
 from calibration.analysis.source3 import operating_points
 from calibration.analysis.stats.admission import AdmissionOutcome
 from calibration.domain.canonical import JsonValue
 from calibration.domain.constants import (
-    GATE_THRESHOLD_JH3,
-    GATE_THRESHOLD_JH5,
-    GATE_THRESHOLD_S1,
     RELIABILITY_DIR,
     RISK_COVERAGE_DIR,
 )
 from calibration.domain.deviations import DeviationEntry, standing_of
 from calibration.domain.sources import SourceId
 
-GATE_THRESHOLDS: Final = {
-    SourceId.S1: GATE_THRESHOLD_S1,
-    SourceId.JH5: GATE_THRESHOLD_JH5,
-    SourceId.JH3: GATE_THRESHOLD_JH3,
-    SourceId.VH2: GATE_THRESHOLD_S1,
-}
 ANNOTATION_UNSTABLE: Final = "UNSTABLE"
 
 
@@ -60,10 +52,13 @@ def _csv_name(cell: CellData) -> str:
 
 def _files(cell: CellData, metrics: CellMetrics) -> dict[str, str]:
     name = _csv_name(cell)
-    return {
+    files = {
         f"{RELIABILITY_DIR}/{name}": reliability_csv(metrics.reliability),
         f"{RISK_COVERAGE_DIR}/{name}": risk_coverage_csv(metrics.curve),
     }
+    if metrics.false_aligned_curve:
+        files[f"{RISK_COVERAGE_DIR}/false_aligned__{name}"] = false_aligned_csv(metrics.false_aligned_curve)
+    return files
 
 
 def analyze_cell(
@@ -71,6 +66,7 @@ def analyze_cell(
     deviations: Sequence[DeviationEntry],
     settings: MetricSettings,
     determinism: DeterminismFigures | None,
+    pass2: CellData | None = None,
 ) -> CellOutcome:
     """The band of a cell is the first rule that applies (§11); a blocked cell carries no metric."""
     identifiers = key_identifiers(cell)
@@ -81,9 +77,7 @@ def analyze_cell(
         verdict = BandVerdict(Band.BLOCKED, reason, ())
         text = conclusion(Band.BLOCKED, source_name, model_name, cell.kind.value, None, reason)
         return CellOutcome(blocked_record(cell, reason, text), None, verdict, {})
-    metrics = compute_cell_metrics(
-        cell, settings, equal_mass=cell.source is SourceId.S1, gate_threshold=GATE_THRESHOLDS[cell.source]
-    )
+    metrics = compute_cell_metrics(cell, settings, equal_mass=cell.source is SourceId.S1)
     verdict = band_of(cell, metrics, None, standing)
     admission, outcome = cell_admission(cell, settings) if metrics else ({}, AdmissionOutcome.INCONCLUSIVE)
     outcome, admission_cap = admission_capped(outcome, standing)
@@ -101,5 +95,8 @@ def analyze_cell(
         determinism=determinism.to_record() if determinism is not None else None,
     )
     record = cell_record(parts)
-    record["sensitivity"] = cell_sensitivities(cell, settings)
+    sensitivity = cell_sensitivities(cell, settings)
+    if pass2 is not None:
+        sensitivity["pass2"] = summary(cell.kind, pass2.predicted, settings)
+    record["sensitivity"] = sensitivity
     return CellOutcome(record, metrics, verdict, _files(cell, metrics) if metrics else {})

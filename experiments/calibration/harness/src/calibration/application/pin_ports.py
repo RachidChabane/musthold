@@ -76,7 +76,7 @@ class KevEnvironment(Protocol):
         """Reads `head.pt` of the pinned revision in the Kev environment; only that file is downloaded."""
         ...
 
-    def download(self, repository: str, revision: str) -> None:
+    def download(self, repository: str, revision: str | None) -> None:
         """Downloads the pinned revision of an admitted repository into the Hub cache."""
         ...
 

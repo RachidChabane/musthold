@@ -152,6 +152,8 @@ class PinUseCase:
         self, models: list[ModelSpec], section: dict[str, JsonValue], total: int
     ) -> tuple[dict[str, JsonValue], list[str]]:
         info = self._kev.setup()
+        if info.commit != KEV_COMMIT:
+            raise PinError(f"the Kev checkout is {info.commit}, the pin is {KEV_COMMIT}")
         entries: dict[str, JsonValue] = dict(json_object(section.get("models", {}), "kev.models"))
         blocked: list[str] = []
         for model in models:
@@ -159,8 +161,6 @@ class PinUseCase:
             entries[model.model_id] = entry
             if is_blocked:
                 blocked.append(model.model_id)
-        if info.commit != KEV_COMMIT:
-            raise PinError(f"the Kev checkout is {info.commit}, the pin is {KEV_COMMIT}")
         return {
             "commit": info.commit,
             "uv_lock_sha256": info.uv_lock_sha256,
@@ -178,7 +178,7 @@ class PinUseCase:
         if static_blocked(footprint, total):
             return self._block(model, footprint, total, MEMORY_FIT_REASON), True
         self._kev.download(repository, adapter.revision)
-        self._kev.download(head.base, base.revision)
+        self._kev.download(head.base, head.base_revision)
         return {
             "status": PinStatus.PINNED.value,
             "block_reason": None,

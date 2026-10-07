@@ -14,11 +14,6 @@ from calibration.adapters.openssl_timestamp import OpensslTimestampReader
 from calibration.adapters.pilot_matrix import SnapshotPilotMatrix
 from calibration.adapters.pilot_snapshot import UnpackedSnapshot
 from calibration.adapters.subprocess_runner import SubprocessRunner
-from calibration.analysis.cell_metrics import MetricSettings
-from calibration.analysis.derive import derive_policy_inputs, inputs_of
-from calibration.analysis.lint import lint_report
-from calibration.analysis.pipeline import AnalyzeDeps, AnalyzeSettings, AnalyzeUseCase
-from calibration.analysis.report import render_report
 from calibration.application.deviation_log import DeviationLog
 from calibration.application.snapshot import snapshot_directory
 from calibration.cli.arguments import Subparsers
@@ -86,6 +81,10 @@ def _append_new(store: FileRunStore, entries: tuple[DeviationEntry, ...]) -> Non
 
 
 def analyze_command(args: Namespace) -> int:
+    from calibration.analysis.cell_metrics import MetricSettings  # noqa: PLC0415
+    from calibration.analysis.pipeline import AnalyzeDeps, AnalyzeSettings, AnalyzeUseCase  # noqa: PLC0415
+    from calibration.analysis.report import render_report  # noqa: PLC0415
+
     layout = Layout.discover()
     run_dir = layout.run_dir(args.run_id)
     runner = _runner()
@@ -119,6 +118,9 @@ def analyze_command(args: Namespace) -> int:
 
 
 def derive_command(args: Namespace) -> int:
+    from calibration.analysis.derive import derive_policy_inputs, inputs_of  # noqa: PLC0415
+    from calibration.analysis.report import render_report  # noqa: PLC0415
+
     layout = Layout.discover()
     run_dir = layout.run_dir(args.run_id)
     results = layout.results_dir()
@@ -146,6 +148,8 @@ def derive_command(args: Namespace) -> int:
 
 
 def report_lint_command(_: Namespace) -> int:
+    from calibration.analysis.lint import lint_report  # noqa: PLC0415
+
     report = Layout.discover().results_dir() / REPORT_FILE
     findings = lint_report(report.read_text(encoding=ENCODING))
     for finding in findings:

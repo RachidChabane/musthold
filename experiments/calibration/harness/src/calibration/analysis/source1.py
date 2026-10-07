@@ -204,6 +204,8 @@ def cluster_of(truth: PilotTruth, mutant_id: str) -> str:
     meta = truth.mutants[mutant_id]
     if meta.arm == ARM_T:
         return f"T:{meta.generator_call_id}"
+    if mutant_id not in truth.arm_p_sources:
+        raise RecordError(f"the planted mutant {mutant_id} is absent from the arm P labels")
     return f"P:{truth.arm_p_sources[mutant_id]}"
 
 

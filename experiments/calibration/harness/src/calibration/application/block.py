@@ -116,6 +116,7 @@ class ModelBlock:
             card = server.card()
             self._record_card(model, started, card, lock, locked)
             outcome = self._measure(model, server, card, catalog, timing, canary_only)
+            self._record_loaded_card(model, started, server)
         finally:
             self._shutdown(model, server)
             timing.record(self._store, model.model_id, self._deps.clock.now())
@@ -141,6 +142,13 @@ class ModelBlock:
             "harness": identity,
         }
         self._store.write_text(server_card_path(model.model_id, started.isoformat()), document_json(document))
+
+    def _record_loaded_card(self, model: ModelSpec, started: datetime, server: ModelServer) -> None:
+        """Adds the card as it stands once the model is loaded: `/api/ps` gives the loaded context length only then."""
+        path = server_card_path(model.model_id, started.isoformat())
+        document = dict(json_object(json.loads(self._store.read_text(path)), path))
+        document["card_after_load"] = server.card().to_record()
+        self._store.write_text(path, document_json(document))
 
     def _recorded_harness(self) -> dict[str, str]:
         manifest = RunManifest(self._store).read()

@@ -85,6 +85,9 @@ def _metrics_record(metrics: CellMetrics) -> dict[str, JsonValue]:
         "baselines": dict(metrics.baselines),
         "false_aligned": _record(metrics.false_aligned),
         "false_aligned_threshold": metrics.false_aligned_threshold,
+        "false_aligned_curve": [
+            {"threshold": t, "false_aligned": f, "predicted_aligned": n} for t, f, n in metrics.false_aligned_curve
+        ],
         "false_aligned_counts": None
         if metrics.false_aligned_counts is None
         else {"successes": metrics.false_aligned_counts[0], "total": metrics.false_aligned_counts[1]},
@@ -178,6 +181,13 @@ def reliability_csv(rows: Sequence[ReliabilityRow]) -> str:
             )
             for row in rows
         ],
+    )
+
+
+def false_aligned_csv(curve: Sequence[tuple[float, int, int]]) -> str:
+    return _csv(
+        ("threshold", "false_aligned", "predicted_aligned", "rate"),
+        [(t, f, n, "" if n == 0 else repr(f / n)) for t, f, n in curve],
     )
 
 

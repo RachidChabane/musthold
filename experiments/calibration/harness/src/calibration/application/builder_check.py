@@ -28,12 +28,9 @@ class BuilderCheck:
 
     @property
     def passed(self) -> bool:
-        return (
-            self.exported > 0
-            and self.matched == self.exported == self.rebuilt
-            and not self.unmatched_exported
-            and not self.unmatched_rebuilt
-        )
+        """Every closed set the product exported is rebuilt byte for byte. Tests the product decides without System
+        One are never exported, so rebuilt sets beyond the exported ones are expected."""
+        return self.exported > 0 and self.matched == self.exported and not self.unmatched_exported
 
     def to_record(self, harness_commit: str) -> dict[str, JsonValue]:
         return {

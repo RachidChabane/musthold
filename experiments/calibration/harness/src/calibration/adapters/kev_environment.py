@@ -43,7 +43,7 @@ DOWNLOAD_SNIPPET: Final = (
     "import sys\n"
     "from huggingface_hub import snapshot_download\n"
     f"patterns = {list(CHECKPOINT_PATTERNS)!r}\n"
-    "snapshot_download(sys.argv[1], revision=sys.argv[2], allow_patterns=patterns)\n"
+    "snapshot_download(sys.argv[1], revision=sys.argv[2] or None, allow_patterns=patterns)\n"
 )
 
 
@@ -77,8 +77,10 @@ class SubprocessKevEnvironment:
         except (RecordError, ValueError) as error:
             raise KevEnvironmentError(f"{repository}@{revision}: unreadable head.pt summary: {error}") from error
 
-    def download(self, repository: str, revision: str) -> None:
-        self._run(self._python(DOWNLOAD_SNIPPET, repository, revision), DOWNLOAD_TIMEOUT_SECONDS)
+    def download(self, repository: str, revision: str | None) -> None:
+        """Downloads a revision; `None` downloads the default branch, which also records the reference the offline
+        load of a checkpoint that names no base revision resolves through."""
+        self._run(self._python(DOWNLOAD_SNIPPET, repository, revision or ""), DOWNLOAD_TIMEOUT_SECONDS)
 
     def _checkout(self) -> None:
         if not self._directory.exists():

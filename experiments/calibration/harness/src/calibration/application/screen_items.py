@@ -86,13 +86,15 @@ def prepare_candidate(
 
 
 def assemble_screen_items(build: Mapping[str, object], candidates: Sequence[ScreenCandidate]) -> list[Item]:
-    """Turns the output of the discpower builder into items, checking each answers a candidate."""
+    """Turns the output of the discpower builder into items; an item that answers no candidate has no witness status
+    and `screen_problems` reports it."""
     by_id = {candidate.mutant_id: candidate for candidate in candidates}
     items: list[Item] = []
     for index, raw in enumerate(sequence(build.get("items"), "build.items")):
         entry = mapping(raw, f"build.items[{index}]")
         mutant_id = text(entry.get("mutant_id"), "item.mutant_id")
         closed_text = text(entry.get("closed"), "item.closed")
+        candidate = by_id.get(mutant_id)
         items.append(
             Item(
                 request_id=mutant_request_id(mutant_id),
@@ -110,7 +112,7 @@ def assemble_screen_items(build: Mapping[str, object], candidates: Sequence[Scre
                     text(question, "question"): text(ref, "question ref")
                     for question, ref in mapping(entry.get("question_to_ref"), "item.question_to_ref").items()
                 },
-                witness_status=by_id[mutant_id].witness_status,
+                witness_status=candidate.witness_status if candidate is not None else None,
             )
         )
     return sorted(items, key=lambda item: item.request_id)

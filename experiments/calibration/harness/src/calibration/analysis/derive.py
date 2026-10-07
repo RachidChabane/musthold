@@ -128,7 +128,9 @@ def cs1(inputs: DeriveInputs, cell: Mapping[str, object]) -> Proposal:
         return Proposal(NO_SCREEN_ENTRY, "no tau is kept: every survivor is flagged", detail)
     allowed = kept if gate else [tau for tau in kept if tau <= SCREEN_TAU_DEFAULT]
     if not allowed:
-        return Proposal(NO_SCREEN_ENTRY, "no kept tau at or below 0.20 without the volume gate", detail)
+        return Proposal(
+            None, "every kept tau is above 0.20 and the volume gate does not hold: the default stays", detail
+        )
     return Proposal(max(allowed), "the largest kept tau", detail)
 
 

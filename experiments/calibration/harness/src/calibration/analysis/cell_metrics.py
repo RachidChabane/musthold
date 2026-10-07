@@ -36,6 +36,7 @@ from calibration.analysis.stats.risk_coverage import (
     aurc,
     c05,
     c05u,
+    false_aligned_curve,
     false_aligned_rate,
     risk_coverage_curve,
     risk_upper_bounds,
@@ -143,6 +144,7 @@ class CellMetrics:
     false_aligned: Estimate | None
     false_aligned_threshold: float | None
     false_aligned_counts: tuple[int, int] | None
+    false_aligned_curve: tuple[tuple[float, int, int], ...]
     baselines: Mapping[str, float]
 
 
@@ -256,6 +258,13 @@ def _false_aligned(resamples: Resamples, data: MetricInput, threshold: float) ->
     return _proportion_decision(resamples, proportion, rate), threshold, proportion
 
 
+def _false_aligned_curve(data: MetricInput, curve: RiskCoverageCurve) -> tuple[tuple[float, int, int], ...]:
+    """The false-ALIGNED rate at every distinct confidence: threshold, false ALIGNED, predicted ALIGNED."""
+    thresholds = [point.threshold for point in curve]
+    rates = false_aligned_curve(data.confidence, data.predicted_positive, data.truth == 1, thresholds)
+    return tuple((t, r.successes, r.total) for t, r in zip(thresholds, rates, strict=True))
+
+
 def compute_cell_metrics(
     cell: CellData, settings: MetricSettings, *, equal_mass: bool, gate_threshold: float = GATE_THRESHOLD_S1
 ) -> CellMetrics | None:
@@ -307,6 +316,7 @@ def compute_cell_metrics(
         screen_stratum=screen_grid(resamples, data.event, data.truth, data.screen_stratum) if kind is Kind.K4 else (),
         false_aligned=false_aligned[0] if false_aligned else None,
         false_aligned_threshold=false_aligned[1] if false_aligned else None,
+        false_aligned_curve=_false_aligned_curve(data, curve) if kind is Kind.K3 else (),
         false_aligned_counts=(false_aligned[2].successes, false_aligned[2].total) if false_aligned else None,
         baselines=baseline_figures(decisions, kind),
     )

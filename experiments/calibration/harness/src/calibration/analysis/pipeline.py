@@ -133,7 +133,8 @@ class AnalyzeUseCase:
     ) -> CellOutcome:
         analysis = models.get(cell.model) if cell.source is SourceId.S1 else None
         determinism = analysis.determinism.get(cell.kind) if analysis is not None else None
-        return analyze_cell(cell, entries, self._settings.metric, determinism)
+        pass2 = analysis.pass2_cells.get(cell.kind) if analysis is not None else None
+        return analyze_cell(cell, entries, self._settings.metric, determinism, pass2)
 
     @staticmethod
     def _blocked_reason(run: RunData, model: ModelSpec, entries: list[DeviationEntry]) -> str | None:
