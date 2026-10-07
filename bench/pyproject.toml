@@ -55,10 +55,10 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "PL", "RUF", "N", "C4", "PT"]
-ignore = ["PLR2004", "PLR0913", "E501", "N818", "UP047"]
+ignore = ["PLR2004", "PLR0913", "PLR0917", "E501", "N818", "UP047"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["PLR0915", "PLR0912", "PT011"]
+"tests/**" = ["PLR0915", "PLR0912", "PT011", "PT018", "RUF005"]
 
 [tool.importlinter]
 root_package = "specbench"

@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "specbench.trunk/1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "task_id", "repository", "language", "harness", "model", "reached_s_t", "s_n", "s_t", "arms"],
+  "properties": {
+    "schema": {"const": "specbench.trunk/1"},
+    "task_id": {"type": "string", "minLength": 1},
+    "repository": {"type": "string", "minLength": 1},
+    "language": {"enum": ["python", "go"]},
+    "harness": {"enum": ["claude-code", "codex"]},
+    "model": {"type": "string", "minLength": 1},
+    "reached_s_t": {"type": "boolean"},
+    "s_n": {"$ref": "#/$defs/truth"},
+    "s_t": {"oneOf": [{"$ref": "#/$defs/truth"}, {"type": "null"}]},
+    "arms": {
+      "type": "object",
+      "propertyNames": {"enum": ["N", "T", "TR", "AL", "DP", "CO", "ALL", "PL", "ALL-native", "cheat"]},
+      "additionalProperties": {"$ref": "#/$defs/arm"}
+    },
+    "composition": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["criterion", "module", "all_verdict", "composed_verdict"],
+        "properties": {
+          "criterion": {"type": "string"},
+          "module": {"$ref": "#/$defs/module"},
+          "all_verdict": {"type": "string"},
+          "composed_verdict": {"type": "string"}
+        }
+      }
+    },
+    "absent_probes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["arm", "module", "counted_as_passed"],
+        "properties": {
+          "arm": {"type": "string"},
+          "module": {"$ref": "#/$defs/module"},
+          "counted_as_passed": {"type": "boolean"}
+        }
+      }
+    },
+    "judge_replay": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["replay_model", "same_pass", "replay_pass"],
+          "properties": {
+            "replay_model": {"type": "string"},
+            "same_pass": {"type": "boolean"},
+            "replay_pass": {"type": "boolean"}
+          }
+        }
+      ]
+    },
+    "blind_spot": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["criterion", "writer", "source", "escaped", "evaluable"],
+        "properties": {
+          "criterion": {"type": "string"},
+          "writer": {"enum": ["coder", "upstream"]},
+          "source": {"enum": ["generator", "opus", "operator"]},
+          "escaped": {"type": "integer", "minimum": 0},
+          "evaluable": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source", "confidence_permille", "truth"],
+        "properties": {
+          "source": {"enum": ["endpoint", "host-votes", "undetermined"]},
+          "confidence_permille": {"type": ["integer", "null"], "minimum": 0, "maximum": 1000},
+          "truth": {"type": ["boolean", "null"]}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "module": {"enum": ["shallnot", "alignment", "discriminating-power", "completeness"]},
+    "truth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["defective", "defective_full", "o_failed"],
+      "properties": {
+        "defective": {"type": "boolean"},
+        "defective_full": {"type": "boolean"},
+        "o_failed": {"type": "boolean"}
+      }
+    },
+    "arm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "selection_pass", "verdict", "escalated_during", "final", "model_calls", "seconds"],
+      "properties": {
+        "model": {"type": "string"},
+        "selection_pass": {"type": ["boolean", "null"]},
+        "verdict": {"enum": ["pass", "let-go", "escalate", "blocked"]},
+        "escalated_during": {"type": "boolean"},
+        "final": {"oneOf": [{"$ref": "#/$defs/truth"}, {"type": "null"}]},
+        "model_calls": {"type": "integer", "minimum": 0},
+        "seconds": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

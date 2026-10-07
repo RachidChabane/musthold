@@ -57,3 +57,10 @@ def enum_of(kind: type[E], value: object, where: str) -> E:
         return kind(value)
     except ValueError as error:
         raise RecordError(f"{where} is not a {kind.__name__}") from error
+
+
+def only_keys(body: Mapping[str, object], allowed: frozenset[str], where: str) -> None:
+    """Refuse a record that carries a field its schema does not name."""
+    unknown = sorted(set(body) - allowed)
+    if unknown:
+        raise RecordError(f"{where} has unknown fields {unknown}")

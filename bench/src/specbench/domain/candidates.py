@@ -10,7 +10,6 @@ from datetime import date
 from specbench.domain.canonical import JsonValue
 from specbench.domain.languages import Language
 from specbench.domain.mining import (
-    MAX_TASKS_PER_REPOSITORY,
     SAMPLE_TASKS_PER_LANGUAGE,
     STAGE_ORDER,
     BaseSnapshot,
@@ -100,24 +99,6 @@ def build_candidate(repository: Repository, pull: PullRequest, base: BaseSnapsho
 
 def order_candidates(seed: int, candidates: Iterable[Candidate]) -> list[Candidate]:
     return sorted(candidates, key=lambda c: seeded_key(seed, c.label))
-
-
-def cap_per_repository(seed: int, candidates: Iterable[Candidate]) -> tuple[list[Candidate], list[AttritionEntry]]:
-    """At most `MAX_TASKS_PER_REPOSITORY` candidates per repository, taken in seeded order; the rest are logged."""
-    kept: list[Candidate] = []
-    dropped: list[AttritionEntry] = []
-    taken: Counter[str] = Counter()
-    for candidate in order_candidates(seed, candidates):
-        if taken[candidate.repository] < MAX_TASKS_PER_REPOSITORY:
-            taken[candidate.repository] += 1
-            kept.append(candidate)
-        else:
-            dropped.append(
-                AttritionEntry(
-                    candidate.label, Stage.REPOSITORY_CAP, f"more than {MAX_TASKS_PER_REPOSITORY} per repository"
-                )
-            )
-    return kept, dropped
 
 
 def select_sample(

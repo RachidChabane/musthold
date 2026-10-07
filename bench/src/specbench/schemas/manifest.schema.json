@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "specbench.manifest/1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_lock_digest",
+    "harness_models",
+    "os",
+    "prereg_tag",
+    "prices_lock_digest",
+    "product_release_digest",
+    "run_id",
+    "sample_tasks",
+    "schema",
+    "seed",
+    "shallnot_commit",
+    "toolchains"
+  ],
+  "properties": {
+    "schema": {"const": "specbench.manifest/1"},
+    "run_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$"},
+    "seed": {"type": "integer"},
+    "prereg_tag": {"type": "string", "minLength": 1},
+    "product_release_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "shallnot_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "corpus_lock_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "prices_lock_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "os": {"type": "string", "minLength": 1},
+    "toolchains": {"type": "object", "additionalProperties": {"type": "string"}},
+    "harness_models": {
+      "type": "object",
+      "propertyNames": {"enum": ["claude-code", "codex"]},
+      "properties": {
+        "claude-code": {"const": "claude-sonnet-5-5"},
+        "codex": {"const": "gpt-6-luna"}
+      },
+      "additionalProperties": false
+    },
+    "sample_tasks": {"type": "array", "items": {"type": "string"}}
+  }
+}

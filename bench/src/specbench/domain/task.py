@@ -10,7 +10,7 @@ from enum import Enum
 from typing import Final
 
 from specbench.domain.canonical import JsonValue, canonical_json, parse_canonical
-from specbench.domain.jsonread import RecordError, enum_of, integer, mapping, optional_text, sequence, text
+from specbench.domain.jsonread import RecordError, enum_of, integer, mapping, only_keys, optional_text, sequence, text
 from specbench.domain.languages import Language
 from specbench.domain.licence import PERMISSIVE_SPDX
 
@@ -21,6 +21,22 @@ SHA_PATTERN: Final = re.compile(r"^[0-9a-f]{40}$")
 DIGEST_PATTERN: Final = re.compile(r"^[0-9a-f]{64}$")
 TASK_ID_PATTERN: Final = re.compile(r"^[A-Z0-9]+(?:-[A-Z0-9]+)*$")
 CRITERION_ID_PATTERN: Final = re.compile(r"^(?P<task>[A-Z0-9]+(?:-[A-Z0-9]+)*)-(?P<number>[1-9][0-9]*)$")
+TASK_FIELDS: Final = frozenset(
+    {
+        "base_sha",
+        "criteria",
+        "language",
+        "licence",
+        "lockfile_digests",
+        "merge_sha",
+        "merged_on",
+        "pull_number",
+        "repository",
+        "schema",
+        "task_id",
+        "toolchain",
+    }
+)
 REPOSITORY_PATTERN: Final = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 
 
@@ -108,6 +124,7 @@ def _criteria(value: object, task_id: str) -> tuple[Criterion, ...]:
 def task_from_record(record: JsonValue) -> Task:
     """A task from its decoded JSON, refusing every deviation from `specbench.task/1`."""
     body = mapping(record, "task")
+    only_keys(body, TASK_FIELDS, "task")
     if body.get("schema") != TASK_SCHEMA:
         raise TaskError(f"schema must be {TASK_SCHEMA}")
     task_id = text(body.get("task_id"), "task_id", TASK_ID_PATTERN)

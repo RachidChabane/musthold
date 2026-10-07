@@ -5,16 +5,17 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Protocol
 
 from specbench.domain.arms import Harness
 from specbench.domain.canonical import JsonValue
 from specbench.domain.languages import Language
+from specbench.domain.mining import BaseSnapshot, PullRequest, Repository
 from specbench.domain.oracle import OracleTest, Outcome
 from specbench.domain.pacing import CallLedger
-from specbench.domain.sealing import SealedBundle
+from specbench.domain.sealing import CorpusLock, SealedBundle
 from specbench.domain.sessions import CallRecord, HostRequest, HostResponse, SessionRequest, SessionResult
 
 
@@ -22,6 +23,18 @@ class GhClient(Protocol):
     """Read access to the GitHub API: `gh api` in production, a recording in dry runs."""
 
     def get(self, path: str, params: Mapping[str, str] | None = None) -> JsonValue: ...
+
+
+class MiningSource(Protocol):
+    """The facts of the corpus filters, read from GitHub in production and from a recording in dry runs."""
+
+    def repositories(self, language: Language) -> Sequence[Repository]: ...
+
+    def merged_pull_numbers(self, repository: Repository, since: date) -> Sequence[int]: ...
+
+    def pull_request(self, repository: Repository, number: int) -> PullRequest | None: ...
+
+    def base_snapshot(self, repository: Repository, base_sha: str) -> BaseSnapshot: ...
 
 
 class Clock(Protocol):
@@ -47,6 +60,24 @@ class SealStore(Protocol):
     def seal(self, bundle: SealedBundle, recipients: Sequence[str]) -> bytes: ...
 
     def unseal(self, ciphertext: bytes, identity: str) -> SealedBundle: ...
+
+
+class CorpusRepository(Protocol):
+    """The corpus on disk: `<language>/<task-id>/{task.json,sealed.age}`, `corpus.lock.json` and the recipients."""
+
+    def task_ids(self) -> list[str]: ...
+
+    def read_task_json(self, task_id: str) -> str: ...
+
+    def read_sealed(self, task_id: str) -> bytes: ...
+
+    def write_task(self, language: Language, task_id: str, task_json: str, ciphertext: bytes) -> None: ...
+
+    def read_lock(self) -> CorpusLock: ...
+
+    def write_lock(self, lock: CorpusLock) -> None: ...
+
+    def read_recipients(self) -> list[str]: ...
 
 
 @dataclass(frozen=True)
