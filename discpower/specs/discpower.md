@@ -202,6 +202,41 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   operator mutants and sentinels that re-parse, differ from the original, and
   splice into a parsable file, deterministically for a fixed seed.
 
+## JavaScript and TypeScript mutation
+
+- **SP-1000~1**: WHEN a JavaScript or TypeScript source is enumerated THE SYSTEM
+  SHALL produce relational, arithmetic, numeric constant, boolean and logical,
+  return value, module constant, constructor argument, decimal string, min and
+  max, and and or, boolean literal and exception class mutants, each as an edit
+  of the whole outermost function or method definition or of the module-level
+  declarator, choose the grammar from the file extension, and leave a mutation
+  out when its unit no longer parses.
+- **SP-1001~1**: WHEN JavaScript or TypeScript sentinels are listed THE SYSTEM
+  SHALL skip functions that mention `eval`, `Function` or `arguments` or use
+  `with`, SHALL insert a dead local that a `void` statement reads, SHALL add the
+  unused module constant as an export in a module file, and SHALL rename only
+  locals declared by a plain identifier that no nested scope, parameter, pattern,
+  catch clause, loop binding, shorthand property or other occurrence of the name
+  in the file refers to.
+- **SP-1002~1**: WHEN the units of a JavaScript or TypeScript file are listed
+  THE SYSTEM SHALL name each outermost function or method definition with the
+  span and qualified name the shared definition locator gives it, list a
+  module-level declarator that holds no definition as an assignment unit, leave
+  out every unit whose kind and qualname another unit shares, and give a splice
+  of every candidate and sentinel that the shared locator accepts.
+- **SP-1003~1**: WHEN a JavaScript or TypeScript unit is normalized THE SYSTEM
+  SHALL ignore comments, statement terminators and layout, keep every change of
+  meaning, read a bare method inside a class and a declarator inside a
+  declaration, and refuse a unit that does not parse.
+- **SP-1004~1**: WHEN the call graph of a JavaScript or TypeScript file is read
+  THE SYSTEM SHALL give each outermost definition its owner, aliases, calls and
+  reads, reference a renamed static import by the name its module exports, and
+  list the module-level declarators.
+- **SP-1005~1**: WHEN mutants are generated from any JavaScript or TypeScript
+  source THE SYSTEM SHALL give operator mutants and sentinels that re-parse,
+  differ from the original and splice into a parsable file, deterministically
+  for a fixed seed.
+
 ## Host store
 
 - **SP-148~1**: WHEN the host store of a project is opened THE SYSTEM SHALL keep
