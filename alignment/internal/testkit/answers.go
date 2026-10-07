@@ -151,7 +151,7 @@ func (f Fixed) Answer(_ string, view hostproto.ExecutorView) (string, error) {
 // ClosedView is the question set of a closed request, as a relay or a decider
 // reads it.
 type ClosedView struct {
-	Questions []prompt.Question `json:"questions"`
+	Questions []hostproto.ClosedQuestion `json:"questions"`
 }
 
 // Offers reports whether the criterion question offers the token as an option.

@@ -57,6 +57,7 @@ const (
 	harnessName       = "fixture-host"
 	harnessVersion    = "1"
 	judgeConfidence   = 0.9
+	judgeCount        = 2
 	decisionThreshold = 0.7
 )
 
@@ -77,15 +78,15 @@ func FileDigest(t testing.TB, root, file string) string {
 func (p Power) Statement(t testing.TB, root string) []byte {
 	t.Helper()
 	inputs := []format.Input{
-		{Role: format.RoleSpec, Name: "statement", Digest: format.Digest{SHA256: p.StatementDigest}},
+		format.SpecInput(p.Ref.ID, p.Ref.Revision, p.StatementDigest),
 		{Role: format.RoleDecisionPolicy, Name: "decision-policy", Digest: format.Digest{SHA256: digestOf("policy")}},
 		{Role: format.RolePromptTemplate, Name: "judge.validity", Digest: format.Digest{SHA256: digestOf("template")}},
 	}
 	for _, file := range p.TestFiles {
-		inputs = append(inputs, format.Input{Role: format.RoleTestSource, Name: file, Digest: format.Digest{SHA256: FileDigest(t, root, file)}})
+		inputs = append(inputs, format.FileInput(format.RoleTestSource, file, FileDigest(t, root, file)))
 	}
 	for _, file := range p.CodeFiles {
-		inputs = append(inputs, format.Input{Role: format.RoleCodeTree, Name: file, Digest: format.Digest{SHA256: FileDigest(t, root, file)}})
+		inputs = append(inputs, format.FileInput(format.RoleCodeTree, file, FileDigest(t, root, file)))
 	}
 	slices.SortFunc(inputs, func(a, b format.Input) int {
 		if byRole := strings.Compare(string(a.Role), string(b.Role)); byRole != 0 {
@@ -140,14 +141,18 @@ func (p Power) mutant(t testing.TB, mutant Mutant, tests []string) format.Mutant
 		results[index] = format.TestResult{Test: test, Outcome: format.Executed(outcome)}
 	}
 	decision := func(basis format.DecisionBasis) *format.Decision {
-		return &format.Decision{Basis: basis, Deciders: []string{"judge-1", "judge-2"}, RawConfidence: judgeConfidence, Threshold: decisionThreshold}
+		source := format.HostVotesSource(judgeCount)
+		if basis == format.BasisSpecExample {
+			source = format.SourceExecution
+		}
+		return &format.Decision{Basis: basis, Deciders: []string{"judge-1", "judge-2"}, ConfidenceSource: source, RawConfidence: judgeConfidence, Threshold: decisionThreshold}
 	}
 	entry := format.Mutant{Digest: digestOf(p.Ref.String() + mutant.Digest), Results: results}
 	switch mutant.Kind {
 	case Sentinel:
 		entry.Sentinel = true
 		entry.Validity = judged(t, format.ValidityEquivalent)
-		entry.Extensions = &format.MutantExtensions{Decision: &format.Decision{Basis: format.BasisConstruction, Deciders: []string{"sentinel-catalogue"}, RawConfidence: 1, Threshold: decisionThreshold}}
+		entry.Extensions = &format.MutantExtensions{Decision: &format.Decision{Basis: format.BasisConstruction, Deciders: []string{"sentinel-catalogue"}, ConfidenceSource: format.SourceExecution, RawConfidence: 1, Threshold: decisionThreshold}}
 	case Unattributed:
 		entry.Validity = judged(t, format.ValidityNotViolating)
 		entry.Extensions = &format.MutantExtensions{Decision: decision(format.BasisJudges), Unattributed: true}

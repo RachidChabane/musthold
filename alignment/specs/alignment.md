@@ -135,8 +135,8 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-330~1**: WHEN a test is proved THE SYSTEM SHALL write one Statement per
   declared criterion, with the verdict as a judged claim, the executor with the
   weakest isolation of the answers it rests on and `blind`, the `corroboratedBy`
-  evidence, `extensions.decision`, whose deciders name the confidence source of
-  each signal, and `extensions.matrix`, in RFC 8785 form, validated against the
+  evidence, `extensions.decision`, which names the deciders and the confidence
+  source, and `extensions.matrix`, in RFC 8785 form, validated against the
   schemas before it is written.
 - **SP-333~1**: WHEN the pending file is written THE SYSTEM SHALL list the criteria
   that wait for tickets as `awaiting_host`, those that wait for the
@@ -247,6 +247,29 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   ask the judge too and let its outcome replace the verdict.
 - **SP-363~1**: WHEN the host answers the tickets in any order THE SYSTEM SHALL write
   the same Statements.
+
+## Contracts with the format and the gate
+
+- **SP-409~1**: WHEN a decision is recorded THE SYSTEM SHALL name where its confidence
+  came from in `extensions.decision.confidenceSource` with the mapping that derived
+  it: `system-one:<model>@<endpoint digest>` for a relayed answer, `host-votes(<k>)`
+  with the modal share for host deciders and judges, and `execution` for a verdict
+  the module fixed itself, and SHALL name only the signals that decided in
+  `deciders`.
+- **SP-410~1**: WHEN a Statement lists its inputs THE SYSTEM SHALL name the `spec`
+  input `ID~REV` with the statement digest, list the file of its own test among the
+  `test_source` inputs, name every file input by its path relative to the project
+  root with the SHA-256 of its exact bytes, and consume the discriminating-power
+  Statement of its criterion as the one `proof` input, named by the kind, carrying
+  the criterion in its annotations and the SHA-256 of the Statement file's exact
+  bytes, while the Statements of the other criteria the test is bound to reach the
+  cache key through one `matrix-evidence` input.
+- **SP-411~1**: WHEN a closed request is built THE SYSTEM SHALL build its question
+  set and its response schema through the host protocol's closed question type: a
+  choice question over the group and NONE whose options carry the statements, and
+  in the final round a score question whose levels carry what each coverage means,
+  and WHEN a relay imports the response of a System One endpoint THE SYSTEM SHALL
+  translate it with the question set of the ticket.
 
 ## Architecture
 

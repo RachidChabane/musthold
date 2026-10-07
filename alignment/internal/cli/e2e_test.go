@@ -113,8 +113,8 @@ func TestVerdictBasis(t *testing.T) {
 		if decision == nil || (decision.Basis != format.BasisSystemOne && decision.Basis != format.BasisJudges) {
 			t.Fatalf("decision %+v", decision)
 		}
-		if decision.Basis == format.BasisSystemOne && !slices.Contains(decision.Deciders, "system_one:host-votes(3)") {
-			t.Fatalf("deciders %v", decision.Deciders)
+		if decision.Basis == format.BasisSystemOne && decision.ConfidenceSource != format.HostVotesSource(3) {
+			t.Fatalf("confidence source %q", decision.ConfidenceSource)
 		}
 	})
 

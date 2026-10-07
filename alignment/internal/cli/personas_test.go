@@ -2,7 +2,6 @@ package cli_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -309,6 +308,9 @@ func (dissenting) Answer(persona string, view hostproto.ExecutorView) (string, e
 	return testkit.Oracle{}.Answer(persona, view)
 }
 
+// relaySource is the model and endpoint a relay says its answers come from.
+const relaySource = "nimble:9b@0123abcd"
+
 func TestSystemOne(t *testing.T) {
 	t.Run("host deciders give the modal share of decide_k votes as the confidence [verifies SP-361~1]", func(t *testing.T) {
 		h := newHarness(t, testkit.PythonParcel)
@@ -318,8 +320,11 @@ func TestSystemOne(t *testing.T) {
 		if decision == nil || decision.Basis != format.BasisSystemOne || decision.RawConfidence != 1 || decision.Threshold != 0.9 {
 			t.Fatalf("decision %+v", decision)
 		}
-		if !slices.Contains(decision.Deciders, "system_one:host-votes(3)") || !slices.Contains(decision.Deciders, "matrix") {
+		if !slices.Contains(decision.Deciders, "system_one") || !slices.Contains(decision.Deciders, "matrix") {
 			t.Fatalf("deciders %v", decision.Deciders)
+		}
+		if decision.ConfidenceSource != format.HostVotesSource(3) || decision.ConfidenceMapping != format.MappingModalShare {
+			t.Fatalf("confidence source %q, mapping %q", decision.ConfidenceSource, decision.ConfidenceMapping)
 		}
 	})
 
@@ -350,8 +355,11 @@ func TestSystemOne(t *testing.T) {
 		if decision.Basis != format.BasisSystemOne || decision.RawConfidence != 0.93 || statement.Predicate.Executor.Channel != format.ChannelSystemOneRelay {
 			t.Fatalf("decision %+v executor %+v", decision, statement.Predicate.Executor.ExecutorProfile)
 		}
-		if !slices.Contains(decision.Deciders, "system_one:systemone:nimble@0123abcd") {
-			t.Fatalf("deciders %v do not name the relay source", decision.Deciders)
+		if decision.ConfidenceSource != format.SystemOneSource(relaySource) || decision.ConfidenceMapping != format.MappingSystemOneChoice {
+			t.Fatalf("decision %+v does not name the relay source and its mapping", decision)
+		}
+		if slices.ContainsFunc(decision.Deciders, func(decider string) bool { return strings.Contains(decider, relaySource) }) {
+			t.Fatalf("deciders %v carry the confidence source", decision.Deciders)
 		}
 		entries, err := h.store().ListEntries()
 		if err != nil {
@@ -405,8 +413,19 @@ func (h *harness) relay(answers hostprototest.AnswerSource, confidence float64) 
 		if err != nil {
 			h.t.Fatal(err)
 		}
-		answer = strings.ReplaceAll(answer, "0.95", fmt.Sprint(confidence))
-		code, _, stderr := h.run([]byte(answer), "systemone", "import", request.Ticket, "--nonce", request.Nonce, "--source", "systemone:nimble@0123abcd")
+		set, err := hostproto.ParseClosedSet(request.Closed)
+		if err != nil {
+			h.t.Fatal(err)
+		}
+		picked, err := hostproto.ParseClosedAnswers([]byte(answer))
+		if err != nil {
+			h.t.Fatal(err)
+		}
+		response, err := hostprototest.SystemOneResponse(set, picked, confidence)
+		if err != nil {
+			h.t.Fatal(err)
+		}
+		code, _, stderr := h.run(response, "systemone", "import", request.Ticket, "--nonce", request.Nonce, "--source", relaySource)
 		if code != cli.ExitClean {
 			h.t.Fatalf("import %s: %s", request.Ticket, stderr)
 		}

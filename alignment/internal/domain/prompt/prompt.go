@@ -35,6 +35,7 @@ const (
 	signaturesHeader     = "=== Public signatures ==="
 	questionsHeader      = "=== Questions ==="
 	maxConfidencePercent = 100
+	noneCriteria         = "No listed requirement is checked."
 )
 
 // Members and question identifiers of the responses.
@@ -49,9 +50,6 @@ const (
 	QuestionCriterion = "criterion"
 	// QuestionCoverage is the id of the closed question that rates the coverage.
 	QuestionCoverage = "coverage"
-	// TypeChoice and TypeScore are the closed question types alignment uses.
-	TypeChoice = "choice"
-	TypeScore  = "score"
 )
 
 func embedded(name string) string {
@@ -166,21 +164,6 @@ func ParseJudge(output []byte) (JudgeAnswer, error) {
 	}, nil
 }
 
-// Option is one answer of a closed question with the text that tells a model
-// what it means.
-type Option struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
-
-// Question is one closed question of a `decide.closed` request.
-type Question struct {
-	ID       string   `json:"id"`
-	Type     string   `json:"type"`
-	Question string   `json:"question"`
-	Options  []Option `json:"options"`
-}
-
 // ClosedInput is a round of the criterion question: the options are the tokens
 // of one group. The final round also asks for the coverage.
 type ClosedInput struct {
@@ -194,32 +177,33 @@ type ClosedInput struct {
 // final round, the coverage question.
 func BuildClosed(in ClosedInput) (Built, error) {
 	statements := in.Test.Criteria.Statements
-	criterion := Question{ID: QuestionCriterion, Type: TypeChoice, Question: embedded(decideCriterionAsk)}
+	options := make([]hostproto.ClosedOption, 0, len(in.Group)+1)
 	for _, token := range in.Group {
-		criterion.Options = append(criterion.Options, Option{Name: token, Description: statements[token]})
+		options = append(options, hostproto.ClosedOption{Name: token, Description: statements[token]})
 	}
-	criterion.Options = append(criterion.Options, Option{Name: masking.NoneAnswer, Description: "No listed requirement is checked."})
-	questions := []Question{criterion}
+	options = append(options, hostproto.ClosedOption{Name: masking.NoneAnswer, Description: noneCriteria})
+	questions := []hostproto.ClosedQuestion{hostproto.ChoiceQuestion(QuestionCriterion, embedded(decideCriterionAsk), options)}
 	if in.Final {
 		questions = append(questions, coverageQuestion())
 	}
-	closed, err := json.Marshal(struct {
-		State     string     `json:"state"`
-		Questions []Question `json:"questions"`
-	}{State: stateOf(in.Test, in.Group), Questions: questions})
+	state := stateOf(in.Test, in.Group)
+	set := hostproto.ClosedSet{State: state, Questions: questions}
+	closed, err := set.Marshal()
 	if err != nil {
 		return Built{}, err
 	}
-	schema, err := closedSchema(questions)
+	schema, err := set.ResponseSchema()
 	if err != nil {
 		return Built{}, err
 	}
-	skeleton, err := closedSchema([]Question{{ID: QuestionCriterion, Options: []Option{{Name: "__TOKENS__"}}}, coverageQuestion()})
+	skeleton, err := hostproto.ClosedSet{Questions: []hostproto.ClosedQuestion{
+		hostproto.ChoiceQuestion(QuestionCriterion, "", []hostproto.ClosedOption{{Name: "__TOKENS__"}}), coverageQuestion(),
+	}}.ResponseSchema()
 	if err != nil {
 		return Built{}, err
 	}
 	system, instructions := embedded(decideSystem), embedded(decideInstructions)
-	user := stateOf(in.Test, in.Group) + sectionBreak + questionsHeader + "\n" + describe(questions) + sectionBreak + instructions
+	user := state + sectionBreak + questionsHeader + "\n" + describe(questions) + sectionBreak + instructions
 	return Built{
 		Prompt: hostproto.Prompt{System: system, User: user, TemplateDigest: digestOf(system, string(skeleton), instructions, embedded(decideCriterionAsk), embedded(decideCoverageAsk))},
 		Schema: schema,
@@ -227,12 +211,20 @@ func BuildClosed(in ClosedInput) (Built, error) {
 	}, nil
 }
 
-func coverageQuestion() Question {
-	question := Question{ID: QuestionCoverage, Type: TypeScore, Question: embedded(decideCoverageAsk)}
+// coverageLevelCriteria says what each coverage level means to the answerer.
+var coverageLevelCriteria = map[aggregate.Coverage]string{
+	aggregate.CoverageNone:    noneCriteria,
+	aggregate.CoverageWeak:    "An implementation violating the requirement would plausibly still pass.",
+	aggregate.CoveragePartial: "The assertions cover a correct but strict subset of the clauses of the requirement.",
+	aggregate.CoverageFull:    "The assertions cover the required outcome of the requirement under its stated condition.",
+}
+
+func coverageQuestion() hostproto.ClosedQuestion {
+	levels := make([]hostproto.ClosedOption, 0, len(aggregate.Levels()))
 	for _, level := range aggregate.Levels() {
-		question.Options = append(question.Options, Option{Name: string(level), Description: string(level)})
+		levels = append(levels, hostproto.ClosedOption{Name: string(level), Description: coverageLevelCriteria[level]})
 	}
-	return question
+	return hostproto.ScoreQuestion(QuestionCoverage, embedded(decideCoverageAsk), levels)
 }
 
 // stateOf is what the questions are about: the requirements of the group, the
@@ -250,79 +242,12 @@ func stateOf(in TestInput, group []string) string {
 	}, sectionBreak)
 }
 
-func describe(questions []Question) string {
+func describe(questions []hostproto.ClosedQuestion) string {
 	lines := make([]string, len(questions))
 	for index, question := range questions {
-		names := make([]string, len(question.Options))
-		for position, option := range question.Options {
-			names[position] = option.Name
-		}
-		lines[index] = fmt.Sprintf("%s: %s Options: %s.", question.ID, question.Question, strings.Join(names, ", "))
+		lines[index] = fmt.Sprintf("%s: %s Options: %s.", question.ID, question.Instructions, strings.Join(question.OptionNames(), ", "))
 	}
 	return strings.Join(lines, "\n")
-}
-
-func closedSchema(questions []Question) (json.RawMessage, error) {
-	forms := make([]schemaMember, len(questions))
-	required := make([]schemaMember, len(questions))
-	for index, question := range questions {
-		names := make([]string, len(question.Options))
-		for position, option := range question.Options {
-			names[position] = option.Name
-		}
-		forms[index] = schemaMember{
-			"type": "object", "additionalProperties": false, "required": []string{"id", "choice"},
-			"properties": schemaMember{
-				"id":         schemaMember{"const": question.ID},
-				"choice":     schemaMember{"type": "string", "enum": names},
-				"confidence": schemaMember{"type": "number", "minimum": 0, "maximum": 1},
-			},
-		}
-		required[index] = schemaMember{
-			"contains":    schemaMember{"type": "object", "required": []string{"id"}, "properties": schemaMember{"id": schemaMember{"const": question.ID}}},
-			"minContains": 1, "maxContains": 1,
-		}
-	}
-	return json.Marshal(schemaMember{
-		"$schema": "https://json-schema.org/draft/2020-12/schema",
-		"type":    "object", "additionalProperties": false, "required": []string{"answers"},
-		"properties": schemaMember{"answers": schemaMember{
-			"type": "array", "minItems": len(questions), "maxItems": len(questions),
-			"items": schemaMember{"oneOf": forms},
-			"allOf": required,
-		}},
-	})
-}
-
-// ClosedAnswer is the answer to one closed question.
-type ClosedAnswer struct {
-	Choice        string
-	Confidence    float64
-	HasConfidence bool
-}
-
-// ParseClosed reads a response that satisfies the closed schema into the answers
-// by question id.
-func ParseClosed(output []byte) (map[string]ClosedAnswer, error) {
-	var document struct {
-		Answers []struct {
-			ID         string   `json:"id"`
-			Choice     string   `json:"choice"`
-			Confidence *float64 `json:"confidence"`
-		} `json:"answers"`
-	}
-	if err := json.Unmarshal(output, &document); err != nil {
-		return nil, fmt.Errorf("read the closed response: %w", err)
-	}
-	answers := make(map[string]ClosedAnswer, len(document.Answers))
-	for _, answer := range document.Answers {
-		closed := ClosedAnswer{Choice: answer.Choice}
-		if answer.Confidence != nil {
-			closed.Confidence, closed.HasConfidence = *answer.Confidence, true
-		}
-		answers[answer.ID] = closed
-	}
-	return answers, nil
 }
 
 // TemplateDigests returns the digest of the template of every kind of request the

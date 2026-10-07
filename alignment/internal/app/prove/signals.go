@@ -219,7 +219,7 @@ func (s *subjectRun) readClosed(answer hostbridge.Answer, final bool) tournament
 		if !s.credited(vote) {
 			continue
 		}
-		parsed, err := prompt.ParseClosed(vote.Output)
+		parsed, err := hostproto.ParseClosedAnswers(vote.Output)
 		if err != nil {
 			continue
 		}
@@ -242,7 +242,7 @@ func (s *subjectRun) readClosed(answer hostbridge.Answer, final bool) tournament
 }
 
 func relayedAnswer(vote hostbridge.VoteState, final bool) tournament.Answer {
-	parsed, err := prompt.ParseClosed(vote.Output)
+	parsed, err := hostproto.ParseClosedAnswers(vote.Output)
 	if err != nil {
 		return tournament.Answer{Choice: masking.NoneAnswer}
 	}
@@ -256,7 +256,7 @@ func relayedAnswer(vote hostbridge.VoteState, final bool) tournament.Answer {
 	return result
 }
 
-func statedConfidence(answer prompt.ClosedAnswer) float64 {
+func statedConfidence(answer hostproto.ClosedAnswer) float64 {
 	if answer.HasConfidence {
 		return answer.Confidence
 	}

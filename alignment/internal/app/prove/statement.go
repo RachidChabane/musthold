@@ -11,20 +11,17 @@ import (
 	"github.com/RachidChabane/spec-proof/alignment/internal/app/hostbridge"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/prompt"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/verdict"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
 
 // Names of the inputs of a Statement.
 const (
-	inputNameStatement  = "statement"
 	inputNamePolicy     = "decision-policy"
 	inputNameMaskedTest = "masked-input:"
 	inputNameModels     = "host-models"
 	inputNameResponses  = "host-responses"
 	modelSeparator      = "@"
-	sourceSeparator     = ":"
 	responseSeparator   = "\x00"
 	// noExecutorHarness names the executor of a Statement that rests on no answer.
 	noExecutorHarness  = "spec-proof-alignment"
@@ -48,7 +45,7 @@ func sortInputs(inputs []format.Input) []format.Input {
 // input and the discriminating-power proofs the matrix is read from.
 func (s *subjectRun) baseInputs(declared criterion.Criterion, evidence testEvidence) []format.Input {
 	inputs := []format.Input{
-		descriptor(format.RoleSpec, inputNameStatement, declared.StatementDigest),
+		format.SpecInput(declared.Ref.ID, declared.Ref.Revision, declared.StatementDigest),
 		descriptor(format.RoleDecisionPolicy, inputNamePolicy, s.pass.policyDigest),
 		descriptor(format.RoleHostResponse, inputNameMaskedTest+s.subject.Test.Label(), s.maskedDigest),
 	}
@@ -57,14 +54,14 @@ func (s *subjectRun) baseInputs(declared criterion.Criterion, evidence testEvide
 		if !readable {
 			continue
 		}
-		inputs = append(inputs, descriptor(format.RoleTestSource, file, digest))
+		inputs = append(inputs, format.FileInput(format.RoleTestSource, file, digest))
 	}
 	for _, file := range s.masked.CodeFiles {
 		digest, readable := s.pass.digestOfFile(file)
 		if !readable {
 			continue
 		}
-		inputs = append(inputs, descriptor(format.RoleCodeTree, file, digest))
+		inputs = append(inputs, format.FileInput(format.RoleCodeTree, file, digest))
 	}
 	for kind, digest := range prompt.TemplateDigests() {
 		inputs = append(inputs, descriptor(format.RolePromptTemplate, string(kind), digest))
@@ -74,12 +71,13 @@ func (s *subjectRun) baseInputs(declared criterion.Criterion, evidence testEvide
 }
 
 // sourceFiles lists the test files the Statement rests on: those the masked input
-// was built from, or, for a test that could not be masked, the file it is in.
+// was built from, and always the file the test itself is in.
 func (s *subjectRun) sourceFiles() []string {
-	if len(s.masked.TestFiles) > 0 {
-		return s.masked.TestFiles
+	files := slices.Clone(s.masked.TestFiles)
+	if !slices.Contains(files, s.subject.Test.File) {
+		files = append(files, s.subject.Test.File)
 	}
-	return []string{s.subject.Test.File}
+	return files
 }
 
 // finalInputs adds the inputs that depend on the host's answers: the models that
@@ -187,16 +185,16 @@ func (s *subjectRun) writeStatement(declared criterion.Criterion, evidence testE
 	if err != nil {
 		return "", err
 	}
-	deciders := s.qualifiedDeciders(decision.Deciders, outcome.closedSource)
-	slices.Sort(deciders)
+	deciders := slices.Sorted(slices.Values(decision.Deciders))
+	confidence := s.confidenceOf(decision.Basis, outcome.closed)
 	predicate := format.Alignment{
 		Requirement: format.Requirement{ID: declared.Ref.ID, Revision: declared.Ref.Revision, StatementCanonicalization: format.StatementCanonicalizationC1},
 		Core: format.Core{
 			Module: s.pass.settings.Module, Inputs: inputs, CacheKey: cacheKey, ProducedBy: format.ProducedByLocal,
 			Extensions: format.Extensions{
 				Decision: &format.Decision{
-					Basis: decision.Basis, Deciders: deciders, RawConfidence: decision.Confidence,
-					Threshold: s.thresholdOf(decision.Basis), EscalationReason: decision.Reason,
+					Basis: decision.Basis, Deciders: deciders, ConfidenceSource: confidence.source, ConfidenceMapping: confidence.mapping,
+					RawConfidence: decision.Confidence, Threshold: s.thresholdOf(decision.Basis), EscalationReason: decision.Reason,
 				},
 				Matrix: matrixJSON,
 			},
@@ -215,18 +213,15 @@ func (s *subjectRun) writeStatement(declared criterion.Criterion, evidence testE
 	return cacheKey, nil
 }
 
-// qualifiedDeciders names, next to each signal that carries a confidence, where
-// that confidence came from: `system_one:<source>` and `judge:host-votes(<k>)`.
-func (s *subjectRun) qualifiedDeciders(deciders []string, closedSource string) []string {
-	qualified := make([]string, len(deciders))
-	for index, decider := range deciders {
-		switch {
-		case decider == verdict.DeciderSystemOne && closedSource != "":
-			decider += sourceSeparator + closedSource
-		case decider == verdict.DeciderJudge:
-			decider += sourceSeparator + fmt.Sprintf("host-votes(%d)", s.pass.settings.Policy.AlignK)
-		}
-		qualified[index] = decider
+// confidenceOf says where the confidence of a decision of the basis came from:
+// the closed answers for System One, the judges' modal share for the judges, and
+// execution for a verdict the module fixed itself.
+func (s *subjectRun) confidenceOf(basis format.DecisionBasis, closed sourced) sourced {
+	switch basis {
+	case format.BasisSystemOne:
+		return closed
+	case format.BasisJudges:
+		return sourced{source: format.HostVotesSource(s.pass.settings.Policy.AlignK), mapping: format.MappingModalShare}
 	}
-	return qualified
+	return sourced{source: format.SourceExecution}
 }

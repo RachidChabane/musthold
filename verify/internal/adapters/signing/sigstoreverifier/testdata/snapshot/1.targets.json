@@ -1,20 +1,20 @@
 {
 	"signatures": [
 		{
-			"keyid": "6ea696bd9209e096b78ef130f27e1a6974d127abb1571e4513ebf9cc82e2468f",
-			"sig": "3046022100877b845956c05cb7b70bd47bf3fee8cb1d06d1a0ef0833eae2a69dec00811d4f0221009d41c7f08b213f992486701e07efe71600f05a9d357787c00e1e86e9c668aaac"
+			"keyid": "4f2599daee0adbef59730945e0d7546c92f4b5810e123695d6da970259ca7543",
+			"sig": "304502202ffd05a4968053ac7384e58cdfa621267f2abf936fba6a8566e2405e930913010221008ab94548de04420f50e037d1798333e40174c515b261d468b7b059069a3bbf5b"
 		}
 	],
 	"signed": {
 		"_type": "targets",
-		"expires": "2126-09-13T04:04:15.146512+02:00",
+		"expires": "2126-09-13T06:41:03.827302+02:00",
 		"spec_version": "1.0.31",
 		"targets": {
 			"trusted_root.json": {
 				"hashes": {
-					"sha256": "d96182638bb10ada1b777805cb3a5e2e62f532f27727ca7f478a1dc18f4e5849"
+					"sha256": "f0fc64faa3ff26b2d6805dd624c23a6b4a7e0bf5acd2938dd171267e804930c7"
 				},
-				"length": 2263
+				"length": 2259
 			}
 		},
 		"version": 1

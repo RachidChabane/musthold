@@ -34,9 +34,14 @@ per-file form gives Shallnot nothing it currently recomputes.
 - `spec` is the criterion's statement digest under the canonicalization
   recorded in the predicate, named `<ID>~<REV>`; it duplicates the subject on
   purpose, so that every input role follows one rule.
+- `proof` is named by the consumed kind (`discriminating-power`), carries the
+  criterion `ID~REV` it is about in `annotations.criterion`, and its digest is the
+  SHA-256 of the consumed Statement file's exact bytes, the digest the verified
+  set's manifest lists. A proof consumes at most one Statement of a kind; the
+  inputs are strictly ascending by role then name.
 - Every other role (`junit_result`, `mutant_set`, `prompt_template`,
-  `decision_policy`, `example_binding`, `host_response`, `proof`) keeps the
-  form ADR 0001, 0003 and 0005 give it.
+  `decision_policy`, `example_binding`, `host_response`) keeps the form ADR 0001,
+  0003 and 0005 give it.
 
 The file-set digest and the `annotations.globs` comparison of ADR 0002 are
 not used for proof inputs.

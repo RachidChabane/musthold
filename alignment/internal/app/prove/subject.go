@@ -200,9 +200,9 @@ type decided struct {
 	decision verdict.Decision
 	// used lists the answers the verdict rests on.
 	used []hostbridge.Answer
-	// closedSource is where the confidence of the closed answers came from.
-	closedSource string
-	state        askState
+	// closed is where the confidence of the closed answers came from.
+	closed sourced
+	state  askState
 }
 
 // decide gathers the signals the verdict table asks for, one at a time, until it
@@ -215,11 +215,11 @@ func (s *subjectRun) decide(declared criterion.Ref, m matrix.Result) (decided, e
 		return decided{decision: failed(s.failure.reason)}, nil
 	}
 	var used []hostbridge.Answer
-	source := ""
+	var source sourced
 	for {
 		decision := verdict.Decide(in, policy)
 		if decision.Done {
-			return decided{decision: decision, used: used, closedSource: source}, nil
+			return decided{decision: decision, used: used, closed: source}, nil
 		}
 		switch decision.Need {
 		case verdict.NeedSystemOne:
@@ -343,14 +343,21 @@ func (s *subjectRun) closedAnswers() []hostbridge.Answer {
 	return answers
 }
 
+// sourced is where a confidence came from and the mapping that derived it from
+// what the answerers gave.
+type sourced struct {
+	source  format.ConfidenceSource
+	mapping string
+}
+
 // confidenceSource says where the confidence of closed answers came from: the
 // relay's source when a System One endpoint answered, the modal share of the
 // `decide_k` host votes otherwise.
-func confidenceSource(answers []hostbridge.Answer, decideK int) string {
+func confidenceSource(answers []hostbridge.Answer, decideK int) sourced {
 	for _, answer := range answers {
 		if relayed := answer.Votes[0].Executor; relayed.Channel == format.ChannelSystemOneRelay {
-			return relayed.Model.Name
+			return sourced{source: format.SystemOneSource(relayed.Model.Name), mapping: hostproto.ClosedChoice.ConfidenceMapping()}
 		}
 	}
-	return fmt.Sprintf("host-votes(%d)", decideK)
+	return sourced{source: format.HostVotesSource(decideK), mapping: format.MappingModalShare}
 }

@@ -56,11 +56,11 @@ func TestConfidenceSource(t *testing.T) {
 	voted := hostbridge.Answer{Votes: []hostbridge.VoteState{{Executor: profile(format.IsolationRestricted, format.ChannelHostSubagent, "a")}}}
 
 	t.Run("the confidence of a relayed answer comes from the relay's source, otherwise from the host votes [verifies SP-361~1]", func(t *testing.T) {
-		if got := confidenceSource([]hostbridge.Answer{voted, relayed}, 3); got != "systemone:nimble@ab12" {
-			t.Errorf("relayed source %q", got)
+		if got := confidenceSource([]hostbridge.Answer{voted, relayed}, 3); got != (sourced{source: format.SystemOneSource("systemone:nimble@ab12"), mapping: format.MappingSystemOneChoice}) {
+			t.Errorf("relayed source %+v", got)
 		}
-		if got := confidenceSource([]hostbridge.Answer{voted}, 3); got != "host-votes(3)" {
-			t.Errorf("host source %q", got)
+		if got := confidenceSource([]hostbridge.Answer{voted}, 3); got != (sourced{source: format.HostVotesSource(3), mapping: format.MappingModalShare}) {
+			t.Errorf("host source %+v", got)
 		}
 	})
 }

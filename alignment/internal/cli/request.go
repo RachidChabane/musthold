@@ -172,25 +172,12 @@ func (e Env) systemOne(args []string) outcome {
 	return outcome{err: refusal{fmt.Errorf("unknown systemone verb %q", verb)}}
 }
 
-// closedExport is one closed request as a relay posts it to a System One endpoint.
-type closedExport struct {
-	Ticket string          `json:"ticket"`
-	Nonce  string          `json:"nonce"`
-	Closed json.RawMessage `json:"closed"`
-}
-
 func (e Env) exportClosed(service requests.Service) outcome {
 	listing, err := service.List()
 	if err != nil {
 		return outcome{err: err}
 	}
-	exported := []closedExport{}
-	for _, item := range listing.Items {
-		if len(item.View.Closed) > 0 && item.Ticket.Vote == 0 {
-			exported = append(exported, closedExport{Ticket: item.Ticket.TicketID.String(), Nonce: item.Ticket.Nonce, Closed: item.View.Closed})
-		}
-	}
-	return outcome{err: json.NewEncoder(e.Stdout).Encode(exported)}
+	return outcome{err: json.NewEncoder(e.Stdout).Encode(hostproto.ExportClosed(listing))}
 }
 
 func (e Env) importClosed(service requests.Service, positionals []string, nonce, source string) outcome {
@@ -205,8 +192,13 @@ func (e Env) importClosed(service requests.Service, positionals []string, nonce,
 	if err != nil {
 		return outcome{err: fmt.Errorf("read the answers: %w", err)}
 	}
-	if _, err := service.Show(ticket, ""); err != nil {
+	view, err := service.Show(ticket, "")
+	if err != nil {
 		return outcome{err: asRefusal(err)}
+	}
+	output, err = answersOf(view, output)
+	if err != nil {
+		return outcome{err: refusal{err}}
 	}
 	profile := requests.RelayProfile(source)
 	receipt, err := service.Submit(requests.Submission{Ticket: ticket, Nonce: nonce, Output: output, Origin: requests.OriginRelay, Executor: &profile})
@@ -215,4 +207,15 @@ func (e Env) importClosed(service requests.Service, positionals []string, nonce,
 	}
 	fmt.Fprintln(e.Stdout, receipt.Text)
 	return outcome{code: ExitClean}
+}
+
+// answersOf turns what a relay read from a System One endpoint into the output of
+// the response to the ticket: the endpoint answers the question set the ticket
+// shows, in its own terms.
+func answersOf(view hostproto.ExecutorView, endpointResponse []byte) ([]byte, error) {
+	set, err := hostproto.ParseClosedSet(view.Closed)
+	if err != nil {
+		return nil, fmt.Errorf("the ticket asks no closed questions: %w", err)
+	}
+	return set.AnswersFromSystemOne(endpointResponse)
 }

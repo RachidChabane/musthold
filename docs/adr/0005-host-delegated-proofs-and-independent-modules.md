@@ -144,7 +144,7 @@ in JCS.
 | `shape` | `open`, or `closed` (`/v1/systemone` question types) |
 | `prompt` | `{system, user, templateDigest}`, built by ADR 0003's pure blind builders: generation never sees tests; alignment is name-masked |
 | `responseSchema` | embedded JSON Schema 2020-12 (no loader) |
-| `closed` | closed requests only: the `/v1/systemone` question set |
+| `closed` | closed requests only: the question set of the `/v1/systemone` types: a state and ordered, named questions of the type `choice`, `noul` or `score`, each with its instructions and options that carry their criteria text; the host protocol library defines the set once, with its response schema |
 | `round`, `seed` | generation only |
 | `limits` | `{maxOutputBytes: 262144}` |
 | `inputs[]` | `{role, digest}` |
@@ -363,9 +363,16 @@ a closed-question protocol. The chain applies to every `decide.closed` request:
      installed by the umbrella or by `go install`. Module plugins do not declare it
      as a dependency; the skill runs it only when it is on `PATH` and an endpoint
      is configured.
-   - It posts each body of `spec-proof-dp systemone export` to the endpoint and
-     pipes the results into `systemone import --source
-     systemone:<model>@<endpointDigest>`. Unlike a shell relay, it runs on Windows.
+   - It renders each question set that `spec-proof-dp systemone export` lists as a
+     `/v1/systemone` request body (questions named in order; a choice maps each
+     option to its criteria text, a score lists the levels from the lowest, a noul
+     gives the two meanings), posts it to the endpoint and pipes the response into
+     `systemone import --source <model>@<endpointDigest>`. The import translates the
+     response with the question set of the ticket: a choice keeps its option and its
+     `confidence`, a noul is `true` from probability one half with the confidence
+     `max(p, 1-p)`, and a score is the nearest level with the `confidence` of the
+     endpoint. A response that leaves a question unanswered is refused. Unlike a
+     shell relay, it runs on Windows.
    - The relay is the environment's client of the user's service. No proof-module
      binary opens a model connection, which an architecture test checks, so the
      rule "the binary never calls a model itself" holds without exception. A relay
@@ -375,8 +382,13 @@ a closed-question protocol. The chain applies to every `decide.closed` request:
 3. **Below threshold**, the answer is UNDETERMINED.
 
 Thresholds and ADR 0003's admission test are keyed by `(kind, confidenceSource,
-model)`. `confidenceSource` is recorded in `extensions.decision`. A module
-installed without the relay runs the full chain from step 2.
+model)`. `confidenceSource` is recorded in `extensions.decision` as `execution`
+(the module fixed the confidence), `host-votes(k)` or `system-one:<model>@<endpointDigest>`,
+with `confidenceMapping`, the id of the mapping that derived the confidence from
+what the answerers gave (`host-votes.modal-share`, `host-votes.weakest-stated`,
+`system-one.choice.confidence`, `system-one.noul.max-p`, `system-one.score.confidence`);
+`deciders` names only the signals that decided. A module installed without the
+relay runs the full chain from step 2.
 
 ### Trust model
 

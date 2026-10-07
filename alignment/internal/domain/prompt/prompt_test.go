@@ -3,6 +3,7 @@ package prompt_test
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -91,13 +92,13 @@ func TestClosedRequest(t *testing.T) {
 			t.Fatal(err)
 		}
 		var closed struct {
-			Questions []prompt.Question `json:"questions"`
+			Questions []hostproto.ClosedQuestion `json:"questions"`
 		}
 		if err := json.Unmarshal(built.Closed, &closed); err != nil || len(closed.Questions) != 1 {
 			t.Fatalf("questions %+v: %v", closed, err)
 		}
 		question := closed.Questions[0]
-		if question.ID != prompt.QuestionCriterion || question.Type != prompt.TypeChoice || len(question.Options) != 24 || question.Options[23].Name != masking.NoneAnswer {
+		if question.ID != prompt.QuestionCriterion || question.Type != hostproto.ClosedChoice || len(question.Options) != 24 || question.Options[23].Name != masking.NoneAnswer {
 			t.Fatalf("question %+v", question)
 		}
 		if question.Options[0].Description == "" {
@@ -111,13 +112,13 @@ func TestClosedRequest(t *testing.T) {
 			t.Fatal(err)
 		}
 		var closed struct {
-			Questions []prompt.Question `json:"questions"`
+			Questions []hostproto.ClosedQuestion `json:"questions"`
 		}
 		if err := json.Unmarshal(built.Closed, &closed); err != nil || len(closed.Questions) != 2 {
 			t.Fatalf("questions %+v: %v", closed, err)
 		}
 		coverage := closed.Questions[1]
-		if coverage.ID != prompt.QuestionCoverage || coverage.Type != prompt.TypeScore || len(coverage.Options) != 4 || coverage.Options[0].Name != "NONE" || coverage.Options[3].Name != "FULL" {
+		if coverage.ID != prompt.QuestionCoverage || coverage.Type != hostproto.ClosedScore || len(coverage.Options) != 4 || coverage.Options[0].Name != "NONE" || coverage.Options[3].Name != "FULL" {
 			t.Fatalf("coverage %+v", coverage)
 		}
 		if !strings.Contains(string(built.Schema), `"minContains"`) {
@@ -136,9 +137,65 @@ func TestClosedRequest(t *testing.T) {
 	})
 
 	t.Run("a closed answer is read by question id [verifies SP-319~1]", func(t *testing.T) {
-		answers, err := prompt.ParseClosed([]byte(`{"answers":[{"id":"criterion","choice":"K-1","confidence":0.9},{"id":"coverage","choice":"FULL"}]}`))
+		answers, err := hostproto.ParseClosedAnswers([]byte(`{"answers":[{"id":"criterion","choice":"K-1","confidence":0.9},{"id":"coverage","choice":"FULL"}]}`))
 		if err != nil || !answers["criterion"].HasConfidence || answers["criterion"].Confidence != 0.9 || answers["coverage"].HasConfidence || answers["coverage"].Choice != "FULL" {
 			t.Fatalf("answers %+v: %v", answers, err)
+		}
+	})
+}
+
+func TestClosedRequestIsAClosedQuestionSet(t *testing.T) {
+	const verifiesSP411 = " [verifies SP-411~1]"
+	in := input(5, "seed")
+	built, err := prompt.BuildClosed(prompt.ClosedInput{Test: in, Group: in.Criteria.Tokens, Final: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	set, err := hostproto.ParseClosedSet(built.Closed)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("the set is valid, its score levels say what each coverage means and its options say what each requirement is"+verifiesSP411, func(t *testing.T) {
+		criterion, coverage := set.Questions[0], set.Questions[1]
+		for _, option := range append(slices.Clone(criterion.Options), coverage.Options...) {
+			if option.Description == "" {
+				t.Errorf("option %+v carries no criteria text", option)
+			}
+		}
+		seen := map[string]bool{}
+		for _, level := range coverage.Options {
+			if seen[level.Description] {
+				t.Errorf("two levels say %q", level.Description)
+			}
+			seen[level.Description] = true
+		}
+	})
+
+	t.Run("the response schema is the one the set builds and the digest does not depend on the group"+verifiesSP411, func(t *testing.T) {
+		want, err := set.ResponseSchema()
+		if err != nil || string(built.Schema) != string(want) {
+			t.Fatalf("schema %s, want %s (%v)", built.Schema, want, err)
+		}
+		other := input(9, "another seed")
+		narrower, err := prompt.BuildClosed(prompt.ClosedInput{Test: other, Group: other.Criteria.Tokens[:3], Final: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if narrower.Prompt.TemplateDigest != built.Prompt.TemplateDigest {
+			t.Error("the template digest depends on the tokens of the test")
+		}
+	})
+
+	t.Run("a System One response to the set is read back through the shared translation"+verifiesSP411, func(t *testing.T) {
+		response := `{"answers":{"criterion":{"type":"choice","choice":"` + in.Criteria.Tokens[1] + `","confidence":0.8},"coverage":{"type":"score","score":3,"confidence":0.7}}}`
+		document, err := set.AnswersFromSystemOne([]byte(response))
+		if err != nil {
+			t.Fatal(err)
+		}
+		answers, err := hostproto.ParseClosedAnswers(document)
+		if err != nil || answers[prompt.QuestionCriterion].Choice != in.Criteria.Tokens[1] || answers[prompt.QuestionCoverage].Choice != "FULL" {
+			t.Fatalf("answers %+v (%v)", answers, err)
 		}
 	})
 }

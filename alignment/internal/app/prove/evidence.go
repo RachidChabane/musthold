@@ -2,6 +2,8 @@ package prove
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
@@ -10,21 +12,23 @@ import (
 	"github.com/RachidChabane/spec-proof/format"
 )
 
-// Names of the `proof` inputs: the consumed kind, and for another criterion the
-// kind and the criterion.
-const (
-	proofInputSeparator = ":"
-)
+// inputNameMatrixEvidence names the input that stands for the discriminating-power
+// Statements of the other criteria a test is bound to. A `proof` input is named by
+// its kind alone, so only the Statement of the declared criterion is one; the
+// others still reach the cache key through this descriptor.
+const inputNameMatrixEvidence = "matrix-evidence"
 
 // chosenProof is the discriminating-power Statement the module reads for one
-// criterion: the Statement, the digest of its exact bytes, where it came from,
-// and whether a usable one exists at all.
+// criterion: the Statement, its exact bytes, where it came from, and whether a
+// usable one exists at all.
 type chosenProof struct {
 	statement format.DiscriminatingPower
-	digest    string
+	bytes     []byte
 	origin    ports.ProofOrigin
 	usable    bool
 }
+
+func (c chosenProof) digest() string { return format.SHA256Hex(c.bytes) }
 
 // proofFor chooses the discriminating-power Statement of a criterion: the first,
 // verified set before local cache, that is a valid Statement of the criterion's
@@ -43,7 +47,7 @@ func (p *passState) proofFor(c criterion.Criterion) (*chosenProof, error) {
 	for _, candidate := range candidates {
 		statement, usable := p.readProof(c, candidate)
 		if usable {
-			*chosen = chosenProof{statement: statement, digest: format.SHA256Hex(candidate.Bytes), origin: candidate.Origin, usable: true}
+			*chosen = chosenProof{statement: statement, bytes: candidate.Bytes, origin: candidate.Origin, usable: true}
 			return chosen, nil
 		}
 	}
@@ -85,7 +89,9 @@ func (p *passState) inputsCurrent(inputs []format.Input) bool {
 // one declared criterion: the matrix, and the `proof` inputs the verdict rests on.
 type testEvidence struct {
 	matrix matrix.Result
-	// proofInputs are the `proof` inputs, one per Statement the matrix was read from.
+	// proofInputs are the inputs for the Statements the matrix was read from: the
+	// `proof` input of the declared criterion's, and the evidence descriptor of the
+	// other criteria's.
 	proofInputs []format.Input
 	// corroboration is the digest of the declared criterion's Statement, the
 	// executed evidence a SPECIFIC or OVERBROAD matrix stands on.
@@ -102,6 +108,7 @@ func (p *passState) evidenceFor(subject criterion.Subject, declared criterion.Cr
 	result := testEvidence{matrix: matrix.Absence()}
 	statements := map[criterion.Ref]format.DiscriminatingPower{}
 	var inputs []format.Input
+	var others []string
 	test := subject.Test.ResultID()
 	for _, ref := range subject.Declared {
 		c, found := p.project.Find(ref)
@@ -116,25 +123,21 @@ func (p *passState) evidenceFor(subject criterion.Subject, declared criterion.Cr
 			continue
 		}
 		statements[ref] = chosen.statement
-		inputs = append(inputs, format.Input{Role: format.RoleProof, Name: proofInputName(ref, declared.Ref), Digest: format.Digest{SHA256: chosen.digest}})
 		if ref == declared.Ref {
-			result.usable, result.corroboration = true, chosen.digest
+			inputs = append(inputs, format.ProofInput(format.KindDiscriminatingPower, ref.String(), chosen.bytes))
+			result.usable, result.corroboration = true, chosen.digest()
+		} else {
+			others = append(others, ref.String()+"="+chosen.digest())
 		}
 	}
 	if !result.usable {
 		return result, nil
 	}
+	if len(others) > 0 {
+		slices.Sort(others)
+		inputs = append(inputs, descriptor(format.RoleMutantSet, inputNameMatrixEvidence, format.SHA256Hex([]byte(strings.Join(others, responseSeparator)))))
+	}
 	result.matrix = matrix.Classify(evidence.FactsFor(test, statements), test, declared.Ref, policyThresholds)
 	result.proofInputs = inputs
 	return result, nil
-}
-
-// proofInputName names the `proof` input of a Statement: the consumed kind for
-// the declared criterion's own, the kind and the criterion for another's.
-func proofInputName(ref, declared criterion.Ref) string {
-	kind := string(format.KindDiscriminatingPower)
-	if ref == declared {
-		return kind
-	}
-	return kind + proofInputSeparator + ref.String()
 }
