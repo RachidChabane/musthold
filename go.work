@@ -8,6 +8,7 @@ use (
 	./ledger
 	./s1relay
 	./tools/archtest
+	./tools/canary
 	./tools/e2e
 	./umbrella
 	./verify

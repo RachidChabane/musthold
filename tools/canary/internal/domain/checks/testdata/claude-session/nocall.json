@@ -1,0 +1,26 @@
+{
+  "capProbe": {
+    "attempted": true,
+    "responded": true,
+    "refused": true,
+    "servedTicket": false,
+    "detail": "json-rpc error -32602: invalid tool arguments: capability required"
+  },
+  "pluginValidation": [
+    {
+      "dir": "/r/discpower/plugin/claude",
+      "exitCode": 0,
+      "output": "Validation passed"
+    },
+    {
+      "dir": "/r/alignment/plugin/claude",
+      "exitCode": 0,
+      "output": "Validation passed"
+    },
+    {
+      "dir": "/r/completeness/plugin/claude",
+      "exitCode": 0,
+      "output": "Validation passed"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+FREE_SHIPPING_FROM = 50
+SHIPPING_FEE = 4.50
+MAX_PERCENT = 100
+
+
+def line_total(unit_price, quantity):
+    return unit_price * quantity

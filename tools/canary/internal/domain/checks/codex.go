@@ -1,0 +1,223 @@
+package checks
+
+import (
+	"fmt"
+	"slices"
+	"strings"
+
+	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
+	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
+)
+
+// Names of the Codex checks.
+const (
+	checkCodexAgentLoads  = "agent_files_load"
+	checkCodexHooksFire   = "hooks_fire"
+	checkCodexAgentType   = "agent_type_in_pretool"
+	checkCodexToolNaming  = "mcp_tool_naming"
+	checkCodexSandbox     = "executor_sandbox"
+	checkCodexNoSpawnNote = "the session spawned no executor agent of the primary module"
+)
+
+func codexStrategy() harness.Harness { return strategy(harness.FlagCodex) }
+
+func codexChecks() []Check {
+	return []Check{
+		versionCheck(harness.FlagCodex),
+		capWithoutHooksCheck(harness.FlagCodex),
+		agentFilesLoadCheck(),
+		hooksFireCodexCheck(),
+		agentTypeInPreToolCheck(),
+		toolNamingCheck(),
+		sandboxCheck(),
+		stopProbeCheck(codexFinished, func(evidence.Evidence) []verdict.Pointer { return nil }),
+		editAppliedCheck(),
+		withinCapsCheck(codexSummary),
+	}
+}
+
+func codexStream(found evidence.Evidence) evidence.CodexStream {
+	return evidence.DecodeCodex(found.Stream)
+}
+
+func codexFinished(found evidence.Evidence) (bool, verdict.Pointer) {
+	stream := codexStream(found)
+	for index, kind := range stream.Types {
+		if kind == evidence.CodexEventTurnCompleted {
+			return !slices.Contains(stream.Types, evidence.CodexEventTurnFailed), evidence.StreamAt(found.Stream[index].Number, "turn.completed")
+		}
+	}
+	return false, verdict.Pointer{}
+}
+
+func codexSummary(found evidence.Evidence) (string, bool, verdict.Pointer) {
+	finished, pointer := codexFinished(found)
+	if !finished {
+		return "", false, verdict.Pointer{}
+	}
+	return fmt.Sprintf("the turn completed after %d events", len(found.Stream)), true, pointer
+}
+
+// spawnedExecutor returns the collab call items that mention the executor's agent
+// type, and the agent type.
+func spawnedExecutor(found evidence.Evidence) ([]evidence.CodexItem, string) {
+	agentType := codexStrategy().AgentType(found.Session.Role)
+	var spawns []evidence.CodexItem
+	for _, item := range codexStream(found).ItemsOf(evidence.CodexItemCollab) {
+		if item.Mentions(agentType) {
+			spawns = append(spawns, item)
+		}
+	}
+	return spawns, agentType
+}
+
+func agentFilesLoadCheck() Check {
+	return newCheck(checkCodexAgentLoads,
+		"The custom agent files and the plugin's skill load under `codex exec`: the harness starts an agent of the module's type.",
+		func(found evidence.Evidence) verdict.Verdict {
+			spawns, agentType := spawnedExecutor(found)
+			for _, call := range found.HookCalls(primaryModule().Binary, hookKindStart) {
+				if call.Payload().AgentType == agentType {
+					return verdict.Passed("SubagentStart fired for agent type "+agentType, evidence.HooksAt(call.Line, "subagent-start"))
+				}
+			}
+			for _, spawn := range spawns {
+				if spawn.Status == evidence.CodexStatusFailed {
+					return verdict.Failed("the spawn of "+agentType+" failed: "+truncate(string(spawn.Raw)), evidence.StreamAt(spawn.Line, "collab call"))
+				}
+			}
+			if len(spawns) > 0 {
+				return verdict.Undecided("a spawn of "+agentType+" was attempted but no SubagentStart hook recorded it", evidence.StreamAt(spawns[0].Line, "collab call"))
+			}
+			return verdict.Undecided(checkCodexNoSpawnNote)
+		})
+}
+
+func hooksFireCodexCheck() Check {
+	required := []string{hookKindStart, hookKindStop, hookKindPreTool}
+	return newCheck(checkCodexHooksFire,
+		"Project hooks of the modules run under `codex exec` once the project is trusted: subagent start, subagent stop and the executor tool guard, each exiting cleanly.",
+		func(found evidence.Evidence) verdict.Verdict {
+			binary := primaryModule().Binary
+			if !slices.ContainsFunc(found.Hooks, func(call evidence.HookCall) bool { return call.Module == binary }) {
+				if spawns, _ := spawnedExecutor(found); len(spawns) == 0 {
+					return verdict.Undecided(checkCodexNoSpawnNote)
+				}
+				return verdict.Undecided("the recorder saw no command of " + binary + ": hooks did not run, or the recorder is not on the PATH of the session")
+			}
+			var missing []string
+			var pointers []verdict.Pointer
+			for _, kind := range required {
+				calls := found.HookCalls(binary, kind)
+				if len(calls) == 0 {
+					missing = append(missing, kind)
+					continue
+				}
+				for _, call := range calls {
+					if call.ExitCode != 0 {
+						return verdict.Failed(fmt.Sprintf("the %s hook exited %d", kind, call.ExitCode), evidence.HooksAt(call.Line, kind))
+					}
+				}
+				pointers = append(pointers, evidence.HooksAt(calls[0].Line, kind))
+			}
+			if len(missing) > 0 {
+				return verdict.Failed("hooks that never ran: "+strings.Join(missing, ", "), pointers...)
+			}
+			return verdict.Passed("the subagent start, subagent stop and pre-tool hooks ran and exited 0", pointers...)
+		})
+}
+
+// preToolRecords returns every recorded PreToolUse payload: the module's own hook
+// and the probe that sees every tool call whatever the module's matcher selects.
+func preToolRecords(found evidence.Evidence) []evidence.HookCall {
+	records := found.HookCalls(primaryModule().Binary, hookKindPreTool)
+	return append(records, found.Probes(evidence.LabelPreToolProbe)...)
+}
+
+// executorToolCalls returns the PreToolUse records whose tool is an executor tool
+// as the harness spells it.
+func executorToolCalls(found evidence.Evidence) []evidence.HookCall {
+	var calls []evidence.HookCall
+	for _, call := range preToolRecords(found) {
+		if _, executor := codexStrategy().ExecutorTool(call.Payload().ToolName); executor {
+			calls = append(calls, call)
+		}
+	}
+	return calls
+}
+
+func agentTypeInPreToolCheck() Check {
+	return newCheck(checkCodexAgentType,
+		"PreToolUse names the calling agent: the payload of an executor tool call carries the agent id and the agent type, so a hook can tell the executor from the main agent.",
+		func(found evidence.Evidence) verdict.Verdict {
+			calls := executorToolCalls(found)
+			if len(calls) == 0 {
+				return verdict.Undecided("no PreToolUse payload for an executor tool was recorded")
+			}
+			want := codexStrategy().AgentType(found.Session.Role)
+			for _, call := range calls {
+				payload := call.Payload()
+				if payload.AgentType == want && payload.AgentID != "" {
+					return verdict.Passed(fmt.Sprintf("the payload names agent_type %q and an agent_id", want), evidence.HooksAt(call.Line, "pre-tool payload"))
+				}
+			}
+			first := calls[0].Payload()
+			return verdict.Failed(fmt.Sprintf("the payload carries agent_type %q and agent_id %q, expected %q: a hook cannot attribute the call", first.AgentType, first.AgentID, want), evidence.HooksAt(calls[0].Line, "pre-tool payload"))
+		})
+}
+
+func toolNamingCheck() Check {
+	codex := codexStrategy()
+	return newCheck(checkCodexToolNaming,
+		"A hook sees the module's MCP tools under the name the module's matchers and allowlists spell, so the matcher selects them.",
+		func(found evidence.Evidence) verdict.Verdict {
+			for _, call := range preToolRecords(found) {
+				name := call.Payload().ToolName
+				pointer := evidence.HooksAt(call.Line, "pre-tool payload")
+				if _, executor := codex.ExecutorTool(name); executor {
+					return verdict.Passed("the hook saw "+name, pointer)
+				}
+				if strings.Contains(name, hostproto.ToolFetchRequest) || strings.Contains(name, hostproto.ToolSubmitResponse) {
+					return verdict.Failed(fmt.Sprintf("the hook saw %q, the module spells %q", name, codex.ToolNames()), pointer)
+				}
+			}
+			for _, item := range codexStream(found).ItemsOf(evidence.CodexItemMCPCall) {
+				if item.Tool != hostproto.ToolFetchRequest && item.Tool != hostproto.ToolSubmitResponse {
+					continue
+				}
+				pointer := evidence.StreamAt(item.Line, "mcp_tool_call")
+				if item.Server != codex.Server() {
+					return verdict.Failed(fmt.Sprintf("the harness runs the executor tool on server %q, the module names it %q", item.Server, codex.Server()), pointer)
+				}
+				return verdict.Undecided("the stream shows server "+item.Server+" but no hook payload recorded the tool name", pointer)
+			}
+			return verdict.Undecided("no executor tool call was recorded")
+		})
+}
+
+// sandboxCheck reads the probe the executor was asked to run: a write in the
+// project, which the read-only sandbox of the agent file must refuse.
+func sandboxCheck() Check {
+	return newCheck(checkCodexSandbox,
+		"The executor agent's `sandbox_mode = \"read-only\"` is enforced: a write the executor attempted did not land. An executor that never tried leaves the question open.",
+		func(found evidence.Evidence) verdict.Verdict {
+			probe := found.SandboxProbe
+			pointer := evidence.At(evidence.SandboxProbeFile, 0, probe.File)
+			if probe.File == "" {
+				return verdict.Undecided("the sandbox probe was not recorded")
+			}
+			if probe.Exists {
+				return verdict.Failed("the executor wrote "+probe.File+" despite the read-only sandbox", pointer)
+			}
+			for _, item := range codexStream(found).ItemsOf(evidence.CodexItemCommand) {
+				if item.Event == evidence.CodexEventItemCompleted && strings.Contains(item.Command, probe.File) {
+					if item.ExitCode != nil && *item.ExitCode != 0 {
+						return verdict.Passed(fmt.Sprintf("the write command exited %d and %s does not exist", *item.ExitCode, probe.File), pointer, evidence.StreamAt(item.Line, "command_execution"))
+					}
+				}
+			}
+			return verdict.Undecided("no attempted write is recorded, so the sandbox was not exercised", pointer)
+		})
+}
