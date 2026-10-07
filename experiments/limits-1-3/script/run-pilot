@@ -16,7 +16,7 @@ mkdir -p "${markers}"
 guard=(../../script/mem-guard run -- nice -n 10)
 
 # step name | verb | model-calling (1) or local (0)
-steps=(
+sequence_before=(
   "canary|canary|1"
   "import-run-01|import-run-01|0"
   "relabel|relabel|1"
@@ -24,44 +24,71 @@ steps=(
   "run-blindspot|run-blindspot|1"
   "oracle-classify|oracle-classify|0"
   "audit-sample|audit-sample|0"
+)
+# The secondary stream and the luna stratum are independent: each is tried on every invocation, a pause of one
+# never keeps the other from starting, and the steps after them wait for both to be complete or closed.
+streams=(
   "run-secondary|run-secondary|1"
   "run-luna|run-luna|1"
-  "oracle-classify-luna|oracle-classify|0"
+)
+sequence_after=(
   "amendment-check|amendment-check|0"
   "analyze|analyze|0"
   "report-lint|report-lint|0"
 )
 
-for entry in "${steps[@]}"; do
+run_step() {
+  local entry="$1" step verb calls_model extra=() status
   IFS='|' read -r step verb calls_model <<<"${entry}"
   if [[ -f "${markers}/${step}.done" ]]; then
     echo "[run-pilot] ${step}: already done"
-    continue
+    return 0
   fi
-  extra=()
   if [[ "${calls_model}" == "1" ]]; then
     if ! ./script/run-window; then
       echo "[run-pilot] ${step}: outside the run window, not started" >&2
-      exit 3
+      return 3
     fi
     if [[ -n "${PILOT_CALL_BUDGET:-}" && "${verb}" != "canary" ]]; then
       extra=(--call-budget "${PILOT_CALL_BUDGET}")
     fi
   fi
   echo "[run-pilot] ${step}: start $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  set +e
+  status=0
   if [[ "${verb}" == "report-lint" ]]; then
-    "${guard[@]}" "./script/${verb}"
+    "${guard[@]}" "./script/${verb}" || status=$?
   else
-    "${guard[@]}" "./script/${verb}" --run-id "${run_id}" ${extra[@]+"${extra[@]}"}
+    "${guard[@]}" "./script/${verb}" --run-id "${run_id}" ${extra[@]+"${extra[@]}"} || status=$?
   fi
-  status=$?
-  set -e
   if [[ ${status} -ne 0 ]]; then
     echo "[run-pilot] ${step}: exit ${status} $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    exit "${status}"
+    return "${status}"
   fi
   date -u +%Y-%m-%dT%H:%M:%SZ > "${markers}/${step}.done"
   echo "[run-pilot] ${step}: done $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+
+for entry in "${sequence_before[@]}"; do
+  run_step "${entry}" || exit $?
+done
+
+stream_status=0
+for entry in "${streams[@]}"; do
+  step="${entry%%|*}"
+  status=0
+  run_step "${entry}" || status=$?
+  if [[ ${status} -ne 0 && ${stream_status} -eq 0 ]]; then
+    stream_status=${status}
+  fi
+  if [[ ${status} -eq 0 && "${step}" == "run-luna" ]]; then
+    run_step "oracle-classify-luna|oracle-classify|0" || exit $?
+  fi
+done
+if [[ ${stream_status} -ne 0 ]]; then
+  exit "${stream_status}"
+fi
+
+for entry in "${sequence_after[@]}"; do
+  run_step "${entry}" || exit $?
 done
 echo "[run-pilot] all steps done"
