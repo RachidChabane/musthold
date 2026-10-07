@@ -253,7 +253,9 @@ func (r *critRun) screenGroup(ctx context.Context, representative *poolMutant) (
 
 // closedAnswers collects the answers of the votes to one question and says where
 // their probabilities came from: the model of the relay for a System One answer,
-// which replaces the host votes when there is one, and the host votes otherwise.
+// which replaces the host votes when there is one and whose stated probability of
+// VIOLATES is kept, and the host votes otherwise, each of which counts by its
+// choice whatever probability it states.
 func closedAnswers(answer hostbridge.Answer, question string) ([]power.ClosedAnswer, format.ConfidenceSource) {
 	var relayed, voted []power.ClosedAnswer
 	var relaySource format.ConfidenceSource
@@ -270,13 +272,13 @@ func closedAnswers(answer hostbridge.Answer, question string) ([]power.ClosedAns
 			relayed = append(relayed, given)
 			relaySource = format.SystemOneSource(vote.Executor.Model.Name)
 		} else {
-			voted = append(voted, given)
+			voted = append(voted, power.ClosedAnswer{Choice: given.Choice})
 		}
 	}
 	if len(relayed) > 0 {
 		return relayed, relaySource
 	}
-	return voted, format.HostVotesSource(max(len(voted), 1))
+	return voted, format.HostVotesSource(max(len(answer.Votes), 1))
 }
 
 // maxScreenWindow is the most criteria one screen request asks about.

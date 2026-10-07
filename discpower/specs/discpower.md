@@ -309,10 +309,10 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   stop on a block, and otherwise once `min_valid` VALID mutants cover `min_sites`
   distinct sites with at least one killed.
 - **SP-169~2**: WHEN screen answers are read THE SYSTEM SHALL take P(VIOLATES) as
-  the mean, over the answers, of the probability each gives to VIOLATES: the
-  probability a System One endpoint states for that option, never its
-  `confidence`, which says how concentrated its probabilities are, and for a vote
-  that states none one for a VIOLATES vote and zero for another, so that host
+  the mean, over the answers, of the probability each gives to VIOLATES: for a
+  System One answer the probability its endpoint states for that option, never its
+  `confidence`, which says how concentrated its probabilities are, and for a host
+  vote one for VIOLATES and zero for another whatever it states, so that host
   votes give their share of VIOLATES; and flag a survivor into the pool at or
   above `tau_screen`.
 
