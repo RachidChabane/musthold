@@ -1,0 +1,50 @@
+{
+  "PAR-1~1": [
+    {
+      "name": "line totals > multiply the unit price by the quantity [verifies PAR-1~1]",
+      "classname": "test/rates.test.ts",
+      "file": "test/rates.test.ts",
+      "line": 5
+    }
+  ],
+  "PAR-2~1": [
+    {
+      "name": "discounts > limits [verifies PAR-2~1] > below zero > ignore a negative percentage",
+      "classname": "test/rates.test.ts",
+      "file": "test/rates.test.ts",
+      "line": 23
+    },
+    {
+      "name": "discounts > limits [verifies PAR-2~1] > clamp a percentage above one hundred",
+      "classname": "test/rates.test.ts",
+      "file": "test/rates.test.ts",
+      "line": 23
+    },
+    {
+      "name": "discounts > take 0 percent off 19.99 [verifies PAR-2~1]",
+      "classname": "test/rates.test.ts",
+      "file": "test/rates.test.ts",
+      "line": 19
+    },
+    {
+      "name": "discounts > take 10 percent off 200 [verifies PAR-2~1]",
+      "classname": "test/rates.test.ts",
+      "file": "test/rates.test.ts",
+      "line": 19
+    },
+    {
+      "name": "discounts > take 50 percent off 80 [verifies PAR-2~1]",
+      "classname": "test/rates.test.ts",
+      "file": "test/rates.test.ts",
+      "line": 19
+    }
+  ],
+  "PAR-3~1": [
+    {
+      "name": "shipping > is waived from fifty [verifies PAR-3~1]",
+      "classname": "test/rates.test.ts",
+      "file": "test/rates.test.ts",
+      "line": 37
+    }
+  ]
+}
