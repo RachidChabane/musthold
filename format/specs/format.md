@@ -82,6 +82,12 @@ Go tests of the module in CI.
   a SHA-256 hex digest, and derive the subject key from the subject name with its
   `%`, `/` and `\` percent-encoded, so that distinct subjects keep distinct keys.
 
+- **SP-149~1**: WHEN statement bytes are admitted for signing or for verified
+  storage THE SYSTEM SHALL decode and validate them, refuse bytes that are not
+  their own RFC 8785 canonical form, refuse a predicate type outside the format,
+  and place the statement at its module, the subject key of its subject and its
+  cache key, so that a statement stored anywhere else is refused.
+
 ## Executors and corroboration
 
 - **SP-147~1**: WHEN a predicate carries `extensions.hostExclusions` THE SYSTEM

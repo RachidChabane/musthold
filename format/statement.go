@@ -14,6 +14,8 @@ var ErrUnknownPredicateType = errors.New("unknown predicate type")
 type Predicate interface {
 	// Kind names the proof kind of the predicate.
 	Kind() Kind
+	// Common returns the part shared by the three predicates.
+	Common() Core
 	check(sink *collector, subject []Subject)
 }
 
@@ -29,6 +31,9 @@ type Statement[P Predicate] struct {
 type Proof interface {
 	Kind() Kind
 	Subjects() []Subject
+	// Common returns the predicate's shared part: module, inputs, cache key,
+	// producer and extensions.
+	Common() Core
 	// Validate checks every invariant of the format and returns a
 	// *ValidationError listing all violations.
 	Validate() error
@@ -51,6 +56,9 @@ func (s Statement[P]) Kind() Kind { return s.Predicate.Kind() }
 
 // Subjects returns the statement's subjects.
 func (s Statement[P]) Subjects() []Subject { return s.Subject }
+
+// Common returns the predicate's shared part.
+func (s Statement[P]) Common() Core { return s.Predicate.Common() }
 
 // Validate checks the envelope, the subject rule of the predicate and every
 // predicate invariant.

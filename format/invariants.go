@@ -16,6 +16,15 @@ func (DiscriminatingPower) Kind() Kind { return KindDiscriminatingPower }
 // Kind names the completeness proof kind.
 func (Completeness) Kind() Kind { return KindCompleteness }
 
+// Common returns the part shared by the three predicates.
+func (p Alignment) Common() Core { return p.Core }
+
+// Common returns the part shared by the three predicates.
+func (p DiscriminatingPower) Common() Core { return p.Core }
+
+// Common returns the part shared by the three predicates.
+func (p Completeness) Common() Core { return p.Core }
+
 func (p Alignment) check(sink *collector, subject []Subject) {
 	checkRequirement(sink, "predicate.requirement", p.Requirement)
 	checkRequirementSubject(sink, subject, p.Requirement)
