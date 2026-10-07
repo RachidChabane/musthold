@@ -52,7 +52,7 @@ func rules(t *rapid.T) policy.Policy {
 	rules := policy.Default()
 	rules.SignedPassBasis = rapid.SampledFrom(policy.Bases()).Draw(t, "basis")
 	rules.MinIsolation = rapid.SampledFrom(format.Isolations()).Draw(t, "floor")
-	rules.TauJudge = rapid.Float64Range(0, 1).Draw(t, "tau")
+	rules.TauJudge = format.UniformThreshold(rapid.Float64Range(0, 1).Draw(t, "tau"))
 	return rules
 }
 

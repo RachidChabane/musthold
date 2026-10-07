@@ -197,8 +197,8 @@ func TestScreenIsAClosedQuestionSet(t *testing.T) {
 		}
 	})
 	t.Run("answers are read through the shared reader"+verifiesSP408, func(t *testing.T) {
-		answers, err := prompt.ParseScreen([]byte(`{"answers":[{"id":"q1","choice":"VIOLATES","confidence":0.7}]}`))
-		if err != nil || answers["q1"] != (power.ClosedAnswer{Choice: power.ChoiceViolates, Confidence: 0.7, HasConfidence: true}) {
+		answers, err := prompt.ParseScreen([]byte(`{"answers":[{"id":"q1","choice":"VIOLATES","confidence":0.7,"probabilities":{"VIOLATES":0.7,"CONSISTENT":0.3}}]}`))
+		if err != nil || answers["q1"] != (power.ClosedAnswer{Choice: power.ChoiceViolates, Violates: 0.7, HasViolates: true}) {
 			t.Fatalf("answers %+v (%v)", answers, err)
 		}
 	})

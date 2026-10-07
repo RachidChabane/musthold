@@ -1,12 +1,14 @@
 package prompt_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/prompt"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
 
 const brokenJSON = `{"mutants": [`
@@ -139,16 +141,18 @@ func TestParseEquivalence(t *testing.T) {
 func TestParseScreen(t *testing.T) {
 	t.Run("the answers are given by question id"+verifiesSP174, func(t *testing.T) {
 		got, err := prompt.ParseScreen([]byte(`{"answers":[
-			{"id":"q1","choice":"VIOLATES","confidence":0.6},
+			{"id":"q1","choice":"VIOLATES","confidence":0.6,"probabilities":{"VIOLATES":0.7,"CONSISTENT":0.3}},
 			{"id":"q2","choice":"CONSISTENT"},
-			{"id":"q3","choice":"VIOLATES","confidence":0}]}`))
+			{"id":"q3","choice":"VIOLATES","confidence":0,"probabilities":{"VIOLATES":0.55,"CONSISTENT":0.45}},
+			{"id":"q4","choice":"CONSISTENT","confidence":0.9}]}`))
 		if err != nil {
 			t.Fatal(err)
 		}
 		want := map[string]power.ClosedAnswer{
-			"q1": {Choice: power.ChoiceViolates, Confidence: 0.6, HasConfidence: true},
+			"q1": {Choice: power.ChoiceViolates, Violates: 0.7, HasViolates: true},
 			"q2": {Choice: power.ChoiceConsistent},
-			"q3": {Choice: power.ChoiceViolates, Confidence: 0, HasConfidence: true},
+			"q3": {Choice: power.ChoiceViolates, Violates: 0.55, HasViolates: true},
+			"q4": {Choice: power.ChoiceConsistent},
 		}
 		if len(got) != len(want) {
 			t.Fatalf("answers %v", got)
@@ -185,6 +189,79 @@ func TestFullConfidence(t *testing.T) {
 	t.Run("a vote that states no confidence is a full confidence"+verifiesSP174, func(t *testing.T) {
 		if prompt.FullConfidence != 1 {
 			t.Errorf("FullConfidence = %v", prompt.FullConfidence)
+		}
+	})
+}
+
+// TestScreenReadsTheProbabilityOfViolates covers the path an endpoint's reply
+// takes to the pool: translated with the question set of the screen, parsed, and
+// turned into P(VIOLATES).
+func TestScreenReadsTheProbabilityOfViolates(t *testing.T) {
+	const (
+		verifiesSP169 = " [verifies SP-169~2]"
+		screenTau     = 0.20
+	)
+	built, err := prompt.BuildScreen(prompt.ScreenInput{Statements: []string{"Requirement text."}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	set, err := hostproto.ParseClosedSet(built.Closed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	question := prompt.QuestionID(0)
+
+	violationOf := func(t *testing.T, reply string) float64 {
+		t.Helper()
+		output, err := set.AnswersFromSystemOne([]byte(reply))
+		if err != nil {
+			t.Fatal(err)
+		}
+		parsed, err := prompt.ParseScreen(output)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return power.ViolationProbability([]power.ClosedAnswer{parsed[question]})
+	}
+
+	t.Run("an endpoint reply with P(VIOLATES) of 0.55 and a concentration near zero flags the survivor"+verifiesSP169, func(t *testing.T) {
+		reply := `{"answers":{"` + question + `":{"type":"choice","choice":"VIOLATES","probabilities":{"VIOLATES":0.55,"CONSISTENT":0.45},"confidence":0.0001}}}`
+		probability := violationOf(t, reply)
+		if math.Abs(probability-0.55) > 1e-9 || !power.FlagsSurvivor(probability, screenTau) {
+			t.Fatalf("P(VIOLATES) = %v", probability)
+		}
+	})
+
+	t.Run("an endpoint that picks CONSISTENT gives P(VIOLATES) of its own probability, whatever its confidence"+verifiesSP169, func(t *testing.T) {
+		reply := `{"answers":{"` + question + `":{"type":"choice","choice":"CONSISTENT","probabilities":{"VIOLATES":0.3,"CONSISTENT":0.7},"confidence":0.9}}}`
+		if probability := violationOf(t, reply); math.Abs(probability-0.3) > 1e-9 {
+			t.Fatalf("P(VIOLATES) = %v", probability)
+		}
+	})
+
+	t.Run("an endpoint that gives no probabilities counts as one vote, never as its confidence"+verifiesSP169, func(t *testing.T) {
+		reply := `{"answers":{"` + question + `":{"type":"choice","choice":"CONSISTENT","confidence":0.1}}}`
+		if probability := violationOf(t, reply); probability != 0 {
+			t.Fatalf("P(VIOLATES) = %v", probability)
+		}
+	})
+
+	t.Run("host votes give the share of VIOLATES votes, whatever confidence they state"+verifiesSP169, func(t *testing.T) {
+		votes := []string{
+			`{"answers":[{"id":"` + question + `","choice":"VIOLATES","confidence":0.1}]}`,
+			`{"answers":[{"id":"` + question + `","choice":"CONSISTENT","confidence":0.1}]}`,
+			`{"answers":[{"id":"` + question + `","choice":"CONSISTENT"}]}`,
+		}
+		var answers []power.ClosedAnswer
+		for _, vote := range votes {
+			parsed, err := prompt.ParseScreen([]byte(vote))
+			if err != nil {
+				t.Fatal(err)
+			}
+			answers = append(answers, parsed[question])
+		}
+		if probability := power.ViolationProbability(answers); math.Abs(probability-1.0/3.0) > 1e-9 {
+			t.Fatalf("P(VIOLATES) = %v", probability)
 		}
 	})
 }

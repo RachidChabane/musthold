@@ -73,7 +73,7 @@ func genVote() *rapid.Generator[power.Vote] {
 func genRules() *rapid.Generator[policy.Policy] {
 	return rapid.Custom(func(t *rapid.T) policy.Policy {
 		rules := policy.Default()
-		rules.TauJudge = rapid.Float64Range(0, 1).Draw(t, "tauJudge")
+		rules.TauJudge = format.UniformThreshold(rapid.Float64Range(0, 1).Draw(t, "tauJudge"))
 		rules.JudgeK = rapid.IntRange(1, maxVotes).Draw(t, "judgeK")
 		rules.SignedPassBasis = rapid.SampledFrom(policy.Bases()).Draw(t, "basis")
 		rules.MinIsolation = rapid.SampledFrom(format.Isolations()).Draw(t, "floor")
@@ -138,7 +138,7 @@ func TestDecideProperties(t *testing.T) {
 			votes := rapid.SliceOfN(genVote(), 0, maxVotes).Draw(t, "votes")
 			rules := genRules().Draw(t, "rules")
 			higher := rules
-			higher.TauJudge = rapid.Float64Range(rules.TauJudge, 1).Draw(t, "higherTau")
+			higher.TauJudge = format.UniformThreshold(rapid.Float64Range(rules.TauJudge.Default, 1).Draw(t, "higherTau"))
 			if power.Decide(subject, facts, votes, rules).Class != power.ClassUndetermined {
 				return
 			}
@@ -155,11 +155,11 @@ func TestDecideProperties(t *testing.T) {
 			votes := rapid.SliceOfN(genVote(), 0, maxVotes).Draw(t, "votes")
 			rules := genRules().Draw(t, "rules")
 			lowest := power.TallyVotes(votes).MinConfidence
-			if len(votes) == 0 || lowest < rules.TauJudge {
+			if len(votes) == 0 || lowest < rules.TauJudge.Default {
 				return
 			}
 			zero := rules
-			zero.TauJudge = 0
+			zero.TauJudge = format.UniformThreshold(0)
 			got, baseline := power.Decide(subject, facts, votes, rules), power.Decide(subject, facts, votes, zero)
 			if got.Class != baseline.Class || got.Reason != baseline.Reason {
 				t.Fatalf("decision %+v differs from the one at tau_judge 0: %+v", got, baseline)
@@ -283,9 +283,9 @@ func TestScreenProperties(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
 			answer := rapid.Custom(func(t *rapid.T) power.ClosedAnswer {
 				return power.ClosedAnswer{
-					Choice:        rapid.SampledFrom([]power.ClosedChoice{power.ChoiceViolates, power.ChoiceConsistent}).Draw(t, "choice"),
-					Confidence:    rapid.Float64Range(0, 1).Draw(t, "confidence"),
-					HasConfidence: rapid.Bool().Draw(t, "has"),
+					Choice:      rapid.SampledFrom([]power.ClosedChoice{power.ChoiceViolates, power.ChoiceConsistent}).Draw(t, "choice"),
+					Violates:    rapid.Float64Range(0, 1).Draw(t, "violates"),
+					HasViolates: rapid.Bool().Draw(t, "has"),
 				}
 			})
 			probability := power.ViolationProbability(rapid.SliceOfN(answer, 0, maxVotes).Draw(t, "answers"))

@@ -276,7 +276,7 @@ func (r *critRun) mutantEntry(m *poolMutant, decision power.Decision) (format.Mu
 	extensions := &format.MutantExtensions{
 		Decision: &format.Decision{
 			Basis: decision.Basis, Deciders: decision.Deciders, ConfidenceSource: decision.Source, ConfidenceMapping: decision.Mapping,
-			RawConfidence: decision.Confidence, Threshold: r.rules.TauJudge, EscalationReason: string(decision.Reason),
+			RawConfidence: decision.Confidence, Threshold: r.rules.TauJudge.For(decision.Source), EscalationReason: string(decision.Reason),
 		},
 		Collateral:   decision.Class == power.ClassCollateral,
 		Unattributed: decision.Class == power.ClassUnattributed,

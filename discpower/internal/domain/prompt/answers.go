@@ -119,7 +119,8 @@ func ParseScreen(output []byte) (map[string]power.ClosedAnswer, error) {
 	}
 	answers := make(map[string]power.ClosedAnswer, len(parsed))
 	for id, answer := range parsed {
-		answers[id] = power.ClosedAnswer{Choice: power.ClosedChoice(answer.Choice), Confidence: answer.Confidence, HasConfidence: answer.HasConfidence}
+		violates, stated := answer.ProbabilityOf(string(power.ChoiceViolates))
+		answers[id] = power.ClosedAnswer{Choice: power.ClosedChoice(answer.Choice), Violates: violates, HasViolates: stated}
 	}
 	return answers, nil
 }

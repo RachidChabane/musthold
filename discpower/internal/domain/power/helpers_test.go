@@ -48,7 +48,8 @@ var (
 	verifiesSP166 = verifies("SP-166")
 	verifiesSP167 = verifies("SP-167")
 	verifiesSP168 = verifies("SP-168")
-	verifiesSP169 = verifies("SP-169")
+	verifiesSP169 = " [verifies SP-169~2]"
+	verifiesSP902 = " [verifies SP-902~1]"
 )
 
 func newSubject(sentinelKillers ...ecosystem.TestID) power.Subject {

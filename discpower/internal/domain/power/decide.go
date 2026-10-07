@@ -90,6 +90,13 @@ func Undetermined(reason Reason) Decision {
 	return Decision{Class: ClassUndetermined, Validity: format.ValidityUndetermined, Basis: format.BasisJudges, Confidence: format.MinConfidence, Deciders: []string{DeciderHostJudge}, Source: format.SourceExecution, Reason: reason}
 }
 
+// undetermined turns a judged decision into one no stage could classify, keeping
+// the confidence and its source that the claim was held to.
+func (d Decision) undetermined(reason Reason) Decision {
+	d.Class, d.Validity, d.Reason = ClassUndetermined, format.ValidityUndetermined, reason
+	return d
+}
+
 // VoteQuestion is what a judge was asked about a mutant.
 type VoteQuestion string
 
@@ -228,15 +235,15 @@ func judgedDecision(subject Subject, facts Facts, votes []Vote, rules policy.Pol
 		return Undetermined(ReasonNoExecutor)
 	}
 	tally := TallyVotes(votes)
-	switch {
-	case !tally.Unanimous:
-		return Undetermined(ReasonJudgesSplit)
-	case tally.MinConfidence < rules.TauJudge:
-		return Undetermined(ReasonBelowThreshold)
-	}
 	base := Decision{
 		Basis: format.BasisJudges, Confidence: tally.MinConfidence, Deciders: []string{DeciderHostJudge},
 		Source: format.HostVotesSource(rules.JudgeK), Mapping: format.MappingWeakestStated,
+	}
+	switch {
+	case !tally.Unanimous:
+		return Undetermined(ReasonJudgesSplit)
+	case tally.MinConfidence < rules.TauJudge.For(base.Source):
+		return base.undetermined(ReasonBelowThreshold)
 	}
 	atFloor := allAtFloor(votes, rules.MinIsolation)
 	switch tally.Answer {

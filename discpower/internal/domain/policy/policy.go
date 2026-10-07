@@ -50,9 +50,9 @@ func Bases() []SignedPassBasis { return slices.Clone(bases) }
 
 // Policy is the decision policy of a run.
 type Policy struct {
-	TauJudge        float64          `json:"tauJudge"`
+	TauJudge        format.Threshold `json:"tauJudge"`
 	JudgeK          int              `json:"judgeK"`
-	TauScreen       float64          `json:"tauScreen"`
+	TauScreen       format.Threshold `json:"tauScreen"`
 	DecideK         int              `json:"decideK"`
 	MinValid        int              `json:"minValid"`
 	MinSites        int              `json:"minSites"`
@@ -66,9 +66,9 @@ type Policy struct {
 // Default returns the policy of ADR 0003 and ADR 0005.
 func Default() Policy {
 	return Policy{
-		TauJudge:        DefaultTauJudge,
+		TauJudge:        format.UniformThreshold(DefaultTauJudge),
 		JudgeK:          DefaultJudgeK,
-		TauScreen:       DefaultTauScreen,
+		TauScreen:       format.UniformThreshold(DefaultTauScreen),
 		DecideK:         DefaultDecideK,
 		MinValid:        DefaultMinValid,
 		MinSites:        DefaultMinSites,
@@ -83,12 +83,12 @@ func Default() Policy {
 // ErrInvalid is returned for a policy outside its domain.
 var ErrInvalid = errors.New("invalid policy")
 
-// Validate rejects a threshold outside [0,1], a count below one and an unknown
-// basis or isolation level.
+// Validate rejects a threshold outside [0,1] or keyed by an unknown confidence
+// source, a count below one and an unknown basis or isolation level.
 func (p Policy) Validate() error {
 	switch {
-	case p.TauJudge < 0 || p.TauJudge > 1, p.TauScreen < 0 || p.TauScreen > 1:
-		return fmt.Errorf("%w: a threshold is outside [0,1]", ErrInvalid)
+	case p.TauJudge.Validate() != nil, p.TauScreen.Validate() != nil:
+		return fmt.Errorf("%w: a threshold is outside [0,1] or keys an unknown confidence source", ErrInvalid)
 	case p.JudgeK < 1, p.DecideK < 1, p.MinValid < 1, p.MinSites < 1, p.MaxRounds < 1, p.KOp < 1, p.MaxHostTickets < 1:
 		return fmt.Errorf("%w: a count is below 1", ErrInvalid)
 	case !slices.Contains(bases, p.SignedPassBasis):

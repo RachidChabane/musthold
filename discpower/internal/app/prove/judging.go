@@ -246,14 +246,17 @@ func (r *critRun) screenGroup(ctx context.Context, representative *poolMutant) (
 		return screenOutcome{}, err
 	}
 	r.answers = append(r.answers, answer)
-	violation := power.ViolationProbability(closedAnswers(answer, prompt.QuestionID(indexOf(window, r.c.Ref))))
-	return screenOutcome{violation: violation, flagged: power.FlagsSurvivor(violation, r.rules.TauScreen)}, nil
+	answers, source := closedAnswers(answer, prompt.QuestionID(indexOf(window, r.c.Ref)))
+	violation := power.ViolationProbability(answers)
+	return screenOutcome{violation: violation, flagged: power.FlagsSurvivor(violation, r.rules.TauScreen.For(source))}, nil
 }
 
-// closedAnswers collects the answers of the votes to one question. A System One
-// relay answer, when there is one, replaces the host votes.
-func closedAnswers(answer hostbridge.Answer, question string) []power.ClosedAnswer {
+// closedAnswers collects the answers of the votes to one question and says where
+// their probabilities came from: the model of the relay for a System One answer,
+// which replaces the host votes when there is one, and the host votes otherwise.
+func closedAnswers(answer hostbridge.Answer, question string) ([]power.ClosedAnswer, format.ConfidenceSource) {
 	var relayed, voted []power.ClosedAnswer
+	var relaySource format.ConfidenceSource
 	for _, vote := range answer.Votes {
 		parsed, err := prompt.ParseScreen(vote.Output)
 		if err != nil {
@@ -265,14 +268,15 @@ func closedAnswers(answer hostbridge.Answer, question string) []power.ClosedAnsw
 		}
 		if vote.Executor.Channel == format.ChannelSystemOneRelay {
 			relayed = append(relayed, given)
+			relaySource = format.SystemOneSource(vote.Executor.Model.Name)
 		} else {
 			voted = append(voted, given)
 		}
 	}
 	if len(relayed) > 0 {
-		return relayed
+		return relayed, relaySource
 	}
-	return voted
+	return voted, format.HostVotesSource(max(len(voted), 1))
 }
 
 // maxScreenWindow is the most criteria one screen request asks about.

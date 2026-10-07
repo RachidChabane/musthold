@@ -101,7 +101,7 @@ func TestCacheKey(t *testing.T) {
 		{"the operation bindings", func(f *fixture) {
 			f.project.settings.Operations = execution.Operations{operation: "parcel.rates:other"}
 		}},
-		{"the policy", func(f *fixture) { f.run.rules.TauJudge = 0.8 }},
+		{"the policy", func(f *fixture) { f.run.rules.TauJudge = format.UniformThreshold(0.8) }},
 		{"the mutant set", func(f *fixture) {
 			f.run.add(&poolMutant{spec: execution.MutantSpec{ID: format.SHA256Hex([]byte("mutant"))}})
 		}},
@@ -161,7 +161,7 @@ const (
 	unrelatedName  = "tests.test_unrelated::test_elsewhere"
 	footprintUnit  = "shipping_fee"
 	elsewhereUnit  = "greeting"
-	verifiesInputs = " [verifies SP-407~1]"
+	verifiesInputs = " [verifies SP-407~2]"
 )
 
 // withOtherTests adds to the fixture the tests of two more files, one that

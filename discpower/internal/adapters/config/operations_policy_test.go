@@ -3,6 +3,8 @@ package config
 import (
 	"errors"
 	"maps"
+	"reflect"
+	"strings"
 	"testing"
 
 	"pgregory.net/rapid"
@@ -98,15 +100,26 @@ func TestDecodePolicy(t *testing.T) {
 		)
 		got := policyOf(t, "policy:\n  tau_judge: 0.9\n  judge_k: 5\n  max_host_tickets: 12\n  signed_pass_basis: judged\n  min_isolation: inline\n")
 		want := policy.Default()
-		want.TauJudge, want.JudgeK, want.MaxHostTickets = tauJudge, judgeK, maxTotal
+		want.TauJudge, want.JudgeK, want.MaxHostTickets = format.UniformThreshold(tauJudge), judgeK, maxTotal
 		want.SignedPassBasis, want.MinIsolation = policy.Judged, format.IsolationInline
-		if got != want {
+		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("policy = %+v, want %+v", got, want)
 		}
 	})
 
+	t.Run("a threshold is a bare number or a mapping of sources, and a mapping keeps the default it does not set [verifies SP-902~1]", func(t *testing.T) {
+		got := policyOf(t, "policy:\n  tau_judge:\n    default: 0.6\n    host-votes: 0.8\n    host-votes(2): 0.95\n  tau_screen:\n    system-one: 0.4\n")
+		endpoint := format.SystemOneSource("nimble:9b@" + strings.Repeat("a", format.Sha256HexLength))
+		switch {
+		case got.TauJudge.For(format.HostVotesSource(2)) != 0.95, got.TauJudge.For(format.HostVotesSource(3)) != 0.8, got.TauJudge.For(endpoint) != 0.6:
+			t.Fatalf("tau_judge = %+v", got.TauJudge)
+		case got.TauScreen.For(endpoint) != 0.4, got.TauScreen.For(format.HostVotesSource(3)) != policy.DefaultTauScreen:
+			t.Fatalf("tau_screen = %+v", got.TauScreen)
+		}
+	})
+
 	t.Run("a document without policy gives the default policy [verifies SP-191~1]", func(t *testing.T) {
-		if got := policyOf(t, headerYAML); got != policy.Default() {
+		if got := policyOf(t, headerYAML); !reflect.DeepEqual(got, policy.Default()) {
 			t.Fatalf("policy = %+v", got)
 		}
 	})
@@ -114,8 +127,8 @@ func TestDecodePolicy(t *testing.T) {
 	t.Run("every integer and threshold parameter is applied [verifies SP-191~1]", func(t *testing.T) {
 		got := policyOf(t, "policy:\n  tau_screen: 0.3\n  decide_k: 4\n  min_valid: 5\n  min_sites: 6\n  max_rounds: 7\n  k_op: 8\n")
 		want := policy.Default()
-		want.TauScreen, want.DecideK, want.MinValid, want.MinSites, want.MaxRounds, want.KOp = 0.3, 4, 5, 6, 7, 8
-		if got != want {
+		want.TauScreen, want.DecideK, want.MinValid, want.MinSites, want.MaxRounds, want.KOp = format.UniformThreshold(0.3), 4, 5, 6, 7, 8
+		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("policy = %+v, want %+v", got, want)
 		}
 	})
@@ -125,6 +138,8 @@ func TestDecodePolicy(t *testing.T) {
 		yaml string
 	}{
 		{"a threshold above one", "policy:\n  tau_judge: 1.5\n"},
+		{"a threshold keyed by an unknown source", "policy:\n  tau_judge:\n    gut-feeling: 0.5\n"},
+		{"a source threshold above one", "policy:\n  tau_screen:\n    host-votes: 1.5\n"},
 		{"a negative threshold", "policy:\n  tau_screen: -0.1\n"},
 		{"an unknown signed pass basis", "policy:\n  signed_pass_basis: trusting\n"},
 		{"an unknown isolation level", "policy:\n  min_isolation: telepathic\n"},
@@ -156,8 +171,8 @@ func TestEncodeOperationsAndPolicy(t *testing.T) {
 			"total": {"python": totalTarget},
 			"quote": {"pytest": exactTarget, "python": languageTarget},
 		}
-		tau, judgeK, basis, isolation := 0.9, 5, policy.Judged, format.IsolationInline
-		settings.PolicyOverrides = projectconfig.PolicyOverrides{MinIsolation: &isolation, SignedPassBasis: &basis, JudgeK: &judgeK, TauJudge: &tau}
+		tau, judgeK, basis, isolation := uniform(0.9), 5, policy.Judged, format.IsolationInline
+		settings.PolicyOverrides = projectconfig.PolicyOverrides{MinIsolation: &isolation, SignedPassBasis: &basis, JudgeK: &judgeK, TauJudge: tau}
 
 		want := headerYAML +
 			"operations:\n  quote:\n    pytest: " + exactTarget + "\n    python: " + languageTarget + "\n  total:\n    python: " + totalTarget + "\n" +
@@ -178,14 +193,26 @@ func TestEncodeOperationsAndPolicy(t *testing.T) {
 
 func overridesGenerator() *rapid.Generator[projectconfig.PolicyOverrides] {
 	thresholds := rapid.SampledFrom([]float64{0, 0.2, 0.5, 0.7, 1})
+	thresholdOverrides := rapid.Custom(func(t *rapid.T) format.ThresholdOverride {
+		override := format.ThresholdOverride{}
+		if rapid.Bool().Draw(t, "has default") {
+			override.Default = ptr(thresholds.Draw(t, "default"))
+		}
+		if rapid.Bool().Draw(t, "has entries") || override.Default == nil {
+			override.BySource = map[format.ConfidenceSource]float64{
+				rapid.SampledFrom([]format.ConfidenceSource{format.SourceHostVotes, format.SourceSystemOne, format.HostVotesSource(2)}).Draw(t, "source"): thresholds.Draw(t, "entry"),
+			}
+		}
+		return override
+	})
 	counts := rapid.IntRange(1, 500)
 	return rapid.Custom(func(t *rapid.T) projectconfig.PolicyOverrides {
 		var overrides projectconfig.PolicyOverrides
 		if rapid.Bool().Draw(t, "tau_judge") {
-			overrides.TauJudge = ptr(thresholds.Draw(t, "tau judge"))
+			overrides.TauJudge = ptr(thresholdOverrides.Draw(t, "tau judge"))
 		}
 		if rapid.Bool().Draw(t, "tau_screen") {
-			overrides.TauScreen = ptr(thresholds.Draw(t, "tau screen"))
+			overrides.TauScreen = ptr(thresholdOverrides.Draw(t, "tau screen"))
 		}
 		for name, target := range map[string]**int{
 			"judge_k": &overrides.JudgeK, "decide_k": &overrides.DecideK, "min_valid": &overrides.MinValid,
@@ -208,6 +235,11 @@ func overridesGenerator() *rapid.Generator[projectconfig.PolicyOverrides] {
 
 func ptr[V any](value V) *V { return &value }
 
+// uniform is a threshold override that sets only the default.
+func uniform(value float64) *format.ThresholdOverride {
+	return &format.ThresholdOverride{Default: &value}
+}
+
 func TestOperationsAndPolicyRoundTrip(t *testing.T) {
 	t.Run("encoding then decoding keeps the operations and the policy and is deterministic [verifies SP-191~1]", func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
@@ -227,7 +259,7 @@ func TestOperationsAndPolicyRoundTrip(t *testing.T) {
 			if err != nil {
 				t.Fatalf("decode %q: %v", encoded, err)
 			}
-			if decoded.Policy() != settings.Policy() {
+			if !reflect.DeepEqual(decoded.Policy(), settings.Policy()) {
 				t.Fatalf("policy %+v became %+v", settings.Policy(), decoded.Policy())
 			}
 			for _, name := range ecosystem.Names() {

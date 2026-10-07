@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"slices"
 	"strconv"
 
@@ -56,17 +57,17 @@ type hostDocument struct {
 // policyDocument is the YAML shape of the decision parameters; an absent member
 // keeps the default.
 type policyDocument struct {
-	TauJudge        *float64 `yaml:"tau_judge"`
-	JudgeK          *int     `yaml:"judge_k"`
-	TauScreen       *float64 `yaml:"tau_screen"`
-	DecideK         *int     `yaml:"decide_k"`
-	MinValid        *int     `yaml:"min_valid"`
-	MinSites        *int     `yaml:"min_sites"`
-	MaxRounds       *int     `yaml:"max_rounds"`
-	KOp             *int     `yaml:"k_op"`
-	MaxHostTickets  *int     `yaml:"max_host_tickets"`
-	SignedPassBasis *string  `yaml:"signed_pass_basis"`
-	MinIsolation    *string  `yaml:"min_isolation"`
+	TauJudge        *format.ThresholdOverride `yaml:"tau_judge"`
+	JudgeK          *int                      `yaml:"judge_k"`
+	TauScreen       *format.ThresholdOverride `yaml:"tau_screen"`
+	DecideK         *int                      `yaml:"decide_k"`
+	MinValid        *int                      `yaml:"min_valid"`
+	MinSites        *int                      `yaml:"min_sites"`
+	MaxRounds       *int                      `yaml:"max_rounds"`
+	KOp             *int                      `yaml:"k_op"`
+	MaxHostTickets  *int                      `yaml:"max_host_tickets"`
+	SignedPassBasis *string                   `yaml:"signed_pass_basis"`
+	MinIsolation    *string                   `yaml:"min_isolation"`
 }
 
 func (d policyDocument) overrides() projectconfig.PolicyOverrides {
@@ -93,6 +94,9 @@ func Decode(data []byte) (projectconfig.Settings, error) {
 
 	var doc document
 	if err := decoder.Decode(&doc); err != nil && !errors.Is(err, io.EOF) {
+		if errors.Is(err, format.ErrThreshold) {
+			return projectconfig.Settings{}, fmt.Errorf("%w: %v", projectconfig.ErrInvalidSettings, err)
+		}
 		return projectconfig.Settings{}, fmt.Errorf("decode configuration: %w", err)
 	}
 
@@ -204,9 +208,14 @@ func policyNode(o projectconfig.PolicyOverrides) *yaml.Node {
 			node.Content = append(node.Content, scalar(key), scalar(fmt.Sprint(value)))
 		}
 	}
-	add("tau_judge", deref(o.TauJudge), o.TauJudge != nil)
+	addThreshold := func(key string, override *format.ThresholdOverride) {
+		if override != nil {
+			node.Content = append(node.Content, scalar(key), thresholdNode(*override))
+		}
+	}
+	addThreshold("tau_judge", o.TauJudge)
 	add("judge_k", deref(o.JudgeK), o.JudgeK != nil)
-	add("tau_screen", deref(o.TauScreen), o.TauScreen != nil)
+	addThreshold("tau_screen", o.TauScreen)
 	add("decide_k", deref(o.DecideK), o.DecideK != nil)
 	add("min_valid", deref(o.MinValid), o.MinValid != nil)
 	add("min_sites", deref(o.MinSites), o.MinSites != nil)
@@ -217,6 +226,24 @@ func policyNode(o projectconfig.PolicyOverrides) *yaml.Node {
 	add("min_isolation", deref(o.MinIsolation), o.MinIsolation != nil)
 	return node
 }
+
+// thresholdNode renders a threshold as a bare number or as a mapping with the
+// default first and the sources in order.
+func thresholdNode(override format.ThresholdOverride) *yaml.Node {
+	if len(override.BySource) == 0 && override.Default != nil {
+		return scalar(formatNumber(*override.Default))
+	}
+	node := &yaml.Node{Kind: yaml.MappingNode}
+	if override.Default != nil {
+		node.Content = append(node.Content, scalar(format.ThresholdDefaultKey), scalar(formatNumber(*override.Default)))
+	}
+	for _, source := range slices.Sorted(maps.Keys(override.BySource)) {
+		node.Content = append(node.Content, scalar(string(source)), scalar(formatNumber(override.BySource[source])))
+	}
+	return node
+}
+
+func formatNumber(value float64) string { return strconv.FormatFloat(value, 'g', -1, 64) }
 
 func deref[V any](value *V) V {
 	var zero V

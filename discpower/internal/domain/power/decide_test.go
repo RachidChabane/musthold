@@ -155,6 +155,36 @@ func TestDecideJudgedUndetermined(t *testing.T) {
 			t.Errorf("class %q reason %q", got.Class, got.Reason)
 		}
 	})
+	t.Run("the threshold of host votes applies to the judges, whatever the default is"+verifiesSP902, func(t *testing.T) {
+		rules := policy.Default()
+		rules.TauJudge = format.Threshold{Default: 0.5, BySource: map[format.ConfidenceSource]float64{format.SourceHostVotes: 0.95}}
+		votes := repeated(confirmedVote(judgeConfidence, format.IsolationRestricted), judgeCount)
+		got := power.Decide(newSubject(), survivor(power.OriginTargeted, power.Skipped), votes, rules)
+		if got.Class != power.ClassUndetermined || got.Reason != power.ReasonBelowThreshold {
+			t.Fatalf("got %q %q", got.Class, got.Reason)
+		}
+		if got.Source != format.HostVotesSource(rules.JudgeK) || got.Confidence != judgeConfidence || got.Mapping != format.MappingWeakestStated {
+			t.Errorf("the decision does not keep the claim that was held to the threshold: %+v", got)
+		}
+	})
+	t.Run("the threshold of the exact source beats the one of its kind"+verifiesSP902, func(t *testing.T) {
+		rules := policy.Default()
+		rules.TauJudge = format.Threshold{Default: 0.95, BySource: map[format.ConfidenceSource]float64{
+			format.SourceHostVotes: 0.95, format.HostVotesSource(rules.JudgeK): 0.5,
+		}}
+		votes := repeated(confirmedVote(judgeConfidence, format.IsolationRestricted), judgeCount)
+		if got := power.Decide(newSubject(), survivor(power.OriginTargeted, power.Skipped), votes, rules); got.Class != power.ClassValid {
+			t.Fatalf("class %q reason %q", got.Class, got.Reason)
+		}
+	})
+	t.Run("a threshold of another source leaves the judges on the default"+verifiesSP902, func(t *testing.T) {
+		rules := policy.Default()
+		rules.TauJudge = format.Threshold{Default: 0.5, BySource: map[format.ConfidenceSource]float64{format.SourceSystemOne: 1}}
+		votes := repeated(confirmedVote(judgeConfidence, format.IsolationRestricted), judgeCount)
+		if got := power.Decide(newSubject(), survivor(power.OriginTargeted, power.Skipped), votes, rules); got.Class != power.ClassValid {
+			t.Fatalf("class %q reason %q", got.Class, got.Reason)
+		}
+	})
 	t.Run("the decision confidence is the lowest of the judges"+verifiesSP165, func(t *testing.T) {
 		votes := []power.Vote{confirmedVote(fullConfidence, format.IsolationRestricted), confirmedVote(judgeConfidence, format.IsolationRestricted)}
 		got := power.Decide(newSubject(), survivor(power.OriginTargeted, power.Skipped), votes, policy.Default())

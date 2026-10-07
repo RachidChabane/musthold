@@ -308,10 +308,13 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-168~1**: WHEN the search for mutants is checked for its end THE SYSTEM SHALL
   stop on a block, and otherwise once `min_valid` VALID mutants cover `min_sites`
   distinct sites with at least one killed.
-- **SP-169~1**: WHEN screen answers are read THE SYSTEM SHALL take P(VIOLATES) as
-  the mean of the answers' probabilities, which for votes without confidence is
-  their share of VIOLATES, and flag a survivor into the pool at or above
-  `tau_screen`.
+- **SP-169~2**: WHEN screen answers are read THE SYSTEM SHALL take P(VIOLATES) as
+  the mean, over the answers, of the probability each gives to VIOLATES: the
+  probability a System One endpoint states for that option, never its
+  `confidence`, which says how concentrated its probabilities are, and for a vote
+  that states none one for a VIOLATES vote and zero for another, so that host
+  votes give their share of VIOLATES; and flag a survivor into the pool at or
+  above `tau_screen`.
 
 ## Differential search
 
@@ -520,16 +523,25 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   sentinel, a spec example and a mutant no judge could classify, and
   `host-votes(<judge_k>)` with the mapping of the weakest stated confidence for a
   judged decision, and SHALL leave the source out of `deciders`.
-- **SP-407~1**: WHEN a Statement lists its inputs THE SYSTEM SHALL name the `spec`
+- **SP-407~2**: WHEN a Statement lists its inputs THE SYSTEM SHALL name the `spec`
   input `ID~REV` with the statement digest, list as `test_source` descriptors the
   files that hold a test bound to the criterion and those that hold a test whose
   execution reaches the footprint under the reference coverage (every file that
   holds a bound test when no footprint restricts the scope), and list as
   `code_tree` descriptors the files of the footprint, each by its path relative to
-  the project root and the SHA-256 of its exact bytes.
+  the directory holding `shallnot.yaml` and the SHA-256 of its exact bytes.
 - **SP-408~1**: WHEN a screen request is built THE SYSTEM SHALL build its question
   set and its response schema through the host protocol's closed question type, with
   one choice question per requirement whose options carry their criteria text, and
   WHEN a relay imports the response of a System One endpoint THE SYSTEM SHALL
   translate it with the question set of the ticket and refuse a response that
   leaves a question unanswered or picks no option.
+- **SP-902~1**: WHEN `tau_judge` or `tau_screen` is set THE SYSTEM SHALL accept a
+  bare number or a mapping of `default` and of confidence sources to numbers, as
+  Shallnot's `proofs.thresholds` does, hold the host judges to the threshold of
+  `host-votes(<judge_k>)` and the screen answers to the threshold of the source of
+  their probabilities (`host-votes(<k>)` for k votes, `system-one:<model>@<endpoint
+  digest>` for a relayed answer), resolving the exact source, then its kind, then
+  the default, refuse a value outside [0,1] and a key that names no source, and
+  record the threshold a mutant's decision was held to in
+  `extensions.decision.threshold`.

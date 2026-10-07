@@ -9,24 +9,28 @@ const (
 	ChoiceConsistent ClosedChoice = "CONSISTENT"
 )
 
-// ClosedAnswer is one answer to the screen question of a criterion: a host vote
-// carries no confidence, a System One answer may.
+// ClosedAnswer is one answer to the screen question of a criterion. A host vote
+// names a choice; a System One answer also gives the probability it assigns to
+// each option. Its `confidence` is how concentrated those probabilities are and
+// has no place here.
 type ClosedAnswer struct {
-	Choice        ClosedChoice
-	Confidence    float64
-	HasConfidence bool
+	Choice ClosedChoice
+	// Violates is the probability the answerer gave to VIOLATES, when it gave one.
+	Violates    float64
+	HasViolates bool
 }
 
-// violation is the probability one answer gives to VIOLATES.
+// violation is the probability one answer gives to VIOLATES: the probability the
+// answerer stated, or, for a vote that states none, one for a VIOLATES vote and
+// zero for any other.
 func (a ClosedAnswer) violation() float64 {
-	weight := 1.0
-	if a.HasConfidence {
-		weight = a.Confidence
+	switch {
+	case a.HasViolates:
+		return a.Violates
+	case a.Choice == ChoiceViolates:
+		return 1
 	}
-	if a.Choice == ChoiceViolates {
-		return weight
-	}
-	return 1 - weight
+	return 0
 }
 
 // ViolationProbability is P(VIOLATES): the mean of the answers' probabilities,

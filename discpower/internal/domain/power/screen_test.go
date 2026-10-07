@@ -12,8 +12,10 @@ func hostVote(choice power.ClosedChoice) power.ClosedAnswer {
 	return power.ClosedAnswer{Choice: choice}
 }
 
-func confidentVote(choice power.ClosedChoice, confidence float64) power.ClosedAnswer {
-	return power.ClosedAnswer{Choice: choice, Confidence: confidence, HasConfidence: true}
+// stated is the answer of an endpoint that picks a choice and states the
+// probability it gives to VIOLATES.
+func stated(choice power.ClosedChoice, violates float64) power.ClosedAnswer {
+	return power.ClosedAnswer{Choice: choice, Violates: violates, HasViolates: true}
 }
 
 func TestViolationProbability(t *testing.T) {
@@ -26,13 +28,14 @@ func TestViolationProbability(t *testing.T) {
 		{"no answer", nil, 0},
 		{"one VIOLATES vote", []power.ClosedAnswer{hostVote(violates)}, 1},
 		{"one CONSISTENT vote", []power.ClosedAnswer{hostVote(consistent)}, 0},
-		{"votes without confidence give their share of VIOLATES", []power.ClosedAnswer{hostVote(violates), hostVote(violates), hostVote(consistent)}, 2.0 / 3.0},
+		{"votes give their share of VIOLATES", []power.ClosedAnswer{hostVote(violates), hostVote(violates), hostVote(consistent)}, 2.0 / 3.0},
 		{"an even split", []power.ClosedAnswer{hostVote(violates), hostVote(consistent)}, 0.5},
-		{"a VIOLATES answer with confidence", []power.ClosedAnswer{confidentVote(violates, 0.8)}, 0.8},
-		{"a CONSISTENT answer with confidence gives the complement", []power.ClosedAnswer{confidentVote(consistent, 0.9)}, 0.1},
-		{"the mean of answers with confidence", []power.ClosedAnswer{confidentVote(violates, 0.8), confidentVote(consistent, 0.9)}, 0.45},
-		{"a mix of votes with and without confidence", []power.ClosedAnswer{confidentVote(violates, 0.4), hostVote(violates), hostVote(consistent), confidentVote(consistent, 1)}, 0.35},
-		{"an explicit zero confidence is not a missing one", []power.ClosedAnswer{confidentVote(violates, 0)}, 0},
+		{"an endpoint's probability of VIOLATES", []power.ClosedAnswer{stated(violates, 0.8)}, 0.8},
+		{"the probability of VIOLATES of a CONSISTENT answer is its own, not a complement of anything else", []power.ClosedAnswer{stated(consistent, 0.1)}, 0.1},
+		{"the mean of the probabilities of VIOLATES", []power.ClosedAnswer{stated(violates, 0.8), stated(consistent, 0.1)}, 0.45},
+		{"a mix of stated probabilities and votes", []power.ClosedAnswer{stated(violates, 0.4), hostVote(violates), hostVote(consistent), stated(consistent, 0)}, 0.35},
+		{"an explicit zero probability is not a missing one", []power.ClosedAnswer{stated(violates, 0)}, 0},
+		{"a VIOLATES answer just above one half with no concentration is that probability, not zero", []power.ClosedAnswer{stated(violates, 0.55)}, 0.55},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name+verifiesSP169, func(t *testing.T) {

@@ -9,9 +9,9 @@ import (
 // PolicyOverrides are the decision parameters a project sets; a nil member keeps
 // the default.
 type PolicyOverrides struct {
-	TauJudge        *float64
+	TauJudge        *format.ThresholdOverride
 	JudgeK          *int
-	TauScreen       *float64
+	TauScreen       *format.ThresholdOverride
 	DecideK         *int
 	MinValid        *int
 	MinSites        *int
@@ -25,9 +25,9 @@ type PolicyOverrides struct {
 // Apply returns the default policy with the overrides applied.
 func (o PolicyOverrides) Apply() policy.Policy {
 	result := policy.Default()
-	setFloat(&result.TauJudge, o.TauJudge)
+	setThreshold(&result.TauJudge, o.TauJudge)
 	setInt(&result.JudgeK, o.JudgeK)
-	setFloat(&result.TauScreen, o.TauScreen)
+	setThreshold(&result.TauScreen, o.TauScreen)
 	setInt(&result.DecideK, o.DecideK)
 	setInt(&result.MinValid, o.MinValid)
 	setInt(&result.MinSites, o.MinSites)
@@ -43,9 +43,9 @@ func (o PolicyOverrides) Apply() policy.Policy {
 	return result
 }
 
-func setFloat(target *float64, value *float64) {
-	if value != nil {
-		*target = *value
+func setThreshold(target *format.Threshold, override *format.ThresholdOverride) {
+	if override != nil {
+		*target = override.ApplyTo(*target)
 	}
 }
 

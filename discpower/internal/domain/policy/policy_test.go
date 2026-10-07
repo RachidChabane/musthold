@@ -1,8 +1,11 @@
 package policy_test
 
 import (
+	"encoding/json"
 	"errors"
+	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/policy"
@@ -20,11 +23,11 @@ func TestDefaults(t *testing.T) {
 	t.Run("the default policy carries the documented parameters"+verifiesSP163, func(t *testing.T) {
 		got := policy.Default()
 		want := policy.Policy{
-			TauJudge: 0.70, JudgeK: 2, TauScreen: 0.20, DecideK: 3, MinValid: 3, MinSites: 2,
+			TauJudge: format.UniformThreshold(0.70), JudgeK: 2, TauScreen: format.UniformThreshold(0.20), DecideK: 3, MinValid: 3, MinSites: 2,
 			MaxRounds: 3, KOp: 400, MaxHostTickets: 40,
 			SignedPassBasis: policy.Corroborated, MinIsolation: format.IsolationRestricted,
 		}
-		if got != want {
+		if !reflect.DeepEqual(got, want) {
 			t.Errorf("Default() = %+v, want %+v", got, want)
 		}
 	})
@@ -53,12 +56,28 @@ func TestValidate(t *testing.T) {
 		change func(*policy.Policy)
 		valid  bool
 	}{
-		{"tau_judge below zero", func(p *policy.Policy) { p.TauJudge = outsideBelow }, false},
-		{"tau_judge above one", func(p *policy.Policy) { p.TauJudge = outsideAbove }, false},
-		{"tau_screen below zero", func(p *policy.Policy) { p.TauScreen = outsideBelow }, false},
-		{"tau_screen above one", func(p *policy.Policy) { p.TauScreen = outsideAbove }, false},
-		{"thresholds at zero", func(p *policy.Policy) { p.TauJudge, p.TauScreen = 0, 0 }, true},
-		{"thresholds at one", func(p *policy.Policy) { p.TauJudge, p.TauScreen = 1, 1 }, true},
+		{"tau_judge keyed by a source kind", func(p *policy.Policy) {
+			p.TauJudge = format.Threshold{Default: 0.7, BySource: map[format.ConfidenceSource]float64{format.SourceHostVotes: 0.9}}
+		}, true},
+		{"tau_screen keyed by an exact source", func(p *policy.Policy) {
+			p.TauScreen = format.Threshold{Default: 0.2, BySource: map[format.ConfidenceSource]float64{format.HostVotesSource(3): 0.4}}
+		}, true},
+		{"tau_judge keyed by an unknown source", func(p *policy.Policy) {
+			p.TauJudge = format.Threshold{Default: 0.7, BySource: map[format.ConfidenceSource]float64{"gut-feeling": 0.9}}
+		}, false},
+		{"tau_screen with an entry above one", func(p *policy.Policy) {
+			p.TauScreen = format.Threshold{Default: 0.2, BySource: map[format.ConfidenceSource]float64{format.SourceSystemOne: outsideAbove}}
+		}, false},
+		{"tau_judge below zero", func(p *policy.Policy) { p.TauJudge = format.UniformThreshold(outsideBelow) }, false},
+		{"tau_judge above one", func(p *policy.Policy) { p.TauJudge = format.UniformThreshold(outsideAbove) }, false},
+		{"tau_screen below zero", func(p *policy.Policy) { p.TauScreen = format.UniformThreshold(outsideBelow) }, false},
+		{"tau_screen above one", func(p *policy.Policy) { p.TauScreen = format.UniformThreshold(outsideAbove) }, false},
+		{"thresholds at zero", func(p *policy.Policy) {
+			p.TauJudge, p.TauScreen = format.UniformThreshold(0), format.UniformThreshold(0)
+		}, true},
+		{"thresholds at one", func(p *policy.Policy) {
+			p.TauJudge, p.TauScreen = format.UniformThreshold(1), format.UniformThreshold(1)
+		}, true},
 		{"judge count zero", func(p *policy.Policy) { p.JudgeK = 0 }, false},
 		{"decide count zero", func(p *policy.Policy) { p.DecideK = 0 }, false},
 		{"min_valid zero", func(p *policy.Policy) { p.MinValid = 0 }, false},
@@ -102,6 +121,15 @@ func TestValidate(t *testing.T) {
 }
 
 func TestDigest(t *testing.T) {
+	t.Run("a policy without per-source thresholds keeps thresholds that are bare numbers"+verifiesSP163, func(t *testing.T) {
+		encoded, err := json.Marshal(policy.Default())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(encoded), `"tauJudge":0.7,`) || !strings.Contains(string(encoded), `"tauScreen":0.2,`) {
+			t.Fatalf("policy = %s", encoded)
+		}
+	})
 	t.Run("the digest is stable"+verifiesSP163, func(t *testing.T) {
 		first, err := policy.Default().Digest()
 		if err != nil {
@@ -116,9 +144,15 @@ func TestDigest(t *testing.T) {
 		name   string
 		change func(*policy.Policy)
 	}{
-		{"tau_judge", func(p *policy.Policy) { p.TauJudge = 0.71 }},
+		{"tau_judge", func(p *policy.Policy) { p.TauJudge = format.UniformThreshold(0.71) }},
+		{"tau_judge of a source", func(p *policy.Policy) {
+			p.TauJudge.BySource = map[format.ConfidenceSource]float64{format.SourceHostVotes: 0.9}
+		}},
+		{"tau_screen of a source", func(p *policy.Policy) {
+			p.TauScreen.BySource = map[format.ConfidenceSource]float64{format.SourceSystemOne: 0.4}
+		}},
 		{"judge_k", func(p *policy.Policy) { p.JudgeK++ }},
-		{"tau_screen", func(p *policy.Policy) { p.TauScreen = 0.21 }},
+		{"tau_screen", func(p *policy.Policy) { p.TauScreen = format.UniformThreshold(0.21) }},
 		{"decide_k", func(p *policy.Policy) { p.DecideK++ }},
 		{"min_valid", func(p *policy.Policy) { p.MinValid++ }},
 		{"min_sites", func(p *policy.Policy) { p.MinSites++ }},
