@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Front door of the live canary for GitHub Copilot CLI (ADR 0009, "Copilot live
+# canary"): one short `copilot -p` session, recorded and evaluated. See script/canary
+# for the flags. The session spends Copilot quota shared with the owner's own work; it
+# runs in the nightly window. Its login comes from COPILOT_GITHUB_TOKEN, GH_TOKEN or
+# GITHUB_TOKEN when one is set, and otherwise from the system keychain.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+exec script/canary copilot "$@"

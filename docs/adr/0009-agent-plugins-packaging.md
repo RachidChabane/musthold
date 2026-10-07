@@ -108,8 +108,18 @@ expected list of trees so that an empty walk cannot pass.
 trees through `--plugin-dir`, with `COPILOT_HOME`, `COPILOT_CACHE_HOME` and `--log-dir`
 in a temporary directory, in the nightly window, under the same session rules as the
 canaries of Claude Code and Codex. Copilot's credentials are read from the system
-keychain; a `--shared-home` flag lets a session use `~/.copilot` and then lists what
-the session wrote there.
+keychain, or from `COPILOT_GITHUB_TOKEN`, `GH_TOKEN` or `GITHUB_TOKEN` when one is set,
+which the canary passes through unchanged; a `--shared-home` flag lets a session use
+`~/.copilot` and then lists what the session wrote there. The user's `~/.copilot` is
+fingerprinted before and after in both modes.
+
+The session runs on `claude-haiku-4.5` with a cap of 60 AI credits and 40 model steps,
+and never inherits `COPILOT_ALLOW_ALL`. Before it, `copilot plugin list --json` and
+`copilot skill list --json` run with the three trees mounted, and each tree is
+inspected. The session delegates one ticket to the executor agent, which is also asked
+for a shell command outside its two tools; the hooks, the executor tool names, the
+`agentType` of `preToolUse` and the allowlist are concluded from the recorded hooks and
+the event stream, and a check whose evidence is absent concludes INCONCLUSIVE.
 
 ## Consequences
 
