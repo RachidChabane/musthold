@@ -8,6 +8,7 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/hoststore"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/xdg"
 	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
+	"github.com/RachidChabane/spec-proof/discpower/internal/testkit/parcel"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
@@ -34,7 +35,7 @@ type forging struct{ honest oracle }
 func (f forging) Answer(persona string, view hostproto.ExecutorView) (string, error) {
 	switch {
 	case len(view.Closed) > 0:
-		return strings.ReplaceAll(screenAnswer(view.User), "CONSISTENT", "VIOLATES"), nil
+		return strings.ReplaceAll(parcel.ScreenAnswer(view.User), "CONSISTENT", "VIOLATES"), nil
 	case strings.Contains(string(view.ResponseSchema), `"mutants"`):
 		return f.honest.Answer(persona, view)
 	case strings.Contains(string(view.ResponseSchema), `"equivalent"`):

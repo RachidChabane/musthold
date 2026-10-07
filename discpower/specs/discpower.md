@@ -537,3 +537,18 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   mark again what the pushing host marked, refuse a bundle of another version that
   left requests unanswered, and leave the requests that remain where the CI job
   uploads them from.
+
+## End to end
+
+- **SP-250~1**: WHEN a project is equipped with Shallnot and the module, edited and
+  proved THE SYSTEM SHALL have the end-of-turn hook of Shallnot hold the turn with
+  `awaiting_host` naming the module's skill while the host owes answers, let a
+  simulated Claude Code host answer every ticket through the real hooks and the
+  real executor server until `prove` ends, block the criterion whose test is
+  weak, journal the executors as started, fetched, accepted, attested and
+  reported with no leak, exposure or conflict, deny a main-session call of an
+  executor tool, and have `shallnot check` block the project.
+- **SP-251~1**: WHEN a forger answers every ticket from the command line, or a host
+  runs executors whose hooks never fire, THE SYSTEM SHALL give no criterion a
+  pass, accept no uncapped answer, write no Statement for a hookless host and
+  have Shallnot refuse the turn or the check.
