@@ -1,0 +1,5 @@
+{
+  "name": "probekit-esm",
+  "private": true,
+  "type": "module"
+}

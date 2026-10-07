@@ -1,0 +1,13 @@
+proofs:
+  alignment: false
+  discriminating-power: true
+  completeness: false
+ecosystems:
+  - jest
+operations:
+  line_total:
+    typescript: src/rates.ts:lineTotal
+  discounted:
+    typescript: src/rates.ts:discounted
+  shipping_fee:
+    typescript: src/rates.ts:shippingFee

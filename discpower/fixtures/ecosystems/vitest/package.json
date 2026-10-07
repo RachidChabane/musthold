@@ -1,0 +1,16 @@
+{
+  "name": "parcel",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Parcel pricing: line totals, discounts and shipping.",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.3"
+  }
+}
