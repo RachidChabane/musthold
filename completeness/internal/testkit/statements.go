@@ -20,7 +20,6 @@ const (
 	harnessVersion   = "1"
 	judgeConfidence  = 0.9
 	decisionLimit    = 0.7
-	statementName    = "statement"
 	policyName       = "decision-policy"
 	templateName     = "judge.validity"
 	alignedTemplate  = "judge.alignment"
@@ -91,7 +90,7 @@ func (p Power) Statement(t testing.TB, root string) []byte {
 		digest = p.StatementDigest
 	}
 	inputs := []format.Input{
-		{Role: format.RoleSpec, Name: statementName, Digest: format.Digest{SHA256: digest}},
+		format.SpecInput(p.Ref.ID, p.Ref.Revision, digest),
 		{Role: format.RoleDecisionPolicy, Name: policyName, Digest: format.Digest{SHA256: digestOf("policy")}},
 		{Role: format.RolePromptTemplate, Name: templateName, Digest: format.Digest{SHA256: digestOf("template")}},
 	}
@@ -115,7 +114,7 @@ func (p Power) Statement(t testing.TB, root string) []byte {
 			Digest: digestOf(p.Ref.String() + "mutant" + strconv.Itoa(index)), Validity: validity, Results: []format.TestResult{result},
 			Extensions: &format.MutantExtensions{
 				Unattributed: true,
-				Decision:     &format.Decision{Basis: format.BasisJudges, Deciders: []string{"judge-1", "judge-2"}, RawConfidence: judgeConfidence, Threshold: decisionLimit},
+				Decision:     &format.Decision{Basis: format.BasisJudges, Deciders: []string{"judge-1", "judge-2"}, ConfidenceSource: format.HostVotesSource(2), RawConfidence: judgeConfidence, Threshold: decisionLimit},
 			},
 		})
 	}
@@ -165,7 +164,7 @@ type Aligned struct {
 func (a Aligned) Statement(t testing.TB, root string) []byte {
 	t.Helper()
 	inputs := []format.Input{
-		{Role: format.RoleSpec, Name: statementName, Digest: format.Digest{SHA256: a.Digest}},
+		format.SpecInput(a.Ref.ID, a.Ref.Revision, a.Digest),
 		{Role: format.RoleDecisionPolicy, Name: policyName, Digest: format.Digest{SHA256: digestOf("policy")}},
 		{Role: format.RolePromptTemplate, Name: alignedTemplate, Digest: format.Digest{SHA256: digestOf("template")}},
 	}

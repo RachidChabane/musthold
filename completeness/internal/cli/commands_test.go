@@ -7,6 +7,7 @@ import (
 
 	"github.com/RachidChabane/spec-proof/completeness/internal/cli"
 	"github.com/RachidChabane/spec-proof/completeness/internal/testkit"
+	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
 )
@@ -261,7 +262,7 @@ func TestSystemOneCommands(t *testing.T) {
 			t.Fatalf("exit code %d:\n%s", code, output)
 		}
 		decision := relayed.mustStatement().Predicate.Extensions.Decision
-		if decision == nil || decision.RawConfidence != 0.93 || len(decision.Deciders) == 0 || decision.Deciders[0] != "system_one:systemone:nimble@0123abcd" {
+		if decision == nil || decision.RawConfidence != 0.93 || len(decision.Deciders) == 0 || decision.ConfidenceSource != format.SystemOneSource("systemone:nimble@0123abcd") {
 			t.Fatalf("decision %+v", decision)
 		}
 		entries, err := relayed.store().ListEntries()

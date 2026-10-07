@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/closedq"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/prompt"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/question"
@@ -17,13 +16,15 @@ import (
 
 // Names of the inputs of a Statement.
 const (
-	inputNamePolicy    = "decision-policy"
-	inputNameHunks     = "diff-hunks"
-	inputNameModels    = "host-models"
-	inputNameResponses = "host-responses"
-	templateNamePrefix = "decide."
-	modelSeparator     = "@"
-	responseSeparator  = "\x00"
+	// closedSignalDecider names the signal that decided: the closed answers.
+	closedSignalDecider = "system_one"
+	inputNamePolicy     = "decision-policy"
+	inputNameHunks      = "diff-hunks"
+	inputNameModels     = "host-models"
+	inputNameResponses  = "host-responses"
+	templateNamePrefix  = "decide."
+	modelSeparator      = "@"
+	responseSeparator   = "\x00"
 )
 
 func descriptor(role format.InputRole, name, digest string) format.Input {
@@ -83,7 +84,7 @@ func (s *specRun) baseInputs() []format.Input {
 	}
 	slices.Sort(hunkIDs)
 	inputs = append(inputs, descriptor(format.RoleHostResponse, inputNameHunks, format.SHA256Hex([]byte(p.changes.base+responseSeparator+strings.Join(hunkIDs, responseSeparator)))))
-	inputs = append(inputs, p.proofInputs...)
+	inputs = append(inputs, consumedProofsInput(p.proofInputs)...)
 	return sortInputs(inputs)
 }
 
@@ -119,11 +120,14 @@ func digestOfSet(set map[string]bool) string {
 // their confidence came from, the lowest of them and the threshold they were held
 // to. It is absent when no answer was used.
 func (s *specRun) decision() *format.Decision {
-	deciders := map[string]bool{}
 	confidence, answered := format.MaxConfidence, false
+	var weakest format.ConfidenceSource
+	var mapping string
 	for _, signal := range s.used {
-		deciders[closedq.Decider(signal.reading.Source)] = true
 		for _, decided := range signal.reading.Questions {
+			if !answered || decided.Confidence < confidence {
+				weakest, mapping = signal.reading.Source, signal.reading.Mapping
+			}
 			confidence, answered = min(confidence, decided.Confidence), true
 		}
 	}
@@ -131,7 +135,8 @@ func (s *specRun) decision() *format.Decision {
 		return nil
 	}
 	return &format.Decision{
-		Basis: format.BasisSystemOne, Deciders: slices.Sorted(maps.Keys(deciders)),
+		Basis: format.BasisSystemOne, Deciders: []string{closedSignalDecider},
+		ConfidenceSource: weakest, ConfidenceMapping: mapping,
 		RawConfidence: confidence, Threshold: s.pass.settings.Policy.TauAdv,
 	}
 }
@@ -183,4 +188,22 @@ func formatDeclarations(declared []criterion.Declaration) []format.OutOfScope {
 		return cmp.Or(strings.Compare(a.Dimension, b.Dimension), strings.Compare(a.Reason, b.Reason))
 	})
 	return slices.Compact(converted)
+}
+
+// inputNameConsumedProofs names the input that stands for the proofs a Statement
+// read. A `proof` input is named by its kind and a proof consumes at most one of a
+// kind, while a spec of many criteria reads many, so they reach the cache key as
+// one digest of their names and digests.
+const inputNameConsumedProofs = "consumed-proofs"
+
+func consumedProofsInput(proofs []format.Input) []format.Input {
+	if len(proofs) == 0 {
+		return nil
+	}
+	lines := make([]string, len(proofs))
+	for index, input := range proofs {
+		lines[index] = input.Name + "=" + input.Digest.SHA256
+	}
+	slices.Sort(lines)
+	return []format.Input{descriptor(format.RoleMutantSet, inputNameConsumedProofs, format.SHA256Hex([]byte(strings.Join(lines, responseSeparator))))}
 }

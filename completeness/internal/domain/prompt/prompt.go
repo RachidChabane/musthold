@@ -102,11 +102,11 @@ func assemble(set closedq.Set, skeleton closedq.Set, instructions, user string, 
 	if err != nil {
 		return Built{}, err
 	}
-	schema, err := set.Schema()
+	schema, err := set.ResponseSchema()
 	if err != nil {
 		return Built{}, err
 	}
-	skeletonSchema, err := skeleton.Schema()
+	skeletonSchema, err := skeleton.ResponseSchema()
 	if err != nil {
 		return Built{}, err
 	}
@@ -121,7 +121,7 @@ func assemble(set closedq.Set, skeleton closedq.Set, instructions, user string, 
 func describe(questions []closedq.Question) string {
 	lines := make([]string, len(questions))
 	for index, question := range questions {
-		lines[index] = fmt.Sprintf("%s: %s Options: %s.", question.ID, question.Question, strings.Join(question.OptionNames(), ", "))
+		lines[index] = fmt.Sprintf("%s: %s Options: %s.", question.ID, question.Instructions, strings.Join(question.OptionNames(), ", "))
 	}
 	return strings.Join(lines, "\n")
 }

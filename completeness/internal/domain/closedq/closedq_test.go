@@ -48,7 +48,7 @@ func TestMarshalAndSchema(t *testing.T) {
 	})
 
 	t.Run("the schema holds exactly one answer per question, each with one of its options [verifies SP-514~1]", func(t *testing.T) {
-		raw, err := twoQuestions().Schema()
+		raw, err := twoQuestions().ResponseSchema()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -107,7 +107,7 @@ func TestRead(t *testing.T) {
 			Output:  []byte(`{"answers":[{"id":"q0","choice":"A","confidence":0.7},{"id":"q1","choice":"B"}]}`),
 			Relayed: true, Source: "nimble:9b@abc",
 		}})
-		if reading.Source != "nimble:9b@abc" {
+		if reading.Source != "system-one:nimble:9b@abc" {
 			t.Fatalf("source %q", reading.Source)
 		}
 		if got := reading.Questions["q0"]; got.Choice != "A" || got.Confidence != 0.7 {
@@ -167,9 +167,14 @@ func TestRead(t *testing.T) {
 }
 
 func TestSource(t *testing.T) {
-	t.Run("a confidence source is recorded under the system_one decider name [verifies SP-515~1]", func(t *testing.T) {
-		if got := closedq.Decider("host-votes(3)"); got != "system_one:host-votes(3)" {
-			t.Fatalf("decider %q", got)
+	t.Run("a relayed answer has the system-one source and the endpoint's mapping, host votes the modal share [verifies SP-515~1]", func(t *testing.T) {
+		relayed := closedq.Read([]closedq.Vote{{Output: answer("A"), Relayed: true, Source: "nimble:9b@abc"}})
+		if relayed.Source != "system-one:nimble:9b@abc" || relayed.Mapping != "system-one.choice.confidence" {
+			t.Fatalf("relayed %q %q", relayed.Source, relayed.Mapping)
+		}
+		voted := closedq.Read([]closedq.Vote{{Output: answer("A")}})
+		if voted.Source != "host-votes(1)" || voted.Mapping != "host-votes.modal-share" {
+			t.Fatalf("voted %q %q", voted.Source, voted.Mapping)
 		}
 	})
 

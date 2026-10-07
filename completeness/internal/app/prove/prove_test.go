@@ -139,15 +139,18 @@ func TestWithEvidence(t *testing.T) {
 			}
 		})
 
-		t.Run(l.fixture+": the Statements read are inputs of role proof, and a Statement of another text of the criterion is not read [verifies SP-509~1]", func(t *testing.T) {
-			var names []string
+		t.Run(l.fixture+": the Statements read are one consumed-proofs input, and a Statement of another text of the criterion is not read [verifies SP-509~1]", func(t *testing.T) {
+			var consumed []format.Input
 			for _, input := range statement.Predicate.Inputs {
+				if input.Name == "consumed-proofs" {
+					consumed = append(consumed, input)
+				}
 				if input.Role == format.RoleProof {
-					names = append(names, input.Name)
+					t.Fatalf("a spec of many criteria reads many proofs of a kind, which no proof input can name: %+v", input)
 				}
 			}
-			if len(names) != 2 || !strings.HasPrefix(names[0], "alignment:INV-1~1:") || names[1] != "discriminating-power:INV-1~1" {
-				t.Fatalf("proof inputs %v", names)
+			if len(consumed) != 1 || consumed[0].Role != format.RoleMutantSet || !format.IsSHA256Hex(consumed[0].Digest.SHA256) {
+				t.Fatalf("consumed-proofs inputs %+v", consumed)
 			}
 			stale := newWorld(t, l.fixture)
 			stalePower, staleAligned := l.evidence()
@@ -201,7 +204,7 @@ func TestRelay(t *testing.T) {
 			t.Fatalf("boundaries %+v", boundaries)
 		}
 		decision := statement.Predicate.Extensions.Decision
-		if decision == nil || decision.Basis != format.BasisSystemOne || !slices.Equal(decision.Deciders, []string{"system_one:nimble:9b@endpoint"}) || decision.RawConfidence != 0.3 || decision.Threshold != 0.5 {
+		if decision == nil || decision.Basis != format.BasisSystemOne || decision.ConfidenceSource != format.SystemOneSource("nimble:9b@endpoint") || !slices.Equal(decision.Deciders, []string{"system_one"}) || decision.RawConfidence != 0.3 || decision.Threshold != 0.5 {
 			t.Fatalf("decision %+v", decision)
 		}
 		entries, err := w.store.ListEntries()
@@ -230,7 +233,7 @@ func TestHostVotes(t *testing.T) {
 		w := newWorld(t, testkit.GoLedger)
 		w.mustRun(prove.Options{})
 		decision := w.statement().Predicate.Extensions.Decision
-		if decision == nil || !slices.Equal(decision.Deciders, []string{"system_one:host-votes(3)"}) || decision.RawConfidence != 1 {
+		if decision == nil || decision.ConfidenceSource != format.HostVotesSource(3) || !slices.Equal(decision.Deciders, []string{"system_one"}) || decision.RawConfidence != 1 {
 			t.Fatalf("decision %+v", decision)
 		}
 	})

@@ -83,8 +83,11 @@ func TestStatement(t *testing.T) {
 		if got := names(format.RoleDecisionPolicy); !slices.Equal(got, []string{"decision-policy"}) {
 			t.Errorf("policy inputs %v", got)
 		}
-		if got := names(format.RoleProof); len(got) != 2 {
+		if got := names(format.RoleProof); len(got) != 0 {
 			t.Errorf("proof inputs %v", got)
+		}
+		if got := names(format.RoleMutantSet); !slices.Equal(got, []string{"consumed-proofs"}) {
+			t.Errorf("consumed proof inputs %v", got)
 		}
 		if got := names(format.RoleModelID); !slices.Equal(got, []string{"host-models"}) {
 			t.Errorf("model inputs %v", got)
