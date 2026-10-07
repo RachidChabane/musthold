@@ -309,7 +309,7 @@ func (dissenting) Answer(persona string, view hostproto.ExecutorView) (string, e
 }
 
 // relaySource is the model and endpoint a relay says its answers come from.
-const relaySource = "nimble:9b@0123abcd"
+const relaySource = "system-one:nimble:9b@0123abcd"
 
 func TestSystemOne(t *testing.T) {
 	t.Run("host deciders give the modal share of decide_k votes as the confidence [verifies SP-361~1]", func(t *testing.T) {
@@ -355,7 +355,7 @@ func TestSystemOne(t *testing.T) {
 		if decision.Basis != format.BasisSystemOne || decision.RawConfidence != 0.93 || statement.Predicate.Executor.Channel != format.ChannelSystemOneRelay {
 			t.Fatalf("decision %+v executor %+v", decision, statement.Predicate.Executor.ExecutorProfile)
 		}
-		if decision.ConfidenceSource != format.SystemOneSource(relaySource) || decision.ConfidenceMapping != format.MappingSystemOneChoice {
+		if decision.ConfidenceSource != "system-one:nimble:9b@0123abcd" || decision.ConfidenceMapping != format.MappingSystemOneChoice {
 			t.Fatalf("decision %+v does not name the relay source and its mapping", decision)
 		}
 		if slices.ContainsFunc(decision.Deciders, func(decider string) bool { return strings.Contains(decider, relaySource) }) {

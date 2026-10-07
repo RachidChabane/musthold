@@ -218,9 +218,9 @@ traces them to the Go tests of the module in CI.
   accept answers through the same checks as the host protocol, a refused answer
   SHALL exit as a refusal, not a tool failure, and the real binary SHALL be
   driven to the same Statement by the real fake host.
-- **SP-546~1**: WHEN `systemone export` runs THE SYSTEM SHALL list the closed
+- **SP-546~2**: WHEN `systemone export` runs THE SYSTEM SHALL list the closed
   requests that wait for their first vote, and WHEN `systemone import` runs THE
-  SYSTEM SHALL accept the answers of a relay under its source, as an executor of
+  SYSTEM SHALL accept the answers of a relay under its source `system-one:<model>@<endpoint digest>`, which `confidenceSource` records as given, and refuse another form of source, as an executor of
   the relay channel, ask no host vote next to them, and record the confidence
   and the source the endpoint gave.
 - **SP-547~2**: WHEN `doctor` runs THE SYSTEM SHALL check Shallnot and the report schema it

@@ -118,6 +118,15 @@ func TestDecodePolicy(t *testing.T) {
 		}
 	})
 
+	t.Run("a threshold keyed on the exact source of a relayed answer holds that answer [verifies SP-902~1]", func(t *testing.T) {
+		const exact = "system-one:exact-model@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		got := policyOf(t, "policy:\n  tau_screen:\n    default: 0.5\n    system-one: 0.4\n    "+exact+": 0.85\n")
+		relayed, err := format.ParseSystemOneSource(exact)
+		if err != nil || got.TauScreen.For(relayed) != 0.85 || got.TauScreen.For(format.SystemOneSource("tev1:4b@"+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")) != 0.4 {
+			t.Fatalf("tau_screen = %+v (%v)", got.TauScreen, err)
+		}
+	})
+
 	t.Run("a document without policy gives the default policy [verifies SP-191~1]", func(t *testing.T) {
 		if got := policyOf(t, headerYAML); !reflect.DeepEqual(got, policy.Default()) {
 			t.Fatalf("policy = %+v", got)

@@ -58,6 +58,12 @@ policy:
 		case got.ModalMin.For(format.HostVotesSource(5)) != 0.9, got.ModalMin.For(format.HostVotesSource(4)) != 0.6:
 			t.Fatalf("modal_min %+v", got.ModalMin)
 		}
+		const exact = "system-one:exact-model@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		keyed, err := config.Decode([]byte("policy:\n  tau_route:\n    system-one: 0.97\n    " + exact + ": 0.85\n"))
+		relayed, parseErr := format.ParseSystemOneSource(exact)
+		if err != nil || parseErr != nil || keyed.TauRoute.For(relayed) != 0.85 || keyed.TauRoute.For(endpoint) != 0.97 {
+			t.Fatalf("tau_route %+v (%v, %v)", keyed.TauRoute, err, parseErr)
+		}
 	})
 
 	t.Run("a threshold keyed by an unknown source or above one is refused [verifies SP-903~1]", func(t *testing.T) {

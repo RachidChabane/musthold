@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/responsecheck"
+	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
@@ -187,6 +188,10 @@ func (e Env) importClosed(service requests.Service, positionals []string, nonce,
 	if source == "" {
 		return outcome{err: refusal{errors.New("--source names the model and endpoint the answers come from")}}
 	}
+	confidenceSource, err := format.ParseSystemOneSource(source)
+	if err != nil {
+		return outcome{err: refusal{err}}
+	}
 	output, err := io.ReadAll(io.LimitReader(e.Stdin, hostproto.MaxOutputBytes+1))
 	if err != nil {
 		return outcome{err: fmt.Errorf("read the answers: %w", err)}
@@ -199,7 +204,7 @@ func (e Env) importClosed(service requests.Service, positionals []string, nonce,
 	if err != nil {
 		return outcome{err: refusal{err}}
 	}
-	profile := requests.RelayProfile(source)
+	profile := requests.RelayProfile(confidenceSource)
 	receipt, err := service.Submit(requests.Submission{Ticket: ticket, Nonce: nonce, Output: output, Origin: requests.OriginRelay, Executor: &profile})
 	if err != nil {
 		return outcome{err: asRefusal(err)}

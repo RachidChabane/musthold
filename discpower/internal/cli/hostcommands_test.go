@@ -20,7 +20,7 @@ const (
 	conflictingAnswer = `{"validity":"EQUIVALENT"}`
 	brokenAnswer      = `{"verdict":"VALID"}`
 	staleNonce        = "00000000000000000000000000000000"
-	relaySource       = "system-one:model-x"
+	relaySource       = "system-one:model-x@0123abcd"
 	tamperedRecord    = `{"seq":0,"prev":"x","event":{"kind":"emitted"},"digest":"y"}` + "\n"
 	missingShallnot   = "/nonexistent/shallnot"
 	correctionNotice  = "may be corrected once"
@@ -117,7 +117,7 @@ func (f *hostFixture) runWithEnv(overrides map[string]string, args ...string) (i
 }
 
 func TestRequestList(t *testing.T) {
-	t.Run("list --json prints the emitted tickets with the view an executor sees [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("list --json prints the emitted tickets with the view an executor sees [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		ticket := f.emit(hostprototest.Request(), 0)
 		code, stdout, stderr := f.run(nil, hostproto.ListArgs()...)
@@ -133,7 +133,7 @@ func TestRequestList(t *testing.T) {
 		}
 	})
 
-	t.Run("list without --json prints one line per ticket [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("list without --json prints one line per ticket [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		ticket := f.emit(hostprototest.Request(), 0)
 		code, stdout, _ := f.run(nil, hostproto.CommandRequest, hostproto.SubcommandList)
@@ -142,7 +142,7 @@ func TestRequestList(t *testing.T) {
 		}
 	})
 
-	t.Run("an empty store lists an empty array of items [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("an empty store lists an empty array of items [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		code, stdout, _ := f.run(nil, hostproto.ListArgs()...)
 		if code != cli.ExitClean || strings.TrimSpace(stdout) != `{"items":[]}` {
@@ -152,7 +152,7 @@ func TestRequestList(t *testing.T) {
 }
 
 func TestRequestShow(t *testing.T) {
-	t.Run("show prints the view, fetches the ticket and removes it from the listing [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("show prints the view, fetches the ticket and removes it from the listing [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		ticket := f.emit(hostprototest.Request(), 0)
 		code, stdout, stderr := f.run(nil, hostproto.ShowArgs(ticket.TicketID)...)
@@ -181,7 +181,7 @@ func TestRequestShow(t *testing.T) {
 		{"a ticket nobody emitted", hostproto.ShowArgs(hostprototest.Ticket(hostprototest.Request(func(r *hostproto.Request) { r.Prompt.User = "unknown" }), 0, 1).TicketID)},
 	}
 	for _, tt := range refusals {
-		t.Run("show of "+tt.name+" is a refusal [verifies SP-192~1]", func(t *testing.T) {
+		t.Run("show of "+tt.name+" is a refusal [verifies SP-192~2]", func(t *testing.T) {
 			f := newHostFixture(t)
 			f.emit(hostprototest.Request(), 0)
 			if code, _, stderr := f.run(nil, tt.args...); code != refusalExit || stderr == "" {
@@ -192,7 +192,7 @@ func TestRequestShow(t *testing.T) {
 }
 
 func TestRequestSubmit(t *testing.T) {
-	t.Run("a valid answer is accepted with a receipt and kept exposed, as it came without a capability [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("a valid answer is accepted with a receipt and kept exposed, as it came without a capability [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		ticket := f.emit(hostprototest.Request(), 0)
 		f.show(ticket)
@@ -209,7 +209,7 @@ func TestRequestSubmit(t *testing.T) {
 		}
 	})
 
-	t.Run("the same answer submitted again is accepted again [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("the same answer submitted again is accepted again [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		ticket := f.emit(hostprototest.Request(), 0)
 		f.show(ticket)
@@ -219,7 +219,7 @@ func TestRequestSubmit(t *testing.T) {
 		}
 	})
 
-	t.Run("a different second answer is a refusal [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("a different second answer is a refusal [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		ticket := f.emit(hostprototest.Request(), 0)
 		f.show(ticket)
@@ -229,7 +229,7 @@ func TestRequestSubmit(t *testing.T) {
 		}
 	})
 
-	t.Run("an answer with the nonce of another issue is a refusal [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("an answer with the nonce of another issue is a refusal [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		ticket := f.emit(hostprototest.Request(), 0)
 		f.show(ticket)
@@ -238,7 +238,7 @@ func TestRequestSubmit(t *testing.T) {
 		}
 	})
 
-	t.Run("an answer for a ticket that was not shown is a refusal [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("an answer for a ticket that was not shown is a refusal [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		ticket := f.emit(hostprototest.Request(), 0)
 		if code, _, _ := f.submit(ticket, ticket.Nonce, honestAnswer); code != refusalExit {
@@ -246,7 +246,7 @@ func TestRequestSubmit(t *testing.T) {
 		}
 	})
 
-	t.Run("an answer that breaks the schema is a refusal that says it may be corrected once [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("an answer that breaks the schema is a refusal that says it may be corrected once [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		ticket := f.emit(hostprototest.Request(), 0)
 		f.show(ticket)
@@ -259,7 +259,7 @@ func TestRequestSubmit(t *testing.T) {
 		}
 	})
 
-	t.Run("a submission without a ticket is a refusal [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("a submission without a ticket is a refusal [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		if code, _, _ := f.run([]byte(honestAnswer), hostproto.CommandRequest, hostproto.SubcommandSubmit, hostproto.FlagNonce, staleNonce); code != refusalExit {
 			t.Fatalf("exit %d", code)
@@ -278,7 +278,7 @@ func TestRequestVerbs(t *testing.T) {
 		{"systemone with an unknown verb", []string{"systemone", "frobnicate"}},
 	}
 	for _, tt := range refusals {
-		t.Run(tt.name+" is a refusal [verifies SP-192~1]", func(t *testing.T) {
+		t.Run(tt.name+" is a refusal [verifies SP-192~2]", func(t *testing.T) {
 			f := newHostFixture(t)
 			if code, _, stderr := f.run(nil, tt.args...); code != refusalExit || stderr == "" {
 				t.Fatalf("exit %d, stderr %q", code, stderr)
@@ -286,14 +286,14 @@ func TestRequestVerbs(t *testing.T) {
 		})
 	}
 
-	t.Run("an unknown flag is a tool failure [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("an unknown flag is a tool failure [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		if code, _, _ := f.run(nil, hostproto.CommandRequest, hostproto.SubcommandList, "--bogus"); code != toolFailureExit {
 			t.Fatalf("exit %d", code)
 		}
 	})
 
-	t.Run("a store that cannot be read is a tool failure [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("a store that cannot be read is a tool failure [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		f.emit(hostprototest.Request(), 0)
 		tickets, err := os.ReadDir(filepath.Join(f.store.Dir(), hoststore.TicketsDir))
@@ -312,7 +312,7 @@ func TestRequestVerbs(t *testing.T) {
 func TestSystemOne(t *testing.T) {
 	closed := hostprototest.ClosedRequest()
 
-	t.Run("export lists the closed requests with their nonce and questions and nothing else [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("export lists the closed requests with their nonce and questions and nothing else [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		f.emit(hostprototest.Request(), 0)
 		ticket := f.emit(closed, 0)
@@ -334,14 +334,14 @@ func TestSystemOne(t *testing.T) {
 		}
 	})
 
-	t.Run("export of an empty store is an empty array [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("export of an empty store is an empty array [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		if code, stdout, _ := f.run(nil, "systemone", "export"); code != cli.ExitClean || strings.TrimSpace(stdout) != "[]" {
 			t.Fatalf("exit %d, stdout %q", code, stdout)
 		}
 	})
 
-	t.Run("import records the relayed answer under the relay executor and does not mark it exposed [verifies SP-192~1] [verifies SP-408~1]", func(t *testing.T) {
+	t.Run("import records the relayed answer under the relay executor and does not mark it exposed [verifies SP-192~2] [verifies SP-408~1]", func(t *testing.T) {
 		f := newHostFixture(t)
 		ticket := f.emit(closed, 0)
 		code, stdout, stderr := f.run([]byte(hostprototest.ClosedSystemOneResponse), "systemone", "import", ticket.TicketID.String(), "--nonce", ticket.Nonce, "--source", relaySource)
@@ -349,7 +349,7 @@ func TestSystemOne(t *testing.T) {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
 		}
 		response, err := f.store.GetResponse(ticket.Key())
-		if err != nil || response.Executor.Channel != format.ChannelSystemOneRelay || response.Executor.Model.Name != relaySource {
+		if err != nil || response.Executor.Channel != format.ChannelSystemOneRelay || response.Executor.Model.Name != "system-one:model-x@0123abcd" {
 			t.Fatalf("response %+v (%v)", response, err)
 		}
 		answers, err := hostproto.ParseClosedAnswers(response.Output)
@@ -370,6 +370,9 @@ func TestSystemOne(t *testing.T) {
 		{"without a source", func(t hostproto.Ticket) []string {
 			return []string{"systemone", "import", t.TicketID.String(), "--nonce", t.Nonce}
 		}, hostprototest.ClosedSystemOneResponse},
+		{"under a source that is not system-one:<model>@<endpointDigest>", func(t hostproto.Ticket) []string {
+			return []string{"systemone", "import", t.TicketID.String(), "--nonce", t.Nonce, "--source", "systemone:model-x@0123abcd"}
+		}, hostprototest.ClosedSystemOneResponse},
 		{"without a ticket", func(t hostproto.Ticket) []string {
 			return []string{"systemone", "import", "--nonce", t.Nonce, "--source", relaySource}
 		}, hostprototest.ClosedSystemOneResponse},
@@ -387,7 +390,7 @@ func TestSystemOne(t *testing.T) {
 		}, `{"answers":{"q1":{"type":"choice","choice":"MAYBE"}}}`},
 	}
 	for _, tt := range refusals {
-		t.Run("import "+tt.name+" is a refusal [verifies SP-192~1]", func(t *testing.T) {
+		t.Run("import "+tt.name+" is a refusal [verifies SP-192~2]", func(t *testing.T) {
 			f := newHostFixture(t)
 			ticket := f.emit(closed, 0)
 			if code, _, stderr := f.run([]byte(tt.stdin), tt.args(ticket)...); code != refusalExit || stderr == "" {
@@ -401,7 +404,7 @@ func TestSystemOne(t *testing.T) {
 }
 
 func TestDoctor(t *testing.T) {
-	t.Run("a healthy project exits 0 and reports every check [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("a healthy project exits 0 and reports every check [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		code, stdout, stderr := f.run(nil, "doctor")
 		if code != cli.ExitClean {
@@ -434,7 +437,7 @@ func TestDoctor(t *testing.T) {
 		}, "fail journal"},
 	}
 	for _, tt := range failures {
-		t.Run("doctor with "+tt.name+" exits 2 [verifies SP-192~1]", func(t *testing.T) {
+		t.Run("doctor with "+tt.name+" exits 2 [verifies SP-192~2]", func(t *testing.T) {
 			f := newHostFixture(t)
 			overrides, args := tt.prepare(f)
 			code, stdout, _ := f.runWithEnv(overrides, args...)
@@ -444,7 +447,7 @@ func TestDoctor(t *testing.T) {
 		})
 	}
 
-	t.Run("doctor with an argument it does not take exits 2 [verifies SP-192~1]", func(t *testing.T) {
+	t.Run("doctor with an argument it does not take exits 2 [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		if code, _, stderr := f.run(nil, "doctor", "extra"); code != toolFailureExit || stderr == "" {
 			t.Fatalf("exit %d, stderr %q", code, stderr)

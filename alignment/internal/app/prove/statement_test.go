@@ -52,11 +52,11 @@ func TestWeakest(t *testing.T) {
 }
 
 func TestConfidenceSource(t *testing.T) {
-	relayed := hostbridge.Answer{Votes: []hostbridge.VoteState{{Executor: format.ExecutorProfile{Channel: format.ChannelSystemOneRelay, Model: format.ExecutorModel{Name: "systemone:nimble@ab12", Source: format.ModelSourceDeclared}}}}}
+	relayed := hostbridge.Answer{Votes: []hostbridge.VoteState{{Executor: format.ExecutorProfile{Channel: format.ChannelSystemOneRelay, Model: format.ExecutorModel{Name: "system-one:nimble@ab12", Source: format.ModelSourceDeclared}}}}}
 	voted := hostbridge.Answer{Votes: []hostbridge.VoteState{{Executor: profile(format.IsolationRestricted, format.ChannelHostSubagent, "a")}}}
 
 	t.Run("the confidence of a relayed answer comes from the relay's source, otherwise from the host votes [verifies SP-361~1]", func(t *testing.T) {
-		if got := confidenceSource([]hostbridge.Answer{voted, relayed}, 3); got != (sourced{source: format.SystemOneSource("systemone:nimble@ab12"), mapping: format.MappingSystemOneChoice}) {
+		if got := confidenceSource([]hostbridge.Answer{voted, relayed}, 3); got != (sourced{source: format.SystemOneSource("nimble@ab12"), mapping: format.MappingSystemOneChoice}) {
 			t.Errorf("relayed source %+v", got)
 		}
 		if got := confidenceSource([]hostbridge.Answer{voted}, 3); got != (sourced{source: format.HostVotesSource(3), mapping: format.MappingModalShare}) {

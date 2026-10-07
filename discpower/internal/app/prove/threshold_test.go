@@ -1,11 +1,14 @@
 package prove
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/execution"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
+	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
 func TestRecordedThreshold(t *testing.T) {
@@ -42,6 +45,31 @@ func TestRecordedThreshold(t *testing.T) {
 	t.Run("a decision the module fixed itself records the default [verifies SP-902~1]", func(t *testing.T) {
 		if got := recorded(t, power.Undetermined(power.ReasonJudgesSplit)); got != defaultTau {
 			t.Fatalf("threshold = %v, want %v", got, defaultTau)
+		}
+	})
+
+	t.Run("a relayed answer is recorded under exactly system-one:<model>@<digest> and held to the threshold keyed on it [verifies SP-902~1]", func(t *testing.T) {
+		const imported = "system-one:nimble:9b@0123abcd"
+		const relayTau = 0.55
+		source, err := format.ParseSystemOneSource(imported)
+		if err != nil {
+			t.Fatal(err)
+		}
+		profile := requests.RelayProfile(source)
+		answer := hostbridge.Answer{Votes: []hostbridge.VoteState{{
+			Output:   json.RawMessage(`{"answers":[{"id":"q1","choice":"VIOLATES","probabilities":{"VIOLATES":0.8,"CONSISTENT":0.2}}]}`),
+			Executor: profile,
+		}}}
+		_, relayed := closedAnswers(answer, "q1")
+		fixture.run.rules.TauJudge.BySource[source] = relayTau
+		decision := power.Undetermined(power.ReasonJudgesSplit)
+		decision.Source = relayed
+		entry, err := fixture.run.mutantEntry(mutant, decision)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := entry.Extensions.Decision; got.ConfidenceSource != imported || got.Threshold != relayTau {
+			t.Fatalf("decision source %q threshold %v, want %q and %v", got.ConfidenceSource, got.Threshold, imported, relayTau)
 		}
 	})
 

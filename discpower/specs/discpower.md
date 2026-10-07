@@ -408,9 +408,9 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   THE SYSTEM SHALL bind each operation per ecosystem or language, apply the
   parameters over the defaults, refuse an invalid parameter, and write both back
   in a fixed order.
-- **SP-192~1**: WHEN `request`, `systemone` or `doctor` runs THE SYSTEM SHALL list,
+- **SP-192~2**: WHEN `request`, `systemone` or `doctor` runs THE SYSTEM SHALL list,
   show and submit tickets, export closed requests and import their answers from a
-  relay, report the checks of the project, and exit 1 for a refusal of the
+  relay under its source `system-one:<model>@<endpoint digest>`, refusing another form, report the checks of the project, and exit 1 for a refusal of the
   protocol and 2 for a tool failure.
 - **SP-193~1**: WHEN `prove` is given conflicting flags or unexpected arguments THE
   SYSTEM SHALL refuse them before it runs anything.

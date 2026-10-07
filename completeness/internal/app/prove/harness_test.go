@@ -335,7 +335,7 @@ func anyContains(lines []string, text string) bool {
 }
 
 // relaySource names the System One endpoint a relay answers as.
-const relaySource = "nimble:9b@endpoint"
+const relaySource = "system-one:nimble:9b@endpoint"
 
 // relay answers like the honest host and states one confidence for every answer,
 // the way a System One endpoint does; a negative confidence states none.

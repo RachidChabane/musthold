@@ -306,12 +306,12 @@ func (s Service) executorProfile(binding hostproto.Binding) format.ExecutorProfi
 }
 
 // RelayProfile describes the executor of an answer a System One endpoint gave.
-func RelayProfile(source string) format.ExecutorProfile {
+func RelayProfile(source format.ConfidenceSource) format.ExecutorProfile {
 	return format.ExecutorProfile{
 		Channel:   format.ChannelSystemOneRelay,
 		Harness:   format.Harness{Name: relayHarnessName, Version: cliHarnessVersion},
 		Isolation: format.IsolationRestricted,
-		Model:     format.ExecutorModel{Name: source, Source: format.ModelSourceDeclared},
+		Model:     format.ExecutorModel{Name: string(source), Source: format.ModelSourceDeclared},
 	}
 }
 

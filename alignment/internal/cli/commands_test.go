@@ -169,7 +169,7 @@ func TestSystemOneCommands(t *testing.T) {
 	h.withPowers(testkit.PythonPowers())
 	h.run(nil, proveCommand, allFlag)
 
-	t.Run("systemone export lists the closed requests that wait for their first vote [verifies SP-337~1]", func(t *testing.T) {
+	t.Run("systemone export lists the closed requests that wait for their first vote [verifies SP-337~2]", func(t *testing.T) {
 		code, output, stderr := h.run(nil, "systemone", "export")
 		if code != cli.ExitClean {
 			t.Fatalf("exit code %d: %s", code, stderr)
@@ -193,12 +193,17 @@ func TestSystemOneCommands(t *testing.T) {
 		}
 	})
 
-	t.Run("systemone import needs a source and a known ticket and records the answer under the relay channel [verifies SP-337~1]", func(t *testing.T) {
+	t.Run("systemone import needs a source and a known ticket and records the answer under the relay channel [verifies SP-337~2]", func(t *testing.T) {
 		if code, _, _ := h.run([]byte(`{}`), "systemone", "import", strings.Repeat("a", 64)+".0.1", "--nonce", strings.Repeat("0", 32)); code != cli.ExitBlocked {
 			t.Errorf("an import without a source: exit code %d", code)
 		}
-		if code, _, _ := h.run([]byte(`{}`), "systemone", "import", strings.Repeat("a", 64)+".0.1", "--nonce", strings.Repeat("0", 32), "--source", "s1:x@y"); code != cli.ExitBlocked {
+		if code, _, _ := h.run([]byte(`{}`), "systemone", "import", strings.Repeat("a", 64)+".0.1", "--nonce", strings.Repeat("0", 32), "--source", "system-one:x@y"); code != cli.ExitBlocked {
 			t.Errorf("an import for an unknown ticket: exit code %d", code)
+		}
+		for _, source := range []string{"systemone:x@y", "x@y", "system-one:x", "system-one:@y"} {
+			if code, _, stderr := h.run([]byte(`{}`), "systemone", "import", strings.Repeat("a", 64)+".0.1", "--nonce", strings.Repeat("0", 32), "--source", source); code != cli.ExitBlocked || !strings.Contains(stderr, "system-one:<model>@<endpointDigest>") {
+				t.Errorf("an import under the source %q: exit code %d, stderr %q", source, code, stderr)
+			}
 		}
 		if code, _, _ := h.run(nil, "systemone"); code != cli.ExitBlocked {
 			t.Errorf("no verb: exit code %d", code)

@@ -49,6 +49,12 @@ func TestDecode(t *testing.T) {
 		if got.TauAdv.For(endpoint) != 0.9 || got.TauAdv.For(format.HostVotesSource(3)) != 0.7 || got.TauAdv.For(format.HostVotesSource(2)) != policy.DefaultTauAdv {
 			t.Fatalf("tau_adv %+v", got.TauAdv)
 		}
+		const exact = "system-one:exact-model@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		keyed, err := config.Decode([]byte("policy:\n  tau_adv:\n    system-one: 0.9\n    " + exact + ": 0.85\n"))
+		relayed, parseErr := format.ParseSystemOneSource(exact)
+		if err != nil || parseErr != nil || keyed.TauAdv.For(relayed) != 0.85 || keyed.TauAdv.For(endpoint) != 0.9 {
+			t.Fatalf("tau_adv %+v (%v, %v)", keyed.TauAdv, err, parseErr)
+		}
 		for name, document := range map[string]string{
 			"unknown source": "policy:\n  tau_adv:\n    gut-feeling: 0.5\n",
 			"above one":      "policy:\n  tau_adv:\n    host-votes: 1.5\n",

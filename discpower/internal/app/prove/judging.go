@@ -270,7 +270,7 @@ func closedAnswers(answer hostbridge.Answer, question string) ([]power.ClosedAns
 		}
 		if vote.Executor.Channel == format.ChannelSystemOneRelay {
 			relayed = append(relayed, given)
-			relaySource = format.SystemOneSource(vote.Executor.Model.Name)
+			relaySource = format.ConfidenceSource(vote.Executor.Model.Name)
 		} else {
 			voted = append(voted, power.ClosedAnswer{Choice: given.Choice})
 		}

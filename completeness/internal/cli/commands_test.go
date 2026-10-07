@@ -7,7 +7,6 @@ import (
 
 	"github.com/RachidChabane/spec-proof/completeness/internal/cli"
 	"github.com/RachidChabane/spec-proof/completeness/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
 )
@@ -176,7 +175,7 @@ func (h *harness) relay(confidence float64) int {
 			h.t.Fatal(err)
 		}
 		answer = withConfidence(h.t, answer, confidence)
-		code, _, stderr := h.run([]byte(answer), "systemone", "import", request.Ticket, "--nonce", request.Nonce, "--source", "systemone:nimble@0123abcd")
+		code, _, stderr := h.run([]byte(answer), "systemone", "import", request.Ticket, "--nonce", request.Nonce, "--source", "system-one:nimble@0123abcd")
 		if code != cli.ExitClean {
 			h.t.Fatalf("import %s: %s", request.Ticket, stderr)
 		}
@@ -207,7 +206,7 @@ func TestSystemOneCommands(t *testing.T) {
 	h := newHarness(t, testkit.PythonLedger)
 	h.run(nil, proveCommand, allFlag)
 
-	t.Run("systemone export lists the closed requests that wait for their first vote [verifies SP-546~1]", func(t *testing.T) {
+	t.Run("systemone export lists the closed requests that wait for their first vote [verifies SP-546~2]", func(t *testing.T) {
 		code, output, stderr := h.run(nil, "systemone", "export")
 		if code != cli.ExitClean {
 			t.Fatalf("exit code %d: %s", code, stderr)
@@ -225,13 +224,18 @@ func TestSystemOneCommands(t *testing.T) {
 		}
 	})
 
-	t.Run("systemone import needs a source and a known ticket and records the answer under the relay channel [verifies SP-546~1]", func(t *testing.T) {
+	t.Run("systemone import needs a source and a known ticket and records the answer under the relay channel [verifies SP-546~2]", func(t *testing.T) {
 		unknown := strings.Repeat("a", 64) + ".0.1"
 		if code, _, _ := h.run([]byte(`{}`), "systemone", "import", unknown, "--nonce", strings.Repeat("0", 32)); code != cli.ExitBlocked {
 			t.Errorf("an import without a source: exit code %d", code)
 		}
-		if code, _, _ := h.run([]byte(`{}`), "systemone", "import", unknown, "--nonce", strings.Repeat("0", 32), "--source", "s1:x@y"); code != cli.ExitBlocked {
+		if code, _, _ := h.run([]byte(`{}`), "systemone", "import", unknown, "--nonce", strings.Repeat("0", 32), "--source", "system-one:x@y"); code != cli.ExitBlocked {
 			t.Errorf("an import for an unknown ticket: exit code %d", code)
+		}
+		for _, source := range []string{"systemone:x@y", "x@y", "system-one:x", "system-one:@y"} {
+			if code, _, stderr := h.run([]byte(`{}`), "systemone", "import", unknown, "--nonce", strings.Repeat("0", 32), "--source", source); code != cli.ExitBlocked || !strings.Contains(stderr, "system-one:<model>@<endpointDigest>") {
+				t.Errorf("an import under the source %q: exit code %d, stderr %q", source, code, stderr)
+			}
 		}
 		if code, _, _ := h.run(nil, "systemone"); code != cli.ExitBlocked {
 			t.Errorf("no verb: exit code %d", code)
@@ -251,7 +255,7 @@ func TestSystemOneCommands(t *testing.T) {
 		}
 	})
 
-	t.Run("a relayed answer replaces the host votes, carries the endpoint's confidence and names its source [verifies SP-546~1]", func(t *testing.T) {
+	t.Run("a relayed answer replaces the host votes, carries the endpoint's confidence and names its source [verifies SP-546~2]", func(t *testing.T) {
 		relayed := newHarness(t, testkit.PythonLedger)
 		relayed.run(nil, proveCommand, allFlag)
 		if relayed.relay(0.93) == 0 {
@@ -262,7 +266,7 @@ func TestSystemOneCommands(t *testing.T) {
 			t.Fatalf("exit code %d:\n%s", code, output)
 		}
 		decision := relayed.mustStatement().Predicate.Extensions.Decision
-		if decision == nil || decision.RawConfidence != 0.93 || len(decision.Deciders) == 0 || decision.ConfidenceSource != format.SystemOneSource("systemone:nimble@0123abcd") {
+		if decision == nil || decision.RawConfidence != 0.93 || len(decision.Deciders) == 0 || decision.ConfidenceSource != "system-one:nimble@0123abcd" {
 			t.Fatalf("decision %+v", decision)
 		}
 		entries, err := relayed.store().ListEntries()

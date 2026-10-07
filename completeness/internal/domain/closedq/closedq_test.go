@@ -105,7 +105,7 @@ func TestRead(t *testing.T) {
 	t.Run("a relayed first vote stands for the host votes and gives the endpoint's own confidence [verifies SP-515~1]", func(t *testing.T) {
 		reading := closedq.Read([]closedq.Vote{{
 			Output:  []byte(`{"answers":[{"id":"q0","choice":"A","confidence":0.7},{"id":"q1","choice":"B"}]}`),
-			Relayed: true, Source: "nimble:9b@abc",
+			Relayed: true, Source: "system-one:nimble:9b@abc",
 		}})
 		if reading.Source != "system-one:nimble:9b@abc" {
 			t.Fatalf("source %q", reading.Source)
@@ -168,7 +168,7 @@ func TestRead(t *testing.T) {
 
 func TestSource(t *testing.T) {
 	t.Run("a relayed answer has the system-one source and the endpoint's mapping, host votes the modal share [verifies SP-515~1]", func(t *testing.T) {
-		relayed := closedq.Read([]closedq.Vote{{Output: answer("A"), Relayed: true, Source: "nimble:9b@abc"}})
+		relayed := closedq.Read([]closedq.Vote{{Output: answer("A"), Relayed: true, Source: "system-one:nimble:9b@abc"}})
 		if relayed.Source != "system-one:nimble:9b@abc" || relayed.Mapping != "system-one.choice.confidence" {
 			t.Fatalf("relayed %q %q", relayed.Source, relayed.Mapping)
 		}

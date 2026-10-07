@@ -112,7 +112,7 @@ func Read(votes []Vote) Reading {
 }
 
 func readRelayed(vote Vote) Reading {
-	reading := Reading{Questions: map[string]Decided{}, Source: format.SystemOneSource(vote.Source), Mapping: hostproto.ClosedChoice.ConfidenceMapping()}
+	reading := Reading{Questions: map[string]Decided{}, Source: format.ConfidenceSource(vote.Source), Mapping: hostproto.ClosedChoice.ConfidenceMapping()}
 	parsed, err := Parse(vote.Output)
 	if err != nil {
 		return reading

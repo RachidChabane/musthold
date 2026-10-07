@@ -12,7 +12,7 @@ import (
 
 func TestScreenAnswersSource(t *testing.T) {
 	const question = "q1"
-	endpoint := "nimble:9b@" + format.SHA256Hex([]byte("endpoint"))
+	endpoint := string(format.SystemOneEndpointSource("nimble:9b", format.SHA256Hex([]byte("endpoint"))))
 	vote := func(channel format.Channel, model, choice string) hostbridge.VoteState {
 		return hostbridge.VoteState{
 			Output:   json.RawMessage(`{"answers":[{"id":"` + question + `","choice":"` + choice + `","probabilities":{"VIOLATES":0.55,"CONSISTENT":0.45}}]}`),
@@ -45,7 +45,7 @@ func TestScreenAnswersSource(t *testing.T) {
 			vote(format.ChannelSystemOneRelay, endpoint, "VIOLATES"), vote(format.ChannelHostInline, "m", "CONSISTENT"),
 		}}
 		answers, source := closedAnswers(answer, question)
-		if len(answers) != 1 || source != format.SystemOneSource(endpoint) {
+		if len(answers) != 1 || source != format.ConfidenceSource(endpoint) || string(source) != "system-one:nimble:9b@"+format.SHA256Hex([]byte("endpoint")) {
 			t.Fatalf("answers %d, source %q", len(answers), source)
 		}
 		if probability := power.ViolationProbability(answers); probability != 0.55 {

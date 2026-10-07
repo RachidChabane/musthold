@@ -199,9 +199,9 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-336~1**: WHEN `request list|show|submit` runs THE SYSTEM SHALL list, show and
   accept answers through the same checks as the host protocol, and a refused
   answer SHALL exit as a refusal, not a tool failure.
-- **SP-337~1**: WHEN `systemone export` runs THE SYSTEM SHALL list the closed
+- **SP-337~2**: WHEN `systemone export` runs THE SYSTEM SHALL list the closed
   requests that wait for their first vote, and WHEN `systemone import` runs THE
-  SYSTEM SHALL accept the answers of a relay under its source, as an executor of
+  SYSTEM SHALL accept the answers of a relay under its source `system-one:<model>@<endpoint digest>`, which `confidenceSource` records as given, and refuse another form of source, as an executor of
   the relay channel.
 - **SP-338~2**: WHEN `doctor` runs THE SYSTEM SHALL check Shallnot and the report schema it
   prints, the configuration, the harness files the project holds, the host store

@@ -19,7 +19,7 @@ const (
 	reformattedValid = `{ "validity" : "VALID" }`
 	otherAnswer      = `{"validity":"EQUIVALENT"}`
 	brokenAnswer     = `{"verdict":"VALID"}`
-	relaySource      = "relay-model"
+	relaySource      = "system-one:relay-model@0123abcd"
 	agentIdentifier  = "agent-1"
 	wrongNonce       = "ffffffffffffffffffffffffffffffff"
 	secondEmission   = 2
