@@ -8,6 +8,7 @@ import (
 
 	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/responsecheck"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/cliconv"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
@@ -33,17 +34,50 @@ func (e Env) requestService(root string) (requests.Service, error) {
 	return requests.Service{Plugin: pluginName, Store: store, Validator: responsecheck.New(), Clock: e.Now}, nil
 }
 
+// requestVerbs are the verbs of `request`.
+var requestVerbs = []string{hostproto.SubcommandList, hostproto.SubcommandShow, hostproto.SubcommandSubmit}
+
 func (e Env) request(args []string) outcome {
 	if len(args) == 0 {
-		return outcome{err: refusal{errors.New("request needs one of list, show or submit")}}
+		return outcome{err: refusal{errors.New(cliconv.NeedsVerb(commandRequest, requestVerbs))}}
 	}
 	verb, rest := args[0], args[1:]
-	set := e.newFlags(commandRequest + " " + verb)
+	switch {
+	case cliconv.IsHelpArgument(verb) || verb == cliconv.HelpCommand:
+		return outcome{err: cliconv.HelpRequest{Text: cliconv.VerbsUsage(e.Binary, commandRequest, requestVerbs)}}
+	case verb == hostproto.SubcommandList:
+		return e.requestList(rest)
+	case verb == hostproto.SubcommandShow:
+		return e.requestShow(rest)
+	case verb == hostproto.SubcommandSubmit:
+		return e.requestSubmit(rest)
+	}
+	return outcome{err: refusal{fmt.Errorf("unknown request verb %q", verb)}}
+}
+
+func (e Env) requestList(args []string) outcome {
+	set := e.newFlags(commandRequest+" "+hostproto.SubcommandList, "")
 	asJSON := set.Bool(flagJSON, false, "print the listing as JSON")
-	nonce := set.String(flagNonce, "", "the nonce of the ticket")
-	capability := set.String(flagCap, "", "the capability of the executor")
-	root := set.String(flagRoot, "", "project root (default: the working directory)")
-	positionals, err := parseInterleaved(set, rest)
+	root := set.String(flagRoot, "", usageRoot)
+	rest, err := parseInterleaved(set, args)
+	switch {
+	case err != nil:
+		return outcome{err: err}
+	case len(rest) > 0:
+		return outcome{err: errUnexpectedParams}
+	}
+	service, err := e.requestService(mustRoot(e, *root))
+	if err != nil {
+		return outcome{err: err}
+	}
+	return e.list(service, *asJSON)
+}
+
+func (e Env) requestShow(args []string) outcome {
+	set := e.newFlags(commandRequest+" "+hostproto.SubcommandShow, argumentTicket)
+	capability := set.String(flagCap, "", usageCap)
+	root := set.String(flagRoot, "", usageRoot)
+	positionals, err := parseInterleaved(set, args)
 	if err != nil {
 		return outcome{err: err}
 	}
@@ -51,15 +85,23 @@ func (e Env) request(args []string) outcome {
 	if err != nil {
 		return outcome{err: err}
 	}
-	switch verb {
-	case hostproto.SubcommandList:
-		return e.list(service, *asJSON)
-	case hostproto.SubcommandShow:
-		return e.show(service, positionals, *capability)
-	case hostproto.SubcommandSubmit:
-		return e.submit(service, positionals, *nonce, *capability)
+	return e.show(service, positionals, *capability)
+}
+
+func (e Env) requestSubmit(args []string) outcome {
+	set := e.newFlags(commandRequest+" "+hostproto.SubcommandSubmit, argumentTicket)
+	nonce := set.String(flagNonce, "", usageNonce)
+	capability := set.String(flagCap, "", usageCap)
+	root := set.String(flagRoot, "", usageRoot)
+	positionals, err := parseInterleaved(set, args)
+	if err != nil {
+		return outcome{err: err}
 	}
-	return outcome{err: refusal{fmt.Errorf("unknown request verb %q", verb)}}
+	service, err := e.requestService(mustRoot(e, *root))
+	if err != nil {
+		return outcome{err: err}
+	}
+	return e.submit(service, positionals, *nonce, *capability)
 }
 
 // mustRoot resolves the root; a failure leaves the working directory, which the
@@ -146,16 +188,48 @@ func asRefusal(err error) error {
 	return err
 }
 
+// systemOneVerbs are the verbs of `systemone`.
+var systemOneVerbs = []string{verbExport, verbImport}
+
 func (e Env) systemOne(args []string) outcome {
 	if len(args) == 0 {
-		return outcome{err: refusal{errors.New("systemone needs one of export or import")}}
+		return outcome{err: refusal{errors.New(cliconv.NeedsVerb(commandSystemOne, systemOneVerbs))}}
 	}
 	verb, rest := args[0], args[1:]
-	set := e.newFlags(commandSystemOne + " " + verb)
-	nonce := set.String(flagNonce, "", "the nonce of the ticket")
-	source := set.String(flagSource, "", "the model and endpoint the answers come from")
-	root := set.String(flagRoot, "", "project root (default: the working directory)")
-	positionals, err := parseInterleaved(set, rest)
+	switch {
+	case cliconv.IsHelpArgument(verb) || verb == cliconv.HelpCommand:
+		return outcome{err: cliconv.HelpRequest{Text: cliconv.VerbsUsage(e.Binary, commandSystemOne, systemOneVerbs)}}
+	case verb == verbExport:
+		return e.systemOneExport(rest)
+	case verb == verbImport:
+		return e.systemOneImport(rest)
+	}
+	return outcome{err: refusal{fmt.Errorf("unknown systemone verb %q", verb)}}
+}
+
+func (e Env) systemOneExport(args []string) outcome {
+	set := e.newFlags(commandSystemOne+" "+verbExport, "")
+	root := set.String(flagRoot, "", usageRoot)
+	rest, err := parseInterleaved(set, args)
+	switch {
+	case err != nil:
+		return outcome{err: err}
+	case len(rest) > 0:
+		return outcome{err: errUnexpectedParams}
+	}
+	service, err := e.requestService(mustRoot(e, *root))
+	if err != nil {
+		return outcome{err: err}
+	}
+	return e.exportClosed(service)
+}
+
+func (e Env) systemOneImport(args []string) outcome {
+	set := e.newFlags(commandSystemOne+" "+verbImport, argumentTicket)
+	nonce := set.String(flagNonce, "", usageNonce)
+	source := set.String(flagSource, "", usageSource)
+	root := set.String(flagRoot, "", usageRoot)
+	positionals, err := parseInterleaved(set, args)
 	if err != nil {
 		return outcome{err: err}
 	}
@@ -163,13 +237,7 @@ func (e Env) systemOne(args []string) outcome {
 	if err != nil {
 		return outcome{err: err}
 	}
-	switch verb {
-	case verbExport:
-		return e.exportClosed(service)
-	case verbImport:
-		return e.importClosed(service, positionals, *nonce, *source)
-	}
-	return outcome{err: refusal{fmt.Errorf("unknown systemone verb %q", verb)}}
+	return e.importClosed(service, positionals, *nonce, *source)
 }
 
 func (e Env) exportClosed(service requests.Service) outcome {

@@ -450,3 +450,16 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   matrix and the judge, as it does for a Python project.
 - **SP-1243~1**: WHEN a forger answers every request of a Java project THE SYSTEM
   SHALL give no ALIGNED to a test whose matrix refutes it.
+
+## Help and output lines
+
+- **SP-1620~1**: WHEN the binary is run with `-h`, `--help` or `help`, a command
+  with `-h` or `--help`, or `help` followed by a command THE SYSTEM SHALL print the
+  commands of the binary, or the flags and the synopsis of that command, on the
+  output stream and exit 0; WHEN a command that takes a verb is asked for help
+  THE SYSTEM SHALL list its verbs; WHEN a verb of `request`, `systemone` or `host`
+  is asked for help THE SYSTEM SHALL list exactly the flags that verb defines and
+  refuse, as a usage error that prints the usage of the verb, a flag another verb
+  owns.
+- **SP-1621~1**: WHEN `prove` prints a line of a test that has no verdict yet THE SYSTEM SHALL print no
+  trailing space on it.

@@ -227,7 +227,7 @@ func TestProveEndToEnd(t *testing.T) {
 			t.Error("running prove again changed the requests")
 		}
 		for ref, verdict := range verdicts(first) {
-			if verdict != awaiting+" " && verdict != awaiting {
+			if verdict != awaiting {
 				t.Errorf("%s: %q while the host has not answered", ref, verdict)
 			}
 		}

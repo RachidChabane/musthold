@@ -458,3 +458,16 @@ traces them to the Go tests of the module in CI.
 - **SP-1323~1**: WHEN a forger answers a Java project from the command line, or
   forges the content of its answers through the hooks, THE SYSTEM SHALL accept no
   answer without a capability and write a Statement that carries no verdict.
+
+## Help and output lines
+
+- **SP-1630~1**: WHEN the binary is run with `-h`, `--help` or `help`, a command
+  with `-h` or `--help`, or `help` followed by a command THE SYSTEM SHALL print the
+  commands of the binary, or the flags and the synopsis of that command, on the
+  output stream and exit 0; WHEN a command that takes a verb is asked for help
+  THE SYSTEM SHALL list its verbs; WHEN a verb of `request`, `systemone` or `host`
+  is asked for help THE SYSTEM SHALL list exactly the flags that verb defines and
+  refuse, as a usage error that prints the usage of the verb, a flag another verb
+  owns.
+- **SP-1631~1**: WHEN `prove` prints a line of a spec THE SYSTEM SHALL print no
+  trailing space on it.

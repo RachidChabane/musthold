@@ -24,8 +24,8 @@ type check struct {
 }
 
 func (e Env) doctor(args []string) outcome {
-	set := e.newFlags(commandDoctor)
-	root := set.String(flagRoot, "", "project root (default: the working directory)")
+	set := e.newFlags(commandDoctor, "")
+	root := set.String(flagRoot, "", usageRoot)
 	rest, err := parseInterleaved(set, args)
 	switch {
 	case err != nil:

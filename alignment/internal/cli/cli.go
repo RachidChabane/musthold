@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/RachidChabane/spec-proof/alignment/internal/app/prove"
 	"github.com/RachidChabane/spec-proof/alignment/internal/version"
+	"github.com/RachidChabane/spec-proof/format/cliconv"
 )
 
 // Exit codes of the binary (ADR 0005).
@@ -35,7 +35,10 @@ const (
 )
 
 // commands lists the commands in the order the usage names them.
-var commands = []string{commandVersion, commandProve, commandRequest, commandSystemOne, commandDoctor, commandInit, commandEnable, commandDisable, commandMCP, commandHook, commandHost}
+var commands = []string{commandVersion, commandProve, commandRequest, commandSystemOne, commandDoctor, commandInit, commandEnable, commandDisable, commandMCP, commandHook, commandHost, cliconv.HelpCommand}
+
+// flagHelp is the flag `help <command>` hands to the command.
+const flagHelp = "-h"
 
 // Environment variables the binary reads.
 const (
@@ -83,12 +86,17 @@ func Run(env Env, args []string) int {
 	if len(args) == 0 {
 		return env.usage()
 	}
+	if cliconv.IsHelpRequest(args) {
+		return env.help(args)
+	}
 	command, rest := args[0], args[1:]
 	var err error
 	switch {
 	case command == commandVersion && len(rest) == 0:
 		fmt.Fprintln(env.Stdout, version.Line(env.Binary))
 		return ExitClean
+	case command == commandVersion && len(rest) == 1 && cliconv.IsHelpArgument(rest[0]):
+		return env.finish(outcome{err: cliconv.HelpRequest{Text: env.newFlags(commandVersion, "").Usage()}})
 	case command == commandProve:
 		return env.finish(env.prove(rest))
 	case command == commandRequest:
@@ -117,8 +125,18 @@ func Run(env Env, args []string) int {
 }
 
 func (e Env) usage() int {
-	fmt.Fprintf(e.Stderr, "usage: %s <%s>\n", e.Binary, strings.Join(commands, "|"))
+	fmt.Fprint(e.Stderr, cliconv.CommandsUsage(e.Binary, commands))
 	return ExitToolFailure
+}
+
+// help answers a request for help: the usage of the binary, or the one of the
+// command that `help` names.
+func (e Env) help(args []string) int {
+	if args[0] == cliconv.HelpCommand && len(args) > 1 {
+		return Run(e, []string{args[1], flagHelp})
+	}
+	fmt.Fprint(e.Stdout, cliconv.CommandsUsage(e.Binary, commands))
+	return cliconv.ExitHelp
 }
 
 // outcome is what a command came to: its exit code and the error that explains a
@@ -134,6 +152,9 @@ type refusal struct{ error }
 
 func (e Env) finish(result outcome) int {
 	if result.err != nil {
+		if code, handled := cliconv.Handle(result.err, e.Binary, e.Stdout, e.Stderr); handled {
+			return code
+		}
 		fmt.Fprintf(e.Stderr, "%s: %v\n", e.Binary, result.err)
 		var refused refusal
 		if errors.As(result.err, &refused) {

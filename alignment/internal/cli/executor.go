@@ -86,10 +86,10 @@ func (e Env) executorService(root string, harness hostharness.Harness) (executor
 // mcp serves the executor tools over standard input and output until the client
 // closes the stream.
 func (e Env) mcp(args []string) outcome {
-	set := e.newFlags(commandMCP)
+	set := e.newFlags(commandMCP, "")
 	role := set.String(flagRole, "", "the role the server plays: "+roleExecutor)
 	harnessFlag := set.String(flagHarness, hostharness.FlagClaude, "the host harness: one of "+fmt.Sprint(hostharness.Flags()))
-	root := set.String(flagRoot, "", "project root (default: the working directory)")
+	root := set.String(flagRoot, "", usageRoot)
 	rest, err := parseInterleaved(set, args)
 	switch {
 	case err != nil:
@@ -119,7 +119,7 @@ func (e Env) mcp(args []string) outcome {
 // hook serves one hook of a harness: the payload comes on standard input and the
 // decision, if any, goes to standard output.
 func (e Env) hook(args []string) outcome {
-	set := e.newFlags(commandHook)
+	set := e.newFlags(commandHook, "<kind>")
 	harnessFlag := set.String(flagHarness, hostharness.FlagClaude, "the host harness: one of "+fmt.Sprint(hostharness.Flags()))
 	root := set.String(flagRoot, "", "project root (default: the project directory of the harness, else the working directory)")
 	rest, err := parseInterleaved(set, args)

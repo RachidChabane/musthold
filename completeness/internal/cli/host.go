@@ -12,6 +12,7 @@ import (
 	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/process"
 	"github.com/RachidChabane/spec-proof/completeness/internal/version"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/cliconv"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostsync"
 )
@@ -43,35 +44,60 @@ func (e Env) module() format.Module {
 	return format.Module{Name: moduleName, Version: version.Version}
 }
 
+// hostVerbs are the verbs of `host`.
+var hostVerbs = []string{verbPush, verbPull}
+
 func (e Env) host(args []string) outcome {
 	if len(args) == 0 {
 		return outcome{err: refusal{errHostVerb}}
 	}
 	verb, rest := args[0], args[1:]
-	set := e.newFlags(commandHost + " " + verb)
-	root := set.String(flagRoot, "", "project root (default: the working directory)")
-	remote := set.String(flagRemote, "", "push: also publish the ref to this git remote")
-	run := set.String(flagCIRun, "", "pull: the CI run to pull the issued requests of")
-	repository := set.String(flagRepo, "", "pull: the repository of the run, as owner/name")
-	artifact := set.String(flagArtifact, hostbundle.IssuedArtifact(hostModule), "pull: the artifact the run uploaded its requests as")
-	positionals, err := parseInterleaved(set, rest)
 	switch {
-	case err != nil:
-		return outcome{err: err}
-	case len(positionals) > 0:
-		return outcome{err: errUnexpectedParams}
+	case cliconv.IsHelpArgument(verb) || verb == cliconv.HelpCommand:
+		return outcome{err: cliconv.HelpRequest{Text: cliconv.VerbsUsage(e.Binary, commandHost, hostVerbs)}}
+	case verb == verbPush:
+		return e.hostPush(rest)
+	case verb == verbPull:
+		return e.hostPull(rest)
 	}
-	resolved, err := e.rootOf(*root)
+	return outcome{err: refusal{errHostVerb}}
+}
+
+func (e Env) hostPush(args []string) outcome {
+	set := e.newFlags(commandHost+" "+verbPush, "")
+	root := set.String(flagRoot, "", usageRoot)
+	remote := set.String(flagRemote, "", "also publish the ref to this git remote")
+	resolved, err := e.hostRootOf(set, root, args)
 	if err != nil {
 		return outcome{err: err}
 	}
-	switch verb {
-	case verbPush:
-		return e.push(resolved, *remote)
-	case verbPull:
-		return e.pull(resolved, *run, *repository, *artifact)
+	return e.push(resolved, *remote)
+}
+
+func (e Env) hostPull(args []string) outcome {
+	set := e.newFlags(commandHost+" "+verbPull, "")
+	root := set.String(flagRoot, "", usageRoot)
+	run := set.String(flagCIRun, "", "the CI run to pull the issued requests of")
+	repository := set.String(flagRepo, "", "the repository of the run, as owner/name")
+	artifact := set.String(flagArtifact, hostbundle.IssuedArtifact(hostModule), "the artifact the run uploaded its requests as")
+	resolved, err := e.hostRootOf(set, root, args)
+	if err != nil {
+		return outcome{err: err}
 	}
-	return outcome{err: refusal{errHostVerb}}
+	return e.pull(resolved, *run, *repository, *artifact)
+}
+
+// hostRootOf parses the flags of a `host` verb, which takes no argument, and
+// resolves the project root.
+func (e Env) hostRootOf(set *cliconv.FlagSet, root *string, args []string) (string, error) {
+	positionals, err := parseInterleaved(set, args)
+	switch {
+	case err != nil:
+		return "", err
+	case len(positionals) > 0:
+		return "", errUnexpectedParams
+	}
+	return e.rootOf(*root)
 }
 
 // push publishes the answers of the host store under the ref of the commit the

@@ -646,6 +646,16 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   protocol and 2 for a tool failure.
 - **SP-193~1**: WHEN `prove` is given conflicting flags or unexpected arguments THE
   SYSTEM SHALL refuse them before it runs anything.
+- **SP-1610~1**: WHEN the binary is run with `-h`, `--help` or `help`, a command
+  with `-h` or `--help`, or `help` followed by a command THE SYSTEM SHALL print the
+  commands of the binary, or the flags and the synopsis of that command, on the
+  output stream and exit 0; WHEN a command that takes a verb is asked for help
+  THE SYSTEM SHALL list its verbs; WHEN a verb of `request`, `systemone` or `host`
+  is asked for help THE SYSTEM SHALL list exactly the flags that verb defines and
+  refuse, as a usage error that prints the usage of the verb, a flag another verb
+  owns.
+- **SP-1611~1**: WHEN `prove` prints a line of a criterion that has no result yet
+  THE SYSTEM SHALL print no trailing space on it.
 
 ## Host harness
 

@@ -3,13 +3,13 @@ package cli
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/recordings"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/responsecheck"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/prove"
+	"github.com/RachidChabane/spec-proof/format/cliconv"
 	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
@@ -36,37 +36,35 @@ var (
 	errCIAndReplay      = errors.New("--ci excludes --record and --replay")
 )
 
-// newFlags builds a flag set that reports to stderr and never exits.
-func (e Env) newFlags(name string) *flag.FlagSet {
-	set := flag.NewFlagSet(e.Binary+" "+name, flag.ContinueOnError)
-	set.SetOutput(e.Stderr)
-	return set
+// Usage texts and arguments the flag sets of several commands share.
+const (
+	usageRoot      = "project root (default: the working directory)"
+	usageNonce     = "the nonce of the ticket"
+	usageCap       = "the capability of the executor"
+	usageSource    = "the model and endpoint the answers come from"
+	argumentTicket = "<ticket>"
+)
+
+// newFlags builds the flag set of a command; it takes the given positional
+// arguments besides its flags.
+func (e Env) newFlags(name, arguments string) *cliconv.FlagSet {
+	return cliconv.NewFlagSet(e.Binary+" "+name, arguments)
 }
 
 // parseInterleaved parses flags that may follow positional arguments, as
 // `request submit <ticket> --nonce N` has them, and returns the positionals.
-func parseInterleaved(set *flag.FlagSet, args []string) ([]string, error) {
-	var positionals []string
-	for {
-		if err := set.Parse(args); err != nil {
-			return nil, err
-		}
-		if set.NArg() == 0 {
-			return positionals, nil
-		}
-		positionals = append(positionals, set.Arg(0))
-		args = set.Args()[1:]
-	}
+func parseInterleaved(set *cliconv.FlagSet, args []string) ([]string, error) {
+	return set.ParseInterleaved(args)
 }
 
 func (e Env) prove(args []string) outcome {
-	set := e.newFlags(commandProve)
+	set := e.newFlags(commandProve, "")
 	changed := set.Bool(flagChanged, false, "prove the criteria whose inputs changed (the default)")
 	all := set.Bool(flagAll, false, "prove every criterion")
 	resume := set.Bool(flagResume, false, "continue a run that is awaiting the host")
 	record := set.String(flagRecord, "", "directory to record the consumed answers in")
 	replay := set.String(flagReplay, "", "directory of recorded answers to serve the requests from")
-	root := set.String(flagRoot, "", "project root (default: the working directory)")
+	root := set.String(flagRoot, "", usageRoot)
 	ci := set.Bool(flagCI, false, "run as CI does: draw the seed of the commit and mark the Statements as produced by CI")
 	importDir := set.String(flagImport, "", "with --ci: directory holding the bundle a push published")
 	rest, err := parseInterleaved(set, args)
@@ -134,7 +132,7 @@ func (e Env) runProve(rootFlag string, options prove.Options, record, replay str
 func printResult(out io.Writer, result prove.Result) {
 	fmt.Fprintf(out, "wave %d\n", result.Wave)
 	for _, criterion := range result.Criteria {
-		fmt.Fprintf(out, "%s %s %s\n", criterion.Ref, criterion.Status, criterion.Outcome.Result)
+		fmt.Fprintln(out, cliconv.Line(fmt.Sprint(criterion.Ref), fmt.Sprint(criterion.Status), fmt.Sprint(criterion.Outcome.Result)))
 		for _, finding := range criterion.Outcome.Findings {
 			fmt.Fprintf(out, "  finding %s\n", finding)
 		}

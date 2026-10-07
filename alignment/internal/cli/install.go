@@ -42,7 +42,7 @@ func (e Env) requireShallnot() error {
 }
 
 func (e Env) init(args []string) outcome {
-	set := e.newFlags(commandInit)
+	set := e.newFlags(commandInit, "")
 	dir := set.String(flagDir, "", "project directory (default: the working directory)")
 	hooks := set.String(flagHooks, hooksAuto, "harness files to install: a comma-separated list of claude, codex, copilot; \"auto\" installs claude and every harness whose configuration the project holds; \"none\" installs none")
 	check := set.Bool(flagCheck, false, "change nothing; exit 1 if init would change a file")
@@ -72,7 +72,7 @@ func (e Env) init(args []string) outcome {
 }
 
 func (e Env) toggle(command string, build func(root string) (hostinstall.Plan, error), args []string) outcome {
-	set := e.newFlags(command)
+	set := e.newFlags(command, "")
 	dir := set.String(flagDir, "", "project directory (default: the working directory)")
 	check := set.Bool(flagCheck, false, "change nothing; exit 1 if the command would change a file")
 	rest, err := parseInterleaved(set, args)
