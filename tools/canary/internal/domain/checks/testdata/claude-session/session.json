@@ -5,7 +5,7 @@
   "role": "spec-proof-dp:decider",
   "probeTicket": "88ec618dd2f5f5a73120577c8324765babf222a1fe52b144337a61bc9116d709.2.1",
   "versions": {
-    "claude": "2.1.292 (Claude Code)",
+    "claude": "2.1.293 (Claude Code)",
     "spec-proof-dp": "spec-proof-dp 0.1.0 (831c5454a564)"
   },
   "argv": [

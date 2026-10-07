@@ -25,7 +25,7 @@ const (
 
 // Versions of the harnesses the hooks and the generated files were checked against.
 const (
-	ClaudeCodeVersion = "2.1.292"
+	ClaudeCodeVersion = "2.1.293"
 	CodexVersion      = "0.155.1"
 	CopilotVersion    = "1.0.92"
 	// AgentPluginsVersion is the version of the Agent Plugins specification the

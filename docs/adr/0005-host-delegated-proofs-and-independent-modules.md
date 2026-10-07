@@ -246,7 +246,7 @@ the server requires. Two alternatives lost. A Bash-role executor with a stdin
 submit fails open (only a hook holds it back) and cannot submit (no stdin). An
 inline server in `.claude/agents/` is not used under `-p`.
 
-#### Claude Code (pinned 2.1.292)
+#### Claude Code (pinned 2.1.293)
 
 **Plugin `spec-proof-dp`.** The alignment and completeness plugins mirror it.
 
