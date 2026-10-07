@@ -44,20 +44,21 @@ run_pilot() {
   (cd "${PILOT_DIR}" && caffeinate -is ./script/run-pilot "${PILOT_RUN}")
 }
 
+# run_canary runs one harness's canary and returns its exit status.
 run_canary() {
   local harness="$1"
   shift
   log "canary: ${harness}"
-  set +e
-  "script/canary-${harness}" "$@"
-  local status=$?
-  set -e
+  local status=0
+  "script/canary-${harness}" "$@" || status=$?
   log "canary: ${harness} exit ${status}"
+  return "${status}"
 }
 
 run_canaries() {
   local night stamp
-  night="$(date +%Y-%m-%d)"
+  # a night is named by the date it started on, also after midnight
+  night="$(date -v-12H +%Y-%m-%d)"
   stamp="${CANARY_STAMP_DIR}/${night}.done"
   if [[ -f "${stamp}" ]]; then
     log "canaries: already run for the night of ${night}"
@@ -66,10 +67,15 @@ run_canaries() {
   export SHALLNOT_SRC="${SHALLNOT_SRC:-${SHALLNOT_SRC_DEFAULT}}"
   log "canaries: building"
   script/canary-build
-  run_canary claude --shared-home
-  run_canary codex
-  run_canary copilot
-  touch "${stamp}"
+  local failed=0
+  run_canary claude --shared-home || failed=1
+  run_canary codex || failed=1
+  run_canary copilot || failed=1
+  if [[ ${failed} -eq 0 ]]; then
+    touch "${stamp}"
+  else
+    log "canaries: not every canary passed; the night stays open for a rerun"
+  fi
 }
 
 run_construct() {
