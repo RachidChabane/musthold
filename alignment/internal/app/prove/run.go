@@ -115,7 +115,7 @@ func (u UseCase) writePending(result Result) error {
 			mark(test.Criterion, format.PendingHostUnresponsive)
 		}
 	}
-	pending := format.Pending{Module: u.Settings.Module.Name}
+	pending := format.Pending{Module: u.Settings.PendingModule}
 	for _, criterionName := range slices.Sorted(mapsKeys(reasons)) {
 		for _, reason := range format.PendingReasons() {
 			if reasons[criterionName][reason] {

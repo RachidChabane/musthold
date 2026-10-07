@@ -5,6 +5,7 @@
 package proofsource
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
@@ -34,7 +36,7 @@ type Source struct {
 }
 
 // Candidates lists the Statements of the kind written for the criterion: those of
-// the verified set first, then those of the local cache, each in file-name order.
+// the verified set first, then those of the local cache, each directory the most recent first.
 func (s Source) Candidates(kind format.Kind, ref criterion.Ref) ([]ports.ProofFile, error) {
 	verified, err := s.read(kind, ports.OriginVerified, filepath.Join(s.Root, stateDirectory, verifiedDirectory), format.SubjectKey(ref.String()))
 	if err != nil {
@@ -78,7 +80,7 @@ func readKind(kind format.Kind, origin ports.ProofOrigin, directory string) ([]p
 	if err != nil {
 		return nil, fmt.Errorf("list %s: %w", directory, err)
 	}
-	var found []ports.ProofFile
+	var found []dated
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), format.StatementSuffix) {
 			continue
@@ -87,11 +89,36 @@ func readKind(kind format.Kind, origin ports.ProofOrigin, directory string) ([]p
 		if err != nil {
 			return nil, fmt.Errorf("read %s: %w", entry.Name(), err)
 		}
+		info, err := entry.Info()
+		if err != nil {
+			return nil, fmt.Errorf("stat %s: %w", entry.Name(), err)
+		}
 		if predicateKind(content) == kind {
-			found = append(found, ports.ProofFile{Origin: origin, Bytes: content})
+			found = append(found, dated{name: entry.Name(), modified: info.ModTime(), file: ports.ProofFile{Origin: origin, Bytes: content}})
 		}
 	}
-	return found, nil
+	return newestFirst(found), nil
+}
+
+// dated is a Statement file with what orders it.
+type dated struct {
+	name     string
+	modified time.Time
+	file     ports.ProofFile
+}
+
+// newestFirst orders the Statements of a directory by modification time, the most
+// recent first, then by name: a cache keeps the Statements of earlier inputs, and
+// the latest proof is the one that stands.
+func newestFirst(found []dated) []ports.ProofFile {
+	slices.SortFunc(found, func(a, b dated) int {
+		return cmp.Or(b.modified.Compare(a.modified), strings.Compare(a.name, b.name))
+	})
+	files := make([]ports.ProofFile, len(found))
+	for index, entry := range found {
+		files[index] = entry.file
+	}
+	return files
 }
 
 // predicateKind is the kind of a Statement file, empty for a file that is not a

@@ -24,15 +24,16 @@ const (
 
 // Reasons recorded as the escalation reason of a decision.
 const (
-	ReasonContaminated     = "mutation_sensitive_test"
-	ReasonUncorroborated   = "uncorroborated"
-	ReasonModalShareBelow  = "modal_share_below_min"
-	ReasonMatrixDisagrees  = "judge_matrix_disagreement"
-	ReasonMatrixRequired   = "matrix_required"
-	ReasonBudgetExhausted  = "budget_exhausted"
-	ReasonHostUnresponsive = "host_unresponsive"
-	ReasonMaskedInputLeaks = "masked_input_leaks"
-	ReasonUnreadableSource = "unreadable_test_source"
+	ReasonContaminated        = "mutation_sensitive_test"
+	ReasonUncorroborated      = "uncorroborated"
+	ReasonModalShareBelow     = "modal_share_below_min"
+	ReasonMatrixDisagrees     = "judge_matrix_disagreement"
+	ReasonMatrixRequired      = "matrix_required"
+	ReasonBudgetExhausted     = "budget_exhausted"
+	ReasonHostUnresponsive    = "host_unresponsive"
+	ReasonMaskedInputLeaks    = "masked_input_leaks"
+	ReasonUnreadableSource    = "unreadable_test_source"
+	ReasonIsolationBelowFloor = "isolation_below_floor"
 )
 
 // Deciders named in a decision.
@@ -58,6 +59,9 @@ type JudgeInput struct {
 	Settled bool
 	Result  aggregate.Result
 	Stance  aggregate.Stance
+	// IndeterminateReason names why the stance is indeterminate, when it is not
+	// because the modal share is too low.
+	IndeterminateReason string
 }
 
 // TiebreakInput is the single extra judge vote asked when the judge supports
@@ -140,7 +144,11 @@ func judged(in Inputs, p policy.Policy, audited bool) Decision {
 	case aggregate.Supports:
 		return supported(in, p, deciders)
 	}
-	return finished(format.VerdictUndetermined, format.BasisJudges, share, ReasonModalShareBelow, deciders...)
+	reason := ReasonModalShareBelow
+	if in.Judge.IndeterminateReason != "" {
+		reason = in.Judge.IndeterminateReason
+	}
+	return finished(format.VerdictUndetermined, format.BasisJudges, share, reason, deciders...)
 }
 
 func supported(in Inputs, p policy.Policy, deciders []string) Decision {

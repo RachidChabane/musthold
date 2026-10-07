@@ -3,7 +3,9 @@ package proofsource_test
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
+	"time"
 
 	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/proofsource"
 	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
@@ -60,6 +62,21 @@ func TestCandidates(t *testing.T) {
 		write(t, root, ".spec-proof/cache/some-module/PAR-1~1/broken.json", []byte("{"))
 		files, err := proofsource.Source{Root: root}.Candidates(format.KindDiscriminatingPower, ref)
 		if err != nil || len(files) != 1 || string(files[0].Bytes) != string(power) {
+			t.Fatalf("files %d: %v", len(files), err)
+		}
+	})
+
+	t.Run("the most recent Statement of a directory comes first [verifies SP-328~1]", func(t *testing.T) {
+		root := t.TempDir()
+		older, newer := append(slices.Clone(power), ' '), append(slices.Clone(power), '\n')
+		write(t, root, ".spec-proof/cache/discriminating-power/PAR-1~1/a.json", newer)
+		write(t, root, ".spec-proof/cache/discriminating-power/PAR-1~1/b.json", older)
+		past := time.Now().Add(-time.Hour)
+		if err := os.Chtimes(filepath.Join(root, ".spec-proof/cache/discriminating-power/PAR-1~1/b.json"), past, past); err != nil {
+			t.Fatal(err)
+		}
+		files, err := proofsource.Source{Root: root}.Candidates(format.KindDiscriminatingPower, ref)
+		if err != nil || len(files) != 2 || string(files[0].Bytes) != string(newer) {
 			t.Fatalf("files %d: %v", len(files), err)
 		}
 	})

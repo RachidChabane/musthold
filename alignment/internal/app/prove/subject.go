@@ -238,8 +238,8 @@ func (s *subjectRun) decide(declared criterion.Ref, m matrix.Result) (decided, e
 			if stop, done := s.stoppedBy(signal.state); done {
 				return stop, nil
 			}
-			result, stance := s.aggregated(signal, declared.String())
-			in.Judge = verdict.JudgeInput{Settled: true, Result: result, Stance: stance}
+			result, stance, reason := s.aggregated(signal, declared.String())
+			in.Judge = verdict.JudgeInput{Settled: true, Result: result, Stance: stance, IndeterminateReason: reason}
 			used = append(used, signal.answer)
 		case verdict.NeedTiebreak:
 			signal, err := s.judge(true)

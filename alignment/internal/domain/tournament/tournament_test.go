@@ -75,6 +75,15 @@ func TestResolve(t *testing.T) {
 		}
 	})
 
+	t.Run("the coverage of the final round is the coverage of the tournament [verifies SP-309~1]", func(t *testing.T) {
+		outcome := tournament.Resolve(options(5), func(group []string, final bool) (tournament.Answer, bool) {
+			return tournament.Answer{Choice: group[1], Confidence: 0.9, Coverage: "PARTIAL"}, true
+		})
+		if !outcome.Done || outcome.Winner != "K-0001" || outcome.Coverage != "PARTIAL" {
+			t.Fatalf("outcome %+v", outcome)
+		}
+	})
+
 	t.Run("without an answer the first round is pending [verifies SP-309~1]", func(t *testing.T) {
 		outcome := tournament.Resolve(options(30), func([]string, bool) (tournament.Answer, bool) { return tournament.Answer{}, false })
 		if outcome.Done || len(outcome.Pending) != 2 || outcome.Final {

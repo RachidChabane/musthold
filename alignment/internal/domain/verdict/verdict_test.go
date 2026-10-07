@@ -132,6 +132,14 @@ func TestDecide(t *testing.T) {
 		}
 	})
 
+	t.Run("an indeterminate judge says why when it is not for want of agreement [verifies SP-312~1]", func(t *testing.T) {
+		in := verdict.Inputs{Matrix: result(matrix.Absent), Judge: settledJudge(aggregate.Indeterminate, 1)}
+		in.Judge.IndeterminateReason = verdict.ReasonIsolationBelowFloor
+		if got := verdict.Decide(in, p); got.Verdict != format.VerdictUndetermined || got.Reason != verdict.ReasonIsolationBelowFloor {
+			t.Fatalf("decision %+v", got)
+		}
+	})
+
 	t.Run("a judge that supports alignment against a negative matrix asks one more ticket [verifies SP-313~1]", func(t *testing.T) {
 		for _, m := range []matrix.Result{result(matrix.OffTarget), result(matrix.Inert), result(matrix.Partial), pinsOffspec()} {
 			in := verdict.Inputs{Matrix: m, Judge: settledJudge(aggregate.Supports, 1)}

@@ -28,6 +28,8 @@ import (
 const (
 	moduleName = "spec-proof-alignment"
 	pluginName = "spec-proof-alignment"
+	// pendingModule names the module in its pending file.
+	pendingModule = "alignment"
 	// stateDirectory holds the project's spec-proof state, and the module's
 	// configuration file.
 	stateDirectory = ".spec-proof"
@@ -97,7 +99,7 @@ func (e Env) openProject(rootFlag string) (*project, error) {
 	}
 	cacheDir := xdg.CacheDir(e.lookupEnv, e.HomeDir, root)
 	return &project{root: root, policy: decision, store: store,
-		settings: prove.Settings{Policy: decision, Module: format.Module{Name: moduleName, Version: version.Version}, Plugin: pluginName},
+		settings: prove.Settings{Policy: decision, Module: format.Module{Name: moduleName, Version: version.Version}, Plugin: pluginName, PendingModule: pendingModule},
 		deps: prove.Deps{
 			Criteria:   &shallnot.Gateway{Process: process.New(), Binary: e.lookup(envShallnot), Root: root},
 			Maskers:    maskers(),

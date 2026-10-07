@@ -10,6 +10,7 @@ import (
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/masking"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/prompt"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/tournament"
+	"github.com/RachidChabane/spec-proof/alignment/internal/domain/verdict"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
@@ -121,18 +122,30 @@ func (s *subjectRun) judge(extra bool) (*judgeSignal, error) {
 	return signal, s.remember(answer)
 }
 
-// aggregated reads the first AlignK votes against the declared criterion.
-func (s *subjectRun) aggregated(signal *judgeSignal, declared string) (aggregate.Result, aggregate.Stance) {
-	total := s.pass.settings.Policy.AlignK
-	votes := make([]aggregate.Vote, 0, total)
-	for _, read := range signal.votes[:min(total, len(signal.votes))] {
-		votes = append(votes, read.vote.Demote(declared))
+// aggregated reads the first AlignK votes against the declared criterion. When
+// the votes would support the criterion but for those that lose their credit, the
+// stance is indeterminate for want of isolation, not a rejection.
+func (s *subjectRun) aggregated(signal *judgeSignal, declared string) (aggregate.Result, aggregate.Stance, string) {
+	total, modalMin := s.pass.settings.Policy.AlignK, s.pass.settings.Policy.ModalMin
+	counted := signal.votes[:min(total, len(signal.votes))]
+	demoted, credited := make([]aggregate.Vote, 0, total), make([]aggregate.Vote, 0, total)
+	for _, read := range counted {
+		demoted = append(demoted, read.vote.Demote(declared))
+		granted := read.vote
+		granted.Credit = true
+		credited = append(credited, granted)
 	}
-	result, ok := aggregate.Aggregate(votes, total)
+	result, ok := aggregate.Aggregate(demoted, total)
 	if !ok {
-		return result, aggregate.Indeterminate
+		return result, aggregate.Indeterminate, ""
 	}
-	return result, result.StanceFor(declared, s.pass.settings.Policy.ModalMin)
+	stance := result.StanceFor(declared, modalMin)
+	if stance != aggregate.Supports {
+		if full, _ := aggregate.Aggregate(credited, total); full.StanceFor(declared, modalMin) == aggregate.Supports {
+			return result, aggregate.Indeterminate, verdict.ReasonIsolationBelowFloor
+		}
+	}
+	return result, stance, ""
 }
 
 // closedSignal is the answer to the closed questions about one group of criteria.

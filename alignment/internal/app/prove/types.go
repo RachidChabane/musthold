@@ -52,6 +52,8 @@ type Settings struct {
 	Module format.Module
 	// Plugin is the plugin the executor roles belong to.
 	Plugin string
+	// PendingModule names the module in its pending file, `<module>.json`.
+	PendingModule string
 }
 
 // Deps are the ports a run works through.
