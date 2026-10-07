@@ -22,21 +22,23 @@ import (
 
 // Locations and names of the project end-to-end tests.
 const (
-	parcelFixture    = "discpower/fixtures/prove/parcel"
-	shallnotScript   = "script/shallnot-build"
-	memGuardScript   = "script/mem-guard"
-	shallnotRelative = ".tools/bin/shallnot"
-	dpBinary         = "spec-proof-dp"
-	alignmentBinary  = "spec-proof-alignment"
-	alignmentTags    = "grammar_subset,grammar_subset_python,grammar_subset_javascript,grammar_subset_typescript,grammar_subset_tsx,grammar_subset_java,grammar_subset_kotlin"
-	buildTimeout     = 5 * time.Minute
-	commandTimeout   = 8 * time.Minute
-	niceLevel        = "10"
-	shallnotVariable = "SPEC_PROOF_SHALLNOT"
-	reportFile       = "report.json"
-	verifiedPath     = ".spec-proof/verified"
-	cachePath        = ".spec-proof/cache"
-	verifiesTag      = "verifies"
+	parcelFixture      = "discpower/fixtures/prove/parcel"
+	shallnotScript     = "script/shallnot-build"
+	memGuardScript     = "script/mem-guard"
+	shallnotRelative   = ".tools/bin/shallnot"
+	dpBinary           = "spec-proof-dp"
+	alignmentBinary    = "spec-proof-alignment"
+	completenessBinary = "spec-proof-completeness"
+	s1Binary           = "spec-proof-s1"
+	alignmentTags      = "grammar_subset,grammar_subset_python,grammar_subset_javascript,grammar_subset_typescript,grammar_subset_tsx,grammar_subset_java,grammar_subset_kotlin"
+	buildTimeout       = 5 * time.Minute
+	commandTimeout     = 8 * time.Minute
+	niceLevel          = "10"
+	shallnotVariable   = "SPEC_PROOF_SHALLNOT"
+	reportFile         = "report.json"
+	verifiedPath       = ".spec-proof/verified"
+	cachePath          = ".spec-proof/cache"
+	verifiesTag        = "verifies"
 )
 
 // dpIdentity is the plugin of the discriminating-power module and its executor
@@ -52,8 +54,8 @@ var (
 	productErr  error
 )
 
-// productBinaries builds the binaries the project tests drive, once, throttled:
-// one compiler job at a time under nice.
+// productBinaries builds the binary of every module that ships one, once,
+// throttled: one compiler job at a time under nice.
 func productBinaries(t *testing.T) string {
 	t.Helper()
 	productOnce.Do(func() {
@@ -62,7 +64,8 @@ func productBinaries(t *testing.T) string {
 			return
 		}
 		builds := []struct{ module, binary, tags string }{
-			{"discpower", dpBinary, ""}, {"alignment", alignmentBinary, alignmentTags}, {"verify", verifyBinary, ""},
+			{"discpower", dpBinary, ""}, {"alignment", alignmentBinary, alignmentTags}, {"completeness", completenessBinary, ""},
+			{"verify", verifyBinary, ""}, {"ledger", ledgerBinary, ""}, {"s1relay", s1Binary, ""},
 		}
 		for _, build := range builds {
 			args := []string{"-n", niceLevel, "go", "build", "-C", filepath.Join(repositoryDir, build.module), "-p", "1", "-o", filepath.Join(productDir, build.binary)}
@@ -93,26 +96,37 @@ func productBinaries(t *testing.T) string {
 // the Shallnot.
 func requireMachine(t *testing.T, requirements []string) string {
 	t.Helper()
+	root := requireMemory(t, requirements)
+	command := exec.Command("bash", filepath.Join(root, shallnotScript))
+	command.Dir = root
+	if output, err := command.CombinedOutput(); err != nil {
+		skipRequirements(t, requirements, fmt.Sprintf("the pinned Shallnot cannot be built from $SHALLNOT_SRC (%v): %s", err, strings.TrimSpace(string(output))))
+	}
+	return filepath.Join(root, filepath.FromSlash(shallnotRelative))
+}
+
+// requireMemory skips the test, as requireMachine does, when the memory guard
+// refuses a heavy run. It returns the absolute root of the repository.
+func requireMemory(t *testing.T, requirements []string) string {
+	t.Helper()
 	root, err := filepath.Abs(repositoryDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	skip := func(format string, args ...any) {
-		reason := fmt.Sprintf(format, args...)
-		for _, requirement := range requirements {
-			t.Run("is not checked ["+verifiesTag+" "+requirement+"]", func(t *testing.T) { t.Skip(reason) })
-		}
-		t.Skip(reason)
-	}
 	if output, err := exec.Command("bash", filepath.Join(root, memGuardScript), "check").CombinedOutput(); err != nil {
-		skip("the memory guard refused the run: %s", strings.TrimSpace(string(output)))
+		skipRequirements(t, requirements, "the memory guard refused the run: "+strings.TrimSpace(string(output)))
 	}
-	command := exec.Command("bash", filepath.Join(root, shallnotScript))
-	command.Dir = root
-	if output, err := command.CombinedOutput(); err != nil {
-		skip("the pinned Shallnot cannot be built from $SHALLNOT_SRC (%v): %s", err, strings.TrimSpace(string(output)))
+	return root
+}
+
+// skipRequirements skips the test with the reason, recording the skip under one
+// subtest per requirement so that the gate reports each as skipped.
+func skipRequirements(t *testing.T, requirements []string, reason string) {
+	t.Helper()
+	for _, requirement := range requirements {
+		t.Run("is not checked ["+verifiesTag+" "+requirement+"]", func(t *testing.T) { t.Skip(reason) })
 	}
-	return filepath.Join(root, filepath.FromSlash(shallnotRelative))
+	t.Skip(reason)
 }
 
 // result is what a command left behind.

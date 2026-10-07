@@ -75,3 +75,20 @@ reason, and the gate reports the skipped requirement.
   the command line THE SYSTEM SHALL refuse or journal its answers as an exposure, give no test
   the verdict ALIGNED and no criterion a PASS, and have `shallnot check` refuse the
   project.
+
+## Documentation
+
+These requirements read the user documentation (the README, the READMEs of the
+modules and the pages under `docs/usage`) against the binaries built from the
+modules, and need no Shallnot and no model. The built binaries are driven as black
+boxes; the checks skip with a recorded reason when the memory guard refuses a build.
+
+- **SP-1400~1**: WHEN the documentation shows a command line of a spec-proof binary
+  THE SYSTEM SHALL find the command it names among the commands the binary lists,
+  and the verb it names among the verbs of that command.
+- **SP-1401~1**: WHEN the documentation shows a flag on a command line of a
+  spec-proof binary THE SYSTEM SHALL find that flag accepted by that command of the
+  binary.
+- **SP-1402~1**: WHEN the documentation links to a file, a directory or a heading of
+  the repository THE SYSTEM SHALL find the file or directory and, for a Markdown
+  page, a heading that has the anchor.
