@@ -62,7 +62,6 @@ CELL_FAIL: Final = "fail"
 
 JUNIT_FILENAME: Final = "junit.xml"
 TRACEABILITY_FILENAME: Final = "traceability.json"
-LABEL_MATRIX_FILENAME: Final = "label_matrix.csv"
 VERIFY_LOG_FILENAME: Final = "verify_log.txt"
 MODELS_LOCK_FILENAME: Final = "models.lock.json"
 

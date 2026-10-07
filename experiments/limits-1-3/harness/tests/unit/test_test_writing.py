@@ -15,7 +15,7 @@ from pilot.domain.test_writing import (
     criterion_of_suite_nodeid,
     public_api,
     static_problems,
-    suite_module,
+    module_of_test,
     suite_nodeid,
     suite_path,
     writer_payload_problems,
@@ -66,21 +66,25 @@ def test_the_source_must_be_exactly_the_named_function_plus_imports():
     assert static_problems(WrittenTest("test_x", "def test_x(:\n"))
 
 
-def test_the_suite_module_marks_every_test_with_its_criterion_and_merges_imports():
-    other = WrittenTest("test_paid", "from parkfee import quote\nimport decimal\n\n\ndef test_paid():\n    assert decimal.Decimal(1)\n")
-    module = suite_module("PARK-3~1", [GOOD, other])
+def test_the_test_module_marks_the_function_with_its_criterion():
+    module = module_of_test("PARK-3~1", GOOD)
     tree = ast.parse(module)
     imports = [ast.unparse(n) for n in tree.body if isinstance(n, ast.Import | ast.ImportFrom)]
-    assert imports.count("from parkfee import quote") == 1 and "import pytest" in imports
+    assert "from parkfee import quote" in imports and "import pytest" in imports
     decorated = [ast.unparse(d) for n in tree.body if isinstance(n, ast.FunctionDef) for d in n.decorator_list]
-    assert decorated == ["pytest.mark.verifies('PARK-3~1')"] * 2
+    assert decorated == ["pytest.mark.verifies('PARK-3~1')"]
 
 
-def test_suite_paths_and_node_ids_name_the_criterion():
+def test_each_test_has_its_own_module_so_one_bad_import_cannot_error_its_siblings():
+    assert suite_path("PARK-10~1", "test_x") == "tests/test_park_10__test_x.py"
+    assert suite_path("PARK-3~1", "test_a") != suite_path("PARK-3~1", "test_b")
+
+
+def test_node_ids_name_the_module_and_the_criterion_is_recovered_from_them():
     refs = [f"PARK-{n}~1" for n in range(1, 11)]
-    assert suite_path("PARK-10~1") == "tests/test_park_10.py"
-    assert suite_nodeid("PARK-3~1", "test_free") == "tests/test_park_3.py::test_free"
-    assert criterion_of_suite_nodeid("tests/test_park_10.py::test_x", refs) == "PARK-10~1"
+    assert suite_nodeid("PARK-3~1", "test_free") == "tests/test_park_3__test_free.py::test_free"
+    assert criterion_of_suite_nodeid("tests/test_park_10__test_x.py::test_x", refs) == "PARK-10~1"
+    assert criterion_of_suite_nodeid("tests/test_park_1__test_x.py::test_x", refs) == "PARK-1~1"
     with pytest.raises(ValueError):
         criterion_of_suite_nodeid("tests/other.py::test_x", refs)
 

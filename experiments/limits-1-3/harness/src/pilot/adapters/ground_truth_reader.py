@@ -16,7 +16,8 @@ from pilot.domain.analysis_constants import (
     ARM_P_LABELS_YAML,
     ORACLE_CLASSES_FILENAME,
 )
-from pilot.domain.constants import LABEL_MATRIX_FILENAME, VERIFY_LOG_FILENAME
+from pilot.domain.constants import VERIFY_LOG_FILENAME
+from pilot.domain.ground_truth_paths import LABEL_MATRIX_FILENAME
 from pilot.domain.isolation_table import ISOLATION_TABLE_FILENAME
 from pilot.domain.pipeline_constants import ARM_P_DIRNAME
 from pilot.domain.run_records import GroundTruth, OracleRecord, PlantedItem

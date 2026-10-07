@@ -29,7 +29,8 @@ MIN_TESTS: Final = 2
 MAX_TESTS: Final = 5
 _TEST_NAME: Final = re.compile(rf"^{TEST_FUNCTION_PREFIX}[A-Za-z0-9_]+$")
 _REF_SLUG: Final = re.compile(r"^PARK-(\d+)~\d+$")
-SUITE_FILE_TEMPLATE: Final = f"{TESTS_DIRNAME}/test_park_{{number}}.py"
+SUITE_FILE_TEMPLATE: Final = f"{TESTS_DIRNAME}/test_park_{{number}}__{{name}}.py"
+_SUITE_FILE: Final = re.compile(rf"^{TESTS_DIRNAME}/test_park_(?P<number>\d+)__")
 NODEID_SEPARATOR: Final = "::"
 PYTEST_IMPORT: Final = "pytest"
 
@@ -94,37 +95,38 @@ def _import_problems(node: ast.AST, stdlib: frozenset[str]) -> list[str]:
     return [f"import of {module!r} is not allowed" for module in modules if module.split(".")[0] not in allowed]
 
 
-def suite_path(ref: str) -> str:
+def suite_path(ref: str, name: str) -> str:
+    """One module per test: an import that fails to collect errors that test alone, never its siblings."""
     match = _REF_SLUG.match(ref)
     if match is None:
         raise ValueError(f"not a criterion reference: {ref!r}")
-    return SUITE_FILE_TEMPLATE.format(number=match.group(1))
+    return SUITE_FILE_TEMPLATE.format(number=match.group(1), name=name)
 
 
 def suite_nodeid(ref: str, name: str) -> str:
-    return f"{suite_path(ref)}{NODEID_SEPARATOR}{name}"
+    return f"{suite_path(ref, name)}{NODEID_SEPARATOR}{name}"
 
 
 def criterion_of_suite_nodeid(nodeid: str, refs: Sequence[str]) -> str:
-    path = nodeid.split(NODEID_SEPARATOR, 1)[0]
-    for ref in refs:
-        if suite_path(ref) == path:
-            return ref
+    match = _SUITE_FILE.match(nodeid.split(NODEID_SEPARATOR, 1)[0])
+    if match is not None:
+        for ref in refs:
+            if ref.startswith(f"PARK-{match.group('number')}~"):
+                return ref
     raise ValueError(f"no criterion owns {nodeid!r}")
 
 
-def suite_module(ref: str, tests: Sequence[WrittenTest]) -> str:
-    """The module of one criterion: merged imports, then every test marked as verifying `ref`."""
+def module_of_test(ref: str, test: WrittenTest) -> str:
+    """The module of one test: its imports, then the function marked as verifying `ref`."""
+    tree = ast.parse(test.source)
     imports: dict[str, ast.stmt] = {PYTEST_IMPORT: ast.Import(names=[ast.alias(name=PYTEST_IMPORT)])}
     functions: list[ast.FunctionDef] = []
-    for test in tests:
-        tree = ast.parse(test.source)
-        for node in tree.body:
-            if isinstance(node, ast.Import | ast.ImportFrom):
-                imports.setdefault(ast.unparse(node), node)
-            elif isinstance(node, ast.FunctionDef):
-                node.decorator_list.insert(0, _verifies_decorator(ref))
-                functions.append(node)
+    for node in tree.body:
+        if isinstance(node, ast.Import | ast.ImportFrom):
+            imports.setdefault(ast.unparse(node), node)
+        elif isinstance(node, ast.FunctionDef):
+            node.decorator_list.insert(0, _verifies_decorator(ref))
+            functions.append(node)
     module = ast.Module(body=[*imports.values(), *functions], type_ignores=[])
     return ast.unparse(ast.fix_missing_locations(module)) + "\n"
 

@@ -32,11 +32,10 @@ from pilot.application.traceability_stage import TraceabilityFailed
 from pilot.application.verify_labels import LabelVerification, verify_labels
 from pilot.cli.layout import ExperimentLayout
 from pilot.domain.constants import (
-    LABEL_MATRIX_FILENAME,
     VERIFY_LOG_FILENAME,
 )
 from pilot.domain.edits import EditSet
-from pilot.domain.ground_truth_paths import ORACLE_FILE_GLOB
+from pilot.domain.ground_truth_paths import LABEL_MATRIX_FILENAME, ORACLE_FILE_GLOB
 from pilot.domain.isolation_table import ISOLATION_TABLE_FILENAME
 from pilot.domain.label_rules import ExpectedCounts
 from pilot.domain.variants import VariantKind

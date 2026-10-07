@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from pilot.domain.model_slate import Writer
-from pilot.domain.test_writing import TestStatus, WrittenTest, suite_module, suite_nodeid, suite_path
+from pilot.domain.test_writing import TestStatus, WrittenTest, suite_nodeid, suite_path, module_of_test
 
 STATUS_OK = "ok"
 STATUS_MISSING = "missing"
@@ -47,8 +47,12 @@ class SuiteRecord:
     def nodeids(self) -> tuple[str, ...]:
         return tuple(suite_nodeid(self.criterion, test.name) for test in self.kept)
 
-    def module(self) -> str:
-        return suite_module(self.criterion, [WrittenTest(test.name, test.source) for test in self.kept])
+    def modules(self) -> dict[str, str]:
+        """The kept tests as modules, by project-relative path."""
+        return {
+            suite_path(self.criterion, test.name): module_of_test(self.criterion, WrittenTest(test.name, test.source))
+            for test in self.kept
+        }
 
     def to_mapping(self) -> dict[str, Any]:
         return {
@@ -70,4 +74,4 @@ class SuiteRecord:
 
 def suite_files(records: Sequence[SuiteRecord]) -> dict[str, str]:
     """The test modules of one writer, by project-relative path; a suite with no kept test has no module."""
-    return {suite_path(record.criterion): record.module() for record in records if record.kept}
+    return {path: text for record in records for path, text in record.modules().items()}

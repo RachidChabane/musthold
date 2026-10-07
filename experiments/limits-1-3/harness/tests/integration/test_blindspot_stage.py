@@ -37,6 +37,7 @@ SUITES = {
     "PARK-1~1": [
         ("test_exit_before_entry_raises", "    with pytest.raises(ValueError):\n        quote({s}, {s} - timedelta(minutes=1))\n"),
         ("test_equal_times_do_not_raise", "    assert quote({s}, {s}) == Decimal('0.00')\n"),
+        ("test_imports_a_missing_name", "    from parkfee import Missing\n    assert Missing\n"),
     ],
     "PARK-2~1": [
         ("test_free_at_fifteen_minutes", "    assert quote({s}, {s} + timedelta(minutes=15)) == Decimal('0.00')\n"),
@@ -153,10 +154,19 @@ def test_each_test_is_statically_checked_then_filtered_against_the_reference(ran
     assert [t.name for t in suites["PARK-3~1"].kept] == ["test_one_hour_for_sixteen_minutes", "test_two_hours_for_sixty_one_minutes"]
 
 
+def test_one_test_that_fails_to_import_is_dropped_alone_and_never_empties_its_criterion(ran):
+    deps, _, _, _ = ran
+    first = load_suites(deps.core.ctx.store, Writer.SONNET)["PARK-1~1"]
+    statuses = {t.name: t.status.value for t in first.tests}
+    assert statuses == {"test_exit_before_entry_raises": "kept", "test_equal_times_do_not_raise": "kept",
+                        "test_imports_a_missing_name": "dropped_reference"}
+
+
 def test_the_suite_module_carries_the_marker_the_harness_adds(ran):
     deps, _, _, _ = ran
-    module = load_suites(deps.core.ctx.store, Writer.OPUS)["PARK-2~1"].module()
-    assert module.count("@pytest.mark.verifies('PARK-2~1')") == 2 and "import pytest" in module
+    modules = load_suites(deps.core.ctx.store, Writer.OPUS)["PARK-2~1"].modules()
+    assert sorted(modules) == ["tests/test_park_2__test_free_at_fifteen_minutes.py", "tests/test_park_2__test_free_for_ten_minutes.py"]
+    assert all(m.count("@pytest.mark.verifies('PARK-2~1')") == 1 and "import pytest" in m for m in modules.values())
 
 
 def test_mutants_of_every_source_are_processed_through_f0_to_f2_without_a_differential(ran):

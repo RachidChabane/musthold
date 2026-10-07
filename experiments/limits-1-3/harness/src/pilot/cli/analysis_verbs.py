@@ -43,7 +43,8 @@ from pilot.domain.analysis_constants import (
     PERMUTATION_COUNT,
 )
 from pilot.domain.preregistration import PREREG_TAG
-from pilot.domain.constants import LABEL_MATRIX_FILENAME, PREREG_DIRNAME
+from pilot.domain.constants import PREREG_DIRNAME
+from pilot.domain.ground_truth_paths import LABEL_MATRIX_FILENAME
 from pilot.domain.pipeline_constants import AUDIT_SAMPLE_FILENAME
 from pilot.domain.variants import VariantKind
 
