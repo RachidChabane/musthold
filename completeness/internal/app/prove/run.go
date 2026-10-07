@@ -8,6 +8,7 @@ import (
 	"maps"
 	"slices"
 
+	"github.com/RachidChabane/spec-proof/completeness/internal/domain/code"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/justify"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/reach"
@@ -99,7 +100,9 @@ type passState struct {
 	findings     []string
 	files        map[string]fileDigest
 
-	graph   reach.Graph
+	graph reach.Graph
+	// units are the units of every source file of the project.
+	units   []code.Unit
 	changes changeSummary
 	// powers maps a criterion to what its discriminating-power Statement says.
 	powers map[criterion.Ref]powerEvidence

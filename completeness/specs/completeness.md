@@ -353,3 +353,22 @@ traces them to the Go tests of the module in CI.
   then the default, refuse a value outside [0,1] and a key that names no source, and
   record the threshold the weakest answer was held to in
   `extensions.decision.threshold`.
+
+## Reading the units of source files
+
+- **SP-1314~1**: WHEN a label a runner reports is compared with the patterns of a
+  test unit THE SYSTEM SHALL take the citation tags out of the label and unify the
+  separators between nested titles, let every placeholder of a title stand for any
+  text, match a JUnit 5 label by the class and by the method name with or without
+  its signature, the display name, the expanded name pattern or the default name of
+  an invocation or a repetition, and match nothing for a pattern that is invalid.
+
+## Tests and operations that justify changes
+
+- **SP-1309~1**: WHEN a changed unit is justified by an ALIGNED test THE SYSTEM
+  SHALL read the label of the test against the patterns of the units of kind test of
+  the project, and take the names those units mention as the entries of the
+  requirement, besides the function names the label itself designates.
+- **SP-1310~1**: WHEN an example operation is bound to a function THE SYSTEM SHALL
+  read the function name of a binding written as `module:function`,
+  `module.function`, `package.Class#method` or the bare name.

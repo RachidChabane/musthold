@@ -117,7 +117,7 @@ func (p *passState) loadAligned(c criterion.Criterion) error {
 		}
 		name := string(format.KindAlignment) + proofNameSeparator + c.Ref.String() + proofNameSeparator + statement.Test
 		p.proofInputs = append(p.proofInputs, proofInput(name, candidate))
-		if entries := justify.TestEntries(statement.Test); len(entries) > 0 {
+		if entries := justify.TestEntriesIn(statement.Test, p.units); len(entries) > 0 {
 			p.evidence = append(p.evidence, justify.Evidence{Ref: c.Ref, Entries: entries})
 		}
 	}

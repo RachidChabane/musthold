@@ -59,6 +59,7 @@ func (p *passState) loadSources() error {
 	if err != nil {
 		return fmt.Errorf("walk the project: %w", err)
 	}
+	p.units = units
 	p.graph = reach.NewGraph(units)
 	return nil
 }

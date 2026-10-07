@@ -10,8 +10,10 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/RachidChabane/spec-proof/completeness/internal/domain/code"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/reach"
+	"github.com/RachidChabane/spec-proof/completeness/internal/domain/testlabel"
 )
 
 // Evidence is a set of entry names, the functions an example probe or an ALIGNED
@@ -58,13 +60,31 @@ func TestEntries(label string) []string {
 	return entries
 }
 
-// OperationEntry is the function name an example operation binding designates:
-// `module:function`, `module:Class.method` or the bare operation name.
-func OperationEntry(binding string) string {
-	if index := strings.LastIndex(binding, ":"); index >= 0 {
-		binding = binding[index+1:]
+// TestEntriesIn lists the entry names a test label designates: the function names
+// TestEntries finds in it, and the names that the units of kind code.KindTest
+// whose labels match it mention, which is how a test that is a callback or an
+// annotated method, with no function name of its own, designates the code it runs.
+func TestEntriesIn(label string, units []code.Unit) []string {
+	entries := TestEntries(label)
+	for _, unit := range units {
+		if unit.Kind == code.KindTest && testlabel.Matches(unit.Labels, label) {
+			entries = append(entries, unit.Mentions...)
+		}
 	}
-	if index := strings.LastIndex(binding, "."); index >= 0 {
+	slices.Sort(entries)
+	return slices.Compact(entries)
+}
+
+// bindingSeparators precede the function name in an operation binding: the colon
+// of `module:function`, the dot of `module.function` and the hash of
+// `package.Class#method`.
+const bindingSeparators = ":.#"
+
+// OperationEntry is the function name an example operation binding designates:
+// `module:function`, `module:Class.method`, `package.Class#method` or the bare
+// operation name.
+func OperationEntry(binding string) string {
+	if index := strings.LastIndexAny(binding, bindingSeparators); index >= 0 {
 		binding = binding[index+1:]
 	}
 	return binding

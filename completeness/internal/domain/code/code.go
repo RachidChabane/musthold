@@ -14,6 +14,9 @@ const (
 	KindFunction Kind = "function"
 	// KindAssignment is a module-level or package-level variable or constant.
 	KindAssignment Kind = "assignment"
+	// KindTest is a test case that is not a function a name designates: a callback
+	// passed to a runner, or a method a framework discovers by its annotation.
+	KindTest Kind = "test"
 )
 
 // Unit is one function, method or module-level assignment of a source file.
@@ -37,6 +40,10 @@ type Unit struct {
 	EndLine   int
 	// Mentions lists the names the unit refers to, sorted and without repeats.
 	Mentions []string
+	// Labels lists, for a unit of kind KindTest, the regular expressions that match
+	// the label a test runner reports for it once its citation tags are taken out;
+	// it is empty for any other unit.
+	Labels []string
 }
 
 // Key identifies the unit inside a project.
