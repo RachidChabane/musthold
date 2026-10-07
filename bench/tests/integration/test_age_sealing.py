@@ -7,7 +7,7 @@ import pytest
 from specbench.adapters.file_corpus import FileCorpus, read_plain_task
 from specbench.adapters.sealed_store import (
     AgeSealStore,
-    IdentityLocationError,
+    InsideRepositoryError,
     generate_identity,
     read_identity_file,
     write_identity_file,
@@ -87,14 +87,14 @@ def test_identity_files_stay_outside_the_repository(tmp_path: Path) -> None:
     repository_root = tmp_path / "repo"
     repository_root.mkdir()
     identity, _ = generate_identity()
-    with pytest.raises(IdentityLocationError):
+    with pytest.raises(InsideRepositoryError):
         write_identity_file(repository_root / "key.txt", identity, repository_root)
     outside = tmp_path / "keys" / "age.key"
     write_identity_file(outside, identity, repository_root)
     assert outside.stat().st_mode & 0o777 == 0o600
     assert read_identity_file(outside, repository_root) == identity
     (repository_root / "copy.key").write_text(identity)
-    with pytest.raises(IdentityLocationError):
+    with pytest.raises(InsideRepositoryError):
         read_identity_file(repository_root / "copy.key", repository_root)
 
 

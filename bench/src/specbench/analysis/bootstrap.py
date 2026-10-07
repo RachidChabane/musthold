@@ -86,18 +86,45 @@ def _columns(names: Sequence[str], summed: Floats) -> CountColumns:
 
 
 def point_estimate(table: ClusterTable, statistic: Statistic) -> float:
-    """The statistic over the totals of every cluster."""
-    totals = table.matrix().sum(axis=0, keepdims=True)
-    return float(statistic(_columns(table.columns, totals))[0])
+    """The statistic over the totals of every cluster; totals are exact sums, whatever the platform."""
+    totals = np.array([[math.fsum(values) for values in zip(*table.rows, strict=True)]], dtype=np.float64)
+    return float(statistic(_columns(table.columns, totals.reshape(1, len(table.columns))))[0])
+
+
+def accumulate(draws: Floats, matrix: Floats) -> Floats:
+    """`draws @ matrix` as a fixed-order sum over clusters: elementwise operations only, so no BLAS and no platform drift."""
+    sums = np.zeros((draws.shape[0], matrix.shape[1]), dtype=np.float64)
+    for cluster in range(matrix.shape[0]):
+        sums += draws[:, cluster : cluster + 1] * matrix[cluster]
+    return sums
+
+
+@dataclass(frozen=True)
+class Resamples:
+    """The summed counts of `resamples` draws of whole clusters with replacement, drawn once for every statistic."""
+
+    columns: tuple[str, ...]
+    sums: Floats
+    draws: int
+
+    @classmethod
+    def draw(cls, table: ClusterTable, resamples: int, seed: int) -> Resamples:
+        if table.size == 0:
+            return cls(table.columns, np.zeros((resamples, len(table.columns))), resamples)
+        rng = np.random.default_rng(seed)
+        counts = rng.multinomial(table.size, np.full(table.size, 1.0 / table.size), size=resamples)
+        return cls(table.columns, accumulate(counts.astype(np.float64), table.matrix()), resamples)
+
+    def of(self, statistic: Statistic) -> Floats:
+        """The statistic over every draw; undefined (NaN) throughout when the table had no cluster."""
+        return statistic(_columns(self.columns, self.sums))
 
 
 def resample(table: ClusterTable, statistic: Statistic, resamples: int, seed: int) -> Floats:
     """The statistic over `resamples` draws of whole clusters with replacement."""
     if table.size == 0:
         return np.full(resamples, NAN)
-    rng = np.random.default_rng(seed)
-    draws = rng.multinomial(table.size, np.full(table.size, 1.0 / table.size), size=resamples).astype(np.float64)
-    return statistic(_columns(table.columns, draws @ table.matrix()))
+    return Resamples.draw(table, resamples, seed).of(statistic)
 
 
 def percentile_interval(samples: Floats) -> Interval:

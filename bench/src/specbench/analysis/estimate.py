@@ -13,8 +13,9 @@ from specbench.analysis.bootstrap import (
     BOOTSTRAP_RESAMPLES,
     ClusterTable,
     Floats,
+    Resamples,
     Statistic,
-    bootstrap_interval,
+    percentile_interval,
     point_estimate,
     safe_divide,
 )
@@ -52,10 +53,22 @@ def _finite(value: float) -> float | None:
     return value if math.isfinite(value) else None
 
 
+class Estimator:
+    """Estimates over one table: the repository resamples are drawn once and shared by every statistic."""
+
+    def __init__(self, table: ClusterTable, config: AnalysisConfig) -> None:
+        self.table = table
+        self.config = config
+        self._resamples = Resamples.draw(table, config.resamples, config.seed)
+
+    def __call__(self, statistic: Statistic) -> Estimate:
+        """Point estimate on the pooled counts and its percentile interval over the repository resamples."""
+        interval = percentile_interval(self._resamples.of(statistic))
+        return Estimate(point_estimate(self.table, statistic), interval.lo, interval.hi)
+
+
 def estimate(table: ClusterTable, statistic: Statistic, config: AnalysisConfig) -> Estimate:
-    """Point estimate on the pooled counts and its percentile interval over repository-cluster resamples."""
-    interval = bootstrap_interval(table, statistic, config.resamples, config.seed)
-    return Estimate(point_estimate(table, statistic), interval.lo, interval.hi)
+    return Estimator(table, config)(statistic)
 
 
 def rate(numerator: Floats, denominator: Floats) -> Floats:

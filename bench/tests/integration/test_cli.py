@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -107,6 +108,49 @@ def test_an_identity_inside_the_corpus_repository_is_refused(tmp_path: Path) -> 
     assert not (repository / "age.key").exists()
 
 
+def test_sealed_plaintext_is_never_written_inside_the_repository(tmp_path: Path) -> None:
+    repo, base, merge = make_upstream(tmp_path)
+    corpus, keys, plain = tmp_path / "corpus", tmp_path / "keys" / "age.key", tmp_path / "plain"
+    cli("keygen", "--identity", str(keys), "--recipients", str(corpus / "recipients.txt"))
+    for path, content in bundle(GOOD_V1).files.items():
+        (plain / path).parent.mkdir(parents=True, exist_ok=True)
+        (plain / path).write_bytes(content)
+    (plain / "task.json").write_text(task(base, merge).to_canonical_json())
+    cli("seal", "--corpus", str(corpus), "--plain", str(plain))
+    (tmp_path / "corpus" / ".git").mkdir()
+    inside = tmp_path / "corpus" / "bench" / "unsealed"
+    code, output = cli(
+        "unseal", "--corpus", str(corpus), "--identity", str(keys), "--task-id", TASK, "--out", str(inside)
+    )
+    assert code == 1 and "inside" in output and not inside.exists()
+    code, output = cli(
+        "build-workspace",
+        "--corpus",
+        str(corpus),
+        "--identity",
+        str(keys),
+        "--task-id",
+        TASK,
+        "--clone",
+        str(repo),
+        "--out",
+        str(inside),
+    )
+    assert code == 1 and "inside" in output and not inside.exists()
+
+
+def test_verify_task_needs_the_task_environment(tmp_path: Path) -> None:
+    code, _ = cli("verify-task", "--corpus", "c", "--identity", "i", "--task-id", TASK, "--clone", "x")
+    assert code == 2
+
+
+def test_environment_and_tree_failures_are_messages_not_tracebacks(tmp_path: Path) -> None:
+    source = tmp_path / "bare"
+    source.mkdir()
+    code, output = cli("build-env", "--language", "python", "--source", str(source), "--dest", str(tmp_path / "env"))
+    assert code == 1 and output.startswith("error:")
+
+
 def test_verify_task_through_the_cli(tmp_path: Path) -> None:
     repo, base, merge = make_upstream(tmp_path)
     corpus, keys, plain = tmp_path / "corpus", tmp_path / "keys" / "age.key", tmp_path / "plain"
@@ -128,6 +172,10 @@ def test_verify_task_through_the_cli(tmp_path: Path) -> None:
         TASK,
         "--clone",
         str(repo),
+        "--env-dir",
+        str(tmp_path / "env"),
+        "--python",
+        sys.executable,
         "--out",
         str(report),
     )

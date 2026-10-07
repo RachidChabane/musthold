@@ -10,24 +10,42 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Final
 
+from specbench.adapters.env_builder import EnvironmentBuildError
 from specbench.adapters.gh_miner import GhError
+from specbench.adapters.git_trees import TreeBuildError
 from specbench.adapters.process import MachineUnsafe
-from specbench.adapters.sealed_store import IdentityLocationError
+from specbench.adapters.sealed_store import InsideRepositoryError
 from specbench.analysis.bootstrap import BOOTSTRAP_RESAMPLES
 from specbench.analysis.selection_null import DEFAULT_PERMUTATIONS
 from specbench.application.paced_calls import ModelNotFrozen
 from specbench.cli import commands
 from specbench.cli.commands import Console
+from specbench.domain.canonical import CanonicalError
 from specbench.domain.jsonread import RecordError
 from specbench.domain.languages import Language
 from specbench.domain.mining import SAMPLE_TASKS_PER_LANGUAGE
 from specbench.domain.pacing import DEFAULT_RUN_WINDOW, EXIT_PAUSED, RUN_WINDOW_ENV, InvalidRunWindow, RunPaused
 from specbench.domain.sealing import SealingError
 from specbench.domain.verification import VERIFICATION_RUNS
+from specbench.domain.workspace import WorkspaceLeak
 
 DEFAULT_SEED: Final = 20261007
 DEFAULT_PER_LANGUAGE: Final = 2 * SAMPLE_TASKS_PER_LANGUAGE
 USAGE_ERROR: Final = 2
+EXPECTED_FAILURES: Final = (
+    CanonicalError,
+    EnvironmentBuildError,
+    FileNotFoundError,
+    GhError,
+    InsideRepositoryError,
+    InvalidRunWindow,
+    ModelNotFrozen,
+    RecordError,
+    SealingError,
+    TreeBuildError,
+    WorkspaceLeak,
+)
+AddVerb = Callable[..., argparse.ArgumentParser]
 Handler = Callable[[argparse.Namespace, Console], int]
 
 
@@ -38,8 +56,16 @@ def _path(value: str) -> Path:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="specbench", description="Deterministic core of the spec-proof benchmark.")
     verbs = parser.add_subparsers(dest="verb", required=True)
+    _add_mining_verbs(verbs.add_parser)
+    _add_corpus_verbs(verbs.add_parser)
+    _add_task_verbs(verbs.add_parser)
+    _add_run_verbs(verbs.add_parser)
+    return parser
 
-    mine = verbs.add_parser("mine", help="mine candidate tasks through gh; --dry-run replays the archive")
+
+def _add_mining_verbs(add: AddVerb) -> None:
+
+    mine = add("mine", help="mine candidate tasks through gh; --dry-run replays the archive")
     mine.add_argument("--out", type=_path, required=True)
     mine.add_argument("--archive", type=_path, required=True, help="directory holding every archived gh response")
     mine.add_argument("--seed", type=int, default=DEFAULT_SEED)
@@ -47,44 +73,45 @@ def build_parser() -> argparse.ArgumentParser:
     mine.add_argument("--per-language", type=int, default=DEFAULT_PER_LANGUAGE)
     mine.add_argument("--dry-run", action="store_true", help="serve archived responses; no network")
 
-    keygen = verbs.add_parser("keygen", help="create an age identity outside the repository and add its recipient")
+    keygen = add("keygen", help="create an age identity outside the repository and add its recipient")
     keygen.add_argument("--identity", type=_path, required=True)
     keygen.add_argument("--recipients", type=_path, required=True)
 
-    seal = verbs.add_parser("seal", help="seal a plain task directory into the corpus and update the lock")
+
+def _add_corpus_verbs(add: AddVerb) -> None:
+    seal = add("seal", help="seal a plain task directory into the corpus and update the lock")
     seal.add_argument("--corpus", type=_path, required=True)
     seal.add_argument("--plain", type=_path, required=True)
 
-    unseal = verbs.add_parser("unseal", help="decrypt a task into a directory outside the repository")
+    unseal = add("unseal", help="decrypt a task into a directory outside the repository")
     unseal.add_argument("--corpus", type=_path, required=True)
     unseal.add_argument("--identity", type=_path, required=True)
     unseal.add_argument("--task-id", required=True)
     unseal.add_argument("--out", type=_path, required=True)
 
-    verify_corpus = verbs.add_parser("verify-corpus", help="R0 corpus check against corpus.lock.json")
+    verify_corpus = add("verify-corpus", help="R0 corpus check against corpus.lock.json")
     verify_corpus.add_argument("--corpus", type=_path, required=True)
     verify_corpus.add_argument("--identity", type=_path, default=None)
 
-    build_env = verbs.add_parser("build-env", help="build a native environment from a tree's lockfiles")
+
+def _add_task_verbs(add: AddVerb) -> None:
+    build_env = add("build-env", help="build a native environment from a tree's lockfiles")
     build_env.add_argument("--language", choices=[language.value for language in Language], required=True)
     build_env.add_argument("--source", type=_path, required=True)
     build_env.add_argument("--dest", type=_path, required=True)
 
-    verify_task = verbs.add_parser(
-        "verify-task", help=f"two-way verification, {VERIFICATION_RUNS} runs per step, no model call"
-    )
+    verify_task = add("verify-task", help=f"two-way verification, {VERIFICATION_RUNS} runs per step, no model call")
     verify_task.add_argument("--corpus", type=_path, required=True)
     verify_task.add_argument("--identity", type=_path, required=True)
     verify_task.add_argument("--task-id", required=True)
     verify_task.add_argument(
         "--clone", type=_path, required=True, help="local clone holding the base and merge commits"
     )
-    verify_task.add_argument("--env-dir", type=_path, default=None)
+    verify_task.add_argument("--env-dir", type=_path, required=True, help="the task environment built by build-env")
+    verify_task.add_argument("--python", type=_path, default=None, help="interpreter override for Python tasks")
     verify_task.add_argument("--out", type=_path, default=None)
 
-    workspace = verbs.add_parser(
-        "build-workspace", help="a fresh single-commit workspace: base tree, SPEC.md, init output"
-    )
+    workspace = add("build-workspace", help="a fresh single-commit workspace: base tree, SPEC.md, init output")
     workspace.add_argument("--corpus", type=_path, required=True)
     workspace.add_argument("--identity", type=_path, required=True)
     workspace.add_argument("--task-id", required=True)
@@ -92,18 +119,19 @@ def build_parser() -> argparse.ArgumentParser:
     workspace.add_argument("--init-dir", type=_path, default=None, help="files the product's init wrote")
     workspace.add_argument("--out", type=_path, required=True)
 
-    analyze = verbs.add_parser("analyze", help="results.json and REPORT.md from the trunk records of a run directory")
+
+def _add_run_verbs(add: AddVerb) -> None:
+    analyze = add("analyze", help="results.json and REPORT.md from the trunk records of a run directory")
     analyze.add_argument("--run", type=_path, required=True)
     analyze.add_argument("--resamples", type=int, default=BOOTSTRAP_RESAMPLES)
     analyze.add_argument("--permutations", type=int, default=DEFAULT_PERMUTATIONS)
 
-    lint = verbs.add_parser("report-lint", help="lint a rendered report")
+    lint = add("report-lint", help="lint a rendered report")
     lint.add_argument("--report", type=_path, required=True)
 
-    window = verbs.add_parser("window-status", help=f"exit 0 inside the run window, {EXIT_PAUSED} outside it")
+    window = add("window-status", help=f"exit 0 inside the run window, {EXIT_PAUSED} outside it")
     window.add_argument("--window", default=os.environ.get(RUN_WINDOW_ENV, DEFAULT_RUN_WINDOW))
     window.add_argument("--now", type=datetime.fromisoformat, default=None)
-    return parser
 
 
 def _handlers() -> dict[str, Handler]:
@@ -115,7 +143,7 @@ def _handlers() -> dict[str, Handler]:
         "verify-corpus": lambda a, c: commands.run_verify_corpus(a.corpus, a.identity, c),
         "build-env": lambda a, c: commands.run_build_env(Language(a.language), a.source, a.dest, c),
         "verify-task": lambda a, c: commands.run_verify_task(
-            a.corpus, a.identity, a.task_id, a.clone, a.env_dir, a.out, c
+            a.corpus, a.identity, a.task_id, a.clone, a.env_dir, a.python, a.out, c
         ),
         "build-workspace": lambda a, c: commands.run_build_workspace(
             a.corpus, a.identity, a.task_id, a.clone, a.init_dir, a.out, c
@@ -140,15 +168,7 @@ def run(argv: Sequence[str], console: Console | None = None) -> int:
     except MachineUnsafe as unsafe:
         console.say(f"machine unsafe: {unsafe}")
         return commands.EXIT_UNSAFE
-    except (
-        SealingError,
-        RecordError,
-        GhError,
-        IdentityLocationError,
-        InvalidRunWindow,
-        ModelNotFrozen,
-        FileNotFoundError,
-    ) as error:
+    except EXPECTED_FAILURES as error:
         console.say(f"error: {error}")
         return commands.EXIT_FAILED
 

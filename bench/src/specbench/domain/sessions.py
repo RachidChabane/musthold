@@ -30,11 +30,16 @@ class RequestKind(Enum):
 
 @dataclass(frozen=True)
 class SessionRequest:
-    """One agent session: the frozen model, the prompt, and whether it resumes or forks an earlier one."""
+    """One agent session: the frozen model, the prompt, and whether it resumes or forks an earlier one.
+
+    `key` names the call within the run (task, arm, replicate, stop or attempt). Two sessions with the same
+    prompt but different keys are different calls; the run directory resumes a call by its identity alone.
+    """
 
     harness: Harness
     model: str
     kind: SessionKind
+    key: str
     workdir: Path
     prompt: str
     resume_session_id: str | None = None
@@ -44,6 +49,7 @@ class SessionRequest:
         return {
             "fork": self.fork,
             "harness": self.harness.value,
+            "key": self.key,
             "kind": self.kind.value,
             "model": self.model,
             "prompt": self.prompt,

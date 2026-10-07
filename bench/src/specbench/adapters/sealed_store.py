@@ -48,8 +48,16 @@ def _x25519() -> _X25519:
     return cast(_X25519, importlib.import_module("pyrage.x25519"))
 
 
-class IdentityLocationError(ValueError):
-    """An identity file inside a path an agent can reach."""
+class InsideRepositoryError(ValueError):
+    """A path for sealed plaintext or an identity that lies inside the repository an agent can reach."""
+
+
+def refuse_inside_repository(path: Path, forbidden_root: Path, what: str) -> Path:
+    """The resolved path, or an error when it lies inside `forbidden_root`."""
+    resolved = path.resolve()
+    if resolved.is_relative_to(forbidden_root.resolve()):
+        raise InsideRepositoryError(f"{what} {path} is inside {forbidden_root}")
+    return resolved
 
 
 def generate_identity() -> tuple[str, str]:
@@ -77,9 +85,7 @@ class AgeSealStore:
 
 def read_identity_file(path: Path, forbidden_root: Path) -> str:
     """The identity in a file that lives outside `forbidden_root`, the repository an agent can read."""
-    resolved = path.resolve()
-    if resolved.is_relative_to(forbidden_root.resolve()):
-        raise IdentityLocationError(f"identity {path} is inside {forbidden_root}")
+    resolved = refuse_inside_repository(path, forbidden_root, "identity")
     for line in resolved.read_text(encoding="utf-8").splitlines():
         if line.startswith(IDENTITY_PREFIX):
             return line.strip()
@@ -87,9 +93,7 @@ def read_identity_file(path: Path, forbidden_root: Path) -> str:
 
 
 def write_identity_file(path: Path, identity: str, forbidden_root: Path) -> None:
-    resolved = path.resolve()
-    if resolved.is_relative_to(forbidden_root.resolve()):
-        raise IdentityLocationError(f"identity {path} would be inside {forbidden_root}")
+    resolved = refuse_inside_repository(path, forbidden_root, "identity")
     resolved.parent.mkdir(parents=True, exist_ok=True)
     resolved.write_text(identity + "\n", encoding="utf-8")
     resolved.chmod(IDENTITY_FILE_MODE)

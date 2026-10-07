@@ -113,7 +113,12 @@ def test_a_paused_run_resumes_on_the_next_night_without_repeating_recorded_calls
 
     def request(prompt: str) -> SessionRequest:
         return SessionRequest(
-            Harness.CLAUDE_CODE, FROZEN_MODEL[Harness.CLAUDE_CODE], SessionKind.TRUNK, tmp_path, prompt
+            Harness.CLAUDE_CODE,
+            FROZEN_MODEL[Harness.CLAUDE_CODE],
+            SessionKind.TRUNK,
+            "T1/claude/stop-1",
+            tmp_path,
+            prompt,
         )
 
     first_night = harness_at(datetime(2026, 10, 8, 22, 0))

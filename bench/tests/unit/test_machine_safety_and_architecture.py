@@ -32,6 +32,15 @@ def test_a_command_is_refused_below_the_free_memory_floor() -> None:
     assert inner.calls == 1
 
 
+def test_the_floor_follows_the_mem_guard_variable(monkeypatch: pytest.MonkeyPatch) -> None:
+    inner = CountingRunner()
+    monkeypatch.setenv("MEM_GUARD_MIN_FREE_PCT", "10")
+    MemoryFloorRunner(inner, lambda: 15).run(["x"])
+    monkeypatch.delenv("MEM_GUARD_MIN_FREE_PCT")
+    with pytest.raises(MachineUnsafe):
+        MemoryFloorRunner(inner, lambda: 15).run(["x"])
+
+
 def test_memory_pressure_output_is_parsed() -> None:
     match = FREE_PERCENT_LINE.search(
         "The system has 25769803776 (1572864 pages)\nSystem-wide memory free percentage: 71%\n"

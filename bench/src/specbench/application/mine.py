@@ -112,10 +112,14 @@ def mine(source: MiningSource, config: MiningConfig) -> MiningResult:
             attrition.extend(dropped)
             candidates.extend(found)
             productive += 1 if found else 0
+    sample = select_sample(config.seed, candidates)
+    attrition.extend(
+        AttritionEntry(c.label, Stage.NOT_SELECTED, "outside the seeded sample") for c in candidates if c not in sample
+    )
     return MiningResult(
         config=config,
         candidates=tuple(candidates),
         attrition=tuple(attrition),
-        sample=tuple(select_sample(config.seed, candidates)),
+        sample=tuple(sample),
         unexamined_repositories=unexamined,
     )

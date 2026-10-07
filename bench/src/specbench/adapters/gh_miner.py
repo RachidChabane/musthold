@@ -78,6 +78,8 @@ class RecordingGhClient:
 
     def get(self, path: str, params: Mapping[str, str] | None = None) -> JsonValue:
         self._directory.mkdir(parents=True, exist_ok=True)
+        if (self._directory / f"{request_key(path, params)}.json").is_file():
+            return ReplayGhClient(self._directory.parent).get(path, params)
         status, response = STATUS_OK, None
         try:
             response = self._inner.get(path, params)

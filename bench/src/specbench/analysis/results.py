@@ -15,7 +15,7 @@ from typing import Final
 
 from specbench.analysis import blind_spot, calibration, composition, judge, outcomes
 from specbench.analysis.bootstrap import ClusterTable, Statistic, wilson
-from specbench.analysis.estimate import AnalysisConfig, estimate, total
+from specbench.analysis.estimate import AnalysisConfig, Estimator, total
 from specbench.analysis.outcomes import MODES, Mode
 from specbench.analysis.selection_null import DEFAULT_PERMUTATIONS, selection_null
 from specbench.domain.arms import ACCEPTANCE_ARMS, FROZEN_MODEL, Arm, Harness
@@ -31,11 +31,11 @@ Record = dict[str, JsonValue]
 @dataclass(frozen=True)
 class Context:
     table: ClusterTable
-    config: AnalysisConfig
+    estimator: Estimator
     harness: str
 
     def est(self, statistic: Statistic) -> Record:
-        return estimate(self.table, statistic, self.config).to_record()
+        return self.estimator(statistic).to_record()
 
     def count(self, *parts: str) -> int:
         return total(self.table, "|".join([self.harness, *parts]))
@@ -224,9 +224,10 @@ def _composition(trunks: Sequence[TrunkRecord], harness: Harness) -> Record:
 
 
 def _harness_section(
-    trunks: Sequence[TrunkRecord], table: ClusterTable, config: AnalysisConfig, harness: Harness, permutations: int
+    trunks: Sequence[TrunkRecord], estimator: Estimator, harness: Harness, permutations: int
 ) -> Record:
-    ctx = Context(table, config, harness.value)
+    ctx = Context(estimator.table, estimator, harness.value)
+    config = estimator.config
     own = [t for t in trunks if t.harness is harness]
     present = [arm for arm in ACCEPTANCE_ARMS if ctx.count(arm.value, "base_n") > 0]
     section: Record = {
@@ -251,7 +252,8 @@ def _harness_section(
     return section
 
 
-def _interaction(table: ClusterTable, config: AnalysisConfig, harnesses: Sequence[Harness]) -> Record | None:
+def _interaction(estimator: Estimator, harnesses: Sequence[Harness]) -> Record | None:
+    table = estimator.table
     if len(harnesses) < 2:
         return None
     first, second = harnesses[0], harnesses[1]
@@ -261,7 +263,7 @@ def _interaction(table: ClusterTable, config: AnalysisConfig, harnesses: Sequenc
             statistic = outcomes.difference(
                 outcomes.x_loop(first.value, arm, Mode.STANDARD), outcomes.x_loop(second.value, arm, Mode.STANDARD)
             )
-            record[arm.value] = estimate(table, statistic, config).to_record()
+            record[arm.value] = estimator(statistic).to_record()
     return {"minus": second.value, "of": first.value, "x_loop_difference": record}
 
 
@@ -272,11 +274,11 @@ def analyze(
     if not trunks:
         raise ValueError("there is no trunk record to analyse")
     config = config or AnalysisConfig()
-    table = build_table(trunks)
+    estimator = Estimator(build_table(trunks), config)
     harnesses = sorted({t.harness for t in trunks}, key=lambda h: h.value)
     return {
-        "harnesses": {h.value: _harness_section(trunks, table, config, h, permutations) for h in harnesses},
-        "interaction": _interaction(table, config, harnesses),
+        "harnesses": {h.value: _harness_section(trunks, estimator, h, permutations) for h in harnesses},
+        "interaction": _interaction(estimator, harnesses),
         "label": DESCRIPTIVE_LABEL,
         "method": {"interval": INTERVAL_METHOD, "resamples": config.resamples, "seed": config.seed},
         "sample": {

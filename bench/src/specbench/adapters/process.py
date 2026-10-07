@@ -13,6 +13,7 @@ from typing import Final
 from specbench.application.ports import ProcessResult, ProcessRunner
 
 MIN_FREE_PERCENT: Final = 40
+MIN_FREE_PERCENT_ENV: Final = "MEM_GUARD_MIN_FREE_PCT"
 FREE_PERCENT_LINE: Final = re.compile(r"System-wide memory free percentage:\s*(\d+)%")
 DEFAULT_TIMEOUT_SECONDS: Final = 1800
 
@@ -38,6 +39,11 @@ class SubprocessRunner:
         return ProcessResult(completed.returncode, completed.stdout, completed.stderr)
 
 
+def min_free_percent() -> int:
+    """The free-memory floor `script/mem-guard` uses: `MEM_GUARD_MIN_FREE_PCT`, 40 by default."""
+    return int(os.environ.get(MIN_FREE_PERCENT_ENV, MIN_FREE_PERCENT))
+
+
 class MemoryFloorRunner:
     """Decorator: refuses to start a command while free memory is below the floor.
 
@@ -47,11 +53,11 @@ class MemoryFloorRunner:
     """
 
     def __init__(
-        self, inner: ProcessRunner, free_percent: Callable[[], int], minimum_percent: int = MIN_FREE_PERCENT
+        self, inner: ProcessRunner, free_percent: Callable[[], int], minimum_percent: int | None = None
     ) -> None:
         self._inner = inner
         self._free_percent = free_percent
-        self._minimum = minimum_percent
+        self._minimum = minimum_percent if minimum_percent is not None else min_free_percent()
 
     def run(self, argv: Sequence[str], cwd: Path | None = None, env: Mapping[str, str] | None = None) -> ProcessResult:
         free = self._free_percent()

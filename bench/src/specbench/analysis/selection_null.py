@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Final
@@ -45,4 +46,4 @@ def selection_null(
     pass_rate = (shuffled & defective).sum(axis=1) / shuffled.sum(axis=1)
     x = 1.0 - pass_rate / base
     lo, hi = np.percentile(x, [LOWER_PERCENTILE, UPPER_PERCENTILE])
-    return NullDistribution(permutations, float(x.mean()), float(lo), float(hi))
+    return NullDistribution(permutations, math.fsum(x.tolist()) / x.size, float(lo), float(hi))

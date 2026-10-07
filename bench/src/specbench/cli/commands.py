@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sys
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -19,7 +18,13 @@ from specbench.adapters.operator_engine import UnavailableOperatorEngine
 from specbench.adapters.oracle_runners import GoTestOracleRunner, PytestOracleRunner
 from specbench.adapters.process import MemoryFloorRunner, SubprocessRunner, system_free_percent
 from specbench.adapters.run_store import RunStore
-from specbench.adapters.sealed_store import AgeSealStore, generate_identity, read_identity_file, write_identity_file
+from specbench.adapters.sealed_store import (
+    AgeSealStore,
+    generate_identity,
+    read_identity_file,
+    refuse_inside_repository,
+    write_identity_file,
+)
 from specbench.adapters.workspace_repo import DiskTreeReader, write_workspace_repo
 from specbench.analysis.estimate import AnalysisConfig
 from specbench.analysis.lint import lint_report
@@ -100,7 +105,9 @@ def run_seal(corpus_dir: Path, plain_dir: Path, console: Console) -> int:
 
 
 def run_unseal(corpus_dir: Path, identity_path: Path, task_id: str, out: Path, console: Console) -> int:
-    identity = read_identity_file(identity_path, find_repository_root(corpus_dir))
+    root = find_repository_root(corpus_dir)
+    refuse_inside_repository(out, root, "unseal destination")
+    identity = read_identity_file(identity_path, root)
     unsealed = unseal_task(FileCorpus(corpus_dir), AgeSealStore(), identity, task_id)
     for relative, content in unsealed.bundle.files.items():
         target = out / relative
@@ -125,12 +132,11 @@ def run_build_env(language: Language, source: Path, destination: Path, console: 
     return EXIT_OK
 
 
-def _oracle_runner(language: Language, env_dir: Path | None) -> OracleRunner:
+def _oracle_runner(language: Language, env_dir: Path, python: Path | None) -> OracleRunner:
     runner = _runner()
     if language is Language.PYTHON:
-        python = python_executable(env_dir) if env_dir is not None else Path(sys.executable)
-        return PytestOracleRunner(python, runner)
-    return GoTestOracleRunner(runner, go_environment(env_dir) if env_dir is not None else {})
+        return PytestOracleRunner(python or python_executable(env_dir), runner)
+    return GoTestOracleRunner(runner, go_environment(env_dir))
 
 
 def run_verify_task(
@@ -138,14 +144,15 @@ def run_verify_task(
     identity_path: Path,
     task_id: str,
     clone: Path,
-    env_dir: Path | None,
+    env_dir: Path,
+    python: Path | None,
     out: Path | None,
     console: Console,
 ) -> int:
     identity = read_identity_file(identity_path, find_repository_root(corpus_dir))
     unsealed = unseal_task(FileCorpus(corpus_dir), AgeSealStore(), identity, task_id)
     verifier = TaskVerifier(
-        GitTreeFactory(clone), _oracle_runner(unsealed.task.language, env_dir), UnavailableOperatorEngine()
+        GitTreeFactory(clone), _oracle_runner(unsealed.task.language, env_dir, python), UnavailableOperatorEngine()
     )
     report = verifier.verify(unsealed.task, oracle_from_bundle(unsealed.bundle), unsealed.bundle)
     text = canonical_json(cast(JsonValue, report.to_record()))
@@ -158,7 +165,9 @@ def run_verify_task(
 def run_build_workspace(
     corpus_dir: Path, identity_path: Path, task_id: str, clone: Path, init_dir: Path | None, out: Path, console: Console
 ) -> int:
-    identity = read_identity_file(identity_path, find_repository_root(corpus_dir))
+    root = find_repository_root(corpus_dir)
+    refuse_inside_repository(out, root, "workspace destination")
+    identity = read_identity_file(identity_path, root)
     unsealed = unseal_task(FileCorpus(corpus_dir), AgeSealStore(), identity, task_id)
     reader = DiskTreeReader()
     init_files = reader.read(init_dir) if init_dir is not None else {}

@@ -89,9 +89,12 @@ def test_policy_pauses_outside_the_window_and_over_budget_but_never_a_resumed_ca
 
 
 def request(
-    harness: Harness = Harness.CLAUDE_CODE, prompt: str = "implement the spec", model: str | None = None
+    harness: Harness = Harness.CLAUDE_CODE,
+    prompt: str = "implement the spec",
+    model: str | None = None,
+    key: str = "T1/trunk/stop-1",
 ) -> SessionRequest:
-    return SessionRequest(harness, model or FROZEN_MODEL[harness], SessionKind.TRUNK, Path("w"), prompt)
+    return SessionRequest(harness, model or FROZEN_MODEL[harness], SessionKind.TRUNK, key, Path("w"), prompt)
 
 
 def paced(
@@ -115,6 +118,17 @@ def test_a_new_call_is_archived_charged_and_a_repeat_is_free() -> None:
     assert inner.calls == 1
     assert ledger.ledger.calls_on(date(2026, 10, 8), Harness.CLAUDE_CODE) == 1
     assert len(calls.records) == 1
+
+
+def test_identical_prompts_with_different_keys_are_different_calls() -> None:
+    harness, inner, calls, ledger = paced(ok, budget=5)
+    prompt = "run prove-all in the clean-room copy"
+    harness.run_session(request(prompt=prompt, key="T1/ALL/stop-1"))
+    harness.run_session(request(prompt=prompt, key="T2/ALL/stop-1"))
+    harness.run_session(request(prompt=prompt, key="T1/ALL/stop-1"))
+    assert inner.calls == 2 and len(calls.records) == 2
+    assert request(prompt=prompt, key="a").call_id != request(prompt=prompt, key="b").call_id
+    assert ledger.ledger.calls_on(date(2026, 10, 8), Harness.CLAUDE_CODE) == 2
 
 
 def test_the_budget_pauses_new_calls_and_resumed_calls_still_pass() -> None:

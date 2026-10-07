@@ -200,6 +200,22 @@ def test_the_seed_fixes_the_order_and_the_sample_uses_distinct_repositories() ->
     assert [c.repository for c in sample if c.language is Language.GO] == ["acme/goblin"]
 
 
+def test_candidates_outside_the_sample_are_logged_as_not_selected() -> None:
+    result = mine(GitHubSource(FakeGitHub(world())), CONFIG)
+    unselected = {e.subject for e in result.attrition if e.stage is Stage.NOT_SELECTED}
+    assert unselected == {c.label for c in result.candidates} - {c.label for c in result.sample}
+    assert attrition_counts(result.attrition)["not-selected"] == len(unselected) > 0
+
+
+def test_a_recorder_resumes_from_its_archive_without_calling_the_network_again(tmp_path: Path) -> None:
+    live = FakeGitHub(world())
+    first = mine(GitHubSource(RecordingGhClient(live, tmp_path)), CONFIG)
+    requests = len(live.requests)
+    again = mine(GitHubSource(RecordingGhClient(live, tmp_path)), CONFIG)
+    assert len(live.requests) == requests
+    assert [c.label for c in again.candidates] == [c.label for c in first.candidates]
+
+
 def test_task_ids_are_upper_case_slugs() -> None:
     result = mine(GitHubSource(FakeGitHub(world())), CONFIG)
     candidate = next(c for c in result.candidates if c.repository == "acme/goblin")
