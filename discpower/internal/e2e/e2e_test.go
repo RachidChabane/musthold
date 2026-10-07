@@ -10,9 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/testkit/parcel"
+	"github.com/RachidChabane/spec-proof/format/formattest/parcel"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest/claudecode"
 )
 
 const (
@@ -145,7 +146,7 @@ func TestHonestHostEndToEnd(t *testing.T) {
 	host := p.claudeHost()
 	var last result
 	t.Run("the executor server and the hooks serve the honest host through the waves [verifies SP-250~1]", func(t *testing.T) {
-		last = p.settle(func() int { return host.serve(parcel.Oracle{}) })
+		last = p.settle(func() int { return host.Serve(parcel.Oracle{}) })
 		if last.code == exitAwaiting || last.code == 2 {
 			t.Fatalf("prove ended with exit %d:\n%s", last.code, last.output())
 		}
@@ -159,8 +160,8 @@ func TestHonestHostEndToEnd(t *testing.T) {
 
 	t.Run("a main-session call of an executor tool is denied and left in the journal [verifies SP-250~1]", func(t *testing.T) {
 		ticket := p.firstJournaledTicket()
-		denied, code := host.fire(hostproto.HookPreTool, map[string]any{
-			"hook_event_name": "PreToolUse", "session_id": sessionID, "tool_name": host.harness.ToolName(hostproto.ToolFetchRequest),
+		denied, code := host.Fire(hostproto.HookPreTool, map[string]any{
+			"hook_event_name": "PreToolUse", "session_id": claudecode.SessionID, "tool_name": p.module().ToolName(hostproto.ToolFetchRequest),
 			"tool_input": map[string]string{"ticket": ticket, "cap": ""},
 		})
 		if code != exitClean || denied.Permission != "deny" {
@@ -171,24 +172,18 @@ func TestHonestHostEndToEnd(t *testing.T) {
 		}
 	})
 
-	t.Run("Shallnot refuses the project, and the reason is the form of the Statement inputs, not the verdicts [verifies SP-250~1]", func(t *testing.T) {
+	t.Run("Shallnot refuses the project for the weak criterion alone, with the verdict the module reached [verifies SP-250~1]", func(t *testing.T) {
 		p.writeVerifiedSet(nil)
 		check := p.check()
 		if check.code != exitBlocked {
 			t.Fatalf("shallnot check exited %d:\n%s", check.code, check.output())
 		}
-		// The module records the code, test and spec inputs of a Statement one file or
-		// one statement at a time, while Shallnot recomputes them as the digest of a file
-		// set, so it reads every Statement as stale. The pass of PAR-1 and PAR-2 and the
-		// block of PAR-3 that the module reached therefore cannot be told apart by
-		// `shallnot check` yet: this step asserts the findings that are really there and
-		// does not claim a verdict it cannot reach.
-		if len(check.findings) != 3 {
-			t.Fatalf("findings = %+v", check.findings)
+		if len(check.findings) == 0 {
+			t.Fatal("the weak criterion raised no finding")
 		}
 		for _, f := range check.findings {
-			if f.Category != "stale_proof" || !f.Blocking || !strings.Contains(f.Message, "code_tree") {
-				t.Errorf("finding %+v is not a stale code_tree proof", f)
+			if f.Requirement != "PAR-3" || f.Category != "surviving_valid_mutant" || !f.Blocking {
+				t.Errorf("finding %+v is not a surviving valid mutant of PAR-3", f)
 			}
 		}
 	})
@@ -263,19 +258,19 @@ func TestHooklessHostFailsClosedEndToEnd(t *testing.T) {
 	p := newProject(t)
 	p.equip()
 	p.start()
-	server := p.startServer()
+	host := p.claudeHost()
 	t.Run("a host whose hooks never fire cannot get an answer accepted [verifies SP-251~1]", func(t *testing.T) {
 		for wave := 0; wave < 2; wave++ {
-			listing := (&claudeHost{t: t, project: p, server: server}).listPending()
+			listing := host.ListPending()
 			if len(listing.Items) == 0 {
 				t.Fatal("no ticket waits")
 			}
 			for _, item := range listing.Items {
-				fetched := server.call(hostproto.ToolFetchRequest, mustJSON(t, map[string]string{"ticket": item.Ticket.TicketID.String(), "cap": ""}))
+				fetched := host.Server.Call(hostproto.ToolFetchRequest, mustJSON(t, map[string]string{"ticket": item.Ticket.TicketID.String(), "cap": ""}))
 				if !fetched.IsError || !strings.Contains(fetched.Text, "capability missing") {
 					t.Fatalf("an uncapped fetch of %s: %+v", item.Ticket.TicketID, fetched)
 				}
-				submitted := server.call(hostproto.ToolSubmitResponse, mustJSON(t, map[string]any{
+				submitted := host.Server.Call(hostproto.ToolSubmitResponse, mustJSON(t, map[string]any{
 					"ticket": item.Ticket.TicketID.String(), "nonce": item.Ticket.Nonce, "output": json.RawMessage(`{"validity":"VALID"}`), "cap": "",
 				}))
 				if !submitted.IsError {

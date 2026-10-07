@@ -59,22 +59,19 @@ func guardMemory(t *testing.T) {
 	}
 }
 
-// shallnotBinary returns the Shallnot built at the pinned commit, building it
-// with script/shallnot-build when it is not there. The test is skipped, with the
-// reason, when the pinned source is unavailable.
+// shallnotBinary returns the Shallnot built at the pinned commit. The build script
+// is a no-op while the binary matches the pin, so it always runs: a binary of
+// another commit is never used. The test is skipped, with the reason, when the
+// pinned source is unavailable.
 func shallnotBinary(t *testing.T) string {
 	t.Helper()
 	root := abs(t, repositoryRoot)
-	binary := filepath.Join(root, filepath.FromSlash(shallnotRelative))
-	if _, err := os.Stat(binary); err == nil {
-		return binary
-	}
 	command := exec.Command("bash", filepath.Join(root, buildScript))
 	command.Dir = root
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Skipf("the pinned Shallnot is not available (%v): %s", err, strings.TrimSpace(string(output)))
 	}
-	return binary
+	return filepath.Join(root, filepath.FromSlash(shallnotRelative))
 }
 
 // productBinary builds the binary the tests drive, once, under nice and with

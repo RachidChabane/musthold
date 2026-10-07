@@ -14,10 +14,10 @@ import (
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
 
-// The verifier module of the repository does not write the verified proof set yet:
-// `spec-proof-verify` only prints its version. These helpers stand in for it in
-// the end-to-end tests, so that Shallnot reads a verified set made of what the
-// module under test produced. They are test support and ship nowhere.
+// These helpers publish what the module wrote as a verified set with local trust,
+// listing the given criteria as pending, without running the verifier binary: the
+// tests that drive one module alone need a set Shallnot reads, not the verifier. They
+// are test support and ship nowhere.
 const (
 	statementsDirectory = ".spec-proof/cache/discriminating-power"
 	verifiedDirectory   = ".spec-proof/verified"

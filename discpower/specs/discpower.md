@@ -567,7 +567,8 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   real executor server until `prove` ends with a pass for the adequate tests and a
   block for the weak one, journal the executors as started, fetched, accepted,
   attested and reported with no leak, exposure or conflict, deny a main-session
-  call of an executor tool, and have `shallnot check` refuse the project.
+  call of an executor tool, and have `shallnot check` refuse the project for the
+  weak criterion alone with a surviving valid mutant.
 - **SP-251~1**: WHEN a forger answers every ticket from the command line, or a host
   runs executors whose hooks never fire, THE SYSTEM SHALL give no criterion a
   pass, accept no uncapped answer, write no Statement for a hookless host and
