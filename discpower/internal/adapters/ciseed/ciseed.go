@@ -11,11 +11,12 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
 )
 
 const (
-	directory             = "seeds"
+	directory             = format.SeedsDirectory
 	extension             = ".json"
 	dirMode   os.FileMode = 0o755
 	fileMode              = 0o644

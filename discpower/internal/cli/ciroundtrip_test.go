@@ -16,8 +16,9 @@ import (
 const (
 	ciRunID        = "1001"
 	maxCIRounds    = 4
-	issuedRelative = ".spec-proof/ci-issued"
-	seedsRelative  = ".spec-proof/cache/seeds"
+	issuedRelative = ".spec-proof/ci-issued/discpower"
+	seedsRelative  = ".spec-proof/seeds"
+	cacheRelative  = ".spec-proof/cache"
 )
 
 // extractRef unpacks the tree of a ref into dir, as the CI job that fetches the
@@ -41,7 +42,7 @@ func TestCIRoundTrip(t *testing.T) {
 	if testing.Short() {
 		t.Skip("proves the parcel project twice and answers CI's requests")
 	}
-	t.Run("answers pushed from the laptop settle CI's run, and the requests CI issues come back as tickets until it ends [verifies SP-249~1]", func(t *testing.T) {
+	t.Run("answers pushed from the laptop settle CI's run, and the requests CI issues come back as tickets until it ends [verifies SP-249~2]", func(t *testing.T) {
 		shared := t.TempDir()
 		laptop := newHarness(t, shared)
 		commitProject(t, laptop.root)
@@ -100,6 +101,9 @@ func TestCIRoundTrip(t *testing.T) {
 		seeds, err := os.ReadDir(filepath.Join(ci.root, filepath.FromSlash(seedsRelative)))
 		if err != nil || len(seeds) != 1 || !strings.HasSuffix(seeds[0].Name(), ".json") {
 			t.Fatalf("seeds = %v, %v", seeds, err)
+		}
+		if _, err := os.Stat(filepath.Join(ci.root, filepath.FromSlash(cacheRelative), "seeds")); err == nil {
+			t.Fatal("the seed record is in the statement cache, which holds statements only")
 		}
 	})
 }

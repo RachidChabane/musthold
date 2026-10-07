@@ -302,12 +302,12 @@ traces them to the Go tests of the module in CI.
   the run with `gh`, refuse a download that fails or a bundle that is not one, and
   make tickets of the requests it holds once, with the votes and the queue metadata
   CI gave them.
-- **SP-790~1**: WHEN `prove --ci` runs THE SYSTEM SHALL produce the Statements as CI,
+- **SP-790~2**: WHEN `prove --ci` runs THE SYSTEM SHALL produce the Statements as CI,
   serve the tickets it is asking for from the bundle given with `--import-host` through
   the same checks as any answer, ignore what the bundle holds that it does not ask
   for, leave the other tickets pending, mark again what the pushing host marked,
   refuse a bundle of another version that left requests unanswered, leave the
-  requests that remain where the CI job uploads them from, and refuse `--import-host`
+  requests that remain in `.spec-proof/ci-issued/completeness`, where the CI job uploads them from, and refuse `--import-host`
   without `--ci` and `--ci` with `--record` or `--replay`.
 - **SP-791~1**: WHEN a project is equipped with Shallnot and the module, edited and proved
   THE SYSTEM SHALL let a simulated Claude Code host answer every ticket through the

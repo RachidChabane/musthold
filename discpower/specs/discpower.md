@@ -733,14 +733,15 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   artifact of the run with `gh`, refuse a download that fails or a bundle that is
   not one, and make tickets of the requests it holds once, with the votes and the
   queue metadata CI gave them.
-- **SP-249~1**: WHEN `prove --ci` runs THE SYSTEM SHALL draw the seed of the head
-  commit from the first CI run, record it and reuse it on every later run of the
+- **SP-249~2**: WHEN `prove --ci` runs THE SYSTEM SHALL draw the seed of the head
+  commit from the first CI run, record it in `.spec-proof/seeds/<head sha>.json`,
+  outside the cache of statements, and reuse it on every later run of the
   commit, produce the Statements as CI, serve the tickets it is asking for from the
   bundle given with `--import-host` through the same checks as any answer, ignore
   what the bundle holds that it does not ask for, leave the other tickets pending,
   mark again what the pushing host marked, refuse a bundle of another version that
-  left requests unanswered, and leave the requests that remain where the CI job
-  uploads them from.
+  left requests unanswered, and leave the requests that remain in
+  `.spec-proof/ci-issued/discpower`, where the CI job uploads them from.
 
 ## End to end
 

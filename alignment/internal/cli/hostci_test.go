@@ -17,7 +17,7 @@ const (
 	maxCIRounds    = 8
 	ciFlag         = "--ci"
 	importFlag     = "--import-host"
-	issuedRelative = ".spec-proof/ci-issued"
+	issuedRelative = ".spec-proof/ci-issued/alignment"
 	issuedDocument = "issued.json"
 )
 
@@ -39,7 +39,7 @@ func extractRef(t *testing.T, root, ref, dir string) {
 }
 
 func TestProveCIFlags(t *testing.T) {
-	t.Run("--import-host without --ci and --ci with --record or --replay are refused before anything runs [verifies SP-750~1]", func(t *testing.T) {
+	t.Run("--import-host without --ci and --ci with --record or --replay are refused before anything runs [verifies SP-750~2]", func(t *testing.T) {
 		h := newHarness(t, testkit.PythonParcel)
 		if code, _, _ := h.run(nil, proveCommand, importFlag, t.TempDir()); code != cli.ExitToolFailure {
 			t.Errorf("--import-host alone exit = %d", code)
@@ -55,7 +55,7 @@ func TestProveCIFlags(t *testing.T) {
 		}
 	})
 
-	t.Run("--ci needs no run identifier and no repository, and leaves the requests nobody answered for the host to pull [verifies SP-750~1]", func(t *testing.T) {
+	t.Run("--ci needs no run identifier and no repository, and leaves the requests nobody answered for the host to pull [verifies SP-750~2]", func(t *testing.T) {
 		h := newHarness(t, testkit.PythonParcel)
 		h.withPowers(testkit.PythonPowers())
 		code, output, stderr := h.run(nil, proveCommand, allFlag, ciFlag)
@@ -76,14 +76,14 @@ func TestProveCIFlags(t *testing.T) {
 		}
 	})
 
-	t.Run("a bundle that is not one is refused [verifies SP-750~1]", func(t *testing.T) {
+	t.Run("a bundle that is not one is refused [verifies SP-750~2]", func(t *testing.T) {
 		h := newHarness(t, testkit.PythonParcel)
 		if code, _, _ := h.run(nil, proveCommand, ciFlag, importFlag, t.TempDir()); code != cli.ExitBlocked {
 			t.Errorf("an empty directory exit = %d", code)
 		}
 	})
 
-	t.Run("the Statements of a CI run are marked as produced by CI [verifies SP-750~1]", func(t *testing.T) {
+	t.Run("the Statements of a CI run are marked as produced by CI [verifies SP-750~2]", func(t *testing.T) {
 		h := newHarness(t, testkit.PythonParcel)
 		h.withPowers(testkit.PythonPowers())
 		code, _ := h.driveAttested(testkit.Oracle{}, ciFlag)
@@ -106,7 +106,7 @@ func TestCIRoundTrip(t *testing.T) {
 	if testing.Short() {
 		t.Skip("proves the parcel project twice and answers CI's requests")
 	}
-	t.Run("answers pushed from the laptop settle CI's run, and the requests CI issues come back as tickets until it ends [verifies SP-750~1]", func(t *testing.T) {
+	t.Run("answers pushed from the laptop settle CI's run, and the requests CI issues come back as tickets until it ends [verifies SP-750~2]", func(t *testing.T) {
 		laptop := newHarness(t, testkit.PythonParcel)
 		laptop.withPowers(testkit.PythonPowers())
 		head := commitProject(t, laptop.root)

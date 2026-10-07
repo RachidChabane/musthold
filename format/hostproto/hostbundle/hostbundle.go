@@ -32,6 +32,9 @@ const (
 	RequestsDirectory = "requests"
 	// RefNamespace is the namespace of the refs a push writes.
 	RefNamespace = "refs/spec-proof/host"
+	// IssuedRoot is the project directory that holds the requests CI issues, one
+	// directory per module below it, so that no module overwrites another's.
+	IssuedRoot = ".spec-proof/ci-issued"
 	// IssuedArtifactPrefix starts the name of the artifact CI uploads its issued
 	// requests as; the module name ends it.
 	IssuedArtifactPrefix = "spec-proof-host-"
@@ -253,6 +256,32 @@ func (b IssuedBundle) Files() ([]File, error) {
 	}
 	slices.SortFunc(files[1:], func(a, c File) int { return cmp.Compare(a.Path, c.Path) })
 	return files, nil
+}
+
+// IssuedDirectory is where a module's CI run leaves the requests it issues,
+// relative to the project; the CI job uploads it as the artifact IssuedArtifact
+// names.
+func IssuedDirectory(module string) string { return IssuedRoot + pathSeparator + module }
+
+// IssuedFilesOf returns the files of a module's issued bundle in a downloaded
+// artifact: the artifact itself when its root holds the manifest, and otherwise
+// the files below the directory of the module, which is how an artifact looks that
+// was uploaded from IssuedRoot.
+func IssuedFilesOf(files map[string][]byte, module string) map[string][]byte {
+	if _, found := files[IssuedManifestFile]; found {
+		return files
+	}
+	prefix := module + pathSeparator
+	below := map[string][]byte{}
+	for path, content := range files {
+		if rest, found := strings.CutPrefix(path, prefix); found {
+			below[rest] = content
+		}
+	}
+	if len(below) == 0 {
+		return files
+	}
+	return below
 }
 
 // DecodeIssued reads an issued bundle. Every request must hash to the id of its

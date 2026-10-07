@@ -12,7 +12,7 @@ import (
 const commit = "0123456789abcdef0123456789abcdef01234567"
 
 func TestResolve(t *testing.T) {
-	t.Run("the first run draws the seed from the commit and itself and records it [verifies SP-249~1]", func(t *testing.T) {
+	t.Run("the first run draws the seed from the commit and itself and records it [verifies SP-249~2]", func(t *testing.T) {
 		dir := t.TempDir()
 		record, err := ciseed.Resolve(dir, commit, "1001")
 		if err != nil {
@@ -26,7 +26,7 @@ func TestResolve(t *testing.T) {
 		}
 	})
 
-	t.Run("a later run of the commit reuses the first seed, whatever run it is [verifies SP-249~1]", func(t *testing.T) {
+	t.Run("a later run of the commit reuses the first seed, whatever run it is [verifies SP-249~2]", func(t *testing.T) {
 		dir := t.TempDir()
 		first, err := ciseed.Resolve(dir, commit, "1001")
 		if err != nil {
@@ -38,7 +38,7 @@ func TestResolve(t *testing.T) {
 		}
 	})
 
-	t.Run("a new commit draws a new seed [verifies SP-249~1]", func(t *testing.T) {
+	t.Run("a new commit draws a new seed [verifies SP-249~2]", func(t *testing.T) {
 		dir := t.TempDir()
 		first, _ := ciseed.Resolve(dir, commit, "1001")
 		other, err := ciseed.Resolve(dir, "fedcba9876543210fedcba9876543210fedcba98", "1001")
@@ -47,7 +47,7 @@ func TestResolve(t *testing.T) {
 		}
 	})
 
-	t.Run("a head that is not a commit id and a damaged record are refused [verifies SP-249~1]", func(t *testing.T) {
+	t.Run("a head that is not a commit id and a damaged record are refused [verifies SP-249~2]", func(t *testing.T) {
 		dir := t.TempDir()
 		for _, head := range []string{"", "main", "../../etc/passwd", "ABC"} {
 			if _, err := ciseed.Resolve(dir, head, "1"); err == nil {

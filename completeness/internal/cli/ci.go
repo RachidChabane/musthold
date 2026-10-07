@@ -13,10 +13,6 @@ import (
 	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
-// issuedDirectory is where a CI run leaves the requests it issues, relative to
-// the project, for the job to upload as an artifact.
-const issuedDirectory = stateDirectory + "/ci-issued"
-
 // ciRun is the CI part of a `prove` invocation.
 type ciRun struct {
 	enabled   bool
@@ -80,7 +76,7 @@ func (e Env) writeIssued(project *project) error {
 	if err != nil {
 		return err
 	}
-	if err := bundlefs.Write(filepath.Join(project.root, filepath.FromSlash(issuedDirectory)), files); err != nil {
+	if err := bundlefs.Write(filepath.Join(project.root, filepath.FromSlash(hostbundle.IssuedDirectory(hostModule))), files); err != nil {
 		return fmt.Errorf("write the issued requests: %w", err)
 	}
 	return nil

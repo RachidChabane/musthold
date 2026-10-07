@@ -192,7 +192,7 @@ func TestHostPull(t *testing.T) {
 }
 
 func TestProveCIFlags(t *testing.T) {
-	t.Run("--import-host without --ci and --ci with --replay are refused before anything runs [verifies SP-249~1]", func(t *testing.T) {
+	t.Run("--import-host without --ci and --ci with --replay are refused before anything runs [verifies SP-249~2]", func(t *testing.T) {
 		h := newHarness(t, "")
 		if code, _, _ := h.run(nil, proveCommand, "--import-host", t.TempDir()); code != cli.ExitToolFailure {
 			t.Errorf("--import-host alone exit = %d", code)
@@ -202,7 +202,7 @@ func TestProveCIFlags(t *testing.T) {
 		}
 	})
 
-	t.Run("--ci needs the run that first saw the commit, and a repository [verifies SP-249~1]", func(t *testing.T) {
+	t.Run("--ci needs the run that first saw the commit, and a repository [verifies SP-249~2]", func(t *testing.T) {
 		h := newHarness(t, "")
 		if code, _, _ := h.run(nil, proveCommand, "--ci"); code != cli.ExitToolFailure {
 			t.Errorf("outside a repository exit = %d", code)
@@ -214,7 +214,7 @@ func TestProveCIFlags(t *testing.T) {
 		}
 	})
 
-	t.Run("a bundle that is not one is refused [verifies SP-249~1]", func(t *testing.T) {
+	t.Run("a bundle that is not one is refused [verifies SP-249~2]", func(t *testing.T) {
 		h := newHarness(t, "")
 		commitProject(t, h.root)
 		t.Setenv("SPEC_PROOF_CI_RUN_ID", "1001")

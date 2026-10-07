@@ -249,3 +249,34 @@ func TestIssuedBundle(t *testing.T) {
 		}
 	})
 }
+
+func TestIssuedLocation(t *testing.T) {
+	t.Run("each module leaves its requests in a directory of its own below the issued root [verifies SP-1602~1]", func(t *testing.T) {
+		dp, alignment := hostbundle.IssuedDirectory("discpower"), hostbundle.IssuedDirectory("alignment")
+		if dp != ".spec-proof/ci-issued/discpower" || alignment != ".spec-proof/ci-issued/alignment" || dp == alignment {
+			t.Fatalf("directories %q and %q", dp, alignment)
+		}
+		if !strings.HasPrefix(dp, hostbundle.IssuedRoot+"/") {
+			t.Fatalf("%q is not below %q", dp, hostbundle.IssuedRoot)
+		}
+	})
+
+	t.Run("an artifact holds the issued bundle at its root or below the directory of its module [verifies SP-1602~1]", func(t *testing.T) {
+		manifest, request := []byte("[]"), []byte("{}")
+		flat := map[string][]byte{"issued.json": manifest, "requests/a.json": request}
+		if got := hostbundle.IssuedFilesOf(flat, "discpower"); len(got) != 2 || string(got["issued.json"]) != "[]" {
+			t.Errorf("flat artifact: %v", got)
+		}
+		nested := map[string][]byte{"discpower/issued.json": manifest, "discpower/requests/a.json": request, "alignment/issued.json": []byte("other")}
+		got := hostbundle.IssuedFilesOf(nested, "discpower")
+		if len(got) != 2 || string(got["issued.json"]) != "[]" || string(got["requests/a.json"]) != "{}" {
+			t.Errorf("nested artifact: %v", got)
+		}
+		if other := hostbundle.IssuedFilesOf(nested, "alignment"); len(other) != 1 || string(other["issued.json"]) != "other" {
+			t.Errorf("another module's directory: %v", other)
+		}
+		if none := hostbundle.IssuedFilesOf(map[string][]byte{"stray": request}, "discpower"); len(none) != 1 {
+			t.Errorf("a stray file: %v", none)
+		}
+	})
+}

@@ -160,7 +160,7 @@ func (e Env) pull(root, run, repository, artifact string) outcome {
 	if err != nil {
 		return outcome{err: err}
 	}
-	issued, err := hostbundle.DecodeIssued(files)
+	issued, err := hostbundle.DecodeIssued(hostbundle.IssuedFilesOf(files, hostModule))
 	if err != nil {
 		return outcome{err: refusal{err}}
 	}

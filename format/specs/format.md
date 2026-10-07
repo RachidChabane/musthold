@@ -437,6 +437,11 @@ Go tests of the module in CI.
   THE SYSTEM SHALL export the requests whose tickets wait, in full, with their
   votes, criteria and purpose, import each once as tickets on another machine,
   and refuse a request the manifest does not list.
+- **SP-1602~1**: WHEN a module's CI run leaves the requests it issues THE SYSTEM
+  SHALL name one directory per module below `.spec-proof/ci-issued`, so that no
+  module overwrites the requests of another, and WHEN the artifact a CI job
+  uploaded is read THE SYSTEM SHALL take the issued bundle from the root of the
+  artifact or from the directory of the module below it.
 - **SP-717~1**: WHEN a module is installed into a project THE SYSTEM SHALL write
   the module's configuration seed and ignore its local state, install the files
   of each selected harness (`auto`, `none` or a list) by merging into every file
