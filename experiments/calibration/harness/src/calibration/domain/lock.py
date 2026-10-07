@@ -8,7 +8,7 @@ from enum import Enum
 from typing import Final
 
 from calibration.domain.canonical import JsonValue
-from calibration.domain.jsonread import RecordError, enum_of, integer, mapping, optional_text, text
+from calibration.domain.jsonread import RecordError, enum_of, integer, json_object, mapping, optional_text, text
 
 MEMORY_FIT_REASON: Final = "memory-fit"
 MEMORY_PRESSURE_REASON: Final = "memory-pressure"
@@ -64,7 +64,7 @@ class ModelsLock:
     ollama_version: str
     kev_commit: str
     models: Mapping[str, LockedModel]
-    record: Mapping[str, object]
+    record: Mapping[str, JsonValue]
 
     @classmethod
     def from_record(cls, raw: object) -> ModelsLock:
@@ -79,7 +79,7 @@ class ModelsLock:
             ollama_version=text(mapping(body.get("ollama"), "lock.ollama").get("version"), "lock.ollama.version"),
             kev_commit=text(mapping(body.get("kev"), "lock.kev").get("commit"), "lock.kev.commit"),
             models=entries,
-            record=body,
+            record=json_object(raw, "models.lock"),
         )
 
     def entry(self, model_id: str) -> LockedModel:

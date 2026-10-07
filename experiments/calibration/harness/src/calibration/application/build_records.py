@@ -24,6 +24,7 @@ from calibration.domain.constants import (
     SCHEDULE_FILE,
 )
 from calibration.domain.deviations import DeviationKind
+from calibration.domain.provenance_rules import builder_rollup
 from calibration.domain.schedule import Schedule
 
 CHECK_FILE: Final = "builder_check.json"
@@ -118,6 +119,7 @@ class BuildRecordsWriter:
             "prereg_commit": facts.prereg_commit,
             "harness_commit": facts.harness_commit,
             "harness_clean": facts.harness_clean,
+            "builder_digest": builder_rollup(facts.build.binary_digests),
             "pilot": {
                 "freeze_tag": PILOT_FREEZE_TAG,
                 "freeze_commit": facts.pilot_freeze_commit,

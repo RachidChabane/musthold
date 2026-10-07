@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Final
 
+from calibration.domain.canonical import canonical_json, sha256_hex
 from calibration.domain.lock import LockedModel, ModelsLock
 from calibration.domain.models import ModelSpec
 
@@ -45,3 +46,8 @@ def harness_changes(recorded: Mapping[str, str], current: Mapping[str, str]) -> 
         for key in sorted(recorded)
         if current.get(key) != recorded[key]
     ]
+
+
+def builder_rollup(binary_digests: Mapping[str, str]) -> str:
+    """One digest of the builder binaries, keyed by binary name: what a block compares with the manifest."""
+    return sha256_hex(canonical_json(dict(binary_digests)))

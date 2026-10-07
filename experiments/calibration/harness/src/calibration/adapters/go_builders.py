@@ -198,6 +198,7 @@ def _decode_outcome(entry: object) -> DecodeOutcome:
         error=optional_text(body.get("error"), "error"),
         model=optional_text(body.get("model"), "model"),
         answers=tuple(_decoded_answer(answer) for answer in sequence(body.get("answers", []), "answers")),
+        document=optional_text(body.get("document"), "document"),
     )
 
 

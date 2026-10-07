@@ -139,7 +139,8 @@ class DecodedAnswer:
 
 @dataclass(frozen=True)
 class DecodeOutcome:
-    """`accepted` is False for a reply the relay refuses (RELAY_REFUSED); `stage` and `error` say where and why."""
+    """`accepted` is False for a reply the relay refuses (RELAY_REFUSED); `stage` and `error` say where and why.
+    `document` is the answer document the module's import stores, verbatim."""
 
     key: str
     accepted: bool
@@ -147,6 +148,7 @@ class DecodeOutcome:
     error: str | None
     model: str | None
     answers: tuple[DecodedAnswer, ...]
+    document: str | None = None
 
 
 @dataclass(frozen=True)

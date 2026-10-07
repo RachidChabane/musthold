@@ -25,6 +25,7 @@ class ModelSpec:
     identifier: str
     flavour: Flavour
     repository: str | None = None
+    parameters_billion: float = 0.0
 
     @property
     def is_ollama(self) -> bool:
@@ -41,12 +42,12 @@ class ModelSpec:
 
 
 MODELS: Final = (
-    ModelSpec("M1", "nimble 9B", "nimble:9b", Flavour.OLLAMA),
-    ModelSpec("M2", "tev1 4B", "tev1:4b", Flavour.OLLAMA),
-    ModelSpec("M3", "tev1 0.8B", "tev1:0.8b", Flavour.OLLAMA),
-    ModelSpec("M4", "Kev 0.8B", "kev-0.8b", Flavour.KEV, f"{KEV_HUB_OWNER}/kev-0.8b"),
-    ModelSpec("M5", "Kev 4B", "kev-4b", Flavour.KEV, f"{KEV_HUB_OWNER}/kev-4b"),
-    ModelSpec("M6", "Kev 9B", "kev-9b", Flavour.KEV, f"{KEV_HUB_OWNER}/kev-9b"),
+    ModelSpec("M1", "nimble 9B", "nimble:9b", Flavour.OLLAMA, parameters_billion=9.0),
+    ModelSpec("M2", "tev1 4B", "tev1:4b", Flavour.OLLAMA, parameters_billion=4.0),
+    ModelSpec("M3", "tev1 0.8B", "tev1:0.8b", Flavour.OLLAMA, parameters_billion=0.8),
+    ModelSpec("M4", "Kev 0.8B", "kev-0.8b", Flavour.KEV, f"{KEV_HUB_OWNER}/kev-0.8b", 0.8),
+    ModelSpec("M5", "Kev 4B", "kev-4b", Flavour.KEV, f"{KEV_HUB_OWNER}/kev-4b", 4.0),
+    ModelSpec("M6", "Kev 9B", "kev-9b", Flavour.KEV, f"{KEV_HUB_OWNER}/kev-9b", 9.0),
 )
 MODEL_BY_ID: Final = {model.model_id: model for model in MODELS}
 BLOCK_ORDER: Final = ("M3", "M2", "M1", "M4", "M5", "M6")
