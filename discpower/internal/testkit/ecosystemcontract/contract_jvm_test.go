@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/jvm"
+	jvmmutation "github.com/RachidChabane/spec-proof/discpower/internal/adapters/mutation/jvm"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/treesitter"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
@@ -31,7 +32,7 @@ const (
 )
 
 func jvmDependencies(a ecosystemcontract.Adapters) jvm.Dependencies {
-	return jvm.Dependencies{Process: a.Process, Reader: a.Reader, Locator: treesitter.NewLocator()}
+	return jvm.Dependencies{Process: a.Process, Reader: a.Reader, Locator: treesitter.NewLocator(), Assignments: jvmmutation.New()}
 }
 
 func mavenSubject(t *testing.T) ecosystemcontract.Subject {
@@ -120,17 +121,17 @@ func kotlinSubject(t *testing.T) ecosystemcontract.Subject {
 // TestEcosystemContractJVM runs the contract of the JVM strategies one after the
 // other; each build spawns a JVM and the machine runs one at a time.
 func TestEcosystemContractJVM(t *testing.T) {
-	t.Run("maven with java", func(t *testing.T) {
+	t.Run("maven with java [verifies SP-1123~1]", func(t *testing.T) {
 		jvmenv.Require(t)
 		jvmenv.FetchMaven(t, filepath.Join(fixturesRoot, mavenFixture))
 		ecosystemcontract.Run(t, mavenSubject(t))
 	})
-	t.Run("gradle with java", func(t *testing.T) {
+	t.Run("gradle with java [verifies SP-1123~1]", func(t *testing.T) {
 		jvmenv.Require(t)
 		jvmenv.FetchGradle(t, filepath.Join(fixturesRoot, gradleFixture))
 		ecosystemcontract.Run(t, gradleSubject(t))
 	})
-	t.Run("gradle with kotlin", func(t *testing.T) {
+	t.Run("gradle with kotlin [verifies SP-1123~1]", func(t *testing.T) {
 		jvmenv.Require(t)
 		jvmenv.FetchGradle(t, filepath.Join(fixturesRoot, kotlinFixture))
 		ecosystemcontract.Run(t, kotlinSubject(t))

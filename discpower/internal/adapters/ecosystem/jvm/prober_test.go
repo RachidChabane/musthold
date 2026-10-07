@@ -174,6 +174,7 @@ func TestInvoke(t *testing.T) {
 	t.Run("typed literals reach the method and what it returns comes back typed [verifies SP-1116~1]", func(t *testing.T) {
 		got := project.invoke(t,
 			call(probedPackage+"Operations:divide", map[string]spec.Literal{"dividend": literal(spec.TypeInteger, "7"), "divisor": literal(spec.TypeInteger, "2")}),
+			call(probedPackage+"Operations:divide", map[string]spec.Literal{"Dividend": literal(spec.TypeInteger, "9"), "divisor": literal(spec.TypeInteger, "3")}),
 			call(probedPackage+"Operations:scaled", map[string]spec.Literal{"amount": literal(spec.TypeDecimal, "2.345"), "digits": literal(spec.TypeInteger, "2")}),
 			call(probedPackage+"Operations:half", map[string]spec.Literal{"value": literal(spec.TypeInteger, "5")}),
 			call(probedPackage+"Operations:isPositive", map[string]spec.Literal{"value": literal(spec.TypeInteger, "-3")}),
@@ -181,6 +182,7 @@ func TestInvoke(t *testing.T) {
 			call(probedPackage+"Operations:keep", map[string]spec.Literal{"value": literal(spec.TypeNull, "null")}),
 		)
 		requireObservations(t, got,
+			returns(spec.TypeInteger, "3"),
 			returns(spec.TypeInteger, "3"),
 			returns(spec.TypeDecimal, "2.35"),
 			returns(spec.TypeDecimal, "2.5"),

@@ -134,14 +134,15 @@ func operationFor(operations []operation, target string) operation {
 	return operations[slices.IndexFunc(operations, func(o operation) bool { return o.target == target })]
 }
 
-// encodeCall puts the arguments of a call in parameter order; an argument the
-// call leaves out stays nil. A call that names a parameter the operation does not
-// have does not fit it.
+// encodeCall puts the arguments of a call in parameter order, finding each under
+// any spelling of the parameter's name (`unit_price`, `unitPrice`); an argument
+// the call leaves out stays nil. A call that names a parameter the operation does
+// not have does not fit it.
 func encodeCall(operation operation, call ports.ProbeCall) (probe.Call, bool) {
 	names := operation.names()
 	args := make([]*spec.Literal, len(names))
 	for name, literal := range call.Args {
-		position := slices.Index(names, name)
+		position := slices.Index(names, naming.SnakeCase(name))
 		if position < 0 {
 			return probe.Call{}, false
 		}
