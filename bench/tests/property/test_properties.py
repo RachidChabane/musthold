@@ -18,7 +18,7 @@ json_values = st.recursive(
     max_leaves=12,
 )
 safe_segment = st.from_regex(r"[a-z][a-z0-9_]{0,6}", fullmatch=True)
-safe_paths: st.SearchStrategy[str] = st.lists(safe_segment, min_size=1, max_size=3).map(lambda parts: "/".join(parts))
+safe_paths: st.SearchStrategy[str] = st.lists(safe_segment, min_size=1, max_size=3).map(lambda parts: "/".join(parts))  # noqa: PLW0108
 file_contents = st.binary(max_size=40)
 file_trees = st.dictionaries(safe_paths, file_contents, min_size=0, max_size=6)
 bundles = st.dictionaries(safe_paths, file_contents, min_size=1, max_size=6).map(
