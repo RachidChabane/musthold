@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["equivalent"],
+  "properties": {
+    "equivalent": { "enum": ["EQUIVALENT", "DIFFERENT", "UNDETERMINED"] },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "rationale": { "type": "string", "maxLength": 2000 }
+  }
+}

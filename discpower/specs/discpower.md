@@ -201,3 +201,63 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-100~1**: WHEN mutants are generated from any source THE SYSTEM SHALL give
   operator mutants and sentinels that re-parse, differ from the original, and
   splice into a parsable file, deterministically for a fixed seed.
+
+## Host store
+
+- **SP-148~1**: WHEN the host store of a project is opened THE SYSTEM SHALL keep
+  `queue.json`, `requests/`, `tickets/`, `responses/`, a digest-chained
+  `journal.jsonl` and a `secret` under
+  `$XDG_STATE_HOME/spec-proof/discpower/<repo-digest>/host/`, with directories
+  private to the user and the secret readable by the user only, and SHALL derive
+  the repository digest from the absolute path of the project root.
+- **SP-149~1**: WHEN the filesystem store is tested THE SYSTEM SHALL satisfy the
+  shared Store contract suite of the host protocol.
+- **SP-150~1**: WHEN a store is opened again THE SYSTEM SHALL return the requests,
+  entries, responses, journal chain and secret it held, and SHALL write each
+  record atomically so that a reader never sees a partial file.
+- **SP-151~1**: WHEN a request is recorded in the queue THE SYSTEM SHALL keep the
+  wave of its first record, merge the criteria it serves without duplicates and
+  list the items ordered by request id, and WHEN the wave advances THE SYSTEM
+  SHALL return consecutive numbers starting at one.
+- **SP-152~1**: WHEN the state and cache locations are resolved THE SYSTEM SHALL
+  use `$XDG_STATE_HOME` and `$XDG_CACHE_HOME` when they are absolute paths and
+  the defaults under the home directory otherwise.
+
+## Stores of proofs, mutants and facts
+
+- **SP-153~1**: WHEN a Statement is written to the proof cache THE SYSTEM SHALL
+  validate it against the embedded schemas first, refuse an invalid one, and
+  write it atomically at
+  `.spec-proof/cache/discriminating-power/<ID>~<REV>/<cacheKey>.json`.
+- **SP-154~1**: WHEN a mutant body is kept THE SYSTEM SHALL write it under
+  `$XDG_CACHE_HOME/spec-proof/<repo-digest>/mutants/` and never in the work tree,
+  and return exactly the edit set it was given.
+- **SP-155~1**: WHEN an executed fact is memoized THE SYSTEM SHALL return it for
+  its key, treat an absent or unreadable entry as a miss and write atomically.
+- **SP-156~1**: WHEN an executor's output is checked against a response schema THE
+  SYSTEM SHALL accept it exactly when the schema holds and list every violation
+  otherwise.
+
+## Criteria from Shallnot
+
+- **SP-157~1**: WHEN a Shallnot report of schema 1.2 or later is read THE SYSTEM
+  SHALL give each active requirement with its statement, its statement digest, its
+  examples and the tests bound to it, identified the way the JUnit reporter
+  names them, and SHALL refuse a report below 1.2 or without a digest.
+- **SP-158~1**: WHEN criteria are loaded THE SYSTEM SHALL run `shallnot gate
+  --advisory --json-out` on the project, read the report it wrote, remove it, and
+  parse no spec itself.
+
+## Pytest probes and coverage
+
+- **SP-159~1**: WHEN the signature of a bound target is asked THE SYSTEM SHALL
+  report its parameter names and a type hint from the annotation or the default
+  of each, and SHALL report an unknown target as an error.
+- **SP-160~1**: WHEN calls are invoked in a workspace THE SYSTEM SHALL return for
+  each call the typed value it returned or the name of the exception it raised,
+  in order, with integer, decimal, string, boolean, null and datetime arguments
+  converted to their native types, and never let one failing call hide the
+  others.
+- **SP-161~1**: WHEN the coverage of a pytest suite is recorded THE SYSTEM SHALL
+  give, per test, the functions and methods of the project's source files that it
+  executed, naming nested definitions by their qualified path.

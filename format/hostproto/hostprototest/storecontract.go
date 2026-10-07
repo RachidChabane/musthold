@@ -232,3 +232,37 @@ func secretStable(t *testing.T, store hostproto.Store) {
 		t.Fatalf("the secret changed: %x then %x (%v)", first, second, err)
 	}
 }
+
+// DiscardableStore is a Store that can also discard a response.
+type DiscardableStore interface {
+	hostproto.Store
+	hostproto.ResponseDiscarder
+}
+
+// RunDiscardContract runs the contract of hostproto.ResponseDiscarder against the
+// adapter made by newStore. Every call of newStore must return an empty store.
+func RunDiscardContract(t *testing.T, newStore func(t *testing.T) DiscardableStore) {
+	t.Helper()
+	t.Run("a discarded response is gone and its key can be answered again", func(t *testing.T) {
+		store := newStore(t)
+		response := Response(Ticket(Request(), 0, hostproto.FirstEmission))
+		if err := store.PutResponse(response); err != nil {
+			t.Fatal(err)
+		}
+		if err := store.DiscardResponse(response.Key()); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := store.GetResponse(response.Key()); !errors.Is(err, hostproto.ErrNotFound) {
+			t.Fatalf("GetResponse after the discard: %v", err)
+		}
+		if err := store.PutResponse(response); err != nil {
+			t.Fatalf("PutResponse after the discard: %v", err)
+		}
+	})
+	t.Run("discarding an absent response is not an error", func(t *testing.T) {
+		store := newStore(t)
+		if err := store.DiscardResponse(hostproto.Key{RequestID: MustID(Request())}); err != nil {
+			t.Fatal(err)
+		}
+	})
+}

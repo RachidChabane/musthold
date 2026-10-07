@@ -1,0 +1,7 @@
+Answer "validity" with one of:
+VALID: the mutant breaks the requirement.
+EQUIVALENT: the mutant behaves like the original on every input.
+NOT_VIOLATING: the mutant behaves differently, and the requirement does not speak to the difference.
+UNDETERMINED: the text does not let you decide.
+Give "confidence" between 0 and 1.
+For VALID, give a "witness": a call of one of the operations listed above, with named arguments, and the result the requirement demands for it. The result is what the original must return and what the mutant must not. A witness whose expected result the original does not return is refused.

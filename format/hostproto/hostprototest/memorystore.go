@@ -118,6 +118,14 @@ func (s *MemoryStore) PutResponse(response hostproto.Response) error {
 	return nil
 }
 
+// DiscardResponse implements hostproto.ResponseDiscarder.
+func (s *MemoryStore) DiscardResponse(key hostproto.Key) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	delete(s.responses, key)
+	return nil
+}
+
 // GetResponse implements hostproto.Responses.
 func (s *MemoryStore) GetResponse(key hostproto.Key) (hostproto.Response, error) {
 	s.mutex.Lock()

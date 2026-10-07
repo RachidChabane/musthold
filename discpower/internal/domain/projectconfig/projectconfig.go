@@ -24,6 +24,11 @@ type Settings struct {
 	Proofs map[format.Kind]bool
 	// Ecosystems lists the ecosystems detected in the project.
 	Ecosystems []ecosystem.Name
+	// Operations binds the operation names of spec examples to targets, per
+	// ecosystem or language: `{quote: {python: "parkfee:quote"}}`.
+	Operations map[string]map[string]string
+	// PolicyOverrides are the decision parameters the project sets.
+	PolicyOverrides PolicyOverrides
 }
 
 // Default returns the settings `spec-proof init` writes: every proof disabled and

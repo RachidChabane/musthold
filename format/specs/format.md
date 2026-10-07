@@ -160,6 +160,10 @@ Go tests of the module in CI.
   which a record was edited, removed, reordered or renumbered, and SHALL derive
   the roster of started executors from the journal.
 
+- **SP-195~1**: WHEN a response is discarded THE SYSTEM SHALL remove it so that its
+  key can be answered again, treat an absent response as discarded, and provide a
+  contract suite and a reference store that satisfy it.
+
 ## Host protocol: hooks and channels
 
 - **SP-127~1**: WHEN a Claude Code hook payload is decoded THE SYSTEM SHALL read

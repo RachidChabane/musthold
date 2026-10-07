@@ -68,52 +68,82 @@ func (e Executor) BuildReference(ctx context.Context, reference Reference, sourc
 // RunReference runs the selection of the bound tests, or the whole suite, on
 // the unmutated reference; it is the evidence for `correctCodePasses`.
 func (e Executor) RunReference(ctx context.Context, reference Reference, bound []ecosystem.BoundTest, fullSuite bool) (ecosystem.RunResult, error) {
-	selection, err := e.selection(reference.Workspace, bound, fullSuite)
+	return e.Run(ctx, reference.Workspace, reference.Toolchain, bound, fullSuite)
+}
+
+// Run runs the selection of the bound tests, or the whole suite, in a workspace.
+func (e Executor) Run(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, bound []ecosystem.BoundTest, fullSuite bool) (ecosystem.RunResult, error) {
+	selection, err := e.selection(workspace, bound, fullSuite)
 	if err != nil {
 		return ecosystem.RunResult{}, err
 	}
-	return e.Ecosystem.Runner().Run(ctx, reference.Workspace, reference.Toolchain, selection)
+	return e.Ecosystem.Runner().Run(ctx, workspace, toolchain, selection)
 }
 
 // Execute runs one mutant. A path the policy refuses is an error of the caller;
 // a mutant that cannot be spliced, built or run to a verdict is the outcome
 // `error`, not a Go error.
 func (e Executor) Execute(ctx context.Context, reference Reference, request Request) (Result, error) {
-	for _, file := range request.Edits.Files() {
+	var run ecosystem.RunResult
+	var selectionErr error
+	status, err := e.Mutate(ctx, reference, request.Edits, func(ctx context.Context, mutant ecosystem.Workspace) error {
+		selection, err := e.selection(mutant, request.Bound, request.FullSuite)
+		if err != nil {
+			selectionErr = err
+			return nil
+		}
+		run, err = e.Ecosystem.Runner().Run(ctx, mutant, reference.Toolchain, selection)
+		return err
+	})
+	switch {
+	case err != nil:
+		return Result{}, err
+	case !status.Built:
+		return Result{Outcome: format.OutcomeError, Diagnostics: status.Diagnostics}, nil
+	case selectionErr != nil:
+		return Result{Outcome: format.OutcomeError, Diagnostics: selectionErr.Error()}, nil
+	}
+	return Result{Outcome: matrix.Classify(matrix.Evidence{BuildOK: true, Bound: boundIDs(request.Bound), Run: run}), Run: run}, nil
+}
+
+// BuildStatus tells whether a mutant spliced and built, and why not otherwise.
+type BuildStatus struct {
+	Built       bool
+	Diagnostics string
+}
+
+// Mutate clones the reference, splices the edits and runs the build check, then
+// calls use with the live mutant workspace and releases it. A path the policy
+// refuses is an error; a mutant that does not splice or build is reported in the
+// status and use is not called.
+func (e Executor) Mutate(ctx context.Context, reference Reference, edits mutation.EditSet, use func(ctx context.Context, mutant ecosystem.Workspace) error) (BuildStatus, error) {
+	for _, file := range edits.Files() {
 		if err := e.Policy.Check(file); err != nil {
-			return Result{}, err
+			return BuildStatus{}, err
 		}
 	}
 	layout := e.Ecosystem.Layout()
 	mutant, err := e.Workspaces.Clone(ctx, reference.Workspace, layout)
 	if err != nil {
-		return Result{}, fmt.Errorf("clone the reference workspace: %w", err)
+		return BuildStatus{}, fmt.Errorf("clone the reference workspace: %w", err)
 	}
 	defer func() { _ = e.Workspaces.Release(mutant) }()
 
-	changed, diagnostics, err := e.apply(mutant, layout, request.Edits)
+	changed, diagnostics, err := e.apply(mutant, layout, edits)
 	if err != nil {
-		return Result{}, err
+		return BuildStatus{}, err
 	}
 	if diagnostics != "" {
-		return Result{Outcome: format.OutcomeError, Diagnostics: diagnostics}, nil
+		return BuildStatus{Diagnostics: diagnostics}, nil
 	}
 	build, err := e.Ecosystem.BuildCheck().Check(ctx, mutant, reference.Toolchain, changed)
 	if err != nil {
-		return Result{}, err
+		return BuildStatus{}, err
 	}
 	if !build.OK {
-		return Result{Outcome: format.OutcomeError, Diagnostics: build.Diagnostics}, nil
+		return BuildStatus{Diagnostics: build.Diagnostics}, nil
 	}
-	selection, err := e.selection(mutant, request.Bound, request.FullSuite)
-	if err != nil {
-		return Result{Outcome: format.OutcomeError, Diagnostics: err.Error()}, nil
-	}
-	run, err := e.Ecosystem.Runner().Run(ctx, mutant, reference.Toolchain, selection)
-	if err != nil {
-		return Result{}, err
-	}
-	return Result{Outcome: matrix.Classify(matrix.Evidence{BuildOK: true, Bound: boundIDs(request.Bound), Run: run}), Run: run}, nil
+	return BuildStatus{Built: true}, use(ctx, mutant)
 }
 
 // apply splices every edit into the mutant workspace. A splice that fails is

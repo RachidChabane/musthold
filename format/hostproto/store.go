@@ -48,6 +48,14 @@ type Responses interface {
 	GetResponse(key Key) (Response, error)
 }
 
+// ResponseDiscarder removes the response stored for a key. A reissued ticket
+// takes the place of its predecessor under the same key, so the answer a rejected
+// ticket held must go before the new ticket can be answered. Discarding an absent
+// response is not an error.
+type ResponseDiscarder interface {
+	DiscardResponse(key Key) error
+}
+
 // Journal is the digest-chained, append-only log of events.
 type Journal interface {
 	// Append chains the event after the current head and returns the record.

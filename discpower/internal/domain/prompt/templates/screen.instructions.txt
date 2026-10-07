@@ -1,0 +1,1 @@
+For each requirement, answer VIOLATES when the change breaks it and CONSISTENT when the requirement is still met. Answer each question by its id. Give "confidence" between 0 and 1 when you can.

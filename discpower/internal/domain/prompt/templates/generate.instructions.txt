@@ -1,0 +1,5 @@
+Write up to three mutants, one per slot.
+S1 (direct): a fault that contradicts the requirement head-on.
+S2 (boundary): a fault at a boundary value the requirement states or implies.
+S3 (partial): a fault that breaks the requirement in some cases only.
+Each mutant is a set of edits. An edit names a file and a qualified name taken from the code above and gives the complete new source of that unit: a function or method (target "definition") or a module-level assignment (target "module_assignment"). Describe the mechanism of each mutant in one sentence.
