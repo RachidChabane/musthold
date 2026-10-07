@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/executorrun"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
@@ -28,13 +29,6 @@ const (
 	// Unresponsive: a ticket was abandoned after its emissions ran out.
 	Unresponsive Standing = "unresponsive"
 )
-
-// markEvents are the journal events that cost a response its judged pass credit.
-var markEvents = map[hostproto.EventKind]bool{
-	hostproto.EventLeaked:               true,
-	hostproto.EventExposed:              true,
-	hostproto.EventResubmissionConflict: true,
-}
 
 // Ask is a request a proof needs answered, with the number of votes it needs and
 // the queue metadata that goes with it.
@@ -97,13 +91,13 @@ func (b *Bridge) Want(ask Ask) (Answer, error) {
 	if err := b.Store.Record(ports.QueueItem{RequestID: id, Criteria: ask.Criteria, Wave: b.Wave, Purpose: ask.Purpose}); err != nil {
 		return Answer{}, fmt.Errorf("record the request in the queue: %w", err)
 	}
-	marks, err := b.marks()
+	journaled, err := b.journaledEvents()
 	if err != nil {
 		return Answer{}, err
 	}
 	answer := Answer{ID: id, Standing: Answered}
 	for vote := range ask.Votes {
-		state, err := b.settle(ask.Request, id, vote, marks)
+		state, err := b.settle(ask.Request, id, vote, journaled)
 		if err != nil {
 			return Answer{}, err
 		}
@@ -123,21 +117,22 @@ func (b *Bridge) Want(ask Ask) (Answer, error) {
 // answer.
 func (b *Bridge) Waiting() bool { return b.waiting }
 
-func (b *Bridge) marks() (map[string]bool, error) {
+// journaledEvents groups the journal's events by the ticket they concern.
+func (b *Bridge) journaledEvents() (map[string][]hostproto.Event, error) {
 	records, err := b.Store.Records()
 	if err != nil {
 		return nil, fmt.Errorf("read the journal: %w", err)
 	}
-	marks := map[string]bool{}
+	byTicket := map[string][]hostproto.Event{}
 	for _, record := range records {
-		if markEvents[record.Event.Kind] {
-			marks[record.Event.Ticket] = true
+		if record.Event.Ticket != "" {
+			byTicket[record.Event.Ticket] = append(byTicket[record.Event.Ticket], record.Event)
 		}
 	}
-	return marks, nil
+	return byTicket, nil
 }
 
-func (b *Bridge) settle(request hostproto.Request, id hostproto.RequestID, vote int, marks map[string]bool) (VoteState, error) {
+func (b *Bridge) settle(request hostproto.Request, id hostproto.RequestID, vote int, journaled map[string][]hostproto.Event) (VoteState, error) {
 	key := hostproto.Key{RequestID: id, Vote: vote}
 	entry, err := b.Store.GetEntry(key)
 	if errors.Is(err, hostproto.ErrNotFound) {
@@ -150,7 +145,8 @@ func (b *Bridge) settle(request hostproto.Request, id hostproto.RequestID, vote 
 	if err != nil {
 		return VoteState{}, err
 	}
-	state := VoteState{Ticket: entry.Ticket.TicketID, State: entry.State, Marked: marks[entry.Ticket.TicketID.String()]}
+	events := journaled[entry.Ticket.TicketID.String()]
+	state := VoteState{Ticket: entry.Ticket.TicketID, State: entry.State, Marked: executorrun.Marked(events)}
 	if !state.Holds() {
 		return state, nil
 	}
@@ -158,7 +154,7 @@ func (b *Bridge) settle(request hostproto.Request, id hostproto.RequestID, vote 
 	if err != nil {
 		return VoteState{}, fmt.Errorf("read the response of %s: %w", entry.Ticket.TicketID, err)
 	}
-	state.Output, state.Executor = response.Output, response.Executor
+	state.Output, state.Executor = response.Output, executorrun.Effective(response.Executor, events)
 	return state, nil
 }
 

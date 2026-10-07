@@ -431,7 +431,69 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 
 ## Host harness
 
-- **SP-196~1**: WHEN the project configuration has a `host` section THE SYSTEM SHALL
+- **SP-227~1**: WHEN the project configuration has a `host` section THE SYSTEM SHALL
   read `sampling` and `require_attestation` from it, keep attestation required and
   sampling off when they are absent, refuse an unknown or mistyped member, and
   tolerate the sections other modules keep in the same file.
+- **SP-228~1**: WHEN a host harness is selected THE SYSTEM SHALL name the executor
+  tools as that harness spells them, recognize them and no other tool in a hook
+  payload, derive the isolation its allowlist reaches (restricted on Claude Code,
+  unrestricted on Codex, restricted-unverified on Copilot), waive attestation on a
+  harness that cannot issue a capability, and know only the three executor roles
+  of the module's plugin.
+- **SP-229~1**: WHEN a response is read for a proof THE SYSTEM SHALL credit it with
+  `restricted-attested` and the digest of its transcript only when the stop hook
+  attested the agent that answered and no leak, exposure or conflict marks its
+  ticket, and with the model the harness resolved when it reported one, leaving
+  the stored profile as it was.
+- **SP-230~1**: WHEN an executor fetches or answers through the executor server THE
+  SYSTEM SHALL refuse a call without a capability while attestation is required,
+  accept only the capability of a started agent bound to that one ticket, record
+  the answer as a restricted subagent of its harness with the capability's
+  evidence, and, when attestation is waived, accept the call and journal the
+  answer as restricted.
+- **SP-231~1**: WHEN the executor server runs THE SYSTEM SHALL offer exactly
+  `fetch_request` and `submit_response`, and `drain` only when the client declared
+  sampling and the project turned it on; return the schema violations of an answer
+  as a result and allow one correction before the ticket is rejected; refuse a
+  different second answer as `resubmission_conflict` and accept the same one as a
+  replay; and refuse a ticket that is not an identifier and a nonce other than the
+  issue's.
+- **SP-232~1**: WHEN `drain` is called THE SYSTEM SHALL put every pending ticket to
+  the client's model through sampling with no context and no tools, submit the
+  JSON object of each sampled answer as a sampled response with no capability,
+  serve only the module it is named for, and stop at the first refused sample or
+  invalid answer without accepting it.
+- **SP-233~1**: WHEN the PreToolUse hook sees the launch of an executor THE SYSTEM
+  SHALL rebuild it to the bare ticket, in the foreground and without a model,
+  deny a prompt without exactly one ticket and a ticket that is unknown or for
+  another role, and leave every other launch and tool alone.
+- **SP-234~1**: WHEN the PreToolUse hook sees a call of an executor tool THE SYSTEM
+  SHALL add the capability of the calling agent when its type is the role of the
+  ticket, deny otherwise and journal an exposure attempt with the agent, deny when
+  the call cannot be checked, and leave the drain tool to the main agent.
+- **SP-235~1**: WHEN the SubagentStart hook sees an executor THE SYSTEM SHALL
+  journal its agent and role, and journal no other agent.
+- **SP-236~1**: WHEN the SubagentStop hook sees an executor stop THE SYSTEM SHALL
+  attest the run with the digest of its transcript when its calls are exactly the
+  fetch and the submit of one ticket and its reply is the bare receipt, journal an
+  exposure for any other call and a leak for any other reply, journal a restricted
+  run when the transcript cannot be read, and never block the subagent.
+- **SP-237~1**: WHEN the PostToolUse hook sees an executor launch finish THE SYSTEM
+  SHALL record the resolved model and the usage against its ticket and journal a
+  leak for a reply other than the bare receipt, and record nothing for another
+  agent or a launch without a ticket.
+- **SP-238~1**: WHEN a Codex or Copilot hook runs THE SYSTEM SHALL serve the hooks
+  that harness has: capabilities, the start and the stop of executors on Codex,
+  the denial of a call of the wrong role and the stop check on Copilot, resolving
+  the role of an agent from the journal when the call does not carry its type,
+  and conclude nothing from a call that carries no agent identity where the
+  harness does not identify callers.
+- **SP-239~1**: WHEN `mcp` or `hook` is run THE SYSTEM SHALL refuse a role, harness
+  or hook it does not know with exit 1, block the call when a PreToolUse hook
+  cannot read its payload and only report for the other hooks, and resolve the
+  project root from the option, the harness's project directory or the working
+  directory, with symbolic links resolved, so that the hook, the server and the
+  tickets of one project share one host directory.
+- **SP-240~1**: WHEN the fake-host personas drive the module through its command
+  line THE SYSTEM SHALL give each the verdict ADR 0005 asserts for it.

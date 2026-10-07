@@ -9,7 +9,7 @@ import (
 )
 
 func TestHostSettings(t *testing.T) {
-	t.Run("a document without a host section requires attestation and offers no sampling [verifies SP-196~1]", func(t *testing.T) {
+	t.Run("a document without a host section requires attestation and offers no sampling [verifies SP-227~1]", func(t *testing.T) {
 		settings, err := Decode([]byte("proofs: {}\n"))
 		if err != nil {
 			t.Fatal(err)
@@ -19,7 +19,7 @@ func TestHostSettings(t *testing.T) {
 		}
 	})
 
-	t.Run("sampling on and the attestation opt-out are read [verifies SP-196~1]", func(t *testing.T) {
+	t.Run("sampling on and the attestation opt-out are read [verifies SP-227~1]", func(t *testing.T) {
 		settings, err := Decode([]byte("host:\n  sampling: on\n  require_attestation: false\n"))
 		if err != nil {
 			t.Fatal(err)
@@ -29,7 +29,7 @@ func TestHostSettings(t *testing.T) {
 		}
 	})
 
-	t.Run("a mistyped host member is refused [verifies SP-196~1]", func(t *testing.T) {
+	t.Run("a mistyped host member is refused [verifies SP-227~1]", func(t *testing.T) {
 		for _, document := range []string{"host:\n  sampling: sometimes\n", "host:\n  require_attestation: 7\n", "host:\n  verbose: true\n"} {
 			if _, err := Decode([]byte(document)); err == nil {
 				t.Errorf("%q was accepted", document)
@@ -37,14 +37,14 @@ func TestHostSettings(t *testing.T) {
 		}
 	})
 
-	t.Run("the sections of the other modules are tolerated and read by nobody here [verifies SP-196~1]", func(t *testing.T) {
+	t.Run("the sections of the other modules are tolerated and read by nobody here [verifies SP-227~1]", func(t *testing.T) {
 		document := "proofs:\n  discriminating-power: true\nalignment:\n  anything: [1, 2]\ncompleteness: {}\nsystemone:\n  endpoint: http://localhost\n"
 		if _, err := Decode([]byte(document)); err != nil {
 			t.Fatal(err)
 		}
 	})
 
-	t.Run("host settings that differ from the defaults are encoded and decode back [verifies SP-196~1]", func(t *testing.T) {
+	t.Run("host settings that differ from the defaults are encoded and decode back [verifies SP-227~1]", func(t *testing.T) {
 		optOut := false
 		settings := projectconfig.Settings{
 			Proofs: map[format.Kind]bool{},
@@ -63,7 +63,7 @@ func TestHostSettings(t *testing.T) {
 		}
 	})
 
-	t.Run("default host settings leave the document as it was [verifies SP-196~1]", func(t *testing.T) {
+	t.Run("default host settings leave the document as it was [verifies SP-227~1]", func(t *testing.T) {
 		encoded, err := Encode(projectconfig.Default(nil))
 		if err != nil {
 			t.Fatal(err)

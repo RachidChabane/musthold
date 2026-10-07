@@ -59,6 +59,12 @@ func newHarness(t *testing.T, sharedBase string) *harness {
 	if base == "" {
 		base = t.TempDir()
 	}
+	// The command line resolves symbolic links in the project root, so the
+	// project is placed at its resolved path.
+	base, err := filepath.EvalSymlinks(base)
+	if err != nil {
+		t.Fatal(err)
+	}
 	h := &harness{
 		t: t, root: filepath.Join(base, "parcel"), cache: filepath.Join(base, "cache"), state: t.TempDir(),
 		now: time.Date(2026, time.October, 7, 12, 0, 0, 0, time.UTC),

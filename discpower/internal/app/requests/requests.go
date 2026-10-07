@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/executorrun"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
@@ -42,6 +43,10 @@ const (
 	OriginReplay Origin = "replay"
 	// OriginRelay: an answer from a System One endpoint, relayed.
 	OriginRelay Origin = "relay"
+	// OriginExecutor: an executor answered through the module's MCP server.
+	OriginExecutor Origin = "executor"
+	// OriginSampled: the client sampled a model for the module's MCP server.
+	OriginSampled Origin = "sampled"
 )
 
 // Submission is one answer presented for a ticket.
@@ -56,11 +61,23 @@ type Submission struct {
 	Executor *format.ExecutorProfile
 }
 
+// ExecutorContext describes the host an MCP server answers for: the harness it
+// runs under and the isolation its executors reach before a stop hook attests
+// them.
+type ExecutorContext struct {
+	Harness   format.Harness
+	Isolation format.Isolation
+}
+
 // Service implements the verbs of `request` over a host store.
 type Service struct {
 	Store     ports.HostStore
 	Validator ports.ResponseValidator
 	Clock     func() time.Time
+	// RequireAttestation refuses a fetch or an answer that carries no capability.
+	RequireAttestation bool
+	// Executor describes the host the executor origins answer for.
+	Executor ExecutorContext
 }
 
 // List returns the tickets that wait for an answer: those in state `emitted`,
@@ -97,7 +114,10 @@ func (s Service) verifier() (hostproto.CapVerifier, error) {
 	if err != nil {
 		return hostproto.CapVerifier{}, err
 	}
-	return hostproto.CapVerifier{Secret: secret, Roster: hostproto.JournalRoster(records), Bindings: hostproto.EntryCapBindings(entries)}, nil
+	return hostproto.CapVerifier{
+		Secret: secret, Roster: hostproto.JournalRoster(records), Bindings: hostproto.EntryCapBindings(entries),
+		RequireAttestation: s.RequireAttestation,
+	}, nil
 }
 
 func (s Service) journal(kind hostproto.EventKind, ticket hostproto.TicketID, detail string) {
@@ -197,7 +217,7 @@ func (s Service) accept(submission Submission, binding hostproto.Binding) (Recei
 		return Receipt{}, err
 	}
 	_, err = s.Store.UpdateEntry(submission.Ticket.Key(), func(e hostproto.Entry) (hostproto.Entry, error) { return e.Accept(digest) })
-	receipt := Receipt{Text: "receipt " + submission.Ticket.String()}
+	receipt := Receipt{Text: executorrun.Receipt(submission.Ticket)}
 	switch {
 	case errors.Is(err, hostproto.ErrAlreadyAccepted):
 		return receipt, nil
@@ -218,16 +238,38 @@ func (s Service) accept(submission Submission, binding hostproto.Binding) (Recei
 		return Receipt{}, err
 	}
 	s.journal(hostproto.EventAccepted, submission.Ticket, "")
-	if submission.Origin == OriginCLI && !binding.Attested {
-		s.journal(hostproto.EventExposed, submission.Ticket, "submitted outside an executor")
-	}
+	s.journalUnattested(submission, binding)
 	return receipt, nil
+}
+
+// journalUnattested records an answer that no capability backs: outside an
+// executor it is exposed, and inside one whose attestation was waived it is
+// restricted.
+func (s Service) journalUnattested(submission Submission, binding hostproto.Binding) {
+	if binding.Attested {
+		return
+	}
+	switch submission.Origin {
+	case OriginCLI:
+		s.journal(hostproto.EventExposed, submission.Ticket, "submitted outside an executor")
+	case OriginExecutor:
+		s.journal(hostproto.EventRestricted, submission.Ticket, "attestation waived")
+	}
 }
 
 // profile is the executor profile a response is recorded with.
 func (s Service) profile(submission Submission, binding hostproto.Binding) format.ExecutorProfile {
 	if submission.Executor != nil && submission.Origin != OriginCLI {
 		return *submission.Executor
+	}
+	switch submission.Origin {
+	case OriginExecutor:
+		return s.executorProfile(binding)
+	case OriginSampled:
+		return format.ExecutorProfile{
+			Channel: format.ChannelHostSampled, Harness: s.Executor.Harness, Isolation: format.IsolationRestricted,
+			Model: format.ExecutorModel{Source: format.ModelSourceUnknown},
+		}
 	}
 	if binding.Attested {
 		return format.ExecutorProfile{
@@ -246,6 +288,20 @@ func (s Service) profile(submission Submission, binding hostproto.Binding) forma
 	}
 }
 
+// executorProfile is the profile of an answer an executor gave through the MCP
+// server: the isolation its harness enforces, with the capability's evidence when
+// one was presented. The stop hook raises it to attested.
+func (s Service) executorProfile(binding hostproto.Binding) format.ExecutorProfile {
+	profile := format.ExecutorProfile{
+		Channel: format.ChannelHostSubagent, Harness: s.Executor.Harness, Isolation: s.Executor.Isolation,
+		Model: format.ExecutorModel{Source: format.ModelSourceUnknown},
+	}
+	if binding.Attested {
+		profile.Attestation = format.Attestation{AgentID: binding.AgentID, CapDigest: binding.CapDigest}
+	}
+	return profile
+}
+
 // RelayProfile describes the executor of an answer a System One endpoint gave.
 func RelayProfile(source string) format.ExecutorProfile {
 	return format.ExecutorProfile{
@@ -254,4 +310,11 @@ func RelayProfile(source string) format.ExecutorProfile {
 		Isolation: format.IsolationRestricted,
 		Model:     format.ExecutorModel{Name: source, Source: format.ModelSourceDeclared},
 	}
+}
+
+// ForSampling returns the service for answers served through sampling: no agent
+// holds a capability there, so none is required.
+func (s Service) ForSampling() Service {
+	s.RequireAttestation = false
+	return s
 }

@@ -28,6 +28,7 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/prove"
 	domain "github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostharness"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/operator"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/projectconfig"
 	"github.com/RachidChabane/spec-proof/discpower/internal/version"
@@ -37,7 +38,7 @@ import (
 // Identity of the module in the Statements and the requests it emits.
 const (
 	moduleName = "spec-proof-dp"
-	pluginName = "spec-proof-dp"
+	pluginName = hostharness.PluginName
 )
 
 // ErrNoEcosystem is returned when no registered ecosystem recognizes the project.
@@ -52,7 +53,13 @@ func (e Env) rootOf(given string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("resolve the project root: %w", err)
 	}
-	return root, nil
+	// The host directory is addressed by the root's path, so every process that
+	// serves one project must spell it the same way: symbolic links are resolved.
+	resolved, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return "", fmt.Errorf("resolve the project root: %w", err)
+	}
+	return resolved, nil
 }
 
 func (e Env) hostStore(root string) (*hoststore.Store, error) {

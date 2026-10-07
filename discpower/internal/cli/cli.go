@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/prove"
@@ -29,7 +30,12 @@ const (
 	commandRequest   = "request"
 	commandSystemOne = "systemone"
 	commandDoctor    = "doctor"
+	commandMCP       = "mcp"
+	commandHook      = "hook"
 )
+
+// commands lists the commands in the order the usage names them.
+var commands = []string{commandVersion, commandProve, commandRequest, commandSystemOne, commandDoctor, commandMCP, commandHook}
 
 // Environment variables the binary reads.
 const (
@@ -92,6 +98,10 @@ func Run(env Env, args []string) int {
 		return env.finish(env.systemOne(rest))
 	case command == commandDoctor:
 		return env.finish(env.doctor(rest))
+	case command == commandMCP:
+		return env.finish(env.mcp(rest))
+	case command == commandHook:
+		return env.finish(env.hook(rest))
 	default:
 		err = fmt.Errorf("unknown command %q", command)
 	}
@@ -100,7 +110,7 @@ func Run(env Env, args []string) int {
 }
 
 func (e Env) usage() int {
-	fmt.Fprintf(e.Stderr, "usage: %s <%s|%s|%s|%s|%s>\n", e.Binary, commandVersion, commandProve, commandRequest, commandSystemOne, commandDoctor)
+	fmt.Fprintf(e.Stderr, "usage: %s <%s>\n", e.Binary, strings.Join(commands, "|"))
 	return ExitToolFailure
 }
 
