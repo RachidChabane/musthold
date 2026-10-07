@@ -321,6 +321,19 @@ traces them to the Go tests of the module in CI.
 - **SP-793~1**: WHEN the fake-host personas drive the module through its command line THE
   SYSTEM SHALL give each the verdict ADR 0005 asserts for it.
 
+## End to end
+
+- **SP-794~1**: WHEN the built module is initialized and enabled, a change is made and a
+  simulated Claude Code host answers every ticket THE SYSTEM SHALL answer through its real
+  hooks and executor server, journal each executor as started, fetched, accepted and
+  attested with no leak, exposure or conflict, write the Statement, write no
+  `proofs.require` entry, and deny and journal a main-session call of an executor tool.
+- **SP-795~1**: WHEN executors run whose hooks never fire THE SYSTEM SHALL refuse their
+  fetch and their answer at the executor server, accept no answer and keep every ticket
+  pending with exit code 3.
+- **SP-796~1**: WHEN a forger answers from the command line THE SYSTEM SHALL accept no
+  answer without a capability, journal the attempt, and keep the tickets pending.
+
 ## Architecture
 
 - **SP-553~1**: WHEN the package `internal/domain` is inspected THE SYSTEM SHALL
