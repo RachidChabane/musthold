@@ -18,9 +18,42 @@ readonly REPO="${PWD}"
 readonly AGENTS_DIR="${HOME}/Library/LaunchAgents"
 readonly LOG_DIR="${HOME}/Library/Logs/spec-proof"
 readonly LABEL_PREFIX="local.user.spec-proof"
-readonly DEFAULT_PATH="${HOME}/dev-env/1-tools/shims:${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-readonly JOB_PATH="${NIGHT_JOBS_PATH:-${DEFAULT_PATH}}"
+readonly DEFAULT_PATH="${MISE_DATA_DIR:-${HOME}/dev-env/1-tools}/shims:${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+# Tools the night jobs call that mise provides; their install directories go first
+# in PATH, because a shim without a global version does not resolve under launchd.
+readonly MISE_TOOLS=(uv go python3 node npm java mvn gradle jq)
+
+# installed_tool_dir finds the newest mise install of a tool that has no global
+# version, so its shim alone would not resolve.
+installed_tool_dir() {
+  local tool="$1" version where binary
+  version="$(mise ls --installed --json "${tool}" 2>/dev/null | jq -r 'map(.version) | last // empty' 2>/dev/null || true)"
+  [[ -z "${version}" ]] && return 0
+  where="$(mise where "${tool}@${version}" 2>/dev/null || true)"
+  [[ -z "${where}" ]] && return 0
+  binary="$(find "${where}" -maxdepth 3 -type f -name "${tool}" -perm -u+x 2>/dev/null | head -1)"
+  [[ -n "${binary}" ]] && dirname "${binary}"
+  return 0
+}
+
+resolved_tool_dirs() {
+  local tool dir dirs=""
+  command -v mise >/dev/null 2>&1 || return 0
+  for tool in "${MISE_TOOLS[@]}"; do
+    dir="$(dirname "$(mise which "${tool}" 2>/dev/null)" 2>/dev/null || true)"
+    [[ -z "${dir}" || "${dir}" == "." ]] && dir="$(installed_tool_dir "${tool}")"
+    [[ -n "${dir}" && "${dir}" != "." && ":${dirs}:" != *":${dir}:"* ]] && dirs="${dirs:+${dirs}:}${dir}"
+  done
+  echo "${dirs}"
+}
+
+TOOL_DIRS="$(resolved_tool_dirs)"
+readonly TOOL_DIRS
+readonly JOB_PATH="${NIGHT_JOBS_PATH:-${TOOL_DIRS:+${TOOL_DIRS}:}${DEFAULT_PATH}}"
 readonly SHALLNOT_SRC_PATH="${SHALLNOT_SRC:-${REPO}/../shallnot-proof-gate}"
+# mise shims resolve their tools from MISE_DATA_DIR, which the login shell sets
+# and launchd does not.
+readonly MISE_DATA_PATH="${MISE_DATA_DIR:-${HOME}/dev-env/1-tools}"
 readonly NICE_LEVEL=10
 # job name, hour, minute
 readonly JOBS=("pilot 21 7" "canaries 23 13" "construct 3 7")
@@ -49,6 +82,7 @@ write_plist() {
     <key>PATH</key><string>${JOB_PATH}</string>
     <key>HOME</key><string>${HOME}</string>
     <key>SHALLNOT_SRC</key><string>${SHALLNOT_SRC_PATH}</string>
+    <key>MISE_DATA_DIR</key><string>${MISE_DATA_PATH}</string>
   </dict>
   <key>StartCalendarInterval</key>
   <dict><key>Hour</key><integer>${hour}</integer><key>Minute</key><integer>${minute}</integer></dict>
