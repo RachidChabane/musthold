@@ -82,6 +82,22 @@ func Installed(t testing.TB, fixtureDir string) string {
 	return target
 }
 
+// Project returns a fresh copy of the fixture project, in a directory of the
+// test, whose node_modules links to the installed one: a project of its own to
+// edit, run and clone at the cost of its sources.
+func Project(t testing.TB, fixtureDir string) string {
+	t.Helper()
+	installed := Installed(t, fixtureDir)
+	project := filepath.Join(t.TempDir(), filepath.Base(fixtureDir))
+	if err := copyProject(fixtureDir, project); err != nil {
+		t.Fatalf("copy the fixture %s: %v", fixtureDir, err)
+	}
+	if err := os.Symlink(filepath.Join(installed, dependenciesDir), filepath.Join(project, dependenciesDir)); err != nil {
+		t.Fatal(err)
+	}
+	return project
+}
+
 // lockDigest identifies the dependencies a fixture asks for.
 func lockDigest(fixtureDir string) (string, error) {
 	hash := sha256.New()
