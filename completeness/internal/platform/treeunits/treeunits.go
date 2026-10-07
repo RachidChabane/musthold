@@ -5,6 +5,7 @@
 package treeunits
 
 import (
+	"bytes"
 	"fmt"
 	"slices"
 	"strings"
@@ -28,16 +29,30 @@ const (
 type Tree struct {
 	Lang   *gotreesitter.Language
 	Source []byte
-	tree   *gotreesitter.Tree
+	// original is the source the lines are counted in; it differs from Source when
+	// the parser was given a rewrite of it that keeps the offsets.
+	original []byte
+	tree     *gotreesitter.Tree
 }
 
 // Parse parses the source with the grammar.
 func Parse(lang *gotreesitter.Language, source []byte) (*Tree, error) {
-	tree, err := gotreesitter.NewParser(lang).Parse(source)
+	return ParseRewritten(lang, source, source)
+}
+
+// ParseRewritten parses a rewrite of the original source that keeps the offsets of
+// its nodes but may not keep its line breaks; lines are counted in the original.
+func ParseRewritten(lang *gotreesitter.Language, rewritten, original []byte) (*Tree, error) {
+	tree, err := gotreesitter.NewParser(lang).Parse(rewritten)
 	if err != nil {
 		return nil, fmt.Errorf("parse source: %w", err)
 	}
-	return &Tree{Lang: lang, Source: source, tree: tree}, nil
+	return &Tree{Lang: lang, Source: rewritten, original: original, tree: tree}, nil
+}
+
+// line is the 1-based line of the offset in the original source.
+func (t *Tree) line(offset int) int {
+	return 1 + bytes.Count(t.original[:min(offset, len(t.original))], []byte("\n"))
 }
 
 // Release frees the tree; no node of it may be used afterwards.
@@ -160,7 +175,7 @@ func (c *Collector) Add(spec Spec) {
 	c.units = append(c.units, code.Unit{
 		File: c.file, Qualname: c.unique(spec.Qualname), Name: spec.Name, Owner: spec.Owner, Kind: spec.Kind,
 		Normalized: normal.String(), Text: c.tree.Text(spec.Node),
-		StartLine: int(spec.Node.StartPoint().Row) + 1, EndLine: int(spec.Node.EndPoint().Row) + 1,
+		StartLine: c.tree.line(int(spec.Node.StartByte())), EndLine: c.tree.line(int(spec.Node.EndByte())),
 		Mentions: names, Labels: spec.Labels,
 	})
 }

@@ -155,6 +155,16 @@ func TestIndexesUnits(t *testing.T) {
 		}
 	})
 
+	t.Run("the lines of a unit are those of the source whatever the annotations before its class [verifies SP-1306~1]", func(t *testing.T) {
+		got := index(t, "A.kt", "@ExtendWith(MockitoExtension::class)\n@DisplayName(\"a\")\nclass A {\n    fun f() {\n    }\n\n    fun g() {}\n}\n").Units
+		if f := find(t, got, "A.f"); f.StartLine != 4 || f.EndLine != 5 {
+			t.Errorf("f lines %d to %d", f.StartLine, f.EndLine)
+		}
+		if g := find(t, got, "A.g"); g.StartLine != 7 {
+			t.Errorf("g starts on line %d", g.StartLine)
+		}
+	})
+
 	t.Run("a file that does not parse still gives the units it could read [verifies SP-1306~1]", func(t *testing.T) {
 		broken := index(t, "Broken.kt", "class Broken {\n    fun ok() {}\n}\nclass Oops {\n    fun oops( {\n")
 		if !slices.Contains(qualnames(broken.Units), "Broken.ok") {

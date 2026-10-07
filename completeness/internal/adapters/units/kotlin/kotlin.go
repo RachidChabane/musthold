@@ -63,7 +63,6 @@ const (
 	typeStringLiteral     = "string_literal"
 	typeTypeIdentifier    = "type_identifier"
 	typeUserType          = "user_type"
-	typeValueArgument     = "value_argument"
 	typeValueArguments    = "value_arguments"
 	typeVariableDecl      = "variable_declaration"
 	tokenAssign           = "="
@@ -121,7 +120,7 @@ func (Indexer) IsTest(file string) bool {
 // Index parses the source and lists its units in source order. The grammar recovers
 // from syntax errors, so a broken file still yields the units it could read.
 func (i Indexer) Index(file string, source []byte) (code.File, error) {
-	tree, err := treeunits.Parse(grammars.KotlinLanguage(), groupedAnnotations(source))
+	tree, err := treeunits.ParseRewritten(grammars.KotlinLanguage(), groupedAnnotations(source), source)
 	if err != nil {
 		return code.File{}, fmt.Errorf("parse %s: %w", file, err)
 	}
