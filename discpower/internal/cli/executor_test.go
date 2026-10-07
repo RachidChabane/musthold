@@ -37,7 +37,7 @@ func (h *commandHost) toolNames(declareSampling bool) []string {
 		`{"jsonrpc":"2.0","method":"notifications/initialized"}`,
 		`{"jsonrpc":"2.0","id":2,"method":"tools/list"}`,
 	}
-	code, stdout, stderr := h.run(strings.Join(frames, "\n")+"\n", "mcp", "--role", "executor")
+	code, stdout, stderr := h.run(strings.Join(frames, "\n")+"\n", "mcp", "--role", "executor", "--harness", "claude")
 	if code != cli.ExitClean {
 		h.t.Fatalf("mcp exited %d: %s", code, stderr)
 	}
@@ -97,7 +97,7 @@ func TestExecutorServer(t *testing.T) {
 			`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"drain","arguments":{"module":"dp"}}}`,
 			`{"jsonrpc":"2.0","id":"sp-sampling-1","result":{"role":"assistant","content":{"type":"text","text":"{\"validity\":\"VALID\"}"},"model":"m"}}`,
 		}
-		code, stdout, stderr := h.run(strings.Join(frames, "\n")+"\n", "mcp", "--role", "executor")
+		code, stdout, stderr := h.run(strings.Join(frames, "\n")+"\n", "mcp", "--role", "executor", "--harness", "claude")
 		if code != cli.ExitClean || !strings.Contains(stdout, `\"served\":1`) {
 			t.Fatalf("exit %d, stdout %s, stderr %s", code, stdout, stderr)
 		}

@@ -28,6 +28,9 @@ const (
 	ClaudeCodeVersion = "2.1.292"
 	CodexVersion      = "0.155.1"
 	CopilotVersion    = "1.0.92"
+	// AgentPluginsVersion is the version of the Agent Plugins specification the
+	// portable plugin targets.
+	AgentPluginsVersion = "1.0.0"
 )
 
 // Flag values of `--harness`.
@@ -35,6 +38,9 @@ const (
 	FlagClaude  = "claude"
 	FlagCodex   = "codex"
 	FlagCopilot = "copilot"
+	// FlagPortable names the server a client of the Agent Plugins standard starts
+	// from the portable `mcp.json`, which carries no `--harness`.
+	FlagPortable = "portable"
 )
 
 // ErrUnknownHarness is returned for a harness a module does not serve.
@@ -98,6 +104,9 @@ type Harness struct {
 	AttestationOptOut bool
 	// Behaviours are the hooks the harness can run.
 	Behaviours Behaviours
+	// Channel is how an answer taken through the harness's server reaches the
+	// module; the zero value is the subagent channel.
+	Channel format.Channel
 	// server is the executor server's name as the harness shows it in tool names.
 	server string
 	// toolName renders the name the harness gives a tool of the server.
@@ -159,6 +168,22 @@ func Copilot(identity Identity) Harness {
 	}
 }
 
+// Portable is a client of the Agent Plugins standard served by the portable
+// plugin alone: no hook runs, so no capability is issued and no subagent is
+// known to be restricted. Whoever calls the server is the main agent, so its
+// answers take the inline channel and isolation, whatever the client enforces.
+func Portable(identity Identity) Harness {
+	return Harness{
+		Identity: identity, Flag: FlagPortable, Name: hostproto.HarnessAgentPlugins, Version: AgentPluginsVersion,
+		Allowlist: hostproto.AllowlistAbsent, AttestationOptOut: true,
+		Channel:       format.ChannelHostInline,
+		server:        identity.StandaloneExecutorServer(),
+		toolName:      mcpDoubleUnderscore,
+		agentType:     standaloneAgentName,
+		acceptedForms: []func(string, string) string{slashed},
+	}
+}
+
 // All lists the harnesses a module serves.
 func All(identity Identity) []Harness {
 	return []Harness{Claude(identity), Codex(identity), Copilot(identity)}
@@ -166,6 +191,9 @@ func All(identity Identity) []Harness {
 
 // ByFlag returns the harness a `--harness` value names.
 func ByFlag(identity Identity, flag string) (Harness, error) {
+	if flag == FlagPortable {
+		return Portable(identity), nil
+	}
 	for _, harness := range All(identity) {
 		if harness.Flag == flag {
 			return harness, nil
@@ -239,8 +267,19 @@ func (h Harness) Observed(hooksPresent bool) hostproto.Observed {
 // Isolation is the level an answer from this harness reaches before its stop
 // hook attests the run.
 func (h Harness) Isolation() format.Isolation {
+	if h.Channel == format.ChannelHostInline {
+		return format.IsolationInline
+	}
 	selection := hostproto.SelectChannel(h.Observed(false), hostproto.Policy{})
 	return selection.Isolation
+}
+
+// AnswerChannel is the channel the answers taken through the harness's server travel.
+func (h Harness) AnswerChannel() format.Channel {
+	if h.Channel == "" {
+		return format.ChannelHostSubagent
+	}
+	return h.Channel
 }
 
 // AttestationRequired is the project's requirement of attestation as it applies

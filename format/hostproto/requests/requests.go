@@ -67,6 +67,17 @@ type Submission struct {
 type ExecutorContext struct {
 	Harness   format.Harness
 	Isolation format.Isolation
+	// Channel is how an executor's answer reaches the module; empty means a
+	// subagent of the host. The main agent of a client without subagent hooks
+	// answers on the inline channel.
+	Channel format.Channel
+}
+
+func (c ExecutorContext) channel() format.Channel {
+	if c.Channel == "" {
+		return format.ChannelHostSubagent
+	}
+	return c.Channel
 }
 
 // Service implements the verbs of `request` over a host store.
@@ -256,6 +267,10 @@ func (s Service) journalUnattested(submission Submission, binding hostproto.Bind
 	case OriginCLI:
 		s.journal(hostproto.EventExposed, submission.Ticket, "submitted outside an executor")
 	case OriginExecutor:
+		if s.Executor.channel() == format.ChannelHostInline {
+			s.journal(hostproto.EventExposed, submission.Ticket, "answered by the main agent")
+			return
+		}
 		s.journal(hostproto.EventRestricted, submission.Ticket, "attestation waived")
 	}
 }
@@ -296,7 +311,7 @@ func (s Service) profile(submission Submission, binding hostproto.Binding) forma
 // one was presented. The stop hook raises it to attested.
 func (s Service) executorProfile(binding hostproto.Binding) format.ExecutorProfile {
 	profile := format.ExecutorProfile{
-		Channel: format.ChannelHostSubagent, Harness: s.Executor.Harness, Isolation: s.Executor.Isolation,
+		Channel: s.Executor.channel(), Harness: s.Executor.Harness, Isolation: s.Executor.Isolation,
 		Model: format.ExecutorModel{Source: format.ModelSourceUnknown},
 	}
 	if binding.Attested {

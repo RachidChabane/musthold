@@ -24,6 +24,8 @@ const (
 	FlagClaude  = harness.FlagClaude
 	FlagCodex   = harness.FlagCodex
 	FlagCopilot = harness.FlagCopilot
+	// FlagPortable is the harness of a client of the Agent Plugins standard.
+	FlagPortable = harness.FlagPortable
 )
 
 // Harness is one host harness as the module serves it.

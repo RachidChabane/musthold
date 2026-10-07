@@ -65,6 +65,7 @@ func (e Env) executorService(root string, harness hostharness.Harness) (executor
 		Executor: requests.ExecutorContext{
 			Harness:   format.Harness{Name: harness.Name, Version: harness.Version},
 			Isolation: harness.Isolation(),
+			Channel:   harness.AnswerChannel(),
 		},
 	}
 	return executorhost.Service{Requests: service, ModuleNames: []string{drainAlias, moduleName}}, settings.Host.Sampling, nil
@@ -75,7 +76,7 @@ func (e Env) executorService(root string, harness hostharness.Harness) (executor
 func (e Env) mcp(args []string) outcome {
 	set := e.newFlags(commandMCP, "")
 	role := set.String(flagRole, "", "the role the server plays: "+roleExecutor)
-	harnessFlag := set.String(flagHarness, hostharness.FlagClaude, "the host harness: one of "+fmt.Sprint(hostharness.Flags()))
+	harnessFlag := set.String(flagHarness, hostharness.FlagPortable, "the host harness: one of "+fmt.Sprint(hostharness.Flags())+", or "+hostharness.FlagPortable+" for a client of the Agent Plugins standard")
 	root := set.String(flagRoot, "", usageRoot)
 	rest, err := parseInterleaved(set, args)
 	switch {
@@ -90,6 +91,9 @@ func (e Env) mcp(args []string) outcome {
 	if err != nil {
 		return outcome{err: refusal{err}}
 	}
+	if harness.Flag == hostharness.FlagPortable {
+		return e.servePortable(*root, harness)
+	}
 	resolved, err := e.hostRoot(*root)
 	if err != nil {
 		return outcome{err: err}
@@ -100,6 +104,26 @@ func (e Env) mcp(args []string) outcome {
 	}
 	return outcome{err: executorhost.Serve(context.Background(), executorhost.Options{
 		ServerName: serverName, Version: version.Version, Sampling: sampling, Service: service,
+	}, e.Stdin, e.Stdout)}
+}
+
+// servePortable serves the executor tools to a client of the Agent Plugins
+// standard, which starts the server in the plugin root: the project is learned
+// from the client's roots at the first tool call, and the answers are inline.
+func (e Env) servePortable(given string, harness hostharness.Harness) outcome {
+	service := &executorhost.LazyService{Build: func(roots []string) (executorhost.Service, error) {
+		resolved, err := e.hostRoot(executorhost.PickRoot(given, e.lookup(envClaudeProjectDir), roots))
+		if err != nil {
+			return executorhost.Service{}, err
+		}
+		if _, err := os.Stat(filepath.Join(resolved, projectconfig.Directory, projectconfig.FileName)); err != nil {
+			return executorhost.Service{}, fmt.Errorf("%w (looked in %s)", executorhost.ErrNoProject, resolved)
+		}
+		built, _, err := e.executorService(resolved, harness)
+		return built, err
+	}}
+	return outcome{err: executorhost.Serve(context.Background(), executorhost.Options{
+		ServerName: serverName, Version: version.Version, Service: service,
 	}, e.Stdin, e.Stdout)}
 }
 

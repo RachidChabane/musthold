@@ -141,7 +141,7 @@ type Options struct {
 	// Sampling offers `drain` when the client declares sampling.
 	Sampling bool
 	// Service answers the tools.
-	Service Service
+	Service mcpstdio.ExecutorService
 }
 
 // Serve answers the MCP requests the client sends on in with the executor tools,

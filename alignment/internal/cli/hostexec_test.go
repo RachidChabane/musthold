@@ -37,7 +37,7 @@ func (h *commandHost) toolNames(declareSampling bool) []string {
 		`{"jsonrpc":"2.0","method":"notifications/initialized"}`,
 		`{"jsonrpc":"2.0","id":2,"method":"tools/list"}`,
 	}
-	code, stdout, stderr := h.run(strings.Join(frames, "\n")+"\n", "mcp", "--role", "executor")
+	code, stdout, stderr := h.run(strings.Join(frames, "\n")+"\n", "mcp", "--role", "executor", "--harness", "claude")
 	if code != cli.ExitClean {
 		h.t.Fatalf("mcp exited %d: %s", code, stderr)
 	}
@@ -97,7 +97,7 @@ func TestExecutorServer(t *testing.T) {
 			`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"drain","arguments":{"module":"alignment"}}}`,
 			`{"jsonrpc":"2.0","id":"sp-sampling-1","result":{"role":"assistant","content":{"type":"text","text":"{\"validity\":\"VALID\"}"},"model":"m"}}`,
 		}
-		code, stdout, stderr := h.run(strings.Join(frames, "\n")+"\n", "mcp", "--role", "executor")
+		code, stdout, stderr := h.run(strings.Join(frames, "\n")+"\n", "mcp", "--role", "executor", "--harness", "claude")
 		if code != cli.ExitClean || !strings.Contains(stdout, `\"served\":1`) {
 			t.Fatalf("exit %d, stdout %s, stderr %s", code, stdout, stderr)
 		}
@@ -122,7 +122,7 @@ func TestExecutorServer(t *testing.T) {
 			`{"jsonrpc":"2.0","method":"notifications/initialized"}`,
 			`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"drain","arguments":{"module":"dp"}}}`,
 		}
-		code, stdout, stderr := h.run(strings.Join(frames, "\n")+"\n", "mcp", "--role", "executor")
+		code, stdout, stderr := h.run(strings.Join(frames, "\n")+"\n", "mcp", "--role", "executor", "--harness", "claude")
 		if code != cli.ExitClean {
 			t.Fatalf("exit %d, stdout %s, stderr %s", code, stdout, stderr)
 		}
@@ -295,7 +295,7 @@ func TestHooksInAProjectWithoutTheModule(t *testing.T) {
 	t.Run("the host settings are read from the shared configuration, and a malformed one is a tool failure [verifies SP-740~1]", func(t *testing.T) {
 		h := claudeHost(t)
 		h.writeConfig("host:\n  sampling: [unterminated\n")
-		if code, _, _ := h.run("", "mcp", "--role", "executor"); code == cli.ExitClean {
+		if code, _, _ := h.run("", "mcp", "--role", "executor", "--harness", "claude"); code == cli.ExitClean {
 			t.Fatalf("a malformed configuration was served")
 		}
 	})

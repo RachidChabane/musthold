@@ -13,6 +13,9 @@ const (
 	HarnessClaudeCode = "claude-code"
 	HarnessCodex      = "codex"
 	HarnessCopilot    = "copilot-cli"
+	// HarnessAgentPlugins is a client of the Agent Plugins standard that the module
+	// serves through the portable plugin alone, with no hook of its own.
+	HarnessAgentPlugins = "agent-plugins"
 )
 
 // HookKind names the hook a module serves, as the `hook` command spells it.

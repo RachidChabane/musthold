@@ -20,6 +20,7 @@ const (
 	MethodToolsCall   = "tools/call"
 	MethodPing        = "ping"
 	MethodSampling    = "sampling/createMessage"
+	MethodRootsList   = "roots/list"
 
 	// IncludeContextNone is the only context a sampled request asks for.
 	IncludeContextNone = "none"
@@ -29,6 +30,7 @@ const (
 	samplingMaxTokens = 4096
 	maxQueuedRequests = 16
 	samplingIDPrefix  = "sp-sampling-"
+	rootsIDPrefix     = "sp-roots-"
 )
 
 // ProtocolVersions lists the MCP revisions the server speaks, newest first.
@@ -116,6 +118,7 @@ type Server struct {
 	writer      *FrameWriter
 	initialized bool
 	sampling    bool
+	roots       bool
 	version     string
 	nextID      int
 	queued      []Message
@@ -233,6 +236,7 @@ func (s *Server) handleInitialize(request Message) error {
 		ProtocolVersion string `json:"protocolVersion"`
 		Capabilities    struct {
 			Sampling *json.RawMessage `json:"sampling"`
+			Roots    *json.RawMessage `json:"roots"`
 		} `json:"capabilities"`
 	}
 	if err := json.Unmarshal(request.Params, &params); err != nil || params.ProtocolVersion == "" {
@@ -243,6 +247,7 @@ func (s *Server) handleInitialize(request Message) error {
 	}
 	s.initialized = true
 	s.sampling = params.Capabilities.Sampling != nil
+	s.roots = params.Capabilities.Roots != nil
 	s.version = ProtocolVersions[0]
 	if slices.Contains(ProtocolVersions, params.ProtocolVersion) {
 		s.version = params.ProtocolVersion
@@ -275,6 +280,9 @@ func (s *Server) handleToolCall(ctx context.Context, request Message) error {
 	tool, offered := s.tool(params.Name)
 	if !offered {
 		return s.writeError(request.ID, CodeInvalidParams, fmt.Sprintf("unknown tool %q", params.Name))
+	}
+	if s.roots {
+		ctx = WithRoots(ctx, sessionRoots{server: s})
 	}
 	result, err := s.callTool(ctx, tool, params.Arguments)
 	var bad *argumentError
@@ -398,14 +406,20 @@ func (p sessionSampler) Sample(ctx context.Context, request SamplingRequest) (st
 	if err := s.writer.WriteMessage(Message{ID: id, Method: MethodSampling, Params: params}); err != nil {
 		return "", err
 	}
-	return s.awaitResponse(ctx, id)
+	response, err := s.awaitResponse(ctx, id)
+	if err != nil {
+		return "", err
+	}
+	return samplingText(response)
 }
 
-func (s *Server) awaitResponse(ctx context.Context, id json.RawMessage) (string, error) {
+// awaitResponse reads until the client's response to the request with the given
+// id arrives. Pings are answered meanwhile; other requests wait in a bounded queue.
+func (s *Server) awaitResponse(ctx context.Context, id json.RawMessage) (Message, error) {
 	for ctx.Err() == nil {
 		frame, err := s.reader.ReadFrame()
 		if err != nil {
-			return "", fmt.Errorf("waiting for the sampling response: %w", err)
+			return Message{}, fmt.Errorf("waiting for the response to a request of the server: %w", err)
 		}
 		message, err := ParseMessage(frame)
 		if err != nil {
@@ -414,15 +428,15 @@ func (s *Server) awaitResponse(ctx context.Context, id json.RawMessage) (string,
 		switch message.Kind() {
 		case KindResponse:
 			if string(message.ID) == string(id) {
-				return samplingText(message)
+				return message, nil
 			}
 		case KindRequest:
 			if err := s.deferRequest(message); err != nil {
-				return "", err
+				return Message{}, err
 			}
 		}
 	}
-	return "", ctx.Err()
+	return Message{}, ctx.Err()
 }
 
 func (s *Server) deferRequest(message Message) error {
