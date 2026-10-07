@@ -15,3 +15,4 @@ test_commands:
 severities:
   tag_not_in_results: error
   bound_non_testable: error
+  skipped_requirement: warning

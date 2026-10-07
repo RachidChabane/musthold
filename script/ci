@@ -1,10 +1,25 @@
 #!/usr/bin/env bash
-# Everything CI runs for the Go product: for each module, lint, then the
-# self-gate, which runs the module's tests and traces its specs to their results.
-# Arguments name the modules to run; with none, every module of the workspace
-# runs.
+# Everything CI runs for the Go product: build the pinned Shallnot when its source
+# is there, then for each module lint and run the self-gate, which runs the module's
+# tests and traces its specs to their results. Arguments name the modules to run;
+# with none, every module of the workspace runs.
+#
+# The pinned Shallnot is built from the git repository at $SHALLNOT_SRC (default:
+# ../shallnot-proof-gate). Without that source nothing is built, and the end-to-end
+# tests that need the pinned Shallnot record a skip that names the reason; the gate
+# reports a requirement whose bound tests were all skipped, so the requirement is
+# never dropped silently.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly DEFAULT_SHALLNOT_SRC="../shallnot-proof-gate"
+shallnot_src="${SHALLNOT_SRC:-${DEFAULT_SHALLNOT_SRC}}"
+
+if [ -d "${shallnot_src}" ]; then
+  SHALLNOT_SRC="${shallnot_src}" script/shallnot-build
+else
+  echo "ci: no Shallnot source at ${shallnot_src} (set SHALLNOT_SRC): the end-to-end tests that need the pinned Shallnot are skipped" >&2
+fi
 
 if [ -d .tools/bin ]; then
   export PATH="$PWD/.tools/bin:$PATH"

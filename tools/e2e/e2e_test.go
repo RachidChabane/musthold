@@ -87,6 +87,9 @@ func TestMain(m *testing.M) {
 	if binaries != "" {
 		os.RemoveAll(binaries)
 	}
+	if productDir != "" {
+		os.RemoveAll(productDir)
+	}
 	os.Exit(code)
 }
 

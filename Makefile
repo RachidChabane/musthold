@@ -32,7 +32,7 @@ go-test:  ## run the Go tests of each module and write JUnit XML (script/test)
 go-lint:  ## gofmt check and go vet on each Go module (script/lint)
 	script/lint $(MODULES)
 
-ci:  ## lint, then self-gate each Go module with shallnot (script/ci)
+ci:  ## build the pinned shallnot when SHALLNOT_SRC exists, lint, then self-gate each Go module (script/ci)
 	script/ci $(MODULES)
 
 shallnot-build:  ## build the pinned Shallnot into .tools/bin (script/shallnot-build)
