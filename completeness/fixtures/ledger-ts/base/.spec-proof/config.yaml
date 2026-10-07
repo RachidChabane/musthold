@@ -1,0 +1,7 @@
+proofs:
+  completeness: true
+ecosystems:
+  - vitest
+operations:
+  invoice_total:
+    typescript: src/totals.ts:invoiceTotal

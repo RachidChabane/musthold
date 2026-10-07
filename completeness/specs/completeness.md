@@ -368,6 +368,27 @@ traces them to the Go tests of the module in CI.
   its signature, the display name, the expanded name pattern or the default name of
   an invocation or a repetition, and match nothing for a pattern that is invalid.
 
+## JavaScript and TypeScript sources
+
+- **SP-1300~1**: WHEN the units of a JavaScript or TypeScript file are listed THE
+  SYSTEM SHALL give one unit per function, per method, getter and setter of a class
+  under the name `Class.member`, per constructor under the name of its class, per
+  function held by a constant or a field, and one assignment per module-level
+  constant, enumeration and static field, whether exported or not, and none for a
+  type that only the compiler reads.
+- **SP-1301~1**: WHEN the tests of a JavaScript or TypeScript file are listed THE
+  SYSTEM SHALL serve as test files the files named `*.test.*` or `*.spec.*` and
+  those below a `test`, `tests`, `__tests__` or `__mocks__` directory, give one unit
+  of kind test per `it` or `test` call of Jest or Vitest, nested in any `describe`,
+  with the patterns of the labels a runner reports for it whatever the separator of
+  its reporter, the citation tags and the values a table row gives its
+  placeholders, and let it mention the names of the hooks and the declarations of
+  the suites around it.
+- **SP-1302~1**: WHEN the units of a changed JavaScript or TypeScript file are
+  compared with those before the change THE SYSTEM SHALL give one hunk per unit that
+  is new or whose code differs, and none for a unit whose syntax tree is the same
+  whatever its formatting, comments and documentation comments.
+
 ## Tests and operations that justify changes
 
 - **SP-1309~1**: WHEN a changed unit is justified by an ALIGNED test THE SYSTEM

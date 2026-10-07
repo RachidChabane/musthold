@@ -17,8 +17,10 @@ import (
 
 // Names of the fixture projects under `fixtures/`.
 const (
-	PythonLedger = "ledger-python"
-	GoLedger     = "ledger-go"
+	PythonLedger     = "ledger-python"
+	GoLedger         = "ledger-go"
+	TypeScriptLedger = "ledger-ts"
+	JavaLedger       = "ledger-java"
 	// ReportFile is the recorded Shallnot report of a fixture project.
 	ReportFile = "shallnot-report.json"
 	// RecordedShallnot is the script that stands for the shallnot executable.
