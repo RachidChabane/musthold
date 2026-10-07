@@ -17,6 +17,9 @@ import (
 	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/schemacheck"
 	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/shallnot"
 	golangunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/golang"
+	javaunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/java"
+	javascriptunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/javascript"
+	kotlinunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/kotlin"
 	pythonunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/python"
 	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/xdg"
 	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
@@ -87,7 +90,7 @@ type project struct {
 // indexers lists the strategies that read the units of a source file, one per
 // ecosystem.
 func indexers() []ports.Indexer {
-	return []ports.Indexer{pythonunits.New(), golangunits.New()}
+	return []ports.Indexer{pythonunits.New(), golangunits.New(), javascriptunits.New(), javaunits.New(), kotlinunits.New()}
 }
 
 // openProject wires the adapters of a project root.

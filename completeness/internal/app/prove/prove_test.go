@@ -37,6 +37,16 @@ var ledgers = []ledger{
 		unjustified: []string{"ApplyDiscount"}, evidence: testkit.GoEvidence,
 		changedFile: "totals.go", changedFunctions: "ApplyDiscount, InvoiceTotal, LineAmount, taxRate",
 	},
+	{
+		fixture: testkit.TypeScriptLedger, hunksWithoutEvidence: 5, hunksWithEvidence: 2,
+		unjustified: []string{"applyDiscount", "receiptLine"}, evidence: testkit.TypeScriptEvidence,
+		changedFile: "src/totals.ts", changedFunctions: "TAX_RATE, applyDiscount, invoiceTotal, lineAmount",
+	},
+	{
+		fixture: testkit.JavaLedger, hunksWithoutEvidence: 5, hunksWithEvidence: 2,
+		unjustified: []string{"Totals.applyDiscount", "Receipts.receiptLine"}, evidence: testkit.JavaEvidence,
+		changedFile: "src/main/java/ledger/Totals.java", changedFunctions: "Totals.TAX_RATE, Totals.applyDiscount, Totals.invoiceTotal, Totals.lineAmount",
+	},
 }
 
 func TestWithoutEvidence(t *testing.T) {

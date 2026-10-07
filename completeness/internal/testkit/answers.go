@@ -100,7 +100,7 @@ func Honest() Answerer {
 
 func honestHunk(question closedq.Question, state string) (string, float64) {
 	_, change, _ := strings.Cut(state, changeHeader)
-	for _, unrelated := range []string{"apply_discount", "ApplyDiscount", "receipt_line"} {
+	for _, unrelated := range []string{"apply_discount", "ApplyDiscount", "applyDiscount", "receipt_line", "receiptLine"} {
 		if strings.Contains(change, unrelated) {
 			return noneChoice, noneConfidence
 		}

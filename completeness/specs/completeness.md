@@ -436,3 +436,25 @@ traces them to the Go tests of the module in CI.
 - **SP-1310~1**: WHEN an example operation is bound to a function THE SYSTEM SHALL
   read the function name of a binding written as `module:function`,
   `module.function`, `package.Class#method` or the bare name.
+- **SP-1311~1**: WHEN the indexers of the command line are listed THE SYSTEM SHALL
+  serve the source files of Python, Go, JavaScript, TypeScript, Java and Kotlin,
+  each by one indexer.
+- **SP-1312~1**: WHEN the change of a TypeScript or Java project is proved with the
+  ALIGNED tests of its requirements alone THE SYSTEM SHALL ask about the changed
+  units that no test may execute and about no other, reaching the units a test calls
+  through the label its runner reports for it and not through a function name.
+
+## Languages end to end
+
+- **SP-1320~1**: WHEN an honest host answers every request of a TypeScript project
+  with a change THE SYSTEM SHALL write the advisory Statement of its spec with the
+  questions an honest owner would ask, as it does for a Python project.
+- **SP-1321~1**: WHEN a forger answers a TypeScript project from the command line, or
+  forges the content of its answers through the hooks, THE SYSTEM SHALL accept no
+  answer without a capability and write a Statement that carries no verdict.
+- **SP-1322~1**: WHEN an honest host answers every request of a Java project with a
+  change THE SYSTEM SHALL write the advisory Statement of its spec with the
+  questions an honest owner would ask, as it does for a Python project.
+- **SP-1323~1**: WHEN a forger answers a Java project from the command line, or
+  forges the content of its answers through the hooks, THE SYSTEM SHALL accept no
+  answer without a capability and write a Statement that carries no verdict.

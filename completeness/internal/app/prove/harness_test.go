@@ -20,6 +20,9 @@ import (
 	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/schemacheck"
 	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/shallnot"
 	golangunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/golang"
+	javaunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/java"
+	javascriptunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/javascript"
+	kotlinunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/kotlin"
 	pythonunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/python"
 	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/completeness/internal/app/prove"
@@ -199,7 +202,7 @@ func (w *world) deps() prove.Deps {
 	}
 	deps := prove.Deps{
 		Criteria:   criteriaSource{report: w.report},
-		Indexers:   []ports.Indexer{pythonunits.New(), golangunits.New()},
+		Indexers:   []ports.Indexer{pythonunits.New(), golangunits.New(), javascriptunits.New(), javaunits.New(), kotlinunits.New()},
 		Changes:    w.changes,
 		Operations: bound,
 		Project:    os.DirFS(w.root),

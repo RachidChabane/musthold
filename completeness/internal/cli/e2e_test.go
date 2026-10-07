@@ -24,6 +24,8 @@ type ledgerCase struct {
 var ledgerCases = []ledgerCase{
 	{fixture: testkit.PythonLedger, evidence: testkit.PythonEvidence, unjustified: []string{"apply_discount", "receipt_line"}, withHunks: 2, withoutHunk: 5},
 	{fixture: testkit.GoLedger, evidence: testkit.GoEvidence, unjustified: []string{"ApplyDiscount"}, withHunks: 1, withoutHunk: 4},
+	{fixture: testkit.TypeScriptLedger, evidence: testkit.TypeScriptEvidence, unjustified: []string{"applyDiscount", "receiptLine"}, withHunks: 2, withoutHunk: 5},
+	{fixture: testkit.JavaLedger, evidence: testkit.JavaEvidence, unjustified: []string{"Totals.applyDiscount", "Receipts.receiptLine"}, withHunks: 2, withoutHunk: 5},
 }
 
 func hunkRequests(h *harness) int {
