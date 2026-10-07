@@ -8,6 +8,11 @@ to the Go tests of the module in CI.
 
 - **SP-105~1**: WHEN the `spec-proof-s1` binary is run with the `version`
   argument THE SYSTEM SHALL print its version.
+- **SP-1660~1**: WHEN the binary is run with `-h`, `--help` or `help`, `drain` with
+  `-h` or `--help`, or `help drain` THE SYSTEM SHALL print the commands of the
+  binary, or the synopsis and every flag of `drain`, on the output stream and
+  exit 0; and WHEN a flag of `drain` is unknown THE SYSTEM SHALL print the failure
+  and the usage of `drain` on the error stream and exit 2.
 
 ## Drain
 

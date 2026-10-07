@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/RachidChabane/spec-proof/format/cliconv"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/memguard"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/modulecli"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/app/ports"
@@ -29,7 +30,13 @@ const (
 const (
 	versionCommand = "version"
 	drainCommand   = "drain"
+
+	// helpFlag is the flag `help <command>` hands to the command.
+	helpFlag = "-h"
 )
+
+// commands are the commands of the binary, in the order the usage names them.
+var commands = []string{versionCommand, drainCommand, cliconv.HelpCommand}
 
 // Env is everything the command line needs from its surroundings.
 type Env struct {
@@ -65,9 +72,22 @@ func Run(env Env, args []string) int {
 		fmt.Fprintln(env.Stdout, version.Line(env.Binary))
 		return ExitClean
 	}
+	if cliconv.IsHelpRequest(args) {
+		return env.help(args)
+	}
 	if len(args) >= 1 && args[0] == drainCommand {
 		return env.drain(args[1:])
 	}
-	fmt.Fprintf(env.Stderr, "usage: %s <%s|%s>\n", env.Binary, versionCommand, drainCommand)
+	fmt.Fprint(env.Stderr, cliconv.CommandsUsage(env.Binary, commands))
 	return ExitToolFailure
+}
+
+// help answers a request for help: the usage of the binary, or the one of the
+// command that `help` names.
+func (e Env) help(args []string) int {
+	if args[0] == cliconv.HelpCommand && len(args) > 1 {
+		return Run(e, []string{args[1], helpFlag})
+	}
+	fmt.Fprint(e.Stdout, cliconv.CommandsUsage(e.Binary, commands))
+	return cliconv.ExitHelp
 }

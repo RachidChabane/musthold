@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"strconv"
 	"time"
 
+	"github.com/RachidChabane/spec-proof/format/cliconv"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/memguard"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/modulecli"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/projectconfig"
@@ -81,6 +81,9 @@ func (l logWriter) Logf(format string, args ...any) {
 func (e Env) drain(args []string) int {
 	settings, err := e.settingsFrom(args)
 	if err != nil {
+		if code, handled := cliconv.Handle(err, e.Binary, e.Stdout, e.Stderr); handled {
+			return code
+		}
 		fmt.Fprintf(e.Stderr, "%s: %v\n", e.Binary, err)
 		return ExitToolFailure
 	}
@@ -116,8 +119,7 @@ func (e Env) drain(args []string) int {
 }
 
 func (e Env) settingsFrom(args []string) (drainSettings, error) {
-	set := flag.NewFlagSet(e.Binary+" "+drainCommand, flag.ContinueOnError)
-	set.SetOutput(io.Discard)
+	set := cliconv.NewFlagSet(e.Binary+" "+drainCommand, "")
 	module := set.String(flagModule, "", "the module whose closed requests are relayed, for example dp")
 	address := set.String(flagEndpoint, "", "the System One endpoint (default: systemone.endpoint of the project configuration)")
 	model := set.String(flagModel, "", "the model to name in each request (default: systemone.model)")
@@ -126,11 +128,12 @@ func (e Env) settingsFrom(args []string) (drainSettings, error) {
 	root := set.String(flagRoot, "", "the project root (default: the working directory)")
 	memGuard := set.Bool(flagMemGuard, false, "refuse to start, and stop, when free memory is below the memory rule")
 	noUnload := set.Bool(flagNoUnload, false, "keep the model loaded after the batch")
-	if err := set.Parse(args); err != nil {
+	rest, err := set.ParseArguments(args)
+	if err != nil {
 		return drainSettings{}, err
 	}
-	if set.NArg() > 0 {
-		return drainSettings{}, fmt.Errorf("unexpected argument %q", set.Arg(0))
+	if len(rest) > 0 {
+		return drainSettings{}, cliconv.UsageError{Err: fmt.Errorf("unexpected argument %q", rest[0]), Text: set.Usage()}
 	}
 	if *module == "" {
 		return drainSettings{}, errors.New("--" + flagModule + " names the module to drain")
