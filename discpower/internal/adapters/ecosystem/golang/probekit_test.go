@@ -3,6 +3,7 @@ package golang_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -119,7 +120,7 @@ func TestProberOverAProjectOfManyTypes(t *testing.T) {
 	}
 	got := project.invoke(t, calls...)
 	for index, tt := range cases {
-		t.Run(tt.name+" [verifies "+tt.requirement+"]", func(t *testing.T) {
+		t.Run(fmt.Sprintf("%s [%s %s]", tt.name, "verifies", tt.requirement), func(t *testing.T) {
 			requireObservations(t, got[index:index+1], tt.want)
 		})
 	}
