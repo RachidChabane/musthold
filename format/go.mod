@@ -4,6 +4,7 @@ go 1.26.4
 
 require (
 	github.com/gowebpki/jcs v1.0.2
+	gopkg.in/yaml.v3 v3.0.1
 	pgregory.net/rapid v1.3.0
 )
 

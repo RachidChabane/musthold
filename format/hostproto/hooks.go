@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -24,6 +25,9 @@ const (
 	HookSubagentStop  HookKind = "subagent-stop"
 	HookPostTool      HookKind = "post-tool"
 )
+
+// Valid reports whether the kind is one of the hooks a module serves.
+func (k HookKind) Valid() bool { return slices.Contains(HookKinds(), k) }
 
 // HookKinds lists the hooks a module serves.
 func HookKinds() []HookKind {

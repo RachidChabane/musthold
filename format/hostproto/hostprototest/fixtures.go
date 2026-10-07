@@ -11,7 +11,16 @@ import (
 
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
 )
+
+// Identity is the module of the fixture request: its plugin and its three
+// executor agents.
+var Identity = harness.Identity{Plugin: PluginName, Agents: hostproto.Agents()}
+
+// ExecutorToolName is how Claude Code spells an executor tool of the fixture
+// module's plugin.
+func ExecutorToolName(tool string) string { return harness.Claude(Identity).ToolName(tool) }
 
 // Names and texts of the fixture request.
 const (

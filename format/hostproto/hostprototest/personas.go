@@ -33,7 +33,6 @@ const (
 	forgerSecret         = "not-the-install-secret"
 	leakedReplySuffix    = " The mutant changes the boundary at 15 minutes."
 	paddingPrefix        = "The tests live in tests/test_parkfee.py. "
-	executorToolServer   = "mcp__plugin_spec-proof-dp_exec__"
 	selectorTrivialValue = `{"validity":"VALID"}`
 )
 
@@ -217,9 +216,9 @@ func (e *executor) finish(receipt Receipt, submits int, reply string, model stri
 
 func transcript(ticket hostproto.TicketID, submits int) []hostproto.ToolCall {
 	input := json.RawMessage(fmt.Sprintf(`{"ticket":%q}`, ticket.String()))
-	calls := []hostproto.ToolCall{{Name: executorToolServer + hostproto.ToolFetchRequest, Input: input}}
+	calls := []hostproto.ToolCall{{Name: ExecutorToolName(hostproto.ToolFetchRequest), Input: input}}
 	for range submits {
-		calls = append(calls, hostproto.ToolCall{Name: executorToolServer + hostproto.ToolSubmitResponse, Input: input})
+		calls = append(calls, hostproto.ToolCall{Name: ExecutorToolName(hostproto.ToolSubmitResponse), Input: input})
 	}
 	return calls
 }

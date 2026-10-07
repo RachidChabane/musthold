@@ -317,6 +317,130 @@ Go tests of the module in CI.
   submission, reach nothing a hook is needed for, and fail on a module whose
   listing is unreadable.
 
+## Host protocol: harness, hooks and executor server of a module
+
+- **SP-700~1**: WHEN a host harness is selected for a module THE SYSTEM SHALL
+  name the executor tools of the module's plugin as that harness spells them,
+  recognize them and no other tool in a hook payload, name the type of each
+  executor agent the module ships as that harness reports it and map a reported
+  type back to the role of its requests, take an agent the module does not ship
+  for no executor, derive the isolation the harness's allowlist reaches
+  (restricted on Claude Code, unrestricted on Codex, restricted-unverified on
+  Copilot), and waive attestation on a harness that cannot issue a capability.
+- **SP-701~1**: WHEN a response is read for a proof THE SYSTEM SHALL credit it
+  with `restricted-attested` and the digest of its transcript only when the stop
+  hook attested the agent that answered and no leak, exposure or conflict marks
+  its ticket, and with the model the harness resolved when it reported one,
+  leaving the stored profile as it was.
+- **SP-702~1**: WHEN tickets are listed, shown or answered through the request
+  service THE SYSTEM SHALL list the emitted tickets with their role and executor
+  view, move a shown ticket to fetched, refuse a call without a capability while
+  attestation is required, accept only the capability of a started agent bound
+  to that one ticket, record an answer with the profile of its origin (executor,
+  sampled, replayed, relayed, command line), journal an answer no capability
+  backs as exposed outside an executor and as restricted inside one whose
+  attestation was waived, allow one correction after a schema violation before
+  the ticket is rejected, refuse a different second answer as a resubmission
+  conflict and accept the same one as a replay, and refuse a nonce or an
+  emission other than the issue's.
+- **SP-703~1**: WHEN the executor server runs THE SYSTEM SHALL offer
+  `fetch_request` and `submit_response`, and `drain` only when the client
+  declared sampling and the module turned it on; return the schema violations of
+  an answer as a result; and, for `drain`, put every pending ticket to the
+  client's model through sampling with no context and no tools, submit the JSON
+  object of each sampled answer as a sampled response with no capability, serve
+  only the module it is named for and stop at the first refused sample or
+  invalid answer without accepting it.
+- **SP-704~1**: WHEN the PreToolUse hook sees the launch of an executor THE
+  SYSTEM SHALL rebuild it to the bare ticket, in the foreground and without a
+  model, deny a prompt without exactly one ticket and a ticket that is unknown or
+  for another role, and leave every other launch and tool alone.
+- **SP-705~1**: WHEN the PreToolUse hook sees a call of an executor tool THE
+  SYSTEM SHALL add the capability of the calling agent when its type is the role
+  of the ticket, deny otherwise and journal an exposure attempt with the agent,
+  deny when the call cannot be checked, and leave the drain tool to the main
+  agent.
+- **SP-706~1**: WHEN the SubagentStart hook sees an executor THE SYSTEM SHALL
+  journal its agent and role, and journal no other agent.
+- **SP-707~1**: WHEN the SubagentStop hook sees an executor stop THE SYSTEM SHALL
+  attest the run with the digest of its transcript when its calls are exactly the
+  fetch and the submit of one ticket and its reply is the bare receipt, journal
+  an exposure for any other call and a leak for any other reply, journal a
+  restricted run when the transcript cannot be read, and never block the
+  subagent.
+- **SP-708~1**: WHEN the PostToolUse hook sees an executor launch finish THE
+  SYSTEM SHALL record the resolved model and the usage against its ticket and
+  journal a leak for a reply other than the bare receipt, and record nothing for
+  another agent or a launch without a ticket.
+- **SP-709~1**: WHEN a Codex or Copilot hook runs THE SYSTEM SHALL serve the hooks
+  that harness has: capabilities, the start and the stop of executors on Codex,
+  the denial of a call of the wrong role and the stop check on Copilot, resolving
+  the role of an agent from the journal when the call does not carry its type,
+  and conclude nothing from a call that carries no agent identity where the
+  harness does not identify callers.
+- **SP-710~1**: WHEN a hook is not about the module's executors THE SYSTEM SHALL
+  leave the call alone without opening any state, deny a call of the module's own
+  tools that it cannot check, and accept a receipt with whitespace around it.
+- **SP-711~1**: WHEN the host files of a module are generated for a harness THE
+  SYSTEM SHALL give the Claude Code plugin its manifest, its executor server, one
+  agent per executor role of the module holding exactly the two executor tools
+  with the inherited model, a blind context and four turns, its four hooks under
+  matchers that select the executor alone, and a skill that pre-approves what its
+  loop runs; give Codex read-only agents carrying the executor server, hook
+  entries and a skill; give Copilot agents naming server and tool pairs, a hooks
+  file and a skill; and carry no text about their own authoring.
+- **SP-712~1**: WHEN the host files are generated twice THE SYSTEM SHALL produce
+  the same bytes, refuse a harness it has no files for, and ship an agent file,
+  a matcher alternative and a role only for the executor agents the module has.
+- **SP-713~1**: WHEN a host bundle is made or read THE SYSTEM SHALL list the
+  responses in a manifest with the module, the head commit, the journal digest and
+  the marks the journal holds, give the same bytes for the same responses in any
+  order, refuse files that are not a consistent bundle, name the ref of a commit
+  under `refs/spec-proof/host/<module>`, refuse a bundle of another version only
+  when requests found no answer and name both versions, derive the CI seed from
+  the commit and the first run only, and carry CI-issued requests in full so that
+  their ids can be recomputed.
+- **SP-714~1**: WHEN a proof asks for tickets through the bridge THE SYSTEM SHALL
+  emit the missing tickets of a request, retire a fetched ticket past its time to
+  live, reissue a rejected or expired one with a new nonce until its emissions run
+  out, read the answers the lifecycle lets a proof consume with the profile they
+  are credited with, move votes through validation, rejection and consumption,
+  and supersede the tickets of requests no proof of the wave asked for.
+- **SP-715~1**: WHEN the host answers are collected and imported THE SYSTEM SHALL
+  put every answered ticket in the bundle with the profile it is credited with and
+  the marks against it, refuse a store whose journal chain is broken, serve the
+  tickets a run asks for from a pushed bundle through the same checks as any
+  answer, leave the others pending, mark again what the pushing host marked, end
+  the replay when the bundle answers nothing, and refuse an answer that breaks the
+  schema.
+- **SP-716~1**: WHEN the requests CI left for the host are exported and imported
+  THE SYSTEM SHALL export the requests whose tickets wait, in full, with their
+  votes, criteria and purpose, import each once as tickets on another machine,
+  and refuse a request the manifest does not list.
+- **SP-717~1**: WHEN a module is installed into a project THE SYSTEM SHALL write
+  the module's configuration seed and ignore its local state, install the files
+  of each selected harness (`auto`, `none` or a list) by merging into every file
+  another tool shares and writing the files it owns, enable the plugin in the
+  project's Claude Code settings without overriding the user's choice, plan no
+  change on a second run, and leave Shallnot's configuration, its block of
+  AGENTS.md and its hooks as they were.
+- **SP-718~1**: WHEN a module is enabled or disabled THE SYSTEM SHALL turn the
+  proof on or off in the module's configuration, add or remove its kind in
+  `proofs.require` of `shallnot.yaml` and its block of AGENTS.md by line edits
+  that keep every other byte, so that disabling restores what enabling changed,
+  refuse a project with no `shallnot.yaml`, refuse a layout it cannot extend
+  without rewriting, and for an advisory proof that Shallnot refuses in
+  `proofs.require` write no require entry, mark its block advisory and say why.
+- **SP-719~1**: WHEN the host settings of the shared configuration file are read
+  THE SYSTEM SHALL keep attestation required and sampling off when the section is
+  absent, read `sampling` and `require_attestation`, refuse an unknown or
+  mistyped member, and tolerate the sections the other modules keep in the file.
+- **SP-720~1**: WHEN recorded answers are replayed THE SYSTEM SHALL answer each
+  pending ticket from the recording of its vote, falling back on the first vote's
+  recording, keep the recorded executor and give the inline profile when there is
+  none, fail on a ticket without a recording, refuse a pending ticket that is not
+  an identifier and an answer that breaks the schema.
+
 ## Schemas and golden vectors
 
 - **SP-22~1**: WHEN the embedded schemas are listed THE SYSTEM SHALL give each
