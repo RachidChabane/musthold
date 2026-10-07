@@ -55,6 +55,9 @@ readonly SHALLNOT_SRC_PATH="${SHALLNOT_SRC:-${REPO}/../shallnot-proof-gate}"
 # and launchd does not.
 readonly MISE_DATA_PATH="${MISE_DATA_DIR:-${HOME}/dev-env/1-tools}"
 readonly NICE_LEVEL=10
+# The Claude Code CLI updates itself in the background; a night job keeps the
+# version it started on, so one run does not span two CLI versions.
+readonly CLAUDE_DISABLE_AUTOUPDATER=1
 # job name, hour, minute
 readonly JOBS=("pilot 21 7" "canaries 23 13" "construct 3 7")
 
@@ -83,6 +86,7 @@ write_plist() {
     <key>HOME</key><string>${HOME}</string>
     <key>SHALLNOT_SRC</key><string>${SHALLNOT_SRC_PATH}</string>
     <key>MISE_DATA_DIR</key><string>${MISE_DATA_PATH}</string>
+    <key>DISABLE_AUTOUPDATER</key><string>${CLAUDE_DISABLE_AUTOUPDATER}</string>
   </dict>
   <key>StartCalendarInterval</key>
   <dict><key>Hour</key><integer>${hour}</integer><key>Minute</key><integer>${minute}</integer></dict>
