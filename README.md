@@ -105,23 +105,28 @@ JSON report schema is 1.2 or later (see [Status](#status)).
    spec-proof-completeness enable
    ```
 
-   `init` writes `.spec-proof/config.yaml`, ignores the local proof directories
-   and enables the module's plugin in `.claude/settings.json`. `enable` turns the
-   proof on, adds it to `proofs.require` in `shallnot.yaml` (except completeness,
-   which is advisory) and adds the module's block to `AGENTS.md`.
+   `init` writes `.spec-proof/config.yaml` with a commented `operations` example,
+   ignores the local proof directories and enables the module's plugin in
+   `.claude/settings.json`. `enable` turns the proof on, adds it to
+   `proofs.require` in `shallnot.yaml` (except completeness, which is advisory),
+   sets `proofs.trust: local` and `proofs.code` there when they are unset, and
+   adds the module's block to `AGENTS.md`. The CI configuration of the gate sets
+   `proofs.trust: signed`.
 
-4. Complete the configuration for local use, as described in
-   [getting started](docs/usage/getting-started.md): `proofs.trust: local` and
-   `proofs.code` in `shallnot.yaml`, and `operations` in `.spec-proof/config.yaml`.
+4. Bind the operation names of your spec examples to code: uncomment and edit the
+   `operations` example in `.spec-proof/config.yaml`, as described in
+   [getting started](docs/usage/getting-started.md).
 
 5. Work as usual. Shallnot's end-of-turn hook runs the gate when the agent
    finishes a turn. While a module owes work, the gate reports `awaiting_host`
    and the agent runs the `prove-all` skill (or a module's `*-fulfil` skill).
    The skill runs `prove`, which exits with code 3 and lists tickets; one blind
    executor subagent answers each ticket; `prove --resume` consumes the answers.
-   The loop repeats while `prove` exits 3.
+   The loop repeats while `prove` exits 3. When it ends, the skill publishes the
+   local statements for the gate with `spec-proof-verify --accept-local
+   .spec-proof/cache --out .spec-proof/verified`.
 
-6. Publish the local statements for the gate, and run the gate:
+6. To publish by hand after a run of your own, and run the gate:
 
    ```
    spec-proof-verify --accept-local .spec-proof/cache --out .spec-proof/verified

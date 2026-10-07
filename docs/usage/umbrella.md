@@ -54,14 +54,20 @@ Plugins install no binary: each binary must be on `PATH` (see
 4. ends a module whose `prove` exits 0 or 1 and reports its verdict lines. For exit
    code 2, or a `host_unresponsive` finding, it reports to the user and stops that
    module without looping;
-5. reports, per module, the last exit code, the verdict lines and the modules that
-   were missing.
+5. once every present module is done, publishes the local proofs once with
+   `spec-proof-verify --accept-local .spec-proof/cache --out .spec-proof/verified`,
+   which is the one command besides the module commands it pre-approves, and says
+   so when `spec-proof-verify` is not on `PATH`;
+6. reports, per module, the last exit code, the verdict lines, the modules that
+   were missing and whether the proofs were published.
 
-The skill pre-approves only each module's `doctor`, `prove` and `request list` and
-the relay's `drain`. It never answers a request itself.
+The skill pre-approves only each module's `doctor`, `prove` and `request list`, the
+relay's `drain` and the exact verifier command above. It never answers a request
+itself.
 
 ## Without the umbrella
 
 Each module plugin works alone. Install `spec-proof-dp@spec-proof` and run its
-`spec-proof-dp-fulfil` skill; the same holds for `spec-proof-alignment` and
-`spec-proof-completeness`.
+`spec-proof-dp-fulfil` skill, which ends the same way: when its loop ended with
+exit code 0 or 1 it runs the verifier command. The same holds for
+`spec-proof-alignment` and `spec-proof-completeness`.

@@ -18,6 +18,11 @@ Exit codes: 0 success, 1 a refusal (a statement, a path or a ledger that breaks 
 rule), 2 a command line that does not parse or a failure of the tool. Every
 non-zero exit is explained on standard error.
 
+`-h`, `--help` and `help` print the forms above and exit 0, `ledger -h` lists the
+subcommands of `ledger`, and `<command> -h` or `ledger <subcommand> -h` prints the
+flags of that command only. A flag a command does not define prints the failure and
+the usage of the command on standard error and exits 2.
+
 ## sign
 
 Reads statements from `--in` in the layout of the proof cache,

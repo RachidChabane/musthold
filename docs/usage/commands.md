@@ -6,8 +6,15 @@
 differ are in the page of each module: [discriminating power](discpower.md),
 [alignment](alignment.md) and [completeness](completeness.md).
 
-Run the binary with no argument to print the list of commands. `<command> -h`
-prints the flags of a command. Flags are accepted as `--flag` or `-flag`.
+Run the binary with no argument to print the list of commands on standard error
+(exit 2), or with `-h`, `--help` or `help` to print it on standard output (exit 0).
+`<command> -h` or `--help`, and `help <command>`, print the synopsis and the flags
+of that command and exit 0; for a command that takes a verb, such as `request`,
+`systemone` and `host`, `-h` lists its verbs and `<command> <verb> -h` lists
+exactly the flags of that verb. A flag a command does not define is a usage error
+(exit 2) that prints the failure and the usage of the command on standard error.
+Flags are accepted as `--flag` or `-flag`. The other binaries (`spec-proof-ledger`,
+`spec-proof-verify`, `spec-proof-s1`) answer the same help forms.
 
 ```
 spec-proof-dp <version|prove|request|systemone|doctor|init|enable|disable|mcp|hook|host>
@@ -38,19 +45,30 @@ file it creates, updates or leaves `unchanged`, then the next steps. With
 `--check` nothing changes and the exit code is 1 when a file would change.
 
 - `init` writes the module's seed of `.spec-proof/config.yaml` (every proof off,
-  the ecosystems detected), ignores `.spec-proof/cache/` and
-  `.spec-proof/verified/` in `.gitignore`, and installs the files of each selected
+  the ecosystems detected, and a commented `operations` example; the example is a
+  comment because a binding is valid only once it names a callable that exists, so
+  you uncomment it and edit it), ignores `.spec-proof/cache/`,
+  `.spec-proof/verified/` and `.spec-proof/pending/` in `.gitignore`, and installs the files of each selected
   harness by merging into files other tools share and writing the files it owns.
   `--hooks auto` installs Claude Code's files and those of every harness whose
   configuration the project holds. A second run changes nothing. Shallnot's
   configuration, its `AGENTS.md` block and its hooks are never touched.
 - `enable` sets the module's proof to `true` in `.spec-proof/config.yaml`, adds its
   kind to `proofs.require` in `shallnot.yaml` and adds its block to `AGENTS.md`,
-  by line edits that keep every other byte. It refuses a project with no
-  `shallnot.yaml` and a layout it cannot extend without rewriting.
-  Completeness writes no `proofs.require` entry and works without a
-  `shallnot.yaml`.
-- `disable` turns the proof off and removes what `enable` added.
+  by line edits that keep every other byte. In `shallnot.yaml` it also sets
+  `proofs.trust: local`, so that Shallnot reads the proofs made on the machine,
+  when no trust is set, and fills `proofs.code` with the source roots of the
+  project when it lists none: `**/*.go` for a Go module, `src` for a Node project
+  that has it, `src/main` for a Maven or Gradle project that has it, and `src` or
+  each top-level package for a Python project. A value that is already set is never
+  changed, and `enable` says so when it finds no source root. The CI configuration
+  of the gate sets `proofs.trust: signed` (see [CI](ci.md#repository-settings)). It
+  refuses a project with no `shallnot.yaml` and a layout it cannot extend without
+  rewriting. Completeness writes no `proofs.require`, `proofs.trust` or
+  `proofs.code` entry and works without a `shallnot.yaml`.
+- `disable` turns the proof off and removes its `proofs.require` entry and its
+  block of `AGENTS.md`. It leaves `proofs.trust` and `proofs.code`, which the other
+  modules rely on.
 
 ## prove
 
@@ -66,7 +84,7 @@ spec-proof-dp prove --ci [--import-host DIR] [--root DIR]
 | `--resume` | Continue a run that is awaiting the host. Refused when no request was ever emitted. |
 | `--record DIR` | Keep each consumed answer and its executor under the request id in `DIR`. |
 | `--replay DIR` | Answer every pending ticket from the recordings in `DIR`. A request without a recording is a hard error. Excludes `--record`. |
-| `--ci` | Run as CI does: produce statements as CI and leave unanswered requests in `.spec-proof/ci-issued/` for the CI job to upload. Discriminating power also draws the seed of the head commit and needs `SPEC_PROOF_CI_RUN_ID` or `GITHUB_RUN_ID`. Excludes `--record` and `--replay`. |
+| `--ci` | Run as CI does: produce statements as CI and leave unanswered requests in `.spec-proof/ci-issued/<module>/`, one directory per module, for the CI job to upload. Discriminating power also draws the seed of the head commit and needs `SPEC_PROOF_CI_RUN_ID` or `GITHUB_RUN_ID`. Excludes `--record` and `--replay`. |
 | `--import-host DIR` | With `--ci`: serve the tickets the run asks for from the bundle a `host push` published. |
 | `--root DIR` | Project root. |
 
@@ -169,6 +187,7 @@ spec-proof-dp host pull --ci-run ID [--repo OWNER/NAME] [--artifact NAME] [--roo
   is `discpower`, `alignment` or `completeness`.
 - `pull` downloads, with `gh run download`, the requests a CI run left for the
   host (`--artifact` defaults to `spec-proof-host-<module>`) and makes tickets of
-  them once.
+  them once. It reads them from the root of the artifact, or from the directory of
+  the module below it when the artifact holds `.spec-proof/ci-issued` as a whole.
 
 See [CI](ci.md) for the workflow.

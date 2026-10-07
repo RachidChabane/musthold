@@ -40,7 +40,7 @@ systemone:
 |---|---|---|---|
 | `proofs.<kind>` | boolean | `false` | Whether the proof is on. Kinds: `alignment`, `discriminating-power`, `completeness`. Set by `enable` and `disable`. |
 | `ecosystems` | list | detected by `init` | Any of `pytest`, `jest`, `vitest`, `maven`, `gradle`, `go`. |
-| `operations` | mapping | none | Binds the operation names of spec examples to code; see below. |
+| `operations` | mapping | none | Binds the operation names of spec examples to code; see below. `init` writes a commented example of it. |
 | `policy` | mapping | defaults below | Decision policy of discriminating power. |
 | `host.sampling` | `on` | off | Lets the executor server offer `drain` to a client that declares MCP sampling. |
 | `host.require_attestation` | boolean | `true` | When `true`, an executor answer without a capability issued by the harness hooks is refused. `false` records such answers as `restricted`. |
@@ -160,8 +160,8 @@ is authoritative; the keys are:
 |---|---|---|
 | `verified_dir` | `.spec-proof/verified` | Directory of the verified set, with its `manifest.json`. |
 | `require` | `[]` | Kinds every covered requirement must hold a valid proof of: `alignment`, `discriminating-power`. `completeness` is refused. |
-| `code` | `[]` | Files, directories or globs a proof's `code_tree` inputs may name. A proof that names a file outside them is stale. |
-| `trust` | `signed` | `signed` admits only statements produced by CI, in a set whose manifest the verifier wrote after checking signatures; `local` also admits unsigned local statements. |
+| `code` | `[]` | Files, directories or globs a proof's `code_tree` inputs may name. A proof that names a file outside them is stale. `enable` fills it from the layout of the project when it is empty. |
+| `trust` | `signed` | `signed` admits only statements produced by CI, in a set whose manifest the verifier wrote after checking signatures; `local` also admits unsigned local statements. `enable` sets `local` when the key is absent; the CI configuration of the gate sets `signed`. |
 | `thresholds.validity` | `0.7` | Confidence at which a judged claim about a mutant has power. Number or per-source mapping. |
 | `thresholds.alignment` | `0.7` | The same for alignment verdicts. |
 | `escalation` | `error` | `error` fails the verdict on an escalating finding; `warning` only reports it. |

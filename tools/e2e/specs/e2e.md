@@ -29,8 +29,8 @@ alignment and verify modules and the pinned Shallnot over a copy of the parcel
 pytest project, and need that Shallnot: without it the tests record a skip that
 names the reason, and the gate reports the skipped requirement.
 
-- **SP-412~3**: WHEN both modules are initialized and enabled with their own
-  `init` and `enable`, the code is edited, the discriminating-power proof and the
+- **SP-412~4**: WHEN both modules are initialized and enabled with their own
+  `init` and `enable`, with no other edit of `shallnot.yaml` than theirs, the code is edited, the discriminating-power proof and the
   alignment proof are each made with an honest host through the module's real hooks
   and MCP executor server (the alignment proof from the verified set), and the
   local statements are accepted by the verifier THE SYSTEM
@@ -92,3 +92,22 @@ boxes; the checks skip with a recorded reason when the memory guard refuses a bu
 - **SP-1402~1**: WHEN the documentation links to a file, a directory or a heading of
   the repository THE SYSTEM SHALL find the file or directory and, for a Markdown
   page, a heading that has the anchor.
+
+## Closed local loop
+
+- **SP-1670~1**: WHEN each of the six built binaries is run with `-h`, `--help` or
+  `help`, each of its commands with `-h` or `--help`, `help` followed by a
+  command, and each verb of a command that takes one with `-h` or `--help` THE
+  SYSTEM SHALL print a usage on the output stream and exit 0, list for a verb
+  only the flags that verb defines, and refuse a flag another verb owns as a usage
+  error on the error stream with exit 2.
+- **SP-1671~1**: WHEN both proof modules are initialized and enabled in a project
+  that has no spec-proof state THE SYSTEM SHALL leave `shallnot.yaml` with both
+  proofs required, the trust `local` and the source root of the project as code,
+  keep the cache, the verified set and the pending files out of version control,
+  write the commented example of the operations block once, and plan no change on
+  a second `init`.
+- **SP-1672~1**: WHEN the verifier accepts a local cache that holds no statement
+  and the pinned Shallnot reads the result under the trust `local` THE SYSTEM
+  SHALL write a manifest of trust `local` with no digest of a trusted root or of a
+  policy and no statement, and SHALL give no `malformed_proof` finding.

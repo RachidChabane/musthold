@@ -30,8 +30,8 @@ const (
 )
 
 // equipAlignmentOnly installs Shallnot and the alignment module alone the way a
-// user does, then gives the project the policy of the run: local trust, the code
-// tree and the alignment proof required.
+// user does and edits nothing by hand: `enable` leaves the policy of the run, the
+// alignment proof required, the local trust and the code tree.
 func (p *parcelProject) equipAlignmentOnly() {
 	p.t.Helper()
 	if r := p.sn("", "init", "--dir", p.root, "--hooks", "claude"); r.code != exitClean {
@@ -43,12 +43,10 @@ func (p *parcelProject) equipAlignmentOnly() {
 	if r := p.alignment("", "enable"); r.code != exitClean {
 		p.t.Fatalf("alignment enable: %s", r.output())
 	}
-	const required = "proofs:\n  require:\n    - alignment\n"
-	config := p.read("shallnot.yaml")
-	if !strings.Contains(config, required) {
-		p.t.Fatalf("enable did not require the proof:\n%s", config)
+	const policy = "proofs:\n  require:\n    - alignment\n  trust: local\n  code:\n    - parcel\n"
+	if config := p.read("shallnot.yaml"); !strings.Contains(config, policy) {
+		p.t.Fatalf("enable did not leave the policy of the local loop:\n%s", config)
 	}
-	p.write("shallnot.yaml", strings.Replace(config, required, "proofs:\n  trust: local\n  code:\n    - parcel/**\n  require:\n    - alignment\n", 1))
 }
 
 // alignmentJournal reads the events of the host journal of the alignment module.

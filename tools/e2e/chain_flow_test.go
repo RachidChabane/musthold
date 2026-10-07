@@ -21,14 +21,19 @@ const (
 	exitAwaiting   = 3
 	maxWaves       = 12
 
-	editedLine    = "\n# reviewed\n"
+	editedLine = "\n# reviewed\n"
+
+	// enabledPolicy is what the `enable` of both modules leaves in shallnot.yaml of
+	// the parcel project: both proofs required, the local trust and its source root.
+	enabledPolicy = "proofs:\n  require:\n    - discriminating-power\n    - alignment\n  trust: local\n  code:\n    - parcel\n"
 	rangeCodeFile = "parcel/rates.py"
 	outsideFile   = "parcel/__init__.py"
 	extraTestFile = "tests/test_extra.py"
 )
 
-// equip installs Shallnot and the modules the way a user does, then gives the
-// project the policy of the run: local trust, the code tree, and both proofs required.
+// equip installs Shallnot and the modules the way a user does and edits nothing
+// by hand: `enable` leaves the policy of the run, local trust, the code tree and
+// both proofs required.
 func (p *parcelProject) equip() {
 	p.t.Helper()
 	if r := p.sn("", "init", "--dir", p.root, "--hooks", "claude"); r.code != exitClean {
@@ -45,12 +50,9 @@ func (p *parcelProject) equip() {
 			p.t.Fatalf("%s enable: %s", module.name, r.output())
 		}
 	}
-	const required = "proofs:\n  require:\n    - discriminating-power\n    - alignment\n"
-	config := p.read("shallnot.yaml")
-	if !strings.Contains(config, required) {
-		p.t.Fatalf("enable did not require both proofs:\n%s", config)
+	if config := p.read("shallnot.yaml"); !strings.Contains(config, enabledPolicy) {
+		p.t.Fatalf("enable did not leave the policy of the local loop:\n%s", config)
 	}
-	p.write("shallnot.yaml", strings.Replace(config, required, "proofs:\n  trust: local\n  code:\n    - parcel/**\n  require:\n    - discriminating-power\n    - alignment\n", 1))
 }
 
 // edit makes the change an agent would make: it touches a file with a comment.

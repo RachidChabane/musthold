@@ -65,7 +65,7 @@ With `--ci` every module:
 - writes statements with `producedBy: ci`;
 - refuses a bundle made by another module version when requests are left
   unanswered, naming both versions (`host_version_skew`, exit 1);
-- leaves the requests nobody answered in `.spec-proof/ci-issued/` and exits 3.
+- leaves the requests nobody answered in `.spec-proof/ci-issued/<module>/` and exits 3.
 
 Discriminating power also:
 
@@ -73,10 +73,11 @@ Discriminating power also:
   Without either it refuses with exit 1;
 - draws the seed of the head commit from the head commit and the first CI run that
   saw it (the SHA-256 of the two joined by a newline) and records it in
-  `.spec-proof/cache/seeds/<head sha>.json`. A later run finds that file and reuses
-  the seed, so re-triggering CI cannot shop for a favourable draw, as long as the
-  file is restored before the run (a CI cache of `.spec-proof/cache/seeds` does it);
-  without the file a run draws from its own run id;
+  `.spec-proof/seeds/<head sha>.json`, beside the statement cache and not in it. A
+  later run finds that file and reuses the seed, so re-triggering CI cannot shop
+  for a favourable draw, as long as the file is restored before the run (a CI cache
+  of `.spec-proof/seeds` does it); without the file a run draws from its own run
+  id;
 - re-executes every executed claim (builds, tests, examples, kills) and draws fresh
   operator mutants and sentinels from that seed.
 
@@ -84,11 +85,13 @@ Alignment and completeness draw no mutants and no seed.
 
 A request the bundle does not answer stays pending. A CI-fresh surviving mutant
 that needs a judgment of the host is such a request: the module leaves it in
-`.spec-proof/ci-issued/` for the job to upload as an artifact named
+`.spec-proof/ci-issued/<module>/`, where `<module>` is `discpower`, `alignment` or
+`completeness`, for the job to upload as an artifact named
 `spec-proof-host-<module>`, and Shallnot reports the pending reason
-`awaiting_host_judgment` until it is answered. Each module replaces
-`.spec-proof/ci-issued/` when it leaves requests there, so upload the directory
-after each module's `prove`, before the next module runs.
+`awaiting_host_judgment` until it is answered. Each module writes only its own
+directory and replaces it when it leaves requests there, so the three directories
+can be uploaded once the three `prove` commands ended, each as the artifact of its
+module.
 
 ## 4. The CI-issued round trip
 
@@ -99,20 +102,20 @@ spec-proof-dp host pull --ci-run <run id> --repo <owner>/<name>
 ```
 
 `pull` downloads the artifact with `gh run download`, so `gh` must be installed and
-authenticated, and makes tickets of its requests. The host answers them as in the
+authenticated, and makes tickets of its requests. It reads the requests from the
+root of the artifact, or from the directory of the module below it when the job
+uploaded `.spec-proof/ci-issued` as a whole. The host answers them as in the
 local loop, `host push` publishes, and CI runs again.
 
 ## 5. In CI: sign, append, export, verify
 
 `sign` reads a directory of statements laid out as
-`<module>/<subject key>/<cacheKey>.json` and refuses any other file. The cache holds
-the seed record of discriminating power under `seeds/`, so sign from a copy
-without it:
+`<module>/<subject key>/<cacheKey>.json` and refuses any other file. The statement
+cache `.spec-proof/cache` is such a directory and holds nothing else, so it is
+signed as it is:
 
 ```
-cp -R .spec-proof/cache statements
-rm -rf statements/seeds
-spec-proof-ledger sign --identity ed25519 --in statements --out signed
+spec-proof-ledger sign --identity ed25519 --in .spec-proof/cache --out signed
 spec-proof-ledger ledger append --signed signed --head-sha <head sha> --run-id <run id> --remote origin
 spec-proof-ledger ledger export --to bundles
 spec-proof-verify --bundles bundles --offline --out .spec-proof/verified
@@ -138,8 +141,15 @@ and content-addressed.
 
 ## Repository settings
 
-- `proofs.trust: signed`, the Shallnot default, in `shallnot.yaml`.
-- `proofs.code` naming the source the proofs may reference.
+- `proofs.trust: signed`, the Shallnot default, in the gate configuration CI uses.
+  `enable` writes `proofs.trust: local` into `shallnot.yaml` for the developer's
+  loop, so CI runs `shallnot gate` with a configuration of its own that sets
+  `signed`: a copy of `shallnot.yaml` kept beside it, such as `shallnot.ci.yaml`,
+  with that one line changed, passed with `shallnot gate --config shallnot.ci.yaml`.
+  Under `local` the gate also reads the unsigned statements of a laptop, which
+  prove nothing about who wrote them.
+- `proofs.code` naming the source the proofs may reference; `enable` fills it from
+  the layout of the project when it is empty.
 - A `trust-policy.yaml` pinning the signing key or the CI identity.
 - For Sigstore keyless signing on GitHub Actions, the workflow permission
   `id-token: write`.

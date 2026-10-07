@@ -35,6 +35,8 @@ const (
 // How a binary reports its commands and the verbs of a command.
 const (
 	canaryFlag          = "zz-undefined"
+	helpFlagName        = "h"
+	helpAliasName       = "help"
 	undefinedFlag       = "flag provided but not defined: -"
 	invalidValueFor     = "for flag -"
 	verbsPrefix         = "needs one of "
@@ -262,6 +264,10 @@ func verbsOf(t *testing.T, directory, binary, command string) []string {
 // names the first flag it does not know.
 func acceptsFlag(t *testing.T, directory string, documented invocation, flag string) (bool, string) {
 	t.Helper()
+	if flag == helpFlagName || flag == helpAliasName {
+		output := run(t, directory, documented.binary, append(slices.Clone(documented.words), flagDashes+flag)...)
+		return strings.Contains(output, usageText) && !strings.Contains(output, "help requested"), output
+	}
 	arguments := append(slices.Clone(documented.words), flagDashes+flag+assignedValue, flagDashes+canaryFlag)
 	output := run(t, directory, documented.binary, arguments...)
 	reachedCanary := strings.Contains(output, undefinedFlag+canaryFlag)

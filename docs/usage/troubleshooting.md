@@ -11,8 +11,12 @@
 | `prove` (completeness) | proved, whatever questions were raised | the host stopped answering, or a refusal (a bundle of another module version, an undecodable bundle) | tool failure, conflicting flags | tickets wait |
 | `request`, `systemone`, `host`, `mcp`, `hook` | success | a refusal: a protocol or user error such as a wrong nonce, a bad capability, an unknown ticket, an unknown role or hook, nothing to push | tool failure | not used |
 | `doctor` | every check is `ok` | not used | a check failed | not used |
-| `init`, `enable`, `disable` | done | a refusal (Shallnot too old, no `shallnot.yaml`, a layout it cannot extend), or with `--check` a file would change | tool failure | not used |
+| `init`, `enable`, `disable` | done | a refusal (Shallnot too old, no `shallnot.yaml`, a layout it cannot extend), or with `--check` a file would change | tool failure, usage error | not used |
 | `version` | printed | not used | not used | not used |
+
+Every binary answers `-h`, `--help` and `help` with exit 0 and prints a usage on
+standard output; a flag a command does not define is a usage error, exit 2, with the
+failure and the usage on standard error.
 
 ### Other programs
 
@@ -95,6 +99,8 @@ stale.
 - `spec-proof-dp doctor` checks Shallnot, the ecosystem, the host store and the
   journal chain.
 - `spec-proof-dp request list --json` shows every pending ticket with its role.
-- `.spec-proof/cache/` holds the statements, `.spec-proof/verified/manifest.json`
-  the verified set, `.spec-proof/pending/` the pending files.
+- `.spec-proof/cache/` holds the statements and nothing else,
+  `.spec-proof/verified/manifest.json` the verified set, `.spec-proof/pending/` the
+  pending files, `.spec-proof/seeds/` the CI seed records of discriminating power
+  and `.spec-proof/ci-issued/<module>/` the requests a CI run left for the host.
 - `spec-proof-ledger ledger audit` checks a ledger.

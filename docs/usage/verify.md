@@ -18,11 +18,13 @@ spec-proof-verify --accept-local DIR --out DIR
 | `--out DIR` | The verified directory to write; `.spec-proof/verified` is what Shallnot reads by default. |
 
 `--out` and at least one of `--bundles` and `--accept-local` are required. No
-other flag exists.
+other flag exists besides the help flags: `-h`, `--help` or `help` print the forms
+and the flags above and exit 0.
 
 Exit codes: 0 when the verified set was written, 1 when a bundle, a statement or a
 pending file was rejected, 2 for a command line that does not parse or a tool
-failure. Every non-zero exit is explained on standard error.
+failure. A command line that does not parse prints the failure and the usage on
+standard error. Every non-zero exit is explained on standard error.
 
 ## Trust policy
 
@@ -56,9 +58,12 @@ previous verified directory stays.
 
 `--accept-local DIR` admits the canonical, valid statements of the cache that were
 produced by `local`, without a signature, and makes the trust of the manifest
-`local`. A statement produced by `ci` in the cache is refused. A signed statement
-is kept in place of a local one for the same location without downgrading the
-trust. Shallnot reads a `local` manifest only under `proofs.trust: local`.
+`local`. A run with no `--bundles` states the trust `local` whether or not the
+cache holds a statement, so an empty cache gives a `local` manifest with no
+statement and no digest of a trusted root or of a policy. A statement produced by
+`ci` in the cache is refused. A signed statement is kept in place of a local one
+for the same location without downgrading the trust. Shallnot reads a `local`
+manifest only under `proofs.trust: local`.
 
 ## Output
 

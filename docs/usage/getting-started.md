@@ -97,41 +97,47 @@ spec-proof-completeness enable
 
 - `shallnot init` writes `shallnot.yaml`, `AGENTS.md` and the Shallnot skills, and
   installs the end-of-turn hook.
-- `<module> init` writes `.spec-proof/config.yaml` with every proof disabled and
-  the ecosystems it detects, ignores `.spec-proof/cache/` and
-  `.spec-proof/verified/`, and enables the module's plugin in
-  `.claude/settings.json`. It changes nothing of Shallnot's.
+- `<module> init` writes `.spec-proof/config.yaml` with every proof disabled, the
+  ecosystems it detects and a commented `operations` example, ignores
+  `.spec-proof/cache/`, `.spec-proof/verified/` and `.spec-proof/pending/`, and
+  enables the module's plugin in `.claude/settings.json`. It changes nothing of
+  Shallnot's.
 - `<module> enable` sets the proof to `true` in `.spec-proof/config.yaml`, adds
-  its kind to `proofs.require` in `shallnot.yaml` and adds its block to
-  `AGENTS.md`. Completeness writes no `proofs.require` entry: Shallnot refuses it
-  there because it is advisory.
-- `<module> disable` reverses `enable`.
+  its kind to `proofs.require` in `shallnot.yaml`, sets `proofs.trust: local` and
+  fills `proofs.code` with the source roots of the project when `shallnot.yaml`
+  sets neither, and adds its block to `AGENTS.md`. Completeness writes none of
+  these into `shallnot.yaml`: Shallnot refuses it in `proofs.require` because it is
+  advisory.
+- `<module> disable` removes the proof's `proofs.require` entry and its block of
+  `AGENTS.md` and turns the proof off; it leaves `proofs.trust` and `proofs.code`.
 - `init`, `enable` and `disable` take `--check` (change nothing, exit 1 if a file
   would change) and are idempotent.
 
 ## 5. Complete the configuration
 
-`enable` writes only the requirement. For a local run, three more settings are
-needed. Their reference is [configuration](configuration.md).
-
-In `shallnot.yaml`, tell Shallnot to read local proofs and which files a proof may
-name as code:
+`enable` leaves `shallnot.yaml` ready for a local run; check what it wrote against
+[configuration](configuration.md):
 
 ```yaml
 proofs:
-  trust: local
-  code:
-    - src/**
   require:
     - discriminating-power
     - alignment
+  trust: local
+  code:
+    - src
 ```
 
-Without `trust: local`, Shallnot's default `signed` admits only CI-signed
-proofs. Without `code`, a proof that names a source file is stale.
+`trust: local` tells Shallnot to read local proofs, where its default `signed`
+admits only CI-signed proofs; the CI configuration of the gate sets `signed` (see
+[CI](ci.md#repository-settings)). `code` names the files a proof may name as code,
+taken from the layout of the project; without it, a proof that names a source file
+is stale. When `enable` finds no source root it says so, and you list them
+yourself. A value you set before `enable` is kept.
 
 In `.spec-proof/config.yaml`, bind the operation names your spec examples use to
-functions of your code (see [configuration](configuration.md#operations)):
+functions of your code. `init` left a commented example at the end of the file;
+uncomment it and edit it (see [configuration](configuration.md#operations)):
 
 ```yaml
 operations:
@@ -178,16 +184,18 @@ secret and the journal live outside the work tree, under
 ## 7. Publish the local proofs and run the gate
 
 Shallnot reads `.spec-proof/verified`, which `spec-proof-verify` writes. For local
-use it accepts the unsigned statements of the cache:
+use it accepts the unsigned statements of the cache. The `*-fulfil` skills and
+`prove-all` run this step themselves when their loop ends with exit code 0 or 1,
+so Shallnot's end-of-turn hook sees the proofs; by hand it is:
 
 ```
 spec-proof-verify --accept-local .spec-proof/cache --out .spec-proof/verified
 shallnot check
 ```
 
-Run the verify step after each proof run. `.spec-proof/pending/` holds the
-pending files of the alignment and completeness modules, which `verify` folds
-into the manifest when `--out` is `.spec-proof/verified`.
+Run the verify step after each proof run you make by hand. `.spec-proof/pending/`
+holds the pending files of the alignment and completeness modules, which `verify`
+folds into the manifest when `--out` is `.spec-proof/verified`.
 
 A criterion passes when traceability and every required proof pass. A blocking
 finding names the command that resolves it.

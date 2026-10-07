@@ -46,6 +46,9 @@ spec-proof-s1 version
 spec-proof-s1 drain --module MODULE [--endpoint URL] [--model NAME] [--timeout DURATION] [--max-requests N] [--root DIR] [--mem-guard] [--no-unload]
 ```
 
+`spec-proof-s1 -h`, `--help` and `help` print the commands, and `spec-proof-s1 drain -h`
+prints the flags below with their defaults; both exit 0.
+
 | Flag | Default | Meaning |
 |---|---|---|
 | `--module` | required | The proof module whose closed requests are relayed: `dp`, `alignment` or `completeness`. The relay runs the executable `spec-proof-<module>`; a module name holds lower-case letters, digits and hyphens. |
