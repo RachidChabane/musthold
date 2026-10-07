@@ -23,7 +23,8 @@ class CountingRunner:
         return ProcessResult(0, "", "")
 
 
-def test_a_command_is_refused_below_the_free_memory_floor() -> None:
+def test_a_command_is_refused_below_the_free_memory_floor(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("MEM_GUARD_MIN_FREE_PCT", raising=False)
     inner = CountingRunner()
     with pytest.raises(MachineUnsafe):
         MemoryFloorRunner(inner, lambda: 39).run(["go", "build"])
@@ -36,7 +37,7 @@ def test_the_floor_follows_the_mem_guard_variable(monkeypatch: pytest.MonkeyPatc
     inner = CountingRunner()
     monkeypatch.setenv("MEM_GUARD_MIN_FREE_PCT", "10")
     MemoryFloorRunner(inner, lambda: 15).run(["x"])
-    monkeypatch.delenv("MEM_GUARD_MIN_FREE_PCT")
+    monkeypatch.delenv("MEM_GUARD_MIN_FREE_PCT", raising=False)
     with pytest.raises(MachineUnsafe):
         MemoryFloorRunner(inner, lambda: 15).run(["x"])
 
