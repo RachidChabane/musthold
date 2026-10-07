@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping, Sequence
 from datetime import date
 from pathlib import Path
@@ -7,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from specbench.adapters.gh_miner import (
+    RATE_LIMIT_WAIT_SECONDS,
     GhCliClient,
     GhNotFound,
     GitHubSource,
@@ -15,6 +17,7 @@ from specbench.adapters.gh_miner import (
     RecordingGhClient,
     ReplayGhClient,
     ThrottledGhClient,
+    compact_archive,
     project_response,
 )
 from specbench.adapters.mining_store import write_mining
@@ -22,6 +25,7 @@ from specbench.application.mine import mine
 from specbench.application.ports import ProcessResult
 from specbench.domain import licence
 from specbench.domain.candidates import attrition_counts, select_sample, task_id_for
+from specbench.domain.canonical import JsonValue, stable_json
 from specbench.domain.languages import Language, is_non_test_source_path, is_test_path
 from specbench.domain.mining import (
     MAX_REPOSITORY_SIZE_KB,
@@ -30,6 +34,7 @@ from specbench.domain.mining import (
     PullRequest,
     Stage,
     check_pull_request,
+    heavy_dependency,
     is_feature_pull_request,
     seeded_key,
 )
@@ -335,3 +340,66 @@ def test_a_rate_limited_response_is_reported_as_such() -> None:
 
     with pytest.raises(RateLimited):
         GhCliClient(Limited()).get("search/issues", {"q": "x"})
+
+
+def test_a_refused_search_request_is_retried_once_after_a_full_window() -> None:
+    class Refusing:
+        def __init__(self, refusals: int) -> None:
+            self.refusals = refusals
+            self.calls = 0
+
+        def get(self, path: str, params: Mapping[str, str] | None = None) -> JsonValue:
+            self.calls += 1
+            if self.refusals:
+                self.refusals -= 1
+                raise RateLimited(path)
+            return {"items": []}
+
+    sleeps: list[float] = []
+    once = Refusing(1)
+    assert ThrottledGhClient(once, sleeps.append, lambda: 0.0).get("search/issues") == {"items": []}
+    assert sleeps == [RATE_LIMIT_WAIT_SECONDS] and once.calls == 2
+    twice = Refusing(2)
+    with pytest.raises(RateLimited):
+        ThrottledGhClient(twice, sleeps.append, lambda: 0.0).get("search/issues")
+    with pytest.raises(RateLimited):
+        ThrottledGhClient(Refusing(1), sleeps.append, lambda: 0.0).get("repos/o/r/pulls/1")
+
+
+def test_compaction_rewrites_the_archive_without_changing_what_a_replay_reads(tmp_path: Path) -> None:
+    live = FakeGitHub(world())
+    recorded = mine(GitHubSource(RecordingGhClient(live, tmp_path)), CONFIG)
+    write_mining(recorded, tmp_path / "before")
+    document = {
+        "params": {},
+        "path": "repos/acme/alpha/pulls/9",
+        "response": {
+            "number": 9,
+            "title": "feat: x",
+            "body": "text",
+            "labels": [{"name": "feature", "color": "fff"}],
+            "base": {"sha": "a" * 40, "repo": {"huge": "object"}},
+            "user": {"login": "someone"},
+        },
+        "status": 200,
+    }
+    (tmp_path / "responses" / "extra.json").write_text(stable_json(document), encoding="utf-8")
+    assert compact_archive(tmp_path) == 1
+    assert compact_archive(tmp_path) == 0
+    compacted = json.loads((tmp_path / "responses" / "extra.json").read_text(encoding="utf-8"))["response"]
+    assert (
+        compacted["base"] == {"sha": "a" * 40}
+        and "user" not in compacted
+        and compacted["labels"] == [{"name": "feature"}]
+    )
+    again = mine(GitHubSource(ReplayGhClient(tmp_path)), CONFIG)
+    write_mining(again, tmp_path / "after")
+    for name in ("candidates.jsonl", "attrition.jsonl", "sample.json", "mining.json"):
+        assert (tmp_path / "before" / name).read_bytes() == (tmp_path / "after" / name).read_bytes()
+
+
+def test_a_lockfile_that_pulls_a_deep_learning_framework_is_flagged_before_any_environment_is_built() -> None:
+    assert heavy_dependency('[[package]]\nname = "numpy"\n\n[[package]]\nname = "torch"\nversion = "2.5"\n') == "torch"
+    assert heavy_dependency("requests==2.32\nnvidia_cublas_cu12==12.4\n") == "nvidia-cublas-cu12"
+    assert heavy_dependency("jax[cuda]>=0.4\n") == "jax"
+    assert heavy_dependency('[[package]]\nname = "pytorch-lightning-bolts"\n\nrequests\n') is None

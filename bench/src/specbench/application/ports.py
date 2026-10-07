@@ -12,6 +12,7 @@ from typing import Protocol
 from specbench.domain.arms import Harness
 from specbench.domain.candidates import Candidate
 from specbench.domain.canonical import JsonValue
+from specbench.domain.construction import ModelRequest, ModelResponse
 from specbench.domain.languages import Language
 from specbench.domain.mining import BaseSnapshot, PullRequest, PullSummary, Rejection, Repository
 from specbench.domain.oracle import OracleTest, Outcome
@@ -53,6 +54,14 @@ class ProcessResult:
 class ProcessRunner(Protocol):
     def run(
         self, argv: Sequence[str], cwd: Path | None = None, env: Mapping[str, str] | None = None
+    ) -> ProcessResult: ...
+
+
+class PromptRunner(Protocol):
+    """Runs a command that reads its prompt from standard input."""
+
+    def run_with_input(
+        self, argv: Sequence[str], stdin: str, cwd: Path, env: Mapping[str, str] | None = None
     ) -> ProcessResult: ...
 
 
@@ -170,6 +179,30 @@ class FeasibilityProbe(Protocol):
     """Establishes that a candidate builds, runs its tests offline and has a fail-to-pass set, or says why not."""
 
     def probe(self, candidate: Candidate) -> ProbedTask | Rejection: ...
+
+
+class ConstructionModel(Protocol):
+    """One isolated single-shot model call whose role fixes the model."""
+
+    def call(self, request: ModelRequest) -> ModelResponse: ...
+
+
+class FailureLog(Protocol):
+    """Where a call that produced no usable result is noted, so a rerun and an audit can see it."""
+
+    def append(self, call_id: str, key: str, message: str) -> None: ...
+
+
+class SchemaChecker(Protocol):
+    """Validates a model's structured output against the JSON schema the call carried."""
+
+    def problems(self, schema: JsonValue, document: JsonValue) -> list[str]: ...
+
+
+class PatchBuilder(Protocol):
+    """Turns the before and after text of files into a unified diff that `git apply` accepts."""
+
+    def build(self, before: Mapping[str, str], after: Mapping[str, str]) -> bytes: ...
 
 
 class CallStore(Protocol):

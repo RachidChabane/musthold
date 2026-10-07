@@ -35,7 +35,7 @@ from specbench.domain.changed_tests import added_lines, touched_by_diff
 from specbench.domain.ground_tests import MIN_SUITE_PASS_PERCENT, GroundTests, partition_ground_tests
 from specbench.domain.jsonread import mapping
 from specbench.domain.languages import Language, is_test_path
-from specbench.domain.mining import Rejection, Stage, has_lockfiles
+from specbench.domain.mining import Rejection, Stage, has_lockfiles, heavy_dependency, lockfiles_for
 from specbench.domain.selection import ProbedTask
 from specbench.domain.task import Toolchain
 
@@ -58,9 +58,18 @@ def suite_runner_for(language: Language, env_dir: Path, runner: ProcessRunner) -
     return GoSuiteRunner(runner, go_offline_environment(env_dir))
 
 
+def verdict_path(work: Path, candidate: Candidate) -> Path:
+    return work / PROBE_DIRECTORY / f"{task_id_for(candidate)}{VERDICT_SUFFIX}"
+
+
+def environment_directory(work: Path, task_id: str) -> Path:
+    return work / ENVIRONMENT_DIRECTORY / task_id
+
+
 def _short(message: str) -> str:
+    """The end of the message, where tools state the cause after any warnings."""
     flat = " ".join(message.split())
-    return flat if len(flat) <= MAX_REASON_LENGTH else flat[: MAX_REASON_LENGTH - 3] + "..."
+    return flat if len(flat) <= MAX_REASON_LENGTH else "..." + flat[-(MAX_REASON_LENGTH - 3) :]
 
 
 class OfflineProbe:
@@ -79,18 +88,18 @@ class OfflineProbe:
         self._work = work
 
     def probe(self, candidate: Candidate) -> ProbedTask | Rejection:
-        verdict_path = self._work / PROBE_DIRECTORY / f"{task_id_for(candidate)}{VERDICT_SUFFIX}"
-        if verdict_path.is_file():
-            return _read_verdict(candidate, json.loads(verdict_path.read_text(encoding=ENCODING)))
+        path = verdict_path(self._work, candidate)
+        if path.is_file():
+            return read_verdict(candidate, json.loads(path.read_text(encoding=ENCODING)))
         outcome = self._probe(candidate)
-        verdict_path.parent.mkdir(parents=True, exist_ok=True)
-        verdict_path.write_text(canonical_json(_verdict_record(outcome)), encoding=ENCODING)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(canonical_json(_verdict_record(outcome)), encoding=ENCODING)
         if isinstance(outcome, Rejection):
             shutil.rmtree(self._environment_dir(candidate), ignore_errors=True)
         return outcome
 
     def _environment_dir(self, candidate: Candidate) -> Path:
-        return self._work / ENVIRONMENT_DIRECTORY / task_id_for(candidate)
+        return environment_directory(self._work, task_id_for(candidate))
 
     def _probe(self, candidate: Candidate) -> ProbedTask | Rejection:
         try:
@@ -144,6 +153,9 @@ class OfflineProbe:
         with trees.materialize(TreeSpec(base)) as base_tree:
             if not has_lockfiles(language, frozenset(path.name for path in base_tree.iterdir())):
                 return Rejection(Stage.ENVIRONMENT_BUILD, "the lockfiles are absent from the base commit")
+            heavy = _heavy_lock(language, base_tree)
+            if heavy is not None:
+                return Rejection(Stage.ENVIRONMENT_BUILD, f"the lockfile pulls {heavy}, beyond the machine's budget")
             built = self._builder.build(EnvRequest(language, base_tree, env_dir, tooling))
         suite = self._suites(language, env_dir)
         with trees.materialize(TreeSpec(candidate.merge_sha)) as merge_tree:
@@ -178,6 +190,16 @@ class OfflineProbe:
         path.write_text(canonical_json({"r": list(ground.r), "u": list(ground.u)}), encoding=ENCODING)
 
 
+def _heavy_lock(language: Language, tree: Path) -> str | None:
+    for name in lockfiles_for(language):
+        lock = tree / name
+        if lock.is_file():
+            found = heavy_dependency(lock.read_text(encoding=ENCODING, errors="replace"))
+            if found is not None:
+                return found
+    return None
+
+
 def _ground_verdict(ground: GroundTests) -> Rejection | None:
     if ground.merge_total == 0:
         return Rejection(Stage.OFFLINE_TESTS, "no test ran at the merge commit")
@@ -210,7 +232,7 @@ def _verdict_record(outcome: ProbedTask | Rejection) -> dict[str, JsonValue]:
     }
 
 
-def _read_verdict(candidate: Candidate, record: Mapping[str, JsonValue]) -> ProbedTask | Rejection:
+def read_verdict(candidate: Candidate, record: Mapping[str, JsonValue]) -> ProbedTask | Rejection:
     if "rejected" in record:
         return Rejection(Stage(str(record["rejected"])), str(record["reason"]))
     toolchain = mapping(record.get("toolchain"), "toolchain")

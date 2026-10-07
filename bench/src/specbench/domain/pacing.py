@@ -126,6 +126,11 @@ class PacingPolicy:
     def night_of(self, now: datetime) -> date:
         return now.date() if self.window is None else self.window.night_of(now)
 
+    def require_open(self, now: datetime) -> None:
+        """Raise `RunPaused` while the window is closed; heavy local work obeys the window like a model call."""
+        if self.window is not None and not self.window.is_open(now):
+            raise RunPaused(PauseReason.WINDOW_CLOSED)
+
     def admit(self, now: datetime, harness: Harness, ledger: CallLedger, resumed: bool) -> None:
         """Raise `RunPaused` unless a new call may be made now; a resumed call is always admitted."""
         if resumed:

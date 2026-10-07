@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "specbench.construction.refactors/1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["refactors"],
+  "properties": {
+    "refactors": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "edits"],
+        "properties": {
+          "title": {"type": "string", "minLength": 1},
+          "edits": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["path", "search", "replace"],
+              "properties": {
+                "path": {"type": "string", "minLength": 1},
+                "search": {"type": "string", "minLength": 1},
+                "replace": {"type": "string"}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

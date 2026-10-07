@@ -20,7 +20,8 @@ GO_MODULE_CACHE_DIRECTORY: Final = "gomodcache"
 ENV_RECORD_NAME: Final = "env.json"
 UV_LOCK: Final = "uv.lock"
 REQUIREMENTS: Final = "requirements.txt"
-UV_ENV: Final = {"UV_PYTHON_DOWNLOADS": "never", "UV_PYTHON_PREFERENCE": "only-system"}
+UV_ENV: Final = {"UV_PYTHON_DOWNLOADS": "never", "UV_PYTHON_PREFERENCE": "only-system", "VIRTUAL_ENV": ""}
+"""An enclosing virtual environment must not steer uv: the task environment is addressed explicitly."""
 GO_ENV: Final = {"GOFLAGS": "-mod=readonly"}
 GO_OFFLINE_ENV: Final = {"GOPROXY": "off", "GOTOOLCHAIN": "local"}
 PYTHON_ORACLE_TOOLING: Final = ("pytest", "hypothesis")

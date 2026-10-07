@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "specbench.construction.assignment/1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["classifications"],
+  "properties": {
+    "classifications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["test_id", "implied", "criterion", "reason"],
+        "properties": {
+          "test_id": {"type": "string", "minLength": 1},
+          "implied": {"type": "boolean"},
+          "criterion": {"type": ["integer", "null"], "minimum": 1},
+          "reason": {"type": "string"}
+        }
+      }
+    }
+  }
+}

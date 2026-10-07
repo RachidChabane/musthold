@@ -16,6 +16,7 @@ MIN_FREE_PERCENT: Final = 40
 MIN_FREE_PERCENT_ENV: Final = "MEM_GUARD_MIN_FREE_PCT"
 FREE_PERCENT_LINE: Final = re.compile(r"System-wide memory free percentage:\s*(\d+)%")
 DEFAULT_TIMEOUT_SECONDS: Final = 1800
+MODEL_TIMEOUT_SECONDS: Final = 1200
 
 
 class MachineUnsafe(RuntimeError):
@@ -31,6 +32,38 @@ class SubprocessRunner:
             list(argv),
             cwd=cwd,
             env={**os.environ, **(env or {})},
+            capture_output=True,
+            text=True,
+            timeout=self._timeout,
+            check=False,
+        )
+        return ProcessResult(completed.returncode, completed.stdout, completed.stderr)
+
+
+class SubprocessPromptRunner:
+    """Runs a command with a prompt on standard input; the memory floor applies like for every other command."""
+
+    def __init__(
+        self,
+        free_percent: Callable[[], int],
+        timeout_seconds: int = MODEL_TIMEOUT_SECONDS,
+        minimum_percent: int | None = None,
+    ) -> None:
+        self._free_percent = free_percent
+        self._timeout = timeout_seconds
+        self._minimum = minimum_percent if minimum_percent is not None else min_free_percent()
+
+    def run_with_input(
+        self, argv: Sequence[str], stdin: str, cwd: Path, env: Mapping[str, str] | None = None
+    ) -> ProcessResult:
+        free = self._free_percent()
+        if free < self._minimum:
+            raise MachineUnsafe(f"free memory is {free} %, below the {self._minimum} % floor")
+        completed = subprocess.run(
+            list(argv),
+            input=stdin,
+            cwd=cwd,
+            env=dict(env) if env is not None else None,
             capture_output=True,
             text=True,
             timeout=self._timeout,

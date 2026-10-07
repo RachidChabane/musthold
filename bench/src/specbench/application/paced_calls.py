@@ -4,9 +4,24 @@ from __future__ import annotations
 
 import json
 
-from specbench.application.ports import AgentHarness, CallStore, Clock, HostExecutor, LedgerStore
+from specbench.application.ports import (
+    AgentHarness,
+    CallStore,
+    Clock,
+    ConstructionModel,
+    FailureLog,
+    HostExecutor,
+    LedgerStore,
+)
 from specbench.domain.arms import FROZEN_MODEL, Harness, Host
 from specbench.domain.canonical import stable_json
+from specbench.domain.construction import (
+    ModelCallFailed,
+    ModelRequest,
+    ModelResponse,
+    QuotaExhausted,
+    response_from_stdout,
+)
 from specbench.domain.pacing import PacingPolicy, PauseReason, RunPaused, looks_like_quota_exhausted
 from specbench.domain.sessions import CallRecord, HostRequest, HostResponse, SessionRequest, SessionResult
 
@@ -28,6 +43,9 @@ class CallGate:
 
     def admit(self) -> None:
         self._policy.admit(self._clock.now(), self._harness, self._ledgers.load(), resumed=False)
+
+    def require_open(self) -> None:
+        self._policy.require_open(self._clock.now())
 
     def charge(self) -> None:
         now = self._clock.now()
@@ -105,5 +123,47 @@ class PacedHostExecutor:
             None,
         )
         self._calls.write(record)
+        self._gate.charge()
+        return response
+
+
+class PacedConstructionModel:
+    """Decorator over a `ConstructionModel`: a recorded call is replayed for free, a new one is admitted, run and archived.
+
+    A construction call counts against the same per-night, per-CLI Claude budget as every arm's call. A failed call is
+    charged, noted in the failure log and never archived as a result, so a rerun makes it again.
+    """
+
+    def __init__(self, inner: ConstructionModel, gate: CallGate, calls: CallStore, failures: FailureLog) -> None:
+        self._inner = inner
+        self._gate = gate
+        self._calls = calls
+        self._failures = failures
+
+    def call(self, request: ModelRequest) -> ModelResponse:
+        call_id = request.call_id
+        if self._calls.exists(call_id):
+            return response_from_stdout(request, self._calls.read(call_id).stdout)
+        self._gate.admit()
+        try:
+            response = self._inner.call(request)
+        except QuotaExhausted as error:
+            raise RunPaused(PauseReason.QUOTA_EXHAUSTED, request.role.value) from error
+        except ModelCallFailed as error:
+            self._failures.append(call_id, request.key, str(error))
+            self._gate.charge()
+            raise
+        self._calls.write(
+            CallRecord(
+                call_id=call_id,
+                argv=(request.role.value, request.model, request.key),
+                stdin=request.prompt,
+                stdout=response.stdout,
+                events=(),
+                exit_code=0,
+                session_id=call_id,
+                model_reported=",".join(response.reported_models),
+            )
+        )
         self._gate.charge()
         return response

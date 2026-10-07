@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Construct the selected tasks: spec author, reviewer, leak controls, H writer, U to O assignment, violations, planted
+# refactors, two-way verification, then sealing. Model calls are paced, archived and resumable; a rerun continues.
+#
+#   bench/script/construct --night [--budget N] [--tasks-per-language N] [--selection DIR] [--mining DIR] [--corpus DIR]
+#
+# --night   run only inside the nightly window (SPECBENCH_RUN_WINDOW, default 21:00-07:30); outside it, exit 3.
+# --budget  new model calls per night, shared by all construction roles (default 250).
+# Exit 0: every language has its tasks sealed. 1: a task or language is unfinished. 3: paused (window, budget, quota);
+# rerun in the next window. 4: the machine is short of memory; nothing was started.
+#
+# Defaults: selection bench/selection/<seed>, mining bench/mining/<seed>, corpus bench/corpus, mirrors
+# bench/corpus/mirrors, work $SPECBENCH_WORK (outside the repository: every construction file there is sealed material).
+set -euo pipefail
+# shellcheck source=bench/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+args=("$@")
+has_option() {
+  local option
+  for option in "${args[@]}"; do [[ "${option}" == "$1" ]] && return 0; done
+  return 1
+}
+SEED="${SPECBENCH_SEED:-20261007}"
+has_option --selection || args+=(--selection "${BENCH_DIR}/selection/${SEED}")
+has_option --mining || args+=(--mining "${BENCH_DIR}/mining/${SEED}")
+has_option --corpus || args+=(--corpus "${BENCH_DIR}/corpus")
+has_option --mirrors || args+=(--mirrors "${BENCH_DIR}/corpus/mirrors")
+has_option --work || args+=(--work "${SPECBENCH_WORK}")
+specbench_heavy construct "${args[@]}"

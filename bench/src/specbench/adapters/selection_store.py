@@ -11,10 +11,11 @@ from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Final
 
-from specbench.domain.candidates import AttritionEntry, Candidate, attrition_counts
+from specbench.adapters.offline_probe import read_verdict, verdict_path
+from specbench.domain.candidates import AttritionEntry, Candidate, attrition_counts, task_id_for
 from specbench.domain.canonical import JsonValue, canonical_json
-from specbench.domain.jsonread import enum_of, mapping, text
-from specbench.domain.mining import Stage
+from specbench.domain.jsonread import RecordError, enum_of, mapping, sequence, text
+from specbench.domain.mining import Rejection, Stage
 from specbench.domain.selection import ProbedTask, Selection
 from specbench.domain.task import TASK_FILE_NAME
 
@@ -91,3 +92,21 @@ def _write_task(directory: Path, task: ProbedTask, licences: LicenceReader) -> N
         content = licences(task, name)
         if content is not None:
             (directory / Path(name).name).write_text(content, encoding=ENCODING)
+
+
+def read_selection(selection_dir: Path, candidates: list[Candidate], work: Path) -> Selection:
+    """The tasks and reserves of a written selection, rebuilt from the candidates and the probe verdicts."""
+    record = mapping(json.loads((selection_dir / SELECTION_FILE).read_text(encoding=ENCODING)), "selection")
+    by_id = {task_id_for(c): c for c in candidates}
+
+    def probed(entries: object) -> tuple[ProbedTask, ...]:
+        found: list[ProbedTask] = []
+        for entry in sequence(entries, "tasks"):
+            candidate = by_id[text(mapping(entry, "task").get("task_id"), "task_id")]
+            outcome = read_verdict(candidate, json.loads(verdict_path(work, candidate).read_text(encoding=ENCODING)))
+            if isinstance(outcome, Rejection):
+                raise RecordError(f"{candidate.label} was selected but its verdict is a rejection")
+            found.append(outcome)
+        return tuple(found)
+
+    return Selection(probed(record.get("tasks")), probed(record.get("reserves")), ())

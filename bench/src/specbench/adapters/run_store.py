@@ -28,6 +28,7 @@ from specbench.domain.records import TrunkRecord, trunk_from_record
 from specbench.domain.sessions import CallRecord
 
 ENCODING: Final = "utf-8"
+FAILURES_FILE_NAME: Final = "failures.jsonl"
 
 
 class FileCallStore:
@@ -124,3 +125,15 @@ class RunStore:
     def write_results(self, results_json: str, report: str) -> None:
         self._layout.results.write_text(results_json, encoding=ENCODING)
         self._layout.report.write_text(report, encoding=ENCODING)
+
+
+class FileFailureLog:
+    """`FailureLog`: one canonical JSON line per failed call, in the run directory."""
+
+    def __init__(self, layout: RunLayout) -> None:
+        self._path = layout.root / FAILURES_FILE_NAME
+
+    def append(self, call_id: str, key: str, message: str) -> None:
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        with self._path.open("a", encoding=ENCODING) as handle:
+            handle.write(canonical_json({"call_id": call_id, "key": key, "message": message}))

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Final
@@ -11,6 +12,7 @@ from specbench.application.ports import ProcessRunner
 GIT: Final = "git"
 GITHUB_URL: Final = "https://github.com/{repository}.git"
 MIRROR_SUFFIX: Final = ".git"
+PARTIAL_SUFFIX: Final = ".partial"
 SHA_LENGTH: Final = 40
 
 
@@ -35,11 +37,15 @@ class GitMirrors:
         path = self.path_of(repository)
         if not path.is_dir():
             self._root.mkdir(parents=True, exist_ok=True)
+            partial = path.with_name(path.name + PARTIAL_SUFFIX)
+            shutil.rmtree(partial, ignore_errors=True)
             result = self._runner.run(
-                [GIT, "clone", "--bare", "--quiet", GITHUB_URL.format(repository=repository), str(path)]
+                [GIT, "clone", "--bare", "--quiet", GITHUB_URL.format(repository=repository), str(partial)]
             )
             if result.returncode != 0:
+                shutil.rmtree(partial, ignore_errors=True)
                 raise GitError(f"cannot clone {repository}: {result.stderr.strip()}")
+            partial.rename(path)
         return path
 
 
@@ -65,8 +71,8 @@ class GitHistory:
     def changed_paths(self, base: str, merge: str) -> frozenset[str]:
         return frozenset(self._git("diff", "--name-only", base, merge).splitlines())
 
-    def unified_diff(self, base: str, merge: str, paths: Sequence[str]) -> str:
-        return self._git("diff", "-U0", "--no-color", base, merge, "--", *paths)
+    def unified_diff(self, base: str, merge: str, paths: Sequence[str], context: int = 0) -> str:
+        return self._git("diff", f"-U{context}", "--no-color", base, merge, "--", *paths)
 
     def file_at(self, sha: str, path: str) -> str | None:
         result = self._runner.run([GIT, "-C", str(self._clone), "show", f"{sha}:{path}"])

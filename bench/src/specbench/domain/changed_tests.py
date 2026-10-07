@@ -39,7 +39,7 @@ def added_lines(unified_diff: str) -> dict[str, frozenset[int]]:
     return {name: frozenset(lines) for name, lines in found.items()}
 
 
-def _python_spans(path: str, source: str) -> dict[str, tuple[int, int]]:
+def python_test_spans(path: str, source: str) -> dict[str, tuple[int, int]]:
     spans: dict[str, tuple[int, int]] = {}
     try:
         module = ast.parse(source)
@@ -58,7 +58,7 @@ def _python_spans(path: str, source: str) -> dict[str, tuple[int, int]]:
     return spans
 
 
-def _go_spans(path: str, source: str) -> dict[str, tuple[int, int]]:
+def go_test_spans(path: str, source: str) -> dict[str, tuple[int, int]]:
     package = posixpath.dirname(path) or "."
     spans: dict[str, tuple[int, int]] = {}
     lines = source.splitlines()
@@ -73,7 +73,9 @@ def _go_spans(path: str, source: str) -> dict[str, tuple[int, int]]:
 
 def touched_tests(language: Language, path: str, merged_source: str, added: frozenset[int]) -> frozenset[str]:
     """The tests of one test file, as it stands at merge, that contain a line the pull request added."""
-    spans = _python_spans(path, merged_source) if language is Language.PYTHON else _go_spans(path, merged_source)
+    spans = (
+        python_test_spans(path, merged_source) if language is Language.PYTHON else go_test_spans(path, merged_source)
+    )
     return frozenset(test_id for test_id, (start, end) in spans.items() if any(start <= line <= end for line in added))
 
 
@@ -89,3 +91,18 @@ def touched_by_diff(
     for path, text in sources.items():
         found |= touched_tests(language, path, text, diff_by_path.get(path, frozenset()))
     return frozenset(found)
+
+
+def function_sources(language: Language, path: str, merged_source: str, wanted: frozenset[str]) -> dict[str, str]:
+    """The source text of each wanted test (parameter-free ids) of one test file, decorators included."""
+    spans = (
+        python_test_spans(path, merged_source) if language is Language.PYTHON else go_test_spans(path, merged_source)
+    )
+    lines = merged_source.splitlines()
+    return {test_id: "\n".join(lines[start - 1 : end]) for test_id, (start, end) in spans.items() if test_id in wanted}
+
+
+def test_ids(language: Language, path: str, source: str) -> list[str]:
+    """Every test of one file in source order: its id as the oracle runners report it."""
+    spans = python_test_spans(path, source) if language is Language.PYTHON else go_test_spans(path, source)
+    return sorted(spans, key=lambda test_id: spans[test_id][0])

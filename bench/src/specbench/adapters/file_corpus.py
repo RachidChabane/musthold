@@ -46,6 +46,12 @@ class FileCorpus:
         (directory / TASK_FILE_NAME).write_text(task_json, encoding=ENCODING)
         (directory / SEALED_FILE_NAME).write_bytes(ciphertext)
 
+    def write_notice(self, language: Language, task_id: str, name: str, content: str) -> None:
+        """An upstream licence or notice file, kept beside the task's `task.json` and `sealed.age`."""
+        directory = self._root / language.value / task_id
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / name).write_text(content, encoding=ENCODING)
+
     def read_lock(self) -> CorpusLock:
         path = self._root / LOCK_FILE_NAME
         return parse_lock(path.read_text(encoding=ENCODING)) if path.is_file() else EMPTY_LOCK

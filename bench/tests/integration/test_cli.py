@@ -12,7 +12,7 @@ from specbench.application.mine import mine
 from specbench.cli.commands import Console
 from specbench.cli.main import run
 from specbench.domain.arms import FROZEN_MODEL, Harness
-from specbench.domain.canonical import canonical_json
+from specbench.domain.canonical import JsonValue, canonical_json
 from specbench.domain.languages import Language
 from specbench.domain.manifest import Manifest
 from specbench.domain.mining import MiningConfig
@@ -221,3 +221,50 @@ def test_window_status_exits_with_the_pause_code_outside_the_window() -> None:
 
 def test_an_unknown_verb_is_a_usage_error() -> None:
     assert cli("frobnicate")[0] == 2
+
+
+def test_select_and_construct_refuse_a_work_directory_inside_the_repository(tmp_path: Path) -> None:
+    selection = tmp_path / "selection"
+    selection.mkdir()
+    work = selection / "work"
+    code, output = cli(
+        "select",
+        "--mining",
+        str(selection),
+        "--mirrors",
+        str(tmp_path / "m"),
+        "--work",
+        str(work),
+        "--out",
+        str(selection),
+    )
+    assert code == 1 and "inside" in output
+    code, output = cli(
+        "construct",
+        "--selection",
+        str(selection),
+        "--mining",
+        str(selection),
+        "--corpus",
+        str(tmp_path / "corpus"),
+        "--mirrors",
+        str(tmp_path / "m"),
+        "--work",
+        str(work),
+    )
+    assert code == 1 and "inside" in output
+
+
+def test_mine_compact_rewrites_the_archive_and_stops(tmp_path: Path) -> None:
+    responses = tmp_path / "archive" / "responses"
+    responses.mkdir(parents=True)
+    document: dict[str, JsonValue] = {
+        "params": {},
+        "path": "repos/o/r/pulls/1/files",
+        "response": [{"filename": "a.py", "patch": "code"}],
+        "status": 200,
+    }
+    (responses / "x.json").write_text(canonical_json(document))
+    code, output = cli("mine", "--compact", "--archive", str(tmp_path / "archive"), "--out", str(tmp_path / "out"))
+    assert code == 0 and "compacted 1" in output
+    assert "patch" not in (responses / "x.json").read_text()

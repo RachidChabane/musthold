@@ -8,7 +8,10 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Final, cast
 
+from specbench.adapters.claude_cli import ClaudeCliModel
 from specbench.adapters.clock import SystemClock
+from specbench.adapters.construction_sources import MirrorConstructionSources
+from specbench.adapters.construction_store import FileStatusStore
 from specbench.adapters.env_builder import (
     PYTHON_ORACLE_TOOLING,
     NativeEnvBuilder,
@@ -22,16 +25,25 @@ from specbench.adapters.gh_miner import (
     RecordingGhClient,
     ReplayGhClient,
     ThrottledGhClient,
+    compact_archive,
 )
 from specbench.adapters.git_history import GitHistory, GitMirrors
 from specbench.adapters.git_trees import GitTreeFactory
 from specbench.adapters.mining_store import ATTRITION_FILE, CANDIDATES_FILE, MINING_FILE, write_mining
 from specbench.adapters.network_sandbox import NetworkDeniedRunner
-from specbench.adapters.offline_probe import OfflineProbe, suite_runner_for
+from specbench.adapters.offline_probe import OfflineProbe, environment_directory, suite_runner_for
 from specbench.adapters.operator_engine import UnavailableOperatorEngine
 from specbench.adapters.oracle_runners import GoTestOracleRunner, PytestOracleRunner
-from specbench.adapters.process import MemoryFloorRunner, SubprocessRunner, system_free_percent
-from specbench.adapters.run_store import RunStore
+from specbench.adapters.patch_builder import GitDiffPatchBuilder
+from specbench.adapters.process import (
+    MemoryFloorRunner,
+    SubprocessPromptRunner,
+    SubprocessRunner,
+    system_free_percent,
+)
+from specbench.adapters.prompt_files import construction_schema, load_prompts
+from specbench.adapters.run_store import FileCallStore, FileFailureLog, FileLedgerStore, RunStore
+from specbench.adapters.schemas import JsonSchemaChecker, SchemaName
 from specbench.adapters.sealed_store import (
     AgeSealStore,
     generate_identity,
@@ -39,26 +51,32 @@ from specbench.adapters.sealed_store import (
     refuse_inside_repository,
     write_identity_file,
 )
-from specbench.adapters.selection_store import read_attrition, read_candidates, write_selection
+from specbench.adapters.selection_store import read_attrition, read_candidates, read_selection, write_selection
 from specbench.adapters.workspace_repo import DiskTreeReader, write_workspace_repo
 from specbench.analysis.estimate import AnalysisConfig
 from specbench.analysis.lint import lint_report
 from specbench.analysis.report import render_report
 from specbench.analysis.results import analyze
 from specbench.application.build_workspace import build_agent_workspace
+from specbench.application.construct import TaskConstruction
+from specbench.application.construct_run import ConstructionRun
 from specbench.application.corpus import seal_task, unseal_task, verify_corpus
 from specbench.application.mine import mine
+from specbench.application.paced_calls import CallGate, PacedConstructionModel
 from specbench.application.ports import EnvRequest, OracleRunner, ProcessRunner
 from specbench.application.select_tasks import select_feasible
 from specbench.application.verify_task import TaskVerifier
+from specbench.domain.arms import Harness
 from specbench.domain.candidates import ranking_by_language
 from specbench.domain.canonical import JsonValue, canonical_json, canonical_results_json
 from specbench.domain.languages import Language
 from specbench.domain.manifest import RunLayout
 from specbench.domain.mining import MiningConfig
 from specbench.domain.oracle import oracle_from_bundle
-from specbench.domain.pacing import EXIT_PAUSED, RunWindow
+from specbench.domain.pacing import EXIT_PAUSED, PacingPolicy, RunWindow
 from specbench.domain.sealing import SealedBundle
+from specbench.domain.selection import ProbedTask, Selection
+from specbench.domain.task import TASK_FILE_NAME
 
 EXIT_OK: Final = 0
 EXIT_FAILED: Final = 1
@@ -150,6 +168,95 @@ def run_select(
     return EXIT_OK
 
 
+CONSTRUCTION_DIRECTORY: Final = "construction"
+GH_ARCHIVE_DIRECTORY: Final = "gh"
+SCHEMA_KEYS: Final = {
+    "spec": SchemaName.SPEC,
+    "review": SchemaName.REVIEW,
+    "h-tests": SchemaName.H_TESTS,
+    "violations": SchemaName.VIOLATIONS,
+    "refactors": SchemaName.REFACTORS,
+    "assignment": SchemaName.ASSIGNMENT,
+    "probe": SchemaName.PROBE,
+}
+
+
+def run_construct(
+    selection_dir: Path,
+    mining_dir: Path,
+    corpus_dir: Path,
+    mirrors_dir: Path,
+    work_dir: Path,
+    tasks_per_language: int,
+    window_text: str,
+    budget: int,
+    claude: str,
+    console: Console,
+) -> int:
+    """Build, verify and seal the selected tasks; a pause or an unsafe machine ends the run with its own exit code."""
+    root = find_repository_root(selection_dir)
+    refuse_inside_repository(work_dir, root, "work directory")
+    layout = RunLayout(work_dir / CONSTRUCTION_DIRECTORY)
+    policy = PacingPolicy(RunWindow.parse(window_text), budget)
+    gate = CallGate(Harness.CLAUDE_CODE, policy, FileLedgerStore(layout), SystemClock())
+    model = PacedConstructionModel(
+        ClaudeCliModel(SubprocessPromptRunner(system_free_percent), claude),
+        gate,
+        FileCallStore(layout),
+        FileFailureLog(layout),
+    )
+    plain = _runner()
+    denied = NetworkDeniedRunner(MemoryFloorRunner(SubprocessRunner(SUITE_TIMEOUT_SECONDS), system_free_percent))
+    denied.assert_denied()
+    mirrors = GitMirrors(mirrors_dir, MemoryFloorRunner(SubprocessRunner(MIRROR_TIMEOUT_SECONDS), system_free_percent))
+    gh = RecordingGhClient(ThrottledGhClient(GhCliClient(SubprocessRunner())), layout.root / GH_ARCHIVE_DIRECTORY)
+    sources = MirrorConstructionSources(mirrors, lambda clone: GitHistory(clone, plain), gh, work_dir)
+    construction = TaskConstruction(
+        model,
+        load_prompts(),
+        {key: construction_schema(name) for key, name in SCHEMA_KEYS.items()},
+        JsonSchemaChecker(),
+        GitDiffPatchBuilder(plain),
+    )
+    corpus = FileCorpus(corpus_dir)
+    corpus.read_recipients()
+
+    def verifier_for(task: ProbedTask) -> TaskVerifier:
+        env_dir = environment_directory(work_dir, task.task_id)
+        runner = _oracle_runner(task.candidate.language, env_dir, None, denied)
+        return TaskVerifier(
+            GitTreeFactory(mirrors.path_of(task.candidate.repository)), runner, UnavailableOperatorEngine()
+        )
+
+    statuses = FileStatusStore(layout.root)
+    run = ConstructionRun(sources, construction, verifier_for, corpus, AgeSealStore(), statuses, gate.require_open)
+    selection = read_selection(selection_dir, read_candidates(mining_dir / CANDIDATES_FILE), work_dir)
+    summary = run.run(selection, tasks_per_language)
+    _copy_notices(selection_dir, corpus, summary.sealed, selection)
+    console.say(f"sealed {len(summary.sealed)}: {', '.join(summary.sealed)}")
+    for task_id, reason in summary.dropped:
+        console.say(f"dropped {task_id}: {reason}")
+    for line in summary.unfinished:
+        console.say(f"unfinished: {line}")
+    return EXIT_OK if summary.complete else EXIT_FAILED
+
+
+def _copy_notices(selection_dir: Path, corpus: FileCorpus, sealed: tuple[str, ...], selection: Selection) -> None:
+    """Keep each sealed task's upstream licence and notice beside its `task.json` and `sealed.age`."""
+    by_id = {t.task_id: t for t in (*selection.tasks, *selection.reserves)}
+    for task_id in sealed:
+        source = selection_dir / "tasks" / task_id
+        language = by_id[task_id].candidate.language
+        for notice in sorted(source.iterdir()):
+            if notice.name != TASK_FILE_NAME:
+                corpus.write_notice(language, task_id, notice.name, notice.read_text(encoding=ENCODING))
+
+
+def run_compact(archive: Path, console: Console) -> int:
+    console.say(f"compacted {compact_archive(archive)} archived responses in {archive}")
+    return EXIT_OK
+
+
 def run_keygen(identity_path: Path, recipients_file: Path, console: Console) -> int:
     identity, recipient = generate_identity()
     write_identity_file(identity_path, identity, find_repository_root(recipients_file.parent))
@@ -196,8 +303,10 @@ def run_build_env(language: Language, source: Path, destination: Path, console: 
     return EXIT_OK
 
 
-def _oracle_runner(language: Language, env_dir: Path, python: Path | None) -> OracleRunner:
-    runner = _runner()
+def _oracle_runner(
+    language: Language, env_dir: Path, python: Path | None, runner: ProcessRunner | None = None
+) -> OracleRunner:
+    runner = runner or _runner()
     if language is Language.PYTHON:
         return PytestOracleRunner(python or python_executable(env_dir), runner)
     return GoTestOracleRunner(runner, go_offline_environment(env_dir))

@@ -50,7 +50,6 @@ def test_task_records_conform_to_the_task_schema() -> None:
         {"extra": 1},
         {"language": "rust"},
         {"base_sha": "short"},
-        {"criteria": []},
         {"licence": {"spdx_id": "GPL-3.0-only", "path": "LICENSE", "notice_path": None}},
         {"schema": "specbench.task/2"},
     ],
@@ -60,6 +59,12 @@ def test_the_schema_and_the_parser_refuse_the_same_documents(mutation: dict[str,
     assert schema_problems(SchemaName.TASK, record) != []
     with pytest.raises(RecordError):
         task_from_record(record)
+
+
+def test_a_selected_task_without_criteria_conforms_to_the_schema_and_the_parser() -> None:
+    record = make_task(criteria=()).to_record()
+    assert schema_problems(SchemaName.TASK, record) == []
+    assert not task_from_record(record).is_constructed
 
 
 def test_manifest_conforms_and_round_trips() -> None:

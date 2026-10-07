@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 import time
 from collections.abc import Callable, Mapping
 from datetime import date
@@ -35,10 +36,26 @@ NOT_FOUND_MARKER: Final = "HTTP 404"
 RESPONSES_DIRECTORY: Final = "responses"
 REQUEST_KEY_LENGTH: Final = 32
 SEARCH_PATH_PREFIX: Final = "search/"
-SEARCH_INTERVAL_SECONDS: Final = 2.1
-"""The search API allows 30 requests per minute; spacing them 2.1 s apart stays under it."""
+PULL_PATH: Final = re.compile(r"^repos/[^/]+/[^/]+/pulls/\d+$")
+SEARCH_INTERVAL_SECONDS: Final = 2.5
+"""The search API allows 30 requests per minute; spacing them 2.5 s apart leaves margin under it."""
+RATE_LIMIT_WAIT_SECONDS: Final = 65.0
+"""One rate-limit window plus margin: a refused search request is retried once after it."""
 RATE_LIMIT_MARKERS: Final = ("rate limit", "secondary rate", "abuse detection")
-FILE_PATCH_FIELD: Final = "patch"
+PULL_FIELDS: Final = (
+    "number",
+    "title",
+    "body",
+    "state",
+    "html_url",
+    "merged_at",
+    "merge_commit_sha",
+    "changed_files",
+    "additions",
+    "deletions",
+)
+CHANGED_FILE_FIELDS: Final = ("filename", "previous_filename", "status", "additions", "deletions", "changes")
+CONTENT_FIELDS: Final = ("name", "path", "type", "size", "sha", "encoding", "content")
 SEARCH_ISSUE_FIELDS: Final = ("number", "title", "html_url", "created_at", "closed_at")
 SEARCH_REPOSITORY_FIELDS: Final = (
     "full_name",
@@ -100,6 +117,7 @@ class ThrottledGhClient:
     """Decorator that spaces search requests so the search API's 30 per minute is never exceeded.
 
     It sits below `RecordingGhClient`: a request served from the archive never reaches it, so replays never sleep.
+    A search request that GitHub still refuses is retried once after a full window; any other refusal propagates.
     """
 
     def __init__(
@@ -122,7 +140,14 @@ class ThrottledGhClient:
                 if wait > 0:
                     self._sleep(wait)
             self._last_search = self._monotonic()
-        return self._inner.get(path, params)
+        try:
+            return self._inner.get(path, params)
+        except RateLimited:
+            if not path.startswith(SEARCH_PATH_PREFIX):
+                raise
+            self._sleep(RATE_LIMIT_WAIT_SECONDS)
+            self._last_search = self._monotonic()
+            return self._inner.get(path, params)
 
 
 def _picked(item: object, fields: tuple[str, ...]) -> dict[str, JsonValue]:
@@ -130,40 +155,81 @@ def _picked(item: object, fields: tuple[str, ...]) -> dict[str, JsonValue]:
     return {name: cast(JsonValue, body[name]) for name in fields if name in body}
 
 
+def _project_pull(body: Mapping[str, object]) -> dict[str, JsonValue]:
+    projected = _picked(body, PULL_FIELDS)
+    projected["labels"] = [
+        {"name": cast(JsonValue, mapping(label, "label").get("name"))}
+        for label in sequence(body.get("labels", []), "labels")
+    ]
+    projected["base"] = _picked(body.get("base") or {}, ("sha", "ref"))
+    projected["head"] = _picked(body.get("head") or {}, ("sha", "ref"))
+    return projected
+
+
+def _project_search_issues(response: JsonValue) -> JsonValue:
+    body = mapping(response, "search")
+    items: list[JsonValue] = []
+    for item in sequence(body.get("items", []), "items"):
+        fields = mapping(item, "item")
+        labels: list[JsonValue] = [
+            {"name": cast(JsonValue, mapping(label, "label").get("name"))}
+            for label in sequence(fields.get("labels", []), "labels")
+        ]
+        items.append(
+            {
+                **_picked(item, SEARCH_ISSUE_FIELDS),
+                "labels": labels,
+                "pull_request": _picked(fields.get("pull_request") or {}, ("merged_at",)),
+            }
+        )
+    return {"items": items, "total_count": cast(JsonValue, body.get("total_count"))}
+
+
+def _project_search_repositories(response: JsonValue) -> JsonValue:
+    body = mapping(response, "search")
+    items: list[JsonValue] = [
+        _picked(item, SEARCH_REPOSITORY_FIELDS) for item in sequence(body.get("items", []), "items")
+    ]
+    return {"items": items, "total_count": cast(JsonValue, body.get("total_count"))}
+
+
+def _project_contents(response: JsonValue) -> JsonValue:
+    if isinstance(response, list):
+        return [_picked(entry, CONTENT_FIELDS) for entry in response]
+    return _picked(response, CONTENT_FIELDS) if isinstance(response, Mapping) else response
+
+
 def project_response(path: str, response: JsonValue) -> JsonValue:
     """The archived form of a response: only what the bench reads, and never a code payload.
 
-    Pull-request file listings drop `patch` (upstream source and tests); search results keep the
-    fields the filters and the construction inputs use. Other responses are archived unchanged.
+    Pull-request file listings drop `patch` (upstream source and tests) and the URLs around each entry; search
+    results, pull-request details and contents keep the fields the filters and the construction inputs use.
+    Any other response is archived unchanged.
     """
     if path == "search/issues":
-        body = mapping(response, "search")
-        return {
-            "items": [
-                {
-                    **_picked(item, SEARCH_ISSUE_FIELDS),
-                    "labels": [
-                        {"name": mapping(label, "label").get("name")}
-                        for label in sequence(mapping(item, "item").get("labels", []), "labels")
-                    ],
-                    "pull_request": _picked(mapping(item, "item").get("pull_request") or {}, ("merged_at",)),
-                }
-                for item in sequence(body.get("items", []), "items")
-            ],
-            "total_count": cast(JsonValue, body.get("total_count")),
-        }
+        return _project_search_issues(response)
     if path == "search/repositories":
-        body = mapping(response, "search")
-        return {
-            "items": [_picked(item, SEARCH_REPOSITORY_FIELDS) for item in sequence(body.get("items", []), "items")],
-            "total_count": cast(JsonValue, body.get("total_count")),
-        }
+        return _project_search_repositories(response)
     if path.endswith("/files") and isinstance(response, list):
-        return [
-            {k: cast(JsonValue, v) for k, v in mapping(entry, "file").items() if k != FILE_PATCH_FIELD}
-            for entry in response
-        ]
-    return response
+        return [_picked(entry, CHANGED_FILE_FIELDS) for entry in response]
+    if PULL_PATH.match(path) and isinstance(response, Mapping):
+        return _project_pull(response)
+    return _project_contents(response) if "/contents" in path else response
+
+
+def compact_archive(archive: Path) -> int:
+    """Rewrite every archived response in its projected form; returns how many files changed. Idempotent."""
+    changed = 0
+    for file in sorted((archive / RESPONSES_DIRECTORY).glob("*.json")):
+        document = mapping(json.loads(file.read_text(encoding="utf-8")), str(file))
+        path = text(document.get("path"), "path")
+        if document.get("status") == STATUS_OK:
+            document = {**document, "response": project_response(path, cast(JsonValue, document["response"]))}
+        rewritten = stable_json(cast(JsonValue, document))
+        if rewritten != file.read_text(encoding="utf-8"):
+            file.write_text(rewritten, encoding="utf-8")
+            changed += 1
+    return changed
 
 
 class RecordingGhClient:

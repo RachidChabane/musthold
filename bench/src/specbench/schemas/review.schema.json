@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "specbench.construction.review/1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["findings"],
+  "properties": {
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["criterion", "kind", "comment"],
+        "properties": {
+          "criterion": {"type": ["integer", "null"], "minimum": 1},
+          "kind": {"enum": ["ambiguous", "untestable", "internal_structure", "missing_interface", "overlapping", "other"]},
+          "comment": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

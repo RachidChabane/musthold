@@ -29,6 +29,10 @@ CHANGED_TEST_STATUSES: Final = frozenset({"added", "modified", "renamed", "chang
 
 PYTHON_LOCKFILES: Final = ("uv.lock", "requirements.txt")
 GO_LOCKFILES: Final = ("go.mod", "go.sum")
+HEAVY_DEPENDENCIES: Final = frozenset({"torch", "tensorflow", "jax", "jaxlib", "triton"})
+HEAVY_DEPENDENCY_PREFIXES: Final = ("nvidia-", "cuda-")
+LOCKED_PACKAGE: Final = re.compile(r'^name = "([A-Za-z0-9_.-]+)"', re.MULTILINE)
+REQUIRED_PACKAGE: Final = re.compile(r"^([A-Za-z0-9_.-]+)\s*(?:[=<>!~\[;@]|$)", re.MULTILINE)
 FEATURE_TITLE: Final = re.compile(
     r"^\s*(feat|feature|add|adds|added|support|supports|implement|implements|introduce|allow|enable)\b[(:!\s]",
     re.IGNORECASE,
@@ -167,6 +171,20 @@ def has_lockfiles(language: Language, root_files: frozenset[str]) -> bool:
     if language is Language.PYTHON:
         return any(name in root_files for name in PYTHON_LOCKFILES)
     return all(name in root_files for name in GO_LOCKFILES)
+
+
+def heavy_dependency(lock_text: str) -> str | None:
+    """The first locked package that would load the owner's laptop beyond the mem-guard budget, if any.
+
+    A machine-safety rule, applied before an environment is built: a deep-learning framework alone is gigabytes
+    of wheels, which a nightly construction on a shared workstation must not pull.
+    """
+    names = [*LOCKED_PACKAGE.findall(lock_text), *REQUIRED_PACKAGE.findall(lock_text)]
+    for name in names:
+        normalised = name.lower().replace("_", "-")
+        if normalised in HEAVY_DEPENDENCIES or normalised.startswith(HEAVY_DEPENDENCY_PREFIXES):
+            return normalised
+    return None
 
 
 def has_ci_workflow(workflow_files: frozenset[str]) -> bool:
