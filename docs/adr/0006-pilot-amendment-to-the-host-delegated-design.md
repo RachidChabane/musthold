@@ -287,6 +287,8 @@ Exclusions are reported per criterion.
 - Interval: a percentile cluster bootstrap that resamples criteria of C* with every
   cell attached, B = 10,000, seed 20261006.
 - Reading, fixed in advance:
+  - |C*| < 3: undetermined, whatever the interval, because a bootstrap over one or
+    two criteria has too few distinct values to carry a reading;
   - lower bound > 0: shared blind spot indicated;
   - upper bound < 0.10: no material shared blind spot;
   - otherwise undetermined, which is the expected reading at |C*| ≤ 10.
@@ -454,9 +456,15 @@ That is about 1,215 Claude calls, about 300 of them Opus, and about 22 luna call
 
 **Pacing and machine safety.**
 
-- A `--call-budget N` option (default 250 per day per CLI) stops a verb cleanly with
-  exit code 3 and logs `quota-pause | none | call budget reached`; a rerun resumes
-  it.
+- Model calls run only inside a nightly run window, 21:00–07:30 local time by
+  default, because the Claude subscription quota is shared with the owner's
+  daytime work. A model-calling step does not start outside the window, and a
+  running verb stops cleanly when it closes (exit code 3,
+  `quota-pause | none | run window closed`); a rerun inside the next window
+  resumes it without loss.
+- A `--call-budget N` option (default 250 per night per CLI, the night being the
+  window that contains the call) stops a verb cleanly with exit code 3 and logs
+  `quota-pause | none | call budget reached`; a rerun resumes it.
 - Model calls in flight: `MAX_CONCURRENT_MODEL_CALLS` = 2.
 - `MAX_CONCURRENT_PYTEST`, `MAX_WITNESS_WORKERS` and `ORACLE_PARALLELISM` share one
   process-wide semaphore of 2. At most 2 local test, witness or oracle subprocesses
