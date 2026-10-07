@@ -34,6 +34,9 @@ const (
 	EventResubmissionConflict EventKind = "resubmission_conflict"
 	EventSchemaFailed         EventKind = "schema_failed"
 	EventUncappedSubmission   EventKind = "uncapped_submission"
+	// EventRunReported records what the harness reported about a finished
+	// executor run, the resolved model and the usage, as the event's detail.
+	EventRunReported EventKind = "run_reported"
 )
 
 // Event is one journaled fact. Only the fields that apply are set.

@@ -204,7 +204,8 @@ Go tests of the module in CI.
 - **SP-127~1**: WHEN a Claude Code hook payload is decoded THE SYSTEM SHALL read
   PreToolUse on the Agent tool and on MCP tools, SubagentStart, SubagentStop and
   PostToolUse into a harness-neutral event with the agent, the tool, its input,
-  the transcript path, the last message, the resolved model and the usage, and
+  the transcript path, the last message, the resolved model, the usage and the
+  reply text of the tool response, and
   SHALL refuse a payload of another hook, without its required field, or
   malformed.
 - **SP-128~1**: WHEN a Codex or a Copilot hook payload is decoded THE SYSTEM SHALL

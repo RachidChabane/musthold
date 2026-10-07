@@ -60,6 +60,9 @@ type HookEvent struct {
 	LastMessage    string          `json:"lastMessage,omitempty"`
 	ResolvedModel  string          `json:"resolvedModel,omitempty"`
 	Usage          TokenUsage      `json:"usage"`
+	// Reply is the text of an Agent tool's response, which for an executor is
+	// what the subagent answered.
+	Reply string `json:"reply,omitempty"`
 }
 
 // HookDecoder reads the stdin payload of one harness's hook into a HookEvent.
@@ -124,7 +127,7 @@ func (d snakeCaseDecoder) Decode(kind HookKind, payload []byte) (HookEvent, erro
 		ToolName: raw.ToolName, ToolInput: raw.ToolInput, ToolUseID: raw.ToolUseID,
 		TranscriptPath: raw.AgentTranscriptPath, LastMessage: raw.LastAssistantMessage,
 	}
-	event.ResolvedModel, event.Usage = readToolResponse(raw.ToolResponse)
+	event.ResolvedModel, event.Usage, event.Reply = readToolResponse(raw.ToolResponse)
 	return event, requireFields(event)
 }
 
@@ -157,7 +160,7 @@ func (camelCaseDecoder) Decode(kind HookKind, payload []byte) (HookEvent, error)
 		ToolName: raw.ToolName, ToolInput: unwrapToolArgs(raw.ToolArgs),
 		TranscriptPath: raw.TranscriptPath, LastMessage: raw.Response,
 	}
-	event.ResolvedModel, event.Usage = readToolResponse(raw.ToolResult)
+	event.ResolvedModel, event.Usage, event.Reply = readToolResponse(raw.ToolResult)
 	return event, requireFields(event)
 }
 
@@ -185,10 +188,13 @@ func requireFields(event HookEvent) error {
 	return nil
 }
 
-// readToolResponse reads the resolved model and the usage out of the response of
-// an Agent tool. Any other shape yields zero values, since the response varies
-// per tool.
-func readToolResponse(raw json.RawMessage) (string, TokenUsage) {
+// contentTypeText is the type of a text block in a tool response.
+const contentTypeText = "text"
+
+// readToolResponse reads the resolved model, the usage and the reply text out of
+// the response of an Agent tool. Any other shape yields zero values, since the
+// response varies per tool.
+func readToolResponse(raw json.RawMessage) (string, TokenUsage, string) {
 	var response struct {
 		ResolvedModel string `json:"resolvedModel"`
 		TotalTokens   int    `json:"totalTokens"`
@@ -196,13 +202,36 @@ func readToolResponse(raw json.RawMessage) (string, TokenUsage) {
 			InputTokens  int `json:"input_tokens"`
 			OutputTokens int `json:"output_tokens"`
 		} `json:"usage"`
+		Content json.RawMessage `json:"content"`
 	}
 	if err := json.Unmarshal(raw, &response); err != nil {
-		return "", TokenUsage{}
+		return "", TokenUsage{}, ""
 	}
-	return response.ResolvedModel, TokenUsage{
-		InputTokens: response.Usage.InputTokens, OutputTokens: response.Usage.OutputTokens, TotalTokens: response.TotalTokens,
+	usage := TokenUsage{InputTokens: response.Usage.InputTokens, OutputTokens: response.Usage.OutputTokens, TotalTokens: response.TotalTokens}
+	return response.ResolvedModel, usage, replyText(response.Content)
+}
+
+// replyText joins the text blocks of a response's content, or reads the content
+// itself when it is a string.
+func replyText(content json.RawMessage) string {
+	var text string
+	if err := json.Unmarshal(content, &text); err == nil {
+		return text
 	}
+	var blocks []struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
+	}
+	if err := json.Unmarshal(content, &blocks); err != nil {
+		return ""
+	}
+	var parts []string
+	for _, block := range blocks {
+		if block.Type == contentTypeText {
+			parts = append(parts, block.Text)
+		}
+	}
+	return strings.Join(parts, "")
 }
 
 // Names of the tools the hooks reason about.

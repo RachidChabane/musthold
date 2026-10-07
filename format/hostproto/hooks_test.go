@@ -85,6 +85,21 @@ func TestClaudeCodeHookDecoder(t *testing.T) {
 		}
 	})
 
+	t.Run("PostToolUse on the Agent tool carries the reply text, from text blocks or a string [verifies SP-127~1]", func(t *testing.T) {
+		blocks := `{"tool_name":"Agent","tool_input":{},"tool_response":{"content":[{"type":"text","text":"receipt "},{"type":"image"},{"type":"text","text":"x"}]}}`
+		if event := decode(t, hostproto.HarnessClaudeCode, hostproto.HookPostTool, blocks); event.Reply != "receipt x" {
+			t.Fatalf("reply = %q", event.Reply)
+		}
+		plain := `{"tool_name":"Agent","tool_input":{},"tool_response":{"content":"receipt y"}}`
+		if event := decode(t, hostproto.HarnessClaudeCode, hostproto.HookPostTool, plain); event.Reply != "receipt y" {
+			t.Fatalf("reply = %q", event.Reply)
+		}
+		none := `{"tool_name":"Agent","tool_input":{},"tool_response":{"content":7}}`
+		if event := decode(t, hostproto.HarnessClaudeCode, hostproto.HookPostTool, none); event.Reply != "" {
+			t.Fatalf("reply = %q", event.Reply)
+		}
+	})
+
 	t.Run("a tool response of another shape yields no model and no usage [verifies SP-127~1]", func(t *testing.T) {
 		for _, response := range []string{`"text"`, `null`, `[1]`, `{"other":true}`, ``} {
 			payload := `{"tool_name":"Bash","tool_input":{}` + map[bool]string{true: `,"tool_response":` + response, false: ``}[response != ""] + `}`
