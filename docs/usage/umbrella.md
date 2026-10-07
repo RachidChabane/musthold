@@ -71,3 +71,19 @@ Each module plugin works alone. Install `spec-proof-dp@spec-proof` and run its
 `spec-proof-dp-fulfil` skill, which ends the same way: when its loop ended with
 exit code 0 or 1 it runs the verifier command. The same holds for
 `spec-proof-alignment` and `spec-proof-completeness`.
+
+## Clients of the Agent Plugins standard
+
+Copilot CLI, Codex, Cursor, Kiro and the other clients of
+[Agent Plugins 1.0](https://agent-plugins.org) load the portable tree of each plugin:
+`discpower/plugin/portable`, `alignment/plugin/portable`,
+`completeness/plugin/portable`, `s1relay/plugin/portable` and
+`umbrella/plugin/portable`. A tree holds `plugin.json`, the fulfil skill and, for a
+proof module, an `mcp.json` that launches `<binary> mcp --role executor`. With
+Copilot CLI, `copilot --plugin-dir discpower/plugin/portable` loads one; its
+`com.github.copilot/` directory adds the restricted executor agents and the hooks.
+
+A client with no executor subagent answers through the server itself: the module
+records such an answer as inline, which has block power only. The server finds the
+project from the roots the client lists, else the directory the client starts it in;
+`--root` overrides both. See [ADR 0009](../adr/0009-agent-plugins-packaging.md).
