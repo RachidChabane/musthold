@@ -16,12 +16,36 @@ const (
 	// confidence is the maximum, or the minimum when nothing could decide.
 	SourceExecution ConfidenceSource = "execution"
 
-	hostVotesKind = "host-votes"
-	systemOneKind = "system-one"
+	// SourceHostVotes is the kind of the confidence of k blind votes of the host,
+	// written `host-votes(k)`.
+	SourceHostVotes ConfidenceSource = "host-votes"
+	// SourceSystemOne is the kind of the confidence a System One endpoint
+	// reported, written `system-one:<model>@<endpointDigest>`.
+	SourceSystemOne ConfidenceSource = "system-one"
+
+	hostVotesKind = string(SourceHostVotes)
+	systemOneKind = string(SourceSystemOne)
 	detailOpen    = "("
 	detailClose   = ")"
 	detailColon   = ":"
 )
+
+// SourceKinds lists the kinds of confidence source in a stable order.
+func SourceKinds() []ConfidenceSource {
+	return []ConfidenceSource{SourceExecution, SourceHostVotes, SourceSystemOne}
+}
+
+// Kind returns the kind of a source: the source without its detail. A source the
+// format does not know has none.
+func (s ConfidenceSource) Kind() (ConfidenceSource, bool) {
+	if !s.IsKnown() {
+		return "", false
+	}
+	if cut := strings.IndexAny(string(s), detailOpen+detailColon); cut >= 0 {
+		return s[:cut], true
+	}
+	return s, true
+}
 
 // HostVotesSource is the confidence of k blind votes of the host: the modal share
 // or the weakest stated confidence of the votes.

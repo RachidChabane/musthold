@@ -151,6 +151,14 @@ Go tests of the module in CI.
   `system-one:<model>@<endpoint digest>`, accept the id of the mapping that
   produced the confidence in `confidenceMapping`, and report `unknown_value`
   for another source.
+- **SP-901~1**: WHEN a threshold is read THE SYSTEM SHALL accept a bare number,
+  which is the default for every confidence source, or a mapping of `default` and
+  of confidence sources to numbers in [0,1], where a source is a kind
+  (`execution`, `host-votes`, `system-one`) or one exact source, SHALL refuse a
+  value outside [0,1] and a key that names no source, and WHEN a threshold is
+  resolved for a source THE SYSTEM SHALL take the entry of the exact source, else
+  the entry of its kind, else the default, a source without a form of the format
+  taking the default; and a threshold without entries SHALL encode as a bare number.
 
 ## Host protocol: closed questions
 
