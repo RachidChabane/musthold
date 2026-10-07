@@ -336,6 +336,85 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   SYSTEM SHALL block the criterion whose weak test lets a validated mutant survive
   and pass the criteria whose tests kill every validated mutant.
 
+## Jest and Vitest projects
+
+- **SP-1010~1**: WHEN a project tree is inspected THE SYSTEM SHALL recognize Jest
+  by `jest.config.*`, a `jest` key of `package.json` or a jest dependency and
+  Vitest by `vitest.config.*`, `vitest.workspace.*` or a vitest dependency, name
+  each strategy after the runner it binds, and recognize neither in a package
+  that depends on none.
+- **SP-1011~1**: WHEN a Jest or Vitest project is executed THE SYSTEM SHALL
+  resolve the package runner from the configuration, then from the lock file
+  (`pnpm exec`, `yarn`, `bunx --no-install`, `npx --no-install`), use
+  `npx --no-install` for a project without one, and refuse a runner that is not
+  installed.
+- **SP-1012~1**: WHEN the changed files of a Node project are checked THE SYSTEM
+  SHALL run `tsc --noEmit -p tsconfig.json` when a TypeScript file changed and the
+  project has a tsconfig, run `node --check` on each changed JavaScript file,
+  report the first failure with the message of the tool as a failed build, and
+  check nothing else.
+- **SP-1013~1**: WHEN a Jest project is executed THE SYSTEM SHALL select bound
+  tests by path and by one anchored regex over the full titles jest-junit
+  reports, without the space it leads a test outside any describe with, and run
+  `jest --ci --reporters=jest-junit` in one process with the report path in
+  `JEST_JUNIT_OUTPUT_FILE`.
+- **SP-1014~1**: WHEN a Vitest project is executed THE SYSTEM SHALL select bound
+  tests by one anchored regex over the titles its JUnit reporter joins with
+  `>`, accepting the space the filter joined them with before, and run
+  `vitest run --reporter=junit` with one worker.
+- **SP-1015~1**: WHEN a selection runs under a title filter THE SYSTEM SHALL
+  report the outcomes of the selection only, dropping the tests the filter left
+  out that the runner reports as skipped, and keep every outcome of a full run.
+- **SP-1016~1**: WHEN the workspace of a Node project is laid out THE SYSTEM
+  SHALL leave out the coverage directories, treat `node_modules` as
+  dependencies, and treat tests, setup files, tooling configuration and
+  declaration files as files that are no source to mutate.
+
+## Node probes
+
+- **SP-1020~1**: WHEN the signature of a bound Node target `path/file.ts:function`
+  or `path/file.ts:Class.method` is asked THE SYSTEM SHALL report its parameters
+  named in snake case, each with a type hint read from the annotation by the
+  TypeScript compiler of the project, else from the default of the parameter,
+  leave out a rest parameter, and SHALL refuse a target that names nothing
+  callable.
+- **SP-1021~1**: WHEN calls of Node targets are invoked in a workspace THE SYSTEM
+  SHALL return for each call, in order, the typed value it returned, null for
+  nothing, an object as canonical JSON with sorted keys, a number without
+  exponent notation and a time in UTC, awaiting a promise.
+- **SP-1022~1**: WHEN a call throws THE SYSTEM SHALL observe it as raising the
+  class name of what was thrown, whether the throw is synchronous, a rejected
+  promise or an error from a timer, and SHALL observe a target the module does
+  not export as raising `UnknownTarget`.
+- **SP-1023~1**: WHEN a call is made THE SYSTEM SHALL decode each argument of the
+  literal grammar into the type its parameter declares, find it under any
+  spelling of the name of the parameter, leave out an optional one, and observe a
+  call whose arguments do not fit as raising `ArgumentError` without running the
+  code.
+- **SP-1024~1**: WHEN calls are invoked THE SYSTEM SHALL load the module of the
+  workspace as an ES module or as CommonJS, load TypeScript with the tsx of the
+  project, else its ts-node, else a transpile by its typescript that resolves a
+  `.js` import to its `.ts` sibling, call a method on a fresh instance, write
+  nothing into the workspace, and report a module that does not load, or
+  TypeScript with no tooling to load it, as an error that carries the message.
+- **SP-1025~1**: WHEN a call exceeds its deadline or ends the process THE SYSTEM
+  SHALL observe the call as raising `Timeout` or `Crash`, whether it runs
+  synchronously or never settles, and answer the calls after it in a new process.
+- **SP-1026~1**: WHEN a call is repeated THE SYSTEM SHALL observe the same thing,
+  with times in UTC and the random source seeded the same way.
+- **SP-1027~1**: WHEN calls are invoked on a machine without node THE SYSTEM
+  SHALL report that no toolchain was found rather than a raised exception.
+- **SP-1040~1**: WHEN the examples, the differential search and the confirmation
+  of a witness run on a Jest or Vitest project THE SYSTEM SHALL pass an example the
+  reference meets and fail one a violating mutant breaks, find a witness where a
+  mutant moves a boundary, and confirm that witness by running it on the
+  reference and on the mutant.
+- **SP-1041~1**: WHEN an honest host answers every request for a Jest or Vitest
+  project THE SYSTEM SHALL block the criterion whose weak test lets a validated
+  mutant survive and pass the criteria whose tests kill every validated mutant.
+- **SP-1042~1**: WHEN a project is inspected THE SYSTEM SHALL recognize a Jest or
+  Vitest project among the ecosystems it supports.
+
 ## Spec values and policy
 
 - **SP-162~1**: WHEN two literals or two observations are compared THE SYSTEM

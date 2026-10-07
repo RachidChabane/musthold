@@ -42,7 +42,11 @@ func probeWorkspace(t *testing.T, kit, modules string) ecosystem.Workspace {
 		if err != nil {
 			return err
 		}
-		return os.WriteFile(filepath.Join(dir, relative), content, 0o644)
+		target := filepath.Join(dir, relative)
+		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+			return err
+		}
+		return os.WriteFile(target, content, 0o644)
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -119,9 +123,8 @@ func param(name string, hint differential.Hint) differential.Param {
 }
 
 func TestSignaturesWithoutACompiler(t *testing.T) {
-	workspace := probeWorkspace(t, "esm", "")
-
 	t.Run("names are snake case and hints come from the defaults of the parameters [verifies SP-1020~1]", func(t *testing.T) {
+		workspace := probeWorkspace(t, "esm", "")
 		got := signaturesOf(t, workspace, "ops.js:lineTotal", "ops.js:describeOrder", "ops.js:scaled")
 		want := map[string][]differential.Param{
 			"ops.js:lineTotal":     {param("unit_price", differential.HintUnknown), param("quantity", differential.HintUnknown)},
@@ -134,6 +137,7 @@ func TestSignaturesWithoutACompiler(t *testing.T) {
 	})
 
 	t.Run("a method is addressed by its class and a variadic parameter is left out [verifies SP-1020~1]", func(t *testing.T) {
+		workspace := probeWorkspace(t, "esm", "")
 		got := signaturesOf(t, workspace, "ops.js:Meter.bump", "ops.js:Meter.from")
 		if !reflect.DeepEqual(got["ops.js:Meter.bump"], []differential.Param{param("by", differential.HintUnknown)}) ||
 			!reflect.DeepEqual(got["ops.js:Meter.from"], []differential.Param{param("start", differential.HintUnknown)}) {
@@ -142,6 +146,7 @@ func TestSignaturesWithoutACompiler(t *testing.T) {
 	})
 
 	t.Run("a target that names nothing callable is an error [verifies SP-1020~1]", func(t *testing.T) {
+		workspace := probeWorkspace(t, "esm", "")
 		for _, target := range []string{"ops.js:absent", "ops.js:LIMIT", "ops.js", "missing.js:lineTotal"} {
 			if _, err := prober().Signatures(context.Background(), workspace, ecosystem.Toolchain{}, []string{target}); !errors.Is(err, node.ErrProbeFailed) {
 				t.Errorf("%s: err = %v", target, err)
@@ -151,9 +156,8 @@ func TestSignaturesWithoutACompiler(t *testing.T) {
 }
 
 func TestSignaturesFromTheTypes(t *testing.T) {
-	workspace := probeWorkspace(t, "typed", nodeinstall.Installed(t, jestFixture)+"/node_modules")
-
 	t.Run("hints come from the type annotations of the source, the project's compiler reading them [verifies SP-1020~1]", func(t *testing.T) {
+		workspace := probeWorkspace(t, "typed", nodeinstall.Installed(t, jestFixture)+"/node_modules")
 		got := signaturesOf(t, workspace, "ops.ts:signature", "ops.ts:Account.fee", "ops.ts:total")
 		want := map[string][]differential.Param{
 			"ops.ts:signature": {
@@ -172,11 +176,12 @@ func TestSignaturesFromTheTypes(t *testing.T) {
 }
 
 func TestInvokeReturnsTypedValues(t *testing.T) {
-	workspace := probeWorkspace(t, "esm", "")
-	observe := func(calls ...ports.ProbeCall) []spec.Observation { return invoke(t, workspace, calls...) }
+	observe := func(t *testing.T, calls ...ports.ProbeCall) []spec.Observation {
+		return invoke(t, probeWorkspace(t, "esm", ""), calls...)
+	}
 
 	t.Run("integers, decimals, strings, booleans, null and times come back as typed literals [verifies SP-1021~1]", func(t *testing.T) {
-		got := observe(
+		got := observe(t,
 			call("ops.js:lineTotal", args("unit_price", integer("4"), "quantity", integer("3"))),
 			call("ops.js:exactSum", args("first", decimal("0.1"), "second", decimal("0.2"))),
 			call("ops.js:describeOrder", args("count", integer("2"), "label", text("box"), "ratio", decimal("0.25"), "urgent", spec.Literal{Type: spec.TypeBoolean, Value: "false"})),
@@ -201,32 +206,30 @@ func TestInvokeReturnsTypedValues(t *testing.T) {
 	})
 
 	t.Run("a number never comes back in exponent notation [verifies SP-1021~1]", func(t *testing.T) {
-		got := observe(call("ops.js:tiny", nil), call("ops.js:huge", nil))
+		got := observe(t, call("ops.js:tiny", nil), call("ops.js:huge", nil))
 		requireObservations(t, got, []spec.Observation{returns(spec.TypeDecimal, "0.0000001"), returns(spec.TypeInteger, "1000000000000000000000")})
 	})
 
 	t.Run("an object comes back as canonical JSON, keys sorted, undefined left out [verifies SP-1021~1]", func(t *testing.T) {
-		got := observe(call("ops.js:asObject", args("first", integer("1"), "second", integer("2"))))
+		got := observe(t, call("ops.js:asObject", args("first", integer("1"), "second", integer("2"))))
 		requireObservations(t, got, []spec.Observation{returns(spec.TypeString, `{"first":1,"nested":{"y":[1,{"a":1,"b":2}],"z":1},"second":2,"tags":["x"]}`)})
 	})
 
 	t.Run("a promise is awaited [verifies SP-1021~1]", func(t *testing.T) {
-		got := observe(call("ops.js:asyncDouble", args("count", integer("21"))))
+		got := observe(t, call("ops.js:asyncDouble", args("count", integer("21"))))
 		requireObservations(t, got, []spec.Observation{returns(spec.TypeInteger, "42")})
 	})
 
 	t.Run("the observations come in the order of the calls [verifies SP-1021~1]", func(t *testing.T) {
 		first := call("ops.js:lineTotal", args("unit_price", integer("2"), "quantity", integer("2")))
 		second := call("ops.js:lineTotal", args("unit_price", integer("3"), "quantity", integer("3")))
-		requireObservations(t, observe(second, first, second), []spec.Observation{returns(spec.TypeInteger, "9"), returns(spec.TypeInteger, "4"), returns(spec.TypeInteger, "9")})
+		requireObservations(t, observe(t, second, first, second), []spec.Observation{returns(spec.TypeInteger, "9"), returns(spec.TypeInteger, "4"), returns(spec.TypeInteger, "9")})
 	})
 }
 
 func TestInvokeNamesWhatWasThrown(t *testing.T) {
-	workspace := probeWorkspace(t, "esm", "")
-
 	t.Run("a call raises the class name of the error it throws, a promise rejection and a timer included [verifies SP-1022~1]", func(t *testing.T) {
-		got := invoke(t, workspace,
+		got := invoke(t, probeWorkspace(t, "esm", ""),
 			call("ops.js:failsWithTypeError", nil),
 			call("ops.js:failsWithCustomError", nil),
 			call("ops.js:failsWithString", nil),
@@ -242,16 +245,19 @@ func TestInvokeNamesWhatWasThrown(t *testing.T) {
 	})
 
 	t.Run("a target the module does not export is observed as an unknown target [verifies SP-1022~1]", func(t *testing.T) {
-		got := invoke(t, workspace, call("ops.js:absent", nil), call("ops.js:LIMIT", nil), call("ops.js:Meter.nothing", nil))
+		got := invoke(t, probeWorkspace(t, "esm", ""), call("ops.js:absent", nil), call("ops.js:LIMIT", nil), call("ops.js:Meter.nothing", nil))
 		requireObservations(t, got, []spec.Observation{raises("UnknownTarget"), raises("UnknownTarget"), raises("UnknownTarget")})
 	})
 }
 
 func TestInvokeDecodesArguments(t *testing.T) {
-	typed := probeWorkspace(t, "typed", nodeinstall.Installed(t, jestFixture)+"/node_modules")
-	plain := probeWorkspace(t, "esm", "")
+	typedProject := func(t *testing.T) ecosystem.Workspace {
+		return probeWorkspace(t, "typed", nodeinstall.Installed(t, jestFixture)+"/node_modules")
+	}
+	plainProject := func(t *testing.T) ecosystem.Workspace { return probeWorkspace(t, "esm", "") }
 
 	t.Run("an argument is found under any spelling of the name of its parameter [verifies SP-1023~1]", func(t *testing.T) {
+		plain := plainProject(t)
 		for _, spelling := range [][2]string{{"unit_price", "quantity"}, {"unitPrice", "Quantity"}, {"UNIT_PRICE", "quantity"}} {
 			got := invoke(t, plain, call("ops.js:lineTotal", args(spelling[0], integer("4"), spelling[1], integer("3"))))
 			requireObservations(t, got, []spec.Observation{returns(spec.TypeInteger, "12")})
@@ -259,7 +265,7 @@ func TestInvokeDecodesArguments(t *testing.T) {
 	})
 
 	t.Run("an argument that is missing, given twice or not expected is an ArgumentError without running the code [verifies SP-1023~1]", func(t *testing.T) {
-		got := invoke(t, plain,
+		got := invoke(t, plainProject(t),
 			call("ops.js:lineTotal", args("unit_price", integer("4"))),
 			call("ops.js:lineTotal", args("unit_price", integer("4"), "unitPrice", integer("5"), "quantity", integer("3"))),
 			call("ops.js:lineTotal", args("unit_price", integer("4"), "quantity", integer("3"), "surplus", integer("1"))),
@@ -268,12 +274,12 @@ func TestInvokeDecodesArguments(t *testing.T) {
 	})
 
 	t.Run("an optional parameter may be left out [verifies SP-1023~1]", func(t *testing.T) {
-		got := invoke(t, plain, call("ops.js:scaled", args("amount", integer("4"))))
+		got := invoke(t, plainProject(t), call("ops.js:scaled", args("amount", integer("4"))))
 		requireObservations(t, got, []spec.Observation{returns(spec.TypeInteger, "8")})
 	})
 
 	t.Run("a literal is decoded into the type its parameter declares [verifies SP-1023~1]", func(t *testing.T) {
-		got := invoke(t, typed,
+		got := invoke(t, typedProject(t),
 			call("ops.ts:shifted", args("when", spec.Literal{Type: spec.TypeDatetime, Value: "2026-03-01T10:00:00Z"}, "days", integer("2"))),
 			call("ops.ts:shifted", args("when", text("2026-03-01"), "days", integer("1"))),
 			call("ops.ts:shifted", args("when", text("not a date"), "days", integer("1"))),
@@ -330,6 +336,12 @@ func TestInvokeLoadsTheModuleOfTheProject(t *testing.T) {
 		requireObservations(t, invoke(t, workspace, typedCalls...), typedWant)
 	})
 
+	t.Run("a TypeScript module is loaded with the ts-node of the project when it has no tsx [verifies SP-1024~1]", func(t *testing.T) {
+		workspace := probeWorkspace(t, "tsnode", "")
+		got := invoke(t, workspace, call("ops.ts:lineTotal", nil))
+		requireObservations(t, got, []spec.Observation{returns(spec.TypeString, "compiled by ts-node")})
+	})
+
 	t.Run("a TypeScript module with no TypeScript tooling installed is an error that says so [verifies SP-1024~1]", func(t *testing.T) {
 		workspace := probeWorkspace(t, "typed", "")
 		_, err := prober().Invoke(context.Background(), workspace, ecosystem.Toolchain{}, typedCalls)
@@ -376,27 +388,25 @@ func TestInvokeSurvivesCallsThatDoNotEnd(t *testing.T) {
 	if testing.Short() {
 		t.Skip("waits for two call deadlines")
 	}
-	workspace := probeWorkspace(t, "esm", "")
 	one := call("ops.js:lineTotal", args("unit_price", integer("1"), "quantity", integer("1")))
 	two := call("ops.js:lineTotal", args("unit_price", integer("2"), "quantity", integer("1")))
 
 	t.Run("a call that never ends, synchronously or not, is a timeout and the calls after it run in a new process [verifies SP-1025~1]", func(t *testing.T) {
-		got := invoke(t, workspace, one, call("ops.js:spins", nil), two, call("ops.js:hangs", nil), one)
+		got := invoke(t, probeWorkspace(t, "esm", ""), one, call("ops.js:spins", nil), two, call("ops.js:hangs", nil), one)
 		requireObservations(t, got, []spec.Observation{
 			returns(spec.TypeInteger, "1"), raises("Timeout"), returns(spec.TypeInteger, "2"), raises("Timeout"), returns(spec.TypeInteger, "1"),
 		})
 	})
 
 	t.Run("a call that ends the process is a crash and the calls after it run in a new process [verifies SP-1025~1]", func(t *testing.T) {
-		got := invoke(t, workspace, one, call("ops.js:crashes", nil), two, call("ops.js:crashes", nil))
+		got := invoke(t, probeWorkspace(t, "esm", ""), one, call("ops.js:crashes", nil), two, call("ops.js:crashes", nil))
 		requireObservations(t, got, []spec.Observation{returns(spec.TypeInteger, "1"), raises("Crash"), returns(spec.TypeInteger, "2"), raises("Crash")})
 	})
 }
 
 func TestInvokeRepeats(t *testing.T) {
-	workspace := probeWorkspace(t, "esm", "")
-
 	t.Run("a repeated call observes the same thing, in UTC and with the same random numbers [verifies SP-1026~1]", func(t *testing.T) {
+		workspace := probeWorkspace(t, "esm", "")
 		calls := []ports.ProbeCall{call("ops.js:luck", nil), call("ops.js:nowAtNoon", nil), call("ops.js:luck", nil)}
 		first := invoke(t, workspace, calls...)
 		second := invoke(t, workspace, calls...)
@@ -408,7 +418,7 @@ func TestInvokeRepeats(t *testing.T) {
 }
 
 func TestInvokeWithoutNode(t *testing.T) {
-	t.Run("a machine without node is an error that says so, not a probe that raised [verifies SP-1026~1]", func(t *testing.T) {
+	t.Run("a machine without node is an error that says so, not a probe that raised [verifies SP-1027~1]", func(t *testing.T) {
 		strategy := node.NewJest(node.Dependencies{Process: process.New(), LookPath: notFound})
 		workspace := ecosystem.Workspace{Dir: t.TempDir(), ResultsDir: t.TempDir()}
 		_, err := strategy.Prober().Invoke(context.Background(), workspace, ecosystem.Toolchain{}, []ports.ProbeCall{call("ops.js:lineTotal", nil)})

@@ -1,0 +1,173 @@
+{
+  "schema_version": "1.2",
+  "tool": {
+    "name": "shallnot",
+    "version": "v0.5.0"
+  },
+  "requirements": [
+    {
+      "id": "PAR-1",
+      "revision": 1,
+      "ref": "PAR-1~1",
+      "statement": "WHEN an order has line items THE SYSTEM SHALL total each line as its unit price times its quantity.",
+      "status": "active",
+      "statement_digest": "d0c5c9363af1e3b1ca3335d338595f878df6190aaf315552303604dd3867bf20",
+      "tests": [
+        {
+          "name": "line totals > multiply the unit price by the quantity [verifies PAR-1~1]",
+          "classname": "test/rates.test.ts",
+          "suite": "vitest",
+          "outcome": "passed",
+          "source": {
+            "file": "test/rates.test.ts",
+            "line": 5
+          }
+        }
+      ],
+      "examples": [
+        {
+          "index": 0,
+          "operation": "line_total",
+          "args": {
+            "unit_price": {
+              "type": "integer",
+              "value": "4"
+            },
+            "quantity": {
+              "type": "integer",
+              "value": "3"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "PAR-2",
+      "revision": 1,
+      "ref": "PAR-2~1",
+      "statement": "WHEN a discount percentage is applied THE SYSTEM SHALL reduce the total by that percentage, limited to the range 0 to 100.",
+      "status": "active",
+      "statement_digest": "04fa9f4b8238a4b7fa626572b7e5aeb31d5fd34dfac8834e9508b90f8d9cc9c9",
+      "tests": [
+        {
+          "name": "discounts > limits [verifies PAR-2~1] > below zero > ignore a negative percentage",
+          "classname": "test/rates.test.ts",
+          "suite": "vitest",
+          "outcome": "passed",
+          "source": {
+            "file": "test/rates.test.ts",
+            "line": 23
+          }
+        },
+        {
+          "name": "discounts > limits [verifies PAR-2~1] > clamp a percentage above one hundred",
+          "classname": "test/rates.test.ts",
+          "suite": "vitest",
+          "outcome": "passed",
+          "source": {
+            "file": "test/rates.test.ts",
+            "line": 23
+          }
+        },
+        {
+          "name": "discounts > take 0 percent off 19.99 [verifies PAR-2~1]",
+          "classname": "test/rates.test.ts",
+          "suite": "vitest",
+          "outcome": "passed",
+          "source": {
+            "file": "test/rates.test.ts",
+            "line": 19
+          }
+        },
+        {
+          "name": "discounts > take 10 percent off 200 [verifies PAR-2~1]",
+          "classname": "test/rates.test.ts",
+          "suite": "vitest",
+          "outcome": "passed",
+          "source": {
+            "file": "test/rates.test.ts",
+            "line": 19
+          }
+        },
+        {
+          "name": "discounts > take 50 percent off 80 [verifies PAR-2~1]",
+          "classname": "test/rates.test.ts",
+          "suite": "vitest",
+          "outcome": "passed",
+          "source": {
+            "file": "test/rates.test.ts",
+            "line": 19
+          }
+        }
+      ],
+      "examples": [
+        {
+          "index": 0,
+          "operation": "discounted",
+          "args": {
+            "total": {
+              "type": "integer",
+              "value": "200"
+            },
+            "percent": {
+              "type": "integer",
+              "value": "10"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "180"
+          }
+        },
+        {
+          "index": 1,
+          "operation": "discounted",
+          "args": {
+            "total": {
+              "type": "integer",
+              "value": "80"
+            },
+            "percent": {
+              "type": "integer",
+              "value": "150"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "PAR-3",
+      "revision": 1,
+      "ref": "PAR-3~1",
+      "statement": "WHEN an order total reaches 50 THE SYSTEM SHALL waive the shipping fee.",
+      "status": "active",
+      "statement_digest": "89e6c3fc82e77e6f357693a81b2be675692858c08cb1834394252c1367ada67a",
+      "tests": [
+        {
+          "name": "shipping > is waived from fifty [verifies PAR-3~1]",
+          "classname": "test/rates.test.ts",
+          "suite": "vitest",
+          "outcome": "passed",
+          "source": {
+            "file": "test/rates.test.ts",
+            "line": 37
+          }
+        }
+      ],
+      "examples": []
+    }
+  ],
+  "findings": [],
+  "extensions": {}
+}

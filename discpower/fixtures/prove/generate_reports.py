@@ -2,8 +2,9 @@
 """Writes the recorded Shallnot reports (schema 1.2) the end-to-end tests read.
 
 The parcel report describes `parcel/` (pytest) with the tests at the lines they
-have in `parcel/tests/test_rates.py`; the Go report is derived from the bindings
-recorded for the Go ecosystem fixture and the examples of its spec. Run it from anywhere:
+have in `parcel/tests/test_rates.py`; the Go, Jest and Vitest reports are derived
+from the bindings recorded for their ecosystem fixtures and the examples of their
+specs. Run it from anywhere:
 
     python3 discpower/fixtures/prove/generate_reports.py
 """
@@ -12,7 +13,7 @@ import json
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-BINDINGS = HERE.parent.parent / "internal" / "testkit" / "bindings" / "testdata" / "go-bound-tests.json"
+BINDINGS_DIR = HERE.parent.parent / "internal" / "testkit" / "bindings" / "testdata"
 SCHEMA_VERSION = "1.2"
 TOOL = {"name": "shallnot", "version": "v0.5.0"}
 
@@ -78,14 +79,22 @@ GO_EXAMPLES = {
 }
 
 
-def go_report():
-    bound = json.loads(BINDINGS.read_text())
+NODE_EXAMPLES = {
+    "PAR-1": [example(0, "line_total", {"unit_price": "4", "quantity": "3"}, "12")],
+    "PAR-2": [example(0, "discounted", {"total": "200", "percent": "10"}, "180"),
+              example(1, "discounted", {"total": "80", "percent": "150"}, "0")],
+    "PAR-3": [],
+}
+
+
+def bound_report(suite, bindings, examples):
+    bound = json.loads((BINDINGS_DIR / bindings).read_text())
     requirements = []
     for ref, tests in sorted(bound.items()):
         identifier = ref.split("~")[0]
-        converted = [{"name": t["name"], "classname": t["classname"], "suite": "go", "outcome": "passed",
+        converted = [{"name": t["name"], "classname": t["classname"], "suite": suite, "outcome": "passed",
                       "source": {"file": t["file"], "line": t["line"]}} for t in tests]
-        requirements.append(requirement(identifier, converted, GO_EXAMPLES[identifier]))
+        requirements.append(requirement(identifier, converted, examples[identifier]))
     return report(requirements)
 
 
@@ -95,4 +104,6 @@ def write(name, document):
 
 if __name__ == "__main__":
     write("parcel-report.json", parcel_report())
-    write("go-report.json", go_report())
+    write("go-report.json", bound_report("go", "go-bound-tests.json", GO_EXAMPLES))
+    write("jest-report.json", bound_report("jest", "jest-bound-tests.json", NODE_EXAMPLES))
+    write("vitest-report.json", bound_report("vitest", "vitest-bound-tests.json", NODE_EXAMPLES))

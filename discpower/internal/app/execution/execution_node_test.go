@@ -122,10 +122,10 @@ func TestExecutionOfANodeProject(t *testing.T) {
 }
 
 func executeNodeProject(t *testing.T, name ecosystem.Name, build func(node.Dependencies) *node.Strategy) {
-	w := openNodeWorld(t, name, build)
 	ctx := context.Background()
 
 	t.Run("the examples pass on the reference, fail on the mutants that break them and skip unbound operations [verifies SP-1040~1]", func(t *testing.T) {
+		w := openNodeWorld(t, name, build)
 		examples := append(nodeExamples(),
 			execution.OwnedExample{Owner: criterionShipping, Example: example(2, shippingCall(paidShipping), returnsInteger(shippingWaived))},
 			execution.OwnedExample{Owner: criterionDiscount, Example: example(1, spec.Call{Operation: unboundOperation}, returnsInteger(shippingWaived))})
@@ -159,6 +159,7 @@ func executeNodeProject(t *testing.T, name ecosystem.Name, build func(node.Depen
 	})
 
 	t.Run("the search finds a witness at the boundary a mutant moves and none for an equivalent mutant [verifies SP-1040~1]", func(t *testing.T) {
+		w := openNodeWorld(t, name, build)
 		runner := w.runner()
 		draws, reason, err := runner.PrepareDraws(ctx, w.sources, nodeDrawSeed)
 		if err != nil || reason != "" || draws == nil {
@@ -202,6 +203,7 @@ func executeNodeProject(t *testing.T, name ecosystem.Name, build func(node.Depen
 	}
 	for _, tt := range confirmations {
 		t.Run("a witness is "+string(tt.want)+" when "+tt.name+" [verifies SP-1040~1]", func(t *testing.T) {
+			w := openNodeWorld(t, name, build)
 			got, err := w.runner().Confirm(ctx, tt.mutant, tt.call, tt.expected)
 			if err != nil || got.Check != tt.want || (got.Check == power.WitnessConfirmed) != (got.Digest != "") {
 				t.Fatalf("confirmation %+v (%v)", got, err)

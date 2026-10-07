@@ -9,11 +9,13 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/config"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/golang"
+	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/node"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/pytest"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/hoststore"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/junitxml"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/localcache"
 	gomutation "github.com/RachidChabane/spec-proof/discpower/internal/adapters/mutation/golang"
+	javascriptmutation "github.com/RachidChabane/spec-proof/discpower/internal/adapters/mutation/javascript"
 	pythonmutation "github.com/RachidChabane/spec-proof/discpower/internal/adapters/mutation/python"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/proofcache"
@@ -154,7 +156,13 @@ func newStrategies(runner ports.ProcessRunner, reader ports.ResultsReader) (*eco
 	return ecosystem.New(
 		pytest.New(pytest.Dependencies{Process: runner, Reader: reader, Locator: treesitter.NewLocator(), Assignments: pythonmutation.New()}),
 		golang.New(golang.Dependencies{Process: runner, Reader: reader, Locator: goparser.NewLocator(), Assignments: gomutation.New()}),
+		node.NewJest(nodeDependencies(runner, reader)),
+		node.NewVitest(nodeDependencies(runner, reader)),
 	)
+}
+
+func nodeDependencies(runner ports.ProcessRunner, reader ports.ResultsReader) node.Dependencies {
+	return node.Dependencies{Process: runner, Reader: reader, Locator: treesitter.NewLocator(), Assignments: javascriptmutation.New()}
 }
 
 func chooseEcosystem(strategies *ecosystem.Registry, settings projectconfig.Settings, root string) (domain.Name, ports.Ecosystem, error) {
@@ -183,6 +191,9 @@ func newEngines() (*operatorgen.Registry, error) {
 		return nil, err
 	}
 	if err := registry.Register(gomutation.New(), goparser.NewLocator()); err != nil {
+		return nil, err
+	}
+	if err := registry.Register(javascriptmutation.New(), treesitter.NewLocator()); err != nil {
 		return nil, err
 	}
 	return registry, nil
