@@ -10,12 +10,12 @@ import (
 	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
 )
 
-const (
-	tablePriceTest  = "TestPrice/an_international_parcel_[verifies_PRC-12~1]"
-	literalTest     = "TestValidate/rejects_a_parcel_above_the_limit_[verifies_PRC-13~1]"
+var (
+	tablePriceTest  = "TestPrice/an_international_parcel_" + citeReported("PRC-12~1")
+	literalTest     = "TestValidate/rejects_a_parcel_above_the_limit_" + citeReported("PRC-13~1")
 	uncitedTest     = "TestValidate/rejects_a_parcel_without_identifier"
 	helperHeavyTest = "TestLabel"
-	externalTest    = "TestQuoteThroughPublicAPI/refuses_an_oversized_parcel_[verifies_PRC-14~1]"
+	externalTest    = "TestQuoteThroughPublicAPI/refuses_an_oversized_parcel_" + citeReported("PRC-14~1")
 )
 
 func TestHandles(t *testing.T) {
@@ -237,7 +237,7 @@ func TestRemovals(t *testing.T) {
 		assertContains(t, unit, `t.Run(c.name+"", func`)
 	})
 	t.Run("a citation inside a longer literal is cut with its leading space [verifies SP-323~1]", func(t *testing.T) {
-		source := "package parcel\n\nfunc TestNote() {\n\tprintln(\"first part [verifies PRC-9~2] second\", `raw [verifies PRC-9~2]`)\n}\n"
+		source := strings.ReplaceAll("package parcel\n\nfunc TestNote() {\n\tprintln(\"first part CITE second\", `raw CITE`)\n}\n", "CITE", cite("PRC-9~2"))
 		unit := maskProject(t, moduleProject(source), internalFile, "TestNote").Unit
 		assertContains(t, unit, `"first part second"`, "`raw`")
 	})

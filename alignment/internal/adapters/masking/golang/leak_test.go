@@ -76,7 +76,7 @@ func drawTest(t *rapid.T) generatedTest {
 func buildTest(shape testShape, topWords, subWords []string, cited criterion.Ref, refs []criterion.Ref) generatedTest {
 	top := "Test" + camelCase(topWords)
 	title := strings.Join(subWords, " ")
-	citation := fmt.Sprintf("[verifies %s~%d]", cited.ID, cited.Revision)
+	citation := cite(fmt.Sprintf("%s~%d", cited.ID, cited.Revision))
 	helper := "check" + camelCase(subWords)
 	preamble := fmt.Sprintf("package parcel\n\nimport \"testing\"\n\n// %s verifies %s: %s\n", top, cited.ID, title)
 	helperSource := fmt.Sprintf("\n// %s compares a weight.\nfunc %s(t *testing.T, got int) {\n\tif got != 3 {\n\t\tt.Fatalf(\"got %%d\", got)\n\t}\n}\n", helper, helper)

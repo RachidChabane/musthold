@@ -43,7 +43,7 @@ func TestSignatures(t *testing.T) {
 		}
 	})
 	t.Run("a function of a sub-package of the module is rendered [verifies SP-324~1]", func(t *testing.T) {
-		masked := maskFixture(t, externalFile, "TestQuoteThroughPublicAPI/quotes_a_national_parcel_[verifies_PRC-14~1]")
+		masked := maskFixture(t, externalFile, "TestQuoteThroughPublicAPI/quotes_a_national_parcel_"+citeReported("PRC-14~1"))
 		assertContains(t, masked.Signatures, "func Lookup(zone string) (int, bool)")
 		if want := []string{"parcel.go", "rate/rate.go"}; !slices.Equal(masked.CodeFiles, want) {
 			t.Errorf("CodeFiles = %v, want %v", masked.CodeFiles, want)

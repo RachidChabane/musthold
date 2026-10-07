@@ -98,3 +98,17 @@ func assertAbsent(t *testing.T, text string, unwanted ...string) {
 		}
 	}
 }
+
+// citeWord is spelled in two parts so that no source line of the tests reads as a
+// requirement tag.
+const citeWord = "verif" + "ies"
+
+// cite renders a citation marker as it appears in a test title.
+func cite(id string) string { return "[" + citeWord + " " + id + "]" }
+
+// citeCased renders a citation marker with a capitalised marker word.
+func citeCased(id string) string { return "[Verif" + "ies " + id + "]" }
+
+// citeReported renders a citation marker as the JUnit reporter spells it in a
+// subtest name.
+func citeReported(id string) string { return "[" + citeWord + "_" + id + "]" }
