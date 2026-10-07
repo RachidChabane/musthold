@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "exec": {
+      "command": "spec-proof-completeness",
+      "args": [
+        "mcp",
+        "--role",
+        "executor",
+        "--harness",
+        "claude"
+      ]
+    }
+  }
+}

@@ -23,13 +23,13 @@ import (
 	pythonunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/python"
 	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/completeness/internal/app/prove"
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/requests"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/closedq"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/policy"
 	"github.com/RachidChabane/spec-proof/completeness/internal/testkit"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
 const (
@@ -124,7 +124,7 @@ type honestReplayer struct {
 	served  int
 }
 
-func (r *honestReplayer) Serve(tickets []ports.PendingTicket) error {
+func (r *honestReplayer) Serve(tickets []requests.PendingTicket) error {
 	for _, pending := range tickets {
 		ticket, err := hostproto.ParseTicketID(pending.Ticket)
 		if err != nil {
@@ -214,7 +214,7 @@ func (w *world) deps() prove.Deps {
 	}
 	if w.answers != nil {
 		w.replay = &honestReplayer{
-			service: requests.Service{Store: w.store, Validator: responsecheck.New(), Clock: deps.Clock},
+			service: requests.Service{Plugin: "spec-proof-completeness", Store: w.store, Validator: responsecheck.New(), Clock: deps.Clock},
 			answers: w.answers,
 			origin:  requests.OriginReplay,
 			profile: format.ExecutorProfile{

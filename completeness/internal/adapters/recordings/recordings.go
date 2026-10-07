@@ -14,9 +14,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/completeness/internal/platform/atomicfile"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
 const (
@@ -38,7 +38,7 @@ type Directory struct {
 	Dir string
 }
 
-var _ ports.Recordings = Directory{}
+var _ requests.Recordings = Directory{}
 
 func (d Directory) path(name, suffix string) (string, error) {
 	if !validName(name) {
@@ -62,30 +62,30 @@ func validName(name string) bool {
 
 // Load reads the recording of a request. The executor is nil when none was
 // recorded.
-func (d Directory) Load(requestID string) (ports.Recording, error) {
+func (d Directory) Load(requestID string) (requests.Recording, error) {
 	outputPath, err := d.path(requestID, outputSuffix)
 	if err != nil {
-		return ports.Recording{}, err
+		return requests.Recording{}, err
 	}
 	output, err := os.ReadFile(outputPath)
 	if err != nil {
-		return ports.Recording{}, fmt.Errorf("read the recording: %w", err)
+		return requests.Recording{}, fmt.Errorf("read the recording: %w", err)
 	}
-	recording := ports.Recording{Output: output}
+	recording := requests.Recording{Output: output}
 	executorPath, err := d.path(requestID, executorSuffix)
 	if err != nil {
-		return ports.Recording{}, err
+		return requests.Recording{}, err
 	}
 	raw, err := os.ReadFile(executorPath)
 	if errors.Is(err, os.ErrNotExist) {
 		return recording, nil
 	}
 	if err != nil {
-		return ports.Recording{}, fmt.Errorf("read the recorded executor: %w", err)
+		return requests.Recording{}, fmt.Errorf("read the recorded executor: %w", err)
 	}
 	var executor format.ExecutorProfile
 	if err := json.Unmarshal(raw, &executor); err != nil {
-		return ports.Recording{}, fmt.Errorf("decode the recorded executor: %w", err)
+		return requests.Recording{}, fmt.Errorf("decode the recorded executor: %w", err)
 	}
 	recording.Executor = &executor
 	return recording, nil

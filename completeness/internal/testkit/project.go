@@ -105,7 +105,7 @@ func Git(t testing.TB, dir string, args ...string) {
 // written over the work tree, new files left untracked. It returns the root.
 func Materialize(t testing.TB, fixture string) string {
 	t.Helper()
-	root := filepath.Join(t.TempDir(), "project")
+	root := filepath.Join(resolvedTempDir(t), "project")
 	CopyTree(t, filepath.Join(FixturesDir(), fixture, baseDirectory), root)
 	Git(t, root, "init", "-q", "-b", "main")
 	Git(t, root, "add", "-A")
@@ -118,8 +118,19 @@ func Materialize(t testing.TB, fixture string) string {
 // applied and no version control at all.
 func MaterializeWithoutRepository(t testing.TB, fixture string) string {
 	t.Helper()
-	root := filepath.Join(t.TempDir(), "project")
+	root := filepath.Join(resolvedTempDir(t), "project")
 	CopyTree(t, filepath.Join(FixturesDir(), fixture, baseDirectory), root)
 	CopyTree(t, filepath.Join(FixturesDir(), fixture, changeDirectory), root)
 	return root
+}
+
+// resolvedTempDir is a temporary directory with its symbolic links resolved, so
+// that the root a command line resolves is the root the test built.
+func resolvedTempDir(t testing.TB) string {
+	t.Helper()
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return dir
 }

@@ -9,11 +9,11 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/blind"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/dimension"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/prompt"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
 
 func tokenized(count int) blind.Tokenized {
@@ -73,7 +73,7 @@ func TestValidate(t *testing.T) {
 			"an extra document key": `{"answers":[{"id":"criterion","choice":"NONE"}],"note":"x"}`,
 		}
 		for name, output := range refused {
-			if err := validator.Validate(schema, []byte(output)); !errors.Is(err, ports.ErrSchemaViolation) {
+			if err := validator.Validate(schema, []byte(output)); !errors.Is(err, hostproto.ErrSchemaViolation) {
 				t.Errorf("%s: error = %v", name, err)
 			}
 		}
@@ -81,7 +81,7 @@ func TestValidate(t *testing.T) {
 
 	t.Run("every violation is listed [verifies SP-536~1]", func(t *testing.T) {
 		err := validator.Validate(schema, []byte(`{"answers":[{"id":"criterion","choice":"K-zzzz","confidence":2}],"extra":1}`))
-		if !errors.Is(err, ports.ErrSchemaViolation) {
+		if !errors.Is(err, hostproto.ErrSchemaViolation) {
 			t.Fatalf("error = %v", err)
 		}
 		if !strings.Contains(err.Error(), "extra") {
@@ -93,7 +93,7 @@ func TestValidate(t *testing.T) {
 func TestCompilation(t *testing.T) {
 	t.Run("a schema that does not compile is reported apart from a violation [verifies SP-536~1]", func(t *testing.T) {
 		err := New().Validate(json.RawMessage(`{"type":12}`), []byte(`{}`))
-		if !errors.Is(err, ErrBadSchema) || errors.Is(err, ports.ErrSchemaViolation) {
+		if !errors.Is(err, ErrBadSchema) || errors.Is(err, hostproto.ErrSchemaViolation) {
 			t.Fatalf("error = %v", err)
 		}
 		if err := New().Validate(json.RawMessage(`not json`), []byte(`{}`)); !errors.Is(err, ErrBadSchema) {
@@ -144,7 +144,7 @@ func TestProperties(t *testing.T) {
 			if consistent != (err == nil) {
 				t.Fatalf("answers %v: error = %v", answers, err)
 			}
-			if err != nil && !errors.Is(err, ports.ErrSchemaViolation) {
+			if err != nil && !errors.Is(err, hostproto.ErrSchemaViolation) {
 				t.Fatalf("error = %v", err)
 			}
 		})

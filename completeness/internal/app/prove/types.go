@@ -17,6 +17,8 @@ import (
 	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/policy"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
 // Exit codes of the binary (ADR 0005). Completeness is advisory, so a question
@@ -59,6 +61,8 @@ type Settings struct {
 	Plugin string
 	// PendingModule names the module in its pending file, `<module>.json`.
 	PendingModule string
+	// ProducedBy tells where the Statements are produced; empty means locally.
+	ProducedBy format.ProducedBy
 }
 
 // Deps are the ports a run works through.
@@ -69,7 +73,7 @@ type Deps struct {
 	Operations ports.Operations
 	// Project is the tree of the project under proof, rooted at its root.
 	Project fs.FS
-	Store   ports.HostStore
+	Store   hostproto.HostStore
 	Proofs  ports.ProofStore
 	// Evidence lists the Statements of the other modules.
 	Evidence   ports.ProofSource
@@ -79,8 +83,8 @@ type Deps struct {
 	Clock      func() time.Time
 	Entropy    io.Reader
 	// Replay and Record are optional.
-	Replay ports.Replayer
-	Record ports.Recorder
+	Replay requests.Replayer
+	Record requests.Recorder
 }
 
 // Status tells what a run did with a spec.
@@ -121,7 +125,7 @@ type Result struct {
 	// as a source file that cannot be read.
 	Findings []string
 
-	pending []ports.PendingTicket
+	pending []requests.PendingTicket
 }
 
 // ExitCode maps the result to the exit codes of ADR 0005: 3 while tickets wait,

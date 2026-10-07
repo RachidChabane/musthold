@@ -3,16 +3,17 @@ package prove
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/hostbridge"
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/justify"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/reach"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
+	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
 // UseCase is the `prove` use case over its ports and settings.
@@ -44,7 +45,9 @@ func (u UseCase) Run(ctx context.Context, options Options) (Result, error) {
 		if result.PendingTickets == 0 || u.Deps.Replay == nil {
 			return result, nil
 		}
-		if err := u.Deps.Replay.Serve(result.pending); err != nil {
+		if err := u.Deps.Replay.Serve(result.pending); errors.Is(err, requests.ErrNothingServed) {
+			return result, nil
+		} else if err != nil {
 			return result, err
 		}
 	}
@@ -153,7 +156,7 @@ func (u UseCase) pass(ctx context.Context, options Options) (Result, error) {
 	}
 	result.PendingTickets = len(pending)
 	for _, ticket := range pending {
-		result.pending = append(result.pending, ports.PendingTicket{Ticket: ticket.TicketID.String(), Nonce: ticket.Nonce})
+		result.pending = append(result.pending, requests.PendingTicket{Ticket: ticket.TicketID.String(), Nonce: ticket.Nonce})
 	}
 	return result, nil
 }

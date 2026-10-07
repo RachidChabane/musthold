@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "type": "command",
+        "bash": "spec-proof-completeness hook pre-tool --harness copilot",
+        "powershell": "spec-proof-completeness hook pre-tool --harness copilot",
+        "timeoutSec": 30
+      }
+    ],
+    "subagentStop": [
+      {
+        "type": "command",
+        "bash": "spec-proof-completeness hook subagent-stop --harness copilot",
+        "powershell": "spec-proof-completeness hook subagent-stop --harness copilot",
+        "timeoutSec": 30
+      }
+    ]
+  }
+}

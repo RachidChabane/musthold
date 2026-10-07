@@ -7,9 +7,8 @@ import (
 	"io"
 
 	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/responsecheck"
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/requests"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
 // Flags of `request` and `systemone`.
@@ -30,7 +29,7 @@ func (e Env) requestService(root string) (requests.Service, error) {
 	if err != nil {
 		return requests.Service{}, err
 	}
-	return requests.Service{Store: store, Validator: responsecheck.New(), Clock: e.Now}, nil
+	return requests.Service{Plugin: pluginName, Store: store, Validator: responsecheck.New(), Clock: e.Now}, nil
 }
 
 func (e Env) request(args []string) outcome {
@@ -136,7 +135,7 @@ func asRefusal(err error) error {
 		hostproto.ErrNotFound, hostproto.ErrBadCap, hostproto.ErrCapMissing, hostproto.ErrAgentNotStarted,
 		hostproto.ErrTicketMismatch, hostproto.ErrNonceMismatch, hostproto.ErrSchemaDigestMismatch,
 		hostproto.ErrNotSubmittable, hostproto.ErrResubmissionConflict, hostproto.ErrCapBoundElsewhere,
-		hostproto.ErrIllegalTransition, ports.ErrSchemaViolation,
+		hostproto.ErrIllegalTransition, hostproto.ErrSchemaViolation,
 	}
 	for _, known := range protocol {
 		if errors.Is(err, known) {

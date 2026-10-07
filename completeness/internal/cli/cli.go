@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/RachidChabane/spec-proof/completeness/internal/app/prove"
@@ -29,7 +30,12 @@ const (
 	commandRequest   = "request"
 	commandSystemOne = "systemone"
 	commandDoctor    = "doctor"
+	commandMCP       = "mcp"
+	commandHook      = "hook"
 )
+
+// commands lists the commands in the order the usage names them.
+var commands = []string{commandVersion, commandProve, commandRequest, commandSystemOne, commandDoctor, commandInit, commandEnable, commandDisable, commandMCP, commandHook, commandHost}
 
 // Environment variables the binary reads.
 const (
@@ -91,6 +97,18 @@ func Run(env Env, args []string) int {
 		return env.finish(env.systemOne(rest))
 	case command == commandDoctor:
 		return env.finish(env.doctor(rest))
+	case command == commandInit:
+		return env.finish(env.init(rest))
+	case command == commandEnable:
+		return env.finish(env.enable(rest))
+	case command == commandDisable:
+		return env.finish(env.disable(rest))
+	case command == commandHost:
+		return env.finish(env.host(rest))
+	case command == commandMCP:
+		return env.finish(env.mcp(rest))
+	case command == commandHook:
+		return env.finish(env.hook(rest))
 	default:
 		err = fmt.Errorf("unknown command %q", command)
 	}
@@ -99,7 +117,7 @@ func Run(env Env, args []string) int {
 }
 
 func (e Env) usage() int {
-	fmt.Fprintf(e.Stderr, "usage: %s <%s|%s|%s|%s|%s>\n", e.Binary, commandVersion, commandProve, commandRequest, commandSystemOne, commandDoctor)
+	fmt.Fprintf(e.Stderr, "usage: %s <%s>\n", e.Binary, strings.Join(commands, "|"))
 	return ExitToolFailure
 }
 

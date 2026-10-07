@@ -5,13 +5,13 @@ import (
 	"errors"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
 
 // queueState is the content of queue.json.
 type queueState struct {
-	Wave  int               `json:"wave"`
-	Items []ports.QueueItem `json:"items"`
+	Wave  int                   `json:"wave"`
+	Items []hostproto.QueueItem `json:"items"`
 }
 
 var errNoQueue = errors.New("no queue yet")
@@ -32,20 +32,20 @@ func (s *Store) saveQueue(state queueState) error {
 
 // Record implements ports.Queue: the first record of a request fixes its wave,
 // later records only add the criteria it serves.
-func (s *Store) Record(item ports.QueueItem) error {
+func (s *Store) Record(item hostproto.QueueItem) error {
 	return inLock(s, func() error {
 		state, err := s.loadQueue()
 		if err != nil {
 			return err
 		}
-		index := slices.IndexFunc(state.Items, func(stored ports.QueueItem) bool { return stored.RequestID == item.RequestID })
+		index := slices.IndexFunc(state.Items, func(stored hostproto.QueueItem) bool { return stored.RequestID == item.RequestID })
 		if index < 0 {
 			item.Criteria = mergeCriteria(nil, item.Criteria)
 			state.Items = append(state.Items, item)
 		} else {
 			state.Items[index].Criteria = mergeCriteria(state.Items[index].Criteria, item.Criteria)
 		}
-		slices.SortFunc(state.Items, func(a, b ports.QueueItem) int { return cmp.Compare(a.RequestID, b.RequestID) })
+		slices.SortFunc(state.Items, func(a, b hostproto.QueueItem) int { return cmp.Compare(a.RequestID, b.RequestID) })
 		return s.saveQueue(state)
 	})
 }
@@ -58,13 +58,13 @@ func mergeCriteria(stored, added []string) []string {
 }
 
 // Items implements ports.Queue.
-func (s *Store) Items() ([]ports.QueueItem, error) {
+func (s *Store) Items() ([]hostproto.QueueItem, error) {
 	state, err := withLock(s, s.loadQueue)
 	if err != nil {
 		return nil, err
 	}
 	if state.Items == nil {
-		return []ports.QueueItem{}, nil
+		return []hostproto.QueueItem{}, nil
 	}
 	return state.Items, nil
 }

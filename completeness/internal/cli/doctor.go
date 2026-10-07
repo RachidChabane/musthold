@@ -1,9 +1,13 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
+	"strings"
 
+	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/hostinstall"
+	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/process"
 	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/shallnot"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
@@ -54,12 +58,13 @@ func (e Env) diagnose(rootFlag string) []check {
 	if binary == "" {
 		binary = shallnot.DefaultBinary
 	}
-	checks := []check{lookPath("shallnot", binary), lookPath(vcsBinary, vcsBinary)}
+	checks := []check{lookPath("shallnot", binary), e.schemaCheck(binary), lookPath(vcsBinary, vcsBinary)}
 	project, err := e.openProject(rootFlag)
 	if err != nil {
 		return append(checks, check{name: "project", detail: err.Error()})
 	}
 	checks = append(checks, check{name: "policy", passed: true, detail: fmt.Sprintf("tau_adv=%v decide_k=%d", project.policy.TauAdv, project.policy.DecideK)})
+	checks = append(checks, hostFilesCheck(project.root))
 	records, err := project.store.Records()
 	if err != nil {
 		return append(checks, check{name: "host-store", detail: err.Error()})
@@ -76,4 +81,25 @@ func lookPath(name, binary string) check {
 		return check{name: name, detail: err.Error()}
 	}
 	return check{name: name, passed: true, detail: path}
+}
+
+// schemaCheck verifies that Shallnot speaks the report schema the module reads.
+func (e Env) schemaCheck(binary string) check {
+	gateway := shallnot.Gateway{Process: process.New(), Binary: binary, Root: e.WorkDir}
+	if err := gateway.CheckReportSchema(context.Background()); err != nil {
+		return check{name: "shallnot-schema", detail: err.Error()}
+	}
+	return check{name: "shallnot-schema", passed: true, detail: "report schema 1.2 or later"}
+}
+
+// hostFilesCheck names the harnesses whose files of the module the project holds.
+// Without them no executor holds a capability, so the tickets stay pending: the
+// check reports it and never fails the diagnosis, since a project may be proved
+// from the command line alone.
+func hostFilesCheck(root string) check {
+	installed := hostinstall.Installed(root)
+	if len(installed) == 0 {
+		return check{name: "host-files", passed: true, detail: "none installed; run `init` to install them"}
+	}
+	return check{name: "host-files", passed: true, detail: strings.Join(installed, ", ")}
 }

@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
 func TestRecordingNamesOfVotes(t *testing.T) {
@@ -14,16 +14,16 @@ func TestRecordingNamesOfVotes(t *testing.T) {
 
 	t.Run("each vote of a request has a recording of its own [verifies SP-540~1]", func(t *testing.T) {
 		directory := Directory{Dir: t.TempDir()}
-		if ports.RecordingName(id, 0) != id || ports.RecordingName(id, 2) != id+".2" {
-			t.Fatalf("names %q and %q", ports.RecordingName(id, 0), ports.RecordingName(id, 2))
+		if requests.RecordingName(id, 0) != id || requests.RecordingName(id, 2) != id+".2" {
+			t.Fatalf("names %q and %q", requests.RecordingName(id, 0), requests.RecordingName(id, 2))
 		}
 		for vote, output := range []string{`{"v":0}`, `{"v":1}`, `{"v":2}`} {
-			if err := directory.Record(ports.RecordingName(id, vote), []byte(output), hostprototest.Profile()); err != nil {
+			if err := directory.Record(requests.RecordingName(id, vote), []byte(output), hostprototest.Profile()); err != nil {
 				t.Fatal(err)
 			}
 		}
 		for vote, want := range []string{`{"v":0}`, `{"v":1}`, `{"v":2}`} {
-			recording, err := directory.Load(ports.RecordingName(id, vote))
+			recording, err := directory.Load(requests.RecordingName(id, vote))
 			if err != nil || string(recording.Output) != want || recording.Executor == nil {
 				t.Errorf("vote %d: %s, %v", vote, recording.Output, err)
 			}

@@ -15,8 +15,8 @@ import (
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
 
 const (
@@ -26,7 +26,7 @@ const (
 	rootLocation   = "(root)"
 )
 
-// Errors returned by the validator besides ports.ErrSchemaViolation.
+// Errors returned by the validator besides hostproto.ErrSchemaViolation.
 var (
 	// ErrBadSchema is returned for schema bytes that do not compile.
 	ErrBadSchema = errors.New("response schema does not compile")
@@ -35,9 +35,9 @@ var (
 	ErrRemoteReference = errors.New("remote schema reference refused")
 )
 
-var _ ports.ResponseValidator = (*Validator)(nil)
+var _ hostproto.ResponseValidator = (*Validator)(nil)
 
-// Validator implements ports.ResponseValidator.
+// Validator implements hostproto.ResponseValidator.
 type Validator struct {
 	mutex    sync.Mutex
 	compiled map[string]*jsonschema.Schema
@@ -47,7 +47,7 @@ type Validator struct {
 func New() *Validator { return &Validator{compiled: map[string]*jsonschema.Schema{}} }
 
 // Validate accepts the output exactly when it satisfies the schema; otherwise
-// the error wraps ports.ErrSchemaViolation and lists every violation.
+// the error wraps hostproto.ErrSchemaViolation and lists every violation.
 func (v *Validator) Validate(schema json.RawMessage, output []byte) error {
 	compiled, err := v.compile(schema)
 	if err != nil {
@@ -55,11 +55,11 @@ func (v *Validator) Validate(schema json.RawMessage, output []byte) error {
 	}
 	instance, err := jsonschema.UnmarshalJSON(bytes.NewReader(output))
 	if err != nil {
-		return fmt.Errorf("%w: the output is not JSON: %v", ports.ErrSchemaViolation, err)
+		return fmt.Errorf("%w: the output is not JSON: %v", hostproto.ErrSchemaViolation, err)
 	}
 	var violation *jsonschema.ValidationError
 	if err := compiled.Validate(instance); errors.As(err, &violation) {
-		return fmt.Errorf("%w:%s", ports.ErrSchemaViolation, listViolations(violation))
+		return fmt.Errorf("%w:%s", hostproto.ErrSchemaViolation, listViolations(violation))
 	} else if err != nil {
 		return fmt.Errorf("validate output: %w", err)
 	}

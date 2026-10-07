@@ -152,7 +152,7 @@ func (s *specRun) writeStatement(subject []format.Subject, base []format.Input) 
 	questions := question.Normalize(s.questions)
 	predicate := format.Completeness{
 		Core: format.Core{
-			Module: s.pass.settings.Module, Inputs: inputs, CacheKey: cacheKey, ProducedBy: format.ProducedByLocal,
+			Module: s.pass.settings.Module, Inputs: inputs, CacheKey: cacheKey, ProducedBy: s.pass.settings.producedBy(),
 			Extensions: format.Extensions{Decision: s.decision()},
 		},
 		Advisory:           true,
@@ -206,4 +206,13 @@ func consumedProofsInput(proofs []format.Input) []format.Input {
 	}
 	slices.Sort(lines)
 	return []format.Input{descriptor(format.RoleMutantSet, inputNameConsumedProofs, format.SHA256Hex([]byte(strings.Join(lines, responseSeparator))))}
+}
+
+// producedBy is where the Statements of a run are produced: locally unless the
+// run says otherwise.
+func (s Settings) producedBy() format.ProducedBy {
+	if s.ProducedBy == "" {
+		return format.ProducedByLocal
+	}
+	return s.ProducedBy
 }

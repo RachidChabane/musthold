@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/advice"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/blind"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
@@ -17,6 +16,7 @@ import (
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/question"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/tournament"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
 const (
@@ -349,7 +349,7 @@ func (s *specRun) consume() error {
 			continue
 		}
 		for _, vote := range answer.Votes {
-			name := ports.RecordingName(string(answer.ID), vote.Ticket.Vote)
+			name := requests.RecordingName(string(answer.ID), vote.Ticket.Vote)
 			if err := s.pass.deps.Record.Record(name, vote.Output, vote.Executor); err != nil {
 				return fmt.Errorf("record the answer to %s: %w", name, err)
 			}

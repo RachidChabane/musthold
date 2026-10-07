@@ -278,7 +278,7 @@ func TestSystemOneCommands(t *testing.T) {
 }
 
 func TestDoctor(t *testing.T) {
-	t.Run("doctor checks Shallnot, git, the configuration, the host store and the journal [verifies SP-547~1]", func(t *testing.T) {
+	t.Run("doctor checks Shallnot, git, the configuration, the host store and the journal [verifies SP-547~2]", func(t *testing.T) {
 		h := newHarness(t, testkit.PythonLedger)
 		code, output, stderr := h.run(nil, "doctor")
 		if code != cli.ExitClean {
@@ -291,7 +291,7 @@ func TestDoctor(t *testing.T) {
 		}
 	})
 
-	t.Run("doctor exits 2 when a check fails [verifies SP-547~1]", func(t *testing.T) {
+	t.Run("doctor exits 2 when a check fails [verifies SP-547~2]", func(t *testing.T) {
 		h := newHarness(t, testkit.PythonLedger)
 		h.withConfig("policy:\n  decide_k: 0\n")
 		code, output, _ := h.run(nil, "doctor")

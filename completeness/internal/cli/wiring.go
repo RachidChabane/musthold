@@ -24,6 +24,7 @@ import (
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/policy"
 	"github.com/RachidChabane/spec-proof/completeness/internal/version"
 	"github.com/RachidChabane/spec-proof/format"
+	sharedinstall "github.com/RachidChabane/spec-proof/format/hostproto/hostinstall"
 )
 
 // Identity of the module in the Statements and the requests it emits.
@@ -34,7 +35,9 @@ const (
 	pendingModule = "completeness"
 	// stateDirectory holds the project's spec-proof state, and the module's
 	// configuration file.
-	stateDirectory = ".spec-proof"
+	stateDirectory = sharedinstall.StateDirectory
+	// sharedConfigFile is the configuration file the modules share, in stateDirectory.
+	sharedConfigFile = sharedinstall.SharedConfigFile
 )
 
 // rootOf resolves the project root: the directory given, or the working directory.
@@ -46,7 +49,13 @@ func (e Env) rootOf(given string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("resolve the project root: %w", err)
 	}
-	return root, nil
+	// The host directory is addressed by the root's path, so every process that
+	// serves one project must spell it the same way: symbolic links are resolved.
+	resolved, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return "", fmt.Errorf("resolve the project root: %w", err)
+	}
+	return resolved, nil
 }
 
 func (e Env) hostStore(root string) (*hoststore.Store, error) {

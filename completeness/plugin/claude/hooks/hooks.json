@@ -1,0 +1,52 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "spec-proof-completeness hook post-tool --harness claude",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Agent|mcp__plugin_spec-proof-completeness_exec__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "spec-proof-completeness hook pre-tool --harness claude",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "^(spec-proof-completeness:decider)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "spec-proof-completeness hook subagent-start --harness claude",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "^(spec-proof-completeness:decider)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "spec-proof-completeness hook subagent-stop --harness claude",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
