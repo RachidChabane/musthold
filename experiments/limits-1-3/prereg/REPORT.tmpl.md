@@ -28,32 +28,36 @@ Composite verdict:
 
 {{preconditions}}
 
-## 6. Confusion matrices and descriptive measures
+## 6. Blind spot (descriptive, reported first)
+
+{{blind_spot}}
+
+## 7. Confusion matrices and descriptive measures
 
 {{confusion}}
 
-## 7. Error multiplication and attribution
+## 8. Error multiplication and attribution
 
 {{multiplication}}
 
-## 8. Failure modes
+## 9. Failure modes
 
 {{failure_modes}}
 
-## 9. Cost
+## 10. Cost
 
 {{cost}}
 
-## 10. Sensitivity analyses
+## 11. Sensitivity analyses
 
-Variants: CONSENSUS, S1, F_brief, label-based truth, G3-strict, G3-lenient, J-GPT. Each line gives the variant figure and the PRIMARY figure it is compared with.
+Variants: CONSENSUS, S1, label-based truth, G3-prereg, G3-noiso, G3-strict (not an admissible product policy), G3-lenient, J-X. Each line gives the variant figure and the PRIMARY figure it is compared with.
 
 {{sensitivity}}
 
-## 11. Limits
+## 12. Limits
 
-Limits: one language; one domain; 38 tests and 10 criteria; author-assigned labels; ground truth relative to the violation set and the oracle; relabels and audits done by models; model family and capability confounded; unadjusted intervals.
+Limits: one language; one domain; 38 tests and 10 criteria; author-assigned labels; ground truth relative to the violation set and the oracle; relabels and audits done by models; one model executes every product role; the contrast model shares its family; the fixture, its tests and labels were authored in a session of the contrast model; the oracle's author model is not recorded; unadjusted intervals.
 
-## 12. Discussion (exploratory)
+## 13. Discussion (exploratory)
 
 {{exploratory}}

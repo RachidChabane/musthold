@@ -93,6 +93,10 @@ def preconditions_block(output: AnalysisOutput) -> str:
     return table.markdown()
 
 
+def blind_spot_block(output: AnalysisOutput) -> str:
+    return "\n\n".join(f"**{t.title}**\n\n{t.markdown()}" for t in output.blind_spot_tables)
+
+
 def confusion_block(output: AnalysisOutput) -> str:
     return "\n\n".join(f"**{t.title}**\n\n{t.markdown()}" for t in output.tables)
 
@@ -140,8 +144,9 @@ def sensitivity_block(output: AnalysisOutput) -> str:
 
 LIMITS_PARAGRAPH = (
     "Limits: one language; one domain; 38 tests and 10 criteria; author-assigned labels; ground truth "
-    "relative to the violation set and the oracle; relabels and audits done by models; model family and "
-    "capability confounded; unadjusted intervals."
+    "relative to the violation set and the oracle; relabels and audits done by models; one model executes every "
+    "product role; the contrast model shares its family; the fixture, its tests and labels were authored in a "
+    "session of the contrast model; the oracle's author model is not recorded; unadjusted intervals."
 )
 
 
@@ -154,6 +159,7 @@ def render_report(
         "decision_table": decision_table(output).markdown(),
         "feasibility": feasibility_block(output),
         "preconditions": preconditions_block(output),
+        "blind_spot": blind_spot_block(output),
         "confusion": confusion_block(output),
         "multiplication": multiplication_block(output),
         "failure_modes": failure_block(output.failure_table),

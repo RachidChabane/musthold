@@ -148,6 +148,7 @@ class _RunBuilder:
         self._arm_p()
         self._arm_o()
         self._stillborn()
+        self._blind_spot()
         dump_lines(self.run / "processing.jsonl", sorted(self.processing, key=lambda r: r["mutant_id"]))
         dump_lines(self.run / "kills.jsonl", sorted(self.kills, key=lambda r: r["mutant_id"]))
         dump_lines(self.run / "differential.jsonl", sorted(self.differential, key=lambda r: r["mutant_id"]))
@@ -244,6 +245,38 @@ class _RunBuilder:
         dump(self.run / "mutants" / f"{mid}.json", self.mutants[-1])
         self.processing.append({"mutant_id": mid, "stillborn": True, "stillborn_reason": "unparseable",
                                 "status": "OK", "duplicate_of": None, "changed_lines": 0})
+
+    # ---- blind spot
+    def _blind_spot(self) -> None:
+        sources: dict[str, list[str]] = {"S": [], "O": [], "op": [], "terra": [], "luna": []}
+        for criterion in CRITERIA:
+            for index in range(3):
+                for arm, key, label in (("X", "O", "X"), ("O", "op", "OP")):
+                    mid = mutant_id(f"{label}-{criterion}-{index}")
+                    self._add_mutant(mid, arm, None, None, None, [], [criterion], diff="NO_DIFF_FOUND")
+                    doc = {**json.loads((self.run / "mutants" / f"{mid}.json").read_text()),
+                           "edits": [{"file": "src/parkfee/tariff.py", "qualname": f"definition_{(criterion + index) % 4}", "new_source": "x"}]}
+                    dump(self.run / "mutants" / f"{mid}.json", doc)
+                    sources[key].append(mid)
+        sources["S"] = [m["mutant_id"] for m in self.mutants if m["arm"] == "T" and m["mutant_id"] != mutant_id("T-stillborn")
+                        and m["mutant_id"] != mutant_id("T-duplicate")]
+        dump(self.run / "mutant_sources.json", {k: sorted(v) for k, v in sources.items()})
+        for writer in ("S", "O"):
+            suites = {criterion_ref(c): {"writer": writer, "criterion": criterion_ref(c), "call_id": f"write_tests__{criterion_ref(c)}__{writer}",
+                                         "status": "ok", "reference_checked": True,
+                                         "tests": [{"name": n, "source": "def x(): pass", "status": "kept", "reason": None} for n in ("test_a", "test_b")]}
+                      for c in CRITERIA}
+            dump(self.run / "suites" / f"{writer}.json", suites)
+        evaluated = [r["mutant_id"] for r in self.processing if r["status"] == "OK" and not r["stillborn"]]
+        rows = []
+        for writer in ("S", "O"):
+            for mid in sorted(evaluated):
+                draw = int(hashlib.sha256(f"{writer}{mid}".encode()).hexdigest(), 16) % 5
+                results = {f"tests/test_park_{c}.py::{n}": "killed" if draw >= 2 and n == "test_a" else ("error" if draw == 0 and n == "test_b" else "survived")
+                           for c in CRITERIA for n in ("test_a", "test_b")}
+                rows.append({"writer": writer, "mutant_id": mid, "results": results})
+        dump_lines(self.run / "writer_kills.jsonl", rows)
+        dump(self.run / "exploratory_status.json", {"luna": {f"write_tests__{criterion_ref(c)}__L": "blocked" for c in CRITERIA}})
 
     # ---- run-level records
     def _reference_bindings_traceability(self) -> None:

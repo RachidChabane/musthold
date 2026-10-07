@@ -12,6 +12,9 @@ from pilot.analysis.attribution import (
     run_substitutions,
 )
 from pilot.analysis.composite import Composite, apply_preconditions, composite_verdict
+from pilot.analysis.amendment_tables import calibration, isolation_report, same_model_correlation
+from pilot.analysis.blind_spot import BlindSpotResult
+from pilot.analysis.blind_spot_run import blind_spot, blind_spot_tables
 from pilot.analysis.cost import cost_lines, cpu_seconds, wall_clock_seconds
 from pilot.analysis.endpoints import (
     compute_matrix_nulls,
@@ -70,6 +73,8 @@ class AnalysisOutput:
     failure_table: Table
     sensitivity: Sequence[SensitivityRow]
     error_multiplication: ErrorMultiplication
+    blind_spot: BlindSpotResult
+    blind_spot_tables: Sequence[Table]
     scenario_count: int
     full_set_count: int
     settings: AnalysisSettings
@@ -82,6 +87,8 @@ def require_complete(ctx: Context) -> None:
     missing = ctx.missing_oracle()
     if missing:
         problems.append(f"{len(missing)} non-stillborn mutant(s) lack an oracle record; run oracle-classify first")
+    if not ctx.truth.d8_criteria:
+        problems.append("prereg/isolation_table.json holds no C_D8; run isolation-table")
     if not ctx.run.reference_runs:
         problems.append("reference.json holds no runs")
     if problems:
@@ -121,6 +128,7 @@ def run_analysis(
         ctx, valid_criteria, None if crosscheck is None else not crosscheck
     )
     by_id = {e.id: e for e in base}
+    spot = blind_spot(ctx, settings)
     return AnalysisOutput(
         endpoints=endpoints,
         composite=composite,
@@ -133,6 +141,8 @@ def run_analysis(
         failure_table=failure_table(ctx, signatures, runs),
         sensitivity=sensitivity_rows(ctx, scenarios, by_id, nulls, settings),
         error_multiplication=error_multiplication(ctx, PRIMARY_VARIANT, settings, traceability_passes(ctx)),
+        blind_spot=spot,
+        blind_spot_tables=blind_spot_tables(ctx, spot),
         scenario_count=len(scenarios),
         full_set_count=sum(1 for s in scenarios if s.is_full),
         settings=settings,
@@ -161,6 +171,9 @@ def _descriptive_tables(
         *limit2_tables(ctx, settings),
         *limit3_tables(ctx, settings),
         probe_table(ctx),
+        isolation_report(ctx),
+        same_model_correlation(ctx),
+        calibration(ctx),
         contrasts(ctx, all_signatures(ctx)),
         inter_rater(ctx, settings),
     ]

@@ -5,11 +5,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
+from collections import Counter
 from argparse import ArgumentParser, Namespace
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
+from typing import Any
 
 from pilot.adapters.amendment_facts import OpensslTimestampReader, collect_facts
 from pilot.adapters.ast_edits import AstEditApplier
@@ -31,7 +34,7 @@ from pilot.analysis.report import endpoint_documents, render_report
 from pilot.analysis.settings import AnalysisSettings
 from pilot.application.runner_crosscheck import runner_crosscheck
 from pilot.cli.analysis_layout import AnalysisLayout
-from pilot.domain.amendment import evaluate_amendment
+from pilot.domain.amendment import AMENDMENT_FILENAME, evaluate_amendment
 from pilot.domain.analysis_constants import (
     ANALYSIS_SEED,
     BOOTSTRAP_RESAMPLES,
@@ -40,7 +43,7 @@ from pilot.domain.analysis_constants import (
     PERMUTATION_COUNT,
 )
 from pilot.domain.preregistration import PREREG_TAG
-from pilot.domain.constants import LABEL_MATRIX_FILENAME
+from pilot.domain.constants import LABEL_MATRIX_FILENAME, PREREG_DIRNAME
 from pilot.domain.pipeline_constants import AUDIT_SAMPLE_FILENAME
 from pilot.domain.variants import VariantKind
 
@@ -147,10 +150,11 @@ def _check_drift(layout: AnalysisLayout) -> tuple[str, list[str]]:
     return commit, drifted_paths(layout.root, commit, DRIFT_GUARDED_PATHS)
 
 
-def _provenance(output: AnalysisOutput, ctx: Context, commit: str, settings: AnalysisSettings) -> dict[str, object]:
+def _provenance(layout: AnalysisLayout, output: AnalysisOutput, ctx: Context, commit: str, settings: AnalysisSettings) -> dict[str, object]:
     manifest = ctx.run.manifest
     return {
         "run id": ctx.run.run_id,
+        **_amendment_provenance(layout, ctx, manifest),
         "pre-registration commit": commit,
         "harness digest": manifest.get("harness_digest"),
         "fixture digest": manifest.get("fixture_digest"),
@@ -174,6 +178,25 @@ def amendment_check_command(args: Namespace) -> int:
         return _fail("amendment-check", problems)
     print("amendment-check: OK")
     return EXIT_OK
+
+
+def _amendment_provenance(layout: AnalysisLayout, ctx: Context, manifest: Mapping[str, Any]) -> dict[str, object]:
+    root = layout.root
+    process = SubprocessRunner()
+    reader = OpensslTimestampReader(process, root)
+    stamps = {name: reader.read(root / f"freeze/{name}-commit.tsr") for name in ("prereg", "a1")}
+    amendment = root / PREREG_DIRNAME / AMENDMENT_FILENAME
+    imports = ctx.run.imports or {}
+    roles = Counter(entry["role"] for entry in imports.get("entries", []) if entry["role"] != "canary-baseline")
+    calls = Counter(entry["role"] for entry in {e["call_id"]: e for e in imports.get("entries", []) if e["call_id"]}.values())
+    return {
+        "pre-registration tags": f"{manifest.get('superseded_prereg_tag')} (superseded), {manifest.get('prereg_tag')}",
+        "tag commits": f"{manifest.get('superseded_prereg_commit')}, {manifest.get('prereg_commit')}",
+        "timestamp genTimes": {n: (s.generated_at.isoformat() if s else None) for n, s in stamps.items()},
+        "amendment.json digest": hashlib.sha256(amendment.read_bytes()).hexdigest() if amendment.is_file() else None,
+        "imports (files per role)": dict(roles),
+        "run-01 counts per kind (calls)": {**calls, "retired attempts": len(imports.get("retired", []))},
+    }
 
 
 def analyze_command(args: Namespace) -> int:
@@ -203,7 +226,7 @@ def analyze_command(args: Namespace) -> int:
 
 
 def _write_outputs(layout: AnalysisLayout, ctx: Context, output: AnalysisOutput, commit: str, settings: AnalysisSettings) -> None:
-    provenance = _provenance(output, ctx, commit, settings)
+    provenance = _provenance(layout, output, ctx, commit, settings)
     endpoints = endpoint_documents(output.endpoints)
     write_json(layout.decisions, {
         "endpoints": endpoints,
@@ -211,6 +234,7 @@ def _write_outputs(layout: AnalysisLayout, ctx: Context, output: AnalysisOutput,
         "feasibility": {"items": [f.to_mapping() for f in output.feasibility], "verdict": output.feasibility_verdict},
         "preconditions": [p.to_mapping() for p in output.preconditions],
         "preregistration_commit": commit,
+        "blind_spot": output.blind_spot.to_mapping(),
         "run_id": ctx.run.run_id,
     })
     write_json(layout.endpoints, {
@@ -218,7 +242,7 @@ def _write_outputs(layout: AnalysisLayout, ctx: Context, output: AnalysisOutput,
         "sensitivity": [row.to_mapping() for row in output.sensitivity],
         "settings": {"resamples": settings.resamples, "permutations": settings.permutations, "seed": settings.seed},
     })
-    for table in (*output.tables, output.cost_table, output.timing_table, output.failure_table):
+    for table in (*output.blind_spot_tables, *output.tables, output.cost_table, output.timing_table, output.failure_table):
         write_csv(layout.results / f"{table.name}.csv", table.csv_rows())
     exploratory = layout.exploratory.read_text(encoding=ENCODING) if layout.exploratory.is_file() else None
     template = layout.report_template.read_text(encoding=ENCODING)

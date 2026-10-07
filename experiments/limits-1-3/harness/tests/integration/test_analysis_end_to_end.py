@@ -75,7 +75,7 @@ def test_report_has_every_section_the_limits_paragraph_and_three_template_forms(
     headings = [line for line in report.splitlines() if line.startswith("## ")]
     assert [h.split(". ", 1)[1] for h in headings] == [
         "Provenance", "Conclusions", "Decision table", "Feasibility", "Preconditions",
-        "Confusion matrices and descriptive measures", "Error multiplication and attribution", "Failure modes",
+        "Blind spot (descriptive, reported first)", "Confusion matrices and descriptive measures", "Error multiplication and attribution", "Failure modes",
         "Cost", "Sensitivity analyses", "Limits", "Discussion (exploratory)",
     ]
     assert "<endpoint>" not in report and "<n_needed>" not in report and "<component>" not in report
@@ -224,3 +224,29 @@ def test_oracle_classify_and_audit_sample_fail_cleanly_on_an_unreadable_run(tmp_
     assert run_verb("audit-sample", "--root", str(tmp_path), "--run-id", RUN_ID) == 1
     (run / "processing.jsonl").unlink()
     assert run_verb("audit-sample", "--root", str(tmp_path), "--run-id", RUN_ID) == 1
+
+
+def analyse_to(tmp_path):
+    build_root(tmp_path)
+    assert run_verb("analyze", "--root", str(tmp_path), "--run-id", RUN_ID, "--allow-drift", "--resamples", SMALL_B, "--permutations", SMALL_B) == 0
+    return tmp_path / "results"
+
+
+def test_the_blind_spot_estimand_is_reported_with_its_tables_and_a_fixed_reading(tmp_path):
+    results = analyse_to(tmp_path)
+    spot = json.loads((results / "decisions.json").read_text())["blind_spot"]
+    assert len(spot["c_star"]) + len(spot["exclusions"]) == 10 and all(spot["exclusions"].values()) and spot["reading"] in {"shared blind spot indicated", "no material shared blind spot", "undetermined"}
+    assert spot["SB"] is not None and set(spot["e"]) == {f"{w}|{s}" for w in "SO" for s in ("S", "O", "op")}
+    for name in ("blind_spot_estimand", "blind_spot_cells", "blind_spot_location", "blind_spot_exploratory", "source_yield",
+                 "isolation_table", "same_model_correlation", "jh_calibration"):
+        assert (results / f"{name}.csv").is_file(), name
+    exploratory = (results / "blind_spot_exploratory.csv").read_text()
+    assert "BLOCKED" in exploratory and "cross-family" in exploratory
+
+
+def test_two_analyses_of_the_same_run_are_byte_identical_in_decisions_and_the_blind_spot_table(tmp_path):
+    first, second = analyse_to(tmp_path / "one"), analyse_to(tmp_path / "two")
+    for name in ("decisions.json", "blind_spot_cells.csv", "blind_spot_estimand.csv", "blind_spot_location.csv", "REPORT.md"):
+        assert (first / name).read_bytes() == (second / name).read_bytes(), name
+    text = (first / "decisions.json").read_text()
+    assert str(tmp_path) not in text and "T0" not in text

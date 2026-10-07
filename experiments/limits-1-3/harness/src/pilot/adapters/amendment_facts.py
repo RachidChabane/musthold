@@ -107,7 +107,12 @@ def _earliest_started(timing_path: Path) -> datetime | None:
     if not timing_path.is_file():
         return None
     timing = json.loads(timing_path.read_text(encoding=ENCODING))
-    starts = [datetime.fromisoformat(entry["started"]) for entry in timing.values() if "started" in entry]
+    starts: list[datetime] = []
+    for entry in timing.values():
+        try:
+            starts.append(datetime.fromisoformat(entry["started"]))
+        except (KeyError, ValueError, TypeError):
+            continue
     return min(starts) if starts else None
 
 
