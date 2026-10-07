@@ -23,6 +23,11 @@ readonly CANARY_STAMP_DIR="${LOG_DIR}/canary-nights"
 readonly SHALLNOT_SRC_DEFAULT="${ROOT}/../shallnot-proof-gate"
 readonly EXIT_PAUSED=3
 readonly CONSTRUCT_BUDGET="${NIGHT_JOBS_CONSTRUCT_BUDGET:-120}"
+# Claude calls all night jobs may make in one night, shared with the owner's own
+# quota; the canaries keep one call per harness session in reserve.
+readonly NIGHT_CLAUDE_CAP="${NIGHT_JOBS_CLAUDE_CAP:-250}"
+readonly CANARY_CLAUDE_RESERVE=1
+readonly PILOT_LEDGER="${PILOT_DIR}/runs/${PILOT_RUN}/call_budget.json"
 
 mkdir -p "${LOG_DIR}" "${CANARY_STAMP_DIR}"
 
@@ -57,8 +62,7 @@ run_canary() {
 
 run_canaries() {
   local night stamp
-  # a night is named by the date it started on, also after midnight
-  night="$(date -v-12H +%Y-%m-%d)"
+  night="$(night_date)"
   stamp="${CANARY_STAMP_DIR}/${night}.done"
   if [[ -f "${stamp}" ]]; then
     log "canaries: already run for the night of ${night}"
@@ -78,13 +82,41 @@ run_canaries() {
   fi
 }
 
+# night_date names a night by the date it started on, also after midnight.
+night_date() {
+  date -v-12H +%Y-%m-%d
+}
+
+# pilot_claude_calls prints the Claude calls the pilot made in the given night.
+pilot_claude_calls() {
+  [[ -f "${PILOT_LEDGER}" ]] || {
+    echo 0
+    return 0
+  }
+  jq -r --arg night "$1" '.[$night].claude // 0' "${PILOT_LEDGER}"
+}
+
+# construct_budget prints the calls construction may make tonight: its own
+# budget, bounded by what the nightly cap leaves after the pilot and the canaries.
+construct_budget() {
+  local left
+  left=$((NIGHT_CLAUDE_CAP - $(pilot_claude_calls "$(night_date)") - CANARY_CLAUDE_RESERVE))
+  ((left < CONSTRUCT_BUDGET)) && echo "$((left > 0 ? left : 0))" || echo "${CONSTRUCT_BUDGET}"
+}
+
 run_construct() {
   if pgrep -f "bench/script/construct|specbench.*construct" >/dev/null; then
     log "construct: already running"
     return 0
   fi
-  log "construct: budget ${CONSTRUCT_BUDGET}"
-  (cd bench && caffeinate -is script/construct --night --budget "${CONSTRUCT_BUDGET}")
+  local budget
+  budget="$(construct_budget)"
+  if [[ "${budget}" -eq 0 ]]; then
+    log "construct: the nightly cap of ${NIGHT_CLAUDE_CAP} Claude calls is spent; the next night resumes"
+    return 0
+  fi
+  log "construct: budget ${budget}"
+  (cd bench && caffeinate -is script/construct --night --budget "${budget}")
 }
 
 main() {
