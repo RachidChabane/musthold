@@ -25,11 +25,11 @@ record stands on.
   gate, without gate, cheating agent) and recorded in the results. The precise model
   does not matter.
 - **The benchmark runs in the real harnesses available.** Claude Code runs through
-  the subscription; Codex runs only if it becomes available, with `gpt-6-luna`
-  instead of `gpt-5.6-terra` (terra was only the CLI default). The account's Codex
-  quota is exhausted for every model until 2026-10-10 11:01; the Codex arm is
-  scheduled after that date, sized to fit the free quota and resumable without loss.
-  No spending: paid Codex is out of the question.
+  the subscription; Codex runs through the owner's ChatGPT Plus subscription with
+  `gpt-6-luna` frozen (the CLI default model is not the arm's model). Both
+  subscriptions are shared with the owner's own work, so each arm runs at a
+  moderate pace, inside the nightly window, and resumes on quota without loss. No
+  other spending.
 - **The benchmark measures the cost of a judge that is the same model as the
   coder.**
 - **The conflict of interest between the agent and the mutants is limit 5**: the
@@ -102,7 +102,7 @@ repository goes public. Nothing in the campaign waits for steps 2 to 4.
 | Harness | Model, identical in every arm (N, T, TR, AL, DP, CO, ALL, PL, ALL-native, cheat) and in the plugin subagents | Status |
 |---|---|---|
 | Claude Code | `claude-sonnet-5-5` | proceeds after step 1 |
-| Codex | `gpt-6-luna` | after the 2026-10-10 11:01 reset and after its plugin ships; sized to the free quota; resumable |
+| Codex | `gpt-6-luna` | once the product is ready for the samples; same task sample as Claude Code; resumable on quota |
 | Copilot CLI | none | blocked: free allowance unverified, no spending |
 
 The model is recorded in `manifest.json` and in every results table.
@@ -163,11 +163,12 @@ states the lowered floor.
 
 **Codex/luna stratum.**
 
-- The same tasks in seeded order; one trunk per task; arms N, T, ALL and cheat.
-- Size: `n_codex = floor(W·q / c)`, where W is the number of windows before the
-  step-3 deadline, q the measured calls per window, and c the calls per task
-  measured on its first task.
-- It resumes on quota without loss.
+- The same tasks as the Claude Code sample (about 6), in the same seeded order,
+  with the same arms: N, T, TR, AL, DP, CO, ALL and PL at S_T, ALL-native and
+  cheat.
+- It runs inside the nightly window at a moderate pace, because the Plus plan's
+  usage limits are shared with the owner's work, and resumes on quota without
+  loss.
 - It is reported per harness and as the harness × arm interaction (limit 10), never
   pooled.
 
@@ -286,11 +287,10 @@ them, with these readings on samples:
 - per-source System One thresholds and isotonic calibration, which need decision
   volume;
 - pacing constants beyond the planning caps;
-- the Codex stratum size, from the free-quota cadence.
+- the Codex arm's pacing, from the measured cost per task under the Plus plan.
 
 **Blocked externally:**
 
-- Codex, until 2026-10-10 11:01;
 - Copilot (allowance, no spending);
 - the Sigstore steps (public repository);
 - live CI `prove` (no model in CI).
@@ -320,7 +320,6 @@ Unverified at decision time, to settle at the canary:
 
 Blocked, external:
 
-- The Codex arm, until the free quota resets on 2026-10-10 11:01; no spending.
 - Copilot CLI: the free allowance is unverified; no spending.
 - The Sigstore attestation of the campaign digests by a model-free CI workflow, and
   the owner's Sigstore signature, are blocked on publication.
