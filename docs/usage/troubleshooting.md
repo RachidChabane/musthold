@@ -6,9 +6,9 @@
 
 | Command | 0 | 1 | 2 | 3 |
 |---|---|---|---|---|
-| `prove` (discriminating power) | no requirement blocks or escalates | a requirement blocks or escalates | tool failure, bad flags | tickets wait for the host |
-| `prove` (alignment) | every test is ALIGNED | a test is not ALIGNED, or a proof it needs is awaited | tool failure, bad flags | tickets wait |
-| `prove` (completeness) | proved, whatever questions were raised | the host stopped answering | tool failure, bad flags | tickets wait |
+| `prove` (discriminating power) | no requirement blocks or escalates | a requirement blocks or escalates, or a refusal (`--ci` without a CI run, a bundle of another module version, an undecodable bundle) | tool failure, conflicting flags | tickets wait for the host |
+| `prove` (alignment) | every test is ALIGNED | a test is not ALIGNED, a proof it needs is awaited, or a refusal (a bundle of another module version, an undecodable bundle) | tool failure, conflicting flags | tickets wait |
+| `prove` (completeness) | proved, whatever questions were raised | the host stopped answering, or a refusal (a bundle of another module version, an undecodable bundle) | tool failure, conflicting flags | tickets wait |
 | `request`, `systemone`, `host`, `mcp`, `hook` | success | a refusal: a protocol or user error such as a wrong nonce, a bad capability, an unknown ticket, an unknown role or hook, nothing to push | tool failure | not used |
 | `doctor` | every check is `ok` | not used | a check failed | not used |
 | `init`, `enable`, `disable` | done | a refusal (Shallnot too old, no `shallnot.yaml`, a layout it cannot extend), or with `--check` a file would change | tool failure | not used |

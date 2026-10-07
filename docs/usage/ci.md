@@ -48,36 +48,47 @@ files in that tree.
 
 ## 3. In CI: prove each module
 
-Run the modules in the order discriminating power, alignment, completeness. Set
-`SPEC_PROOF_CI_RUN_ID` (GitHub Actions' `GITHUB_RUN_ID` is used when it is unset):
+Run the modules in the order discriminating power, alignment, completeness:
 
 ```
-spec-proof-dp prove --ci --import-host host/discpower
+SPEC_PROOF_CI_RUN_ID=<run id> spec-proof-dp prove --ci --import-host host/discpower
 spec-proof-alignment prove --ci --import-host host/alignment
 spec-proof-completeness prove --ci --import-host host/completeness
 ```
 
-With `--ci` a module:
+With `--ci` every module:
 
-- draws the seed of the head commit from the first CI run that saw it (the SHA-256
-  of the head commit and the run id joined by a newline), records it under
-  `.spec-proof/cache` and reuses it on every later run of the commit, so
-  re-triggering CI cannot shop for a favourable draw;
 - recomputes every request id from the tree, ignores bundle responses it does not
   ask for, and re-validates schemas;
-- re-executes every executed claim (builds, tests, examples, kills) and draws fresh
-  operator mutants and sentinels;
 - serves the tickets it asks for from the bundle through the same checks as any
   answer, and marks again what the pushing host marked;
 - writes statements with `producedBy: ci`;
 - refuses a bundle made by another module version when requests are left
-  unanswered, and names both versions.
+  unanswered, naming both versions (`host_version_skew`, exit 1);
+- leaves the requests nobody answered in `.spec-proof/ci-issued/` and exits 3.
 
-A request the bundle does not answer stays pending (exit 3, `awaiting_host`). A
-CI-fresh surviving mutant that needs a judgment becomes a CI-issued request:
-`prove --ci` writes it under `.spec-proof/ci-issued/` for the job to upload as an
-artifact named `spec-proof-host-<module>`, and the criterion escalates with the
-pending reason `awaiting_host_judgment` until it is answered.
+Discriminating power also:
+
+- needs the CI run: `SPEC_PROOF_CI_RUN_ID`, or `GITHUB_RUN_ID` when it is unset.
+  Without either it refuses with exit 1;
+- draws the seed of the head commit from the head commit and the first CI run that
+  saw it (the SHA-256 of the two joined by a newline) and records it in
+  `.spec-proof/cache/seeds/<head sha>.json`. A later run finds that file and reuses
+  the seed, so re-triggering CI cannot shop for a favourable draw, as long as the
+  file is restored before the run (a CI cache of `.spec-proof/cache/seeds` does it);
+  without the file a run draws from its own run id;
+- re-executes every executed claim (builds, tests, examples, kills) and draws fresh
+  operator mutants and sentinels from that seed.
+
+Alignment and completeness draw no mutants and no seed.
+
+A request the bundle does not answer stays pending. A CI-fresh surviving mutant
+that needs a judgment of the host is such a request: the module leaves it in
+`.spec-proof/ci-issued/` for the job to upload as an artifact named
+`spec-proof-host-<module>`, and Shallnot reports the pending reason
+`awaiting_host_judgment` until it is answered. Each module replaces
+`.spec-proof/ci-issued/` when it leaves requests there, so upload the directory
+after each module's `prove`, before the next module runs.
 
 ## 4. The CI-issued round trip
 
@@ -93,8 +104,15 @@ local loop, `host push` publishes, and CI runs again.
 
 ## 5. In CI: sign, append, export, verify
 
+`sign` reads a directory of statements laid out as
+`<module>/<subject key>/<cacheKey>.json` and refuses any other file. The cache holds
+the seed record of discriminating power under `seeds/`, so sign from a copy
+without it:
+
 ```
-spec-proof-ledger sign --identity ed25519 --in .spec-proof/cache --out signed
+cp -R .spec-proof/cache statements
+rm -rf statements/seeds
+spec-proof-ledger sign --identity ed25519 --in statements --out signed
 spec-proof-ledger ledger append --signed signed --head-sha <head sha> --run-id <run id> --remote origin
 spec-proof-ledger ledger export --to bundles
 spec-proof-verify --bundles bundles --offline --out .spec-proof/verified

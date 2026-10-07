@@ -53,7 +53,7 @@ answering.
 | Code | Meaning |
 |---|---|
 | 0 | every spec is proved, whatever questions were raised |
-| 1 | the host stopped answering for a spec |
+| 1 | the host stopped answering for a spec, or a refusal (see [commands](commands.md#prove)) |
 | 2 | tool failure or usage error |
 | 3 | tickets wait for the host |
 

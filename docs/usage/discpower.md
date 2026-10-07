@@ -66,8 +66,9 @@ by `  finding <name>` lines. Findings: `correct_code_fails`, `example_failed`,
 `no_killed_valid_mutant`, `mutation_sensitive_test`, `budget_exhausted`,
 `host_unresponsive`, `unexcluded_survivor`, `example_executor_unavailable`.
 
-Exit codes of `prove`: 0 when no requirement blocks or escalates, 1 when one does,
-2 on a tool failure, 3 while tickets wait.
+Exit codes of `prove`: 0 when no requirement blocks or escalates, 1 when one does
+(or on a refusal; see [commands](commands.md#prove)), 2 on a tool failure, 3 while
+tickets wait.
 
 ## Ecosystems
 

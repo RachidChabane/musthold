@@ -66,7 +66,7 @@ spec-proof-dp prove --ci [--import-host DIR] [--root DIR]
 | `--resume` | Continue a run that is awaiting the host. Refused when no request was ever emitted. |
 | `--record DIR` | Keep each consumed answer and its executor under the request id in `DIR`. |
 | `--replay DIR` | Answer every pending ticket from the recordings in `DIR`. A request without a recording is a hard error. Excludes `--record`. |
-| `--ci` | Run as CI does: draw the seed of the head commit, produce statements as CI and leave unanswered requests where the CI job uploads them from. Needs `SPEC_PROOF_CI_RUN_ID` or `GITHUB_RUN_ID`. Excludes `--record` and `--replay`. |
+| `--ci` | Run as CI does: produce statements as CI and leave unanswered requests in `.spec-proof/ci-issued/` for the CI job to upload. Discriminating power also draws the seed of the head commit and needs `SPEC_PROOF_CI_RUN_ID` or `GITHUB_RUN_ID`. Excludes `--record` and `--replay`. |
 | `--import-host DIR` | With `--ci`: serve the tickets the run asks for from the bundle a `host push` published. |
 | `--root DIR` | Project root. |
 
@@ -81,8 +81,10 @@ The first line is `wave N`. A final `awaiting_host N tickets` line is printed wh
 tickets wait. Lines in between are specific to each module. Findings are printed
 as `  finding <name>` under a criterion and `module finding <name>` for the run.
 
-Exit codes: 0 clean, 1 blocked or escalated (the meaning is per module), 2 tool
-failure or usage error, 3 `awaiting_host`.
+Exit codes: 0 clean; 1 blocked or escalated (the meaning is per module), or a
+refusal such as `--ci` without a CI run, a bundle of another module version that left
+requests unanswered, or a bundle that cannot be decoded; 2 tool failure or usage
+error such as conflicting flags; 3 `awaiting_host`.
 
 ## request
 

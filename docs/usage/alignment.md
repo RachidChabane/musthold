@@ -80,7 +80,7 @@ discriminating-power module still waits for the requirement, the test is listed 
 | Code | Meaning |
 |---|---|
 | 0 | every test is ALIGNED |
-| 1 | a test is not ALIGNED, or a proof it needs is awaited |
+| 1 | a test is not ALIGNED, a proof it needs is awaited, or a refusal (see [commands](commands.md#prove)) |
 | 2 | tool failure or usage error |
 | 3 | tickets wait for the host |
 

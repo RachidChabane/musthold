@@ -163,11 +163,26 @@ they do not fire, no capability is issued, the executor server refuses every
 answer and the tickets stay pending. Criteria with inline examples pass on
 executed evidence on every harness. Details: [trust model](docs/usage/trust-model.md#harness-isolation).
 
+What the test suite exercises, so you can weigh each harness:
+
+- **Claude Code.** End-to-end tests (SP-250, SP-751, SP-791, SP-840) drive each proof
+  module's real binary, hooks and executor server with a simulated Claude Code host
+  that sends the hook payloads the harness documents; honest, forging, hookless and
+  other host personas get the verdicts the design asserts.
+- **Codex and Copilot CLI.** Tests compare the generated files with the formats each
+  harness documents (SP-242, SP-744, SP-784) and exercise the hook payload decoders
+  with documented payloads.
+- **Live sessions.** No test of the suite starts a live Claude Code, Codex or Copilot
+  session, so behaviour that only a live session shows is not established by it:
+  plugin hooks firing under non-interactive `claude -p`, Codex hooks under
+  `codex exec`, whether Copilot honours an MCP-only tool allowlist and what it does
+  when every name in the list fails to resolve, and the agent type Copilot reports to
+  a pre-tool hook.
+
 ## Status
 
-- Every module requires a Shallnot whose report schema is 1.2 or later. The
-  Shallnot releases up to v0.4.2 speak schema 1.1, and schema 1.2 is carried only by
-  Shallnot's proof-gate branch, which no release contains. `doctor` of each module
+- Every module requires a Shallnot at or above the release carrying report schema
+  1.2. Shallnot v0.4.2 emits schema 1.1 and is refused. `doctor` of each module
   reports the `shallnot` it finds, and `init`, `enable` and `disable` refuse a
   Shallnot below 1.2.
 - The install URLs above (`git clone` and `/plugin marketplace add`) resolve only
