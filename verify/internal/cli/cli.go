@@ -3,19 +3,38 @@
 package cli
 
 import (
+	"errors"
+	"flag"
 	"fmt"
 	"io"
+	"path/filepath"
 
+	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/verify/internal/adapters/filesource"
+	"github.com/RachidChabane/spec-proof/verify/internal/adapters/verifiedout"
+	"github.com/RachidChabane/spec-proof/verify/internal/app"
+	"github.com/RachidChabane/spec-proof/verify/internal/domain/refusal"
 	"github.com/RachidChabane/spec-proof/verify/internal/version"
 )
 
-// Exit codes of the binary (ADR 0002).
+// Exit codes of the binary (ADR 0002): 0 verified, 1 a bundle or statement was
+// rejected, 2 the command line does not parse or the tool failed.
 const (
 	ExitClean       = 0
+	ExitRejected    = 1
 	ExitToolFailure = 2
 )
 
 const versionCommand = "version"
+
+// trustPolicyFileName is the name of the trust policy below the directory that holds
+// the verified directory (`.spec-proof`).
+const trustPolicyFileName = "trust-policy.yaml"
+
+const usageText = "usage:\n  %[1]s version\n  %[1]s --bundles DIR [--accept-local DIR] [--offline] --out DIR\n  %[1]s --accept-local DIR --out DIR\n"
+
+// errUsage marks a command line that does not parse.
+var errUsage = errors.New("usage")
 
 // Main runs the binary called binary with the given arguments and returns its
 // exit code.
@@ -24,6 +43,83 @@ func Main(binary string, args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stdout, version.Line(binary))
 		return ExitClean
 	}
-	fmt.Fprintf(stderr, "usage: %s %s\n", binary, versionCommand)
-	return ExitToolFailure
+	err := run(args, stdout)
+	switch {
+	case err == nil:
+		return ExitClean
+	case errors.Is(err, errUsage):
+		fmt.Fprintf(stderr, "%v\n", err)
+		fmt.Fprintf(stderr, usageText, binary)
+		return ExitToolFailure
+	case refusal.Is(err):
+		fmt.Fprintf(stderr, "%s: %v\n", binary, err)
+		return ExitRejected
+	default:
+		fmt.Fprintf(stderr, "%s: %v\n", binary, err)
+		return ExitToolFailure
+	}
+}
+
+type options struct {
+	bundles, acceptLocal, out string
+	offline                   bool
+}
+
+func parseOptions(args []string) (options, error) {
+	var opts options
+	flags := flag.NewFlagSet("verify", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	flags.StringVar(&opts.bundles, "bundles", "", "directory written by `ledger export`")
+	flags.StringVar(&opts.acceptLocal, "accept-local", "", "local cache directory whose unsigned statements are admitted")
+	flags.BoolVar(&opts.offline, "offline", false, "read the trusted root from the trust snapshot of --bundles, not from the network")
+	flags.StringVar(&opts.out, "out", "", "verified directory to write")
+	if err := flags.Parse(args); err != nil {
+		return options{}, fmt.Errorf("%w: %v", errUsage, err)
+	}
+	switch {
+	case flags.NArg() > 0:
+		return options{}, fmt.Errorf("%w: unexpected argument %q", errUsage, flags.Arg(0))
+	case opts.out == "":
+		return options{}, fmt.Errorf("%w: --out is required", errUsage)
+	case opts.bundles == "" && opts.acceptLocal == "":
+		return options{}, fmt.Errorf("%w: give --bundles, --accept-local or both", errUsage)
+	case opts.offline && opts.bundles == "":
+		return options{}, fmt.Errorf("%w: --offline reads the trust snapshot of --bundles", errUsage)
+	}
+	return opts, nil
+}
+
+func run(args []string, stdout io.Writer) error {
+	opts, err := parseOptions(args)
+	if err != nil {
+		return err
+	}
+	service := app.VerifyService{
+		Version: version.Version,
+		Bundles: app.NoBundles{},
+		Local:   app.NoLocal{},
+		Pending: filesource.PendingDir{Root: filepath.Join(filepath.Dir(opts.out), format.PendingDirectory)},
+		Sink:    verifiedout.Directory{Path: opts.out},
+	}
+	if opts.acceptLocal != "" {
+		service.Local = filesource.LocalCache{Root: opts.acceptLocal}
+	}
+	if opts.bundles != "" {
+		trust, err := newBundleTrust(opts, filepath.Join(filepath.Dir(opts.out), trustPolicyFileName))
+		if err != nil {
+			return err
+		}
+		service.Signed = true
+		service.Bundles = filesource.ExportedLedger{Root: opts.bundles}
+		service.Verifier = trust.verifier
+		service.TrustedRootDigest = trust.trustedRootDigest
+		service.PolicyDigest = trust.policyDigest
+	}
+	report, err := service.Run()
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(stdout, "verified %d statements (%d signed, %d local), trust %s, %d pending, written to %s\n",
+		report.Statements, report.Signed, report.Local, report.Trust, report.Pending, opts.out)
+	return nil
 }
