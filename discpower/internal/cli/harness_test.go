@@ -37,6 +37,8 @@ type harness struct {
 	cache   string
 	now     time.Time
 	entropy io.Reader
+	// waves bounds how many times drive lets the host answer; zero means the default.
+	waves int
 }
 
 // newHarness copies the fixture project into a temporary directory. A shared base

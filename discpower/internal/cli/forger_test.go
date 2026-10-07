@@ -13,6 +13,10 @@ import (
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
 )
 
+// forgedWaves lets the host answer enough times for every ticket to be rejected
+// until it is abandoned.
+const forgedWaves = 24
+
 // secondEmission ends the identifier of a ticket issued a second time.
 const secondEmission = ".2"
 
@@ -65,6 +69,7 @@ func TestForgedJudgments(t *testing.T) {
 	}
 	t.Run("answers that execution refutes are rejected, reissued and never pass a criterion [verifies SP-183~1]", func(t *testing.T) {
 		h := newHarness(t, t.TempDir())
+		h.waves = forgedWaves
 		code, output := h.drive(hostprototest.PersonaHonest, forging{})
 		if code == cli.ExitClean {
 			t.Errorf("exit code %d for a forging host", code)

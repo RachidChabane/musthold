@@ -63,7 +63,7 @@ func (h *harness) drive(persona string, answers hostprototest.AnswerSource, extr
 	h.t.Helper()
 	args := append([]string{proveCommand, allFlag}, extra...)
 	code, output, stderr := h.run(nil, args...)
-	for wave := 0; code == cli.ExitAwaitingHost && wave < maxWavesPerDrive; wave++ {
+	for wave := 0; code == cli.ExitAwaitingHost && wave < h.waveLimit(); wave++ {
 		_, err := hostprototest.PlayCLI(h, persona, answers, func(time.Duration) {})
 		if err != nil && persona == hostprototest.PersonaHonest {
 			h.t.Fatalf("the honest persona failed: %v", err)
@@ -74,6 +74,13 @@ func (h *harness) drive(persona string, answers hostprototest.AnswerSource, extr
 		h.t.Fatalf("prove failed: %s", stderr)
 	}
 	return code, output
+}
+
+func (h *harness) waveLimit() int {
+	if h.waves > 0 {
+		return h.waves
+	}
+	return maxWavesPerDrive
 }
 
 // statement reads and validates the Statement written for a criterion.
