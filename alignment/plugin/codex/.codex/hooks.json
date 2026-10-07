@@ -1,0 +1,40 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__spec-proof-alignment-exec__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "spec-proof-alignment hook pre-tool --harness codex",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "^(spec-proof-alignment-judge|spec-proof-alignment-decider)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "spec-proof-alignment hook subagent-start --harness codex",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "^(spec-proof-alignment-judge|spec-proof-alignment-decider)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "spec-proof-alignment hook subagent-stop --harness codex",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

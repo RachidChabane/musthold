@@ -5,7 +5,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/hostbridge"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/aggregate"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/masking"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/prompt"
@@ -13,6 +12,7 @@ import (
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/verdict"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
 )
 
 // askState is where an ask of the host stands.

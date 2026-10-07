@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "exec": {
+      "command": "spec-proof-alignment",
+      "args": [
+        "mcp",
+        "--role",
+        "executor",
+        "--harness",
+        "claude"
+      ]
+    }
+  }
+}

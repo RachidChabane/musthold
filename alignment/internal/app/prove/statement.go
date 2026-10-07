@@ -8,11 +8,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/hostbridge"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/prompt"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
 )
 
 // Names of the inputs of a Statement.
@@ -190,7 +190,7 @@ func (s *subjectRun) writeStatement(declared criterion.Criterion, evidence testE
 	predicate := format.Alignment{
 		Requirement: format.Requirement{ID: declared.Ref.ID, Revision: declared.Ref.Revision, StatementCanonicalization: format.StatementCanonicalizationC1},
 		Core: format.Core{
-			Module: s.pass.settings.Module, Inputs: inputs, CacheKey: cacheKey, ProducedBy: format.ProducedByLocal,
+			Module: s.pass.settings.Module, Inputs: inputs, CacheKey: cacheKey, ProducedBy: s.pass.settings.producedBy(),
 			Extensions: format.Extensions{
 				Decision: &format.Decision{
 					Basis: decision.Basis, Deciders: deciders, ConfidenceSource: confidence.source, ConfidenceMapping: confidence.mapping,
@@ -224,4 +224,13 @@ func (s *subjectRun) confidenceOf(basis format.DecisionBasis, closed sourced) so
 		return sourced{source: format.HostVotesSource(s.pass.settings.Policy.AlignK), mapping: format.MappingModalShare}
 	}
 	return sourced{source: format.SourceExecution}
+}
+
+// producedBy is where the Statements of a run are produced: locally unless the
+// run says otherwise.
+func (s Settings) producedBy() format.ProducedBy {
+	if s.ProducedBy == "" {
+		return format.ProducedByLocal
+	}
+	return s.ProducedBy
 }

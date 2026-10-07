@@ -57,7 +57,10 @@ type harness struct {
 // newHarness copies the fixture project into a temporary directory.
 func newHarness(t *testing.T, fixture string) *harness {
 	t.Helper()
-	base := t.TempDir()
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	h := &harness{
 		t: t, root: filepath.Join(base, "project"), cache: filepath.Join(base, "cache"), state: filepath.Join(base, "state"),
 		report: filepath.Join(testkit.FixturesDir(), fixture, testkit.ReportFile),

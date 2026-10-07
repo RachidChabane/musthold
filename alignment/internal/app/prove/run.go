@@ -2,14 +2,15 @@ package prove
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/hostbridge"
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
+	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
 // discriminatingPowerModule is the module name whose pending file says which
@@ -41,7 +42,9 @@ func (u UseCase) Run(ctx context.Context, options Options) (Result, error) {
 		if result.PendingTickets == 0 || u.Deps.Replay == nil {
 			return result, nil
 		}
-		if err := u.Deps.Replay.Serve(result.pending); err != nil {
+		if err := u.Deps.Replay.Serve(result.pending); errors.Is(err, requests.ErrNothingServed) {
+			return result, nil
+		} else if err != nil {
 			return result, err
 		}
 	}
@@ -88,7 +91,7 @@ func (u UseCase) pass(ctx context.Context, options Options) (Result, error) {
 	}
 	result.PendingTickets = len(pending)
 	for _, ticket := range pending {
-		result.pending = append(result.pending, ports.PendingTicket{Ticket: ticket.TicketID.String(), Nonce: ticket.Nonce})
+		result.pending = append(result.pending, requests.PendingTicket{Ticket: ticket.TicketID.String(), Nonce: ticket.Nonce})
 	}
 	return result, nil
 }

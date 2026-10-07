@@ -6,7 +6,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/hostbridge"
 	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/aggregate"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/audit"
@@ -18,6 +17,8 @@ import (
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/verdict"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
+	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
 const (
@@ -113,7 +114,7 @@ func (s *subjectRun) consume() error {
 			continue
 		}
 		for _, vote := range answer.Votes {
-			name := ports.RecordingName(string(answer.ID), vote.Ticket.Vote)
+			name := requests.RecordingName(string(answer.ID), vote.Ticket.Vote)
 			if err := s.pass.deps.Record.Record(name, vote.Output, vote.Executor); err != nil {
 				return fmt.Errorf("record the answer to %s: %w", name, err)
 			}

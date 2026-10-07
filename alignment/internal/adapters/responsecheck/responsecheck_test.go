@@ -9,10 +9,10 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/masking"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/prompt"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
 
 func testInput(count int) prompt.TestInput {
@@ -78,7 +78,7 @@ func TestValidate(t *testing.T) {
 			"a token with coverage NONE": answer(tokens[0], "NONE", 90),
 		}
 		for name, output := range refused {
-			if err := validator.Validate(schema, []byte(output)); !errors.Is(err, ports.ErrSchemaViolation) {
+			if err := validator.Validate(schema, []byte(output)); !errors.Is(err, hostproto.ErrSchemaViolation) {
 				t.Errorf("%s: error = %v", name, err)
 			}
 		}
@@ -86,7 +86,7 @@ func TestValidate(t *testing.T) {
 
 	t.Run("every violation is listed [verifies SP-347~1]", func(t *testing.T) {
 		err := validator.Validate(schema, []byte(`{"requirement":"K-zzzz","coverage":"MAYBE","confidence":"high","extra":1}`))
-		if !errors.Is(err, ports.ErrSchemaViolation) {
+		if !errors.Is(err, hostproto.ErrSchemaViolation) {
 			t.Fatalf("error = %v", err)
 		}
 		for _, want := range []string{"/requirement", "/coverage", "/confidence", "extra"} {
@@ -109,7 +109,7 @@ func TestValidate(t *testing.T) {
 			"a choice of another":  `{"answers":[{"id":"criterion","choice":"FULL"},{"id":"coverage","choice":"FULL"}]}`,
 			"a confidence above 1": `{"answers":[{"id":"criterion","choice":"NONE","confidence":2},{"id":"coverage","choice":"NONE"}]}`,
 		} {
-			if err := validator.Validate(closed, []byte(output)); !errors.Is(err, ports.ErrSchemaViolation) {
+			if err := validator.Validate(closed, []byte(output)); !errors.Is(err, hostproto.ErrSchemaViolation) {
 				t.Errorf("%s: error = %v", name, err)
 			}
 		}
@@ -119,7 +119,7 @@ func TestValidate(t *testing.T) {
 func TestCompilation(t *testing.T) {
 	t.Run("a schema that does not compile is reported apart from a violation [verifies SP-347~1]", func(t *testing.T) {
 		err := New().Validate(json.RawMessage(`{"type":12}`), []byte(`{}`))
-		if !errors.Is(err, ErrBadSchema) || errors.Is(err, ports.ErrSchemaViolation) {
+		if !errors.Is(err, ErrBadSchema) || errors.Is(err, hostproto.ErrSchemaViolation) {
 			t.Fatalf("error = %v", err)
 		}
 		if err := New().Validate(json.RawMessage(`not json`), []byte(`{}`)); !errors.Is(err, ErrBadSchema) {
@@ -166,7 +166,7 @@ func TestProperties(t *testing.T) {
 			if consistent != (err == nil) {
 				t.Fatalf("%s/%s: error = %v", requirement, coverage, err)
 			}
-			if err != nil && !errors.Is(err, ports.ErrSchemaViolation) {
+			if err != nil && !errors.Is(err, hostproto.ErrSchemaViolation) {
 				t.Fatalf("error = %v", err)
 			}
 		})

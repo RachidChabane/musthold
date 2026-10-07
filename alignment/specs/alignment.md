@@ -178,23 +178,6 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-347~1**: WHEN an executor's output is checked against a response schema THE
   SYSTEM SHALL accept it exactly when the schema holds and list every violation
   otherwise.
-- **SP-348~1**: WHEN a proof asks the host for an answer THE SYSTEM SHALL emit one
-  ticket per vote, record the request in the queue, reissue a rejected or
-  expired ticket with a new nonce, abandon it as unresponsive after the last
-  emission, read a vote only from its accepted, validated or consumed state,
-  move accepted votes to validated and validated ones to consumed, supersede
-  emitted tickets nobody asked for in the wave, and list the tickets still
-  waiting.
-- **SP-349~1**: WHEN tickets are listed THE SYSTEM SHALL list only the tickets in
-  state `emitted`, with the role and the view an executor sees, and WHEN a ticket
-  is shown THE SYSTEM SHALL move it to `fetched` and refuse another emission of
-  it.
-- **SP-350~1**: WHEN an answer is submitted THE SYSTEM SHALL accept it only for the
-  ticket and the nonce of the issue after the response schema holds, allow one
-  correction before it rejects, refuse a different second answer as a
-  resubmission conflict, record a submission without a capability as exposed and
-  an executor profile that cannot claim more than inline, and keep the profile
-  and the exposure out of replayed and relayed answers.
 - **SP-351~1**: WHEN recorded answers are replayed THE SYSTEM SHALL answer every
   pending ticket from the recording of its request through the same checks and
   fail with a miss when a request has no recording, and WHEN answers are recorded
@@ -219,9 +202,9 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   requests that wait for their first vote, and WHEN `systemone import` runs THE
   SYSTEM SHALL accept the answers of a relay under its source, as an executor of
   the relay channel.
-- **SP-338~1**: WHEN `doctor` runs THE SYSTEM SHALL check Shallnot, the
-  configuration, the host store and the journal chain, and exit 2 when a check
-  fails.
+- **SP-338~2**: WHEN `doctor` runs THE SYSTEM SHALL check Shallnot and the report schema it
+  prints, the configuration, the harness files the project holds, the host store
+  and the journal chain, and exit 2 when a check fails.
 - **SP-339~1**: WHEN an honest host answers every request and a discriminating-power
   Statement is present THE SYSTEM SHALL write, for each test, a Statement whose
   verdict agrees with the matrix and the judge, corroborated when the matrix is
@@ -247,6 +230,81 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   ask the judge too and let its outcome replace the verdict.
 - **SP-363~1**: WHEN the host answers the tickets in any order THE SYSTEM SHALL write
   the same Statements.
+
+## Host execution
+
+- **SP-740~1**: WHEN `mcp` or `hook` is run THE SYSTEM SHALL refuse a role, harness or
+  hook it does not know with exit 1, report with exit 1 and never block when a hook
+  cannot read its payload, leave a call that is not about the module's executors
+  alone without opening any state, do nothing in a project that has no shared
+  configuration file, deny a call of the module's own tools that it cannot check, and
+  resolve the project root from the option, the harness's project directory or the
+  working directory, with symbolic links resolved, so that the hook, the server and
+  the tickets of one project share one host directory.
+- **SP-741~1**: WHEN an executor fetches or answers through the executor server of the
+  command line THE SYSTEM SHALL offer exactly `fetch_request` and `submit_response`,
+  and `drain` only when the client declared sampling and the `host` section of the
+  shared configuration turned it on for the module `alignment`; refuse a call
+  without a capability while attestation is required, accept only the capability of
+  a started agent bound to that one ticket, record the answer as a restricted
+  subagent of its harness with the capability's evidence, and, when attestation is
+  waived, journal the answer as restricted.
+- **SP-742~1**: WHEN a host harness is selected THE SYSTEM SHALL ship the judge and the decider of
+  `spec-proof-alignment` as its executor agents, name their types and the executor tools as the
+  harness spells them, and map a reported type back to the role of the requests of
+  the module.
+- **SP-743~1**: WHEN the host files of the module are generated THE SYSTEM SHALL
+  produce them from one definition, the same bytes on every run, and the committed
+  trees of the plugin and the harness scaffolds SHALL equal what the generator
+  produces.
+- **SP-744~1**: WHEN the host files of the module are read against the formats each
+  harness documents THE SYSTEM SHALL give the Claude Code plugin its manifest, its
+  executor server, one agent per executor role holding exactly the two executor
+  tools, its four hooks and a skill that pre-approves what its loop runs, give Codex
+  and Copilot their agents, hooks and skill, and ship no agent of a role the module
+  does not use.
+- **SP-745~1**: WHEN `init` runs THE SYSTEM SHALL require a Shallnot whose report schema
+  is 1.2 or later, write the module's entry of the shared configuration and ignore
+  its local state, install the files of each selected harness (`auto`, `none` or a
+  list of Claude Code, Codex and Copilot) by merging into every file another tool
+  shares and writing the files it owns, plan no change on a second run, and leave
+  Shallnot's configuration, its block of AGENTS.md and its hooks as they were.
+- **SP-746~1**: WHEN `enable` or `disable` runs THE SYSTEM SHALL turn the proof on or off in the shared
+  configuration, add or remove `alignment` in `proofs.require` of `shallnot.yaml` and
+  the module's block of AGENTS.md by line edits that keep every other byte, so that
+  disabling restores what enabling changed, refuse a project with no `shallnot.yaml`,
+  and refuse a layout it cannot extend without rewriting.
+- **SP-747~1**: WHEN `doctor` runs THE SYSTEM SHALL check that the report schema Shallnot
+  prints accepts version 1.2 and refuses 1.1, and report the check.
+- **SP-748~1**: WHEN `host push` runs THE SYSTEM SHALL publish every answered ticket with
+  the profile it is credited with and the marks against it as a tree under the ref
+  `refs/spec-proof/host/alignment/<head>` of the head commit with git plumbing, replace a
+  ref that exists, publish the ref to a remote when asked, touch neither the working
+  tree nor the current branch, warn when a tracked file differs from the head commit,
+  refuse a store whose journal chain is broken and publish nothing when nothing is
+  answered.
+- **SP-749~1**: WHEN `host pull --ci-run ID` runs THE SYSTEM SHALL download the artifact of
+  the run with `gh`, refuse a download that fails or a bundle that is not one, and
+  make tickets of the requests it holds once, with the votes and the queue metadata
+  CI gave them.
+- **SP-750~1**: WHEN `prove --ci` runs THE SYSTEM SHALL produce the Statements as CI,
+  serve the tickets it is asking for from the bundle given with `--import-host` through
+  the same checks as any answer, ignore what the bundle holds that it does not ask
+  for, leave the other tickets pending, mark again what the pushing host marked,
+  refuse a bundle of another version that left requests unanswered, leave the
+  requests that remain where the CI job uploads them from, and refuse `--import-host`
+  without `--ci` and `--ci` with `--record` or `--replay`.
+- **SP-751~1**: WHEN a project is equipped with Shallnot and the module, edited and proved
+  THE SYSTEM SHALL let a simulated Claude Code host answer every ticket through the
+  real hooks and the real executor server until `prove` ends, journal the executors
+  as started, fetched, accepted, attested and reported with no leak, exposure or
+  conflict, and deny a main-session call of an executor tool.
+- **SP-752~1**: WHEN a forger answers every ticket from the command line, or a host runs
+  executors whose hooks never fire, THE SYSTEM SHALL accept no uncapped answer, give
+  no verdict credit that rests on an answer a forger could have written, and have
+  Shallnot refuse the turn or the check where the module is required.
+- **SP-753~1**: WHEN the fake-host personas drive the module through its command line THE
+  SYSTEM SHALL give each the verdict ADR 0005 asserts for it.
 
 ## Contracts with the format and the gate
 

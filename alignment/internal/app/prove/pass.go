@@ -6,13 +6,13 @@ import (
 	"io/fs"
 	"path"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/hostbridge"
 	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/masking"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/prompt"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/verdict"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
 )
 
 // passState is what one pass shares across its tests.
