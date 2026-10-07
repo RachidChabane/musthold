@@ -395,3 +395,25 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-1205~1**: WHEN a file is offered to the JavaScript and TypeScript masker THE
   SYSTEM SHALL serve the files of JavaScript, JSX, TypeScript and TSX and refuse
   every other file.
+
+## Java and Kotlin tests
+
+- **SP-1210~1**: WHEN a JUnit 5 test written in Java is masked THE SYSTEM SHALL
+  return one class that holds the test and the members of its enclosing classes that
+  run for every test or that it reaches, with the types of the file it reaches and
+  the imports they use, under neutral names, without comments, display names, name
+  patterns or citation tags.
+- **SP-1211~1**: WHEN the signatures of the code under a Java test are built THE
+  SYSTEM SHALL return, without bodies, annotations, initial values or private
+  members, the classes of the project that the test imports, statically imports or
+  names from its own package or a package it imports whole.
+- **SP-1212~1**: WHEN a JUnit 5 test is bound by the name its runner reports THE
+  SYSTEM SHALL find it by its method name with or without its signature, its display
+  name, the expansion of the name pattern of a parametrized or repeated test or the
+  default name of an invocation, telling tests of one name apart by the class the
+  report names, as a binary name or as display names, and then by the line.
+- **SP-1213~1**: WHEN a masked input is built for any name of a Java test THE
+  SYSTEM SHALL hold no declared criterion reference, no marker word and no run of
+  three consecutive words of its method name, display names or name pattern.
+- **SP-1214~1**: WHEN a file is offered to the Java masker THE SYSTEM SHALL serve the
+  files of Java and refuse every other file.
