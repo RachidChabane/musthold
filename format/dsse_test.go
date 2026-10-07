@@ -78,6 +78,28 @@ func TestSignEnvelope(t *testing.T) {
 	})
 }
 
+func TestShapeOfBundle(t *testing.T) {
+	cases := []struct {
+		name     string
+		document string
+		want     format.BundleShape
+	}{
+		{"an envelope", `{"payloadType":"application/vnd.in-toto+json","payload":"e30=","signatures":[]}`, format.ShapeEnvelope},
+		{"a Sigstore bundle by media type", `{"mediaType":"application/vnd.dev.sigstore.bundle.v0.3+json"}`, format.ShapeSigstoreBundle},
+		{"a Sigstore bundle by envelope", `{"dsseEnvelope":{}}`, format.ShapeSigstoreBundle},
+		{"another document", `{"hello":"world"}`, format.ShapeUnknown},
+		{"not JSON", `{`, format.ShapeUnknown},
+		{"an array", `[]`, format.ShapeUnknown},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name+verifiesDSSE, func(t *testing.T) {
+			if got := format.ShapeOfBundle([]byte(tt.document)); got != tt.want {
+				t.Fatalf("shape %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestDecodeEnvelopeRefusals(t *testing.T) {
 	cases := []struct{ name, document string }{
 		{"not JSON", `{`},

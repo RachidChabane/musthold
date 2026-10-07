@@ -101,6 +101,41 @@ func (s EnvelopeSignature) SignatureBytes() ([]byte, error) {
 	return raw, nil
 }
 
+// BundleShape tells which signature scheme a `.dsse.json` file belongs to.
+type BundleShape int
+
+// Shapes of a signed proof file.
+const (
+	// ShapeUnknown is a document that is neither of the two schemes.
+	ShapeUnknown BundleShape = iota
+	// ShapeEnvelope is a bare DSSE envelope signed with an Ed25519 identity.
+	ShapeEnvelope
+	// ShapeSigstoreBundle is a Sigstore bundle that wraps a DSSE envelope.
+	ShapeSigstoreBundle
+)
+
+// ShapeOfBundle tells the scheme of a signed proof file from its top-level
+// members: a bare envelope names its payload type, a Sigstore bundle its media
+// type or carries an envelope under `dsseEnvelope`.
+func ShapeOfBundle(data []byte) BundleShape {
+	var members struct {
+		PayloadType string          `json:"payloadType"`
+		MediaType   string          `json:"mediaType"`
+		DSSE        json.RawMessage `json:"dsseEnvelope"`
+	}
+	if err := json.Unmarshal(data, &members); err != nil {
+		return ShapeUnknown
+	}
+	switch {
+	case members.PayloadType != "":
+		return ShapeEnvelope
+	case members.MediaType != "" || members.DSSE != nil:
+		return ShapeSigstoreBundle
+	default:
+		return ShapeUnknown
+	}
+}
+
 // DecodeEnvelope reads a DSSE envelope. It requires the in-toto payload type, a
 // payload and at least one signature carrying a key identifier; it does not check
 // any signature.

@@ -94,7 +94,8 @@ Go tests of the module in CI.
   identify the key by the hex SHA-256 of its raw public key, serialize the
   envelope in RFC 8785 canonical form, and refuse an envelope with another
   payload type, an undecodable payload or signature, no signature or a signature
-  without key identifier.
+  without key identifier; and WHEN a signed proof file is read THE SYSTEM SHALL
+  tell a bare envelope from a Sigstore bundle by its top-level members.
 
 ## Executors and corroboration
 

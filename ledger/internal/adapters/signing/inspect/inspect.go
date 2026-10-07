@@ -4,9 +4,7 @@
 package inspect
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/signing/sigstore"
@@ -20,22 +18,14 @@ type Reader struct{}
 
 // Payload returns the statement bytes of a bundle.
 func (Reader) Payload(bundle []byte) ([]byte, error) {
-	var shape struct {
-		PayloadType string          `json:"payloadType"`
-		MediaType   string          `json:"mediaType"`
-		DSSE        json.RawMessage `json:"dsseEnvelope"`
-	}
-	if err := json.Unmarshal(bundle, &shape); err != nil {
-		return nil, fmt.Errorf("bundle: %w", err)
-	}
-	switch {
-	case shape.PayloadType != "":
+	switch format.ShapeOfBundle(bundle) {
+	case format.ShapeEnvelope:
 		envelope, err := format.DecodeEnvelope(bundle)
 		if err != nil {
 			return nil, err
 		}
 		return envelope.StatementBytes()
-	case shape.MediaType != "" || shape.DSSE != nil:
+	case format.ShapeSigstoreBundle:
 		return sigstore.Payload(bundle)
 	default:
 		return nil, ErrUnknownBundle
