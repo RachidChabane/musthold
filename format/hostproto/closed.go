@@ -472,6 +472,20 @@ func levelNear(question ClosedQuestion, score float64) string {
 	return question.Options[index].Name
 }
 
+// ErrNoClosedQuestions is returned for a ticket whose view carries no question set.
+var ErrNoClosedQuestions = errors.New("the ticket asks no closed questions")
+
+// AnswersFromSystemOneFor turns the response of a `/v1/systemone` call into the
+// output of the response to the ticket the view belongs to: the endpoint answered
+// the question set the view shows, in its own terms.
+func AnswersFromSystemOneFor(view ExecutorView, endpointResponse []byte) ([]byte, error) {
+	set, err := ParseClosedSet(view.Closed)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrNoClosedQuestions, err)
+	}
+	return set.AnswersFromSystemOne(endpointResponse)
+}
+
 // ClosedExport is one closed request as `systemone export` hands it to a relay: the
 // ticket and nonce to import the answers with, and the set the relay renders
 // with SystemOneRequest.

@@ -196,7 +196,7 @@ func (e Env) importClosed(service requests.Service, positionals []string, nonce,
 	if err != nil {
 		return outcome{err: asRefusal(err)}
 	}
-	output, err = answersOf(view, output)
+	output, err = hostproto.AnswersFromSystemOneFor(view, output)
 	if err != nil {
 		return outcome{err: refusal{err}}
 	}
@@ -207,15 +207,4 @@ func (e Env) importClosed(service requests.Service, positionals []string, nonce,
 	}
 	fmt.Fprintln(e.Stdout, receipt.Text)
 	return outcome{code: ExitClean}
-}
-
-// answersOf turns what a relay read from a System One endpoint into the output of
-// the response to the ticket: the endpoint answers the question set the ticket
-// shows, in its own terms.
-func answersOf(view hostproto.ExecutorView, endpointResponse []byte) ([]byte, error) {
-	set, err := hostproto.ParseClosedSet(view.Closed)
-	if err != nil {
-		return nil, fmt.Errorf("the ticket asks no closed questions: %w", err)
-	}
-	return set.AnswersFromSystemOne(endpointResponse)
 }

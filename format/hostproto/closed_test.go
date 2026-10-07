@@ -307,6 +307,29 @@ func TestSystemOneRendering(t *testing.T) {
 	})
 }
 
+func TestAnswersForAView(t *testing.T) {
+	t.Run("the response of an endpoint is translated with the question set the view shows [verifies SP-404~1]", func(t *testing.T) {
+		request := hostprototest.ClosedRequest()
+		view := request.ViewFor(hostprototest.Ticket(request, 0, 1))
+		document, err := hostproto.AnswersFromSystemOneFor(view, []byte(hostprototest.ClosedSystemOneResponse))
+		if err != nil {
+			t.Fatal(err)
+		}
+		answers, err := hostproto.ParseClosedAnswers(document)
+		if err != nil || answers[hostprototest.ClosedQuestionID].Choice != "VIOLATES" {
+			t.Fatalf("answers %+v (%v)", answers, err)
+		}
+	})
+
+	t.Run("a view without a question set has no answers to give [verifies SP-404~1]", func(t *testing.T) {
+		open := hostprototest.Request()
+		view := open.ViewFor(hostprototest.Ticket(open, 0, 1))
+		if _, err := hostproto.AnswersFromSystemOneFor(view, []byte(hostprototest.ClosedSystemOneResponse)); !errors.Is(err, hostproto.ErrNoClosedQuestions) {
+			t.Fatalf("error %v", err)
+		}
+	})
+}
+
 func TestClosedExport(t *testing.T) {
 	t.Run("the first vote of each closed request is exported with its ticket, nonce and set [verifies SP-405~1]", func(t *testing.T) {
 		closed := hostprototest.ClosedRequest()
