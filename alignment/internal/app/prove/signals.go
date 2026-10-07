@@ -127,7 +127,8 @@ func (s *subjectRun) judge(extra bool) (*judgeSignal, error) {
 // the votes would support the criterion but for those that lose their credit, the
 // stance is indeterminate for want of isolation, not a rejection.
 func (s *subjectRun) aggregated(signal *judgeSignal, declared string) (aggregate.Result, aggregate.Stance, string) {
-	total, modalMin := s.pass.settings.Policy.AlignK, s.pass.settings.Policy.ModalMin
+	total := s.pass.settings.Policy.AlignK
+	modalMin := s.pass.settings.Policy.ModalMin.For(format.HostVotesSource(total))
 	counted := signal.votes[:min(total, len(signal.votes))]
 	demoted, credited := make([]aggregate.Vote, 0, total), make([]aggregate.Vote, 0, total)
 	for _, read := range counted {

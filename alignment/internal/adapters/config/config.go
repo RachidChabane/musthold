@@ -23,18 +23,18 @@ type document struct {
 }
 
 type policyDocument struct {
-	TauRoute          *float64 `yaml:"tau_route"`
-	AlignK            *int     `yaml:"align_k"`
-	ModalMin          *float64 `yaml:"modal_min"`
-	ThetaOwn          *float64 `yaml:"theta_own"`
-	ThetaOther        *float64 `yaml:"theta_other"`
-	ThetaNone         *float64 `yaml:"theta_none"`
-	ShadowRate        *float64 `yaml:"shadow_rate"`
-	MaxReasoningCalls *int     `yaml:"max_reasoning_calls"`
-	DecideK           *int     `yaml:"decide_k"`
-	TwoSignal         *bool    `yaml:"two_signal"`
-	JudgeAlone        *bool    `yaml:"judge_alone"`
-	MinIsolation      *string  `yaml:"min_isolation"`
+	TauRoute          *format.ThresholdOverride `yaml:"tau_route"`
+	AlignK            *int                      `yaml:"align_k"`
+	ModalMin          *format.ThresholdOverride `yaml:"modal_min"`
+	ThetaOwn          *float64                  `yaml:"theta_own"`
+	ThetaOther        *float64                  `yaml:"theta_other"`
+	ThetaNone         *float64                  `yaml:"theta_none"`
+	ShadowRate        *float64                  `yaml:"shadow_rate"`
+	MaxReasoningCalls *int                      `yaml:"max_reasoning_calls"`
+	DecideK           *int                      `yaml:"decide_k"`
+	TwoSignal         *bool                     `yaml:"two_signal"`
+	JudgeAlone        *bool                     `yaml:"judge_alone"`
+	MinIsolation      *string                   `yaml:"min_isolation"`
 }
 
 // Decode parses the YAML configuration into the decision policy. An unknown key
@@ -44,11 +44,14 @@ func Decode(data []byte) (policy.Policy, error) {
 	decoder.KnownFields(true)
 	var doc document
 	if err := decoder.Decode(&doc); err != nil && !errors.Is(err, io.EOF) {
+		if errors.Is(err, format.ErrThreshold) {
+			return policy.Policy{}, fmt.Errorf("%w: %v", policy.ErrInvalid, err)
+		}
 		return policy.Policy{}, fmt.Errorf("decode configuration: %w", err)
 	}
 	result := policy.Default()
-	setFloat(&result.TauRoute, doc.Policy.TauRoute)
-	setFloat(&result.ModalMin, doc.Policy.ModalMin)
+	setThreshold(&result.TauRoute, doc.Policy.TauRoute)
+	setThreshold(&result.ModalMin, doc.Policy.ModalMin)
 	setFloat(&result.ThetaOwn, doc.Policy.ThetaOwn)
 	setFloat(&result.ThetaOther, doc.Policy.ThetaOther)
 	setFloat(&result.ThetaNone, doc.Policy.ThetaNone)
@@ -70,6 +73,12 @@ func Decode(data []byte) (policy.Policy, error) {
 func setFloat(target *float64, value *float64) {
 	if value != nil {
 		*target = *value
+	}
+}
+
+func setThreshold(target *format.Threshold, override *format.ThresholdOverride) {
+	if override != nil {
+		*target = override.ApplyTo(*target)
 	}
 }
 

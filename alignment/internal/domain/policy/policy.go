@@ -27,12 +27,12 @@ const (
 // Policy is the decision policy of a run.
 type Policy struct {
 	// TauRoute is the raw confidence a System One answer needs for the two-signal
-	// ALIGNED verdict.
-	TauRoute float64 `json:"tauRoute"`
+	// ALIGNED verdict, per confidence source.
+	TauRoute format.Threshold `json:"tauRoute"`
 	// AlignK is the number of blind judge tickets of one alignment request.
 	AlignK int `json:"alignK"`
-	// ModalMin is the modal share a judge verdict needs.
-	ModalMin float64 `json:"modalMin"`
+	// ModalMin is the modal share a judge verdict needs, per confidence source.
+	ModalMin format.Threshold `json:"modalMin"`
 	// ThetaOwn, ThetaOther and ThetaNone are the matrix thresholds.
 	ThetaOwn   float64 `json:"thetaOwn"`
 	ThetaOther float64 `json:"thetaOther"`
@@ -58,7 +58,7 @@ type Policy struct {
 // Default returns the policy of ADR 0003 and ADR 0005.
 func Default() Policy {
 	return Policy{
-		TauRoute: DefaultTauRoute, AlignK: DefaultAlignK, ModalMin: DefaultModalMin,
+		TauRoute: format.UniformThreshold(DefaultTauRoute), AlignK: DefaultAlignK, ModalMin: format.UniformThreshold(DefaultModalMin),
 		ThetaOwn: DefaultThetaOwn, ThetaOther: DefaultThetaOther, ThetaNone: DefaultThetaNone,
 		ShadowRate: DefaultShadowRate, MaxReasoningCalls: DefaultMaxReasoningCalls, DecideK: DefaultDecideK,
 		TwoSignal: true, JudgeAlone: true, MinIsolation: format.IsolationRestricted,
@@ -71,10 +71,11 @@ var ErrInvalid = errors.New("invalid policy")
 // Validate rejects a fraction outside [0,1], a count below one, a judge budget
 // that cannot hold the tickets of one verdict and an unknown isolation level.
 func (p Policy) Validate() error {
-	fractions := []float64{p.TauRoute, p.ModalMin, p.ThetaOwn, p.ThetaOther, p.ThetaNone, p.ShadowRate}
+	fractions := []float64{p.ThetaOwn, p.ThetaOther, p.ThetaNone, p.ShadowRate}
 	switch {
-	case slices.ContainsFunc(fractions, func(value float64) bool { return value < 0 || value > 1 }):
-		return fmt.Errorf("%w: a threshold is outside [0,1]", ErrInvalid)
+	case slices.ContainsFunc(fractions, func(value float64) bool { return value < 0 || value > 1 }),
+		p.TauRoute.Validate() != nil, p.ModalMin.Validate() != nil:
+		return fmt.Errorf("%w: a threshold is outside [0,1] or keys an unknown confidence source", ErrInvalid)
 	case p.AlignK < 1, p.DecideK < 1, p.MaxReasoningCalls < 1:
 		return fmt.Errorf("%w: a count is below 1", ErrInvalid)
 	case !slices.Contains(format.Isolations(), p.MinIsolation):

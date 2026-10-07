@@ -1,6 +1,8 @@
 package config_test
 
 import (
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/config"
@@ -11,7 +13,7 @@ import (
 func TestDecode(t *testing.T) {
 	t.Run("an empty document gives the default policy [verifies SP-355~1]", func(t *testing.T) {
 		got, err := config.Decode(nil)
-		if err != nil || got != policy.Default() {
+		if err != nil || !reflect.DeepEqual(got, policy.Default()) {
 			t.Fatalf("policy %+v: %v", got, err)
 		}
 	})
@@ -36,11 +38,36 @@ policy:
 			t.Fatal(err)
 		}
 		want := policy.Policy{
-			TauRoute: 0.95, AlignK: 3, ModalMin: 0.6, ThetaOwn: 0.4, ThetaOther: 0.3, ThetaNone: 0.1,
+			TauRoute: format.UniformThreshold(0.95), AlignK: 3, ModalMin: format.UniformThreshold(0.6), ThetaOwn: 0.4, ThetaOther: 0.3, ThetaNone: 0.1,
 			ShadowRate: 0.25, MaxReasoningCalls: 24, DecideK: 5, TwoSignal: false, JudgeAlone: false, MinIsolation: format.IsolationInline,
 		}
-		if got != want {
+		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("policy %+v", got)
+		}
+	})
+
+	t.Run("a threshold is a bare number or a mapping of sources, and a mapping keeps the default it does not set [verifies SP-903~1]", func(t *testing.T) {
+		got, err := config.Decode([]byte("policy:\n  tau_route:\n    system-one: 0.97\n    host-votes: 0.8\n  modal_min:\n    default: 0.6\n    host-votes(5): 0.9\n"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		endpoint := format.SystemOneSource("nimble:9b@" + strings.Repeat("a", format.Sha256HexLength))
+		switch {
+		case got.TauRoute.For(endpoint) != 0.97, got.TauRoute.For(format.HostVotesSource(3)) != 0.8, got.TauRoute.For(format.SourceExecution) != policy.DefaultTauRoute:
+			t.Fatalf("tau_route %+v", got.TauRoute)
+		case got.ModalMin.For(format.HostVotesSource(5)) != 0.9, got.ModalMin.For(format.HostVotesSource(4)) != 0.6:
+			t.Fatalf("modal_min %+v", got.ModalMin)
+		}
+	})
+
+	t.Run("a threshold keyed by an unknown source or above one is refused [verifies SP-903~1]", func(t *testing.T) {
+		for name, document := range map[string]string{
+			"unknown source": "policy:\n  tau_route:\n    gut-feeling: 0.5\n",
+			"above one":      "policy:\n  modal_min:\n    host-votes: 1.5\n",
+		} {
+			if _, err := config.Decode([]byte(document)); err == nil {
+				t.Errorf("%s: accepted", name)
+			}
 		}
 	})
 

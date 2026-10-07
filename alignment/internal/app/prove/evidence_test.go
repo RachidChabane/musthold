@@ -60,7 +60,7 @@ func TestEvidenceInputs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Run("the Statement of the declared criterion is the one proof input, by the kind, the criterion and the file bytes [verifies SP-410~1]", func(t *testing.T) {
+	t.Run("the Statement of the declared criterion is the one proof input, by the kind, the criterion and the file bytes [verifies SP-410~2]", func(t *testing.T) {
 		var proofs []format.Input
 		for _, input := range got.proofInputs {
 			if input.Role == format.RoleProof {
@@ -73,7 +73,7 @@ func TestEvidenceInputs(t *testing.T) {
 		}
 	})
 
-	t.Run("the Statement of another criterion the test is bound to reaches the cache key through the matrix evidence [verifies SP-410~1]", func(t *testing.T) {
+	t.Run("the Statement of another criterion the test is bound to reaches the cache key through the matrix evidence [verifies SP-410~2]", func(t *testing.T) {
 		var evidence []format.Input
 		for _, input := range got.proofInputs {
 			if input.Name == inputNameMatrixEvidence {
@@ -99,7 +99,7 @@ func TestEvidenceInputs(t *testing.T) {
 		}
 	})
 
-	t.Run("the inputs of a test bound to one criterion hold no matrix evidence [verifies SP-410~1]", func(t *testing.T) {
+	t.Run("the inputs of a test bound to one criterion hold no matrix evidence [verifies SP-410~2]", func(t *testing.T) {
 		alone, _, _ := twoCriteriaFixture(t)
 		single := criterion.Subject{Test: subject.Test, Declared: []criterion.Ref{testkit.Multiply}}
 		result, err := alone.evidenceFor(single, declared, matrix.Thresholds{Own: 0.5, Other: 0.2, None: 0.2})

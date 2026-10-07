@@ -52,6 +52,9 @@ type SystemOneInput struct {
 	Settled    bool
 	Supports   bool
 	Confidence float64
+	// Source says where Confidence came from: the endpoint's model, or the host
+	// votes that stood in for it.
+	Source format.ConfidenceSource
 }
 
 // JudgeInput is the judge's aggregated votes.
@@ -117,7 +120,7 @@ func Decide(in Inputs, p policy.Policy) Decision {
 		if !in.SystemOne.Settled {
 			return waiting(NeedSystemOne)
 		}
-		if in.SystemOne.Supports && in.SystemOne.Confidence >= p.TauRoute {
+		if in.SystemOne.Supports && in.SystemOne.Confidence >= p.TauRoute.For(in.SystemOne.Source) {
 			if !in.Audited {
 				decision := finished(format.VerdictAligned, format.BasisSystemOne, in.SystemOne.Confidence, "", DeciderSystemOne, DeciderMatrix)
 				decision.Corroborated = true

@@ -28,7 +28,7 @@ func TestStatementContracts(t *testing.T) {
 		t.Fatal("no Statement was written")
 	}
 
-	t.Run("the spec input is named ID~REV and repeats the statement digest of the subject [verifies SP-410~1]", func(t *testing.T) {
+	t.Run("the spec input is named ID~REV and repeats the statement digest of the subject [verifies SP-410~2]", func(t *testing.T) {
 		for key, statement := range statements {
 			var specs []format.Input
 			for _, input := range statement.Predicate.Inputs {
@@ -43,7 +43,7 @@ func TestStatementContracts(t *testing.T) {
 		}
 	})
 
-	t.Run("the file of the test is a test_source input with the digest of its exact bytes [verifies SP-410~1]", func(t *testing.T) {
+	t.Run("the file of the test is a test_source input with the digest of its exact bytes [verifies SP-410~2]", func(t *testing.T) {
 		for key, statement := range statements {
 			want := format.FileInput(format.RoleTestSource, pythonTestDir, testkit.FileDigest(t, h.root, pythonTestDir))
 			if !slices.Contains(statement.Predicate.Inputs, want) {
@@ -52,7 +52,7 @@ func TestStatementContracts(t *testing.T) {
 		}
 	})
 
-	t.Run("every file descriptor names a path relative to the project root with / separators [verifies SP-410~1]", func(t *testing.T) {
+	t.Run("every file descriptor names a path relative to the directory holding shallnot.yaml with / separators [verifies SP-410~2]", func(t *testing.T) {
 		for key, statement := range statements {
 			for _, input := range statement.Predicate.Inputs {
 				if input.Role.IsFileRole() && (!format.IsRelativePOSIXPath(input.Name) || input.Digest.SHA256 != testkit.FileDigest(t, h.root, input.Name)) {
@@ -62,7 +62,7 @@ func TestStatementContracts(t *testing.T) {
 		}
 	})
 
-	t.Run("the proof input is named by the consumed kind, names its criterion and digests the Statement file [verifies SP-410~1]", func(t *testing.T) {
+	t.Run("the proof input is named by the consumed kind, names its criterion and digests the Statement file [verifies SP-410~2]", func(t *testing.T) {
 		for key, statement := range statements {
 			ref := statement.Predicate.Requirement
 			criterion := format.SubjectName(ref.ID, ref.Revision)
@@ -79,7 +79,7 @@ func TestStatementContracts(t *testing.T) {
 		}
 	})
 
-	t.Run("a Statement of a test bound to one criterion lists no input of another criterion's proof [verifies SP-410~1]", func(t *testing.T) {
+	t.Run("a Statement of a test bound to one criterion lists no input of another criterion's proof [verifies SP-410~2]", func(t *testing.T) {
 		for key, statement := range statements {
 			for _, input := range statement.Predicate.Inputs {
 				if input.Role == format.RoleProof && input.Annotations.Criterion != statement.Subject[0].Name {

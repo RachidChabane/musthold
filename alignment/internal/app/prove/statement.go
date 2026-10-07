@@ -145,13 +145,14 @@ func proofExecutor(used []hostbridge.Answer, basis format.DecisionBasis) format.
 	return format.Executor{ExecutorProfile: profile, PromptDigest: prompt.TemplateDigests()[kind], Blind: true}
 }
 
-// thresholdOf is the threshold a decision of the basis was held to.
-func (s *subjectRun) thresholdOf(basis format.DecisionBasis) float64 {
+// thresholdOf is the threshold a decision of the basis was held to, for the
+// source its confidence came from.
+func (s *subjectRun) thresholdOf(basis format.DecisionBasis, confidence sourced) float64 {
 	switch basis {
 	case format.BasisSystemOne:
-		return s.pass.settings.Policy.TauRoute
+		return s.pass.settings.Policy.TauRoute.For(confidence.source)
 	case format.BasisJudges:
-		return s.pass.settings.Policy.ModalMin
+		return s.pass.settings.Policy.ModalMin.For(confidence.source)
 	}
 	return format.MaxConfidence
 }
@@ -187,7 +188,7 @@ func (s *subjectRun) writeStatement(declared criterion.Criterion, evidence testE
 			Extensions: format.Extensions{
 				Decision: &format.Decision{
 					Basis: decision.Basis, Deciders: deciders, ConfidenceSource: confidence.source, ConfidenceMapping: confidence.mapping,
-					RawConfidence: decision.Confidence, Threshold: s.thresholdOf(decision.Basis), EscalationReason: decision.Reason,
+					RawConfidence: decision.Confidence, Threshold: s.thresholdOf(decision.Basis, confidence), EscalationReason: decision.Reason,
 				},
 				Matrix: matrixJSON,
 			},

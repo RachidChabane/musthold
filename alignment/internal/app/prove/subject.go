@@ -231,9 +231,10 @@ func (s *subjectRun) decide(declared criterion.Ref, m matrix.Result) (decided, e
 			if signal.pending {
 				return decided{state: askPending}, nil
 			}
-			in.SystemOne = signal.input
 			closed := s.closedAnswers()
 			used, source = append(used, closed...), confidenceSource(closed, policy.DecideK)
+			in.SystemOne = signal.input
+			in.SystemOne.Source = source.source
 		case verdict.NeedJudge:
 			signal, err := s.judge(false)
 			if err != nil {

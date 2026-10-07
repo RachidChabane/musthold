@@ -314,10 +314,10 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   with the modal share for host deciders and judges, and `execution` for a verdict
   the module fixed itself, and SHALL name only the signals that decided in
   `deciders`.
-- **SP-410~1**: WHEN a Statement lists its inputs THE SYSTEM SHALL name the `spec`
+- **SP-410~2**: WHEN a Statement lists its inputs THE SYSTEM SHALL name the `spec`
   input `ID~REV` with the statement digest, list the file of its own test among the
-  `test_source` inputs, name every file input by its path relative to the project
-  root with the SHA-256 of its exact bytes, and consume the discriminating-power
+  `test_source` inputs, name every file input by its path relative to the directory
+  holding `shallnot.yaml` with the SHA-256 of its exact bytes, and consume the discriminating-power
   Statement of its criterion as the one `proof` input, named by the kind, carrying
   the criterion in its annotations and the SHA-256 of the Statement file's exact
   bytes, while the Statements of the other criteria the test is bound to reach the
@@ -337,3 +337,14 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   no adapter.
 - **SP-367~1**: WHEN an adapter is inspected THE SYSTEM SHALL import no other
   adapter.
+
+## Thresholds per confidence source
+
+- **SP-903~1**: WHEN `tau_route` or `modal_min` is set THE SYSTEM SHALL accept a bare
+  number or a mapping of `default` and of confidence sources to numbers, as
+  Shallnot's `proofs.thresholds` does, hold a System One answer to the threshold of
+  the source of its confidence (`system-one:<model>@<endpoint digest>`, or
+  `host-votes(<decide_k>)` when host votes stand in for the endpoint) and the judges
+  to that of `host-votes(<align_k>)`, resolving the exact source, then its kind,
+  then the default, refuse a value outside [0,1] and a key that names no source, and
+  record the threshold the decision was held to in `extensions.decision.threshold`.
