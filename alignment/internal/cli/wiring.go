@@ -9,6 +9,9 @@ import (
 	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/hoststore"
 	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/localcache"
 	golangmask "github.com/RachidChabane/spec-proof/alignment/internal/adapters/masking/golang"
+	javamask "github.com/RachidChabane/spec-proof/alignment/internal/adapters/masking/java"
+	javascriptmask "github.com/RachidChabane/spec-proof/alignment/internal/adapters/masking/javascript"
+	kotlinmask "github.com/RachidChabane/spec-proof/alignment/internal/adapters/masking/kotlin"
 	pythonmask "github.com/RachidChabane/spec-proof/alignment/internal/adapters/masking/python"
 	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/pendingfile"
 	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/process"
@@ -85,7 +88,7 @@ type project struct {
 // maskers lists the strategies that build the masked input of a test file, one
 // per ecosystem.
 func maskers() []ports.Masker {
-	return []ports.Masker{pythonmask.New(), golangmask.New()}
+	return []ports.Masker{pythonmask.New(), golangmask.New(), javascriptmask.New(), javamask.New(), kotlinmask.New()}
 }
 
 // openProject wires the adapters of a project root.

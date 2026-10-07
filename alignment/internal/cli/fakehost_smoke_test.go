@@ -19,7 +19,7 @@ const (
 	formatModule    = "../../../format"
 	alignmentModule = "../.."
 	wrapperName     = "module.sh"
-	buildTags       = "grammar_subset,grammar_subset_python"
+	buildTags       = "grammar_subset,grammar_subset_python,grammar_subset_javascript,grammar_subset_typescript,grammar_subset_tsx,grammar_subset_java,grammar_subset_kotlin"
 	judgeOnlyConfig = "policy:\n  two_signal: false\n"
 )
 

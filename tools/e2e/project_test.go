@@ -28,7 +28,7 @@ const (
 	shallnotRelative = ".tools/bin/shallnot"
 	dpBinary         = "spec-proof-dp"
 	alignmentBinary  = "spec-proof-alignment"
-	alignmentTags    = "grammar_subset,grammar_subset_python"
+	alignmentTags    = "grammar_subset,grammar_subset_python,grammar_subset_javascript,grammar_subset_typescript,grammar_subset_tsx,grammar_subset_java,grammar_subset_kotlin"
 	buildTimeout     = 5 * time.Minute
 	commandTimeout   = 8 * time.Minute
 	niceLevel        = "10"

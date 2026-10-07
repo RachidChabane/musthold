@@ -434,3 +434,9 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   three consecutive words of its function name, display names or name pattern.
 - **SP-1224~1**: WHEN a file is offered to the Kotlin masker THE SYSTEM SHALL serve
   the files of Kotlin and refuse every other file.
+
+## Languages in the command line
+
+- **SP-1230~1**: WHEN the maskers of the command line are listed THE SYSTEM SHALL
+  serve the test files of Python, Go, JavaScript, TypeScript, Java and Kotlin, each by
+  one masker.
