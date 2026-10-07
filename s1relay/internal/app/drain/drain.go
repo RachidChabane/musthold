@@ -167,7 +167,7 @@ func (r *run) handle(ctx context.Context, request ports.Exported) {
 	r.consecutive = 0
 	r.lastModel = decision.Model
 	source := r.Endpoint.Source(decision.Model)
-	if err := r.Module.Import(ctx, request.Ticket, request.Nonce, source, decision.Answers); err != nil {
+	if err := r.Module.Import(ctx, request.Ticket, request.Nonce, source, decision.Reply); err != nil {
 		r.record(Item{Ticket: request.Ticket, Status: StatusUnanswered, Kind: failure.KindImport, Detail: failure.DetailOf(err)})
 		return
 	}

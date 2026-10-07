@@ -21,8 +21,9 @@ type Exported struct {
 type ModuleGateway interface {
 	// Export lists the closed requests that wait for their first vote.
 	Export(ctx context.Context) ([]Exported, error)
-	// Import hands the answers of one request to the module under a source name.
-	Import(ctx context.Context, ticket, nonce, source string, answers question.Answers) error
+	// Import hands the reply of the endpoint to one request to the module under a
+	// source name; the module translates it with the question set of the ticket.
+	Import(ctx context.Context, ticket, nonce, source string, reply []byte) error
 }
 
 // Decision is what an endpoint answered to one question set.
@@ -31,6 +32,8 @@ type Decision struct {
 	// endpoint named, else empty.
 	Model   string
 	Answers question.Answers
+	// Reply is the body the endpoint answered, as the module imports it.
+	Reply []byte
 }
 
 // SystemOne asks a System One endpoint one question set at a time.

@@ -72,7 +72,7 @@ func (c *Client) Decide(ctx context.Context, set question.Set) (ports.Decision, 
 	if err != nil {
 		return ports.Decision{}, failure.Wrap(failure.KindMalformed, err, "the reply is unusable")
 	}
-	return ports.Decision{Model: c.modelOf(replyModel), Answers: answers}, nil
+	return ports.Decision{Model: c.modelOf(replyModel), Answers: answers, Reply: reply}, nil
 }
 
 func (c *Client) modelOf(replyModel string) string {

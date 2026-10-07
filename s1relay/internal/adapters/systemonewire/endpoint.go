@@ -1,17 +1,17 @@
 package systemonewire
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
 
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/question"
 )
 
 // MaxQuestions is the most questions one `/v1/systemone` request holds.
-const MaxQuestions = 64
+const MaxQuestions = hostproto.MaxClosedQuestions
 
 // Question types of the `/v1/systemone` route.
 const (
@@ -22,55 +22,8 @@ const (
 // ErrTooManyQuestions is returned for a set the route cannot take.
 var ErrTooManyQuestions = errors.New("the question set is larger than the endpoint accepts")
 
-// member is one entry of an ordered JSON object.
-type member struct {
-	key   string
-	value any
-}
-
-// ordered is a JSON object that keeps the order of its members, which the
-// endpoint preserves: the order of the questions and of the options is part of
-// what the model is shown.
-type ordered []member
-
-func (o ordered) MarshalJSON() ([]byte, error) {
-	var buffer bytes.Buffer
-	buffer.WriteByte('{')
-	for index, entry := range o {
-		if index > 0 {
-			buffer.WriteByte(',')
-		}
-		key, err := json.Marshal(entry.key)
-		if err != nil {
-			return nil, err
-		}
-		value, err := json.Marshal(entry.value)
-		if err != nil {
-			return nil, err
-		}
-		buffer.Write(key)
-		buffer.WriteByte(':')
-		buffer.Write(value)
-	}
-	buffer.WriteByte('}')
-	return buffer.Bytes(), nil
-}
-
-type endpointRequest struct {
-	Model     string  `json:"model,omitempty"`
-	State     string  `json:"state"`
-	Questions ordered `json:"questions"`
-}
-
-type endpointQuestion struct {
-	Type         string `json:"type"`
-	Instructions string `json:"instructions"`
-	Criteria     any    `json:"criteria"`
-}
-
-// EncodeRequest renders a question set as the body of a `/v1/systemone` request.
-// A choice carries its options as an object from name to meaning, a score its
-// levels as an array of meanings, weakest first. The model is left out when empty.
+// EncodeRequest renders a question set as the body of a `/v1/systemone` request,
+// through the host protocol's definition of it. The model is left out when empty.
 func EncodeRequest(model string, set question.Set) ([]byte, error) {
 	if err := set.Validate(); err != nil {
 		return nil, err
@@ -78,28 +31,7 @@ func EncodeRequest(model string, set question.Set) ([]byte, error) {
 	if len(set.Questions) > MaxQuestions {
 		return nil, fmt.Errorf("%w: %d questions, at most %d", ErrTooManyQuestions, len(set.Questions), MaxQuestions)
 	}
-	request := endpointRequest{Model: model, State: set.State, Questions: make(ordered, len(set.Questions))}
-	for index, q := range set.Questions {
-		request.Questions[index] = member{key: q.ID, value: endpointQuestion{
-			Type: string(q.Type), Instructions: q.Text, Criteria: criteriaOf(q),
-		}}
-	}
-	return json.Marshal(request)
-}
-
-func criteriaOf(q question.Question) any {
-	if q.Type == question.TypeScore {
-		levels := make([]string, len(q.Options))
-		for index, option := range q.Options {
-			levels[index] = option.Meaning()
-		}
-		return levels
-	}
-	options := make(ordered, len(q.Options))
-	for index, option := range q.Options {
-		options[index] = member{key: option.Name, value: option.Meaning()}
-	}
-	return options
+	return ClosedSetOf(set).SystemOneRequest(model)
 }
 
 type endpointReply struct {

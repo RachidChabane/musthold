@@ -16,7 +16,6 @@ import (
 	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/systemonewire"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/failure"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/question"
 )
 
 // Names of the command line of a module binary.
@@ -110,17 +109,13 @@ func (g *Gateway) Export(ctx context.Context) ([]ports.Exported, error) {
 	return exported, nil
 }
 
-// Import runs `systemone import` with the answers on its standard input. A module
-// that refuses them exits non-zero and says why on stderr.
-func (g *Gateway) Import(ctx context.Context, ticket, nonce, source string, answers question.Answers) error {
-	body, err := systemonewire.EncodeAnswers(answers)
-	if err != nil {
-		return err
-	}
+// Import runs `systemone import` with the reply of the endpoint on its standard
+// input. A module that refuses it exits non-zero and says why on stderr.
+func (g *Gateway) Import(ctx context.Context, ticket, nonce, source string, reply []byte) error {
 	args := []string{commandSystemOne, verbImport, ticket, flagNonce, nonce, flagSource, source}
-	_, stderr, err := g.runner.Run(ctx, g.dir, g.binary, args, body)
+	_, stderr, err := g.runner.Run(ctx, g.dir, g.binary, args, reply)
 	if err != nil {
-		return failure.New(failure.KindImport, "%s %s %s refused the answers: %v%s", g.binary, commandSystemOne, verbImport, err, excerptOf(stderr))
+		return failure.New(failure.KindImport, "%s %s %s refused the reply: %v%s", g.binary, commandSystemOne, verbImport, err, excerptOf(stderr))
 	}
 	return nil
 }

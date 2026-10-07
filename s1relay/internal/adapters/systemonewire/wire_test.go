@@ -84,7 +84,7 @@ func TestEncodeRequest(t *testing.T) {
 
 func TestDecodeClosed(t *testing.T) {
 	t.Run("options given as objects with a description, as alignment and completeness emit them [verifies SP-604~1]", func(t *testing.T) {
-		raw := `{"state":"S","questions":[{"id":"criterion","type":"choice","question":"Which?","options":[{"name":"K-1","description":"first"},{"name":"NONE","description":"No listed requirement is checked."}]},{"id":"coverage","type":"score","question":"How much?","options":[{"name":"NONE","description":"NONE"},{"name":"FULL","description":"FULL"}]}]}`
+		raw := `{"state":"S","questions":[{"id":"criterion","type":"choice","instructions":"Which?","options":[{"name":"K-1","description":"first"},{"name":"NONE","description":"No listed requirement is checked."}]},{"id":"coverage","type":"score","instructions":"How much?","options":[{"name":"NONE","description":"NONE"},{"name":"FULL","description":"FULL"}]}]}`
 		set, err := systemonewire.DecodeClosed(json.RawMessage(raw))
 		if err != nil {
 			t.Fatal(err)
@@ -94,26 +94,21 @@ func TestDecodeClosed(t *testing.T) {
 		}
 	})
 
-	t.Run("options given as bare names, as discpower emits them, and a missing type meaning a choice [verifies SP-604~1]", func(t *testing.T) {
-		raw := `{"state":"S","questions":[{"id":"q1","question":"Does the change break requirement 1?","options":["VIOLATES","CONSISTENT"]}]}`
-		set, err := systemonewire.DecodeClosed(json.RawMessage(raw))
-		if err != nil {
-			t.Fatal(err)
-		}
-		got := set.Questions[0]
-		if got.Type != question.TypeChoice || got.Options[1].Name != "CONSISTENT" || got.Options[1].Meaning() != "CONSISTENT" {
-			t.Fatalf("question %+v", got)
+	t.Run("a noul question is one the relay does not carry [verifies SP-604~1]", func(t *testing.T) {
+		raw := `{"state":"S","questions":[{"id":"q","type":"noul","instructions":"Is it?"}]}`
+		if _, err := systemonewire.DecodeClosed(json.RawMessage(raw)); !errors.Is(err, question.ErrUnsupportedType) {
+			t.Fatalf("error %v", err)
 		}
 	})
 
 	t.Run("a closed request that is not readable or not askable is an error [verifies SP-616~1]", func(t *testing.T) {
 		for name, raw := range map[string]string{
 			"not JSON":         `{"state":`,
-			"a bad option":     `{"state":"S","questions":[{"id":"q","options":[7]}]}`,
-			"an unknown type":  `{"state":"S","questions":[{"id":"q","type":"noul","options":["a"]}]}`,
+			"a bare option":    `{"state":"S","questions":[{"id":"q","type":"choice","instructions":"Which?","options":["a","b"]}]}`,
+			"an unknown type":  `{"state":"S","questions":[{"id":"q","type":"free","instructions":"Which?","options":[{"name":"a","description":"a"}]}]}`,
 			"no question":      `{"state":"S","questions":[]}`,
-			"a duplicate id":   `{"state":"S","questions":[{"id":"q","options":["a"]},{"id":"q","options":["b"]}]}`,
-			"a missing option": `{"state":"S","questions":[{"id":"q","options":[]}]}`,
+			"a duplicate id":   `{"state":"S","questions":[{"id":"q","type":"choice","instructions":"W","options":[{"name":"a","description":"a"},{"name":"b","description":"b"}]},{"id":"q","type":"choice","instructions":"W","options":[{"name":"a","description":"a"},{"name":"b","description":"b"}]}]}`,
+			"a missing option": `{"state":"S","questions":[{"id":"q","type":"choice","instructions":"W","options":[]}]}`,
 		} {
 			if _, err := systemonewire.DecodeClosed(json.RawMessage(raw)); err == nil {
 				t.Errorf("%s: decoded", name)
@@ -123,21 +118,13 @@ func TestDecodeClosed(t *testing.T) {
 }
 
 func TestExportAndAnswers(t *testing.T) {
-	t.Run("the export of a module is read and the answers are written as the import reads them [verifies SP-600~1]", func(t *testing.T) {
+	t.Run("the export of a module is read [verifies SP-600~1]", func(t *testing.T) {
 		exported, err := systemonewire.DecodeExport([]byte(`[{"ticket":"abc.0.1","nonce":"n0","closed":{"state":"S"}}]`))
 		if err != nil || len(exported) != 1 || exported[0].Ticket != "abc.0.1" || exported[0].Nonce != "n0" {
 			t.Fatalf("export %+v (%v)", exported, err)
 		}
 		if _, err := systemonewire.DecodeExport([]byte(`{`)); err == nil {
 			t.Fatal("a broken export was read")
-		}
-		half := 0.5
-		body, err := systemonewire.EncodeAnswers(question.Answers{{QuestionID: "a", Choice: "X", Confidence: &half}, {QuestionID: "b", Choice: "Y"}})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if got, want := strings.TrimSpace(string(body)), `{"answers":[{"id":"a","choice":"X","confidence":0.5},{"id":"b","choice":"Y"}]}`; got != want {
-			t.Fatalf("answers %s, want %s", got, want)
 		}
 	})
 }

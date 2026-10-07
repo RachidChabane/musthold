@@ -13,8 +13,8 @@ to the Go tests of the module in CI.
 
 - **SP-600~1**: WHEN `drain --module M` runs THE SYSTEM SHALL run
   `spec-proof-M systemone export` from the project root, post each exported
-  closed request to the endpoint, and run `spec-proof-M systemone import` for
-  each usable answer with the ticket, its nonce and the source
+  closed request to the endpoint, and run `spec-proof-M systemone import` with the
+  reply of the endpoint for each usable answer, with the ticket, its nonce and the source
   `systemone:<model>@<endpointDigest>`.
 - **SP-601~1**: WHEN `drain` runs THE SYSTEM SHALL take the endpoint and the
   model from `--endpoint` and `--model`, else from `systemone.endpoint` and
@@ -44,8 +44,9 @@ to the Go tests of the module in CI.
   instructions, a choice with its options as an object from name to
   description, a score with its levels as an array of descriptions, an option
   without description described by its name, and the model only when one is
-  named, and SHALL read an option given as a bare name or as an object with a
-  name and a description.
+  named, and SHALL read the question set of a request through the host protocol's
+  closed question type, whose options are objects with a name and a description,
+  and leave a noul question to the host votes.
 - **SP-605~1**: WHEN an endpoint replies THE SYSTEM SHALL map a choice to the
   option it names, a score to the option nearest to the weighted level, keep the
   confidence only when the endpoint stated one, ignore fields it does not know,

@@ -320,15 +320,16 @@ const (
 func (s ClosedSet) SystemOneRequest(model string) ([]byte, error) {
 	var body bytes.Buffer
 	body.WriteByte('{')
-	for _, member := range []struct {
-		name  string
-		value any
-	}{{systemOneModel, model}, {systemOneState, s.State}} {
-		if err := writeMember(&body, member.name, member.value); err != nil {
+	if model != "" {
+		if err := writeMember(&body, systemOneModel, model); err != nil {
 			return nil, err
 		}
 		body.WriteByte(',')
 	}
+	if err := writeMember(&body, systemOneState, s.State); err != nil {
+		return nil, err
+	}
+	body.WriteByte(',')
 	body.WriteString(`"` + systemOneQuestions + `":{`)
 	for index, question := range s.Questions {
 		if index > 0 {

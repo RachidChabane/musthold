@@ -18,7 +18,7 @@ const modelName = "tev1:0.8b"
 
 type imported struct {
 	ticket, nonce, source string
-	answers               question.Answers
+	reply                 []byte
 }
 
 // fakeModule serves a fixed export and records the imports and the order of events.
@@ -34,12 +34,12 @@ func (m *fakeModule) Export(context.Context) ([]ports.Exported, error) {
 	return m.exported, m.exportErr
 }
 
-func (m *fakeModule) Import(_ context.Context, ticket, nonce, source string, answers question.Answers) error {
+func (m *fakeModule) Import(_ context.Context, ticket, nonce, source string, reply []byte) error {
 	*m.events = append(*m.events, "import "+ticket)
 	if err := m.importErr[ticket]; err != nil {
 		return err
 	}
-	m.imports = append(m.imports, imported{ticket, nonce, source, answers})
+	m.imports = append(m.imports, imported{ticket, nonce, source, reply})
 	return nil
 }
 
@@ -65,10 +65,13 @@ func (s *fakeSystemOne) Decide(_ context.Context, set question.Set) (ports.Decis
 		return ports.Decision{}, err
 	}
 	if s.answers != nil {
-		return ports.Decision{Model: modelName, Answers: s.answers(set)}, nil
+		return ports.Decision{Model: modelName, Answers: s.answers(set), Reply: replyOf(index)}, nil
 	}
-	return ports.Decision{Model: modelName, Answers: firstOptions(set)}, nil
+	return ports.Decision{Model: modelName, Answers: firstOptions(set), Reply: replyOf(index)}, nil
 }
+
+// replyOf is the body the fake endpoint answered to the i-th call.
+func replyOf(index int) []byte { return []byte(fmt.Sprintf(`{"reply":%d}`, index)) }
 
 func firstOptions(set question.Set) question.Answers {
 	answers := make(question.Answers, len(set.Questions))
@@ -159,7 +162,7 @@ func TestRunImportsEachAnswer(t *testing.T) {
 		wantSource := r.service.Endpoint.Source(modelName)
 		for index, got := range r.module.imports {
 			ticket := fmt.Sprintf("t%d", index)
-			if got.ticket != ticket || got.nonce != "n-"+ticket || got.source != wantSource || got.answers[0].Choice != "A" {
+			if got.ticket != ticket || got.nonce != "n-"+ticket || got.source != wantSource || string(got.reply) != fmt.Sprintf(`{"reply":%d}`, index) {
 				t.Errorf("import %d = %+v", index, got)
 			}
 		}

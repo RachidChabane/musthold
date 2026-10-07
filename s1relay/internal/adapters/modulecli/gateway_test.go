@@ -18,7 +18,7 @@ import (
 const (
 	helperVariable = "S1RELAY_HELPER_PROCESS"
 	helperTest     = "^TestHelperProcess$"
-	exportOutput   = `[{"ticket":"aa.0.1","nonce":"n1","closed":{"state":"S","questions":[{"id":"q1","type":"choice","question":"Q?","options":["A","B"]}]}},{"ticket":"bb.0.1","nonce":"n2","closed":{"state":"S","questions":[{"id":"q1","type":"noul","options":["A"]}]}}]`
+	exportOutput   = `[{"ticket":"aa.0.1","nonce":"n1","closed":{"state":"S","questions":[{"id":"q1","type":"choice","instructions":"Q?","options":[{"name":"A","description":"a"},{"name":"B","description":"b"}]}]}},{"ticket":"bb.0.1","nonce":"n2","closed":{"state":"S","questions":[{"id":"q1","type":"noul","instructions":"Is it?"}]}}]`
 )
 
 type call struct {
@@ -109,20 +109,19 @@ func TestExport(t *testing.T) {
 }
 
 func TestImport(t *testing.T) {
-	half := 0.5
-	answers := question.Answers{{QuestionID: "q1", Choice: "A", Confidence: &half}}
+	reply := []byte(`{"model":"m","answers":{"q1":{"type":"choice","choice":"A","confidence":0.5}}}`)
 
-	t.Run("import gives the ticket, nonce and source and the answers on stdin [verifies SP-600~1]", func(t *testing.T) {
+	t.Run("import gives the ticket, nonce and source and the reply of the endpoint on stdin [verifies SP-600~1]", func(t *testing.T) {
 		runner := &fakeRunner{}
 		gateway, _ := modulecli.NewGateway("alignment", "/project", runner)
-		if err := gateway.Import(context.Background(), "aa.0.1", "n1", "systemone:m@d", answers); err != nil {
+		if err := gateway.Import(context.Background(), "aa.0.1", "n1", "systemone:m@d", reply); err != nil {
 			t.Fatal(err)
 		}
 		got := runner.calls[0]
 		if got.name != "spec-proof-alignment" || strings.Join(got.args, " ") != "systemone import aa.0.1 --nonce n1 --source systemone:m@d" {
 			t.Fatalf("call %+v", got)
 		}
-		if strings.TrimSpace(got.stdin) != `{"answers":[{"id":"q1","choice":"A","confidence":0.5}]}` {
+		if got.stdin != string(reply) {
 			t.Fatalf("stdin %q", got.stdin)
 		}
 	})
@@ -130,7 +129,7 @@ func TestImport(t *testing.T) {
 	t.Run("a module that refuses the answers is an import failure that quotes its reason [verifies SP-614~1]", func(t *testing.T) {
 		runner := &fakeRunner{err: errors.New("exit status 1"), stderr: "nonce mismatch"}
 		gateway, _ := modulecli.NewGateway("dp", "/project", runner)
-		err := gateway.Import(context.Background(), "aa.0.1", "bad", "systemone:m@d", answers)
+		err := gateway.Import(context.Background(), "aa.0.1", "bad", "systemone:m@d", reply)
 		if failure.KindOf(err) != failure.KindImport || !strings.Contains(failure.DetailOf(err), "nonce mismatch") {
 			t.Fatalf("error %v", err)
 		}

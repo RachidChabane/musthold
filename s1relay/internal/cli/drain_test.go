@@ -22,8 +22,8 @@ import (
 const (
 	recordedModel = "tev1:0.8b"
 	exportTwo     = `[
-	  {"ticket":"aa.0.1","nonce":"n1","closed":{"state":"the sky is green","questions":[{"id":"color","type":"choice","question":"Which color does the text say the sky is?","options":[{"name":"blue","description":"blue"},{"name":"green","description":"green"},{"name":"grey","description":"grey"}]}]}},
-	  {"ticket":"bb.0.1","nonce":"n2","closed":{"state":"another state","questions":[{"id":"q1","question":"Does the change break requirement 1?","options":["VIOLATES","CONSISTENT"]}]}}
+	  {"ticket":"aa.0.1","nonce":"n1","closed":{"state":"the sky is green","questions":[{"id":"color","type":"choice","instructions":"Which color does the text say the sky is?","options":[{"name":"blue","description":"blue"},{"name":"green","description":"green"},{"name":"grey","description":"grey"}]}]}},
+	  {"ticket":"bb.0.1","nonce":"n2","closed":{"state":"another state","questions":[{"id":"q1","type":"choice","instructions":"Does the change break requirement 1?","options":[{"name":"VIOLATES","description":"The change breaks the requirement."},{"name":"CONSISTENT","description":"The requirement is still met."}]}]}}
 	]`
 )
 
@@ -149,8 +149,14 @@ func TestDrainCommand(t *testing.T) {
 		if imports[0].args != "systemone import aa.0.1 --nonce n1 --source "+source || imports[1].args != "systemone import bb.0.1 --nonce n2 --source "+source {
 			t.Errorf("import arguments %q, %q", imports[0].args, imports[1].args)
 		}
-		if strings.TrimSpace(imports[1].stdin) != `{"answers":[{"id":"q1","choice":"CONSISTENT","confidence":0.9674686077174837}]}` {
-			t.Errorf("second answers %s", imports[1].stdin)
+		var reply struct {
+			Answers map[string]struct {
+				Choice     string  `json:"choice"`
+				Confidence float64 `json:"confidence"`
+			} `json:"answers"`
+		}
+		if err := json.Unmarshal([]byte(imports[1].stdin), &reply); err != nil || reply.Answers["q1"].Choice != "CONSISTENT" || reply.Answers["q1"].Confidence != 0.9674686077174837 {
+			t.Errorf("the module did not get the endpoint's reply: %s (%v)", imports[1].stdin, err)
 		}
 	})
 
