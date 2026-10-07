@@ -118,7 +118,7 @@ func TestDecodeClosed(t *testing.T) {
 }
 
 func TestExportAndAnswers(t *testing.T) {
-	t.Run("the export of a module is read [verifies SP-600~1]", func(t *testing.T) {
+	t.Run("the export of a module is read [verifies SP-600~2]", func(t *testing.T) {
 		exported, err := systemonewire.DecodeExport([]byte(`[{"ticket":"abc.0.1","nonce":"n0","closed":{"state":"S"}}]`))
 		if err != nil || len(exported) != 1 || exported[0].Ticket != "abc.0.1" || exported[0].Nonce != "n0" {
 			t.Fatalf("export %+v (%v)", exported, err)

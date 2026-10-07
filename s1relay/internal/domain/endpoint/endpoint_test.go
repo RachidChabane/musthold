@@ -77,12 +77,12 @@ func TestDigest(t *testing.T) {
 }
 
 func TestSource(t *testing.T) {
-	t.Run("a source names the model and the endpoint digest, and the model unknown when none is named [verifies SP-600~1]", func(t *testing.T) {
+	t.Run("a source names the model and the endpoint digest, and the model unknown when none is named [verifies SP-600~2]", func(t *testing.T) {
 		address := parse(t, "http://localhost:11434")
-		if got, want := address.Source("tev1:0.8b"), "systemone:tev1:0.8b@"+address.Digest(); got != want {
+		if got, want := address.Source("tev1:0.8b"), "system-one:tev1:0.8b@"+address.Digest(); got != want {
 			t.Errorf("Source = %q, want %q", got, want)
 		}
-		if got, want := address.Source(""), "systemone:unknown@"+address.Digest(); got != want {
+		if got, want := address.Source(""), "system-one:unknown@"+address.Digest(); got != want {
 			t.Errorf("Source = %q, want %q", got, want)
 		}
 	})

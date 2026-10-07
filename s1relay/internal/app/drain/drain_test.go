@@ -153,7 +153,7 @@ func (r *rig) run(t *testing.T, options drain.Options) drain.Report {
 }
 
 func TestRunImportsEachAnswer(t *testing.T) {
-	t.Run("each request is posted and its answers imported under the model and the endpoint digest [verifies SP-600~1]", func(t *testing.T) {
+	t.Run("each request is posted and its answers imported under the model and the endpoint digest [verifies SP-600~2]", func(t *testing.T) {
 		r := newRig(t, 2)
 		report := r.run(t, drain.Options{})
 		if report.Answered() != 2 || report.Unanswered() != 0 || report.Remaining != 0 {
@@ -166,12 +166,12 @@ func TestRunImportsEachAnswer(t *testing.T) {
 				t.Errorf("import %d = %+v", index, got)
 			}
 		}
-		if !strings.HasPrefix(wantSource, "systemone:"+modelName+"@") || report.Items[0].Source != wantSource {
+		if !strings.HasPrefix(wantSource, "system-one:"+modelName+"@") || report.Items[0].Source != wantSource {
 			t.Errorf("source %q, item %+v", wantSource, report.Items[0])
 		}
 	})
 
-	t.Run("nothing exported means nothing posted and nothing unloaded [verifies SP-600~1]", func(t *testing.T) {
+	t.Run("nothing exported means nothing posted and nothing unloaded [verifies SP-600~2]", func(t *testing.T) {
 		r := newRig(t, 0)
 		report := r.run(t, drain.Options{Unload: true})
 		if len(report.Items) != 0 || r.systemOn.calls != 0 || len(r.unloader.models) != 0 || report.Unload.Attempted {

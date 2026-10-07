@@ -11,11 +11,11 @@ to the Go tests of the module in CI.
 
 ## Drain
 
-- **SP-600~1**: WHEN `drain --module M` runs THE SYSTEM SHALL run
+- **SP-600~2**: WHEN `drain --module M` runs THE SYSTEM SHALL run
   `spec-proof-M systemone export` from the project root, post each exported
   closed request to the endpoint, and run `spec-proof-M systemone import` with the
   reply of the endpoint for each usable answer, with the ticket, its nonce and the source
-  `systemone:<model>@<endpointDigest>`.
+  `system-one:<model>@<endpointDigest>`, the confidence source a proof records.
 - **SP-601~1**: WHEN `drain` runs THE SYSTEM SHALL take the endpoint and the
   model from `--endpoint` and `--model`, else from `systemone.endpoint` and
   `systemone.model` of `.spec-proof/config.yaml`, and WHEN no usable endpoint is

@@ -240,6 +240,9 @@ func TestDrainTheClosedRequestsOfTheAlignmentBinary(t *testing.T) {
 			t.Fatalf("%d closed requests still wait for a first vote", len(left))
 		}
 		source := address.Source(recordedModel)
+		if source != "system-one:"+recordedModel+"@"+address.Digest() {
+			t.Fatalf("source %q is not system-one:<model>@<digest>", source)
+		}
 		stateDir := filepath.Join(filepath.Dir(p.root), "state")
 		if recorded := recordedUnder(t, stateDir, source); len(recorded) < len(waiting) {
 			t.Fatalf("%d records carry the source %s, want at least %d", len(recorded), source, len(waiting))

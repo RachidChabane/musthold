@@ -11,23 +11,21 @@ import (
 	"net/url"
 	"path"
 	"strings"
+
+	"github.com/RachidChabane/spec-proof/format"
 )
 
 // Route is the path of the closed-question route of a System One endpoint.
 const Route = "/v1/systemone"
-
-// SourcePrefix starts the source name a relayed answer is imported under.
-const SourcePrefix = "systemone:"
 
 // UnknownModel names the model of an answer when neither the configuration nor the
 // endpoint named one.
 const UnknownModel = "unknown"
 
 const (
-	sourceSeparator = "@"
-	schemeHTTP      = "http"
-	schemeHTTPS     = "https"
-	pathRoot        = "/"
+	schemeHTTP  = "http"
+	schemeHTTPS = "https"
+	pathRoot    = "/"
 )
 
 // Errors of an endpoint address that cannot be used.
@@ -97,5 +95,5 @@ func (e Endpoint) Source(model string) string {
 	if model == "" {
 		model = UnknownModel
 	}
-	return SourcePrefix + model + sourceSeparator + e.Digest()
+	return string(format.SystemOneEndpointSource(model, e.Digest()))
 }

@@ -64,7 +64,7 @@ func TestBinaryName(t *testing.T) {
 }
 
 func TestExport(t *testing.T) {
-	t.Run("export runs the module binary from the project root and reads its closed requests [verifies SP-600~1]", func(t *testing.T) {
+	t.Run("export runs the module binary from the project root and reads its closed requests [verifies SP-600~2]", func(t *testing.T) {
 		runner := &fakeRunner{stdout: exportOutput}
 		gateway, err := modulecli.NewGateway("dp", "/project", runner)
 		if err != nil {
@@ -111,14 +111,14 @@ func TestExport(t *testing.T) {
 func TestImport(t *testing.T) {
 	reply := []byte(`{"model":"m","answers":{"q1":{"type":"choice","choice":"A","confidence":0.5}}}`)
 
-	t.Run("import gives the ticket, nonce and source and the reply of the endpoint on stdin [verifies SP-600~1]", func(t *testing.T) {
+	t.Run("import gives the ticket, nonce and source and the reply of the endpoint on stdin [verifies SP-600~2]", func(t *testing.T) {
 		runner := &fakeRunner{}
 		gateway, _ := modulecli.NewGateway("alignment", "/project", runner)
-		if err := gateway.Import(context.Background(), "aa.0.1", "n1", "systemone:m@d", reply); err != nil {
+		if err := gateway.Import(context.Background(), "aa.0.1", "n1", "system-one:m@d", reply); err != nil {
 			t.Fatal(err)
 		}
 		got := runner.calls[0]
-		if got.name != "spec-proof-alignment" || strings.Join(got.args, " ") != "systemone import aa.0.1 --nonce n1 --source systemone:m@d" {
+		if got.name != "spec-proof-alignment" || strings.Join(got.args, " ") != "systemone import aa.0.1 --nonce n1 --source system-one:m@d" {
 			t.Fatalf("call %+v", got)
 		}
 		if got.stdin != string(reply) {
@@ -129,7 +129,7 @@ func TestImport(t *testing.T) {
 	t.Run("a module that refuses the answers is an import failure that quotes its reason [verifies SP-614~1]", func(t *testing.T) {
 		runner := &fakeRunner{err: errors.New("exit status 1"), stderr: "nonce mismatch"}
 		gateway, _ := modulecli.NewGateway("dp", "/project", runner)
-		err := gateway.Import(context.Background(), "aa.0.1", "bad", "systemone:m@d", reply)
+		err := gateway.Import(context.Background(), "aa.0.1", "bad", "system-one:m@d", reply)
 		if failure.KindOf(err) != failure.KindImport || !strings.Contains(failure.DetailOf(err), "nonce mismatch") {
 			t.Fatalf("error %v", err)
 		}
@@ -162,7 +162,7 @@ func TestExecRunner(t *testing.T) {
 	}
 	args := []string{"-test.run=" + helperTest}
 
-	t.Run("a subprocess runs in the given directory with the given standard input [verifies SP-600~1]", func(t *testing.T) {
+	t.Run("a subprocess runs in the given directory with the given standard input [verifies SP-600~2]", func(t *testing.T) {
 		t.Setenv(helperVariable, "echo")
 		stdout, _, err := modulecli.ExecRunner{}.Run(context.Background(), dir, os.Args[0], args, []byte("answers"))
 		if err != nil {

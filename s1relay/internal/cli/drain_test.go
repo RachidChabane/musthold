@@ -126,7 +126,7 @@ func (h *harness) run(args ...string) result {
 }
 
 func TestDrainCommand(t *testing.T) {
-	t.Run("the closed requests of the module are posted to Ollama one at a time and imported under the model and endpoint digest [verifies SP-600~1]", func(t *testing.T) {
+	t.Run("the closed requests of the module are posted to Ollama one at a time and imported under the model and endpoint digest [verifies SP-600~2]", func(t *testing.T) {
 		stub := stubendpoint.New(stubendpoint.Ollama, nil)
 		defer stub.Close()
 		h := newHarness(t)
@@ -135,7 +135,7 @@ func TestDrainCommand(t *testing.T) {
 			t.Fatalf("exit %d, stderr %s", got.code, got.stderr)
 		}
 		parsed, _ := endpoint.Parse(stub.URL)
-		source := "systemone:" + recordedModel + "@" + parsed.Digest()
+		source := "system-one:" + recordedModel + "@" + parsed.Digest()
 		if len(stub.Requests()) != 2 || stub.MaxInFlight() != 1 {
 			t.Fatalf("%d requests, %d in flight at most", len(stub.Requests()), stub.MaxInFlight())
 		}
@@ -176,7 +176,7 @@ func TestDrainCommand(t *testing.T) {
 			t.Fatalf("report %v", report)
 		}
 		items := report["items"].([]any)
-		if len(items) != 2 || items[0].(map[string]any)["status"] != "answered" || !strings.HasPrefix(items[0].(map[string]any)["source"].(string), "systemone:unknown@") {
+		if len(items) != 2 || items[0].(map[string]any)["status"] != "answered" || !strings.HasPrefix(items[0].(map[string]any)["source"].(string), "system-one:unknown@") {
 			t.Fatalf("items %v", items)
 		}
 	})
@@ -214,7 +214,7 @@ func TestDrainConfiguration(t *testing.T) {
 		if body := string(stub.Requests()[0]); !strings.Contains(body, `"model":"kev-latest"`) {
 			t.Errorf("request %s", body)
 		}
-		if imports := h.runner.imports(); !strings.Contains(imports[0].args, "--source systemone:kev-latest@") {
+		if imports := h.runner.imports(); !strings.Contains(imports[0].args, "--source system-one:kev-latest@") {
 			t.Errorf("import %s", imports[0].args)
 		}
 	})

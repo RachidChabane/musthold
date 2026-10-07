@@ -3,22 +3,28 @@ module github.com/RachidChabane/spec-proof/s1relay
 go 1.26.4
 
 require (
+	github.com/RachidChabane/spec-proof/format v0.0.0
+	gopkg.in/yaml.v3 v3.0.1
+)
+
+require (
 	github.com/bitfield/gotestdox v0.2.2 // indirect
 	github.com/dnephin/pflag v1.0.7 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
+	github.com/gowebpki/jcs v1.0.2 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/rogpeppe/go-internal v1.16.0 // indirect
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/term v0.45.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/tools v0.49.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/gotestsum v1.13.0 // indirect
 )
 
 tool gotest.tools/gotestsum
+
+replace github.com/RachidChabane/spec-proof/format => ../format
