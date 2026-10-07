@@ -84,7 +84,3 @@ def parse_canonical(text: str) -> JsonValue:
 
 def sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
-
-
-def digest_of(value: JsonValue) -> str:
-    return sha256_hex(canonical_bytes(value))

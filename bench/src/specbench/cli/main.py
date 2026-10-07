@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from collections.abc import Callable, Sequence
 from datetime import date, datetime
@@ -20,7 +21,7 @@ from specbench.cli.commands import Console
 from specbench.domain.jsonread import RecordError
 from specbench.domain.languages import Language
 from specbench.domain.mining import SAMPLE_TASKS_PER_LANGUAGE
-from specbench.domain.pacing import DEFAULT_RUN_WINDOW, EXIT_PAUSED, InvalidRunWindow, RunPaused
+from specbench.domain.pacing import DEFAULT_RUN_WINDOW, EXIT_PAUSED, RUN_WINDOW_ENV, InvalidRunWindow, RunPaused
 from specbench.domain.sealing import SealingError
 from specbench.domain.verification import VERIFICATION_RUNS
 
@@ -100,7 +101,7 @@ def build_parser() -> argparse.ArgumentParser:
     lint.add_argument("--report", type=_path, required=True)
 
     window = verbs.add_parser("window-status", help=f"exit 0 inside the run window, {EXIT_PAUSED} outside it")
-    window.add_argument("--window", default=DEFAULT_RUN_WINDOW)
+    window.add_argument("--window", default=os.environ.get(RUN_WINDOW_ENV, DEFAULT_RUN_WINDOW))
     window.add_argument("--now", type=datetime.fromisoformat, default=None)
     return parser
 

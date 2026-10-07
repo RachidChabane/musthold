@@ -130,7 +130,3 @@ def parse_deviations(text: str) -> list[DeviationEntry]:
 
 def render_deviations(entries: Iterable[DeviationEntry]) -> str:
     return "\n".join([DEVIATIONS_TITLE, "", *(e.render() for e in entries), ""])
-
-
-def arms_touched(entries: Iterable[DeviationEntry]) -> frozenset[Arm]:
-    return frozenset(arm for entry in entries for arm in entry.arms)

@@ -44,24 +44,12 @@ PLUGIN_HOST_ARMS: Final = frozenset({Arm.ALL_NATIVE, Arm.CHEAT})
 ACCEPTANCE_ARMS: Final = (Arm.T, Arm.TR, Arm.AL, Arm.DP, Arm.CO, Arm.ALL, Arm.PL, Arm.ALL_NATIVE)
 """Arms whose acceptance and defect rates enter X; N has no S_T and the cheat arm reports success rates instead."""
 
-LADDER_ARMS: Final = (Arm.TR, Arm.AL, Arm.DP, Arm.CO)
-
 
 class Module(Enum):
     SHALLNOT = "shallnot"
     ALIGNMENT = "alignment"
     DISCRIMINATING_POWER = "discriminating-power"
     COMPLETENESS = "completeness"
-
-
-MODULE_OF_ARM: Final = {
-    Arm.TR: Module.SHALLNOT,
-    Arm.AL: Module.ALIGNMENT,
-    Arm.DP: Module.DISCRIMINATING_POWER,
-    Arm.CO: Module.COMPLETENESS,
-}
-GATING_MODULES: Final = (Module.ALIGNMENT, Module.DISCRIMINATING_POWER)
-"""Modules whose proofs Shallnot combines into ALL's per-criterion verdict; completeness is advisory."""
 
 
 def host_for(arm: Arm) -> Host:

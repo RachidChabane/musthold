@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from specbench.application.ports import OperatorMutantEngine, OracleRunner, TreeFactory, TreeSpec
-from specbench.domain.oracle import Oracle, OracleTest, Outcome, Part
+from specbench.domain.oracle import OVERLAID_PARTS, Oracle, OracleTest, Outcome, Part
 from specbench.domain.sealing import SealedBundle
 from specbench.domain.task import Task
 from specbench.domain.verification import (
@@ -23,7 +23,6 @@ from specbench.domain.verification import (
 )
 
 JUDGED_PARTS = (Part.U, Part.H)
-SHIPPED_PARTS = (Part.U, Part.H, Part.O)
 
 
 @dataclass(frozen=True)
@@ -38,7 +37,7 @@ class TaskVerifier:
     def verify(self, task: Task, oracle: Oracle, bundle: SealedBundle) -> VerificationReport:
         overlay = {
             destination: bundle.files[source]
-            for destination, source in oracle.overlay_paths(bundle, *SHIPPED_PARTS).items()
+            for destination, source in oracle.overlay_paths(bundle, *OVERLAID_PARTS).items()
         }
 
         def spec(commit: str, *patches: bytes) -> TreeSpec:

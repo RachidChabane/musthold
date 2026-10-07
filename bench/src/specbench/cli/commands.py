@@ -41,7 +41,6 @@ from specbench.domain.sealing import SealedBundle
 EXIT_OK: Final = 0
 EXIT_FAILED: Final = 1
 EXIT_UNSAFE: Final = 4
-RECIPIENTS_FILE: Final = "recipients.txt"
 ENCODING: Final = "utf-8"
 GITDIR_MARKER: Final = ".git"
 

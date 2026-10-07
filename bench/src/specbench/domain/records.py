@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Final
 
-from specbench.domain.arms import FROZEN_MODEL, Arm, Harness, Module
+from specbench.domain.arms import FROZEN_MODEL, JUDGE_REPLAY_MODEL, Arm, Harness, Module
 from specbench.domain.canonical import JsonValue
 from specbench.domain.jsonread import (
     RecordError,
@@ -217,6 +217,8 @@ def trunk_from_record(record: JsonValue) -> TrunkRecord:
         raise RecordError("s_t must be present exactly when the trunk reached S_T")
     judge = body.get("judge_replay")
     judge_body = None if judge is None else mapping(judge, "judge_replay")
+    if judge_body is not None and judge_body.get("replay_model") != JUDGE_REPLAY_MODEL[harness]:
+        raise RecordError(f"{harness.value} replays its judged requests through {JUDGE_REPLAY_MODEL[harness]}")
     return TrunkRecord(
         task_id=text(body.get("task_id"), "task_id"),
         repository=text(body.get("repository"), "repository"),
