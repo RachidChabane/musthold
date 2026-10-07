@@ -20,8 +20,6 @@ import (
 const (
 	// testFileExtension is the extension of the files the masker serves.
 	testFileExtension = ".py"
-	// parameterOpen starts the parametrization suffix of a pytest test name.
-	parameterOpen = "["
 )
 
 var _ ports.Masker = (*Masker)(nil)
@@ -66,7 +64,7 @@ func (*Masker) Mask(project fs.FS, test criterion.BoundTest) (ports.MaskedTest, 
 // classname ends with, a module-level function, or a method of any class, in
 // that order.
 func (x *fileIndex) locate(test criterion.BoundTest) (target, error) {
-	name := functionName(test.Name)
+	name := masking.NameWithoutParameters(test.Name)
 	if class, found, ok := x.findClassOf(test.Classname, name); ok {
 		return x.methodTarget(class, found), nil
 	}
@@ -81,12 +79,6 @@ func (x *fileIndex) locate(test criterion.BoundTest) (target, error) {
 
 func (x *fileIndex) methodTarget(class classScope, found method) target {
 	return target{class: &class, piece: x.testPiece(methodPiece, found.name, found.order, found.statement)}
-}
-
-// functionName drops the parametrization suffix of a pytest test name.
-func functionName(testName string) string {
-	name, _, _ := strings.Cut(testName, parameterOpen)
-	return name
 }
 
 // build writes the unit and its signatures.

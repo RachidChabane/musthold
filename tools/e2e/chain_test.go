@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	verifiesHonest    = " [verifies SP-412~2]"
+	verifiesHonest    = " [verifies SP-412~3]"
 	verifiesCareless  = " [verifies SP-413~1]"
 	verifiesStaleness = " [verifies SP-414~1]"
 	verifiesForger    = " [verifies SP-415~1]"
@@ -24,10 +24,10 @@ const (
 )
 
 // parcelTable is what the gate says of the parcel project when an honest host made
-// both proofs: the line total is adequately tested and aligned, the discount tests
-// whose ids repeat numbers of the statement cannot be judged blind and so escalate,
-// and the shipping tests leave a surviving mutant that violates the criterion.
-var parcelTable = map[string]string{"PAR-1": verdictPass, "PAR-2": verdictEscalate, "PAR-3": verdictBlock}
+// both proofs: the line total and the discount are adequately tested and aligned,
+// the parameter ids of the discount tests being no part of their names, and the
+// shipping tests leave a surviving mutant that violates the criterion.
+var parcelTable = map[string]string{"PAR-1": verdictPass, "PAR-2": verdictPass, "PAR-3": verdictBlock}
 
 // manifestEntry is one statement of the verified set as the manifest lists it.
 type manifestEntry struct {
@@ -66,7 +66,7 @@ func TestHonestChain(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds three binaries and runs the parcel project's tests against many mutants")
 	}
-	p := provedWithHonestDiscriminatingPower(t, []string{"SP-412~2", "SP-413~1", "SP-414~1", "SP-415~1"})
+	p := provedWithHonestDiscriminatingPower(t, []string{"SP-412~3", "SP-413~1", "SP-414~1", "SP-415~1"})
 	careless, forgedAlignment := p.copyAs("careless"), p.copyAs("forged alignment")
 
 	aligned := p.proveAlignment(parcel.HonestAlignment())

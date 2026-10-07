@@ -1,6 +1,7 @@
 package python_test
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -17,6 +18,10 @@ import (
 var nameVocabulary = []string{
 	"alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india", "juliet",
 }
+
+// parameterID is the id pytest gives the parameter set of a parametrized test:
+// the values joined by dashes.
+const parameterID = "10-200-180.0"
 
 const (
 	minNameWords   = 1
@@ -82,10 +87,10 @@ func propertySource(shape testShape, name string, refs []criterion.Ref) string {
 	case parametrizedFunction:
 		body = []string{
 			marker,
-			`@pytest.mark.parametrize("size", [1, 2])`,
-			"def " + name + "(" + words + "_fixture, size):",
+			`@pytest.mark.parametrize("size,low,high", [(10, 200, 180.0), (1, 2, 3.5)])`,
+			"def " + name + "(" + words + "_fixture, size, low, high):",
 			"    # " + words,
-			"    assert " + words + "_fixture.size + size",
+			"    assert " + words + "_fixture.size + size + low + high",
 		}
 	default:
 		body = []string{
@@ -105,10 +110,50 @@ func boundTestOf(shape testShape, name string) criterion.BoundTest {
 		words := strings.TrimPrefix(name, "test_")
 		return criterion.BoundTest{Classname: propertyModule + ".Test" + strings.ToUpper(words[:1]), Name: name, File: propertyFile}
 	case parametrizedFunction:
-		return criterion.BoundTest{Classname: propertyModule, Name: name + "[1-alpha]", File: propertyFile}
+		return criterion.BoundTest{Classname: propertyModule, Name: name + "[" + parameterID + "]", File: propertyFile}
 	default:
 		return criterion.BoundTest{Classname: propertyModule, Name: name, File: propertyFile}
 	}
+}
+
+func TestParameterIDsAreNotLeaks(t *testing.T) {
+	const source = `import pytest
+from shop import Cart
+
+@pytest.mark.verifies("PAR-2~1")
+@pytest.mark.parametrize("size,low,high", [(10, 200, 180.0), (1, 2, 3.5)])
+def test_total(size, low, high):
+    assert Cart(size).size + low + high
+`
+	project := fstest.MapFS{
+		propertyFile:      {Data: []byte(source)},
+		"src/shop.py":     {Data: []byte(cartLibrary)},
+		"src/__init__.py": {Data: []byte("")},
+	}
+
+	t.Run("the ids of a parametrized run are not a run of the test name [verifies SP-905~1]", func(t *testing.T) {
+		test := criterion.BoundTest{Classname: propertyModule, Name: "test_total[" + parameterID + "]", File: propertyFile}
+		masked, err := python.New().Mask(project, test)
+		if err != nil {
+			t.Fatalf("mask %s: %v", test.Label(), err)
+		}
+		if !strings.Contains(masked.Unit, "10, 200, 180.0") {
+			t.Fatalf("the parameters were dropped:\n%s", masked.Unit)
+		}
+		if leaks := masking.Check(masked.Unit, test.Name, nil); len(leaks) > 0 {
+			t.Fatalf("the unit leaks %v:\n%s", leaks, masked.Unit)
+		}
+	})
+
+	t.Run("a run of words of the name still leaks when the test is parametrized [verifies SP-905~1]", func(t *testing.T) {
+		leaking := fstest.MapFS{
+			propertyFile: {Data: []byte("import pytest\n\n@pytest.mark.parametrize(\"size\", [10])\ndef test_grace_period_is_free(size):\n    label = \"grace period is free\"\n    assert size, label\n")},
+		}
+		test := criterion.BoundTest{Classname: propertyModule, Name: "test_grace_period_is_free[10]", File: propertyFile}
+		if _, err := python.New().Mask(leaking, test); !errors.Is(err, masking.ErrLeak) {
+			t.Fatalf("error = %v", err)
+		}
+	})
 }
 
 func TestMaskedInputNeverLeaks(t *testing.T) {

@@ -15,10 +15,11 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   opaque token that names no criterion, unique among them, and an order, both a
   pure function of the test and the criteria, so that identical work gives an
   identical request and another test gives another token set and order.
-- **SP-301~1**: WHEN a masked item is checked THE SYSTEM SHALL refuse it when it
+- **SP-301~2**: WHEN a masked item is checked THE SYSTEM SHALL refuse it when it
   holds a declared criterion reference or identifier, the marker word `verifies`
   or a run of three consecutive words of the test name, reading camel-case names
-  word by word and ignoring the `test` prefix word.
+  word by word, ignoring the `test` prefix word and the ids of the parameters a
+  parametrized run appends to the name in brackets.
 - **SP-302~1**: WHEN a criterion statement is shown THE SYSTEM SHALL remove every
   declared reference and identifier from it, longer identifiers first.
 - **SP-321~1**: WHEN a Python test is masked THE SYSTEM SHALL return the test and
@@ -348,3 +349,10 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   to that of `host-votes(<align_k>)`, resolving the exact source, then its kind,
   then the default, refuse a value outside [0,1] and a key that names no source, and
   record the threshold the decision was held to in `extensions.decision.threshold`.
+
+## Parametrized tests
+
+- **SP-905~1**: WHEN a parametrized test is masked THE SYSTEM SHALL keep its
+  parameter values in the masked unit and SHALL NOT refuse it for the text of the id
+  its run carries, as in `test_total[10-200-180.0]`, while a run of three
+  consecutive words of the name of the function keeps refusing it.

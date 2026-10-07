@@ -29,16 +29,16 @@ alignment and verify modules and the pinned Shallnot over a copy of the parcel
 pytest project, and need that Shallnot: without it the tests record a skip that
 names the reason, and the gate reports the skipped requirement.
 
-- **SP-412~2**: WHEN both modules are initialized and enabled with their own
+- **SP-412~3**: WHEN both modules are initialized and enabled with their own
   `init` and `enable`, the code is edited, the discriminating-power proof and the
   alignment proof are each made with an honest host through the module's real hooks
   and MCP executor server (the alignment proof from the verified set), and the
   local statements are accepted by the verifier THE SYSTEM
   SHALL give `shallnot check` the verdict the proofs reached for each criterion:
-  PASS for the line total, which is adequately tested and aligned; ESCALATE for the
-  discount, whose parametrized tests have ids that repeat numbers of the statement
-  and so are refused as `masked_input_leaks` by the alignment module; and BLOCK for
-  the shipping fee, which a mutant that violates it survives; none of them
+  PASS for the line total and for the discount, which are adequately tested and
+  aligned, the ids of the parameters of the discount's parametrized tests, which
+  repeat numbers of the statement, being no part of the names the alignment module
+  masks against; and BLOCK for the shipping fee, which a mutant that violates it survives; none of them
   `stale_proof` or `malformed_proof`, with the digests the alignment proofs record
   for the consumed discriminating-power statements equal to the digests of the
   manifest.

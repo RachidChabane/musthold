@@ -74,10 +74,23 @@ func splitCamel(chunk string) []string {
 	return parts
 }
 
-// nameWords are the words of a test name without the `test` prefix word.
+// parameterOpen starts the parametrization suffix of a test name, as in
+// `test_total[10-200-180.0]`.
+const parameterOpen = "["
+
+// NameWithoutParameters is the name its author gave a test: a parametrized run is
+// reported with the ids of its parameters appended in brackets, which are data the
+// test ran with and not part of its name.
+func NameWithoutParameters(testName string) string {
+	name, _, _ := strings.Cut(testName, parameterOpen)
+	return name
+}
+
+// nameWords are the words of a test name without its parametrization suffix and
+// without the `test` prefix word.
 func nameWords(testName string) []string {
 	var kept []string
-	for _, word := range words(testName) {
+	for _, word := range words(NameWithoutParameters(testName)) {
 		if word != testPrefixWord {
 			kept = append(kept, word)
 		}

@@ -106,7 +106,7 @@ func TestLeaks(t *testing.T) {
 	refs := []criterion.Ref{{ID: "PAR-3", Revision: 1}}
 	const name = "test_zero_quantity_is_rejected"
 
-	t.Run("an item with a criterion reference, an identifier or the marker word leaks [verifies SP-301~1]", func(t *testing.T) {
+	t.Run("an item with a criterion reference, an identifier or the marker word leaks [verifies SP-301~2]", func(t *testing.T) {
 		for _, item := range []string{"x = 'PAR-3~1'", "PAR-3", "@verifies('x')", "def Verifies(): pass"} {
 			if err := masking.Ensure(item, name, refs); !errors.Is(err, masking.ErrLeak) {
 				t.Errorf("%q: error %v", item, err)
@@ -114,7 +114,7 @@ func TestLeaks(t *testing.T) {
 		}
 	})
 
-	t.Run("an item with three consecutive words of the test name leaks [verifies SP-301~1]", func(t *testing.T) {
+	t.Run("an item with three consecutive words of the test name leaks [verifies SP-301~2]", func(t *testing.T) {
 		for _, item := range []string{"zero_quantity_is_rejected", "assert zeroQuantityIs", "ZERO quantity IS"} {
 			if err := masking.Ensure(item, name, refs); !errors.Is(err, masking.ErrLeak) {
 				t.Errorf("%q: error %v", item, err)
@@ -122,7 +122,7 @@ func TestLeaks(t *testing.T) {
 		}
 	})
 
-	t.Run("two words of the test name do not leak and the test prefix is ignored [verifies SP-301~1]", func(t *testing.T) {
+	t.Run("two words of the test name do not leak and the test prefix is ignored [verifies SP-301~2]", func(t *testing.T) {
 		for _, item := range []string{"zero_quantity", "def test_case(): assert line_total(0) == 0", "zero quantity rejected"} {
 			if err := masking.Ensure(item, name, refs); err != nil {
 				t.Errorf("%q: error %v", item, err)
@@ -133,7 +133,22 @@ func TestLeaks(t *testing.T) {
 		}
 	})
 
-	t.Run("a camel-case test name is read word by word [verifies SP-301~1]", func(t *testing.T) {
+	t.Run("the ids of a parametrized run are not words of the test name [verifies SP-301~2]", func(t *testing.T) {
+		const parametrized = "test_total_is_exact[10-200-180.0]"
+		if got := masking.NameWithoutParameters(parametrized); got != "test_total_is_exact" {
+			t.Fatalf("name %q", got)
+		}
+		for _, item := range []string{"@pytest.mark.parametrize('a,b,c', [(10, 200, 180.0)])", "x = [10, 200, 180, 0]", "10 200 180 0"} {
+			if err := masking.Ensure(item, parametrized, refs); err != nil {
+				t.Errorf("%q: error %v", item, err)
+			}
+		}
+		if err := masking.Ensure("total is exact", parametrized, refs); !errors.Is(err, masking.ErrLeak) {
+			t.Errorf("a run of the name was not found: %v", err)
+		}
+	})
+
+	t.Run("a camel-case test name is read word by word [verifies SP-301~2]", func(t *testing.T) {
 		runs := masking.NameRuns("a zero quantity is here", "TestZeroQuantityIsRejected")
 		if len(runs) != 1 || runs[0] != "zero quantity is" {
 			t.Fatalf("runs %v", runs)
@@ -157,7 +172,18 @@ func TestMaskingProperties(t *testing.T) {
 		})
 	})
 
-	t.Run("a text that holds a declared identifier always leaks [verifies SP-301~1]", func(t *testing.T) {
+	t.Run("the ids of a parametrized run never change what leaks [verifies SP-905~1]", func(t *testing.T) {
+		rapid.Check(t, func(t *rapid.T) {
+			item := rapid.StringMatching(`[a-z0-9 _.,()\[\]-]{0,60}`).Draw(t, "item")
+			ids := rapid.StringMatching(`[0-9a-z.-]{1,20}`).Draw(t, "ids")
+			const name = "test_zero_quantity_is_rejected"
+			if got, want := masking.NameRuns(item, name+"["+ids+"]"), masking.NameRuns(item, name); !slices.Equal(got, want) {
+				t.Fatalf("runs %v with ids %q, %v without", got, ids, want)
+			}
+		})
+	})
+
+	t.Run("a text that holds a declared identifier always leaks [verifies SP-301~2]", func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
 			id := rapid.StringMatching(`[A-Z]{2,5}-[0-9]{1,3}`).Draw(t, "id")
 			prefix := rapid.StringMatching(`[a-z ]{0,10}`).Draw(t, "prefix")
