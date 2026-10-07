@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.2",
+  "tool": {"name": "shallnot", "version": "0.5.0"},
+  "run": {
+    "advisory": true,
+    "fail_on": "error",
+    "id_pattern": "INV-[0-9]+",
+    "spec_files": ["specs/invoicing.md"],
+    "test_roots": [],
+    "results_files": []
+  },
+  "requirements": [
+    {
+      "id": "INV-1",
+      "revision": 1,
+      "ref": "INV-1~1",
+      "statement": "WHEN an invoice is totalled THE SYSTEM SHALL add the amount of each line, the price times the quantity.\n\nExamples:\n  InvoiceTotal(lines=2) => 17",
+      "status": "active",
+      "statement_digest": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f809",
+      "location": {"file": "specs/invoicing.md", "line": 3},
+      "in_focus": true,
+      "examples": [
+        {"index": 0, "operation": "InvoiceTotal", "args": {"lines": {"type": "integer", "value": "2"}}, "expect": {"kind": "returns", "type": "integer", "value": "17"}}
+      ],
+      "tests": [],
+      "extensions": {}
+    },
+    {
+      "id": "INV-2",
+      "revision": 1,
+      "ref": "INV-2~1",
+      "statement": "WHEN an invoice is displayed THE SYSTEM SHALL handle it appropriately.",
+      "status": "active",
+      "statement_digest": "9f8e7d6c5b4a39281706f5e4d3c2b1a09f8e7d6c5b4a39281706f5e4d3c2b1a0",
+      "location": {"file": "specs/invoicing.md", "line": 6},
+      "in_focus": true,
+      "tests": [],
+      "extensions": {}
+    }
+  ],
+  "findings": [],
+  "extensions": {}
+}

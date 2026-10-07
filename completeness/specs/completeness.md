@@ -31,11 +31,27 @@ traces them to the Go tests of the module in CI.
 
 ## Changes since the base
 
-- **SP-504~1**: WHEN the units of a changed file are compared with those before
+- **SP-504~1**: WHEN the units of a changed Go file are compared with those before
   the change THE SYSTEM SHALL give one hunk per function, method, package-level
   variable or constant that is new or whose code differs, and none for a unit
-  whose code is the same, whatever its formatting, comments and docstrings, and
-  none for a unit the change deleted.
+  whose syntax tree is the same whatever its formatting and comments, and none
+  for a unit the change deleted.
+- **SP-505~1**: WHEN the units of a changed Python file are compared with those
+  before the change THE SYSTEM SHALL give one hunk per function, method or
+  module-level assignment that is new or whose code differs, and none for a unit
+  whose code is the same whatever its comments, docstrings, blank lines and
+  spacing, a change of a body, a literal, a decorator or a nesting being a
+  change.
+- **SP-506~1**: WHEN the files of a change are selected THE SYSTEM SHALL read for
+  hunks only the source files an ecosystem serves that hold no tests, lie outside
+  the test roots of the report and are not spec files, skip a deleted file, and
+  report a file that does not parse without losing the others.
+- **SP-507~1**: WHEN the change since the base is read THE SYSTEM SHALL compare the
+  work tree with the merge base of HEAD and the default branch, `origin/HEAD`,
+  then `init.defaultBranch`, then `main`, then `master`, or with HEAD when none
+  exists, or with the reference a flag names, include untracked files as added
+  files, follow renames, leave the repository and its index untouched, and
+  report a project with no base to compare with without failing the run.
 - **SP-508~1**: WHEN entry names are closed over the units of a project THE SYSTEM
   SHALL reach the units they designate and, transitively, those the reached units
   mention, across files and through assignments, reach the constructor of a
@@ -44,7 +60,10 @@ traces them to the Go tests of the module in CI.
 - **SP-509~1**: WHEN a changed unit is justified THE SYSTEM SHALL name the
   requirements whose example probes or ALIGNED tests may execute it, sorted and
   without repeats, designate the functions of a test from its label and those of
-  an example from its operation binding, and justify nothing without evidence.
+  an example from its operation binding, read the evidence only from valid
+  Statements of the requirement's current text whose test and code inputs still
+  match the project, count a test only when it is ALIGNED, and justify nothing
+  without evidence.
 
 ## Questions
 
@@ -52,7 +71,17 @@ traces them to the Go tests of the module in CI.
   execute is checked THE SYSTEM SHALL ask one choice question over the criteria
   of the project and NONE, as a tournament above 23 criteria, and raise an
   `unjustified_change` question when the tournament ends on NONE at a
-  confidence at or above `tau_adv`, and none otherwise.
+  confidence at or above `tau_adv`, and none otherwise, ask at most
+  `max_hunks` units per spec in file and line order and report the rest.
+- **SP-556~1**: WHEN a project has several specs THE SYSTEM SHALL attach the
+  question of an unjustified change to the first spec, in path order, whose
+  requirements have a discriminating-power Statement that executes the changed
+  file, and to the first spec of the project when none does.
+- **SP-511~1**: WHEN a requirement's discriminating-power Statement lists mutants no
+  requirement owns and executes a changed file THE SYSTEM SHALL raise one
+  `unconstrained_behaviour` question per requirement and changed file, naming
+  the changed functions of the file, the number of mutants and the first of
+  their digests, and SHALL raise none without such a Statement.
 - **SP-512~1**: WHEN the testability of the requirements of a spec is checked THE
   SYSTEM SHALL ask one choice question per requirement, answered TESTABLE,
   AMBIGUOUS or UNTESTABLE, in groups of at most 64, and raise a `clarity`
@@ -62,6 +91,9 @@ traces them to the Go tests of the module in CI.
   deterministic template of its signal, name the requirements it concerns, merge
   identical questions with the union of their requirements, and return the
   questions sorted and the same for any order of the signals.
+- **SP-519~1**: WHEN a Statement is written THE SYSTEM SHALL mark it advisory and give
+  it no verdict, whatever the host answers, and validate it against the schemas
+  before it is stored.
 
 ## Closed requests
 
@@ -117,6 +149,13 @@ traces them to the Go tests of the module in CI.
   that wait for tickets as `awaiting_host` and those whose host stopped answering
   as `host_unresponsive`, in the form the format fixes, and no file when nothing
   waits.
+- **SP-526~1**: WHEN a spec is proved THE SYSTEM SHALL write one completeness
+  Statement per spec file, about the spec path and the hash of the file, with
+  the spec, its requirements, the policy, the templates, the changed files, the
+  changed units, the Statements it read as inputs of role `proof` and the
+  answers it rests on, with the sources and the lowest confidence of the
+  answers in `extensions.decision`, sorted, canonical, and with another cache
+  key when any input changes.
 - **SP-527~1**: WHEN a Statement is written to the proof cache THE SYSTEM SHALL
   validate it against the embedded schemas first, refuse an invalid one, and
   write it atomically at
@@ -127,6 +166,10 @@ traces them to the Go tests of the module in CI.
   refuse a document that is not a Statement of the format before the schema.
 - **SP-529~1**: WHEN a decision is memoized THE SYSTEM SHALL return it for its key,
   treat an absent or unreadable entry as a miss and write atomically.
+
+- **SP-530~1**: WHEN `prove --changed` runs THE SYSTEM SHALL skip a spec whose inputs
+  are unchanged since its Statement and ask the host nothing, and `prove --all`
+  SHALL prove it again to the same bytes.
 
 ## Host protocol
 
@@ -176,6 +219,13 @@ traces them to the Go tests of the module in CI.
   limit and report its exit status, a non-zero status being a result.
 - **SP-542~1**: WHEN a command exceeds its deadline or its context ends THE SYSTEM
   SHALL kill its whole process group and report the timeout.
+
+## The prove use case
+
+- **SP-543~1**: WHEN `prove` runs THE SYSTEM SHALL exit 3 while tickets wait for the
+  host, 1 when the host stopped answering, 0 otherwise whatever questions it
+  raised, list the criteria of the specs that wait as `awaiting_host`, write no
+  Statement for them and leave the pending file empty once nothing waits.
 
 ## Architecture
 
