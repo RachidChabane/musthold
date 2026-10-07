@@ -1,0 +1,216 @@
+# Getting started
+
+This guide takes a project from nothing to a local proof run with Claude Code.
+Codex and Copilot CLI use the same commands; the differences are listed in
+[harnesses](#other-harnesses).
+
+## Requirements
+
+- Go, to build the binaries from a clone.
+- Claude Code, to run the plugins.
+- Shallnot whose JSON report schema is 1.2 or later. Check it with
+  `spec-proof-dp doctor`; the `shallnot-schema` line reports the result. Name a
+  specific Shallnot binary with the `SPEC_PROOF_SHALLNOT` environment variable
+  when several are installed.
+- The test runner of your project, configured to write JUnit XML.
+- For discriminating power on the JVM: a Maven or Gradle project (the module uses
+  `./mvnw` or `./gradlew` when present, else `mvn` or `gradle` from `PATH`).
+  For Node: `node` and `npx`, and for TypeScript projects the project's own
+  TypeScript tooling (`tsx`, `ts-node` or `typescript`).
+
+## 1. Install the binaries
+
+The plugins call binaries by name, so each binary must be on `PATH`.
+
+```
+git clone https://github.com/RachidChabane/spec-proof
+cd spec-proof
+nice -n 10 go install -C discpower -p 1 ./cmd/spec-proof-dp
+nice -n 10 go install -C alignment -p 1 ./cmd/spec-proof-alignment
+nice -n 10 go install -C completeness -p 1 ./cmd/spec-proof-completeness
+nice -n 10 go install -C verify -p 1 ./cmd/spec-proof-verify
+```
+
+`go install` writes to `$GOBIN`, or to `$(go env GOPATH)/bin` when `GOBIN` is
+unset. `-p 1` keeps the build to one compiler job and `nice` keeps the machine
+responsive. Add `ledger` (`spec-proof-ledger`) for CI signing and `s1relay`
+(`spec-proof-s1`) for [System One](system-one.md) the same way.
+
+Check the install:
+
+```
+spec-proof-dp version
+```
+
+## 2. Install the plugins
+
+In Claude Code:
+
+```
+/plugin marketplace add RachidChabane/spec-proof
+/plugin install spec-proof@spec-proof
+```
+
+The `spec-proof` plugin declares Shallnot, the three module plugins and the
+System One relay as dependencies and holds one skill, `prove-all`. To install
+modules one at a time use `/plugin install spec-proof-dp@spec-proof`,
+`spec-proof-alignment@spec-proof` or `spec-proof-completeness@spec-proof`. A
+module installed alone works with Shallnot alone.
+
+## 3. Write requirements and bind tests
+
+Requirements live in a Shallnot spec, one requirement per list item:
+
+```markdown
+# Parcel pricing
+
+- **PAR-1~1**: WHEN an order has line items THE SYSTEM SHALL total each line as
+  its unit price times its quantity.
+  - Example: line_total(unit_price=4, quantity=3) => 12
+```
+
+Tests cite a requirement with `[verifies PAR-1~1]` in the form each runner
+reports, for example `@pytest.mark.verifies("PAR-1~1")` for pytest, the test
+title for Jest and Vitest, `@DisplayName` for JUnit 5 and the subtest name for
+Go. Shallnot's [binding documentation](https://github.com/RachidChabane/shallnot/blob/main/docs/binding.md)
+gives the setup per runner; `shallnot init` writes it for the runners it detects.
+
+Inline `Example:` lines are optional and strongly useful: an example is a
+concrete call with its outcome. The discriminating-power module executes
+examples against mutants, and a criterion with examples reaches a pass on
+executed evidence on every harness. The grammar is in Shallnot's
+[spec format](https://github.com/RachidChabane/shallnot/blob/main/docs/spec-format.md#inline-examples).
+A spec can also declare what it deliberately leaves out with
+`Out of scope (<dimension>): <reason>`, which the completeness module honours.
+
+## 4. Equip the project
+
+```
+shallnot init
+spec-proof-dp init
+spec-proof-dp enable
+spec-proof-alignment init
+spec-proof-alignment enable
+spec-proof-completeness init
+spec-proof-completeness enable
+```
+
+- `shallnot init` writes `shallnot.yaml`, `AGENTS.md` and the Shallnot skills, and
+  installs the end-of-turn hook.
+- `<module> init` writes `.spec-proof/config.yaml` with every proof disabled and
+  the ecosystems it detects, ignores `.spec-proof/cache/` and
+  `.spec-proof/verified/`, and enables the module's plugin in
+  `.claude/settings.json`. It changes nothing of Shallnot's.
+- `<module> enable` sets the proof to `true` in `.spec-proof/config.yaml`, adds
+  its kind to `proofs.require` in `shallnot.yaml` and adds its block to
+  `AGENTS.md`. Completeness writes no `proofs.require` entry: Shallnot refuses it
+  there because it is advisory.
+- `<module> disable` reverses `enable`.
+- `init`, `enable` and `disable` take `--check` (change nothing, exit 1 if a file
+  would change) and are idempotent.
+
+## 5. Complete the configuration
+
+`enable` writes only the requirement. For a local run, three more settings are
+needed. Their reference is [configuration](configuration.md).
+
+In `shallnot.yaml`, tell Shallnot to read local proofs and which files a proof may
+name as code:
+
+```yaml
+proofs:
+  trust: local
+  code:
+    - src/**
+  require:
+    - discriminating-power
+    - alignment
+```
+
+Without `trust: local`, Shallnot's default `signed` admits only CI-signed
+proofs. Without `code`, a proof that names a source file is stale.
+
+In `.spec-proof/config.yaml`, bind the operation names your spec examples use to
+functions of your code (see [configuration](configuration.md#operations)):
+
+```yaml
+operations:
+  line_total:
+    python: parcel.rates:line_total
+```
+
+Without `operations`, no example runs and no differential search can compare
+behaviour: the module reports the skipped searches as findings and escalates
+every criterion that has no valid mutant.
+
+## 6. Run the proof loop
+
+Work as usual. When the agent ends a turn, Shallnot's hook runs the gate. A
+module that owes work shows up as `awaiting_host` (or `stale_proof` when no proof
+exists), and the agent runs the `prove-all` skill, which:
+
+1. runs `doctor` of each module and names modules that are missing;
+2. runs `prove --changed` of each present module, in the order discriminating
+   power, alignment, completeness;
+3. while a module exits with code 3, answers its tickets: one foreground blind
+   executor subagent per ticket (at most 4 in one message), then
+   `prove --resume`;
+4. reports each module's last exit code and verdict lines.
+
+You can run a module by hand at any time:
+
+```
+spec-proof-dp prove --changed
+spec-proof-dp request list
+spec-proof-dp prove --resume
+```
+
+`prove` exits with code 3 while tickets wait, 1 when a criterion blocks or
+escalates, 0 when it is clean and 2 on a tool failure. Every exit code and
+pending reason is in [troubleshooting](troubleshooting.md).
+
+A module's statements are written under `.spec-proof/cache/`. The tickets, the
+secret and the journal live outside the work tree, under
+`$XDG_STATE_HOME/spec-proof/<module>/<repo-digest>/host/` (default
+`~/.local/state`), and mutant bodies under `$XDG_CACHE_HOME/spec-proof/`
+(default `~/.cache`).
+
+## 7. Publish the local proofs and run the gate
+
+Shallnot reads `.spec-proof/verified`, which `spec-proof-verify` writes. For local
+use it accepts the unsigned statements of the cache:
+
+```
+spec-proof-verify --accept-local .spec-proof/cache --out .spec-proof/verified
+shallnot check
+```
+
+Run the verify step after each proof run. `.spec-proof/pending/` holds the
+pending files of the alignment and completeness modules, which `verify` folds
+into the manifest when `--out` is `.spec-proof/verified`.
+
+A criterion passes when traceability and every required proof pass. A blocking
+finding names the command that resolves it.
+
+## Other harnesses
+
+`spec-proof-dp init --hooks claude,codex,copilot` installs the files of several
+harnesses; `--hooks auto` (the default) installs Claude Code's and those of every
+harness whose configuration the project already holds, and `--hooks none`
+installs none.
+
+- **Codex CLI.** `init` writes `.codex/agents/*.toml`, `.codex/hooks.json` and
+  `.agents/skills/<module>-fulfil/SKILL.md`. Codex runs project hooks when
+  `hooks = true` is set under `[features]` in its `config.toml` and the project
+  is trusted. Codex executors keep the shell, so isolation is `unrestricted`.
+- **Copilot CLI.** `init` writes `.github/agents/*.agent.md`,
+  `.github/hooks/<module>.json` and `.github/skills/<module>-fulfil/SKILL.md`.
+  Isolation is `restricted-unverified`.
+- **Any other harness.** The main agent answers each ticket itself:
+  `spec-proof-dp request list`, `spec-proof-dp request show <ticket>`, then
+  `spec-proof-dp request submit <ticket> --nonce <nonce>` with the JSON answer on
+  standard input, then `spec-proof-dp prove --resume`. Such answers have the
+  isolation `inline`.
+
+Judged answers from harnesses below the isolation floor keep their power to block
+and escalate but earn no pass credit; see [trust model](trust-model.md#harness-isolation).
