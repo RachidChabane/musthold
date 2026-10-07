@@ -56,6 +56,15 @@ func TestThresholdResolution(t *testing.T) {
 		})
 	}
 
+	t.Run("an exact key written system-one:<model>@<digest> holds the source a relay imports [verifies SP-901~1] [verifies SP-960~1]", func(t *testing.T) {
+		const key = "system-one:nimble:9b@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		got, err := decodeThreshold(t, "tau:\n  default: 0.5\n  system-one: 0.7\n  "+key+": 0.9\n", 0.5)
+		relayed, parseErr := format.ParseSystemOneSource(key)
+		if err != nil || parseErr != nil || got.For(relayed) != 0.9 || got.For(format.SystemOneEndpointSource("tev1:4b", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")) != 0.7 {
+			t.Fatalf("threshold %+v (%v, %v)", got, err, parseErr)
+		}
+	})
+
 	t.Run("a kind of source is its source without the detail [verifies SP-901~1]", func(t *testing.T) {
 		for source, want := range map[format.ConfidenceSource]format.ConfidenceSource{
 			format.SourceExecution:                    format.SourceExecution,

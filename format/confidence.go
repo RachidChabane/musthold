@@ -1,6 +1,8 @@
 package format
 
 import (
+	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -57,6 +59,30 @@ func HostVotesSource(k int) ConfidenceSource {
 // the model and the endpoint, as `<model>@<endpointDigest>`.
 func SystemOneSource(origin string) ConfidenceSource {
 	return ConfidenceSource(systemOneKind + detailColon + origin)
+}
+
+// ErrSystemOneSource is returned for a text that is not a System One source.
+var ErrSystemOneSource = errors.New("not a system-one source")
+
+// endpointSeparator joins the model and the endpoint digest of a System One source.
+const endpointSeparator = "@"
+
+// SystemOneEndpointSource is the confidence source of a System One endpoint: the
+// model it ran and the digest that identifies the endpoint. It is the only text
+// a relay imports an answer under and the text a proof records.
+func SystemOneEndpointSource(model, endpointDigest string) ConfidenceSource {
+	return SystemOneSource(model + endpointSeparator + endpointDigest)
+}
+
+// ParseSystemOneSource reads the source a relay imports an answer under and
+// returns it unchanged when it is `system-one:<model>@<endpointDigest>`.
+func ParseSystemOneSource(text string) (ConfidenceSource, error) {
+	origin, found := strings.CutPrefix(text, systemOneKind+detailColon)
+	cut := strings.LastIndex(origin, endpointSeparator)
+	if !found || cut <= 0 || cut == len(origin)-len(endpointSeparator) {
+		return "", fmt.Errorf("%w: %q is not system-one:<model>@<endpointDigest>", ErrSystemOneSource, text)
+	}
+	return ConfidenceSource(text), nil
 }
 
 // IsKnown reports whether the source has one of the forms above.

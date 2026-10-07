@@ -160,6 +160,11 @@ Go tests of the module in CI.
   the entry of its kind, else the default, a source without a form of the format
   taking the default; and a threshold without entries SHALL encode as a bare number.
 
+- **SP-960~1**: WHEN the source a relay imports an answer under is read THE SYSTEM
+  SHALL accept `system-one:<model>@<endpoint digest>`, name it unchanged as the
+  confidence source of the answer, and refuse any other text, including a source
+  without a model or without a digest.
+
 ## Host protocol: closed questions
 
 - **SP-402~1**: WHEN the `closed` member of a request is validated THE SYSTEM
