@@ -1,8 +1,6 @@
 package e2e_test
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -11,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest/claudecode"
 )
@@ -24,17 +21,10 @@ const (
 	exitAwaiting   = 3
 	maxWaves       = 12
 
-	editedLine     = "\n# reviewed\n"
-	rangeCodeFile  = "parcel/rates.py"
-	outsideFile    = "parcel/__init__.py"
-	extraTestFile  = "tests/test_extra.py"
-	agentPrefix    = "agent-"
-	moduleHostDir  = "host"
-	journalFile    = "journal.jsonl"
-	secretFile     = "secret"
-	stateSuite     = "spec-proof"
-	secretBytes    = 32
-	alignmentState = "alignment"
+	editedLine    = "\n# reviewed\n"
+	rangeCodeFile = "parcel/rates.py"
+	outsideFile   = "parcel/__init__.py"
+	extraTestFile = "tests/test_extra.py"
 )
 
 // equip installs Shallnot and the modules the way a user does, then gives the
@@ -44,19 +34,23 @@ func (p *parcelProject) equip() {
 	if r := p.sn("", "init", "--dir", p.root, "--hooks", "claude"); r.code != exitClean {
 		p.t.Fatalf("shallnot init: %s", r.output())
 	}
-	if r := p.dp("", "init", "--hooks", "claude"); r.code != exitClean {
-		p.t.Fatalf("init: %s", r.output())
+	for _, module := range []struct {
+		name string
+		run  func(string, ...string) result
+	}{{"discriminating-power", p.dp}, {"alignment", p.alignment}} {
+		if r := module.run("", "init", "--hooks", "claude"); r.code != exitClean {
+			p.t.Fatalf("%s init: %s", module.name, r.output())
+		}
+		if r := module.run("", "enable"); r.code != exitClean {
+			p.t.Fatalf("%s enable: %s", module.name, r.output())
+		}
 	}
-	if r := p.dp("", "enable"); r.code != exitClean {
-		p.t.Fatalf("enable: %s", r.output())
-	}
+	const required = "proofs:\n  require:\n    - discriminating-power\n    - alignment\n"
 	config := p.read("shallnot.yaml")
-	if !strings.Contains(config, "proofs:\n  require:\n    - discriminating-power\n") {
-		p.t.Fatalf("enable did not require the proof:\n%s", config)
+	if !strings.Contains(config, required) {
+		p.t.Fatalf("enable did not require both proofs:\n%s", config)
 	}
-	config = strings.Replace(config, "proofs:\n  require:\n    - discriminating-power\n",
-		"proofs:\n  trust: local\n  code:\n    - parcel/**\n  require:\n    - discriminating-power\n    - alignment\n", 1)
-	p.write("shallnot.yaml", config)
+	p.write("shallnot.yaml", strings.Replace(config, required, "proofs:\n  trust: local\n  code:\n    - parcel/**\n  require:\n    - discriminating-power\n    - alignment\n", 1))
 }
 
 // edit makes the change an agent would make: it touches a file with a comment.
@@ -106,97 +100,18 @@ func alignmentVerdicts(output string) map[string]string {
 	return found
 }
 
-// proveAlignment lets a host answer every ticket of the alignment module wave after
-// wave, and returns the last `prove`.
+// proveAlignment lets the simulated Claude Code answer every ticket of the
+// alignment module wave after wave, through the module's real hooks and executor
+// server, and returns the last `prove`.
 func (p *parcelProject) proveAlignment(answers hostprototest.AnswerSource) result {
 	p.t.Helper()
+	host := claudeAlignmentHostOf(p)
 	last := p.alignment("", "prove", "--all")
 	for wave := 0; last.code == exitAwaiting && wave < maxWaves; wave++ {
-		p.serveAlignment(answers)
+		host.Serve(answers)
 		last = p.alignment("", "prove", "--all", "--resume")
 	}
 	return last
-}
-
-// alignmentHostDir is the host directory of the alignment module of the project.
-func (p *parcelProject) alignmentHostDir() string {
-	p.t.Helper()
-	matches, err := filepath.Glob(filepath.Join(p.state, stateSuite, alignmentState, "*", moduleHostDir))
-	if err != nil || len(matches) != 1 {
-		p.t.Fatalf("the host directory of the alignment module: %v, %v", matches, err)
-	}
-	return matches[0]
-}
-
-// startAgent journals the start of an executor agent for the role, as the hooks of
-// a harness do, and returns the capability the agent holds. The alignment module has
-// no hook of its own, so the host plays them with the secret of its store.
-func (p *parcelProject) startAgent(role, agent string) string {
-	p.t.Helper()
-	dir := p.alignmentHostDir()
-	var head *hostproto.Record
-	if content, err := os.ReadFile(filepath.Join(dir, journalFile)); err == nil {
-		lines := strings.Split(strings.TrimSpace(string(content)), "\n")
-		var last hostproto.Record
-		if err := json.Unmarshal([]byte(lines[len(lines)-1]), &last); err != nil {
-			p.t.Fatalf("the last record of the journal: %v", err)
-		}
-		head = &last
-	}
-	record, err := hostproto.Chain(head, hostproto.Event{Kind: hostproto.EventAgentStarted, AgentID: agent, Role: role})
-	if err != nil {
-		p.t.Fatal(err)
-	}
-	line, err := json.Marshal(record)
-	if err != nil {
-		p.t.Fatal(err)
-	}
-	file, err := os.OpenFile(filepath.Join(dir, journalFile), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
-	if err != nil {
-		p.t.Fatal(err)
-	}
-	if _, err := file.Write(append(line, '\n')); err != nil {
-		p.t.Fatal(err)
-	}
-	if err := file.Close(); err != nil {
-		p.t.Fatal(err)
-	}
-	capability, err := hostproto.FormatCap(p.storeSecret(dir), agent)
-	if err != nil {
-		p.t.Fatal(err)
-	}
-	return capability
-}
-
-// serveAlignment answers every pending ticket of the alignment module the way an
-// executor does: an agent started for the role fetches the ticket and submits with
-// its capability.
-func (p *parcelProject) serveAlignment(answers hostprototest.AnswerSource) {
-	p.t.Helper()
-	r := p.alignment("", hostproto.ListArgs()...)
-	if r.code != exitClean {
-		p.t.Fatalf("request list: %s", r.output())
-	}
-	var listing hostproto.Listing
-	if err := json.Unmarshal([]byte(r.stdout), &listing); err != nil {
-		p.t.Fatal(err)
-	}
-	for _, item := range listing.Items {
-		ticket := item.Ticket.TicketID.String()
-		capability := p.startAgent(item.Role, agentPrefix+strings.ReplaceAll(ticket, ".", "-"))
-		answer, err := answers.Answer(hostprototest.PersonaHonest, item.View)
-		if err != nil {
-			p.t.Fatalf("no answer for %s: %v", ticket, err)
-		}
-		show := append(hostproto.ShowArgs(item.Ticket.TicketID), hostproto.FlagCap, capability)
-		if shown := p.alignment("", show...); shown.code != exitClean {
-			p.t.Fatalf("show %s: %s", ticket, shown.output())
-		}
-		submit := append(hostproto.SubmitArgs(item.Ticket.TicketID, item.Ticket.Nonce), hostproto.FlagCap, capability)
-		if submitted := p.alignment(answer, submit...); submitted.code != exitClean {
-			p.t.Fatalf("submit %s: %s", ticket, submitted.output())
-		}
-	}
 }
 
 // cliRunner runs a module binary as a command-line host would.
@@ -338,23 +253,4 @@ func (g gateReport) proofState(kind, criterion string) string {
 		}
 	}
 	return "mixed"
-}
-
-// storeSecret reads the secret of a host directory. The module draws it on its first
-// use, so a host that gets there first draws it the same way.
-func (p *parcelProject) storeSecret(dir string) []byte {
-	p.t.Helper()
-	path := filepath.Join(dir, secretFile)
-	if secret, err := os.ReadFile(path); err == nil {
-		return secret
-	}
-	entropy := make([]byte, secretBytes)
-	if _, err := rand.Read(entropy); err != nil {
-		p.t.Fatal(err)
-	}
-	secret := []byte(hex.EncodeToString(entropy))
-	if err := os.WriteFile(path, secret, 0o600); err != nil {
-		p.t.Fatal(err)
-	}
-	return secret
 }

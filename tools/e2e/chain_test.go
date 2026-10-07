@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	verifiesHonest    = " [verifies SP-412~1]"
+	verifiesHonest    = " [verifies SP-412~2]"
 	verifiesCareless  = " [verifies SP-413~1]"
 	verifiesStaleness = " [verifies SP-414~1]"
 	verifiesForger    = " [verifies SP-415~1]"
@@ -66,7 +66,7 @@ func TestHonestChain(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds three binaries and runs the parcel project's tests against many mutants")
 	}
-	p := provedWithHonestDiscriminatingPower(t, []string{"SP-412~1", "SP-413~1", "SP-414~1", "SP-415~1"})
+	p := provedWithHonestDiscriminatingPower(t, []string{"SP-412~2", "SP-413~1", "SP-414~1", "SP-415~1"})
 	careless, forgedAlignment := p.copyAs("careless"), p.copyAs("forged alignment")
 
 	aligned := p.proveAlignment(parcel.HonestAlignment())

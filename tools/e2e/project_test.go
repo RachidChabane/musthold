@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest/claudecode"
 )
 
@@ -34,11 +36,15 @@ const (
 	reportFile       = "report.json"
 	verifiedPath     = ".spec-proof/verified"
 	cachePath        = ".spec-proof/cache"
-	// claudeToolPrefix is how the Claude harness spells the tools of the executor
-	// server of the discriminating-power plugin.
 	verifiesTag      = "verifies"
-	claudeToolPrefix = "mcp__plugin_spec-proof-dp_exec__"
 )
+
+// dpIdentity is the plugin of the discriminating-power module and its executor
+// agents, from which the harness spells the names of the executor tools.
+var dpIdentity = harness.Identity{Plugin: "spec-proof-dp", Agents: hostproto.Agents()}
+
+// alignmentIdentity is the plugin of the alignment module and its executor agents.
+var alignmentIdentity = harness.Identity{Plugin: "spec-proof-alignment", Agents: []hostproto.Agent{hostproto.AgentJudge, hostproto.AgentDecider}}
 
 var (
 	productOnce sync.Once
@@ -287,7 +293,23 @@ func (m dpModule) Server() *exec.Cmd {
 	return m.p.withEnvironment(exec.Command(filepath.Join(m.p.bin, dpBinary), "mcp", "--role", "executor", "--harness", "claude"))
 }
 
-func (m dpModule) ToolName(tool string) string { return claudeToolPrefix + tool }
+func (m dpModule) ToolName(tool string) string { return harness.Claude(dpIdentity).ToolName(tool) }
+
+// alignmentModule is the alignment module as the simulated Claude Code runs it.
+type alignmentModule struct{ p *parcelProject }
+
+func (m alignmentModule) Run(stdin string, args ...string) claudecode.Result {
+	r := m.p.alignment(stdin, args...)
+	return claudecode.Result{Code: r.code, Stdout: r.stdout, Stderr: r.stderr}
+}
+
+func (m alignmentModule) Server() *exec.Cmd {
+	return m.p.withEnvironment(exec.Command(filepath.Join(m.p.bin, alignmentBinary), "mcp", "--role", "executor", "--harness", "claude"))
+}
+
+func (m alignmentModule) ToolName(tool string) string {
+	return harness.Claude(alignmentIdentity).ToolName(tool)
+}
 
 // withEnvironment makes a command run in the project's environment.
 func (p *parcelProject) withEnvironment(command *exec.Cmd) *exec.Cmd {
@@ -308,6 +330,12 @@ func mustJSON(t *testing.T, value any) json.RawMessage {
 // returns the simulated Claude Code that serves it.
 func claudeHostOf(p *parcelProject) *claudecode.Host {
 	return claudecode.NewHost(p.t, dpModule{p}, p.tmp)
+}
+
+// claudeAlignmentHostOf starts the executor server of the alignment module and
+// returns the simulated Claude Code that serves it.
+func claudeAlignmentHostOf(p *parcelProject) *claudecode.Host {
+	return claudecode.NewHost(p.t, alignmentModule{p}, p.tmp)
 }
 
 func (p *parcelProject) readBytes(relative string) []byte {

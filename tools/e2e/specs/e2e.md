@@ -29,10 +29,11 @@ alignment and verify modules and the pinned Shallnot over a copy of the parcel
 pytest project, and need that Shallnot: without it the tests record a skip that
 names the reason, and the gate reports the skipped requirement.
 
-- **SP-412~1**: WHEN both modules are initialized, the code is edited, the
-  discriminating-power proof is made with an honest host through the real MCP
-  executor server, the alignment proof is made with an honest host from the
-  verified set, and the local statements are accepted by the verifier THE SYSTEM
+- **SP-412~2**: WHEN both modules are initialized and enabled with their own
+  `init` and `enable`, the code is edited, the discriminating-power proof and the
+  alignment proof are each made with an honest host through the module's real hooks
+  and MCP executor server (the alignment proof from the verified set), and the
+  local statements are accepted by the verifier THE SYSTEM
   SHALL give `shallnot check` the verdict the proofs reached for each criterion:
   PASS for the line total, which is adequately tested and aligned; ESCALATE for the
   discount, whose parametrized tests have ids that repeat numbers of the statement
@@ -52,3 +53,25 @@ names the reason, and the gate reports the skipped requirement.
   keep the alignment proofs of the other criteria valid.
 - **SP-415~1**: WHEN a forger answers every ticket of both modules from the command
   line THE SYSTEM SHALL give no criterion a PASS, in the modules or in the gate.
+
+## Alignment through the host
+
+These requirements drive the built binary of the alignment module alone, with the
+pinned Shallnot and a simulated Claude Code over a copy of the parcel pytest
+project, and need that Shallnot: without it the tests record a skip that names the
+reason, and the gate reports the skipped requirement.
+
+- **SP-840~1**: WHEN the alignment module is initialized and enabled with its own
+  `init` and `enable` and the code is edited THE SYSTEM SHALL let a simulated
+  Claude Code host answer every ticket through the module's real hooks and
+  executor server, journal each executor as started, fetched, accepted and
+  attested with no leak, exposure or conflict, write the alignment Statements, and
+  deny and journal a call of an executor tool made by the main session.
+- **SP-841~1**: WHEN executors run whose hooks never fire THE SYSTEM SHALL give
+  them no capability, refuse their fetch and their answer at the executor server,
+  keep every ticket pending with exit code 3, write no Statement, and have
+  `shallnot check` refuse the project.
+- **SP-842~1**: WHEN a forger answers every ticket of the alignment module from
+  the command line THE SYSTEM SHALL journal its answers as exposed, give no test
+  the verdict ALIGNED and no criterion a PASS, and have `shallnot check` refuse the
+  project.
