@@ -22,8 +22,9 @@ module in CI.
 - **SP-143~1**: WHEN the `format` root, the host protocol and its MCP codec are
   linked THE SYSTEM SHALL leave the root and the host protocol without the MCP
   codec, and SHALL leave all three without test support.
-- **SP-144~1**: WHEN the binaries of every module other than `format` are linked
-  THE SYSTEM SHALL contain no package of the test support of `format`.
+- **SP-144~2**: WHEN the binaries of every module that ships one are linked THE
+  SYSTEM SHALL contain no package of the test support of `format`, the format
+  library and the umbrella shipping none.
 - **SP-39~2**: WHEN the `spec-proof-verify` binary is linked THE SYSTEM SHALL
   hold no symbol of `os/exec`, with and without cgo, no package of the `verify`
   module SHALL import `os/exec`, and the set of packages reachable from the

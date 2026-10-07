@@ -16,6 +16,7 @@ const (
 	repositoryDir = "../.."
 	toolsDir      = "tools"
 	goModFile     = "go.mod"
+	commandDir    = "cmd"
 
 	formatModule       = "format"
 	discpowerModule    = "discpower"
@@ -24,6 +25,7 @@ const (
 	ledgerModule       = "ledger"
 	verifyModule       = "verify"
 	s1relayModule      = "s1relay"
+	umbrellaModule     = "umbrella"
 
 	formatTestSupportDir = "formattest"
 	hostprotoDir         = "hostproto"
@@ -50,7 +52,7 @@ const (
 // modules lists every module of the repository except the tools module.
 var modules = []string{
 	formatModule, discpowerModule, alignmentModule, completenessModule,
-	ledgerModule, verifyModule, s1relayModule,
+	ledgerModule, verifyModule, s1relayModule, umbrellaModule,
 }
 
 // proofModules are the modules that produce proofs; none of them reaches the
@@ -272,6 +274,17 @@ func dependencies(t *testing.T, module, pattern string) []string {
 	return listed
 }
 
+// shipsBinary reports whether a module has a binary to link: the format library
+// and the umbrella, which holds only the files of a marketplace and a plugin, have
+// none.
+func shipsBinary(module string) bool {
+	if module == formatModule || module == umbrellaModule {
+		return false
+	}
+	info, err := os.Stat(path.Join(moduleDir(module), commandDir))
+	return err == nil && info.IsDir()
+}
+
 func repositoryModules(t *testing.T) []string {
 	t.Helper()
 	entries, err := os.ReadDir(repositoryDir)
@@ -463,9 +476,9 @@ func TestHostProtocolLayering(t *testing.T) {
 		}
 	})
 
-	t.Run("no binary of a shipped module links the test support of the format module [verifies SP-144~1]", func(t *testing.T) {
+	t.Run("no binary of a shipped module links the test support of the format module [verifies SP-144~2]", func(t *testing.T) {
 		for _, module := range modules {
-			if module == formatModule {
+			if !shipsBinary(module) {
 				continue
 			}
 			if found := reachesAny(dependencies(t, module, "./cmd/..."), supportRoots...); len(found) > 0 {
@@ -474,7 +487,16 @@ func TestHostProtocolLayering(t *testing.T) {
 		}
 	})
 
-	t.Run("the rule detects a package under a test support root [verifies SP-144~1]", func(t *testing.T) {
+	t.Run("the modules that ship no binary are the format library and the umbrella, and every other module ships one [verifies SP-144~2]", func(t *testing.T) {
+		for _, module := range modules {
+			want := module != formatModule && module != umbrellaModule
+			if got := shipsBinary(module); got != want {
+				t.Errorf("%s: ships a binary = %v, want %v", module, got, want)
+			}
+		}
+	})
+
+	t.Run("the rule detects a package under a test support root [verifies SP-144~2]", func(t *testing.T) {
 		got := reachesAny([]string{
 			"fmt",
 			formatPackage(hostprotoDir, hostprototestDir),

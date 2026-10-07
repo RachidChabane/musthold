@@ -1,0 +1,247 @@
+// Package umbrella is the single source of the files of the spec-proof umbrella:
+// the marketplace that lists Shallnot's plugin, the three proof-module plugins and
+// the relay beside the thin plugin, and the thin plugin itself. The thin plugin
+// declares its dependencies and holds one skill, `prove-all`, that runs the fulfil
+// loop of each module that is present; it holds no logic of its own. The committed
+// files under `umbrella/` are generated here. The package knows no I/O.
+package umbrella
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"strings"
+	"text/template"
+)
+
+// Identity of the umbrella.
+const (
+	// MarketplaceName is the name of the marketplace, and of the thin plugin's
+	// own marketplace in the `<plugin>@<marketplace>` keys `init` enables.
+	MarketplaceName = "spec-proof"
+	// PluginName is the name of the thin plugin.
+	PluginName = "spec-proof"
+	// SkillName is the name of the thin plugin's only skill.
+	SkillName = "prove-all"
+	// Version is the version of the shipped files.
+	Version = "0.1.0"
+
+	// MarketplacePath is where the marketplace file lives, relative to `umbrella/`.
+	MarketplacePath = ".claude-plugin/marketplace.json"
+	// PluginDirectory is the thin plugin's tree, relative to `umbrella/`.
+	PluginDirectory = "plugins/" + PluginName
+
+	ownerName    = "Rachid Chabane"
+	ownerURL     = "https://github.com/RachidChabane"
+	license      = "Apache-2.0"
+	indent       = "  "
+	repositoryID = "RachidChabane/spec-proof"
+)
+
+// Module is one proof module of the umbrella, in the order its proofs are made.
+type Module struct {
+	// Plugin is the name of the module's plugin.
+	Plugin string
+	// Binary is the executable of the module.
+	Binary string
+	// Directory is the module's directory in the repository.
+	Directory string
+	// Summary describes the plugin in the marketplace.
+	Summary string
+}
+
+// Modules lists the proof modules in the order `prove-all` runs them:
+// discriminating power, alignment, completeness.
+var Modules = []Module{
+	{Plugin: "spec-proof-dp", Binary: "spec-proof-dp", Directory: "discpower", Summary: "Discriminating power: do the tests of a criterion catch a violation of it."},
+	{Plugin: "spec-proof-alignment", Binary: "spec-proof-alignment", Directory: "alignment", Summary: "Alignment: does each test verify what its criterion states."},
+	{Plugin: "spec-proof-completeness", Binary: "spec-proof-completeness", Directory: "completeness", Summary: "Completeness: does the spec cover what a change does (advisory)."},
+}
+
+// Relay is the System One relay, whose plugin the marketplace lists.
+var Relay = Module{Plugin: "spec-proof-s1", Binary: "spec-proof-s1", Directory: "s1relay", Summary: "The relay of closed questions to a System One endpoint."}
+
+// PluginPath is where the plugin tree of a module lives in the repository.
+func (m Module) PluginPath() string { return m.Directory + "/plugin/claude" }
+
+// FulfilSkill is the name of the skill that answers the module's requests.
+func (m Module) FulfilSkill() string { return m.Binary + "-fulfil" }
+
+// Shallnot describes Shallnot's own plugin by its public marketplace source: the
+// plugin lives in the `plugin` directory of the `RachidChabane/shallnot`
+// repository, which is also its own marketplace.
+var Shallnot = struct{ Plugin, Repository, Path, Summary string }{
+	Plugin: "shallnot", Repository: "RachidChabane/shallnot", Path: "plugin",
+	Summary: "Requirement-to-test traceability for coding agents and the end-of-turn gate the proofs plug into.",
+}
+
+// DependencyNames lists what the thin plugin depends on: Shallnot, the three
+// modules and the relay, each by the name of its entry in the marketplace.
+func DependencyNames() []string {
+	names := []string{Shallnot.Plugin}
+	for _, module := range Modules {
+		names = append(names, module.Plugin)
+	}
+	return append(names, Relay.Plugin)
+}
+
+// File is one generated file: its path relative to `umbrella/` and its bytes.
+type File struct {
+	Path    string
+	Content []byte
+}
+
+func encodeJSON(value any) ([]byte, error) {
+	var buffer bytes.Buffer
+	encoder := json.NewEncoder(&buffer)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", indent)
+	if err := encoder.Encode(value); err != nil {
+		return nil, err
+	}
+	return buffer.Bytes(), nil
+}
+
+type owner struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
+type gitSubdir struct {
+	Source string `json:"source"`
+	URL    string `json:"url"`
+	Path   string `json:"path"`
+}
+
+// marketplaceEntry is one plugin of the marketplace; its source is a relative
+// path inside the marketplace or a git-subdir object.
+type marketplaceEntry struct {
+	Name        string `json:"name"`
+	Source      any    `json:"source"`
+	Description string `json:"description"`
+}
+
+type marketplace struct {
+	Name     string `json:"name"`
+	Owner    owner  `json:"owner"`
+	Metadata struct {
+		Description string `json:"description"`
+	} `json:"metadata"`
+	Plugins []marketplaceEntry `json:"plugins"`
+}
+
+// SubdirSource is the source of a plugin that lives in a subdirectory of a
+// public GitHub repository.
+func SubdirSource(repository, path string) any {
+	return gitSubdir{Source: "git-subdir", URL: repository, Path: path}
+}
+
+func marketplaceFile() (File, error) {
+	listing := marketplace{Name: MarketplaceName, Owner: owner{Name: ownerName, URL: ownerURL}}
+	listing.Metadata.Description = "spec-proof: proofs that the tests of a project check what its requirements say, for coding agents."
+	listing.Plugins = append(listing.Plugins, marketplaceEntry{
+		Name: Shallnot.Plugin, Source: SubdirSource(Shallnot.Repository, Shallnot.Path), Description: Shallnot.Summary,
+	})
+	for _, module := range append(append([]Module{}, Modules...), Relay) {
+		listing.Plugins = append(listing.Plugins, marketplaceEntry{
+			Name: module.Plugin, Source: SubdirSource(repositoryID, module.PluginPath()), Description: module.Summary,
+		})
+	}
+	listing.Plugins = append(listing.Plugins, marketplaceEntry{
+		Name: PluginName, Source: "./" + PluginDirectory,
+		Description: "Installs Shallnot and every spec-proof module and runs them together with the prove-all skill.",
+	})
+	content, err := encodeJSON(listing)
+	return File{Path: MarketplacePath, Content: content}, err
+}
+
+type pluginManifest struct {
+	Name         string            `json:"name"`
+	Version      string            `json:"version"`
+	Description  string            `json:"description"`
+	Author       map[string]string `json:"author"`
+	License      string            `json:"license"`
+	Dependencies []string          `json:"dependencies"`
+}
+
+func pluginManifestFile() (File, error) {
+	content, err := encodeJSON(pluginManifest{
+		Name: PluginName, Version: Version,
+		Description:  "Installs Shallnot and the spec-proof modules and runs their proofs together.",
+		Author:       map[string]string{"name": ownerName},
+		License:      license,
+		Dependencies: DependencyNames(),
+	})
+	return File{Path: PluginDirectory + "/.claude-plugin/plugin.json", Content: content}, err
+}
+
+// skillData fills the prove-all template.
+type skillData struct {
+	Name    string
+	Modules []Module
+	Allowed string
+	Relay   string
+	Names   string
+}
+
+const skillTemplate = `---
+name: {{.Name}}
+description: Prove a change with every spec-proof module that is installed, in the order discriminating power, alignment, completeness, answering each module's requests with its blind executors. Use before finishing a change to code, tests or specs, and when Shallnot reports awaiting_host, awaiting_proof or awaiting_host_judgment.
+allowed-tools: {{.Allowed}}
+---
+
+# Prove with every module
+
+This skill holds no logic of its own. Each module runs its own loop and names its own steps in its fulfil skill; this skill only orders the modules and interleaves their waves. Never answer a request yourself and never read what a request asks.
+
+Modules, in this order, each with the skill that holds its loop:
+{{range .Modules}}
+- ` + "`{{.Binary}}`" + `, whose loop is the skill ` + "`{{.FulfilSkill}}`" + `.{{end}}
+
+1. Run ` + "{{.Names}}" + `. A module whose binary is not on ` + "`PATH`" + ` is missing: name every missing module to the user and go on with the others; a missing module never counts as proved. If a module that is present fails its ` + "`doctor`" + `, report it and leave that module out. If no module is present, stop.
+2. For each present module, in the order above, run ` + "`<binary> prove --changed`" + ` once.
+3. While any module exited with code 3, run one wave for each module that exited with code 3, in the order above, before any module starts its next wave: a wave is the steps its fulfil skill gives for answering the tickets, which is the relay when ` + "`{{.Relay}}`" + ` is on ` + "`PATH`" + ` and an endpoint is configured, then one foreground blind executor per ticket, then ` + "`<binary> prove --resume`" + `. Alignment's judge tickets do not wait for the discriminating-power proof, so no module's wave waits for another's.
+4. A module whose ` + "`prove`" + ` exits with code 0 or 1 is done: report its verdict lines. For exit code 2, or a ` + "`host_unresponsive`" + ` finding, report it to the user and stop that module. Do not loop.
+5. Report, per module, its last exit code and verdict lines, and the modules that were missing.
+`
+
+func skillFile() (File, error) {
+	allowed := make([]string, 0, 3*len(Modules)+1)
+	names := make([]string, 0, len(Modules))
+	for _, module := range Modules {
+		allowed = append(allowed, "Bash("+module.Binary+" doctor)", "Bash("+module.Binary+" prove *)", "Bash("+module.Binary+" request list)")
+		names = append(names, "`"+module.Binary+" doctor`")
+	}
+	allowed = append(allowed, "Bash("+Relay.Binary+" drain *)")
+	parsed, err := template.New("skill").Parse(skillTemplate)
+	if err != nil {
+		return File{}, fmt.Errorf("parse the skill template: %w", err)
+	}
+	var buffer bytes.Buffer
+	if err := parsed.Execute(&buffer, skillData{
+		Name: SkillName, Modules: Modules, Allowed: strings.Join(allowed, ", "), Relay: Relay.Binary,
+		Names: joinWithAnd(names),
+	}); err != nil {
+		return File{}, fmt.Errorf("render the skill: %w", err)
+	}
+	return File{Path: PluginDirectory + "/skills/" + SkillName + "/SKILL.md", Content: buffer.Bytes()}, nil
+}
+
+// joinWithAnd spells a list as `a, b and c`.
+func joinWithAnd(items []string) string {
+	last := len(items) - 1
+	return strings.Join(items[:last], ", ") + " and " + items[last]
+}
+
+// Files returns every generated file of the umbrella, relative to `umbrella/`.
+func Files() ([]File, error) {
+	var files []File
+	for _, build := range []func() (File, error){marketplaceFile, pluginManifestFile, skillFile} {
+		file, err := build()
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, file)
+	}
+	return files, nil
+}

@@ -9,5 +9,6 @@ use (
 	./s1relay
 	./tools/archtest
 	./tools/e2e
+	./umbrella
 	./verify
 )
