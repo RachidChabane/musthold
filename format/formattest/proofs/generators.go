@@ -32,19 +32,35 @@ func Digests() *rapid.Generator[string] {
 	})
 }
 
-// Inputs generates a sorted, duplicate-free input list.
+// Inputs generates a sorted, duplicate-free input list whose descriptors have the
+// shape their role requires.
 func Inputs() *rapid.Generator[[]format.Input] {
 	input := rapid.Custom(func(t *rapid.T) format.Input {
-		return format.Input{
-			Role:   rapid.SampledFrom(format.InputRoles()).Draw(t, "role"),
-			Name:   rapid.StringMatching(pathPattern).Draw(t, "name"),
-			Digest: format.Digest{SHA256: Digests().Draw(t, "digest")},
+		role := rapid.SampledFrom(format.InputRoles()).Draw(t, "role")
+		name := rapid.StringMatching(pathPattern).Draw(t, "name")
+		digest := Digests().Draw(t, "digest")
+		if role == format.RoleProof {
+			return format.Input{
+				Role: role, Name: string(rapid.SampledFrom(format.Kinds()).Draw(t, "kind")), Digest: format.Digest{SHA256: digest},
+				Annotations: &format.Annotations{Criterion: rapid.StringMatching(requirementPattern).Draw(t, "criterionID") + format.RevisionSeparator + "1"},
+			}
 		}
+		return format.Input{Role: role, Name: name, Digest: format.Digest{SHA256: digest}}
 	})
 	return rapid.Custom(func(t *rapid.T) []format.Input {
 		drawn := rapid.SliceOfN(input, 1, maxGeneratedInputs).Draw(t, "inputs")
 		sorted := SortInputs(drawn)
 		return slices.CompactFunc(sorted, func(a, b format.Input) bool { return a.Role == b.Role && a.Name == b.Name })
+	})
+}
+
+// InputsAbout generates an input list for a proof about one criterion: its
+// `spec` input is the given one, and no other.
+func InputsAbout(spec format.Input) *rapid.Generator[[]format.Input] {
+	return rapid.Custom(func(t *rapid.T) []format.Input {
+		drawn := Inputs().Draw(t, "inputs")
+		kept := slices.DeleteFunc(slices.Clone(drawn), func(input format.Input) bool { return input.Role == format.RoleSpec })
+		return SortInputs(append(kept, spec))
 	})
 }
 
@@ -108,10 +124,11 @@ func Alignments() *rapid.Generator[format.Statement[format.Alignment]] {
 			Revision:                  rapid.IntRange(format.MinimumRevision, maxGeneratedRevision).Draw(t, "revision"),
 			StatementCanonicalization: format.StatementCanonicalizationC1,
 		}
+		statementDigest := Digests().Draw(t, "statementDigest")
 		return Alignment(func(s *format.Statement[format.Alignment]) {
-			s.Subject = []format.Subject{format.RequirementSubject(requirement.ID, requirement.Revision, Digests().Draw(t, "statementDigest"))}
+			s.Subject = []format.Subject{format.RequirementSubject(requirement.ID, requirement.Revision, statementDigest)}
 			s.Predicate.Requirement = requirement
-			s.Predicate.Inputs = Inputs().Draw(t, "inputs")
+			s.Predicate.Inputs = InputsAbout(format.SpecInput(requirement.ID, requirement.Revision, statementDigest)).Draw(t, "inputs")
 			s.Predicate.ProducedBy = rapid.SampledFrom([]format.ProducedBy{format.ProducedByLocal, format.ProducedByCI}).Draw(t, "producedBy")
 			s.Predicate.Test = rapid.StringMatching(identifierPattern).Draw(t, "test")
 			s.Predicate.Verdict = judgedClaim(t, "verdict", format.Verdicts())
@@ -125,9 +142,10 @@ func Alignments() *rapid.Generator[format.Statement[format.Alignment]] {
 func DiscriminatingPowers() *rapid.Generator[format.Statement[format.DiscriminatingPower]] {
 	return rapid.Custom(func(t *rapid.T) format.Statement[format.DiscriminatingPower] {
 		tests := sortedStrings(rapid.SliceOfN(rapid.StringMatching(identifierPattern), 1, maxGeneratedTests).Draw(t, "tests"))
+		statementDigest := Digests().Draw(t, "statementDigest")
 		return DiscriminatingPower(func(s *format.Statement[format.DiscriminatingPower]) {
-			s.Subject = []format.Subject{format.RequirementSubject(RequirementID, RequirementRevision, Digests().Draw(t, "statementDigest"))}
-			s.Predicate.Inputs = Inputs().Draw(t, "inputs")
+			s.Subject = []format.Subject{format.RequirementSubject(RequirementID, RequirementRevision, statementDigest)}
+			s.Predicate.Inputs = InputsAbout(format.SpecInput(RequirementID, RequirementRevision, statementDigest)).Draw(t, "inputs")
 			s.Predicate.Tests = tests
 			s.Predicate.Executor = Executors().Draw(t, "executor")
 			s.Predicate.CorrectCodePasses = format.Executed(rapid.Bool().Draw(t, "correctCodePasses"))

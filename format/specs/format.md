@@ -129,6 +129,44 @@ Go tests of the module in CI.
   and `inline` from the strongest to the weakest, and rank an unknown level
   below every floor.
 
+## Input descriptors and decisions
+
+- **SP-400~1**: WHEN a proof about a criterion lists its inputs THE SYSTEM SHALL
+  describe the statement as one `spec` input named `ID~REV` with the statement
+  digest of the subject, each file the proof depends on as one `code_tree` or
+  `test_source` input named by a path relative to the repository root with `/`
+  separators and carrying the SHA-256 of the file's exact bytes, and a consumed
+  proof as one `proof` input named by its kind, carrying the criterion in
+  `annotations.criterion` and the SHA-256 of the Statement file's exact bytes,
+  and SHALL report `input_descriptor` for a descriptor of another shape.
+- **SP-401~1**: WHEN a predicate or a mutant records a decision THE SYSTEM SHALL
+  require its `confidenceSource` to be `execution`, `host-votes(<k>)` or
+  `system-one:<model>@<endpoint digest>`, accept the id of the mapping that
+  produced the confidence in `confidenceMapping`, and report `unknown_value`
+  for another source.
+
+## Host protocol: closed questions
+
+- **SP-402~1**: WHEN the `closed` member of a request is validated THE SYSTEM
+  SHALL require a state and 1 to 64 questions with distinct non-empty ids and
+  instructions, each of the type `choice` (2 to 26 options), `score` (at least 2
+  levels, lowest first) or `noul` (no options, or `true` then `false`), whose
+  options have distinct non-empty names and a criteria text.
+- **SP-403~1**: WHEN a response schema is built for a question set THE SYSTEM
+  SHALL require one answer per question, by id, whose choice is an option of that
+  question (`true` or `false` for a noul question) and whose confidence is
+  optional, and WHEN answers are read or written THE SYSTEM SHALL keep them in the
+  order of the questions.
+- **SP-404~1**: WHEN a question set is rendered for a `/v1/systemone` endpoint THE
+  SYSTEM SHALL name the questions in order with their type, instructions and
+  criteria (option to description for a choice, ordered descriptions for a score,
+  `true` and `false` for a noul), and WHEN the endpoint's response is read THE
+  SYSTEM SHALL turn a choice into its option and confidence, a noul into `true` from
+  probability one half with the confidence `max(p, 1-p)`, and a score into the
+  nearest level, and SHALL refuse a response that leaves a question unanswered.
+- **SP-405~1**: WHEN the closed requests of a listing are exported to a relay THE
+  SYSTEM SHALL list the first vote of each with its ticket, nonce and question set.
+
 ## Host protocol: requests and tickets
 
 - **SP-117~1**: WHEN a request is validated THE SYSTEM SHALL require the request

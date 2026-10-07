@@ -49,6 +49,10 @@ var predicateTypes = map[Kind]string{
 	KindCompleteness:        PredicateTypeCompleteness,
 }
 
+var kindsByName = map[Kind]struct{}{
+	KindAlignment: {}, KindDiscriminatingPower: {}, KindCompleteness: {},
+}
+
 // Kinds lists every proof kind in a stable order.
 func Kinds() []Kind {
 	return []Kind{KindAlignment, KindDiscriminatingPower, KindCompleteness}

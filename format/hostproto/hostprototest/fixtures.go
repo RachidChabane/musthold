@@ -81,7 +81,7 @@ func ClosedRequest(mutations ...func(*hostproto.Request)) hostproto.Request {
 		r.Kind = hostproto.KindDecideClosed
 		r.Role = hostproto.RoleFor(PluginName, hostproto.AgentDecider)
 		r.Shape = hostproto.ShapeClosed
-		r.Closed = json.RawMessage(`{"questions":[{"id":"q1","choice":["VIOLATES","CONSISTENT"]}]}`)
+		r.Closed = mustClosed(ClosedSet())
 	}}, mutations...)...)
 }
 
@@ -120,4 +120,26 @@ func Response(ticket hostproto.Ticket) hostproto.Response {
 		RequestID: ticket.RequestID, Vote: ticket.Vote, Nonce: ticket.Nonce,
 		Output: json.RawMessage(HonestAnswer), Executor: Profile(),
 	}
+}
+
+// ClosedQuestionID is the id of the question of ClosedSet.
+const ClosedQuestionID = "q1"
+
+// ClosedSet builds a valid question set: one choice question about a state.
+func ClosedSet() hostproto.ClosedSet {
+	return hostproto.ClosedSet{
+		State: "Requirement 1:\nthe fee is waived from 50\n",
+		Questions: []hostproto.ClosedQuestion{hostproto.ChoiceQuestion(ClosedQuestionID, "Does the change break requirement 1?", []hostproto.ClosedOption{
+			{Name: "VIOLATES", Description: "The change breaks the requirement."},
+			{Name: "CONSISTENT", Description: "The requirement is still met."},
+		})},
+	}
+}
+
+func mustClosed(set hostproto.ClosedSet) json.RawMessage {
+	encoded, err := set.Marshal()
+	if err != nil {
+		panic(err)
+	}
+	return encoded
 }

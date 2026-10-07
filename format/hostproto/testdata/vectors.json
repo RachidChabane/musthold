@@ -186,12 +186,21 @@
           }
         },
         "closed": {
+          "state": "Requirement 1:\nthe fee is waived from 50\n",
           "questions": [
             {
               "id": "q1",
-              "choice": [
-                "VIOLATES",
-                "CONSISTENT"
+              "type": "choice",
+              "instructions": "Does the change break requirement 1?",
+              "options": [
+                {
+                  "name": "VIOLATES",
+                  "description": "The change breaks the requirement."
+                },
+                {
+                  "name": "CONSISTENT",
+                  "description": "The requirement is still met."
+                }
               ]
             }
           ]
@@ -211,7 +220,7 @@
         ],
         "cacheKey": "89dd5bff4fb6fd83ee0679edfb07756d0d22222a414f0c3ac6fd92c120e4fe4f"
       },
-      "id": "5eaa71658a9930dc6504bb018ff47c7a8cab3b5590c50116f3045758463f7eb0"
+      "id": "2fce5c0623727daa687401774dbc34264368a7e89c9924598d6e82095d31b9a4"
     }
   ],
   "capabilities": [

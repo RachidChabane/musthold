@@ -298,9 +298,13 @@ func TestMutantAttribution(t *testing.T) {
 
 func TestAdditiveRolesAndMinorVersions(t *testing.T) {
 	t.Run("a host response and a proof are input roles [verifies SP-114~1]", func(t *testing.T) {
-		for _, role := range []format.InputRole{format.RoleHostResponse, format.RoleProof} {
+		extras := []format.Input{
+			proofs.Input(format.RoleHostResponse, "extra"),
+			format.ProofInput(format.KindCompleteness, "OTHER-1~1", []byte("another statement")),
+		}
+		for _, extra := range extras {
 			statement := proofs.Alignment(func(s *alignmentStatement) {
-				s.Predicate.Inputs = proofs.SortInputs(append(s.Predicate.Inputs, proofs.Input(role, "extra")))
+				s.Predicate.Inputs = proofs.SortInputs(append(s.Predicate.Inputs, extra))
 			})
 			assertCodes(t, statement.Validate())
 		}

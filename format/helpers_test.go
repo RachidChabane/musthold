@@ -44,10 +44,11 @@ func corroborationFixture() format.Corroboration {
 func regularMutant(s *format.Statement[format.DiscriminatingPower]) *format.Mutant {
 	mutant := &s.Predicate.Mutants[proofs.RegularMutantIndex(s.Predicate.Mutants)]
 	mutant.Extensions = &format.MutantExtensions{Decision: &format.Decision{
-		Basis:         format.BasisJudges,
-		Deciders:      []string{"judge-a", "judge-b"},
-		RawConfidence: 0.9,
-		Threshold:     0.7,
+		Basis:            format.BasisJudges,
+		Deciders:         []string{"judge-a", "judge-b"},
+		ConfidenceSource: format.HostVotesSource(2),
+		RawConfidence:    0.9,
+		Threshold:        0.7,
 	}}
 	return mutant
 }

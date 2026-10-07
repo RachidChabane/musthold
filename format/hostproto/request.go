@@ -218,8 +218,8 @@ func (r Request) checkShape(sink *problemSink) {
 	if hasClosed := len(r.Closed) > 0; hasClosed != (r.Shape == ShapeClosed) {
 		sink.add("closed", "the question set is present exactly when the shape is %q", ShapeClosed)
 	}
-	if len(r.Closed) > 0 && !json.Valid(r.Closed) {
-		sink.add("closed", "is not valid JSON")
+	if len(r.Closed) > 0 && r.Shape == ShapeClosed {
+		sink.problems = append(sink.problems, closedProblems(r.Closed)...)
 	}
 }
 

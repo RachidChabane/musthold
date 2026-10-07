@@ -454,6 +454,8 @@ func TestExtensions(t *testing.T) {
 			s.Predicate.Extensions.Decision = &format.Decision{
 				Basis:                format.BasisSystemOne,
 				Deciders:             []string{"nimble:9b"},
+				ConfidenceSource:     format.SystemOneSource("nimble:9b@" + proofs.Digest("endpoint")),
+				ConfidenceMapping:    format.MappingSystemOneChoice,
 				RawConfidence:        0.91,
 				CalibratedConfidence: floatPointer(0.8),
 				Threshold:            0.7,

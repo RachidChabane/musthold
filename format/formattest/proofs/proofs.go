@@ -30,6 +30,7 @@ const (
 	specText            = "# parkfee\n\n- PARK-2~1: " + statementText + "\n"
 	defaultConfidence   = 0.9
 	defaultThreshold    = 0.7
+	judgeVotes          = 2
 )
 
 // Digest returns the SHA-256 hex digest of a label, a stable stand-in for any
@@ -73,22 +74,45 @@ func Executor(model, promptDigest string) format.Executor {
 	}
 }
 
+// TestFile and CodeFile are the repository-relative paths of the fixture's test
+// and code files.
+const (
+	TestFile = "tests/test_parkfee.py"
+	CodeFile = "src/parkfee.py"
+)
+
+// FileInput builds a per-file descriptor whose digest is derived from its path.
+func FileInput(role format.InputRole, path string) format.Input {
+	return format.FileInput(role, path, Digest("file/"+path))
+}
+
+// SpecInput is the `spec` descriptor of the fixture criterion.
+func SpecInput() format.Input {
+	return format.SpecInput(RequirementID, RequirementRevision, StatementDigest())
+}
+
+// ProofInput is the `proof` descriptor of the discriminating-power Statement the
+// fixture alignment proof consumes.
+func ProofInput() format.Input {
+	return format.ProofInput(format.KindDiscriminatingPower, format.SubjectName(RequirementID, RequirementRevision), []byte("discriminating-power statement"))
+}
+
 func alignmentInputs() []format.Input {
 	return SortInputs([]format.Input{
-		Input(format.RoleSpec, SpecPath),
-		Input(format.RoleTestSource, "tests/test_parkfee.py"),
+		SpecInput(),
+		FileInput(format.RoleTestSource, TestFile),
 		Input(format.RoleModelID, judgeModel),
 		Input(format.RolePromptTemplate, "alignment-judge"),
 		Input(format.RoleDecisionPolicy, "decision-policy"),
-		Input(format.RoleProof, "discriminating-power"),
+		ProofInput(),
 	})
 }
 
 func discriminatingPowerInputs() []format.Input {
 	return SortInputs([]format.Input{
-		Input(format.RoleSpec, SpecPath),
-		Input(format.RoleTestSource, "tests/test_parkfee.py"),
-		Input(format.RoleCodeTree, "src/parkfee.py"),
+		SpecInput(),
+		FileInput(format.RoleTestSource, TestFile),
+		FileInput(format.RoleCodeTree, CodeFile),
 		Input(format.RoleJUnitResult, "junit-outcomes"),
 		Input(format.RoleMutantSet, "mutant-set"),
 		Input(format.RoleModelID, generatorModel),
@@ -126,10 +150,11 @@ func core(name string, inputs []format.Input) format.Core {
 // the cache key is recomputed.
 func Alignment(mutations ...func(*format.Statement[format.Alignment])) format.Statement[format.Alignment] {
 	decision := &format.Decision{
-		Basis:         format.BasisJudges,
-		Deciders:      []string{judgeModel},
-		RawConfidence: defaultConfidence,
-		Threshold:     defaultThreshold,
+		Basis:            format.BasisJudges,
+		Deciders:         []string{judgeModel},
+		ConfidenceSource: format.HostVotesSource(judgeVotes),
+		RawConfidence:    defaultConfidence,
+		Threshold:        defaultThreshold,
 	}
 	predicate := format.Alignment{
 		Requirement: requirement(),
@@ -208,10 +233,11 @@ func mutants() []format.Mutant {
 			{Test: TestName, Outcome: format.Executed(format.OutcomeSurvived)},
 		},
 		Extensions: &format.MutantExtensions{Decision: &format.Decision{
-			Basis:         format.BasisSpecExample,
-			Deciders:      []string{"example-0"},
-			RawConfidence: 1.0,
-			Threshold:     defaultThreshold,
+			Basis:            format.BasisSpecExample,
+			Deciders:         []string{"example-0"},
+			ConfidenceSource: format.SourceExecution,
+			RawConfidence:    1.0,
+			Threshold:        defaultThreshold,
 		}},
 	}
 	survivedEquivalent := format.Mutant{
@@ -231,10 +257,11 @@ func mutants() []format.Mutant {
 			{Test: TestName, Outcome: format.Executed(format.OutcomeSurvived)},
 		},
 		Extensions: &format.MutantExtensions{Decision: &format.Decision{
-			Basis:         format.BasisConstruction,
-			Deciders:      []string{"sentinel-catalogue"},
-			RawConfidence: 1.0,
-			Threshold:     defaultThreshold,
+			Basis:            format.BasisConstruction,
+			Deciders:         []string{"sentinel-catalogue"},
+			ConfidenceSource: format.SourceExecution,
+			RawConfidence:    1.0,
+			Threshold:        defaultThreshold,
 		}},
 	}
 	pool := []format.Mutant{killedValid, survivedEquivalent, sentinel}

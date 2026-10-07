@@ -63,15 +63,16 @@ func Manifest(cases []Case) []ManifestEntry {
 }
 
 const (
-	wrongStatementType  = "https://in-toto.io/Statement/v0.1"
-	futurePredicateType = "https://rachid-chabane.com/attestations/future/v1"
-	futureMember        = "futureMember"
-	futureValue         = "added by a later minor version"
-	wrongRequirementID  = "PARK-3"
-	absoluteSpecPath    = "/etc/specs/parkfee.md"
-	unknownInputRole    = "weird_role"
-	outOfRange          = 1.5
-	someConfidence      = 0.9
+	wrongStatementType      = "https://in-toto.io/Statement/v0.1"
+	futurePredicateType     = "https://rachid-chabane.com/attestations/future/v1"
+	futureMember            = "futureMember"
+	futureValue             = "added by a later minor version"
+	wrongRequirementID      = "PARK-3"
+	absoluteSpecPath        = "/etc/specs/parkfee.md"
+	unknownInputRole        = "weird_role"
+	unknownConfidenceSource = "gut-feeling"
+	outOfRange              = 1.5
+	someConfidence          = 0.9
 )
 
 func valid() Expectation {
@@ -168,6 +169,26 @@ func alignmentCases() []Case {
 		build("alignment-not-blind", breaks(SchemaInvalid, format.CodeNotBlind), func(s *alignment) {
 			s.Predicate.Executor.Blind = false
 		}),
+		build("alignment-spec-input-wrong-name", breaks(SchemaValid, format.CodeInputDescriptor), func(s *alignment) {
+			replaceInput(s, format.RoleSpec, func(input *format.Input) { input.Name = absoluteSpecPath })
+		}),
+		build("alignment-spec-input-wrong-digest", breaks(SchemaValid, format.CodeInputDescriptor), func(s *alignment) {
+			replaceInput(s, format.RoleSpec, func(input *format.Input) { input.Digest.SHA256 = proofs.Digest("another statement") })
+		}),
+		build("alignment-file-input-absolute-path", breaks(SchemaValid, format.CodeInputDescriptor), func(s *alignment) {
+			replaceInput(s, format.RoleTestSource, func(input *format.Input) { input.Name = absoluteSpecPath })
+		}),
+		build("alignment-proof-input-without-criterion", breaks(SchemaValid, format.CodeInputDescriptor), func(s *alignment) {
+			replaceInput(s, format.RoleProof, func(input *format.Input) { input.Annotations = nil })
+		}),
+		build("alignment-proof-input-named-after-a-criterion", breaks(SchemaValid, format.CodeInputDescriptor), func(s *alignment) {
+			replaceInput(s, format.RoleProof, func(input *format.Input) {
+				input.Name = format.SubjectName(proofs.RequirementID, proofs.RequirementRevision)
+			})
+		}),
+		build("alignment-unknown-confidence-source", breaks(SchemaInvalid, format.CodeUnknownValue), func(s *alignment) {
+			s.Predicate.Extensions.Decision.ConfidenceSource = unknownConfidenceSource
+		}),
 		{Name: "alignment-cache-key-mismatch", Document: encode(cacheKeyMismatch), Expectation: breaks(SchemaValid, format.CodeCacheKeyMismatch)},
 	}
 }
@@ -234,6 +255,16 @@ func envelopeCases() []Case {
 		{Name: "envelope-wrong-statement-type", Document: encode(wrongType), Expectation: breaks(SchemaInvalid, format.CodeStatementType)},
 		{Name: "envelope-unknown-predicate-type", Document: encode(future), Expectation: Expectation{Decode: DecodeUnknownPredicateType, Violations: []format.ViolationCode{}, Schema: SchemaUnknownPredicateType}},
 	}
+}
+
+// replaceInput edits the input of the role in place, and re-sorts the list.
+func replaceInput(s *format.Statement[format.Alignment], role format.InputRole, edit func(*format.Input)) {
+	for index := range s.Predicate.Inputs {
+		if s.Predicate.Inputs[index].Role == role {
+			edit(&s.Predicate.Inputs[index])
+		}
+	}
+	s.Predicate.Inputs = proofs.SortInputs(s.Predicate.Inputs)
 }
 
 func judgedClaim[V comparable](value V) format.Claim[V] {
