@@ -24,7 +24,27 @@
           }
         }
       ],
-      "examples": []
+      "examples": [
+        {
+          "index": 0,
+          "operation": "line_total",
+          "args": {
+            "unit_price": {
+              "type": "integer",
+              "value": "4"
+            },
+            "quantity": {
+              "type": "integer",
+              "value": "3"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "12"
+          }
+        }
+      ]
     },
     {
       "id": "PAR-2",
@@ -85,7 +105,46 @@
           }
         }
       ],
-      "examples": []
+      "examples": [
+        {
+          "index": 0,
+          "operation": "discounted",
+          "args": {
+            "total": {
+              "type": "integer",
+              "value": "20000"
+            },
+            "percent": {
+              "type": "integer",
+              "value": "10"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "18000"
+          }
+        },
+        {
+          "index": 1,
+          "operation": "discounted",
+          "args": {
+            "total": {
+              "type": "integer",
+              "value": "8000"
+            },
+            "percent": {
+              "type": "integer",
+              "value": "150"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "0"
+          }
+        }
+      ]
     },
     {
       "id": "PAR-3",

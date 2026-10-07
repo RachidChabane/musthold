@@ -1,0 +1,13 @@
+proofs:
+  alignment: false
+  discriminating-power: true
+  completeness: false
+ecosystems:
+  - go
+operations:
+  line_total:
+    go: example.com/parcel:LineTotal
+  discounted:
+    go: example.com/parcel:Discounted
+  shipping_fee:
+    go: example.com/parcel:ShippingFee

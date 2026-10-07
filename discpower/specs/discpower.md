@@ -292,12 +292,14 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   write its response as an error.
 - **SP-955~1**: WHEN a call is repeated THE SYSTEM SHALL observe the same thing,
   with times in UTC and the default random source seeded the same way.
-
 - **SP-956~1**: WHEN the examples, the differential search and the confirmation of
   a witness run on a Go project THE SYSTEM SHALL pass an example the reference
   meets and fail one a violating mutant breaks, find a witness where a mutant moves
   a boundary, and confirm that witness by running it on the reference and on the
   mutant.
+- **SP-957~1**: WHEN an honest host answers every request for a Go project THE
+  SYSTEM SHALL block the criterion whose weak test lets a validated mutant survive
+  and pass the criteria whose tests kill every validated mutant.
 
 ## Spec values and policy
 

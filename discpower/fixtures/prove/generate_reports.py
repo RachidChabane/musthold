@@ -3,7 +3,7 @@
 
 The parcel report describes `parcel/` (pytest) with the tests at the lines they
 have in `parcel/tests/test_rates.py`; the Go report is derived from the bindings
-recorded for the Go ecosystem fixture. Run it from anywhere:
+recorded for the Go ecosystem fixture and the examples of its spec. Run it from anywhere:
 
     python3 discpower/fixtures/prove/generate_reports.py
 """
@@ -70,6 +70,14 @@ def parcel_report():
     ])
 
 
+GO_EXAMPLES = {
+    "PAR-1": [example(0, "line_total", {"unit_price": "4", "quantity": "3"}, "12")],
+    "PAR-2": [example(0, "discounted", {"total": "20000", "percent": "10"}, "18000"),
+              example(1, "discounted", {"total": "8000", "percent": "150"}, "0")],
+    "PAR-3": [],
+}
+
+
 def go_report():
     bound = json.loads(BINDINGS.read_text())
     requirements = []
@@ -77,7 +85,7 @@ def go_report():
         identifier = ref.split("~")[0]
         converted = [{"name": t["name"], "classname": t["classname"], "suite": "go", "outcome": "passed",
                       "source": {"file": t["file"], "line": t["line"]}} for t in tests]
-        requirements.append(requirement(identifier, converted, []))
+        requirements.append(requirement(identifier, converted, GO_EXAMPLES[identifier]))
     return report(requirements)
 
 

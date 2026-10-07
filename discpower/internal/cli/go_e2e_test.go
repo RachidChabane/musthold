@@ -1,6 +1,7 @@
 package cli_test
 
 import (
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -8,7 +9,9 @@ import (
 	"time"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
+	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
 )
 
 const (
@@ -16,7 +19,10 @@ const (
 	goReport  = "../../fixtures/prove/go-report.json"
 )
 
-// newGoHarness copies the Go fixture project, which binds no operation.
+// goConfig is the project configuration of the Go fixture, relative to its root.
+const goConfig = ".spec-proof/config.yaml"
+
+// newGoHarness copies the Go fixture project, which binds its three operations.
 func newGoHarness(t *testing.T) *harness {
 	t.Helper()
 	report, err := filepath.Abs(goReport)
@@ -39,6 +45,9 @@ func TestProveWithoutAnOperation(t *testing.T) {
 	}
 	t.Run("a project that binds no operation asks the host for nothing and escalates [verifies SP-190~2]", func(t *testing.T) {
 		h := newGoHarness(t)
+		if err := os.Remove(filepath.Join(h.root, goConfig)); err != nil {
+			t.Fatal(err)
+		}
 		code, output, stderr := h.run(nil, proveCommand, allFlag)
 		if code != cli.ExitBlocked {
 			t.Fatalf("exit code %d, want %d\n%s", code, cli.ExitBlocked, stderr)
@@ -60,6 +69,48 @@ func TestProveWithoutAnOperation(t *testing.T) {
 		}
 		if len(h.statements()) != 3 {
 			t.Errorf("%d Statements written, want 3", len(h.statements()))
+		}
+	})
+}
+
+func TestProveAGoProjectEndToEnd(t *testing.T) {
+	if testing.Short() {
+		t.Skip("runs the Go fixture's tests against many mutants")
+	}
+
+	t.Run("the honest persona blocks the weak test and passes the adequate ones [verifies SP-957~1]", func(t *testing.T) {
+		h := newGoHarness(t)
+		code, output := h.drive(hostprototest.PersonaHonest, oracle{})
+		want := map[string]string{"PAR-1~1": provedPass, "PAR-2~1": provedPass, "PAR-3~1": provedBlock}
+		for ref, verdict := range want {
+			if got := verdicts(output)[ref]; got != verdict {
+				t.Errorf("%s: %q, want %q\n%s", ref, got, verdict, output)
+			}
+		}
+		if code != cli.ExitBlocked {
+			t.Errorf("exit code %d, want %d", code, cli.ExitBlocked)
+		}
+		blocked := h.statement("PAR-3~1")
+		corroborated := false
+		for _, mutant := range blocked.Predicate.Mutants {
+			if mutant.Validity.Value != format.ValidityValid {
+				continue
+			}
+			kinds := map[format.CorroborationKind]bool{}
+			for _, evidence := range mutant.Validity.CorroboratedBy {
+				kinds[evidence.Kind] = true
+			}
+			survived := !slices.ContainsFunc(mutant.Results, func(r format.TestResult) bool { return r.Outcome.Value == format.OutcomeKilled })
+			corroborated = corroborated || (survived && kinds[format.CorroborationWitness] && kinds[format.CorroborationBuilds])
+		}
+		if !corroborated {
+			t.Error("the block rests on no surviving VALID mutant with a confirmed witness and a build")
+		}
+		for ref, examples := range map[string]int{"PAR-1~1": 1, "PAR-2~1": 2, "PAR-3~1": 0} {
+			runs := h.statement(ref).Predicate.Examples
+			if len(runs) != examples || slices.ContainsFunc(runs, func(run format.ExampleRun) bool { return run.Result.Value != format.ExamplePassed }) {
+				t.Errorf("%s: examples %+v, want %d passed", ref, runs, examples)
+			}
 		}
 	})
 }
