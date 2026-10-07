@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# One nightly session: the next unfinished model blocks, each under the memory guard.
+set -euo pipefail
+# shellcheck source=experiments/calibration/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+calibration_light run-session "$@"

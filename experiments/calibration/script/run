@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Run one model block: server, canary, pass 1 and pass 2.
+set -euo pipefail
+# shellcheck source=experiments/calibration/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+calibration_heavy run "$@"

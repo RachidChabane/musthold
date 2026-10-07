@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Pin the Ollama tags and the Kev revisions into models.lock.json; apply the static memory rule.
+set -euo pipefail
+# shellcheck source=experiments/calibration/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+calibration_heavy pin "$@"

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Build the product export, the Go builders and every item; archive them before any model call.
+set -euo pipefail
+# shellcheck source=experiments/calibration/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+calibration_heavy build-items "$@"

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Recompute every figure of results/ from the recorded bytes.
+set -euo pipefail
+# shellcheck source=experiments/calibration/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+calibration_heavy analyze "$@"

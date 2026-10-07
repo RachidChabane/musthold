@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Static checks: ruff, pyright strict, the import-linter contracts and gofmt of the Go builders.
+set -euo pipefail
+# shellcheck source=experiments/calibration/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+cd "${HARNESS_DIR}"
+run_light uv run --frozen ruff format --check src tests
+run_light uv run --frozen ruff check src tests
+run_light uv run --frozen lint-imports
+run_heavy uv run --frozen pyright
+unformatted="$(gofmt -l "${CALIBRATION_DIR}/builder")"
+if [ -n "${unformatted}" ]; then
+  echo "gofmt needed on:" >&2
+  echo "${unformatted}" >&2
+  exit 1
+fi

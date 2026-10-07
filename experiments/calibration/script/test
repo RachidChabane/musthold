@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Run the harness tests in one pytest process, guarded by mem-guard. Usage: script/test [PYTEST ARGS...]
+set -euo pipefail
+# shellcheck source=experiments/calibration/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+cd "${HARNESS_DIR}"
+run_heavy uv run --frozen pytest -q "$@"

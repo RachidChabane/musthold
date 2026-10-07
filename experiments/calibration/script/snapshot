@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Unpack the pilot snapshot of the a1 tag into .cache/ and record its digests.
+set -euo pipefail
+# shellcheck source=experiments/calibration/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+calibration_light snapshot "$@"

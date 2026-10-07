@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Run the canary of one model against its own server.
+set -euo pipefail
+# shellcheck source=experiments/calibration/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+calibration_heavy canary "$@"

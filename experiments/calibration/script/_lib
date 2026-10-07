@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Shared by the experiments/calibration/script/<verb> front door; source it, never run it.
+#
+# A verb runs as `uv run --frozen --project harness python -m calibration.cli <verb>`, from any directory.
+# Heavy work (Go builds, analysis, local models) goes through `script/mem-guard run --`: it applies nice and
+# refuses to start, or stops, when the laptop's free memory or pressure level is not safe. The guard's
+# MEM_GUARD_MIN_FREE_PCT stays unset for a model block.
+
+CALIBRATION_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "${CALIBRATION_DIR}/../.." && pwd)"
+HARNESS_DIR="${CALIBRATION_DIR}/harness"
+MEM_GUARD="${REPO_ROOT}/script/mem-guard"
+readonly CALIBRATION_DIR REPO_ROOT HARNESS_DIR MEM_GUARD
+
+# run_light CMD...: a short command that needs no memory guard.
+run_light() {
+  nice -n 10 "$@"
+}
+
+# run_heavy CMD...: a long or memory-hungry command, guarded.
+run_heavy() {
+  "${MEM_GUARD}" run -- "$@"
+}
+
+# calibration_light VERB ARGS...
+calibration_light() {
+  run_light uv run --frozen --project "${HARNESS_DIR}" python -m calibration.cli "$@"
+}
+
+# calibration_heavy VERB ARGS...
+calibration_heavy() {
+  run_heavy uv run --frozen --project "${HARNESS_DIR}" python -m calibration.cli "$@"
+}
