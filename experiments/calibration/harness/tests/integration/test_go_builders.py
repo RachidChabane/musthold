@@ -22,6 +22,7 @@ from calibration.adapters.go_layout import BUILDER_TARGETS, PRODUCT_ALIGNMENT_BI
 from calibration.adapters.go_toolchain import GoBuilderToolchain
 from calibration.adapters.subprocess_runner import SubprocessRunner
 from calibration.application.build_ports import BuilderBuild
+from calibration.application.builder_check import run_builder_check
 from calibration.domain.canonical import JsonValue
 from calibration.domain.ports import DecodeRequest, ScreenReadRequest
 from repository_paths import REPOSITORY_ROOT
@@ -209,6 +210,11 @@ class TestAlignmentBuilder:
         left_over = cast(list[str], result["unmatched_rebuilt"])
         assert cast(int, result["rebuilt"]) == len(exported) + len(left_over)
         assert set(left_over) <= self._fixture_labels(world, tmp_path)
+
+    def test_the_builder_check_of_the_build_step_passes_with_the_real_driver(self, world: GoWorld) -> None:
+        check = run_builder_check(world.driver, world.builders, world.export_dir)
+        assert check.passed
+        assert check.matched == check.exported > 0
 
     @staticmethod
     def _fixture_labels(world: GoWorld, tmp_path: Path) -> set[str]:

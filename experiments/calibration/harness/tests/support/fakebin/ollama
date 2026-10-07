@@ -4,7 +4,8 @@
 A resident model is backed by a child process whose command line holds `ollama runner`, as the real server's runner is.
 Variables read: FAKEBIN_TESTS_DIR (the tests directory), FAKE_OLLAMA_ENV_FILE (where the OLLAMA_* variables are
 written), FAKE_OLLAMA_RUNNER_PID_FILE (where the runner's pid is written), FAKE_OLLAMA_KEEP_RUNNER (an unload keeps the
-runner), FAKE_OLLAMA_STUBBORN_RUNNER (the runner ignores SIGTERM), FAKE_OLLAMA_MODELS (`tag=digest,...`).
+runner), FAKE_OLLAMA_STUBBORN_RUNNER (the runner ignores SIGTERM), FAKE_OLLAMA_MODELS (`tag=digest,...`),
+FAKE_STUB_BEHAVIOUR (a JSON object of `OllamaBehaviour` fields).
 """
 
 import json
@@ -14,7 +15,7 @@ import sys
 
 sys.path.insert(0, os.environ["FAKEBIN_TESTS_DIR"])
 
-from support.stub_ollama import StubOllamaServer  # noqa: E402
+from support.stub_ollama import OllamaBehaviour, StubOllamaServer  # noqa: E402
 
 RUNNER_IDLE_CODE = "import time; time.sleep(600)"
 STUBBORN_RUNNER_CODE = "import signal, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(600)"
@@ -54,7 +55,10 @@ def serve():
     if env_file:
         with open(env_file, "w") as handle:
             json.dump(recorded, handle)
-    server = StubOllamaServer(host, int(port), models=declared_models(), on_load=start_runner, on_unload=stop_runner)
+    behaviour = OllamaBehaviour(**json.loads(os.environ.get("FAKE_STUB_BEHAVIOUR", "{}")))
+    server = StubOllamaServer(
+        host, int(port), behaviour=behaviour, models=declared_models(), on_load=start_runner, on_unload=stop_runner
+    )
     server.serve_forever_blocking()
 
 
