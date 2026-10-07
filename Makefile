@@ -4,7 +4,7 @@
 # The pilot verbs (setup, verify, test, run) drive experiments/limits-1-3; the
 # product verbs (go-test, go-lint, ci) drive every Go module of go.work through
 # script/*; name modules with MODULES="format discpower" to run a subset.
-.PHONY: help setup verify test run go-test go-lint ci
+.PHONY: help setup verify test run go-test go-lint ci shallnot-build
 
 help:  ## list verbs
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN{FS=":.*?## "}{printf "  %-8s %s\n",$$1,$$2}'
@@ -34,6 +34,9 @@ go-lint:  ## gofmt check and go vet on each Go module (script/lint)
 
 ci:  ## lint, then self-gate each Go module with shallnot (script/ci)
 	script/ci $(MODULES)
+
+shallnot-build:  ## build the pinned Shallnot into .tools/bin (script/shallnot-build)
+	script/shallnot-build
 
 .PHONY: mem-check
 mem-check:  ## refuse heavy local work unless memory is free enough (script/mem-guard)

@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Build the pinned Shallnot into .tools/bin/shallnot. The source is the git
+# repository at $SHALLNOT_SRC (default: ../shallnot-proof-gate next to this repo),
+# built at the commit recorded in script/shallnot.pin, never from its working tree.
+# A sidecar .tools/bin/shallnot.pin makes a re-run with an unchanged pin a no-op.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly EXIT_PRECONDITION=2
+readonly PIN_FILE="script/shallnot.pin"
+readonly BIN_DIR=".tools/bin"
+readonly BIN="${BIN_DIR}/shallnot"
+readonly BIN_PIN="${BIN_DIR}/shallnot.pin"
+readonly MAIN_PACKAGE="./cmd/shallnot"
+readonly VERSION_VAR="github.com/RachidChabane/shallnot/internal/version.injected"
+readonly SCHEMA_VERSION_CURRENT="1.2"
+readonly SCHEMA_VERSION_PREVIOUS="1.1"
+readonly SHORT_SHA_LENGTH=12
+readonly BUILD_PROCS=1
+readonly BUILD_GOMAXPROCS=2
+readonly BUILD_NICE=10
+
+fail() {
+  echo "shallnot-build: $*" >&2
+  exit "${EXIT_PRECONDITION}"
+}
+
+verify_binary() {
+  local pattern
+  pattern="$("${BIN}" schema report | jq -r '.properties.schema_version.pattern')"
+  if [[ "${SCHEMA_VERSION_PREVIOUS}" =~ ${pattern} ]] || ! [[ "${SCHEMA_VERSION_CURRENT}" =~ ${pattern} ]]; then
+    fail "the pinned build is older than report schema ${SCHEMA_VERSION_CURRENT}"
+  fi
+}
+
+SRC="${SHALLNOT_SRC:-../shallnot-proof-gate}"
+PIN="$(tr -d '[:space:]' <"${PIN_FILE}")"
+[[ "${PIN}" =~ ^[0-9a-f]{40}$ ]] || fail "${PIN_FILE} must hold one 40-hex commit SHA"
+
+if [[ -x "${BIN}" && -f "${BIN_PIN}" && "$(cat "${BIN_PIN}")" == "${PIN}" ]]; then
+  echo "shallnot-build: ${BIN} is up to date at ${PIN}"
+  exit 0
+fi
+
+command -v go >/dev/null 2>&1 || fail "go is required to build shallnot"
+command -v jq >/dev/null 2>&1 || fail "jq is required to verify the shallnot build"
+[[ -d "${SRC}" ]] || fail "shallnot source not found at ${SRC} (set SHALLNOT_SRC)"
+git -C "${SRC}" cat-file -e "${PIN}^{commit}" 2>/dev/null \
+  || fail "commit ${PIN} is missing from ${SRC}"
+
+./script/mem-guard check
+
+scratch="$(mktemp -d)"
+trap 'rm -rf "${scratch}"' EXIT
+git -C "${SRC}" archive "${PIN}" | tar -x -C "${scratch}"
+
+mkdir -p "${BIN_DIR}"
+output="$(cd "${BIN_DIR}" && pwd)/shallnot"
+(
+  cd "${scratch}"
+  CGO_ENABLED=0 GOMAXPROCS="${BUILD_GOMAXPROCS}" nice -n "${BUILD_NICE}" \
+    go build -p "${BUILD_PROCS}" \
+    -ldflags "-X ${VERSION_VAR}=${PIN:0:${SHORT_SHA_LENGTH}}" \
+    -o "${output}" "${MAIN_PACKAGE}"
+)
+
+verify_binary
+echo "${PIN}" >"${BIN_PIN}"
+echo "shallnot-build: built ${BIN} at ${PIN}"
