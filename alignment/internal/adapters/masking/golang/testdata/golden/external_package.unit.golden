@@ -1,0 +1,18 @@
+import (
+	"errors"
+	"testing"
+
+	"example.com/parcel"
+)
+
+func helper1(weight int) (int, error) {
+	return parcel.Price(parcel.Parcel{ID: "X-7", Weight: weight, Zone: parcel.National})
+}
+
+func TestCase(t *testing.T) {
+	t.Run("case", func(t *testing.T) {
+		if _, err := helper1(parcel.MaxWeight + 1); !errors.Is(err, parcel.ErrTooHeavy) {
+			t.Fatalf("quote error = %v", err)
+		}
+	})
+}

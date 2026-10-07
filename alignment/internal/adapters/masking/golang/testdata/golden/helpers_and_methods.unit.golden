@@ -1,0 +1,30 @@
+import (
+	"fmt"
+	"strings"
+	"testing"
+)
+
+const helper1 = "P-1042"
+
+type Helper2 struct {
+	lines []string
+}
+
+func (r *Helper2) add(format string, args ...any) {
+	r.lines = append(r.lines, fmt.Sprintf(format, args...))
+}
+
+func (r *Helper2) text() string { return strings.Join(r.lines, "\n") }
+
+func helper3(weight int, zone Zone) Parcel {
+	return Parcel{ID: helper1, Weight: weight, Zone: zone}
+}
+
+func TestCase(t *testing.T) {
+	log := &Helper2{}
+	p := helper3(100, National)
+	log.add("label=%s", p.Label())
+	if got := log.text(); got != "label=P-1042/1" {
+		t.Errorf("label line = %q", got)
+	}
+}

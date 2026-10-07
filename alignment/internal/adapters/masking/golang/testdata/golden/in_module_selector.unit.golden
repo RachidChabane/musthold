@@ -1,0 +1,15 @@
+import (
+	"testing"
+
+	"example.com/parcel/rate"
+)
+
+var helper1 = rate.Default()
+
+func TestCase(t *testing.T) {
+	for zone, name := range map[Zone]string{Local: "local", National: "national"} {
+		if got, want := base(zone), helper1.Cents(name); got != want {
+			t.Errorf("base(%d) = %d, want %d", zone, got, want)
+		}
+	}
+}

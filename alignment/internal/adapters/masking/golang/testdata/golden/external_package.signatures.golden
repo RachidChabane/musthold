@@ -1,0 +1,17 @@
+const MaxWeight = 30000
+
+const National
+
+func (p *Parcel) Validate() error
+
+func (p Parcel) Label() string
+
+func Price(p Parcel) (int, error)
+
+type Parcel struct {
+	ID     string
+	Weight int
+	Zone   Zone
+}
+
+var ErrTooHeavy = errors.New("parcel is too heavy")

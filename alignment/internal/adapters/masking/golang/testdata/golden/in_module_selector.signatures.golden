@@ -1,0 +1,9 @@
+const Local Zone = iota
+
+const National
+
+func Default() Table
+
+func base(z Zone) int
+
+type Zone int

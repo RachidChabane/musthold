@@ -1,0 +1,41 @@
+import (
+	"testing"
+)
+
+const helper1 = "P-1042"
+
+func helper2(weight int, zone Zone) Parcel {
+	return Parcel{ID: helper1, Weight: weight, Zone: zone}
+}
+
+func helper3(t *testing.T, p Parcel) int {
+	t.Helper()
+	cents, err := Price(p)
+	if err != nil {
+		t.Fatalf("price of %s: %v", p.Label(), err)
+	}
+	return cents
+}
+
+type Helper4 struct {
+	name   string
+	weight int
+	zone   Zone
+	want   int
+}
+
+func TestCase(t *testing.T) {
+	cases := []Helper4{
+		{name: "a light local parcel", weight: 500, zone: Local, want: 450},
+		{name: "a heavy national parcel", weight: 12000, zone: National, want: 750 + 240},
+		{name: "case", weight: 0, zone: International, want: 1050},
+	}
+	for _, c := range cases {
+		t.Run(c.name+"", func(t *testing.T) {
+			got := helper3(t, helper2(c.weight, c.zone))
+			if got != c.want {
+				t.Errorf("price = %d, want %d", got, c.want)
+			}
+		})
+	}
+}

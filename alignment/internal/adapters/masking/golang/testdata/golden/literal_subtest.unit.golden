@@ -1,0 +1,20 @@
+import (
+	"errors"
+	"testing"
+)
+
+const helper1 = "P-1042"
+
+func helper2(weight int, zone Zone) Parcel {
+	return Parcel{ID: helper1, Weight: weight, Zone: zone}
+}
+
+func TestCase(t *testing.T) {
+	t.Run("case", func(t *testing.T) {
+		p := helper2(MaxWeight+1, Local)
+		if err := p.Validate(); !errors.Is(err, ErrTooHeavy) {
+			t.Fatalf("validate = %v, want %v", err, ErrTooHeavy)
+		}
+	})
+
+}
