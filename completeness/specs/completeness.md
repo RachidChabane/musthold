@@ -356,6 +356,11 @@ traces them to the Go tests of the module in CI.
 
 ## Reading the units of source files
 
+- **SP-1313~1**: WHEN the units of a source file are built from its syntax tree THE
+  SYSTEM SHALL give each the text of its node, a normal form that is the stream of
+  its leaves without comments, the sorted names of the identifiers it mentions and
+  its lines, name a second unit of the same qualified name with a repeat counter,
+  and leave out of the normal form every node type its language calls a comment.
 - **SP-1314~1**: WHEN a label a runner reports is compared with the patterns of a
   test unit THE SYSTEM SHALL take the citation tags out of the label and unify the
   separators between nested titles, let every placeholder of a title stand for any
