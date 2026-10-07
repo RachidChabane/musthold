@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.1",
+  "tool": "shallnot",
+  "requirements": [
+    {
+      "id": "PAR-1",
+      "revision": 1,
+      "ref": "PAR-1~1",
+      "statement": "WHEN a line is priced THE SYSTEM SHALL multiply the unit price by the quantity.\n\nExamples:\n  line_total(unit_price=4, quantity=3) => 12",
+      "status": "active",
+      "tests": [
+        {
+          "name": "test_line_total_multiplies",
+          "classname": "tests.test_parcel",
+          "source": {"file": "tests/test_parcel.py", "line": 7}
+        }
+      ]
+    }
+  ]
+}

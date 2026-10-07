@@ -1,0 +1,108 @@
+{
+  "schema_version": "1.2",
+  "tool": "shallnot",
+  "requirements": [
+    {
+      "id": "PAR-3",
+      "revision": 1,
+      "ref": "PAR-3~1",
+      "statement": "WHEN the quantity of a line is zero THE SYSTEM SHALL reject the line.\n\nExamples:\n  line_total(unit_price=4, quantity=0) => raises ValueError",
+      "status": "active",
+      "statement_digest": "7c3d1f5e9a0b4c28d6e1f7a3b5c9d2e4f8a6b0c1d3e5f7a9b1c3d5e7f9a1b3c5",
+      "examples": [
+        {
+          "index": 0,
+          "operation": "line_total",
+          "args": {
+            "unit_price": {"type": "integer", "value": "4"},
+            "quantity": {"type": "integer", "value": "0"}
+          },
+          "expect": {"kind": "raises", "type": "", "value": "ValueError"}
+        }
+      ],
+      "tests": [
+        {
+          "name": "test_zero_quantity_is_rejected",
+          "classname": "tests.test_parcel",
+          "source": {"file": "tests/test_parcel.py", "line": 31}
+        }
+      ]
+    },
+    {
+      "id": "PAR-1",
+      "revision": 1,
+      "ref": "PAR-1~1",
+      "statement": "WHEN a line is priced THE SYSTEM SHALL multiply the unit price by the quantity.\n\nExamples:\n  line_total(unit_price=4, quantity=3) => 12\n  line_total(unit_price=5, quantity=1) => 5",
+      "status": "active",
+      "statement_digest": "1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f809",
+      "examples": [
+        {
+          "index": 1,
+          "operation": "line_total",
+          "args": {
+            "unit_price": {"type": "integer", "value": "5"},
+            "quantity": {"type": "integer", "value": "1"}
+          },
+          "expect": {"kind": "returns", "type": "integer", "value": "5"}
+        },
+        {
+          "index": 0,
+          "operation": "line_total",
+          "args": {
+            "unit_price": {"type": "integer", "value": "4"},
+            "quantity": {"type": "integer", "value": "3"}
+          },
+          "expect": {"kind": "returns", "type": "integer", "value": "12"}
+        }
+      ],
+      "tests": [
+        {
+          "name": "test_line_total_multiplies",
+          "classname": "tests.test_parcel",
+          "source": {"file": "tests/test_parcel.py", "line": 7}
+        },
+        {
+          "name": "test_single_unit_costs_its_price",
+          "classname": "tests.test_parcel",
+          "source": {"file": "tests/test_parcel.py", "line": 13}
+        }
+      ]
+    },
+    {
+      "id": "PAR-2",
+      "revision": 2,
+      "ref": "PAR-2~2",
+      "statement": "WHEN a parcel is shipped to a remote zone THE SYSTEM SHALL add the remote surcharge to the shipping cost.\n\nExamples:\n  shipping_cost(weight=2, zone=\"remote\") => 14.50",
+      "status": "active",
+      "statement_digest": "9f8e7d6c5b4a39281706f5e4d3c2b1a09f8e7d6c5b4a39281706f5e4d3c2b1a0",
+      "examples": [
+        {
+          "index": 0,
+          "operation": "shipping_cost",
+          "args": {
+            "weight": {"type": "integer", "value": "2"},
+            "zone": {"type": "string", "value": "remote"}
+          },
+          "expect": {"kind": "returns", "type": "decimal", "value": "14.50"}
+        }
+      ],
+      "tests": [
+        {
+          "name": "test_remote_zone_adds_surcharge",
+          "classname": "tests.test_shipping.TestSurcharge",
+          "source": {"file": "tests/test_shipping.py", "line": 22}
+        }
+      ]
+    },
+    {
+      "id": "PAR-4",
+      "revision": 1,
+      "ref": "PAR-4~1",
+      "statement": "WHEN a parcel is insured THE SYSTEM SHALL add one percent of its declared value.",
+      "status": "superseded",
+      "statement_digest": "0b1c2d3e4f5061728394a5b6c7d8e9f00b1c2d3e4f5061728394a5b6c7d8e9f0",
+      "examples": [],
+      "tests": []
+    }
+  ]
+}
