@@ -1,0 +1,26 @@
+{
+  "state": "A thermostat in a meeting room is set to 19 degrees Celsius. Its sensor reads 23 degrees Celsius. The heating valve is closed.",
+  "questions": [
+    {
+      "id": "valve",
+      "type": "choice",
+      "instructions": "Which state does the text give for the heating valve?",
+      "options": [
+        {"name": "OPEN", "description": "The heating valve is open."},
+        {"name": "CLOSED", "description": "The heating valve is closed."},
+        {"name": "UNKNOWN", "description": "The text does not say."}
+      ]
+    },
+    {
+      "id": "gap",
+      "type": "score",
+      "instructions": "How far is the measured temperature from the set temperature?",
+      "options": [
+        {"name": "AT", "description": "At the set temperature."},
+        {"name": "NEAR", "description": "Within 2 degrees of it."},
+        {"name": "MODERATE", "description": "Between 2 and 5 degrees from it."},
+        {"name": "FAR", "description": "More than 5 degrees from it."}
+      ]
+    }
+  ]
+}
