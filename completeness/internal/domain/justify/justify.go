@@ -14,23 +14,10 @@ import (
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/reach"
 )
 
-// Source says what kind of evidence a justification rests on.
-type Source string
-
-// Sources of justification.
-const (
-	// SourceProbe: an example of the requirement that its discriminating-power
-	// Statement lists.
-	SourceProbe Source = "example_probe"
-	// SourceAlignedTest: a test the requirement's alignment Statements find ALIGNED.
-	SourceAlignedTest Source = "aligned_test"
-)
-
-// Evidence is a set of entry names, the functions a probe or a test starts
-// executing, that belong to one requirement.
+// Evidence is a set of entry names, the functions an example probe or an ALIGNED
+// test of one requirement starts executing.
 type Evidence struct {
 	Ref     criterion.Ref
-	Source  Source
 	Entries []string
 }
 

@@ -167,6 +167,12 @@ func TestRead(t *testing.T) {
 }
 
 func TestSource(t *testing.T) {
+	t.Run("a confidence source is recorded under the system_one decider name [verifies SP-515~1]", func(t *testing.T) {
+		if got := closedq.Decider("host-votes(3)"); got != "system_one:host-votes(3)" {
+			t.Fatalf("decider %q", got)
+		}
+	})
+
 	t.Run("the source of k host votes is named host-votes(k) [verifies SP-515~1]", func(t *testing.T) {
 		if got := closedq.HostVotesSource(5); got != "host-votes(5)" {
 			t.Fatalf("source %q", got)

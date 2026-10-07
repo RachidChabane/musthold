@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/RachidChabane/spec-proof/completeness/internal/domain/closedq"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/prompt"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/question"
@@ -22,7 +23,6 @@ const (
 	inputNameResponses = "host-responses"
 	templateNamePrefix = "decide."
 	modelSeparator     = "@"
-	sourcePrefix       = "system_one:"
 	responseSeparator  = "\x00"
 )
 
@@ -122,7 +122,7 @@ func (s *specRun) decision() *format.Decision {
 	deciders := map[string]bool{}
 	confidence, answered := format.MaxConfidence, false
 	for _, signal := range s.used {
-		deciders[sourcePrefix+signal.reading.Source] = true
+		deciders[closedq.Decider(signal.reading.Source)] = true
 		for _, decided := range signal.reading.Questions {
 			confidence, answered = min(confidence, decided.Confidence), true
 		}

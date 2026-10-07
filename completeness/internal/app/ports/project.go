@@ -144,11 +144,9 @@ type ProofSource interface {
 	Candidates(kind format.Kind, ref criterion.Ref) ([]ProofFile, error)
 }
 
-// PendingStore reads and writes the pending files of the modules, one per module,
-// that tell Shallnot what a module still waits for.
+// PendingStore writes the pending file of the module, which tells Shallnot what
+// the module still waits for.
 type PendingStore interface {
 	// Write replaces the pending file of the module; an empty list removes it.
 	Write(pending format.Pending) error
-	// Read returns the pending file of a module, empty when there is none.
-	Read(module string) (format.Pending, error)
 }

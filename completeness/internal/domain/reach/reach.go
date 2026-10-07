@@ -1,8 +1,7 @@
 // Package reach closes a set of entry names over a name-based static graph of the
 // units of a project. The graph is conservative: it never misses a reference the
 // source states and may include a unit of the same name that the reference does
-// not reach, so a unit it calls reached is one that executing the entries may
-// run.
+// not reach: a reached unit is one that executing the entries may run.
 package reach
 
 import (

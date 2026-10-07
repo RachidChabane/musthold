@@ -153,6 +153,13 @@ type Reading struct {
 	Source string
 }
 
+// DeciderPrefix starts the name a Statement records for the confidence source of
+// the closed answers it rests on.
+const DeciderPrefix = "system_one:"
+
+// Decider is the name a Statement records for a confidence source.
+func Decider(source string) string { return DeciderPrefix + source }
+
 // HostVotesSource names the confidence source of k host votes.
 func HostVotesSource(votes int) string { return fmt.Sprintf("host-votes(%d)", votes) }
 

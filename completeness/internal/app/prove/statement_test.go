@@ -134,7 +134,7 @@ func TestStatement(t *testing.T) {
 		}
 	})
 
-	t.Run("the questions are sorted and the same whatever order the host answers in [verifies SP-518~1]", func(t *testing.T) {
+	t.Run("the questions are strictly sorted and the same from one run to the next [verifies SP-518~1]", func(t *testing.T) {
 		other := newWorld(t, testkit.PythonLedger)
 		other.withEvidence(power, aligned)
 		other.mustRun(prove.Options{})
@@ -185,6 +185,25 @@ func TestSelection(t *testing.T) {
 		second := w.mustRun(prove.Options{Selection: prove.SelectChanged})
 		if second.Specs[0].Status != prove.StatusProved || second.Specs[0].CacheKey == first.Specs[0].CacheKey {
 			t.Fatalf("second run %+v", second.Specs[0])
+		}
+	})
+}
+
+func TestResume(t *testing.T) {
+	t.Run("a resume continues with the base of the run it continues, and a run that is not a resume starts from its own [verifies SP-543~1]", func(t *testing.T) {
+		w := newWorld(t, testkit.GoLedger)
+		var bases []string
+		w.changes.bases = &bases
+		w.answers = nil
+		w.mustRun(prove.Options{Base: "release-1"})
+		w.mustRun(prove.Options{Resume: true})
+		w.mustRun(prove.Options{Resume: true, Base: "release-2"})
+		w.mustRun(prove.Options{Resume: true})
+		w.mustRun(prove.Options{})
+		w.mustRun(prove.Options{Resume: true})
+		want := []string{"release-1", "release-1", "release-2", "release-1", "", ""}
+		if !slices.Equal(bases, want) {
+			t.Fatalf("bases %v, want %v", bases, want)
 		}
 	})
 }

@@ -5,7 +5,9 @@ package dimension
 
 import "slices"
 
-// ChecklistVersion names the version of the checklist recorded in the proofs.
+// ChecklistVersion names the version of the checklist. The dimensions a request
+// asks about are part of its template, so the version reaches every proof through
+// the template digest.
 const ChecklistVersion = "c1"
 
 // Dimension is one aspect of behaviour a specification should address or

@@ -225,7 +225,8 @@ traces them to the Go tests of the module in CI.
 - **SP-543~1**: WHEN `prove` runs THE SYSTEM SHALL exit 3 while tickets wait for the
   host, 1 when the host stopped answering, 0 otherwise whatever questions it
   raised, list the criteria of the specs that wait as `awaiting_host`, write no
-  Statement for them and leave the pending file empty once nothing waits.
+  Statement for them and leave the pending file empty once nothing waits, and
+  SHALL continue a resume with the base of the run it continues.
 
 - **SP-544~1**: WHEN `prove` is given conflicting flags or unexpected arguments THE
   SYSTEM SHALL fail without acting, and WHEN a command is unknown or missing THE

@@ -75,7 +75,7 @@ func (p *passState) loadPower(c criterion.Criterion) error {
 		p.powers[c.Ref] = evidence
 		p.proofInputs = append(p.proofInputs, proofInput(string(format.KindDiscriminatingPower)+proofNameSeparator+c.Ref.String(), candidate))
 		if entries := p.probeEntries(c, evidence.examples); len(entries) > 0 {
-			p.evidence = append(p.evidence, justify.Evidence{Ref: c.Ref, Source: justify.SourceProbe, Entries: entries})
+			p.evidence = append(p.evidence, justify.Evidence{Ref: c.Ref, Entries: entries})
 		}
 		return nil
 	}
@@ -118,7 +118,7 @@ func (p *passState) loadAligned(c criterion.Criterion) error {
 		name := string(format.KindAlignment) + proofNameSeparator + c.Ref.String() + proofNameSeparator + statement.Test
 		p.proofInputs = append(p.proofInputs, proofInput(name, candidate))
 		if entries := justify.TestEntries(statement.Test); len(entries) > 0 {
-			p.evidence = append(p.evidence, justify.Evidence{Ref: c.Ref, Source: justify.SourceAlignedTest, Entries: entries})
+			p.evidence = append(p.evidence, justify.Evidence{Ref: c.Ref, Entries: entries})
 		}
 	}
 	return nil

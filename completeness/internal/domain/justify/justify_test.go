@@ -27,8 +27,8 @@ func TestJustifiers(t *testing.T) {
 
 	t.Run("a unit that a probe or a test may execute is justified by the requirement they belong to [verifies SP-509~1]", func(t *testing.T) {
 		got := justify.Justifiers(graph, []justify.Evidence{
-			{Ref: first, Source: justify.SourceProbe, Entries: []string{"invoice_total"}},
-			{Ref: second, Source: justify.SourceAlignedTest, Entries: []string{"line_amount"}},
+			{Ref: first, Entries: []string{"invoice_total"}},
+			{Ref: second, Entries: []string{"line_amount"}},
 		})
 		if !slices.Equal(got[total.Key()], []criterion.Ref{first}) {
 			t.Fatalf("invoice_total is justified by %v", got[total.Key()])
@@ -43,9 +43,9 @@ func TestJustifiers(t *testing.T) {
 
 	t.Run("the requirements of a unit are sorted and without repeats [verifies SP-509~1]", func(t *testing.T) {
 		got := justify.Justifiers(graph, []justify.Evidence{
-			{Ref: second, Source: justify.SourceAlignedTest, Entries: []string{"line_amount"}},
-			{Ref: first, Source: justify.SourceProbe, Entries: []string{"line_amount"}},
-			{Ref: first, Source: justify.SourceAlignedTest, Entries: []string{"line_amount"}},
+			{Ref: second, Entries: []string{"line_amount"}},
+			{Ref: first, Entries: []string{"line_amount"}},
+			{Ref: first, Entries: []string{"line_amount"}},
 		})
 		if !slices.Equal(got[line.Key()], []criterion.Ref{first, second}) {
 			t.Fatalf("justified by %v", got[line.Key()])

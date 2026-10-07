@@ -46,9 +46,14 @@ func (c criteriaSource) Load(context.Context) (ports.Report, error) { return c.r
 type changeSource struct {
 	set ports.ChangeSet
 	err error
+	// bases, when set, receives the base every call was given.
+	bases *[]string
 }
 
 func (c changeSource) Changes(_ context.Context, base string) (ports.ChangeSet, error) {
+	if c.bases != nil {
+		*c.bases = append(*c.bases, base)
+	}
 	return c.set, c.err
 }
 
@@ -108,8 +113,6 @@ func (m *memoryPending) Write(pending format.Pending) error {
 	m.current = pending
 	return nil
 }
-
-func (m *memoryPending) Read(string) (format.Pending, error) { return m.current, nil }
 
 // honestReplayer answers the pending tickets from an answer source, through the
 // same checks a script's submission goes through.

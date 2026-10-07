@@ -2,6 +2,7 @@ package prove
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"maps"
 	"slices"
@@ -28,6 +29,10 @@ func (u UseCase) Run(ctx context.Context, options Options) (Result, error) {
 	if err := u.Settings.Policy.Validate(); err != nil {
 		return Result{}, err
 	}
+	options, err := u.resumedOptions(options)
+	if err != nil {
+		return Result{}, err
+	}
 	for {
 		result, err := u.pass(ctx, options)
 		if err != nil {
@@ -43,6 +48,41 @@ func (u UseCase) Run(ctx context.Context, options Options) (Result, error) {
 			return result, err
 		}
 	}
+}
+
+// baseMemoKey addresses, in the memo, the base the last run that was not a resume
+// measured the change from.
+var baseMemoKey = format.SHA256Hex([]byte("completeness:resume-base"))
+
+// rememberedBase is what the memo keeps of the base of a run.
+type rememberedBase struct {
+	Base string `json:"base"`
+}
+
+// resumedOptions makes a resume continue with the base of the run it continues,
+// so that `prove --base X` followed by a bare `prove --resume` does not measure the
+// change from another base and leave the first run's tickets behind. A run that is
+// not a resume records its base, empty for the default.
+func (u UseCase) resumedOptions(options Options) (Options, error) {
+	if !options.Resume {
+		raw, err := json.Marshal(rememberedBase{Base: options.Base})
+		if err != nil {
+			return options, err
+		}
+		return options, u.Deps.Memo.Put(baseMemoKey, raw)
+	}
+	if options.Base != "" {
+		return options, nil
+	}
+	raw, found, err := u.Deps.Memo.Get(baseMemoKey)
+	if err != nil || !found {
+		return options, nil
+	}
+	var remembered rememberedBase
+	if json.Unmarshal(raw, &remembered) == nil {
+		options.Base = remembered.Base
+	}
+	return options, nil
 }
 
 // passState is what one pass shares across its specs.
