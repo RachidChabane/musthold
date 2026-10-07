@@ -512,3 +512,35 @@ Go tests of the module in CI.
 - **SP-1601~1**: WHEN the fields of an output line are joined THE SYSTEM SHALL
   separate the non-empty fields with one space and leave out the empty ones, so
   that a line never starts or ends with a space and never holds two in a row.
+
+## Portable plugin (Agent Plugins 1.0)
+
+- **SP-1700~1**: WHEN the executor server starts with no harness named THE SYSTEM
+  SHALL serve it as a client of the Agent Plugins standard whose answers are the
+  main agent's: the inline channel and isolation under the harness name
+  `agent-plugins`, attestation waived whatever the project requires, the answer
+  journaled as exposed, no `drain`, the isolation of an answer coming only from
+  the arguments the server was launched with and never from the request it
+  serves, and every other harness keeping the subagent channel and its own
+  isolation.
+- **SP-1701~1**: WHEN a portable executor server learns its project THE SYSTEM
+  SHALL take the directory given, then the one the client exports, then the first
+  `file://` root of the client's `roots/list` when the client declared the roots
+  capability, then the working directory; ask for the roots once, at the first
+  tool call, and never of a client that declared none; and refuse the tool with a
+  message that says no project was found when the directory holds no
+  configuration of the module, trying again at the next call.
+- **SP-1702~1**: WHEN the portable plugin of a module is generated THE SYSTEM
+  SHALL produce, from the module's one definition and with the same bytes on every
+  run, a root manifest, an `mcp.json` that launches the module's executor server
+  with no harness named, a fulfil skill with no `allowed-tools` that answers
+  through the module's subagents when the client has them and inline through the
+  server otherwise, and the agents and the hooks of Copilot CLI under its
+  namespace directory, each agent launching its own server for Copilot, all
+  valid against the official schemas and the Agent Skills format.
+- **SP-1703~1**: WHEN the committed plugins of the standard are checked THE
+  SYSTEM SHALL validate, with no network access, every root `plugin.json` and
+  `mcp.json` against the vendored official schemas of Agent Plugins 1.0.0, whose
+  digests and source are recorded, every skill against the Agent Skills format,
+  and the list of plugin trees against the list the repository holds, so that an
+  empty or incomplete search fails.

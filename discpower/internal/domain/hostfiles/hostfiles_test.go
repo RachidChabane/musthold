@@ -63,6 +63,9 @@ func committed(t *testing.T, harness hostharness.Harness) map[string]string {
 
 func TestCommittedFilesAreGenerated(t *testing.T) {
 	for _, harness := range hostharness.All() {
+		if harness.Flag == hostharness.FlagCopilot {
+			continue // Copilot loads the portable plugin, whose tree TestPortablePlugin compares.
+		}
 		t.Run(harness.Flag+" tree is what the generator produces, byte for byte [verifies SP-241~1]", func(t *testing.T) {
 			want := generated(t, harness)
 			if *update {

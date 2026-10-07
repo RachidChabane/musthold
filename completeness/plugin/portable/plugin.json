@@ -1,0 +1,17 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "spec-proof-completeness",
+  "version": "0.1.0",
+  "description": "Fulfil skill and executor server that let a client of the Agent Plugins standard answer the model requests of spec-proof-completeness, the completeness proof.",
+  "author": {
+    "name": "Rachid Chabane"
+  },
+  "repository": "https://github.com/RachidChabane/spec-proof",
+  "license": "Apache-2.0",
+  "keywords": [
+    "spec-proof",
+    "proof",
+    "tests",
+    "requirements"
+  ]
+}

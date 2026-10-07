@@ -28,3 +28,7 @@ var Module = pluginfiles.Module{
 
 // For returns the files shipped for a harness.
 func For(harness hostharness.Harness) ([]pluginfiles.File, error) { return Module.For(harness) }
+
+// Portable returns the files of the module's portable plugin, the one every client
+// of the Agent Plugins standard loads.
+func Portable() ([]pluginfiles.File, error) { return Module.Portable() }

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "spec-proof-s1",
+  "version": "0.1.0",
+  "description": "Relays the closed questions of the spec-proof modules to a System One endpoint.",
+  "author": {
+    "name": "Rachid Chabane"
+  },
+  "repository": "https://github.com/RachidChabane/spec-proof",
+  "license": "Apache-2.0",
+  "keywords": [
+    "spec-proof",
+    "proof",
+    "tests",
+    "requirements"
+  ]
+}

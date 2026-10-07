@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "spec-proof-alignment": {
+      "type": "stdio",
+      "command": "spec-proof-alignment",
+      "args": [
+        "mcp",
+        "--role",
+        "executor"
+      ]
+    }
+  }
+}

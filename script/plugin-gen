@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Regenerate the committed plugin trees from the generators they come from:
-#   <module>/plugin/{claude,codex,copilot} of each proof module,
-#   s1relay/plugin/claude, the marketplace and thin plugin of umbrella/, and the
+#   <module>/plugin/{claude,codex,portable} of each proof module,
+#   s1relay/plugin/{claude,portable}, umbrella/plugin/portable, the marketplace and thin plugin of umbrella/, and the
 #   marketplace at the repository root (.claude-plugin/marketplace.json).
 # `script/test <module>` fails when a committed tree differs from its generator.
 set -euo pipefail
@@ -9,11 +9,11 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 # <module> <package> <test> of each generator.
 readonly GENERATORS=(
-  "discpower ./internal/domain/hostfiles TestCommittedFilesAreGenerated"
-  "alignment ./internal/domain/hostfiles TestCommittedFilesAreGenerated"
-  "completeness ./internal/domain/hostfiles TestCommittedFilesAreGenerated"
-  "s1relay ./internal/plugin TestCommittedTreeIsGenerated"
-  "umbrella ./internal/umbrella TestGenerated.*Files"
+  "discpower ./internal/domain/hostfiles TestCommittedFilesAreGenerated|TestPortablePlugin"
+  "alignment ./internal/domain/hostfiles TestCommittedFilesAreGenerated|TestPortablePlugin"
+  "completeness ./internal/domain/hostfiles TestCommittedFilesAreGenerated|TestPortablePlugin"
+  "s1relay ./internal/plugin TestCommittedTreeIsGenerated|TestPortableTreeIsGenerated"
+  "umbrella ./internal/umbrella TestGenerated.*Files|TestPortableTreeIsGenerated"
 )
 
 for generator in "${GENERATORS[@]}"; do

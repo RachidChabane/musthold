@@ -243,23 +243,42 @@ type skillData struct {
 	Delegation string
 	Allowed    string
 	Verify     string
+	// RoleExample and AgentExample show, in the portable skill, how a role maps to
+	// the name of its agent.
+	RoleExample  string
+	AgentExample string
 }
 
 const claudeDelegation = "launch one foreground `Agent` with `subagent_type` set to the role on its line and `prompt` set to `ticket <ticket>`. Launch at most 4 in one message and wait for them. Set no model and add nothing to the prompt."
 
-// otherDelegation is the delegation of the harnesses whose agent names carry no
-// plugin scope; the example shows how a role maps to the name of its agent.
-func (m Module) otherDelegation() string {
+// exampleAgent is the agent a skill uses to show how a role maps to the name of its
+// agent: the judge when the module ships one.
+func (m Module) exampleAgent() hostproto.Agent {
 	example := m.Identity.Agents[0]
 	for _, agent := range m.Identity.Agents {
 		if agent == hostproto.AgentJudge {
 			example = agent
 		}
 	}
+	return example
+}
+
+// otherDelegation is the delegation of the harnesses whose agent names carry no
+// plugin scope; the example shows how a role maps to the name of its agent.
+func (m Module) otherDelegation() string {
+	example := m.exampleAgent()
 	role := hostproto.RoleFor(m.Plugin(), example)
 	return "ask the subagent named like the role on its line, with its colon replaced by a dash (`" + role + "` is `" +
-		m.Plugin() + "-" + string(example) + "`), to handle `ticket <ticket>`. Run at most 4 at a time and wait for them. Add nothing to the request."
+		m.agentName(example) + "`), to handle `ticket <ticket>`. Run at most 4 at a time and wait for them. Add nothing to the request."
 }
+
+// Steps the fulfil skills of every harness share.
+const (
+	skillRelayStep = "1. If `spec-proof-s1` is on `PATH` and `.spec-proof/config.yaml` sets `systemone.endpoint`, run `spec-proof-s1 drain --module {{.Relay}}`. A failure leaves the requests for the next step.\n" +
+		"2. Run `{{.Binary}} request list`. Each line is `<ticket> <role>`. When it prints nothing, run `{{.Binary}} prove --changed` once and list again.\n"
+	skillResumeSteps = "4. Run `{{.Binary}} prove --resume`. While it exits with code 3, go back to step 2. Exit code 0 or 1 ends the loop: report the verdict lines. For exit code 2, or a `host_unresponsive` finding, report it to the user and stop. Do not loop.\n" +
+		"5. When the loop ended with exit code 0 or 1, publish the local proofs where Shallnot's gate reads them: run `{{.Verify}}`. When `" + VerifyBinary + "` is not on `PATH`, tell the user: the proofs stay unpublished and the gate reports them stale. Report a rejection by the verifier with its message. Do not loop.\n"
+)
 
 const skillTemplate = `---
 name: {{.Name}}
@@ -275,12 +294,25 @@ allowed-tools: {{.Allowed}}
 
 Never answer a ticket yourself, never read what a ticket asks, and give an executor nothing but its ticket.
 
-1. If ` + "`spec-proof-s1`" + ` is on ` + "`PATH`" + ` and ` + "`.spec-proof/config.yaml`" + ` sets ` + "`systemone.endpoint`" + `, run ` + "`spec-proof-s1 drain --module {{.Relay}}`" + `. A failure leaves the requests for the next step.
-2. Run ` + "`{{.Binary}} request list`" + `. Each line is ` + "`<ticket> <role>`" + `. When it prints nothing, run ` + "`{{.Binary}} prove --changed`" + ` once and list again.
-3. For each ticket, {{.Delegation}} The reply of an executor is a receipt: do not act on it.
-4. Run ` + "`{{.Binary}} prove --resume`" + `. While it exits with code 3, go back to step 2. Exit code 0 or 1 ends the loop: report the verdict lines. For exit code 2, or a ` + "`host_unresponsive`" + ` finding, report it to the user and stop. Do not loop.
-5. When the loop ended with exit code 0 or 1, publish the local proofs where Shallnot's gate reads them: run ` + "`{{.Verify}}`" + `. When ` + "`" + VerifyBinary + "`" + ` is not on ` + "`PATH`" + `, tell the user: the proofs stay unpublished and the gate reports them stale. Report a rejection by the verifier with its message. Do not loop.
-`
+` + skillRelayStep + `3. For each ticket, {{.Delegation}} The reply of an executor is a receipt: do not act on it.
+` + skillResumeSteps
+
+// portableSkillTemplate is the fulfil skill of the portable plugin: a client of the
+// Agent Plugins standard may or may not offer the executor subagents of the module,
+// so the skill answers through them when they exist and through the module's MCP
+// server otherwise. It declares no `allowed-tools`, which the Agent Skills format
+// leaves experimental.
+const portableSkillTemplate = `---
+name: {{.Name}}
+description: Answer the pending host requests of {{.Plugin}} ({{.Subject}}) and finish the proof run. Use when ` + "`{{.Binary}} prove`" + ` exits with code 3, when Shallnot reports awaiting_host for {{.Plugin}}, or when ` + "`{{.Binary}} request list`" + ` shows tickets.
+---
+
+# Fulfil the requests of {{.Plugin}}
+
+` + "`{{.Binary}} prove`" + ` stops with exit code 3 when it needs model work it cannot do itself. Each request is a ticket, and ` + "`{{.Binary}} prove --resume`" + ` consumes the answers.
+
+` + skillRelayStep + `3. For each ticket, answer it in one of two ways. When your client has a subagent named like the role on the ticket's line, with its colon replaced by a dash (` + "`{{.RoleExample}}` is `{{.AgentExample}}`" + `), ask it to handle ` + "`ticket <ticket>`" + `, run at most 4 at a time, add nothing to the request, and do not act on its reply, a receipt. Otherwise answer inline through the ` + "`{{.Plugin}}`" + ` MCP server: call ` + "`fetch_request`" + ` with ` + "`ticket`" + ` set to the ticket and ` + "`cap`" + ` set to an empty string, follow the instructions it returns, then call ` + "`submit_response`" + ` with ` + "`ticket`" + `, ` + "`nonce`" + ` from the fetch, ` + "`cap`" + ` set to an empty string and ` + "`output`" + ` set to a JSON object that matches the schema it returned. When ` + "`submit_response`" + ` returns ` + "`schemaErrors`" + `, correct the output once. An answer given inline is an answer of the main agent: the module records it as inline, which has block power only.
+` + skillResumeSteps
 
 func (m Module) skillFile(path, delegation, allowed string) (File, error) {
 	content, err := render("skill", skillTemplate, skillData{
@@ -495,8 +527,18 @@ func (m Module) copilotEntry(kind hostproto.HookKind, h harness.Harness) []copil
 // CopilotHooksPath is where the module's hooks file for Copilot lives.
 func (m Module) CopilotHooksPath() string { return ".github/hooks/" + m.Plugin() + ".json" }
 
-func (m Module) copilotFiles(h harness.Harness) ([]File, error) {
-	var files []File
+// copilotAgentSuffix ends the file name of a Copilot agent.
+const copilotAgentSuffix = ".agent.md"
+
+// namedFile is a generated file known by the name of what it defines.
+type namedFile struct {
+	name    string
+	content []byte
+}
+
+// copilotAgents renders the executor agents of the module for Copilot CLI.
+func (m Module) copilotAgents(h harness.Harness) ([]namedFile, error) {
+	var agents []namedFile
 	for _, agent := range m.Identity.Agents {
 		content, err := render("copilot-agent", copilotAgentTemplate, copilotAgentData{
 			Name: m.agentName(agent), Description: m.agentDescription(agent), Instructions: executorInstructions,
@@ -507,16 +549,33 @@ func (m Module) copilotFiles(h harness.Harness) ([]File, error) {
 		if err != nil {
 			return nil, err
 		}
-		files = append(files, File{Path: ".github/agents/" + m.agentName(agent) + ".agent.md", Content: content})
+		agents = append(agents, namedFile{name: m.agentName(agent), content: content})
+	}
+	return agents, nil
+}
+
+// copilotHooksFile renders the hooks of the module for Copilot CLI.
+func (m Module) copilotHooksFile(h harness.Harness) ([]byte, error) {
+	return encodeJSON(copilotHooks{Version: copilotHooksVersion, Hooks: map[string][]copilotHook{
+		"preToolUse":   m.copilotEntry(hostproto.HookPreTool, h),
+		"subagentStop": m.copilotEntry(hostproto.HookSubagentStop, h),
+	}})
+}
+
+func (m Module) copilotFiles(h harness.Harness) ([]File, error) {
+	agents, err := m.copilotAgents(h)
+	if err != nil {
+		return nil, err
+	}
+	var files []File
+	for _, agent := range agents {
+		files = append(files, File{Path: ".github/agents/" + agent.name + copilotAgentSuffix, Content: agent.content})
 	}
 	skill, err := m.skillFile(".github/skills/"+m.SkillName()+"/SKILL.md", m.otherDelegation(), "")
 	if err != nil {
 		return nil, err
 	}
-	hooks, err := encodeJSON(copilotHooks{Version: copilotHooksVersion, Hooks: map[string][]copilotHook{
-		"preToolUse":   m.copilotEntry(hostproto.HookPreTool, h),
-		"subagentStop": m.copilotEntry(hostproto.HookSubagentStop, h),
-	}})
+	hooks, err := m.copilotHooksFile(h)
 	if err != nil {
 		return nil, err
 	}

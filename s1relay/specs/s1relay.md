@@ -111,3 +111,10 @@ to the Go tests of the module in CI.
   with a version and a description, and one skill that runs `spec-proof-s1 drain
   --module` for each proof module, pre-approves nothing else, and carries no text
   about its own authoring.
+
+## Portable plugin
+
+- **SP-1705~1**: WHEN the portable plugin of the relay is generated THE SYSTEM
+  SHALL produce a root manifest valid for Agent Plugins 1.0.0 and the relay skill
+  with no `allowed-tools`, declare no MCP server, and the committed tree SHALL
+  equal what the generator produces.

@@ -199,13 +199,15 @@ type skillData struct {
 
 const skillTemplate = `---
 name: {{.Name}}
-description: Prove a change with every spec-proof module that is installed, in the order discriminating power, alignment, completeness, answering each module's requests with its blind executors. Use before finishing a change to code, tests or specs, and when Shallnot reports awaiting_host, awaiting_proof or awaiting_host_judgment.
+description: Prove a change with every spec-proof module that is installed, in the order discriminating power, alignment, completeness, answering each module's requests {{if .Allowed}}with its blind executors{{else}}as its fulfil skill gives{{end}}. Use before finishing a change to code, tests or specs, and when Shallnot reports awaiting_host, awaiting_proof or awaiting_host_judgment.
+{{- if .Allowed}}
 allowed-tools: {{.Allowed}}
+{{- end}}
 ---
 
 # Prove with every module
 
-This skill holds no logic of its own. Each module runs its own loop and names its own steps in its fulfil skill; this skill only orders the modules and interleaves their waves. Never answer a request yourself and never read what a request asks.
+This skill holds no logic of its own. Each module runs its own loop and names its own steps in its fulfil skill; this skill only orders the modules and interleaves their waves.{{if .Allowed}} Never answer a request yourself and never read what a request asks.{{end}}
 
 Modules, in this order, each with the skill that holds its loop:
 {{range .Modules}}
@@ -213,13 +215,49 @@ Modules, in this order, each with the skill that holds its loop:
 
 1. Run ` + "{{.Names}}" + `. A module whose binary is not on ` + "`PATH`" + ` is missing: name every missing module to the user and go on with the others; a missing module never counts as proved. If a module that is present fails its ` + "`doctor`" + `, report it and leave that module out. If no module is present, stop.
 2. For each present module, in the order above, run ` + "`<binary> prove --changed`" + ` once.
-3. While any module exited with code 3, run one wave for each module that exited with code 3, in the order above, before any module starts its next wave: a wave is the steps its fulfil skill gives for answering the tickets, which is the relay when ` + "`{{.Relay}}`" + ` is on ` + "`PATH`" + ` and an endpoint is configured, then one foreground blind executor per ticket, then ` + "`<binary> prove --resume`" + `. Alignment's judge tickets do not wait for the discriminating-power proof, so no module's wave waits for another's.
+3. While any module exited with code 3, run one wave for each module that exited with code 3, in the order above, before any module starts its next wave: a wave is the steps its fulfil skill gives for answering the tickets, which is the relay when ` + "`{{.Relay}}`" + ` is on ` + "`PATH`" + ` and an endpoint is configured, then {{if .Allowed}}one foreground blind executor per ticket{{else}}the answer to each ticket, as that skill gives it{{end}}, then ` + "`<binary> prove --resume`" + `. Alignment's judge tickets do not wait for the discriminating-power proof, so no module's wave waits for another's.
 4. A module whose ` + "`prove`" + ` exits with code 0 or 1 is done: report its verdict lines. For exit code 2, or a ` + "`host_unresponsive`" + ` finding, report it to the user and stop that module. Do not loop.
 5. When every present module is done, publish the local proofs once, where Shallnot's gate reads them: run ` + "`{{.Verify}}`" + `. When ` + "`" + pluginfiles.VerifyBinary + "`" + ` is not on ` + "`PATH`" + `, tell the user: the proofs stay unpublished and the gate reports them stale. Report a rejection by the verifier with its message.
 6. Report, per module, its last exit code and verdict lines, the modules that were missing and whether the proofs were published.
 `
 
 func skillFile() (File, error) {
+	content, err := renderSkill(true)
+	return File{Path: PluginDirectory + "/skills/" + SkillName + "/SKILL.md", Content: content}, err
+}
+
+// PortableDirectory is the portable plugin's tree, relative to `umbrella/`.
+const PortableDirectory = "plugin/portable"
+
+// PortableFiles returns the files of the portable plugin of the Agent Plugins
+// standard, relative to `umbrella/plugin/portable`. The standard has no
+// dependency mechanism and each module plugin ships its own server and skill, so
+// the umbrella declares no MCP server and its skill pre-approves no tool, which
+// the Agent Skills format leaves experimental.
+func PortableFiles() ([]File, error) {
+	manifest, err := pluginfiles.PortableManifest{
+		Name: PluginName, Version: Version,
+		Description: "Runs the proofs of the installed spec-proof modules together.",
+	}.ManifestFile()
+	if err != nil {
+		return nil, err
+	}
+	servers, err := pluginfiles.MCPFile(nil)
+	if err != nil {
+		return nil, err
+	}
+	skill, err := renderSkill(false)
+	if err != nil {
+		return nil, err
+	}
+	return []File{
+		{Path: manifest.Path, Content: manifest.Content},
+		{Path: servers.Path, Content: servers.Content},
+		{Path: pluginfiles.PortableSkillPath(SkillName), Content: skill},
+	}, nil
+}
+
+func renderSkill(restricted bool) ([]byte, error) {
 	allowed := make([]string, 0, 3*len(Modules)+1)
 	names := make([]string, 0, len(Modules))
 	for _, module := range Modules {
@@ -229,16 +267,20 @@ func skillFile() (File, error) {
 	allowed = append(allowed, "Bash("+Relay.Binary+" drain *)", "Bash("+pluginfiles.VerifyLocalCommand+")")
 	parsed, err := template.New("skill").Parse(skillTemplate)
 	if err != nil {
-		return File{}, fmt.Errorf("parse the skill template: %w", err)
+		return nil, fmt.Errorf("parse the skill template: %w", err)
+	}
+	data := skillData{
+		Name: SkillName, Modules: Modules, Relay: Relay.Binary,
+		Names: joinWithAnd(names), Verify: pluginfiles.VerifyLocalCommand,
+	}
+	if restricted {
+		data.Allowed = strings.Join(allowed, ", ")
 	}
 	var buffer bytes.Buffer
-	if err := parsed.Execute(&buffer, skillData{
-		Name: SkillName, Modules: Modules, Allowed: strings.Join(allowed, ", "), Relay: Relay.Binary,
-		Names: joinWithAnd(names), Verify: pluginfiles.VerifyLocalCommand,
-	}); err != nil {
-		return File{}, fmt.Errorf("render the skill: %w", err)
+	if err := parsed.Execute(&buffer, data); err != nil {
+		return nil, fmt.Errorf("render the skill: %w", err)
 	}
-	return File{Path: PluginDirectory + "/skills/" + SkillName + "/SKILL.md", Content: buffer.Bytes()}, nil
+	return buffer.Bytes(), nil
 }
 
 // joinWithAnd spells a list as `a, b and c`.

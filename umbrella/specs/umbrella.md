@@ -44,3 +44,12 @@ spec format. `shallnot gate` traces them to the Go tests of the module in CI.
   a plugin tree whose manifest bears the name the marketplace lists, a fulfil
   skill under the name the `prove-all` skill sends the module's requests to, and,
   for a proof module, hook commands that run the binary the skill runs.
+
+## Portable plugin
+
+- **SP-1706~1**: WHEN the portable plugin of the umbrella is generated THE SYSTEM
+  SHALL produce a root manifest valid for Agent Plugins 1.0.0, an `mcp.json` with
+  no server, so that no server or skill of a module is declared twice, and the
+  `prove-all` skill with no `allowed-tools` that leaves the way a ticket is
+  answered to each module's fulfil skill, and the committed tree SHALL equal what
+  the generator produces.

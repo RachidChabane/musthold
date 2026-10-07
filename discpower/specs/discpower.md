@@ -792,3 +792,16 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   the default, refuse a value outside [0,1] and a key that names no source, and
   record the threshold a mutant's decision was held to in
   `extensions.decision.threshold`.
+
+## Portable plugin
+
+- **SP-1710~1**: WHEN the portable plugin of the module is generated THE SYSTEM SHALL
+  give it the manifest, the server of `spec-proof-dp`, the fulfil skill and the agents and
+  hooks of Copilot CLI that the shared generator produces, the root server naming
+  no harness and the agents' servers named apart from it, and the committed tree
+  SHALL equal what the generator produces; the Copilot tree under `plugin/` is the
+  portable one.
+- **SP-1713~1**: WHEN `mcp --role executor` runs with no `--harness` THE SYSTEM
+  SHALL serve the portable harness: the two executor tools with no `drain`, the
+  project learned from the client's roots, and a refusal that says so for a
+  directory with no project of the module.
