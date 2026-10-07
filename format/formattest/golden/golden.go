@@ -68,6 +68,7 @@ const (
 	futureMember            = "futureMember"
 	futureValue             = "added by a later minor version"
 	wrongRequirementID      = "PARK-3"
+	otherRequirementID      = "PARK-9"
 	absoluteSpecPath        = "/etc/specs/parkfee.md"
 	unknownInputRole        = "weird_role"
 	unknownConfidenceSource = "gut-feeling"
@@ -162,6 +163,15 @@ func alignmentCases() []Case {
 		}),
 		build("alignment-unsorted-inputs", breaks(SchemaValid, format.CodeUnsorted), func(s *alignment) {
 			slices.Reverse(s.Predicate.Inputs)
+		}),
+		build("alignment-two-proof-inputs-of-one-kind", valid(), func(s *alignment) {
+			s.Predicate.Inputs = proofs.SortInputs(append(s.Predicate.Inputs, secondProofInput()))
+		}),
+		build("alignment-proof-inputs-criteria-descending", breaks(SchemaValid, format.CodeUnsorted), func(s *alignment) {
+			inputs := proofs.SortInputs(append(s.Predicate.Inputs, secondProofInput()))
+			first := slices.IndexFunc(inputs, func(input format.Input) bool { return input.Role == format.RoleProof })
+			inputs[first], inputs[first+1] = inputs[first+1], inputs[first]
+			s.Predicate.Inputs = inputs
 		}),
 		build("alignment-unknown-input-role", breaks(SchemaInvalid, format.CodeUnknownValue), func(s *alignment) {
 			s.Predicate.Inputs = proofs.SortInputs(append(s.Predicate.Inputs, proofs.Input(unknownInputRole, "extra")))
@@ -265,6 +275,12 @@ func replaceInput(s *format.Statement[format.Alignment], role format.InputRole, 
 		}
 	}
 	s.Predicate.Inputs = proofs.SortInputs(s.Predicate.Inputs)
+}
+
+// secondProofInput is a consumed Statement of the kind the fixture already
+// consumes, about another criterion.
+func secondProofInput() format.Input {
+	return format.ProofInput(format.KindDiscriminatingPower, format.SubjectName(otherRequirementID, proofs.RequirementRevision), []byte("another discriminating-power statement"))
 }
 
 func judgedClaim[V comparable](value V) format.Claim[V] {

@@ -31,15 +31,6 @@ func descriptor(role format.InputRole, name, digest string) format.Input {
 	return format.Input{Role: role, Name: name, Digest: format.Digest{SHA256: digest}}
 }
 
-func compareInputs(a, b format.Input) int {
-	return cmp.Or(strings.Compare(string(a.Role), string(b.Role)), strings.Compare(a.Name, b.Name))
-}
-
-func sortInputs(inputs []format.Input) []format.Input {
-	slices.SortFunc(inputs, compareInputs)
-	return slices.CompactFunc(inputs, func(a, b format.Input) bool { return a.Role == b.Role && a.Name == b.Name })
-}
-
 // changedFiles lists the changed files that bear on the spec: those holding units
 // it owns, and those a discriminating-power Statement of one of its criteria
 // executes.
@@ -85,7 +76,7 @@ func (s *specRun) baseInputs() []format.Input {
 	slices.Sort(hunkIDs)
 	inputs = append(inputs, descriptor(format.RoleHostResponse, inputNameHunks, format.SHA256Hex([]byte(p.changes.base+responseSeparator+strings.Join(hunkIDs, responseSeparator)))))
 	inputs = append(inputs, consumedProofsInput(p.proofInputs)...)
-	return sortInputs(inputs)
+	return format.SortInputs(inputs)
 }
 
 // finalInputs adds the inputs that depend on the host's answers: the models that
@@ -106,7 +97,7 @@ func (s *specRun) finalInputs(base []format.Input) []format.Input {
 			responses[fmt.Sprintf("%s.%d.%s", signal.answer.ID, vote.Ticket.Vote, digest)] = true
 		}
 	}
-	return sortInputs(append(inputs,
+	return format.SortInputs(append(inputs,
 		descriptor(format.RoleModelID, inputNameModels, digestOfSet(models)),
 		descriptor(format.RoleHostResponse, inputNameResponses, digestOfSet(responses)),
 	))

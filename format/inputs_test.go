@@ -1,6 +1,8 @@
 package format_test
 
 import (
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/RachidChabane/spec-proof/format"
@@ -8,7 +10,7 @@ import (
 )
 
 func TestInputDescriptors(t *testing.T) {
-	t.Run("the constructors build the descriptors of ADR 0008 [verifies SP-400~1]", func(t *testing.T) {
+	t.Run("the constructors build the descriptors of ADR 0008 [verifies SP-400~2]", func(t *testing.T) {
 		spec := format.SpecInput("PAR-1", 2, proofs.Digest("statement"))
 		if spec.Role != format.RoleSpec || spec.Name != "PAR-1~2" || spec.Digest.SHA256 != proofs.Digest("statement") {
 			t.Fatalf("spec input = %+v", spec)
@@ -27,7 +29,7 @@ func TestInputDescriptors(t *testing.T) {
 		}
 	})
 
-	t.Run("a statement whose descriptors have the right shapes validates [verifies SP-400~1]", func(t *testing.T) {
+	t.Run("a statement whose descriptors have the right shapes validates [verifies SP-400~2]", func(t *testing.T) {
 		assertCodes(t, proofs.Alignment().Validate())
 		assertCodes(t, proofs.DiscriminatingPower().Validate())
 	})
@@ -58,16 +60,26 @@ func TestInputDescriptors(t *testing.T) {
 		{"a proof input that is not named after a kind", func(s *alignment) { replaceInput(s, format.RoleProof, func(i *format.Input) { i.Name = "PARK-2~1" }) }},
 	}
 	for _, c := range cases {
-		t.Run(c.name+" is reported as input_descriptor [verifies SP-400~1]", func(t *testing.T) {
+		t.Run(c.name+" is reported as input_descriptor [verifies SP-400~2]", func(t *testing.T) {
 			assertCodes(t, proofs.Alignment(c.edit).Validate(), format.CodeInputDescriptor)
 		})
 	}
 
-	t.Run("a completeness proof names its spec file as it always did [verifies SP-400~1]", func(t *testing.T) {
+	t.Run("a bad file path is reported against the directory holding shallnot.yaml [verifies SP-400~2]", func(t *testing.T) {
+		statement := proofs.Alignment(func(s *alignment) {
+			replaceInput(s, format.RoleTestSource, func(i *format.Input) { i.Name = "/tests/test_parkfee.py" })
+		})
+		message := statement.Validate().Error()
+		if !strings.Contains(message, "relative to the directory holding shallnot.yaml") || strings.Contains(message, "repository root") {
+			t.Fatalf("message = %q", message)
+		}
+	})
+
+	t.Run("a completeness proof names its spec file as it always did [verifies SP-400~2]", func(t *testing.T) {
 		assertCodes(t, proofs.Completeness().Validate())
 	})
 
-	t.Run("a criterion is split at its revision [verifies SP-400~1]", func(t *testing.T) {
+	t.Run("a criterion is split at its revision [verifies SP-400~2]", func(t *testing.T) {
 		valid := map[string]struct {
 			id       string
 			revision int
@@ -83,6 +95,61 @@ func TestInputDescriptors(t *testing.T) {
 				t.Errorf("%q parsed", text)
 			}
 		}
+	})
+}
+
+func TestInputOrder(t *testing.T) {
+	proofFor := func(criterion string) format.Input {
+		return format.ProofInput(format.KindDiscriminatingPower, criterion, []byte(criterion))
+	}
+
+	t.Run("inputs order by role, then name, then criterion [verifies SP-900~1]", func(t *testing.T) {
+		ordered := []format.Input{
+			proofFor("PAR-10~1"),
+			proofFor("PAR-1~1"),
+			proofFor("PAR-2~1"),
+			format.SpecInput("PAR-1", 1, proofs.Digest("statement")),
+		}
+		for index := 1; index < len(ordered); index++ {
+			if format.CompareInputs(ordered[index-1], ordered[index]) >= 0 {
+				t.Errorf("input %d is not strictly after input %d", index, index-1)
+			}
+		}
+	})
+
+	t.Run("SortInputs sorts a shuffled list and drops one input listed twice [verifies SP-900~1]", func(t *testing.T) {
+		got := format.SortInputs([]format.Input{proofFor("PAR-3~1"), proofFor("PAR-1~1"), proofFor("PAR-3~1"), proofFor("PAR-2~1")})
+		var criteria []string
+		for _, input := range got {
+			criteria = append(criteria, input.Annotations.Criterion)
+		}
+		if want := []string{"PAR-1~1", "PAR-2~1", "PAR-3~1"}; !slices.Equal(criteria, want) {
+			t.Fatalf("criteria = %v, want %v", criteria, want)
+		}
+	})
+
+	t.Run("two proof inputs of one kind are valid when their criteria ascend [verifies SP-900~1]", func(t *testing.T) {
+		statement := proofs.Alignment(func(s *alignment) {
+			s.Predicate.Inputs = proofs.SortInputs(append(s.Predicate.Inputs, proofFor("PARK-9~1")))
+		})
+		assertCodes(t, statement.Validate())
+	})
+
+	t.Run("two proof inputs of one kind are unsorted when their criteria descend [verifies SP-900~1]", func(t *testing.T) {
+		statement := proofs.Alignment(func(s *alignment) {
+			inputs := proofs.SortInputs(append(s.Predicate.Inputs, proofFor("PARK-9~1")))
+			first := slices.IndexFunc(inputs, func(input format.Input) bool { return input.Role == format.RoleProof })
+			inputs[first], inputs[first+1] = inputs[first+1], inputs[first]
+			s.Predicate.Inputs = inputs
+		})
+		assertCodes(t, statement.Validate(), format.CodeUnsorted)
+	})
+
+	t.Run("one proof input listed twice is reported as unsorted [verifies SP-900~1]", func(t *testing.T) {
+		statement := proofs.Alignment(func(s *alignment) {
+			s.Predicate.Inputs = proofs.SortInputs(append(s.Predicate.Inputs, proofs.ProofInput()))
+		})
+		assertCodes(t, statement.Validate(), format.CodeUnsorted)
 	})
 }
 

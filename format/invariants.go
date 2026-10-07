@@ -132,9 +132,7 @@ func checkCore(sink *collector, path string, core Core, subject []Subject, requi
 	checkNotEmpty(sink, path+".module.name", core.Module.Name)
 	checkNotEmpty(sink, path+".module.version", core.Module.Version)
 	checkNotEmptyList(sink, path+".inputs", core.Inputs)
-	checkAscending(sink, path+".inputs", core.Inputs, func(a, b Input) int {
-		return cmp.Or(strings.Compare(string(a.Role), string(b.Role)), strings.Compare(a.Name, b.Name))
-	})
+	checkAscending(sink, path+".inputs", core.Inputs, CompareInputs)
 	for index, input := range core.Inputs {
 		checkInput(sink, fmt.Sprintf("%s.inputs[%d]", path, index), input, requirement, subject)
 	}
@@ -155,7 +153,7 @@ func checkInput(sink *collector, path string, input Input, requirement *Requirem
 	case input.Role == RoleSpec && requirement != nil:
 		checkSpecInput(sink, path, input, *requirement, subject)
 	case input.Role.IsFileRole() && input.Name != "" && !IsRelativePOSIXPath(input.Name):
-		sink.add(CodeInputDescriptor, path+".name", "%q is not a path relative to the repository root with / separators", input.Name)
+		sink.add(CodeInputDescriptor, path+".name", "%q is not a path relative to the directory holding shallnot.yaml with / separators", input.Name)
 	case input.Role == RoleProof:
 		checkProofInput(sink, path, input)
 	}

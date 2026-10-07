@@ -132,14 +132,20 @@ Go tests of the module in CI.
 
 ## Input descriptors and decisions
 
-- **SP-400~1**: WHEN a proof about a criterion lists its inputs THE SYSTEM SHALL
+- **SP-400~2**: WHEN a proof about a criterion lists its inputs THE SYSTEM SHALL
   describe the statement as one `spec` input named `ID~REV` with the statement
   digest of the subject, each file the proof depends on as one `code_tree` or
-  `test_source` input named by a path relative to the repository root with `/`
-  separators and carrying the SHA-256 of the file's exact bytes, and a consumed
-  proof as one `proof` input named by its kind, carrying the criterion in
-  `annotations.criterion` and the SHA-256 of the Statement file's exact bytes,
-  and SHALL report `input_descriptor` for a descriptor of another shape.
+  `test_source` input named by a path relative to the directory holding
+  `shallnot.yaml` with `/` separators and carrying the SHA-256 of the file's
+  exact bytes, and a consumed proof as one `proof` input named by its kind,
+  carrying the criterion in `annotations.criterion` and the SHA-256 of the
+  Statement file's exact bytes, and SHALL report `input_descriptor` for a
+  descriptor of another shape.
+- **SP-900~1**: WHEN the inputs of a predicate are ordered or checked THE SYSTEM
+  SHALL order them strictly ascending by role, then name, then the
+  `annotations.criterion` of a `proof` input, so that several `proof` inputs of
+  one kind, one per consumed criterion, are valid, and SHALL report `unsorted`
+  for a descending pair or for one input listed twice.
 - **SP-401~1**: WHEN a predicate or a mutant records a decision THE SYSTEM SHALL
   require its `confidenceSource` to be `execution`, `host-votes(<k>)` or
   `system-one:<model>@<endpoint digest>`, accept the id of the mapping that

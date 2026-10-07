@@ -1,13 +1,11 @@
 package prove
 
 import (
-	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
@@ -121,9 +119,7 @@ func (r *critRun) finalize(base []format.Input, freshness string) (CriterionResu
 	correct, exampleFailed := r.p.referencePasses(r.c), r.p.exampleFailsOnReference(r.c.Ref)
 	outcome := power.Terminal(r.standing(correct, exampleFailed))
 	inputs := r.finalInputs(base)
-	slices.SortFunc(inputs, func(a, b format.Input) int {
-		return cmp.Or(strings.Compare(string(a.Role), string(b.Role)), strings.Compare(a.Name, b.Name))
-	})
+	slices.SortFunc(inputs, format.CompareInputs)
 	cacheKey, err := format.CacheKey(r.statementSubject(), inputs)
 	if err != nil {
 		return CriterionResult{}, err

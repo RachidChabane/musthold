@@ -44,7 +44,7 @@ func (p *passState) loadEvidence() error {
 			return err
 		}
 	}
-	slices.SortFunc(p.proofInputs, compareInputs)
+	slices.SortFunc(p.proofInputs, format.CompareInputs)
 	return nil
 }
 

@@ -4,7 +4,6 @@
 package proofs
 
 import (
-	"cmp"
 	"slices"
 	"strings"
 
@@ -45,12 +44,10 @@ func Input(role format.InputRole, name string) format.Input {
 	return format.Input{Role: role, Name: name, Digest: format.Digest{SHA256: Digest(string(role) + "/" + name)}}
 }
 
-// SortInputs sorts inputs by role then name, the order of the format.
+// SortInputs sorts inputs in the order of the format, keeping repeats.
 func SortInputs(inputs []format.Input) []format.Input {
 	sorted := slices.Clone(inputs)
-	slices.SortFunc(sorted, func(a, b format.Input) int {
-		return cmp.Or(strings.Compare(string(a.Role), string(b.Role)), strings.Compare(a.Name, b.Name))
-	})
+	slices.SortFunc(sorted, format.CompareInputs)
 	return sorted
 }
 

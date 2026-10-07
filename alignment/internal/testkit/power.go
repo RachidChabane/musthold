@@ -88,12 +88,7 @@ func (p Power) Statement(t testing.TB, root string) []byte {
 	for _, file := range p.CodeFiles {
 		inputs = append(inputs, format.FileInput(format.RoleCodeTree, file, FileDigest(t, root, file)))
 	}
-	slices.SortFunc(inputs, func(a, b format.Input) int {
-		if byRole := strings.Compare(string(a.Role), string(b.Role)); byRole != 0 {
-			return byRole
-		}
-		return strings.Compare(a.Name, b.Name)
-	})
+	slices.SortFunc(inputs, format.CompareInputs)
 	subject := []format.Subject{format.RequirementSubject(p.Ref.ID, p.Ref.Revision, p.StatementDigest)}
 	cacheKey, err := format.CacheKey(subject, inputs)
 	if err != nil {

@@ -40,12 +40,7 @@ func FileDigest(t testing.TB, root, file string) string {
 }
 
 func sortedInputs(inputs []format.Input) []format.Input {
-	slices.SortFunc(inputs, func(a, b format.Input) int {
-		if byRole := strings.Compare(string(a.Role), string(b.Role)); byRole != 0 {
-			return byRole
-		}
-		return strings.Compare(a.Name, b.Name)
-	})
+	slices.SortFunc(inputs, format.CompareInputs)
 	return inputs
 }
 

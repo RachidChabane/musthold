@@ -50,7 +50,7 @@ func Inputs() *rapid.Generator[[]format.Input] {
 	return rapid.Custom(func(t *rapid.T) []format.Input {
 		drawn := rapid.SliceOfN(input, 1, maxGeneratedInputs).Draw(t, "inputs")
 		sorted := SortInputs(drawn)
-		return slices.CompactFunc(sorted, func(a, b format.Input) bool { return a.Role == b.Role && a.Name == b.Name })
+		return slices.CompactFunc(sorted, func(a, b format.Input) bool { return format.CompareInputs(a, b) == 0 })
 	})
 }
 

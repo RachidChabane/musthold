@@ -1,6 +1,8 @@
 package format
 
 import (
+	"cmp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -16,7 +18,7 @@ func SpecInput(requirementID string, revision int, statementDigest string) Input
 }
 
 // FileInput describes one file of a `code_tree` or `test_source` input: the path
-// relative to the repository root with `/` separators, and the SHA-256 of the
+// relative to the directory holding `shallnot.yaml` with `/` separators, and the SHA-256 of the
 // file's exact bytes.
 func FileInput(role InputRole, path, contentDigest string) Input {
 	return Input{Role: role, Name: path, Digest: Digest{SHA256: contentDigest}}
@@ -30,6 +32,31 @@ func ProofInput(kind Kind, criterion string, statementFile []byte) Input {
 		Role: RoleProof, Name: string(kind), Digest: Digest{SHA256: SHA256Hex(statementFile)},
 		Annotations: &Annotations{Criterion: criterion},
 	}
+}
+
+// CompareInputs is the order of a Statement's inputs, the one definition every
+// writer and the invariants share: by role, then name, then the criterion a
+// `proof` input is about (ADR 0008). Two inputs that compare equal describe the
+// same thing twice.
+func CompareInputs(a, b Input) int {
+	return cmp.Or(
+		strings.Compare(string(a.Role), string(b.Role)),
+		strings.Compare(a.Name, b.Name),
+		strings.Compare(criterionOf(a), criterionOf(b)),
+	)
+}
+
+// SortInputs orders inputs by CompareInputs and drops the repeats of one input.
+func SortInputs(inputs []Input) []Input {
+	slices.SortFunc(inputs, CompareInputs)
+	return slices.CompactFunc(inputs, func(a, b Input) bool { return CompareInputs(a, b) == 0 })
+}
+
+func criterionOf(input Input) string {
+	if input.Annotations == nil {
+		return ""
+	}
+	return input.Annotations.Criterion
 }
 
 // IsFileRole reports whether inputs of the role are per-file descriptors.

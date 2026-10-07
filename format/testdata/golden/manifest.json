@@ -78,6 +78,20 @@
     "schema": "valid"
   },
   {
+    "file": "alignment-two-proof-inputs-of-one-kind.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "alignment-proof-inputs-criteria-descending.json",
+    "decode": "ok",
+    "violations": [
+      "unsorted"
+    ],
+    "schema": "valid"
+  },
+  {
     "file": "alignment-unknown-input-role.json",
     "decode": "ok",
     "violations": [

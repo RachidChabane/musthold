@@ -33,13 +33,6 @@ func descriptor(role format.InputRole, name, digest string) format.Input {
 	return format.Input{Role: role, Name: name, Digest: format.Digest{SHA256: digest}}
 }
 
-func sortInputs(inputs []format.Input) []format.Input {
-	slices.SortFunc(inputs, func(a, b format.Input) int {
-		return cmp.Or(strings.Compare(string(a.Role), string(b.Role)), strings.Compare(a.Name, b.Name))
-	})
-	return slices.CompactFunc(inputs, func(a, b format.Input) bool { return a.Role == b.Role && a.Name == b.Name })
-}
-
 // baseInputs are the inputs of a Statement that exist before any answer does: the
 // statement, the test and code files, the policy, the templates, the masked
 // input and the discriminating-power proofs the matrix is read from.
@@ -67,7 +60,7 @@ func (s *subjectRun) baseInputs(declared criterion.Criterion, evidence testEvide
 		inputs = append(inputs, descriptor(format.RolePromptTemplate, string(kind), digest))
 	}
 	inputs = append(inputs, evidence.proofInputs...)
-	return sortInputs(inputs)
+	return format.SortInputs(inputs)
 }
 
 // sourceFiles lists the test files the Statement rests on: those the masked input
@@ -98,7 +91,7 @@ func finalInputs(base []format.Input, used []hostbridge.Answer) []format.Input {
 			responses[fmt.Sprintf("%s.%d.%s", answer.ID, vote.Ticket.Vote, digest)] = true
 		}
 	}
-	return sortInputs(append(inputs,
+	return format.SortInputs(append(inputs,
 		descriptor(format.RoleModelID, inputNameModels, digestOfSet(models)),
 		descriptor(format.RoleHostResponse, inputNameResponses, digestOfSet(responses)),
 	))
