@@ -1,0 +1,39 @@
+{"reason":"the lockfile pulls cuda-bindings, beyond the machine's budget","stage":"environment-build","subject":"semantica-agi/semantica#1831"}
+{"reason":"the lockfile pulls tensorflow, beyond the machine's budget","stage":"environment-build","subject":"keras-team/keras#23778"}
+{"reason":"the lockfile pulls cuda-bindings, beyond the machine's budget","stage":"environment-build","subject":"yusufkaraaslan/Skill_Seekers#441"}
+{"reason":"the suite exceeded its time limit","stage":"offline-tests","subject":"dgtlmoon/changedetection.io#4503"}
+{"reason":"the lockfile pulls nvidia-cublas-cu12, beyond the machine's budget","stage":"environment-build","subject":"StarTrail-org/PixelRAG#120"}
+{"reason":"uv sync failed: error: No interpreter found for Python 3.12 in search path hint: A managed Python download is available for Python 3.12, but Python downloads are set to 'never'","stage":"environment-build","subject":"MemPalace/mempalace#2416"}
+{"reason":"the lockfile pulls torch, beyond the machine's budget","stage":"environment-build","subject":"NVIDIA/garak#1842"}
+{"reason":"the lockfile pulls torch, beyond the machine's budget","stage":"environment-build","subject":"huggingface/peft#3382"}
+{"reason":"uv sync failed: error: No interpreter found for Python 3.11.7 in search path hint: A managed Python download is available for Python 3.11.7, but Python downloads are set to 'never'","stage":"environment-build","subject":"darrenburns/posting#380"}
+{"reason":"the lockfile pulls cuda-bindings, beyond the machine's budget","stage":"environment-build","subject":"OpenPipe/ART#841"}
+{"reason":"no test ran at the merge commit","stage":"offline-tests","subject":"pytest-dev/pytest#14692"}
+{"reason":"uv venv failed: error: No interpreter found for Python 3.11 in search path hint: A managed Python download is available for Python 3.11, but Python downloads are set to 'never'","stage":"environment-build","subject":"assafelovic/gpt-researcher#2154"}
+{"reason":"0 of 19 tests pass offline at merge, at least 80 % required","stage":"offline-tests","subject":"cocotb/cocotb#5371"}
+{"reason":"0 of 33 tests pass offline at merge, at least 80 % required","stage":"offline-tests","subject":"locustio/locust#3510"}
+{"reason":"uv sync failed: error: No interpreter found for Python 3.11 in search path hint: A managed Python download is available for Python 3.11, but Python downloads are set to 'never'","stage":"environment-build","subject":"fastapi/fastapi#15908"}
+{"reason":"0 of 1 tests pass offline at merge, at least 80 % required","stage":"offline-tests","subject":"babybuddy/babybuddy#1157"}
+{"reason":"no test the pull request touched fails at base and passes at merge","stage":"no-fail-to-pass","subject":"pygments/pygments#3225"}
+{"reason":"...e)(message) from None RuntimeError: Error getting the version from source `uv-dynamic-versioning`: This does not appear to be a Git project hint: `mcp-types` was included because `mcp` depends on `mcp-types` hint: Build failures usually indicate a problem with the package or the build environment","stage":"environment-build","subject":"modelcontextprotocol/python-sdk#3095"}
+{"reason":"no test ran at the merge commit","stage":"offline-tests","subject":"microsoft/playwright-python#3136"}
+{"reason":"no test ran at the merge commit","stage":"offline-tests","subject":"pypa/pipx#2018"}
+{"reason":"the merge commit is not in the mirror","stage":"merge-diff","subject":"alibaba/open-code-review#1262"}
+{"reason":"3 of 30 tests pass offline at merge, at least 80 % required","stage":"offline-tests","subject":"gruntwork-io/terratest#1898"}
+{"reason":"no test ran at the merge commit","stage":"offline-tests","subject":"gotenberg/gotenberg#1675"}
+{"reason":"no test ran at the merge commit","stage":"offline-tests","subject":"aws/karpenter-provider-aws#9680"}
+{"reason":"beyond the selection depth","stage":"not-selected","subject":"maxatome/go-testdeep#292"}
+{"reason":"beyond the selection depth","stage":"not-selected","subject":"tbphp/gpt-load#759"}
+{"reason":"beyond the selection depth","stage":"not-selected","subject":"valyala/fasthttp#2358"}
+{"reason":"beyond the selection depth","stage":"not-selected","subject":"amacneil/dbmate#835"}
+{"reason":"beyond the selection depth","stage":"not-selected","subject":"higress-group/higress#4576"}
+{"reason":"beyond the selection depth","stage":"not-selected","subject":"moonD4rk/HackBrowserData#628"}
+{"reason":"beyond the selection depth","stage":"not-selected","subject":"juicedata/juicefs#7362"}
+{"reason":"beyond the selection depth","stage":"not-selected","subject":"canopy-network/canopy#524"}
+{"reason":"beyond the selection depth","stage":"not-selected","subject":"unikraft/kraftkit#2858"}
+{"reason":"beyond the selection depth","stage":"not-selected","subject":"TomWright/dasel#553"}
+{"reason":"beyond the selection depth","stage":"not-selected","subject":"go-swagger/go-swagger#3409"}
+{"reason":"beyond the selection depth","stage":"not-selected","subject":"bits-and-blooms/bitset#228"}
+{"reason":"beyond the selection depth","stage":"not-selected","subject":"jessevdk/go-flags#434"}
+{"reason":"beyond the selection depth","stage":"not-selected","subject":"ollama/ollama#17752"}
+{"reason":"beyond the selection depth","stage":"not-selected","subject":"crossplane/crossplane#7784"}
