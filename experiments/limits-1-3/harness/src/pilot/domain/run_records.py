@@ -20,6 +20,8 @@ class MutantMeta:
     generator_model: str | None
     generator_cli: str | None
     generator_call_id: str | None
+    hosts: tuple[str, ...] = ()
+    """The definitions the mutant edits, as `file::qualname`."""
 
 
 @dataclass(frozen=True)
@@ -144,6 +146,19 @@ class PlantedItem:
 
 
 @dataclass(frozen=True)
+class SuiteView:
+    """One writer's suite for one criterion after the reference filter: the node ids of the tests kept."""
+
+    writer: str
+    criterion: int
+    call_id: str
+    status: str
+    kept: tuple[str, ...]
+    rejected_static: int
+    dropped_reference: int
+
+
+@dataclass(frozen=True)
 class RunRecords:
     run_id: str
     manifest: Mapping[str, Any]
@@ -166,6 +181,12 @@ class RunRecords:
     calls: Mapping[str, CallRecord]
     timing: Mapping[str, Mapping[str, Any]]
     canary_files: tuple[str, ...]
+    sources: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+    suites: Mapping[str, Mapping[int, SuiteView]] = field(default_factory=dict)
+    writer_kills: Mapping[tuple[str, str], Mapping[str, str]] = field(default_factory=dict)
+    exploratory_status: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
+    imports: Mapping[str, Any] | None = None
+    plan: Mapping[str, Any] | None = None
 
     @property
     def reference_passes(self) -> dict[str, bool]:

@@ -43,6 +43,7 @@ from pilot.application.provenance import ManifestInputs
 from pilot.application.stage_timer import StageTimer
 from pilot.cli.pipeline_layout import PipelineLayout
 from pilot.domain.call_budget import DEFAULT_CALL_BUDGET
+from pilot.domain.run_window import RunWindow
 from pilot.domain.constants import MAX_CONCURRENT_MODEL_CALLS
 from pilot.domain.call_type import CallType
 from pilot.domain.constants import RESULT_FILENAME
@@ -106,7 +107,8 @@ class PipelineWorld:
 
 @contextmanager
 def pipeline_world(
-    layout: PipelineLayout, run_id: str, expected_tests: int, expected_criteria: int, call_budget: int = DEFAULT_CALL_BUDGET
+    layout: PipelineLayout, run_id: str, expected_tests: int, expected_criteria: int, call_budget: int = DEFAULT_CALL_BUDGET,
+    run_window: RunWindow | None = None,
 ) -> Iterator[PipelineWorld]:
     process = SubprocessRunner()
     local = local_process_runner()
@@ -116,7 +118,7 @@ def pipeline_world(
     store = RunDirectory(layout.run_dir(run_id))
     recorded = recorded_results(raw_dir)
     baselines = load_baselines(layout.canary_dir(run_id))
-    budgeted = BudgetedModelPort(stack.router, store, call_budget, utc_today, recorded)
+    budgeted = BudgetedModelPort(stack.router, store, call_budget, utc_today, recorded, run_window)
     caller = ModelCaller(
         budgeted, baselines, prompts.system_prompt(), log_to_stderr, MAX_CONCURRENT_MODEL_CALLS, recorded=recorded
     )
@@ -150,7 +152,8 @@ def pipeline_world(
 
 @contextmanager
 def core_dependencies(
-    layout: PipelineLayout, run_id: str, expected_tests: int, expected_criteria: int, call_budget: int = DEFAULT_CALL_BUDGET
+    layout: PipelineLayout, run_id: str, expected_tests: int, expected_criteria: int, call_budget: int = DEFAULT_CALL_BUDGET,
+    run_window: RunWindow | None = None,
 ) -> Iterator[CoreDependencies]:
-    with pipeline_world(layout, run_id, expected_tests, expected_criteria, call_budget) as world:
+    with pipeline_world(layout, run_id, expected_tests, expected_criteria, call_budget, run_window) as world:
         yield world.core

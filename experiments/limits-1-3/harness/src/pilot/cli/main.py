@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from pilot.cli import analysis_verbs, commands, pipeline_commands
 from pilot.cli.layout import default_root
 from pilot.domain.call_budget import DEFAULT_CALL_BUDGET
 from pilot.domain.call_type import CallType
+from pilot.domain.run_window import DEFAULT_RUN_WINDOW, RUN_WINDOW_ENV
 from pilot.domain.deviations import OPERATOR_KINDS
 from pilot.domain.constants import (
     EXPECTED_CRITERION_COUNT,
@@ -41,9 +43,17 @@ def _add_counts(parser: argparse.ArgumentParser, *names: str) -> None:
         parser.add_argument(f"--expected-{name}", type=int, default=defaults[name])
 
 
+def _add_window(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--run-window", default=os.environ.get(RUN_WINDOW_ENV, DEFAULT_RUN_WINDOW),
+        help="daily local-time window HH:MM-HH:MM (may cross midnight) for model calls, or 'always'",
+    )
+
+
 def _add_run(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--run-id", required=True)
     _add_counts(parser, "tests", "criteria")
+    _add_window(parser)
     parser.add_argument(
         "--call-budget", type=int, default=DEFAULT_CALL_BUDGET,
         help="new model calls per UTC day and CLI before the verb stops cleanly (exit 3)",
@@ -84,10 +94,14 @@ def build_parser() -> tuple[argparse.ArgumentParser, dict[str, Handler]]:
     sub.add_argument("--run-id", required=True)
     sub.add_argument("--models", nargs="+", default=None, help="restrict to these model names")
     sub.add_argument("--call-types", nargs="+", default=None, choices=[c.value for c in CallType])
+    _add_window(sub)
 
     verb("assemble-arm-p", commands.assemble_arm_p_command, "arm-P items and labels from the ground truth")
 
     verb("leak-audit", pipeline_commands.leak_audit_command, "PREREG 3.3 cross-family leak audit")
+
+    sub = verb("run-window", pipeline_commands.run_window_command, "exit 0 inside the run window, 3 outside")
+    _add_window(sub)
 
     sub = verb("import-run-01", pipeline_commands.import_run_01_command, "carry the sealed run-01's completed calls into a run, by digest")
     sub.add_argument("--run-id", required=True)

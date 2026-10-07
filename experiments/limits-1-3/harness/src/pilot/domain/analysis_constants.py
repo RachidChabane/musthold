@@ -161,6 +161,12 @@ N_NEEDED_UNREACHABLE: Final = "unreachable"
 N_NEEDED_BLOCKED: Final = "blocked"
 N_NEEDED_SEARCH_LIMIT: Final = 100_000
 
+# Blind-spot estimand (PREREG 11).
+BLIND_SPOT_MATERIALITY: Final = 0.10
+BLIND_SPOT_INDICATED: Final = "shared blind spot indicated"
+BLIND_SPOT_NONE: Final = "no material shared blind spot"
+BLIND_SPOT_UNDETERMINED: Final = "undetermined"
+
 # Feasibility (PREREG 12).
 FEASIBILITY_GREEN: Final = "green"
 FEASIBILITY_AMBER: Final = "amber"

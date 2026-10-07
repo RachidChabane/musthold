@@ -27,20 +27,27 @@ from pilot.domain.pipeline_constants import (
     BINDINGS_FILENAME,
     DEVIATIONS_FILENAME,
     DIFFERENTIAL_FILENAME,
+    EXPLORATORY_STATUS_FILENAME,
     KILLS_FILENAME,
     MUTANT_CLASSES_FILENAME,
+    MUTANT_SOURCES_FILENAME,
     MUTANTS_DIRNAME,
     PROBE_FILENAME,
+    PLAN_FILENAME,
     PROCESSING_FILENAME,
     REFERENCE_FILENAME,
     RELABEL_FILENAME,
     RUN_MANIFEST_FILENAME,
+    SUITES_DIRNAME,
     TIMING_FILENAME,
     VALIDITY_FILENAME,
     WITNESS_FILENAME,
+    WRITER_KILLS_FILENAME,
 )
 from pilot.domain.constants import CANARY_DIRNAME, RAW_DIRNAME, TRACEABILITY_FILENAME
+from pilot.domain.import_manifest import IMPORTS_FILENAME
 from pilot.domain.refs import parse_criterion, parse_criterion_or_none
+from pilot.domain.test_writing import TestStatus, suite_nodeid
 from pilot.domain.run_records import (
     AlignmentCall,
     AlignmentView,
@@ -51,6 +58,7 @@ from pilot.domain.run_records import (
     ProcessingRecord,
     RelabelRow,
     RunRecords,
+    SuiteView,
     ValidityRow,
     WitnessRow,
 )
@@ -128,7 +136,32 @@ def _read_run(run_dir: Path) -> RunRecords:
         calls=_read_calls(run_dir / RAW_DIRNAME),
         timing=read_json_optional(run_dir / TIMING_FILENAME, {}),
         canary_files=_canary_files(run_dir / CANARY_DIRNAME),
+        sources={source: tuple(ids) for source, ids in read_json_optional(run_dir / MUTANT_SOURCES_FILENAME, {}).items()},
+        suites=_read_suites(run_dir / SUITES_DIRNAME),
+        writer_kills={
+            (r["writer"], r["mutant_id"]): _kill_results(r) for r in read_jsonl(run_dir / WRITER_KILLS_FILENAME)
+        },
+        exploratory_status=read_json_optional(run_dir / EXPLORATORY_STATUS_FILENAME, {}),
+        imports=read_json_optional(run_dir / IMPORTS_FILENAME, None),
+        plan=read_json_optional(run_dir / PLAN_FILENAME, None),
     )
+
+
+def _read_suites(directory: Path) -> dict[str, dict[int, SuiteView]]:
+    suites: dict[str, dict[int, SuiteView]] = {}
+    for path in sorted(directory.glob(f"*{JSON_SUFFIX}")) if directory.is_dir() else []:
+        for ref, raw in read_json(path).items():
+            statuses = [t["status"] for t in raw["tests"]]
+            suites.setdefault(path.stem, {})[parse_criterion(ref)] = SuiteView(
+                writer=raw["writer"],
+                criterion=parse_criterion(ref),
+                call_id=raw["call_id"],
+                status=raw["status"],
+                kept=tuple(suite_nodeid(ref, t["name"]) for t in raw["tests"] if t["status"] == TestStatus.KEPT.value),
+                rejected_static=statuses.count(TestStatus.REJECTED_STATIC.value),
+                dropped_reference=statuses.count(TestStatus.DROPPED_REFERENCE.value),
+            )
+    return suites
 
 
 def _read_text(path: Path) -> str:
@@ -173,6 +206,7 @@ def _read_mutants(directory: Path) -> dict[str, MutantMeta]:
             generator_model=generator.get("model"),
             generator_cli=generator.get("cli"),
             generator_call_id=generator.get("call_id"),
+            hosts=tuple(sorted({f"{edit['file']}::{edit['qualname']}" for edit in raw.get("edits", [])})),
         )
     return found
 

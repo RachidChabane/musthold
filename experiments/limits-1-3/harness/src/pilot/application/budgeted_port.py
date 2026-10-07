@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import threading
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime
 
 from pilot.application.ports import ModelPort, RunStore
 from pilot.domain.call_budget import (
@@ -13,6 +13,7 @@ from pilot.domain.call_budget import (
     calls_on,
     with_call,
 )
+from pilot.domain.run_window import RunWindow, RunWindowClosed
 from pilot.domain.model_call import CanaryBaseline, ModelOutcome, ModelRequest
 
 Today = Callable[[], date]
@@ -22,7 +23,18 @@ Recorded = Callable[[str], bool]
 class BudgetedModelPort:
     """Counts a call when it starts; a call whose result is already recorded is never counted."""
 
-    def __init__(self, inner: ModelPort, store: RunStore, budget: int, today: Today, recorded: Recorded) -> None:
+    def __init__(
+        self,
+        inner: ModelPort,
+        store: RunStore,
+        budget: int,
+        today: Today,
+        recorded: Recorded,
+        window: RunWindow | None = None,
+        local_now: Callable[[], datetime] = datetime.now,
+    ) -> None:
+        self._window = window
+        self._local_now = local_now
         self._inner = inner
         self._store = store
         self._budget = budget
@@ -32,6 +44,8 @@ class BudgetedModelPort:
 
     def call(self, request: ModelRequest, baseline: CanaryBaseline | None) -> ModelOutcome:
         if not self._recorded(request.call_id):
+            if self._window is not None and not self._window.is_open(self._local_now()):
+                raise RunWindowClosed(self._window.start.isoformat() + "-" + self._window.end.isoformat())
             self._reserve(request)
         return self._inner.call(request, baseline)
 

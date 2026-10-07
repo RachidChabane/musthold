@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import datetime
 from argparse import Namespace
 from collections.abc import Callable, Sequence
 
@@ -44,6 +45,7 @@ from pilot.domain.import_manifest import ImportRefused, SOURCE_RUN_ID
 from pilot.domain.model_slate import CANARY_PINS, LUNA_CANARY_PINS
 from pilot.domain.pipeline_constants import EXIT_QUOTA_EXHAUSTED, LEAK_AUDIT_HINTS_FILENAME
 from pilot.domain.quota import QuotaExhausted
+from pilot.domain.run_window import RUN_WINDOW_PAUSE_TEXT, InvalidRunWindow, RunWindow, RunWindowClosed
 
 EXIT_OK = 0
 EXIT_FAILED = 1
@@ -65,6 +67,7 @@ ABORTS = (
     ArmPIntegrityError,
     MissingPreregFile,
     ImportRefused,
+    InvalidRunWindow,
     BlindSpotPreconditionFailed,
     WindowNotOpen,
 )
@@ -88,6 +91,11 @@ def _run_quota_log(args: Namespace) -> QuotaLog:
 def _guarded(verb: str, action: Callable[[], int], quota_log: QuotaLog | None = None) -> int:
     try:
         return action()
+    except RunWindowClosed as stop:
+        if quota_log is not None:
+            quota_log(RUN_WINDOW_PAUSE_TEXT)
+        print(f"{verb}: {RUN_WINDOW_PAUSE_TEXT} ({stop}); rerun inside the window to resume", file=sys.stderr)
+        return EXIT_QUOTA_EXHAUSTED
     except CallBudgetReached as stop:
         if quota_log is not None:
             quota_log(CALL_BUDGET_PAUSE_TEXT)
@@ -110,6 +118,7 @@ def canary_command(args: Namespace) -> int:
 def _canary(args: Namespace) -> int:
     layout = PipelineLayout(args.root)
     _require_prereg(layout)
+    _require_open_window(args)
     process = SubprocessRunner()
     stack = build_model_stack(layout, layout.raw_dir(args.run_id), process)
     prompts = prompt_library(layout)
@@ -136,7 +145,7 @@ def relabel_command(args: Namespace) -> int:
 def _relabel(args: Namespace) -> int:
     layout = PipelineLayout(args.root)
     _require_prereg(layout)
-    with core_dependencies(layout, args.run_id, args.expected_tests, args.expected_criteria, args.call_budget) as deps:
+    with core_dependencies(layout, args.run_id, args.expected_tests, args.expected_criteria, args.call_budget, _window(args)) as deps:
         ensure_manifest(deps.ctx.store, deps.provenance, deps.versions, deps.manifest_inputs)
         bindings = ensure_traceability(deps.ctx.store, deps.traceability, args.expected_tests, args.expected_criteria)
         with deps.timer.stage("relabel"):
@@ -155,7 +164,7 @@ def run_core_command(args: Namespace) -> int:
 def _run_core(args: Namespace) -> int:
     layout = PipelineLayout(args.root)
     _require_prereg(layout)
-    with core_dependencies(layout, args.run_id, args.expected_tests, args.expected_criteria, args.call_budget) as deps:
+    with core_dependencies(layout, args.run_id, args.expected_tests, args.expected_criteria, args.call_budget, _window(args)) as deps:
         run_core(deps)
     print("run-core: OK")
     return EXIT_OK
@@ -168,7 +177,7 @@ def run_blindspot_command(args: Namespace) -> int:
 def _run_blindspot(args: Namespace) -> int:
     layout = PipelineLayout(args.root)
     _require_prereg(layout)
-    with pipeline_world(layout, args.run_id, args.expected_tests, args.expected_criteria, args.call_budget) as world:
+    with pipeline_world(layout, args.run_id, args.expected_tests, args.expected_criteria, args.call_budget, _window(args)) as world:
         run_blindspot(world.blind_spot)
     print("run-blindspot: OK")
     return EXIT_OK
@@ -181,7 +190,7 @@ def run_secondary_command(args: Namespace) -> int:
 def _run_secondary(args: Namespace) -> int:
     layout = PipelineLayout(args.root)
     _require_prereg(layout)
-    with core_dependencies(layout, args.run_id, args.expected_tests, args.expected_criteria, args.call_budget) as deps:
+    with core_dependencies(layout, args.run_id, args.expected_tests, args.expected_criteria, args.call_budget, _window(args)) as deps:
         run_secondary(SecondaryDependencies(deps, ExploratoryLedger(deps.ctx.store)))
     print("run-secondary: OK")
     return EXIT_OK
@@ -194,14 +203,17 @@ def run_luna_command(args: Namespace) -> int:
 def _run_luna(args: Namespace) -> int:
     layout = PipelineLayout(args.root)
     _require_prereg(layout)
-    with pipeline_world(layout, args.run_id, args.expected_tests, args.expected_criteria, args.call_budget) as world:
+    with pipeline_world(layout, args.run_id, args.expected_tests, args.expected_criteria, args.call_budget, _window(args)) as world:
         store = world.core.ctx.store
-        run_luna(LunaDependencies(world.blind_spot, ExploratoryLedger(store), _luna_canary(layout, args.run_id, world)))
+        canary = _luna_canary(layout, args.run_id, world, lambda: _require_open_window(args))
+        run_luna(LunaDependencies(world.blind_spot, ExploratoryLedger(store), canary))
     print("run-luna: OK")
     return EXIT_OK
 
 
-def _luna_canary(layout: PipelineLayout, run_id: str, world: PipelineWorld) -> Callable[[], None]:
+def _luna_canary(
+    layout: PipelineLayout, run_id: str, world: PipelineWorld, require_window: Callable[[], None]
+) -> Callable[[], None]:
     """Measures the luna (model, call type) pairs that have no baseline yet; the baselines join the caller's book."""
 
     def run() -> None:
@@ -213,6 +225,7 @@ def _luna_canary(layout: PipelineLayout, run_id: str, world: PipelineWorld) -> C
         ]
         if not tasks:
             return
+        require_window()
         report = run_canary(
             world.stack.router, world.stack.versions, JsonSchemaValidator(), DirectoryCanaryStore(layout.canary_dir(run_id)),
             tasks, prompts.system_prompt(),
@@ -283,3 +296,22 @@ def _import_run_01(args: Namespace) -> int:
         plan = import_run(source, store)
     print(f"import-run-01: {len(plan.entries)} files imported from {SOURCE_RUN_ID}, {len(plan.retired)} call(s) retired")
     return EXIT_OK
+
+
+def _require_open_window(args: Namespace) -> None:
+    window = _window(args)
+    if window is not None and not window.is_open(datetime.now()):
+        raise RunWindowClosed(args.run_window)
+
+
+def _window(args: Namespace) -> RunWindow | None:
+    return RunWindow.parse(args.run_window)
+
+
+def run_window_command(args: Namespace) -> int:
+    """Exit 0 inside the run window, 3 outside it; `script/run-pilot` asks before every model-calling step."""
+    window = _window(args)
+    if window is None or window.is_open(datetime.now()):
+        return EXIT_OK
+    print(f"run-window: outside {args.run_window} local time", file=sys.stderr)
+    return EXIT_QUOTA_EXHAUSTED
