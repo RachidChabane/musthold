@@ -16,7 +16,6 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/RachidChabane/spec-proof/format"
@@ -44,49 +43,15 @@ var goldenStatements = []struct{ file, module string }{
 	{"completeness-valid.json", "completeness"},
 }
 
-var (
-	buildOnce sync.Once
-	binaries  string
-	buildErr  error
-)
-
-// build compiles both binaries once, throttled: one compiler job at a time.
+// build returns the directory that holds the built binaries of the ledger and the
+// verifier, with those of every other module.
 func build(t *testing.T) string {
 	t.Helper()
-	buildOnce.Do(func() {
-		binaries, buildErr = os.MkdirTemp("", "spec-proof-e2e-bin-")
-		if buildErr != nil {
-			return
-		}
-		for module, binary := range map[string]string{"ledger": ledgerBinary, "verify": verifyBinary} {
-			command := exec.Command("go", "build", "-C", filepath.Join(repositoryDir, module), "-p", "1", "-o", filepath.Join(binaries, binary), "./cmd/"+binary)
-			command.Env = append(os.Environ(), "GOMAXPROCS=2")
-			if output, err := command.CombinedOutput(); err != nil {
-				buildErr = &buildError{module: module, output: string(output), cause: err}
-				return
-			}
-		}
-	})
-	if buildErr != nil {
-		t.Fatal(buildErr)
-	}
-	return binaries
-}
-
-type buildError struct {
-	module, output string
-	cause          error
-}
-
-func (e *buildError) Error() string {
-	return "build " + e.module + ": " + e.cause.Error() + "\n" + e.output
+	return productBinaries(t)
 }
 
 func TestMain(m *testing.M) {
 	code := m.Run()
-	if binaries != "" {
-		os.RemoveAll(binaries)
-	}
 	if productDir != "" {
 		os.RemoveAll(productDir)
 	}

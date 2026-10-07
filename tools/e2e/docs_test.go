@@ -272,7 +272,11 @@ func acceptsFlag(t *testing.T, directory string, documented invocation, flag str
 // TestDocumentedCommandsExist checks the commands and flags the user documentation
 // names against the built binaries.
 func TestDocumentedCommandsExist(t *testing.T) {
-	root := requireMemory(t, []string{"SP-1400~1", "SP-1401~1"})
+	requirements := []string{"SP-1400~1", "SP-1401~1"}
+	if testing.Short() {
+		skipRequirements(t, requirements, "builds the binary of every module")
+	}
+	root := requireMemory(t, requirements)
 	directory := productBinaries(t)
 	commands := map[string][]string{}
 	for _, binary := range documentedBinaries {
