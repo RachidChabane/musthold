@@ -8,5 +8,6 @@ use (
 	./ledger
 	./s1relay
 	./tools/archtest
+	./tools/e2e
 	./verify
 )
