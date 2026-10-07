@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Build what a live canary needs into .tools/bin: the canary itself, the binary of
+# each proof module (the list comes from the canary: `spec-proof-canary modules`)
+# and the pinned Shallnot. With --canary-only only the canary is built, which is all
+# a dry run needs. Every compile runs under nice, one job at a time.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly BIN_DIR=".tools/bin"
+readonly CANARY="${BIN_DIR}/spec-proof-canary"
+readonly BUILD_PROCS=1
+readonly BUILD_GOMAXPROCS=2
+readonly BUILD_NICE=10
+
+build() { # <module dir> <binary> <tags>
+  local dir="$1" binary="$2" tags="$3"
+  echo "canary-build: ${binary}"
+  GOMAXPROCS="${BUILD_GOMAXPROCS}" nice -n "${BUILD_NICE}" \
+    go build -C "${dir}" -p "${BUILD_PROCS}" ${tags:+-tags "${tags}"} \
+    -o "${PWD}/${BIN_DIR}/${binary}" "./cmd/${binary}"
+}
+
+mkdir -p "${BIN_DIR}"
+./script/mem-guard check
+build tools/canary spec-proof-canary ""
+
+[[ "${1:-}" == "--canary-only" ]] && exit 0
+
+./script/shallnot-build
+while IFS=$'\t' read -r dir binary tags; do
+  build "${dir}" "${binary}" "${tags}"
+done < <("${CANARY}" modules)

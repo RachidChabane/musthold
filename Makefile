@@ -45,6 +45,20 @@ mem-check:  ## refuse heavy local work unless memory is free enough (script/mem-
 plugin-gen:  ## regenerate the committed plugin trees (script/plugin-gen)
 	script/plugin-gen
 
+# The live canaries (ADR 0005, "Live canary"): one short model session per harness,
+# recorded and evaluated. They spend model quota and run only in the nightly window;
+# pass flags with ARGS="--dry-run" (see script/canary).
+.PHONY: canary-build canary-claude canary-codex
+
+canary-build:  ## build the canary, the module binaries and the pinned Shallnot into .tools/bin (script/canary-build)
+	script/canary-build
+
+canary-claude:  ## live canary of Claude Code under -p (ARGS="--dry-run --shared-home")
+	script/canary-claude $(ARGS)
+
+canary-codex:  ## live canary of Codex under exec (ARGS="--dry-run")
+	script/canary-codex $(ARGS)
+
 # The benchmark core (bench/): every target calls bench/script/<verb> from the repository root, so paths in ARGS are
 # relative to the root. bench/Makefile offers the same verbs from inside bench/.
 .PHONY: bench-setup bench-test bench-lint bench-check bench-verify-corpus bench-analyze bench-report-lint

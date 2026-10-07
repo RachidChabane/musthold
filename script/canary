@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Run the live canary of one harness: build what it needs, then run it under
+# script/mem-guard (a memory check first, nice, and a stop if the pressure leaves
+# normal). Usage: script/canary <claude|codex> [spec-proof-canary run flags]. The
+# front doors are script/canary-claude and script/canary-codex.
+#
+#   --dry-run        print the exact command lines and run nothing
+#   --prepare-only   prepare the project and run the no-call probes, then stop
+#   --force-window   run outside the nightly window (21:00-07:30 local time)
+#   --shared-home    (claude) use the credentials of ~/.claude
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly CANARY=".tools/bin/spec-proof-canary"
+readonly HARNESS="${1:?usage: script/canary <claude|codex> [flags]}"
+shift
+
+dry_run=0
+for flag in "$@"; do
+  [[ "${flag}" == "--dry-run" ]] && dry_run=1
+done
+
+if ((dry_run)); then
+  script/canary-build --canary-only
+  exec "${CANARY}" run --harness "${HARNESS}" "$@"
+fi
+script/canary-build
+exec script/mem-guard run -- "${CANARY}" run --harness "${HARNESS}" "$@"

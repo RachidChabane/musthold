@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Front door of the live canary for Codex (ADR 0005, "Live canary"): one short
+# `codex exec` session, recorded and evaluated. See script/canary for the flags.
+# The session spends Codex quota: ADR 0005 holds it back until the quota resets.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+exec script/canary codex "$@"

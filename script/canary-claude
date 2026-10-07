@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Front door of the live canary for Claude Code (ADR 0005, "Live canary"): one short
+# `claude -p` session, recorded and evaluated. See script/canary for the flags.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+exec script/canary claude "$@"
