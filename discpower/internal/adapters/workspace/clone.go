@@ -86,6 +86,11 @@ func (PlainCloner) Clone(_ context.Context, source, destination string, layout e
 		if err := os.MkdirAll(filepath.Dir(link), directoryMode); err != nil {
 			return err
 		}
+		// A dependency directory that is itself a symlink in the reference was
+		// copied as one by copyTree; the link replaces it.
+		if err := os.RemoveAll(link); err != nil {
+			return err
+		}
 		if err := os.Symlink(target, link); err != nil {
 			return err
 		}

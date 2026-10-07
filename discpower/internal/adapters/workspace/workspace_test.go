@@ -163,6 +163,32 @@ func TestCloneDerivesMutantWorkspacesFromTheBuiltReference(t *testing.T) {
 		}
 	})
 
+	t.Run("the plain copy links a dependency directory the reference holds as a symlink [verifies SP-69~1]", func(t *testing.T) {
+		external := t.TempDir()
+		write(t, external, "lib/site.py", "dependency")
+		source := t.TempDir()
+		write(t, source, sourceFile, originalText)
+		if err := os.Symlink(external, filepath.Join(source, ".venv")); err != nil {
+			t.Fatal(err)
+		}
+		manager := newManager(t, workspace.WithCloners(workspace.PlainCloner{}))
+		reference, err := manager.Prepare(context.Background(), source, layout)
+		if err != nil {
+			t.Fatal(err)
+		}
+		mutant, err := manager.Clone(context.Background(), reference, layout)
+		if err != nil {
+			t.Fatalf("clone: %v", err)
+		}
+		target, err := os.Readlink(filepath.Join(mutant.Dir, ".venv"))
+		if err != nil || target != filepath.Join(reference.Dir, ".venv") {
+			t.Fatalf("link target = %q, %v", target, err)
+		}
+		if !exists(mutant.Dir, ".venv/lib/site.py") {
+			t.Fatal("the dependency is not reachable through the link")
+		}
+	})
+
 	t.Run("the next strategy is tried when one fails [verifies SP-69~1]", func(t *testing.T) {
 		_, _, mutant := cloneWith(t, failingCloner{}, workspace.PlainCloner{})
 		if !exists(mutant.Dir, sourceFile) {
