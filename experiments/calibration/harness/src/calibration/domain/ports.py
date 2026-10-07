@@ -30,6 +30,10 @@ class ProcessResult:
     stderr: bytes
 
 
+class ProcessTimeout(Exception):
+    """A command that outlived its timeout; the process and its children were killed."""
+
+
 class ProcessRunner(Protocol):
     def run(
         self,
@@ -65,7 +69,7 @@ class HttpTransport(Protocol):
 
     def post(self, url: str, body: bytes, timeout_seconds: float) -> HttpReply: ...
 
-    def get(self, url: str, timeout_seconds: float) -> HttpReply: ...
+    def get(self, url: str, timeout_seconds: float, headers: Mapping[str, str] | None = None) -> HttpReply: ...
 
 
 @dataclass(frozen=True)

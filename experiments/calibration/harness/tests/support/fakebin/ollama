@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+"""A fake `ollama` executable: `ollama serve` runs the Ollama stub on the port of OLLAMA_HOST.
+
+A resident model is backed by a child process whose command line holds `ollama runner`, as the real server's runner is.
+Variables read: FAKEBIN_TESTS_DIR (the tests directory), FAKE_OLLAMA_ENV_FILE (where the OLLAMA_* variables are
+written), FAKE_OLLAMA_RUNNER_PID_FILE (where the runner's pid is written), FAKE_OLLAMA_KEEP_RUNNER (an unload keeps the
+runner), FAKE_OLLAMA_STUBBORN_RUNNER (the runner ignores SIGTERM), FAKE_OLLAMA_MODELS (`tag=digest,...`).
+"""
+
+import json
+import os
+import subprocess
+import sys
+
+sys.path.insert(0, os.environ["FAKEBIN_TESTS_DIR"])
+
+from support.stub_ollama import StubOllamaServer  # noqa: E402
+
+RUNNER_IDLE_CODE = "import time; time.sleep(600)"
+STUBBORN_RUNNER_CODE = "import signal, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(600)"
+USAGE_EXIT = 2
+runner = None
+
+
+def start_runner(_model):
+    global runner
+    code = STUBBORN_RUNNER_CODE if os.environ.get("FAKE_OLLAMA_STUBBORN_RUNNER") else RUNNER_IDLE_CODE
+    runner = subprocess.Popen([sys.executable, "-c", code, "ollama", "runner"])
+    pid_file = os.environ.get("FAKE_OLLAMA_RUNNER_PID_FILE")
+    if pid_file:
+        with open(pid_file, "w") as handle:
+            handle.write(str(runner.pid))
+
+
+def stop_runner(_model):
+    global runner
+    if runner is not None and not os.environ.get("FAKE_OLLAMA_KEEP_RUNNER"):
+        runner.kill()
+        runner.wait()
+        runner = None
+
+
+def declared_models():
+    declared = os.environ.get("FAKE_OLLAMA_MODELS")
+    if not declared:
+        return None
+    return dict(item.split("=", 1) for item in declared.split(","))
+
+
+def serve():
+    host, _, port = os.environ["OLLAMA_HOST"].rpartition(":")
+    recorded = {key: value for key, value in os.environ.items() if key.startswith("OLLAMA_")}
+    env_file = os.environ.get("FAKE_OLLAMA_ENV_FILE")
+    if env_file:
+        with open(env_file, "w") as handle:
+            json.dump(recorded, handle)
+    server = StubOllamaServer(host, int(port), models=declared_models(), on_load=start_runner, on_unload=stop_runner)
+    server.serve_forever_blocking()
+
+
+if __name__ == "__main__":
+    if sys.argv[1:] != ["serve"]:
+        sys.exit(USAGE_EXIT)
+    serve()

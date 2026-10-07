@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+"""A fake `uv` executable: `uv run --frozen --extra serve python -m kev.serve ...` runs the Kev stub in a child process.
+
+The command exits with status 3 when a KEV_* variable is set or HF_HUB_OFFLINE is not 1, as the server must be started.
+Variables read: FAKEBIN_TESTS_DIR (the tests directory), FAKE_UV_RECORD_FILE (where the arguments, the directory and
+the environment seen are written).
+"""
+
+import json
+import os
+import subprocess
+import sys
+
+EXPECTED_PREFIX = ["run", "--frozen", "--extra", "serve", "python", "-m", "kev.serve", "--run"]
+FORBIDDEN_VARIABLES = ("KEV_TEMPERATURE", "KEV_DTYPE", "KEV_TRUNCATE_STATES", "KEV_API_KEY")
+VERSION = "uv 0.0.0 (fake)"
+USAGE_EXIT = 2
+ENVIRONMENT_EXIT = 3
+
+
+def record(arguments):
+    path = os.environ.get("FAKE_UV_RECORD_FILE")
+    if path:
+        seen = {name: value for name, value in os.environ.items() if name.startswith("KEV_") or name == "HF_HUB_OFFLINE"}
+        with open(path, "w") as handle:
+            json.dump({"argv": arguments, "cwd": os.getcwd(), "environment": seen}, handle)
+
+
+def serve(arguments):
+    if arguments[:8] != EXPECTED_PREFIX or arguments[9:10] != ["--host"] or arguments[11:12] != ["--port"]:
+        sys.exit(USAGE_EXIT)
+    run, host, port = arguments[8], arguments[10], arguments[12]
+    if any(name in os.environ for name in FORBIDDEN_VARIABLES) or os.environ.get("HF_HUB_OFFLINE") != "1":
+        sys.exit(ENVIRONMENT_EXIT)
+    record(arguments)
+    script = os.path.join(os.environ["FAKEBIN_TESTS_DIR"], "support", "run_stub_kev.py")
+    child = subprocess.Popen([sys.executable, script, "-m", "kev.serve", run, host, port])
+    sys.exit(child.wait())
+
+
+if __name__ == "__main__":
+    if sys.argv[1:] == ["--version"]:
+        print(VERSION)
+        sys.exit(0)
+    serve(sys.argv[1:])

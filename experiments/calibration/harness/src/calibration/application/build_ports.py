@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Protocol
 
 from calibration.domain.canonical import JsonValue
+from calibration.domain.ports import ProductReader
 
 
 @dataclass(frozen=True)
@@ -105,6 +106,10 @@ class PilotRunReader(Protocol):
 
     def digests(self) -> dict[str, str]: ...
 
+    def verify_against_seal(self) -> list[str]:
+        """The files read whose digest differs from `SHA256SUMS`; empty when the seal is absent or agrees."""
+        ...
+
 
 class PilotGit(Protocol):
     """The pilot's history: its tags and the commit of its analysis (§2.2, §14.1)."""
@@ -127,4 +132,27 @@ class SnapshotSource(Protocol):
 
     def fixture_sources(self) -> dict[str, str]:
         """The Python sources of `fixture/parkfee/src/parkfee/`, keyed by their path relative to the project root."""
+        ...
+
+
+class TreeDigester(Protocol):
+    def digest(self, root: Path) -> dict[str, str]:
+        """The SHA-256 of every file below `root`, keyed by relative POSIX path and sorted."""
+        ...
+
+    def remove(self, root: Path) -> None: ...
+
+
+@dataclass(frozen=True)
+class BuiltTools:
+    """The compiled builders behind their ports: request builders, the product reader and the alignment driver."""
+
+    builders: Builders
+    reader: ProductReader
+    alignment_driver: AlignmentDriver
+
+
+class ToolsFactory(Protocol):
+    def open(self, binaries_dir: Path, extra_env: Mapping[str, str]) -> BuiltTools:
+        """The tools over the binaries of `binaries_dir`, run with `extra_env` laid over the environment."""
         ...

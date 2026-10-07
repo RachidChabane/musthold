@@ -147,3 +147,9 @@ class ProvenanceReading:
 
 class ProvenanceProbe(Protocol):
     def reading(self) -> ProvenanceReading: ...
+
+
+class HarnessIdentity(Protocol):
+    def identity(self) -> Mapping[str, str]:
+        """The harness commit and the builder digest, under the keys the manifest records them."""
+        ...

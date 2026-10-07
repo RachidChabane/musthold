@@ -7,6 +7,8 @@ from collections.abc import Mapping
 from enum import Enum
 from typing import TypeVar, cast
 
+from calibration.domain.canonical import JsonValue
+
 E = TypeVar("E", bound=Enum)
 
 
@@ -20,9 +22,19 @@ def mapping(value: object, where: str) -> Mapping[str, object]:
     return cast(Mapping[str, object], value)
 
 
+def json_object(value: object, where: str) -> Mapping[str, JsonValue]:
+    """An object whose members are JSON values: what `json.loads` returns for a JSON object."""
+    return cast(Mapping[str, JsonValue], mapping(value, where))
+
+
 def as_mapping(value: object) -> Mapping[str, object] | None:
     """The value as an object, or None when it is any other JSON value."""
     return cast(Mapping[str, object], value) if isinstance(value, Mapping) else None
+
+
+def as_list(value: object) -> list[object] | None:
+    """The value as an array, or None when it is any other JSON value."""
+    return cast(list[object], value) if isinstance(value, list) else None
 
 
 def sequence(value: object, where: str) -> list[object]:
