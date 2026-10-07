@@ -31,8 +31,9 @@ Go tests of the module in CI.
   content NUL` over the files sorted by path, regardless of the order given, and
   refuse a path that is not relative POSIX or that occurs twice.
 - **SP-9~1**: WHEN a cache key is computed THE SYSTEM SHALL hash the canonical
-  form of the subject and the inputs, regardless of the order of the inputs, and
-  give another key when any input changes.
+  form of the subject and of the inputs, each input by its role, name, digest and
+  globs, regardless of the order of the inputs, and give another key when any of
+  them changes; the criterion a `proof` input is about does not reach the key.
 - **SP-10~1**: WHEN the statement is an alignment or a discriminating-power
   statement THE SYSTEM SHALL require exactly one subject named `ID~REV` after
   the requirement of the predicate, with the statement digest.

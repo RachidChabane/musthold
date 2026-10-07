@@ -127,6 +127,33 @@ func TestCacheKey(t *testing.T) {
 		}
 	})
 
+	t.Run("a member the key does not cover leaves the key alone, and one it covers changes it [verifies SP-9~1]", func(t *testing.T) {
+		consumed := format.ProofInput(format.KindDiscriminatingPower, "PARK-2~1", []byte("statement file"))
+		other := format.ProofInput(format.KindDiscriminatingPower, "PARK-3~1", []byte("statement file"))
+		bare := consumed
+		bare.Annotations = &format.Annotations{}
+		globbed := consumed
+		globbed.Annotations = &format.Annotations{Globs: []string{"src/**"}}
+		keyOf := func(input format.Input) string {
+			key, err := format.CacheKey(subject, []format.Input{input})
+			if err != nil {
+				t.Fatal(err)
+			}
+			return key
+		}
+		if keyOf(consumed) != keyOf(other) || keyOf(consumed) != keyOf(bare) {
+			t.Error("the criterion of a proof input reached the key")
+		}
+		if keyOf(consumed) == keyOf(globbed) {
+			t.Error("the globs of an input did not reach the key")
+		}
+		plain := consumed
+		plain.Annotations = nil
+		if keyOf(consumed) == keyOf(plain) {
+			t.Error("the presence of the annotations did not reach the key")
+		}
+	})
+
 	t.Run("the key does not depend on the order of the inputs [verifies SP-9~1]", func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
 			drawn := proofs.Inputs().Draw(t, "inputs")
