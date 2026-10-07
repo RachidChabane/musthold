@@ -260,7 +260,7 @@ func TestCodexFiles(t *testing.T) {
 			}
 			example := delegationExample(module)
 			wantExample := "`" + hostproto.RoleFor(module.Plugin(), example) + "` is `" + module.Plugin() + "-" + string(example) + "`"
-			for _, want := range []string{wantExample, module.Binary + " prove --resume", pluginfiles.RelayBinary + " drain --module " + module.RelayName(), "`" + pluginfiles.VerifyLocalCommand + "`"} {
+			for _, want := range []string{"`spawn_agent`", "`agent_type` set to the role on its line", "`fork_turns` set to `\"none\"`", "`message` set to `ticket <ticket>` and nothing else", "`wait_agent`", "at most 3", wantExample, module.Binary + " prove --resume", pluginfiles.RelayBinary + " drain --module " + module.RelayName(), "`" + pluginfiles.VerifyLocalCommand + "`"} {
 				if !strings.Contains(body, want) {
 					t.Errorf("body lacks %q: %s", want, body)
 				}

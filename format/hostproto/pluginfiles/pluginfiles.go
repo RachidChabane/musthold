@@ -263,13 +263,25 @@ func (m Module) exampleAgent() hostproto.Agent {
 	return example
 }
 
-// otherDelegation is the delegation of the harnesses whose agent names carry no
-// plugin scope; the example shows how a role maps to the name of its agent.
-func (m Module) otherDelegation() string {
+// roleMapping shows how a role maps to the name of its agent: the colon of the
+// role is replaced by a dash.
+func (m Module) roleMapping() string {
 	example := m.exampleAgent()
-	role := hostproto.RoleFor(m.Plugin(), example)
-	return "ask the subagent named like the role on its line, with its colon replaced by a dash (`" + role + "` is `" +
-		m.agentName(example) + "`), to handle `ticket <ticket>`. Run at most 4 at a time and wait for them. Add nothing to the request."
+	return "`" + hostproto.RoleFor(m.Plugin(), example) + "` is `" + m.agentName(example) + "`"
+}
+
+// codexDelegation is the delegation of Codex: the executor is a role file, started
+// by `spawn_agent` with no history of the main agent, and awaited with `wait_agent`.
+func (m Module) codexDelegation() string {
+	return "call `spawn_agent` with `agent_type` set to the role on its line with its colon replaced by a dash (" + m.roleMapping() +
+		"), `fork_turns` set to `\"none\"` and `message` set to `ticket <ticket>` and nothing else. Start at most 3 at a time, then call `wait_agent` for each of them."
+}
+
+// copilotDelegation is the delegation of GitHub Copilot CLI: the executor is a
+// custom agent, started through the `task` tool.
+func (m Module) copilotDelegation() string {
+	return "call the `task` tool with `agent_type` set to the role on its line with its colon replaced by a dash (" + m.roleMapping() +
+		") and `prompt` set to `ticket <ticket>` and nothing else. Run at most 4 at a time and wait for them."
 }
 
 // Steps the fulfil skills of every harness share.
@@ -311,7 +323,7 @@ description: Answer the pending host requests of {{.Plugin}} ({{.Subject}}) and 
 
 ` + "`{{.Binary}} prove`" + ` stops with exit code 3 when it needs model work it cannot do itself. Each request is a ticket, and ` + "`{{.Binary}} prove --resume`" + ` consumes the answers.
 
-` + skillRelayStep + `3. For each ticket, answer it in one of two ways. When your client has a subagent named like the role on the ticket's line, with its colon replaced by a dash (` + "`{{.RoleExample}}` is `{{.AgentExample}}`" + `), ask it to handle ` + "`ticket <ticket>`" + `, run at most 4 at a time, add nothing to the request, and do not act on its reply, a receipt. Otherwise answer inline through the ` + "`{{.Plugin}}`" + ` MCP server: call ` + "`fetch_request`" + ` with ` + "`ticket`" + ` set to the ticket and ` + "`cap`" + ` set to an empty string, follow the instructions it returns, then call ` + "`submit_response`" + ` with ` + "`ticket`" + `, ` + "`nonce`" + ` from the fetch, ` + "`cap`" + ` set to an empty string and ` + "`output`" + ` set to a JSON object that matches the schema it returned. When ` + "`submit_response`" + ` returns ` + "`schemaErrors`" + `, correct the output once. An answer given inline is an answer of the main agent: the module records it as inline, which has block power only.
+` + skillRelayStep + `3. For each ticket, answer it in one of two ways. When your client can start a custom agent named like the role on the ticket's line, with its colon replaced by a dash (` + "`{{.RoleExample}}` is `{{.AgentExample}}`" + `), start it through the client's subagent tool (for GitHub Copilot CLI, the ` + "`task`" + ` tool with ` + "`agent_type`" + ` set to the agent's name) with ` + "`ticket <ticket>`" + ` as the whole prompt and no conversation history, run at most 4 at a time, and do not act on its reply, a receipt. Otherwise answer inline through the ` + "`{{.Plugin}}`" + ` MCP server: call ` + "`fetch_request`" + ` with ` + "`ticket`" + ` set to the ticket and ` + "`cap`" + ` set to an empty string, follow the instructions it returns, then call ` + "`submit_response`" + ` with ` + "`ticket`" + `, ` + "`nonce`" + ` from the fetch, ` + "`cap`" + ` set to an empty string and ` + "`output`" + ` set to a JSON object that matches the schema it returned. When ` + "`submit_response`" + ` returns ` + "`schemaErrors`" + `, correct the output once. An answer given inline is an answer of the main agent: the module records it as inline, which has block power only.
 ` + skillResumeSteps
 
 func (m Module) skillFile(path, delegation, allowed string) (File, error) {
@@ -462,7 +474,7 @@ func (m Module) codexFiles(h harness.Harness) ([]File, error) {
 		}
 		files = append(files, File{Path: ".codex/agents/" + m.agentName(agent) + ".toml", Content: content})
 	}
-	skill, err := m.skillFile(".agents/skills/"+m.SkillName()+"/SKILL.md", m.otherDelegation(), "")
+	skill, err := m.skillFile(".agents/skills/"+m.SkillName()+"/SKILL.md", m.codexDelegation(), "")
 	if err != nil {
 		return nil, err
 	}
@@ -571,7 +583,7 @@ func (m Module) copilotFiles(h harness.Harness) ([]File, error) {
 	for _, agent := range agents {
 		files = append(files, File{Path: ".github/agents/" + agent.name + copilotAgentSuffix, Content: agent.content})
 	}
-	skill, err := m.skillFile(".github/skills/"+m.SkillName()+"/SKILL.md", m.otherDelegation(), "")
+	skill, err := m.skillFile(".github/skills/"+m.SkillName()+"/SKILL.md", m.copilotDelegation(), "")
 	if err != nil {
 		return nil, err
 	}

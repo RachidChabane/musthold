@@ -47,6 +47,15 @@ func TestPortablePlugin(t *testing.T) {
 			}
 		})
 
+		t.Run(sample.name+": the skill starts the executor through the subagent tool with the ticket as the whole prompt and keeps the inline branch [verifies SP-1702~1]", func(t *testing.T) {
+			body := files[pluginfiles.PortableSkillPath(module.SkillName())]
+			for _, want := range []string{"`task` tool with `agent_type`", "`ticket <ticket>` as the whole prompt and no conversation history", "Otherwise answer inline", "`fetch_request`", "`submit_response`"} {
+				if !strings.Contains(body, want) {
+					t.Errorf("the skill lacks %q:\n%s", want, body)
+				}
+			}
+		})
+
 		t.Run(sample.name+": the server carries no harness, the Copilot agents carry theirs [verifies SP-1702~1]", func(t *testing.T) {
 			if strings.Contains(files[pluginfiles.PortableMCPPath], "--harness") {
 				t.Errorf("the portable server names a harness:\n%s", files[pluginfiles.PortableMCPPath])
