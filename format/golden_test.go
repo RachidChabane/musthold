@@ -87,6 +87,8 @@ func TestGoldenVectors(t *testing.T) {
 		required := []format.ViolationCode{
 			format.CodeJudgedWithoutConfidence, format.CodeExecutedWithConfidence, format.CodeWrongClass,
 			format.CodeSubject, format.CodeUnsorted, format.CodeCacheKeyMismatch,
+			format.CodeUncorroboratedClaim, format.CodeExecutedWithCorroboration, format.CodeExecutedWithExecutor,
+			format.CodeInconsistentAttribution,
 		}
 		seen := map[format.ViolationCode]bool{}
 		valid := 0

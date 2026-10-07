@@ -33,15 +33,12 @@ const (
 	// CorroborationSpecificMatrix: the tests-by-mutants matrix of the test is
 	// specific or overbroad, neither contaminated nor pinning off-spec behaviour.
 	CorroborationSpecificMatrix CorroborationKind = "specific_matrix"
-	// CorroborationJudgeQuorum: the blind judge tickets agree at or above the
-	// judging threshold.
-	CorroborationJudgeQuorum CorroborationKind = "judge_quorum"
 )
 
 var corroborationKinds = []CorroborationKind{
 	CorroborationExampleFailed, CorroborationOtherExampleFailed, CorroborationSpecificKill,
 	CorroborationWitness, CorroborationBuilds, CorroborationOtherCriteriaPass,
-	CorroborationNoDiffFound, CorroborationSpecificMatrix, CorroborationJudgeQuorum,
+	CorroborationNoDiffFound, CorroborationSpecificMatrix,
 }
 
 // CorroborationKinds lists the closed set of corroboration kinds.

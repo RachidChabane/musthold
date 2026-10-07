@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rachid-chabane.com/host-protocol/request/v1",
+  "title": "Host-protocol request: the structured work a module asks of an executor",
+  "type": "object",
+  "required": ["type", "module", "kind", "role", "shape", "prompt", "responseSchema", "limits", "inputs", "cacheKey"],
+  "properties": {
+    "type": { "const": "https://rachid-chabane.com/host-protocol/request/v1" },
+    "module": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "kind": {
+      "enum": ["generate.targeted", "generate.witnessStrategy", "judge.validity", "judge.equivalent", "judge.alignment", "decide.closed"]
+    },
+    "role": { "type": "string", "pattern": "^[^:]+:(generator|judge|decider)$" },
+    "shape": { "enum": ["open", "closed"] },
+    "prompt": {
+      "type": "object",
+      "required": ["system", "user", "templateDigest"],
+      "properties": {
+        "system": { "type": "string" },
+        "user": { "type": "string", "minLength": 1 },
+        "templateDigest": { "$ref": "#/$defs/sha256Hex" }
+      }
+    },
+    "responseSchema": {
+      "type": "object",
+      "required": ["type"],
+      "properties": { "type": { "const": "object" } }
+    },
+    "closed": {},
+    "round": { "type": "integer", "minimum": 1 },
+    "seed": { "$ref": "#/$defs/sha256Hex" },
+    "limits": {
+      "type": "object",
+      "required": ["maxOutputBytes"],
+      "properties": { "maxOutputBytes": { "type": "integer", "minimum": 1, "maximum": 262144 } }
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["role", "digest"],
+        "properties": {
+          "role": {
+            "enum": [
+              "spec",
+              "test_source",
+              "code_tree",
+              "junit_result",
+              "mutant_set",
+              "model_id",
+              "prompt_template",
+              "decision_policy",
+              "example_binding",
+              "host_response",
+              "proof"
+            ]
+          },
+          "digest": { "$ref": "#/$defs/sha256Hex" }
+        }
+      }
+    },
+    "cacheKey": { "$ref": "#/$defs/sha256Hex" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["kind"],
+        "properties": { "kind": { "enum": ["generate.targeted", "generate.witnessStrategy"] } }
+      },
+      "then": {
+        "required": ["round", "seed"],
+        "properties": { "role": { "pattern": ":generator$" } }
+      },
+      "else": { "not": { "anyOf": [{ "required": ["round"] }, { "required": ["seed"] }] } }
+    },
+    {
+      "if": {
+        "required": ["kind"],
+        "properties": { "kind": { "enum": ["judge.validity", "judge.equivalent", "judge.alignment"] } }
+      },
+      "then": { "properties": { "role": { "pattern": ":judge$" } } }
+    },
+    {
+      "if": {
+        "required": ["kind"],
+        "properties": { "kind": { "const": "decide.closed" } }
+      },
+      "then": {
+        "required": ["closed"],
+        "properties": { "shape": { "const": "closed" }, "role": { "pattern": ":decider$" } }
+      },
+      "else": {
+        "not": { "required": ["closed"] },
+        "properties": { "shape": { "const": "open" } }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256Hex": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

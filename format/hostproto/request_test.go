@@ -407,6 +407,8 @@ func TestTickets(t *testing.T) {
 			"vote":      func(r *hostproto.Response) { r.Vote = -1 },
 			"nonce":     func(r *hostproto.Response) { r.Nonce = "short" },
 			"output":    func(r *hostproto.Response) { r.Output = json.RawMessage(`{`) },
+			"array":     func(r *hostproto.Response) { r.Output = json.RawMessage(`[1]`) },
+			"null":      func(r *hostproto.Response) { r.Output = json.RawMessage(`null`) },
 			"oversize": func(r *hostproto.Response) {
 				r.Output = json.RawMessage(`"` + strings.Repeat("a", hostproto.MaxOutputBytes) + `"`)
 			},

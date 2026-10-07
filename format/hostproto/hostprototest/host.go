@@ -128,7 +128,11 @@ func (h *ReferenceHost) journal(event hostproto.Event) {
 
 func (h *ReferenceHost) verifier() hostproto.CapVerifier {
 	records, _ := h.store.Records()
-	return hostproto.CapVerifier{Secret: Secret(), Roster: hostproto.JournalRoster(records), RequireAttestation: h.Policy.RequireAttestation}
+	entries, _ := h.store.ListEntries()
+	return hostproto.CapVerifier{
+		Secret: Secret(), Roster: hostproto.JournalRoster(records),
+		Bindings: hostproto.EntryCapBindings(entries), RequireAttestation: h.Policy.RequireAttestation,
+	}
 }
 
 // Emit implements Host.

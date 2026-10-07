@@ -157,7 +157,13 @@ func TestBinding(t *testing.T) {
 		{"an agent that was never started", func(b *bound) { b.verifier.Roster = roster{} }, hostproto.ErrAgentNotStarted},
 		{"an agent started for another role", func(b *bound) { b.verifier.Roster = roster{testAgent: "spec-proof-dp:generator"} }, hostproto.ErrAgentNotStarted},
 		{"no roster", func(b *bound) { b.verifier.Roster = nil }, hostproto.ErrAgentNotStarted},
-		{"a capability bound to another ticket", func(b *bound) { b.entry.CapDigest = hostprototest.Digest("another cap") }, hostproto.ErrCapBoundElsewhere},
+		{"a ticket already bound to another capability", func(b *bound) { b.entry.CapDigest = hostprototest.Digest("another cap") }, hostproto.ErrCapBoundElsewhere},
+		{"a capability already bound to another ticket", func(b *bound) {
+			other := b.entry
+			other.Ticket.Vote++
+			other.CapDigest = hostproto.CapDigest(b.submission.Cap)
+			b.verifier.Bindings = hostproto.EntryCapBindings{other}
+		}, hostproto.ErrCapBoundElsewhere},
 	}
 	for _, c := range cases {
 		t.Run("a submission with "+c.name+" is rejected [verifies SP-122~1]", func(t *testing.T) {
@@ -168,6 +174,51 @@ func TestBinding(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("a capability bound to the ticket it presents is accepted [verifies SP-122~1]", func(t *testing.T) {
+		b := newBound(t)
+		b.verifier.Bindings = hostproto.EntryCapBindings{b.entry}
+		if _, err := b.check(); err != nil {
+			t.Fatal(err)
+		}
+		if _, found := (hostproto.EntryCapBindings{b.entry}).TicketOf(hostprototest.Digest("unknown")); found {
+			t.Fatal("an unknown capability was found bound")
+		}
+		unbound := b.entry
+		unbound.CapDigest = ""
+		if _, found := (hostproto.EntryCapBindings{unbound}).TicketOf(""); found {
+			t.Fatal("an entry without a capability binds the empty digest")
+		}
+	})
+
+	t.Run("one executor cannot fetch or answer two tickets of the host [verifies SP-122~1]", func(t *testing.T) {
+		host := hostprototest.NewReferenceHost(hostprototest.ClaudeCodeObserved(), hostprototest.RequireAttestation())
+		first, second := hostprototest.Request(), hostprototest.Request(func(r *hostproto.Request) { r.Prompt.User += " (second vote)" })
+		firstTicket, err := host.Emit(first)
+		if err != nil {
+			t.Fatal(err)
+		}
+		secondTicket, err := host.Emit(second)
+		if err != nil {
+			t.Fatal(err)
+		}
+		agent := host.StartExecutor(first.Role)
+		capability := host.Cap(agent)
+		if _, err := host.Fetch(firstTicket.TicketID, capability); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := host.Fetch(secondTicket.TicketID, capability); !errors.Is(err, hostproto.ErrCapBoundElsewhere) {
+			t.Fatalf("the second fetch: %v", err)
+		}
+		_, err = host.Submit(hostprototest.Submit{Ticket: secondTicket.TicketID, Nonce: secondTicket.Nonce, Cap: capability, Output: []byte(hostprototest.HonestAnswer)})
+		if !errors.Is(err, hostproto.ErrNotSubmittable) && !errors.Is(err, hostproto.ErrCapBoundElsewhere) {
+			t.Fatalf("the submission to the second ticket: %v", err)
+		}
+		other := host.StartExecutor(second.Role)
+		if _, err := host.Fetch(secondTicket.TicketID, host.Cap(other)); err != nil {
+			t.Fatalf("a second executor could not fetch the second ticket: %v", err)
+		}
+	})
 
 	t.Run("a ticket in a state that takes no answer is rejected [verifies SP-122~1]", func(t *testing.T) {
 		for _, state := range hostproto.States() {

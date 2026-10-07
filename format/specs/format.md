@@ -113,8 +113,12 @@ Go tests of the module in CI.
   source it is given and keep the nonce out of the request id; WHEN a text is read
   as a ticket THE SYSTEM SHALL accept only that exact form, and SHALL find a
   ticket in a prompt only when the prompt holds exactly one; and a response SHALL
-  carry a request id, a vote, a nonce, a JSON output within the size limit and a
+  carry a request id, a vote, a nonce, a JSON object output within the size limit and a
   valid executor profile.
+- **SP-145~1**: WHEN the host-protocol schemas are listed THE SYSTEM SHALL give the
+  request, the ticket and the response as JSON Schema 2020-12 documents whose
+  `$id` is their URI, resolve each URI to its schema, and fix in the request
+  schema the request type URI of its major version.
 
 ## Host protocol: lifecycle and binding
 
@@ -133,8 +137,10 @@ Go tests of the module in CI.
 - **SP-122~1**: WHEN a submission is checked THE SYSTEM SHALL require the ticket
   identifier, the nonce, a state that takes an answer, the schema digest recorded
   at emission and, when attestation is required, a capability of an agent
-  started for the request's role that is not bound to another ticket, and SHALL
-  reject any submission in which one of them differs.
+  started for the request's role, and SHALL bind one capability to one ticket: a
+  ticket fetched with one capability refuses another, and a capability that
+  already serves a ticket refuses every other. Any submission in which one of
+  them differs SHALL be rejected.
 - **SP-123~1**: WHEN a capability is made THE SYSTEM SHALL join the agent
   identifier and the lowercase hex HMAC-SHA256 of that identifier under the
   per-install secret, and WHEN it is verified THE SYSTEM SHALL compare in

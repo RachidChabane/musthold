@@ -18,6 +18,12 @@ type Response struct {
 // Key returns the key of the response.
 func (r Response) Key() Key { return Key{RequestID: r.RequestID, Vote: r.Vote} }
 
+// isJSONObject reports whether the document is a JSON object.
+func isJSONObject(document json.RawMessage) bool {
+	var members map[string]json.RawMessage
+	return json.Unmarshal(document, &members) == nil && members != nil
+}
+
 // Validate checks the shape of the response and its executor.
 func (r Response) Validate() error {
 	var sink problemSink
@@ -28,8 +34,8 @@ func (r Response) Validate() error {
 	if !ValidNonce(r.Nonce) {
 		sink.add("nonce", "%q is not a nonce", r.Nonce)
 	}
-	if len(r.Output) == 0 || !json.Valid(r.Output) {
-		sink.add("output", "is not a JSON document")
+	if !isJSONObject(r.Output) {
+		sink.add("output", "is not a JSON object")
 	}
 	if len(r.Output) > MaxOutputBytes {
 		sink.add("output", "%d bytes exceed %d", len(r.Output), MaxOutputBytes)

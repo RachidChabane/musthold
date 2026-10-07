@@ -8,6 +8,9 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 
 - **SP-110~1**: WHEN the embedded schemas are loaded THE SYSTEM SHALL compile
   each from its embedded bytes.
+- **SP-146~1**: WHEN a host-protocol request, ticket or response is validated
+  against its schema THE SYSTEM SHALL accept it exactly when the
+  schema-expressible domain rules of the host protocol hold.
 - **SP-23~1**: WHEN a statement is validated against its schema THE SYSTEM SHALL
   require a confidence for a judged claim and forbid one for an executed claim.
 - **SP-25~1**: WHEN a golden vector is validated against the schemas THE SYSTEM

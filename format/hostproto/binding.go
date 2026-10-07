@@ -83,10 +83,32 @@ func CheckFetch(entry Entry, ticket TicketID, capability string, verifier CapVer
 	return checkCapBinding(entry, capability, verifier)
 }
 
-// CapVerifier bundles what verifying a capability needs.
+// CapBindings tells which ticket a capability was first used with, so that one
+// capability serves one ticket. The entries of the store back it.
+type CapBindings interface {
+	TicketOf(capDigest string) (Key, bool)
+}
+
+// EntryCapBindings derives the bindings from stored entries: a capability is
+// bound to the ticket of the entry that records its digest.
+type EntryCapBindings []Entry
+
+// TicketOf implements CapBindings.
+func (e EntryCapBindings) TicketOf(capDigest string) (Key, bool) {
+	for _, entry := range e {
+		if entry.CapDigest != "" && sameSecret(entry.CapDigest, capDigest) {
+			return entry.Ticket.Key(), true
+		}
+	}
+	return Key{}, false
+}
+
+// CapVerifier bundles what verifying a capability needs. Without Bindings no
+// capability is known to be bound to any ticket.
 type CapVerifier struct {
 	Secret             []byte
 	Roster             ExecutorRoster
+	Bindings           CapBindings
 	RequireAttestation bool
 }
 
@@ -145,6 +167,11 @@ func checkCapBinding(entry Entry, capability string, verifier CapVerifier) (Bind
 	digest := CapDigest(capability)
 	if entry.CapDigest != "" && !sameSecret(entry.CapDigest, digest) {
 		return Binding{}, ErrCapBoundElsewhere
+	}
+	if verifier.Bindings != nil {
+		if bound, found := verifier.Bindings.TicketOf(digest); found && bound != entry.Ticket.Key() {
+			return Binding{}, ErrCapBoundElsewhere
+		}
 	}
 	return Binding{AgentID: agentID, CapDigest: digest, Attested: true}, nil
 }

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rachid-chabane.com/host-protocol/response/v1",
+  "title": "Host-protocol response: the answer of an executor to one ticket",
+  "type": "object",
+  "required": ["requestId", "vote", "nonce", "output", "executor"],
+  "properties": {
+    "requestId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "vote": { "type": "integer", "minimum": 0 },
+    "nonce": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+    "output": { "type": "object" },
+    "executor": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/executorProfile" }
+  }
+}

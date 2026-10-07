@@ -100,6 +100,18 @@ type Ticket struct {
 	Nonce string `json:"nonce"`
 }
 
+// Validate checks the identifier and the nonce.
+func (t Ticket) Validate() error {
+	var sink problemSink
+	if err := t.TicketID.Validate(); err != nil {
+		sink.add("ticket", "%v", err)
+	}
+	if !ValidNonce(t.Nonce) {
+		sink.add("nonce", "%q is not a nonce", t.Nonce)
+	}
+	return sink.err()
+}
+
 // NewNonce reads a fresh nonce from random, which adapters wire to a
 // cryptographic source.
 func NewNonce(random io.Reader) (string, error) {

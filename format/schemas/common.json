@@ -68,8 +68,7 @@
             "builds",
             "other_criteria_pass",
             "no_diff_found",
-            "specific_matrix",
-            "judge_quorum"
+            "specific_matrix"
           ]
         },
         "digest": { "$ref": "#/$defs/sha256Hex" }

@@ -195,6 +195,7 @@ func TestCorroborationInvariant(t *testing.T) {
 			{"descending", []format.Corroboration{{Kind: format.CorroborationWitness, Digest: digest}, {Kind: format.CorroborationBuilds, Digest: digest}}, []format.ViolationCode{format.CodeUnsorted}},
 			{"duplicated", []format.Corroboration{{Kind: format.CorroborationBuilds, Digest: digest}, {Kind: format.CorroborationBuilds, Digest: digest}}, []format.ViolationCode{format.CodeUnsorted}},
 			{"unknown kind", []format.Corroboration{{Kind: "gut_feeling", Digest: digest}}, []format.ViolationCode{format.CodeUnknownValue}},
+			{"a judgment is not executed evidence", []format.Corroboration{{Kind: "judge_quorum", Digest: digest}}, []format.ViolationCode{format.CodeUnknownValue}},
 			{"bad digest", []format.Corroboration{{Kind: format.CorroborationBuilds, Digest: "x"}}, []format.ViolationCode{format.CodeBadDigest}},
 		}
 		for _, c := range cases {
