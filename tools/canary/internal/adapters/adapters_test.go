@@ -130,6 +130,20 @@ func TestShim(t *testing.T) {
 		}
 	})
 
+	t.Run("a Copilot hook payload, whose members are camelCase, is recorded as the harness sent it [verifies SP-1506~1]", func(t *testing.T) {
+		real := fakeBinary(t, `cat >/dev/null`)
+		record := filepath.Join(t.TempDir(), "hooks.jsonl")
+		payload := `{"sessionId":"s","toolName":"spec-proof-dp-exec/fetch_request","toolArgs":"{\"ticket\":\"t\"}","agentType":"spec-proof-dp-decider"}`
+		adapters.RunShim(real, record, []string{"hook", "pre-tool", "--harness", "copilot"}, strings.NewReader(payload), &strings.Builder{}, &strings.Builder{})
+		calls := readRecords(t, record)
+		if len(calls) != 1 || calls[0].Kind() != "pre-tool" || string(calls[0].Stdin) != payload {
+			t.Fatalf("records = %+v", calls)
+		}
+		if event := calls[0].CopilotHook(); event.ToolName != "spec-proof-dp-exec/fetch_request" || event.AgentType != "spec-proof-dp-decider" {
+			t.Errorf("event = %+v", event)
+		}
+	})
+
 	t.Run("a payload that is not JSON is kept as a string [verifies SP-1506~1]", func(t *testing.T) {
 		real := fakeBinary(t, `cat >/dev/null`)
 		record := filepath.Join(t.TempDir(), "hooks.jsonl")

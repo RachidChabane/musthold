@@ -88,7 +88,7 @@ func Run(env Env) int {
 }
 
 func (e Env) usage() int {
-	fmt.Fprintf(e.Stderr, "usage: spec-proof-canary %s|%s --harness claude|codex [flags]\n", commandRun, commandEvaluate)
+	fmt.Fprintf(e.Stderr, "usage: spec-proof-canary %s|%s --harness claude|codex|copilot [flags]\n", commandRun, commandEvaluate)
 	return ExitUsage
 }
 
@@ -101,13 +101,13 @@ func (e Env) flags(name string) *flag.FlagSet {
 func (e Env) run(args []string) int {
 	set := e.flags(commandRun)
 	options := app.Options{Canary: e.Executable}
-	set.StringVar(&options.Harness, "harness", "", "harness to run: claude or codex")
+	set.StringVar(&options.Harness, "harness", "", "harness to run: claude, codex or copilot")
 	set.StringVar(&options.RepoRoot, "repo", ".", "repository root")
 	set.StringVar(&options.OutDir, "out", os.TempDir(), "directory the run directory is created in")
 	set.BoolVar(&options.DryRun, "dry-run", false, "print the command lines and run nothing")
 	set.BoolVar(&options.PrepareOnly, "prepare-only", false, "prepare the project and run the no-call probes, then stop before the session")
 	set.BoolVar(&options.ForceWindow, "force-window", false, "run outside the nightly window")
-	set.BoolVar(&options.SharedHome, "shared-home", false, "let Claude Code use the credentials of ~/.claude instead of an isolated configuration directory")
+	set.BoolVar(&options.SharedHome, "shared-home", false, "let Claude Code use the credentials of ~/.claude, and Copilot CLI the COPILOT_HOME of the user, instead of an isolated configuration directory")
 	set.StringVar(&options.CodexHome, "codex-home", "", "a dedicated CODEX_HOME; empty uses the user's")
 	if err := set.Parse(args); err != nil || set.NArg() > 0 {
 		return ExitUsage
@@ -157,7 +157,7 @@ func (e Env) runner() app.Runner {
 func (e Env) evaluate(args []string) int {
 	set := e.flags(commandEvaluate)
 	var harnessFlag, records string
-	set.StringVar(&harnessFlag, "harness", "", "harness the records come from: claude or codex")
+	set.StringVar(&harnessFlag, "harness", "", "harness the records come from: claude, codex or copilot")
 	set.StringVar(&records, "records", "", "the records directory of a run")
 	if err := set.Parse(args); err != nil || set.NArg() > 0 || harnessFlag == "" || records == "" {
 		return ExitUsage

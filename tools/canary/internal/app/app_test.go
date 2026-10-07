@@ -227,6 +227,10 @@ func newWorld(t *testing.T, flag string, now time.Time) *world {
 			return app.Output{Stdout: "2.1.292 (Claude Code)\n"}
 		case slices.Contains(argv, "--version") && argv[0] == "codex":
 			return app.Output{Stdout: "codex-cli 0.155.1\n"}
+		case slices.Contains(argv, "--version") && argv[0] == "copilot":
+			return app.Output{Stdout: "GitHub Copilot CLI 1.0.92.\nRun 'copilot update' to check for updates.\n"}
+		case argv[0] == "copilot" && slices.Contains(argv, "list"):
+			return app.Output{Stdout: copilotListing(argv[len(argv)-3])}
 		case strings.HasSuffix(joined, "prove --all"):
 			return app.Output{Stdout: "awaiting_host 9 tickets\n", ExitCode: 3}
 		case strings.HasSuffix(joined, "request list --json"):
@@ -237,12 +241,12 @@ func newWorld(t *testing.T, flag string, now time.Time) *world {
 			return app.Output{}
 		}
 	}}
-	fixture := "claude-session"
-	if flag == "codex" {
-		fixture = "codex-session"
+	fixture := map[string]string{"claude": "claude-session", "codex": "codex-session", "copilot": "copilot-session"}[flag]
+	if flag == "copilot" {
+		copyPortableTrees(t, repo)
 	}
 	w.session = &fakeSession{t: t, fixture: fixture}
-	w.prober = &fakeProber{result: evidence.CapProbe{Attempted: true, Responded: true, Refused: flag == "claude", ServedTicket: flag == "codex", Detail: "probe"}}
+	w.prober = &fakeProber{result: evidence.CapProbe{Attempted: true, Responded: true, Refused: flag == "claude", ServedTicket: flag != "claude", Detail: "probe"}}
 	w.locker = &fakeLocker{}
 	w.runner = app.Runner{
 		Clock: fixedClock{now}, Window: window.Nightly(), Processes: w.processes, Sessions: w.session, Prober: w.prober,
@@ -359,11 +363,11 @@ func TestDryRun(t *testing.T) {
 	})
 
 	t.Run("the plan of Claude Code writes the settings and validates the plugins, and that of Codex runs each module's init [verifies SP-1504~1]", func(t *testing.T) {
-		claude, err := app.Plan("claude", "/repo", false, "")
+		claude, err := app.Plan("claude", "/repo", app.Homes{})
 		if err != nil {
 			t.Fatal(err)
 		}
-		codex, err := app.Plan("codex", "/repo", false, "/dedicated")
+		codex, err := app.Plan("codex", "/repo", app.Homes{CodexHome: "/dedicated"})
 		if err != nil {
 			t.Fatal(err)
 		}

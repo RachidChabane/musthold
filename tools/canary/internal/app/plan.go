@@ -28,6 +28,9 @@ const (
 	cacheDirName   = "cache"
 	tmpDirName     = "tmp"
 	claudeConfig   = "claude-config"
+	copilotHome    = "copilot-home"
+	copilotCache   = "copilot-cache"
+	copilotLogs    = "copilot-logs"
 	hooksLogName   = evidence.HooksFile
 	runDirPrefix   = "spec-proof-canary-"
 	placeholderRun = "<run-dir>"
@@ -39,6 +42,9 @@ const (
 	probeVersion   = "--version"
 	exitAwaiting   = 3
 )
+
+// copilotListSubjects are the subcommands whose `list --json` the Copilot probes run.
+var copilotListSubjects = []string{"plugin", "skill"}
 
 // projectShallnotConfig is the Shallnot configuration of the fixture project: the
 // requirements in specs, the pytest command whose JUnit file Shallnot reads, and
@@ -65,6 +71,17 @@ type layout struct {
 	repo, run                                      string
 	project, state, cache, tmp, shim, records, bin string
 	claudeConfig                                   string
+	copilotHome, copilotCache, copilotLogs         string
+}
+
+// Homes says where each harness CLI keeps its credentials and state in a run.
+type Homes struct {
+	// IsolatedClaude puts Claude Code's configuration directory in the run.
+	IsolatedClaude bool
+	// CodexHome is a dedicated CODEX_HOME, or empty for the user's.
+	CodexHome string
+	// IsolatedCopilot puts COPILOT_HOME in the run.
+	IsolatedCopilot bool
 }
 
 func newLayout(repo, run string) layout {
@@ -74,6 +91,7 @@ func newLayout(repo, run string) layout {
 		cache: filepath.Join(run, cacheDirName), tmp: filepath.Join(run, tmpDirName),
 		shim: filepath.Join(run, shimDirName), records: filepath.Join(run, launch.RecordsDir),
 		bin: filepath.Join(repo, toolsBinRelative), claudeConfig: filepath.Join(run, claudeConfig),
+		copilotHome: filepath.Join(run, copilotHome), copilotCache: filepath.Join(run, copilotCache), copilotLogs: filepath.Join(run, copilotLogs),
 	}
 }
 
@@ -153,12 +171,33 @@ func (l layout) shimExports() []string {
 	return exports
 }
 
-func (l layout) input(selection Selection, claudeConfigDir, codexHome string) launch.Input {
-	return launch.Input{RepoRoot: l.repo, RunDir: l.run, Ticket: selection.Ticket, Role: selection.Role, ClaudeConfigDir: claudeConfigDir, CodexHome: codexHome}
+func (l layout) input(selection Selection, homes Homes) launch.Input {
+	in := launch.Input{
+		RepoRoot: l.repo, RunDir: l.run, Ticket: selection.Ticket, Role: selection.Role, CodexHome: homes.CodexHome,
+		Copilot: launch.CopilotDirs{Cache: l.copilotCache, Logs: l.copilotLogs},
+	}
+	if homes.IsolatedClaude {
+		in.ClaudeConfigDir = l.claudeConfig
+	}
+	if homes.IsolatedCopilot {
+		in.Copilot.Home = l.copilotHome
+	}
+	return in
+}
+
+// copilotEnvironment is the environment of a Copilot CLI process of the run: the
+// no-call probes and the session.
+func (l layout) copilotEnvironment(homes Homes) []string {
+	return launch.CopilotEnvironment(l.input(Selection{}, homes).Copilot)
 }
 
 // cliVersionArgv is the command that prints the version of a harness CLI.
-func cliVersionArgv(flag string) []string { return []string{flag, probeVersion} }
+func cliVersionArgv(flag string) []string {
+	if flag == harness.FlagCopilot {
+		return launch.CopilotVersionArgv()
+	}
+	return []string{flag, probeVersion}
+}
 
 func versionOfBinaryArgv(path string) []string { return []string{path, "version"} }
 
@@ -177,14 +216,10 @@ func validateArgv(l layout, module modules.Module) []string {
 
 // Plan lists the exact command lines of a run for a harness, with the run
 // directory and the ticket left as placeholders.
-func Plan(flag, repo string, isolatedClaude bool, codexHome string) ([]string, error) {
+func Plan(flag, repo string, homes Homes) ([]string, error) {
 	l := newLayout(repo, placeholderRun)
-	claudeConfigDir := ""
-	if isolatedClaude {
-		claudeConfigDir = l.claudeConfig
-	}
 	placeholder := Selection{Ticket: "<ticket>", Role: hostproto.RoleFor(modules.Primary().Plugin, hostproto.AgentDecider)}
-	session, err := launch.Build(flag, l.input(placeholder, claudeConfigDir, codexHome))
+	session, err := launch.Build(flag, l.input(placeholder, homes))
 	if err != nil {
 		return nil, err
 	}
@@ -203,6 +238,14 @@ func Plan(flag, repo string, isolatedClaude bool, codexHome string) ([]string, e
 		lines = append(lines, "write "+l.projectFile(launch.ClaudeSettingsPath))
 		for _, module := range modules.All() {
 			lines = append(lines, strings.Join(launchQuote(validateArgv(l, module)...), " "))
+		}
+	}
+	if flag == harness.FlagCopilot {
+		for _, subject := range copilotListSubjects {
+			lines = append(lines, strings.Join(launchQuote(launch.CopilotListArgv(repo, subject)...), " ")+"   (no model call)")
+		}
+		for _, module := range modules.All() {
+			lines = append(lines, "inspect "+filepath.Join(repo, module.PluginDir(harness.FlagPortable)))
 		}
 	}
 	lines = append(lines,

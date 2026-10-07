@@ -45,7 +45,8 @@ type Options struct {
 	// ForceWindow allows a run outside the nightly window.
 	ForceWindow bool
 	// SharedHome lets Claude Code use the user's own configuration directory for its
-	// credentials, when no isolated credential is given.
+	// credentials, when no isolated credential is given, and lets Copilot CLI use
+	// the user's own COPILOT_HOME.
 	SharedHome bool
 	// CodexHome is a dedicated Codex home; empty uses the user's.
 	CodexHome string
@@ -78,11 +79,12 @@ func (r Runner) Run(ctx context.Context, options Options) (Outcome, error) {
 	if _, err := checks.ForHarness(options.Harness); err != nil {
 		return Outcome{}, err
 	}
+	r = r.forHarness(options.Harness)
 	now := r.Clock.Now()
 	inWindow := r.Window.Allows(now)
-	isolated, authErr := r.isolatedClaude(options)
+	homes, authErr := r.homes(options)
 	if options.DryRun {
-		return Outcome{}, r.printPlan(options, now, inWindow, isolated, authErr)
+		return Outcome{}, r.printPlan(options, now, inWindow, homes, authErr)
 	}
 	if !inWindow && !options.ForceWindow {
 		return Outcome{}, fmt.Errorf("%w: it is %s and the window is %s; pass --force-window to run anyway", ErrOutsideWindow, now.Format("15:04"), r.Window.Describe())
@@ -98,7 +100,7 @@ func (r Runner) Run(ctx context.Context, options Options) (Outcome, error) {
 	if err := r.checkMemory(ctx, options); err != nil {
 		return Outcome{}, err
 	}
-	session, err := r.prepare(ctx, options, isolated)
+	session, err := r.prepare(ctx, options, homes)
 	if err != nil {
 		return Outcome{RunDir: session.layout.run}, err
 	}
@@ -106,6 +108,33 @@ func (r Runner) Run(ctx context.Context, options Options) (Outcome, error) {
 		return Outcome{RunDir: session.layout.run}, r.reportPrepared(session)
 	}
 	return r.conduct(ctx, options, session)
+}
+
+// forHarness returns the runner with the environment a harness's session may
+// inherit: a Copilot CLI session never inherits the variables that trust the
+// working directory, approve every tool or reroute the model.
+func (r Runner) forHarness(flag string) Runner {
+	if flag != harness.FlagCopilot {
+		return r
+	}
+	kept := make([]string, 0, len(r.Env))
+	for _, pair := range r.Env {
+		if name, _, _ := strings.Cut(pair, "="); !launch.DropsCopilotVariable(name) {
+			kept = append(kept, pair)
+		}
+	}
+	r.Env = kept
+	return r
+}
+
+// homes says where each harness CLI keeps its credentials and state, and refuses
+// a Claude Code run that has no credential to keep out of the user's directory.
+func (r Runner) homes(options Options) (Homes, error) {
+	isolated, err := r.isolatedClaude(options)
+	return Homes{
+		IsolatedClaude: isolated, CodexHome: options.CodexHome,
+		IsolatedCopilot: options.Harness == harness.FlagCopilot && !options.SharedHome,
+	}, err
 }
 
 // isolatedClaude decides where Claude Code keeps its credentials and state: an
@@ -124,8 +153,8 @@ func (r Runner) isolatedClaude(options Options) (bool, error) {
 	return false, fmt.Errorf("%w: set %s (from `claude setup-token`) for a run that touches nothing of ~/.claude, or pass --shared-home to use the credentials of ~/.claude", ErrNoClaudeAuth, oauthTokenVariable)
 }
 
-func (r Runner) printPlan(options Options, now time.Time, inWindow bool, isolated bool, authErr error) error {
-	lines, err := Plan(options.Harness, options.RepoRoot, isolated, options.CodexHome)
+func (r Runner) printPlan(options Options, now time.Time, inWindow bool, homes Homes, authErr error) error {
+	lines, err := Plan(options.Harness, options.RepoRoot, homes)
 	if err != nil {
 		return err
 	}
@@ -137,12 +166,15 @@ func (r Runner) printPlan(options Options, now time.Time, inWindow bool, isolate
 	if authErr != nil {
 		fmt.Fprintf(r.Stdout, "credentials: %v\n", authErr)
 	}
+	if options.Harness == harness.FlagCopilot {
+		fmt.Fprintf(r.Stdout, "credentials: %s\n", r.copilotCredentialSource())
+	}
 	fmt.Fprintln(r.Stdout, "commands, in order (the run directory and the ticket are decided at run time):")
 	for index, line := range lines {
 		fmt.Fprintf(r.Stdout, "%2d. %s\n", index+1, line)
 	}
 	fmt.Fprintln(r.Stdout, "outside the run directory the run writes:")
-	for _, line := range touches(options, isolated) {
+	for _, line := range touches(options, homes) {
 		fmt.Fprintf(r.Stdout, "  - %s\n", line)
 	}
 	return nil
@@ -150,9 +182,16 @@ func (r Runner) printPlan(options Options, now time.Time, inWindow bool, isolate
 
 // touches says what a run writes outside its own directory, which is what the
 // session's fingerprints of the user's configuration directories then confirm.
-func touches(options Options, isolated bool) []string {
+func touches(options Options, homes Homes) []string {
 	switch {
-	case options.Harness == harness.FlagClaude && isolated:
+	case options.Harness == harness.FlagCopilot && homes.IsolatedCopilot:
+		return []string{"nothing: Copilot CLI runs with COPILOT_HOME, COPILOT_CACHE_HOME and --log-dir inside the run directory; the system keychain is read for the login"}
+	case options.Harness == harness.FlagCopilot:
+		return []string{
+			"$COPILOT_HOME/session-state (default ~/.copilot/session-state): the events of the session and of its subagent",
+			"~/.copilot/: any other file Copilot CLI keeps there (a refreshed login, its settings, the plugin cache); settings.json, mcp-config.json and the installed plugins are read; the cache and the logs stay in the run directory",
+		}
+	case options.Harness == harness.FlagClaude && homes.IsolatedClaude:
 		return []string{"nothing: Claude Code runs with CLAUDE_CONFIG_DIR inside the run directory and CLAUDE_CODE_OAUTH_TOKEN for its credential"}
 	case options.Harness == harness.FlagClaude:
 		return []string{
@@ -198,7 +237,7 @@ type preparedSession struct {
 
 // prepare builds the run directory, the project and the shims, makes the module
 // ask the host for tickets, and runs the probes that make no model call.
-func (r Runner) prepare(ctx context.Context, options Options, isolated bool) (preparedSession, error) {
+func (r Runner) prepare(ctx context.Context, options Options, homes Homes) (preparedSession, error) {
 	var prepared preparedSession
 	prepared.before = r.fingerprint(r.configRoots(options))
 	run, err := r.Files.MakeDir(options.OutDir, runDirPrefix+options.Harness+"-")
@@ -207,11 +246,8 @@ func (r Runner) prepare(ctx context.Context, options Options, isolated bool) (pr
 	}
 	l := newLayout(options.RepoRoot, run)
 	prepared.layout = l
-	claudeConfigDir := ""
-	if isolated {
-		claudeConfigDir = l.claudeConfig
-	}
-	for _, dir := range []string{l.state, l.cache, l.tmp, l.records, l.shim, claudeConfigDir} {
+	input := l.input(Selection{}, homes)
+	for _, dir := range []string{l.state, l.cache, l.tmp, l.records, l.shim, input.ClaudeConfigDir, input.Copilot.Home, input.Copilot.Cache, input.Copilot.Logs} {
 		if dir == "" {
 			continue
 		}
@@ -242,7 +278,11 @@ func (r Runner) prepare(ctx context.Context, options Options, isolated bool) (pr
 			return prepared, err
 		}
 	}
-	prepared.session = evidence.Session{Harness: options.Harness, Versions: r.versions(ctx, options, l, support)}
+	cliEnvironment := support
+	if options.Harness == harness.FlagCopilot {
+		cliEnvironment = environment(support, l.copilotEnvironment(homes)...)
+	}
+	prepared.session = evidence.Session{Harness: options.Harness, Versions: r.versions(ctx, options, l, support, cliEnvironment)}
 	listing, err := r.askHost(ctx, l, support)
 	if err != nil {
 		return prepared, err
@@ -251,20 +291,20 @@ func (r Runner) prepare(ctx context.Context, options Options, isolated bool) (pr
 	if err != nil {
 		return prepared, fmt.Errorf("%w: %v", ErrPrepare, err)
 	}
-	prepared.command, err = launch.Build(options.Harness, l.input(prepared.selection, claudeConfigDir, options.CodexHome))
+	prepared.command, err = launch.Build(options.Harness, l.input(prepared.selection, homes))
 	if err != nil {
 		return prepared, err
 	}
 	prepared.noCall = r.noCallProbes(ctx, options, l, probeEnvironments{support: support, cli: environment(support, prepared.command.Env...)}, prepared.selection)
 	prepared.env = l.sessionEnvironment(r.Env, prepared.command.Env)
-	prepared.session = r.describe(options, prepared, configMode(options, isolated))
+	prepared.session = r.describe(options, prepared, configMode(options, homes))
 	return prepared, r.writeJSON(l.record(evidence.NoCallFile), prepared.noCall)
 }
 
 // configMode says where the harness CLI keeps its credentials and state.
-func configMode(options Options, isolated bool) string {
+func configMode(options Options, homes Homes) string {
 	switch {
-	case options.Harness == harness.FlagClaude && isolated:
+	case options.Harness == harness.FlagClaude && homes.IsolatedClaude, options.Harness == harness.FlagCopilot && homes.IsolatedCopilot:
 		return evidence.ConfigIsolated
 	case options.Harness == harness.FlagCodex && options.CodexHome != "":
 		return evidence.ConfigDedicated
@@ -276,10 +316,7 @@ func configMode(options Options, isolated bool) string {
 func (r Runner) describe(options Options, prepared preparedSession, mode string) evidence.Session {
 	session := prepared.session
 	session.ConfigMode = mode
-	model := launch.ClaudeModel
-	if options.Harness == harness.FlagCodex {
-		model = launch.CodexModel
-	}
+	model := launch.Model(options.Harness)
 	session.Model, session.Ticket, session.Role, session.ProbeTicket = model, prepared.selection.Ticket, prepared.selection.Role, prepared.selection.ProbeTicket
 	session.Argv = prepared.command.Argv
 	session.EventCap, session.TimeoutSeconds = launch.EventCap(options.Harness), launch.TimeoutSeconds
@@ -311,6 +348,8 @@ func (r Runner) installHarnessFiles(ctx context.Context, options Options, l layo
 			return err
 		}
 		return r.Files.Write(l.projectFile(launch.CodexHooksPath), merged, false)
+	case harness.FlagCopilot:
+		return nil
 	default:
 		return fmt.Errorf("%w %q", checks.ErrUnknownHarness, options.Harness)
 	}
@@ -333,9 +372,9 @@ func (r Runner) installShim(options Options, l layout, module modules.Module) er
 }
 
 // versions records the versions of the CLI and of the binaries the run uses.
-func (r Runner) versions(ctx context.Context, options Options, l layout, env []string) map[string]string {
+func (r Runner) versions(ctx context.Context, options Options, l layout, env, cliEnv []string) map[string]string {
 	found := map[string]string{}
-	ask := func(name string, argv []string) {
+	ask := func(name string, argv []string, env []string) {
 		output, err := r.Processes.Run(ctx, CommandSpec{Argv: argv, Dir: l.project, Env: env, Timeout: supportTimeout})
 		switch {
 		case err != nil:
@@ -344,9 +383,9 @@ func (r Runner) versions(ctx context.Context, options Options, l layout, env []s
 			found[name] = strings.TrimSpace(output.Stdout + output.Stderr)
 		}
 	}
-	ask(options.Harness, cliVersionArgv(options.Harness))
+	ask(options.Harness, cliVersionArgv(options.Harness), cliEnv)
 	for _, module := range modules.All() {
-		ask(module.Binary, versionOfBinaryArgv(l.binary(module.Binary)))
+		ask(module.Binary, versionOfBinaryArgv(l.binary(module.Binary)), env)
 	}
 	if pin, err := r.Files.Read(filepath.Join(l.repo, "script", "shallnot.pin")); err == nil {
 		found[shallnotBinary] = strings.TrimSpace(string(pin))
@@ -394,6 +433,10 @@ func (r Runner) noCallProbes(ctx context.Context, options Options, l layout, env
 			}
 			found.PluginValidation = append(found.PluginValidation, result)
 		}
+	}
+	if options.Harness == harness.FlagCopilot {
+		found.CopilotListing = r.copilotListing(ctx, l, environments.cli)
+		found.PluginTrees = r.inspectTrees(l)
 	}
 	found.CapProbe = r.Prober.Probe(ctx, ServerSpec{Binary: l.primary(), Harness: options.Harness, Dir: l.project, Env: environments.support}, selection.ProbeTicket)
 	return found
@@ -468,7 +511,7 @@ func (r Runner) collect(options Options, l layout, session evidence.Session, tou
 	if err := r.Files.Write(l.record(evidence.EditedFile), edited, false); err != nil {
 		return err
 	}
-	if options.Harness == harness.FlagCodex {
+	if options.Harness == harness.FlagCodex || options.Harness == harness.FlagCopilot {
 		probe := evidence.SandboxProbe{File: launch.SandboxProbeFile, Exists: r.Files.Exists(l.projectFile(launch.SandboxProbeFile))}
 		return r.writeJSON(l.record(evidence.SandboxProbeFile), probe)
 	}
@@ -503,6 +546,12 @@ func (r Runner) configRoots(options Options) []string {
 			codexHome = filepath.Join(home, ".codex")
 		}
 		return []string{codexHome}
+	case harness.FlagCopilot:
+		copilotHome := variable(r.Env, launch.CopilotHomeVariable)
+		if copilotHome == "" {
+			copilotHome = filepath.Join(home, copilotUserDir)
+		}
+		return []string{copilotHome}
 	default:
 		return nil
 	}

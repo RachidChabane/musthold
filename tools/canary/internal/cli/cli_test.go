@@ -16,6 +16,10 @@ const (
 	recordedSession = "../domain/checks/testdata/claude-session"
 	// claudeChecks is the number of checks of Claude Code.
 	claudeChecks = 14
+
+	recordedCopilotSession = "../domain/checks/testdata/copilot-session"
+	// copilotChecks is the number of checks of Copilot CLI.
+	copilotChecks = 14
 )
 
 func run(t *testing.T, stdin string, args ...string) (code int, stdout, stderr string) {
@@ -56,6 +60,39 @@ func TestCommandLine(t *testing.T) {
 	t.Run("a dry run prints its plan and exits 0 [verifies SP-1504~1]", func(t *testing.T) {
 		code, stdout, stderr := run(t, "", "run", "--harness", "codex", "--dry-run", "--repo", t.TempDir())
 		if code != 0 || !strings.Contains(stdout, "codex exec -m gpt-6-luna") {
+			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
+		}
+	})
+
+	t.Run("a dry run of Copilot CLI prints its plan with the shared-home flag and exits 0 [verifies SP-1708~1]", func(t *testing.T) {
+		for _, args := range [][]string{
+			{"run", "--harness", "copilot", "--dry-run", "--repo", t.TempDir()},
+			{"run", "--harness", "copilot", "--dry-run", "--shared-home", "--repo", t.TempDir()},
+		} {
+			code, stdout, stderr := run(t, "", args...)
+			if code != 0 || !strings.Contains(stdout, "copilot -p") || !strings.Contains(stdout, "--model claude-haiku-4.5") {
+				t.Fatalf("%v: exit %d, stdout %q, stderr %q", args, code, stdout, stderr)
+			}
+		}
+	})
+
+	t.Run("a synthetic recorded Copilot session is evaluated from its directory [verifies SP-1707~1]", func(t *testing.T) {
+		records := t.TempDir()
+		entries, err := os.ReadDir(recordedCopilotSession)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, entry := range entries {
+			data, err := os.ReadFile(filepath.Join(recordedCopilotSession, entry.Name()))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(records, entry.Name()), data, 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+		code, stdout, stderr := run(t, "", "evaluate", "--harness", "copilot", "--records", records)
+		if code != 0 || len(strings.Split(strings.TrimSpace(stdout), "\n")) != copilotChecks || !strings.Contains(stderr, fmt.Sprintf("%d PASS", copilotChecks)) {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
 		}
 	})
