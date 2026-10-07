@@ -1,0 +1,103 @@
+[project]
+name = "specbench"
+version = "0.1.0"
+description = "Benchmark harness of spec-proof: deterministic core"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "numpy",
+    "jsonschema",
+    "pyrage",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-timeout",
+    "hypothesis",
+    "import-linter",
+    "pyright",
+    "ruff",
+    "types-jsonschema",
+]
+
+[project.scripts]
+specbench = "specbench.cli.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/specbench"]
+
+[tool.uv]
+python-downloads = "never"
+python-preference = "only-system"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider"
+pythonpath = ["src", "tests"]
+timeout = 300
+markers = ["integration: runs real subprocesses (git, uv, go, python)"]
+
+[tool.pyright]
+include = ["src", "tests"]
+typeCheckingMode = "strict"
+pythonVersion = "3.13"
+venvPath = "."
+venv = ".venv"
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "PL", "RUF", "N", "C4", "PT"]
+ignore = ["PLR2004", "PLR0913", "E501", "N818", "UP047"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PLR0915", "PLR0912", "PT011"]
+
+[tool.importlinter]
+root_package = "specbench"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "domain imports nothing from other layers"
+type = "forbidden"
+source_modules = ["specbench.domain"]
+forbidden_modules = ["specbench.application", "specbench.adapters", "specbench.analysis", "specbench.cli"]
+
+[[tool.importlinter.contracts]]
+name = "application imports only domain"
+type = "forbidden"
+source_modules = ["specbench.application"]
+forbidden_modules = ["specbench.adapters", "specbench.analysis", "specbench.cli"]
+
+[[tool.importlinter.contracts]]
+name = "analysis imports only domain"
+type = "forbidden"
+source_modules = ["specbench.analysis"]
+forbidden_modules = ["specbench.application", "specbench.adapters", "specbench.cli"]
+
+[[tool.importlinter.contracts]]
+name = "adapters import neither analysis nor cli"
+type = "forbidden"
+source_modules = ["specbench.adapters"]
+forbidden_modules = ["specbench.analysis", "specbench.cli"]
+
+[[tool.importlinter.contracts]]
+name = "domain and application are free of I/O frameworks"
+type = "forbidden"
+source_modules = ["specbench.domain", "specbench.application"]
+forbidden_modules = ["subprocess", "pyrage", "jsonschema"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "specbench never imports the pilot or a product package"
+type = "forbidden"
+source_modules = ["specbench"]
+forbidden_modules = ["pilot", "experiments"]
+allow_indirect_imports = true
