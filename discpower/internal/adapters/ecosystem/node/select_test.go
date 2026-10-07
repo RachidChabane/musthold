@@ -53,7 +53,7 @@ func TestJestSelector(t *testing.T) {
 				t.Errorf("the regex %s misses %q", pattern, test.Name)
 			}
 		}
-		for _, other := range []string{"line totals are zero for no units", "line totals multiply the unit price by the quantity [verifies PAR-1~1] extra", "xshipping is waived from fifty [verifies PAR-3~1]"} {
+		for _, other := range []string{"line totals are zero for no units", bound[0].Name + " extra", "x" + bound[0].Name} {
 			if pattern.MatchString(other) {
 				t.Errorf("the regex %s selects %q", pattern, other)
 			}
@@ -61,22 +61,22 @@ func TestJestSelector(t *testing.T) {
 	})
 
 	t.Run("the leading space jest-junit gives a test outside any describe is not part of its title [verifies SP-1013~1]", func(t *testing.T) {
-		top := ecosystem.NewBoundTest(" sums items [verifies X-1~1]", " sums items [verifies X-1~1]", "test/cart.test.js", 4)
+		top := ecosystem.NewBoundTest(" sums items", " sums items", "test/cart.test.js", 4)
 		selection, err := selector.Select([]ecosystem.BoundTest{top}, nil)
-		if err != nil || !patternOf(t, selection).MatchString("sums items [verifies X-1~1]") {
+		if err != nil || !patternOf(t, selection).MatchString("sums items") {
 			t.Fatalf("%+v %v", selection, err)
 		}
 	})
 
 	t.Run("regex characters of a title are escaped and one title is selected once [verifies SP-1013~1]", func(t *testing.T) {
-		title := "applies 10% (flat) $5 off [verifies X-1~1]"
+		title := "applies 10% (flat) $5 off"
 		a := ecosystem.NewBoundTest("describe "+title, "describe "+title, "test/a.test.js", 1)
 		selection, err := selector.Select([]ecosystem.BoundTest{a, a}, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 		pattern := patternOf(t, selection)
-		if !pattern.MatchString("describe "+title) || pattern.MatchString("describe applies 10% flat 5 off [verifies X-1~1]") {
+		if !pattern.MatchString("describe "+title) || pattern.MatchString("describe applies 10% flat 5 off") {
 			t.Fatalf("pattern = %s", pattern)
 		}
 		if len(selection.Tests) != 2 || strings.Count(selection.Args[len(selection.Args)-1], "describe") != 1 {
@@ -128,15 +128,15 @@ func TestVitestSelector(t *testing.T) {
 				}
 			}
 		}
-		if pattern.MatchString("line totals > are zero for no units") || pattern.MatchString("discounts > limits [verifies PAR-2~1] > below zero > ignore a negative percentage > extra") {
+		if pattern.MatchString("line totals > are zero for no units") || pattern.MatchString(bound[len(bound)-1].Name+" > extra") {
 			t.Errorf("the regex %s selects an unbound test", pattern)
 		}
 	})
 
 	t.Run("a title that holds the separator of its parents is still selected [verifies SP-1014~1]", func(t *testing.T) {
-		test := ecosystem.NewBoundTest("test/a.test.ts", "group > step -> 90 [verifies X-1~1]", "test/a.test.ts", 3)
+		test := ecosystem.NewBoundTest("test/a.test.ts", "group > step -> 90", "test/a.test.ts", 3)
 		selection, err := selector.Select([]ecosystem.BoundTest{test}, nil)
-		if err != nil || !patternOf(t, selection).MatchString("group > step -> 90 [verifies X-1~1]") {
+		if err != nil || !patternOf(t, selection).MatchString("group > step -> 90") {
 			t.Fatalf("%+v %v", selection, err)
 		}
 	})
