@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Run the bench tests in one pytest process, guarded by mem-guard. Usage: bench/script/test [PYTEST ARGS...]
+set -euo pipefail
+# shellcheck source=bench/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+cd "${BENCH_DIR}"
+run_heavy uv run --frozen pytest -q "$@"

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Everything CI runs: static checks, then the tests.
+set -euo pipefail
+# shellcheck source=bench/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+"$(dirname "${BASH_SOURCE[0]}")/lint"
+"$(dirname "${BASH_SOURCE[0]}")/test" "$@"

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Build a fresh single-commit agent workspace for a task. Usage: bench/script/build-workspace --corpus DIR --identity FILE --task-id ID --clone DIR --out DIR [--init-dir DIR]
+set -euo pipefail
+# shellcheck source=bench/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+specbench_light build-workspace "$@"

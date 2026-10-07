@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Install the locked dependencies of bench/ (the only step that needs the network).
+set -euo pipefail
+# shellcheck source=bench/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+run_light uv sync --frozen --project "${BENCH_DIR}"

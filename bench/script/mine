@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Mine candidate tasks through gh (--dry-run replays the archive offline). Usage: bench/script/mine --out DIR --archive DIR [--seed N] [--freeze-date YYYY-MM-DD] [--dry-run]
+set -euo pipefail
+# shellcheck source=bench/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+specbench_light mine "$@"

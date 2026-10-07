@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Exit 0 inside the nightly run window, 3 outside it. Usage: bench/script/window-status [--window HH:MM-HH:MM]
+set -euo pipefail
+# shellcheck source=bench/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+specbench_light window-status "$@"

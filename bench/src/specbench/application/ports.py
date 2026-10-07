@@ -114,6 +114,12 @@ class TreeFactory(Protocol):
     def materialize(self, spec: TreeSpec) -> AbstractContextManager[Path]: ...
 
 
+class TreeReader(Protocol):
+    """Reads a materialized tree as files by relative path."""
+
+    def read(self, root: Path) -> Mapping[str, bytes]: ...
+
+
 class OracleRunner(Protocol):
     """Runs oracle tests in a tree and reports one outcome per requested test."""
 

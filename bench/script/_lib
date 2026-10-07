@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Shared by the bench/script/<verb> front door; source it, never run it.
+#
+# `specbench` verbs run through `uv run --project bench`, so a verb works from any directory.
+# Heavy work (tests, type checks, environment builds, oracle runs) goes through
+# `script/mem-guard run --`: it applies nice and refuses to start, or stops, when the laptop's
+# free memory or pressure level is not safe (MEM_GUARD_MIN_FREE_PCT, default 40).
+
+BENCH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "${BENCH_DIR}/.." && pwd)"
+MEM_GUARD="${REPO_ROOT}/script/mem-guard"
+readonly BENCH_DIR REPO_ROOT MEM_GUARD
+
+# run_light CMD...: a short command that needs no memory guard.
+run_light() {
+  nice -n 10 "$@"
+}
+
+# run_heavy CMD...: a long or memory-hungry command, guarded.
+run_heavy() {
+  "${MEM_GUARD}" run -- "$@"
+}
+
+# specbench_light VERB ARGS...
+specbench_light() {
+  run_light uv run --project "${BENCH_DIR}" specbench "$@"
+}
+
+# specbench_heavy VERB ARGS...
+specbench_heavy() {
+  run_heavy uv run --project "${BENCH_DIR}" specbench "$@"
+}

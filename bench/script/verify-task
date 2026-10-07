@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Two-way verification of a task, no model call, guarded by mem-guard. Usage: bench/script/verify-task --corpus DIR --identity FILE --task-id ID --clone DIR [--env-dir DIR] [--out FILE]
+set -euo pipefail
+# shellcheck source=bench/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+specbench_heavy verify-task "$@"

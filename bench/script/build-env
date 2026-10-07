@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Build a native environment from a tree's lockfiles, guarded by mem-guard. Usage: bench/script/build-env --language python|go --source DIR --dest DIR
+set -euo pipefail
+# shellcheck source=bench/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+specbench_heavy build-env "$@"

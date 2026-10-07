@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Static checks: ruff, pyright strict and the import-linter contracts.
+set -euo pipefail
+# shellcheck source=bench/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+cd "${BENCH_DIR}"
+run_light uv run --frozen ruff format --check src tests
+run_light uv run --frozen ruff check src tests
+run_light uv run --frozen lint-imports
+run_heavy uv run --frozen pyright

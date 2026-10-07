@@ -44,3 +44,28 @@ mem-check:  ## refuse heavy local work unless memory is free enough (script/mem-
 
 plugin-gen:  ## regenerate the committed plugin trees (script/plugin-gen)
 	script/plugin-gen
+
+# The benchmark core (bench/): every target calls bench/script/<verb> from the repository root, so paths in ARGS are
+# relative to the root. bench/Makefile offers the same verbs from inside bench/.
+.PHONY: bench-setup bench-test bench-lint bench-check bench-verify-corpus bench-analyze bench-report-lint
+
+bench-setup:  ## install the benchmark core's locked dependencies (bench/script/setup)
+	bench/script/setup
+
+bench-test:  ## benchmark core tests, one process, under mem-guard (bench/script/test)
+	bench/script/test
+
+bench-lint:  ## benchmark core ruff, pyright strict and import contracts (bench/script/lint)
+	bench/script/lint
+
+bench-check:  ## benchmark core lint then tests, as CI runs them (bench/script/check)
+	bench/script/check
+
+bench-verify-corpus:  ## R0: corpus digests against corpus.lock.json (ARGS="--corpus bench/corpus")
+	bench/script/verify-corpus $(ARGS)
+
+bench-analyze:  ## R0: results.json and REPORT.md of a run (ARGS="--run bench/runs/<id>")
+	bench/script/analyze $(ARGS)
+
+bench-report-lint:  ## R0: lint a rendered report (ARGS="--report bench/runs/<id>/REPORT.md")
+	bench/script/report-lint $(ARGS)
