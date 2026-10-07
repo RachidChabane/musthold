@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strconv"
 
 	"gopkg.in/yaml.v3"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/policy"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/projectconfig"
 	"github.com/RachidChabane/spec-proof/format"
 )
@@ -19,6 +21,8 @@ import (
 const (
 	keyProofs     = "proofs"
 	keyEcosystems = "ecosystems"
+	keyOperations = "operations"
+	keyPolicy     = "policy"
 )
 
 // indentWidth is the number of spaces per YAML indentation level.
@@ -26,8 +30,42 @@ const indentWidth = 2
 
 // document is the YAML shape of the configuration file.
 type document struct {
-	Proofs     map[string]bool `yaml:"proofs"`
-	Ecosystems []string        `yaml:"ecosystems"`
+	Proofs     map[string]bool              `yaml:"proofs"`
+	Ecosystems []string                     `yaml:"ecosystems"`
+	Operations map[string]map[string]string `yaml:"operations"`
+	Policy     policyDocument               `yaml:"policy"`
+}
+
+// policyDocument is the YAML shape of the decision parameters; an absent member
+// keeps the default.
+type policyDocument struct {
+	TauJudge        *float64 `yaml:"tau_judge"`
+	JudgeK          *int     `yaml:"judge_k"`
+	TauScreen       *float64 `yaml:"tau_screen"`
+	DecideK         *int     `yaml:"decide_k"`
+	MinValid        *int     `yaml:"min_valid"`
+	MinSites        *int     `yaml:"min_sites"`
+	MaxRounds       *int     `yaml:"max_rounds"`
+	KOp             *int     `yaml:"k_op"`
+	MaxHostTickets  *int     `yaml:"max_host_tickets"`
+	SignedPassBasis *string  `yaml:"signed_pass_basis"`
+	MinIsolation    *string  `yaml:"min_isolation"`
+}
+
+func (d policyDocument) overrides() projectconfig.PolicyOverrides {
+	overrides := projectconfig.PolicyOverrides{
+		TauJudge: d.TauJudge, JudgeK: d.JudgeK, TauScreen: d.TauScreen, DecideK: d.DecideK,
+		MinValid: d.MinValid, MinSites: d.MinSites, MaxRounds: d.MaxRounds, KOp: d.KOp, MaxHostTickets: d.MaxHostTickets,
+	}
+	if d.SignedPassBasis != nil {
+		basis := policy.SignedPassBasis(*d.SignedPassBasis)
+		overrides.SignedPassBasis = &basis
+	}
+	if d.MinIsolation != nil {
+		level := format.Isolation(*d.MinIsolation)
+		overrides.MinIsolation = &level
+	}
+	return overrides
 }
 
 // Decode parses the YAML configuration and validates it. An unknown top-level
@@ -48,8 +86,13 @@ func Decode(data []byte) (projectconfig.Settings, error) {
 	for _, name := range doc.Ecosystems {
 		settings.Ecosystems = append(settings.Ecosystems, ecosystem.Name(name))
 	}
+	settings.Operations = doc.Operations
+	settings.PolicyOverrides = doc.Policy.overrides()
 	if err := settings.Validate(); err != nil {
 		return projectconfig.Settings{}, err
+	}
+	if err := settings.Policy().Validate(); err != nil {
+		return projectconfig.Settings{}, fmt.Errorf("%w: %v", projectconfig.ErrInvalidSettings, err)
 	}
 	return settings, nil
 }
@@ -75,6 +118,12 @@ func Encode(settings projectconfig.Settings) ([]byte, error) {
 		scalar(keyProofs), proofs,
 		scalar(keyEcosystems), ecosystems,
 	}}
+	if len(settings.Operations) > 0 {
+		root.Content = append(root.Content, scalar(keyOperations), operationsNode(settings.Operations))
+	}
+	if node := policyNode(settings.PolicyOverrides); len(node.Content) > 0 {
+		root.Content = append(root.Content, scalar(keyPolicy), node)
+	}
 
 	var out bytes.Buffer
 	encoder := yaml.NewEncoder(&out)
@@ -90,4 +139,55 @@ func Encode(settings projectconfig.Settings) ([]byte, error) {
 
 func scalar(value string) *yaml.Node {
 	return &yaml.Node{Kind: yaml.ScalarNode, Value: value}
+}
+
+func operationsNode(operations map[string]map[string]string) *yaml.Node {
+	node := &yaml.Node{Kind: yaml.MappingNode}
+	for _, operation := range sortedKeys(operations) {
+		targets := &yaml.Node{Kind: yaml.MappingNode}
+		for _, key := range sortedKeys(operations[operation]) {
+			targets.Content = append(targets.Content, scalar(key), scalar(operations[operation][key]))
+		}
+		node.Content = append(node.Content, scalar(operation), targets)
+	}
+	return node
+}
+
+func sortedKeys[V any](values map[string]V) []string {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	return keys
+}
+
+// policyNode renders the overrides that are set, in a fixed order.
+func policyNode(o projectconfig.PolicyOverrides) *yaml.Node {
+	node := &yaml.Node{Kind: yaml.MappingNode}
+	add := func(key string, value any, set bool) {
+		if set {
+			node.Content = append(node.Content, scalar(key), scalar(fmt.Sprint(value)))
+		}
+	}
+	add("tau_judge", deref(o.TauJudge), o.TauJudge != nil)
+	add("judge_k", deref(o.JudgeK), o.JudgeK != nil)
+	add("tau_screen", deref(o.TauScreen), o.TauScreen != nil)
+	add("decide_k", deref(o.DecideK), o.DecideK != nil)
+	add("min_valid", deref(o.MinValid), o.MinValid != nil)
+	add("min_sites", deref(o.MinSites), o.MinSites != nil)
+	add("max_rounds", deref(o.MaxRounds), o.MaxRounds != nil)
+	add("k_op", deref(o.KOp), o.KOp != nil)
+	add("max_host_tickets", deref(o.MaxHostTickets), o.MaxHostTickets != nil)
+	add("signed_pass_basis", deref(o.SignedPassBasis), o.SignedPassBasis != nil)
+	add("min_isolation", deref(o.MinIsolation), o.MinIsolation != nil)
+	return node
+}
+
+func deref[V any](value *V) V {
+	var zero V
+	if value == nil {
+		return zero
+	}
+	return *value
 }
