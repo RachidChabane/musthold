@@ -13,7 +13,7 @@ import (
 const (
 	sampleCap       = 7
 	maxStatements   = 3
-	expressionDepth = 1
+	expressionDepth = 2
 )
 
 var (

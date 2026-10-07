@@ -56,7 +56,6 @@ const (
 	typeWith                 = "with_statement"
 	typeForIn                = "for_in_statement"
 	typeCatch                = "catch_clause"
-	typeProgram              = "program"
 	typeThis                 = "this"
 	typeSuper                = "super"
 	typeArrowFunction        = "arrow_function"
@@ -65,8 +64,6 @@ const (
 	typeGeneratorDeclaration = "generator_function_declaration"
 	typeClassExpression      = "class"
 	typeAbstractClass        = "abstract_class_declaration"
-	typeObjectPattern        = "object_pattern"
-	typeArrayPattern         = "array_pattern"
 	typeSemicolon            = ";"
 )
 
