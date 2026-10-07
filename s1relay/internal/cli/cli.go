@@ -13,8 +13,8 @@ import (
 	"github.com/RachidChabane/spec-proof/s1relay/internal/version"
 )
 
-// Exit codes of the binary (ADR 0002), with the codes of script/mem-guard for a
-// refused batch.
+// Exit codes of the binary: 0, 1 and 2 as in ADR 0002, and 4 as script/mem-guard
+// returns it for a refused batch.
 const (
 	// ExitClean: nothing was left unanswered.
 	ExitClean = 0
