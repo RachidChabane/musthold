@@ -407,6 +407,26 @@ traces them to the Go tests of the module in CI.
   code differs, and none for a unit whose syntax tree is the same whatever its
   formatting, comments and Javadoc.
 
+## Kotlin sources
+
+- **SP-1306~1**: WHEN the units of a Kotlin file are listed THE SYSTEM SHALL give
+  one unit per function, per primary and secondary constructor, per initializer
+  block, the constructors and the initializers of a class answering to the name of
+  the class, one assignment per top-level, object and companion property and per
+  entry of an enumeration, and qualify the members of a nested type by the types
+  around it, those of a companion object by `Companion`.
+- **SP-1307~1**: WHEN the tests of a Kotlin file are listed THE SYSTEM SHALL serve
+  as test files the files below a `test` directory and those named `*Test`,
+  `*Tests`, `*IT`, `*TestCase` or `Test*`, give one unit of kind test per function
+  annotated as a test of JUnit 5, whose name may be a sentence between backticks,
+  with the pattern of the labels a runner reports for it, and let it mention the
+  hooks and the initializers of the classes around it, however many annotations
+  precede a class.
+- **SP-1308~1**: WHEN the units of a changed Kotlin file are compared with those
+  before the change THE SYSTEM SHALL give one hunk per unit that is new or whose
+  code differs, and none for a unit whose syntax tree is the same whatever its
+  formatting, comments and KDoc.
+
 ## Tests and operations that justify changes
 
 - **SP-1309~1**: WHEN a changed unit is justified by an ALIGNED test THE SYSTEM
