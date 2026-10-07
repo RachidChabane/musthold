@@ -22,6 +22,10 @@ import (
 const (
 	ClaudeModel = "claude-sonnet-5-5"
 	CodexModel  = "gpt-6-luna"
+	// CopilotModel is the pinned model of the Copilot session, in the spelling
+	// `copilot help config` lists. It is the cheapest listed model that calls
+	// tools (a 0.33 multiplier in GitHub's model multiplier table).
+	CopilotModel = "claude-haiku-4.5"
 )
 
 // Caps that bound a session. The runner ends the session when one is reached.
@@ -30,6 +34,9 @@ const (
 	ClaudeEventCap = 40
 	// CodexEventCap bounds the completed items that stand for a model step.
 	CodexEventCap = 40
+	// CopilotEventCap bounds the complete assistant messages and the tool starts of
+	// a session, the subagent's included.
+	CopilotEventCap = 40
 	// TimeoutSeconds bounds the wall-clock time of a session.
 	TimeoutSeconds = 900
 	// ClaudeBudgetUSD bounds what Claude Code may spend on the session.
@@ -43,7 +50,8 @@ const (
 	EditFile = "parcel/rates.py"
 	EditFrom = "SHIPPING_FEE = 4.5"
 	EditTo   = "SHIPPING_FEE = 4.50"
-	// SandboxProbeFile is the file a read-only executor is asked to create.
+	// SandboxProbeFile is the file an executor that may not use a shell is asked to
+	// create.
 	SandboxProbeFile = "sandbox-probe.txt"
 )
 
@@ -100,6 +108,8 @@ type Input struct {
 	ClaudeConfigDir string
 	// CodexHome is a dedicated Codex home, or empty to use the user's.
 	CodexHome string
+	// Copilot says where the Copilot CLI keeps its state.
+	Copilot CopilotDirs
 }
 
 // Project is the temporary project the session works in.
@@ -115,6 +125,8 @@ func Build(flag string, in Input) (Command, error) {
 		return claudeCommand(in), nil
 	case harness.FlagCodex:
 		return codexCommand(in), nil
+	case harness.FlagCopilot:
+		return copilotCommand(in), nil
 	default:
 		return Command{}, fmt.Errorf("%w %q", ErrUnknownHarness, flag)
 	}
@@ -226,6 +238,8 @@ func CountsAsEvent(flag string, line []byte) bool {
 	case harness.FlagCodex:
 		return event.Type == evidence.CodexEventItemCompleted && slices.Contains(
 			[]string{evidence.CodexItemMessage, evidence.CodexItemCommand, evidence.CodexItemMCPCall, evidence.CodexItemCollab}, event.Item.Type)
+	case harness.FlagCopilot:
+		return slices.Contains([]string{evidence.CopilotEventAssistantMessage, evidence.CopilotEventToolStart}, event.Type)
 	default:
 		return false
 	}
@@ -233,8 +247,24 @@ func CountsAsEvent(flag string, line []byte) bool {
 
 // EventCap is the cap of a harness.
 func EventCap(flag string) int {
-	if flag == harness.FlagCodex {
+	switch flag {
+	case harness.FlagCodex:
 		return CodexEventCap
+	case harness.FlagCopilot:
+		return CopilotEventCap
+	default:
+		return ClaudeEventCap
 	}
-	return ClaudeEventCap
+}
+
+// Model is the pinned model of a harness's session.
+func Model(flag string) string {
+	switch flag {
+	case harness.FlagCodex:
+		return CodexModel
+	case harness.FlagCopilot:
+		return CopilotModel
+	default:
+		return ClaudeModel
+	}
 }

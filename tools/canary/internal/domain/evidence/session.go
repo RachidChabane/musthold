@@ -57,6 +57,11 @@ type NoCall struct {
 	Servers []ServerStart `json:"servers"`
 	// PluginValidation is one outcome per plugin directory the harness CLI validated.
 	PluginValidation []PluginValidation `json:"pluginValidation"`
+	// CopilotListing is what Copilot CLI lists of the plugins and skills mounted
+	// from the generated trees.
+	CopilotListing *CopilotListing `json:"copilotListing,omitempty"`
+	// PluginTrees is one inspection per generated Agent Plugins tree.
+	PluginTrees []PluginTree `json:"pluginTrees,omitempty"`
 }
 
 // ServerStart records the start of one module's executor server: whether it

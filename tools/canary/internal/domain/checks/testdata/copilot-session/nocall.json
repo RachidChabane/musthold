@@ -1,0 +1,93 @@
+{
+  "capProbe": {
+    "attempted": true,
+    "responded": true,
+    "refused": false,
+    "servedTicket": true,
+    "detail": "{\"ticket\": \"88ec618dd2f5f5a73120577c8324765babf222a1fe52b144337a61bc9116d709.2.1\", \"nonce\": \"4efabc683845104aaaf247be14a2e5d5\", \"responseSchema\": {}}"
+  },
+  "pluginValidation": null,
+  "servers": [
+    {
+      "binary": "spec-proof-dp",
+      "started": true,
+      "detail": "fetch_request, submit_response"
+    },
+    {
+      "binary": "spec-proof-alignment",
+      "started": true,
+      "detail": "fetch_request, submit_response"
+    },
+    {
+      "binary": "spec-proof-completeness",
+      "started": true,
+      "detail": "fetch_request, submit_response"
+    }
+  ],
+  "copilotListing": {
+    "attempted": true,
+    "pluginsExit": 0,
+    "pluginsOutput": "[\n  {\n    \"name\": \"spec-proof-dp\",\n    \"marketplace\": \"\",\n    \"version\": \"0.1.0\",\n    \"enabled\": true,\n    \"source\": \"external\"\n  },\n  {\n    \"name\": \"spec-proof-alignment\",\n    \"marketplace\": \"\",\n    \"version\": \"0.1.0\",\n    \"enabled\": true,\n    \"source\": \"external\"\n  },\n  {\n    \"name\": \"spec-proof-completeness\",\n    \"marketplace\": \"\",\n    \"version\": \"0.1.0\",\n    \"enabled\": true,\n    \"source\": \"external\"\n  }\n]",
+    "skillsExit": 0,
+    "skillsOutput": "[\n  {\n    \"name\": \"spec-proof-dp-fulfil\",\n    \"description\": \"Answer the pending host requests\",\n    \"source\": \"plugin\",\n    \"path\": \"/repo/discpower/plugin/portable/skills/spec-proof-dp-fulfil\",\n    \"enabled\": true\n  },\n  {\n    \"name\": \"spec-proof-alignment-fulfil\",\n    \"description\": \"Answer the pending host requests\",\n    \"source\": \"plugin\",\n    \"path\": \"/repo/alignment/plugin/portable/skills/spec-proof-alignment-fulfil\",\n    \"enabled\": true\n  },\n  {\n    \"name\": \"spec-proof-completeness-fulfil\",\n    \"description\": \"Answer the pending host requests\",\n    \"source\": \"plugin\",\n    \"path\": \"/repo/completeness/plugin/portable/skills/spec-proof-completeness-fulfil\",\n    \"enabled\": true\n  },\n  {\n    \"name\": \"customize-cloud-agent\",\n    \"description\": \"builtin\",\n    \"source\": \"builtin\",\n    \"path\": \"/run/copilot-cache/builtin\",\n    \"enabled\": true\n  }\n]"
+  },
+  "pluginTrees": [
+    {
+      "dir": "/repo/discpower/plugin/portable",
+      "name": "spec-proof-dp",
+      "servers": [
+        "spec-proof-dp"
+      ],
+      "skills": [
+        {
+          "dir": "spec-proof-dp-fulfil",
+          "name": "spec-proof-dp-fulfil"
+        }
+      ],
+      "namespace": [
+        "com.github.copilot/agents/spec-proof-dp-decider.agent.md",
+        "com.github.copilot/agents/spec-proof-dp-generator.agent.md",
+        "com.github.copilot/agents/spec-proof-dp-judge.agent.md",
+        "com.github.copilot/hooks/hooks.json"
+      ],
+      "problems": null
+    },
+    {
+      "dir": "/repo/alignment/plugin/portable",
+      "name": "spec-proof-alignment",
+      "servers": [
+        "spec-proof-alignment"
+      ],
+      "skills": [
+        {
+          "dir": "spec-proof-alignment-fulfil",
+          "name": "spec-proof-alignment-fulfil"
+        }
+      ],
+      "namespace": [
+        "com.github.copilot/agents/spec-proof-alignment-decider.agent.md",
+        "com.github.copilot/agents/spec-proof-alignment-judge.agent.md",
+        "com.github.copilot/hooks/hooks.json"
+      ],
+      "problems": null
+    },
+    {
+      "dir": "/repo/completeness/plugin/portable",
+      "name": "spec-proof-completeness",
+      "servers": [
+        "spec-proof-completeness"
+      ],
+      "skills": [
+        {
+          "dir": "spec-proof-completeness-fulfil",
+          "name": "spec-proof-completeness-fulfil"
+        }
+      ],
+      "namespace": [
+        "com.github.copilot/agents/spec-proof-completeness-decider.agent.md",
+        "com.github.copilot/hooks/hooks.json"
+      ],
+      "problems": null
+    }
+  ]
+}

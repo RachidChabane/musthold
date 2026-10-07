@@ -386,8 +386,8 @@ func TestSyntheticSessionWithAbsentEvidenceIsNeverAFailure(t *testing.T) {
 	})
 
 	t.Run("a harness with no checks is refused [verifies SP-1501~1]", func(t *testing.T) {
-		if _, err := checks.Evaluate("copilot", evidence.Evidence{}); err == nil {
-			t.Fatal("copilot was evaluated")
+		if _, err := checks.Evaluate("gemini", evidence.Evidence{}); err == nil {
+			t.Fatal("gemini was evaluated")
 		}
 	})
 }
@@ -470,7 +470,7 @@ func TestSyntheticCodexSessionThatBreaksARule(t *testing.T) {
 
 func TestEveryHarnessCheckCarriesAClaim(t *testing.T) {
 	t.Run("a check names what a pass proves and what it leaves open [verifies SP-1501~1]", func(t *testing.T) {
-		for _, flag := range []string{"claude", "codex"} {
+		for _, flag := range []string{"claude", "codex", "copilot"} {
 			set, err := checks.ForHarness(flag)
 			if err != nil {
 				t.Fatal(err)
@@ -486,14 +486,16 @@ func TestEveryHarnessCheckCarriesAClaim(t *testing.T) {
 	})
 
 	t.Run("the no-call checks are those whose evidence is gathered before the session [verifies SP-1501~1]", func(t *testing.T) {
-		set, _ := checks.ForHarness("claude")
 		names := map[string]bool{}
-		for _, check := range set {
-			names[check.Name()] = true
+		for _, flag := range []string{"claude", "codex", "copilot"} {
+			set, _ := checks.ForHarness(flag)
+			for _, check := range set {
+				names[check.Name()] = true
+			}
 		}
 		for _, name := range checks.NoCallNames() {
 			if !names[name] {
-				t.Errorf("%s is listed as a no-call check but the harness has no such check", name)
+				t.Errorf("%s is listed as a no-call check but no harness has such a check", name)
 			}
 		}
 	})

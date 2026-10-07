@@ -125,8 +125,8 @@ func TestCodexCommand(t *testing.T) {
 	})
 
 	t.Run("an unknown harness has no command [verifies SP-1504~1]", func(t *testing.T) {
-		if _, err := launch.Build("copilot", input()); err == nil {
-			t.Fatal("copilot was built")
+		if _, err := launch.Build("gemini", input()); err == nil {
+			t.Fatal("gemini was built")
 		}
 	})
 }

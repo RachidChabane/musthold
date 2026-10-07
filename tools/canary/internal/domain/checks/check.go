@@ -31,6 +31,8 @@ func ForHarness(flag string) ([]Check, error) {
 		return claudeChecks(), nil
 	case harness.FlagCodex:
 		return codexChecks(), nil
+	case harness.FlagCopilot:
+		return copilotChecks(), nil
 	default:
 		return nil, fmt.Errorf("%w %q", ErrUnknownHarness, flag)
 	}
@@ -68,5 +70,5 @@ func newCheck(name, proves string, evaluate func(evidence.Evidence) verdict.Verd
 // NoCallNames lists the checks whose evidence is gathered before the session and
 // makes no model call.
 func NoCallNames() []string {
-	return []string{checkCLIVersion, checkClaudePluginsValid, checkCapWithoutHooks, checkServersStart}
+	return []string{checkCLIVersion, checkClaudePluginsValid, checkCapWithoutHooks, checkServersStart, checkCopilotListed, checkCopilotTrees}
 }

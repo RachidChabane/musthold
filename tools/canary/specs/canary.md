@@ -43,6 +43,16 @@ which run the evaluators on recorded event streams and make no model call.
   the read-only sandbox of the executor holds, the executor server serves a fetch
   with no capability, and a Stop hook fires, and SHALL fail the Stop check only
   when a control hook of the same hooks file ran.
+- **SP-1707~1**: WHEN the recorded session of GitHub Copilot CLI is evaluated THE
+  SYSTEM SHALL conclude from it whether the portable plugin and the fulfil skill of
+  each module are listed before the session, the plugin trees validate, the
+  executor agent starts, the hooks fire, the subagentStop hook fires, PreToolUse
+  spells the executor tools as the module's matchers spell them and names the
+  agent type, the tool allowlist of the executor agent is honoured, the executor
+  server of each module serves a fetch with no capability, the edit was applied
+  and the session ended within its caps, SHALL conclude INCONCLUSIVE on a session
+  the harness refused for its credentials or quota, and SHALL conclude the
+  allowlist INCONCLUSIVE when the executor tried nothing outside its two tools.
 
 ## Commands
 
@@ -64,3 +74,10 @@ which run the evaluators on recorded event streams and make no model call.
   journal, the edited file and the report into the run's records, and WHEN the
   records of a run are given THE SYSTEM SHALL evaluate them again without
   starting any process.
+- **SP-1708~1**: WHEN the command lines of a Copilot CLI session are built THE
+  SYSTEM SHALL give it one non-interactive run on the pinned model with the
+  portable plugin of every module loaded through `--plugin-dir`, a COPILOT_HOME of
+  the run unless the shared home is chosen, a COPILOT_CACHE_HOME and a `--log-dir`
+  of the run, no automatic update, a cap on the AI credits, no environment variable
+  that trusts the working directory or approves every tool, and the fingerprint of
+  the user's `~/.copilot` taken before and after the session.

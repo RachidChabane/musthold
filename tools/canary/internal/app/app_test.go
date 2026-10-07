@@ -330,9 +330,9 @@ func TestRefusals(t *testing.T) {
 
 	t.Run("a harness the canary has no checks for is refused [verifies SP-1504~1]", func(t *testing.T) {
 		w := newWorld(t, "claude", night)
-		w.options.Harness = "copilot"
+		w.options.Harness = "gemini"
 		if _, err := w.runner.Run(context.Background(), w.options); err == nil {
-			t.Fatal("copilot was run")
+			t.Fatal("gemini was run")
 		}
 	})
 }
