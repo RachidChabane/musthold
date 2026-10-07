@@ -18,16 +18,35 @@ readonly EXIT_REFUSED=4
 readonly EXIT_INTERRUPTED=5
 readonly GRACE_S=10
 
+OS_NAME="$(uname -s)"
+readonly OS_NAME
+readonly OS_DARWIN="Darwin"
+
+# On macOS the figures come from memory_pressure and sysctl; elsewhere free memory
+# is MemAvailable over MemTotal from /proc/meminfo and the pressure level reads as
+# normal, since only macOS reports one.
 free_pct() {
-  memory_pressure | awk -F': ' '/System-wide memory free percentage/ {gsub("%", "", $2); print $2}'
+  if [[ "${OS_NAME}" == "${OS_DARWIN}" ]]; then
+    memory_pressure | awk -F': ' '/System-wide memory free percentage/ {gsub("%", "", $2); print $2}'
+  else
+    awk '/^MemTotal:/ {total = $2} /^MemAvailable:/ {avail = $2} END {print int(100 * avail / total)}' /proc/meminfo
+  fi
 }
 
 pressure_level() {
-  sysctl -n kern.memorystatus_vm_pressure_level
+  if [[ "${OS_NAME}" == "${OS_DARWIN}" ]]; then
+    sysctl -n kern.memorystatus_vm_pressure_level
+  else
+    echo "${PRESSURE_NORMAL}"
+  fi
 }
 
 swap_used_mb() {
-  sysctl -n vm.swapusage | awk '{for (i = 1; i <= NF; i++) if ($i == "used") {gsub("M", "", $(i + 2)); print int($(i + 2))}}'
+  if [[ "${OS_NAME}" == "${OS_DARWIN}" ]]; then
+    sysctl -n vm.swapusage | awk '{for (i = 1; i <= NF; i++) if ($i == "used") {gsub("M", "", $(i + 2)); print int($(i + 2))}}'
+  else
+    awk '/^SwapTotal:/ {total = $2} /^SwapFree:/ {free = $2} END {print int((total - free) / 1024)}' /proc/meminfo
+  fi
 }
 
 report() {

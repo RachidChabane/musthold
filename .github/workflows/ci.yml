@@ -1,0 +1,88 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  product:
+    name: product modules
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out spec-proof
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: spec-proof
+
+      - name: Read the pinned Shallnot commit
+        id: pin
+        run: echo "sha=$(tr -d '[:space:]' < spec-proof/script/shallnot.pin)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the pinned Shallnot
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: RachidChabane/shallnot-proof-gate
+          ref: ${{ steps.pin.outputs.sha }}
+          ssh-key: ${{ secrets.SHALLNOT_PROOF_GATE_DEPLOY_KEY }}
+          path: shallnot-proof-gate
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: spec-proof/go.work
+          cache-dependency-path: spec-proof/**/go.sum
+
+      - name: Set up Python for the pytest fixtures
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check "pytest==9.1.1"
+
+      - name: Lint and self-gate every module
+        working-directory: spec-proof
+        env:
+          SHALLNOT_SRC: ${{ github.workspace }}/shallnot-proof-gate
+        run: make ci
+
+  pilot:
+    name: pilot harness
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out spec-proof
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: experiments/limits-1-3/harness/.python-version
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.work
+          cache: false
+
+      - name: Install the released Shallnot the pilot pre-registration names
+        run: go install github.com/RachidChabane/shallnot/cmd/shallnot@v0.4.2
+
+      - name: Static checks of the fixture and the harness
+        run: make -C experiments/limits-1-3 leak-check lint
+
+      - name: Harness tests
+        run: make -C experiments/limits-1-3 test
