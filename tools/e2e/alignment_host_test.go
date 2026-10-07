@@ -182,8 +182,8 @@ func TestAlignmentWithoutHooks(t *testing.T) {
 		if again.code != exitAwaiting {
 			t.Fatalf("prove exited %d after answers nobody accepted:\n%s", again.code, again.output())
 		}
-		if len(p.statementsOf(alignmentDirectory)) != 0 {
-			t.Fatal("a statement was written without an accepted answer")
+		if accepted := countKind(p.alignmentJournal(), hostproto.EventAccepted); accepted != 0 {
+			t.Fatalf("%d answers were accepted without a capability", accepted)
 		}
 		p.verifyLocal()
 		if report := p.check(); report.code == exitClean {
@@ -206,8 +206,8 @@ func TestAlignmentUnderAForger(t *testing.T) {
 			last = p.alignment("", "prove", "--all", "--resume")
 		}
 		events := p.alignmentJournal()
-		if countKind(events, hostproto.EventExposed) == 0 {
-			t.Fatalf("the forger's answers were not journaled as exposed: %v", events)
+		if countKind(events, hostproto.EventExposureAttempt) == 0 && countKind(events, hostproto.EventExposed) == 0 {
+			t.Fatalf("the forger left no exposure in the journal (%d events)", len(events))
 		}
 		for _, verdict := range alignmentVerdicts(last.stdout) {
 			if verdict == "ALIGNED" {

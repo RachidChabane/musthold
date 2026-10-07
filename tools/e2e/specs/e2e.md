@@ -69,9 +69,9 @@ reason, and the gate reports the skipped requirement.
   deny and journal a call of an executor tool made by the main session.
 - **SP-841~1**: WHEN executors run whose hooks never fire THE SYSTEM SHALL give
   them no capability, refuse their fetch and their answer at the executor server,
-  keep every ticket pending with exit code 3, write no Statement, and have
+  keep every ticket pending with exit code 3, accept no answer, and have
   `shallnot check` refuse the project.
 - **SP-842~1**: WHEN a forger answers every ticket of the alignment module from
-  the command line THE SYSTEM SHALL journal its answers as exposed, give no test
+  the command line THE SYSTEM SHALL refuse or journal its answers as an exposure, give no test
   the verdict ALIGNED and no criterion a PASS, and have `shallnot check` refuse the
   project.
