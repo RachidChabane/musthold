@@ -9,11 +9,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/hostbridge"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
+	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
 const freshNamespace = "fresh-proof"
@@ -42,7 +42,7 @@ func (u UseCase) Run(ctx context.Context, options Options) (Result, error) {
 		if err != nil || result.PendingTickets == 0 || u.Deps.Replay == nil {
 			return result, err
 		}
-		if err := u.Deps.Replay.Serve(result.pending); errors.Is(err, ErrNothingServed) {
+		if err := u.Deps.Replay.Serve(result.pending); errors.Is(err, requests.ErrNothingServed) {
 			return result, nil
 		} else if err != nil {
 			return result, err
@@ -76,7 +76,7 @@ func (u UseCase) pass(ctx context.Context, p *project, options Options) (Result,
 	}
 	result.PendingTickets = len(pending)
 	for _, ticket := range pending {
-		result.pending = append(result.pending, PendingTicket{Ticket: ticket.TicketID.String(), Nonce: ticket.Nonce})
+		result.pending = append(result.pending, requests.PendingTicket{Ticket: ticket.TicketID.String(), Nonce: ticket.Nonce})
 	}
 	return result, nil
 }
@@ -159,7 +159,7 @@ func (r *critRun) consume() error {
 			continue
 		}
 		for _, vote := range answer.Votes {
-			name := ports.RecordingName(string(answer.ID), vote.Ticket.Vote)
+			name := requests.RecordingName(string(answer.ID), vote.Ticket.Vote)
 			if err := r.p.deps.Record.Record(name, vote.Output, vote.Executor); err != nil {
 				return fmt.Errorf("record the answer to %s: %w", name, err)
 			}

@@ -10,15 +10,14 @@ import (
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/responsecheck"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/transcriptfile"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/executorhost"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/hooks"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/requests"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostharness"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/projectconfig"
 	"github.com/RachidChabane/spec-proof/discpower/internal/version"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/mcpstdio"
+	"github.com/RachidChabane/spec-proof/format/hostproto/executorhost"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hookhandler"
+	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
 // Flags and values of `mcp` and `hook`.
@@ -33,6 +32,8 @@ const (
 	maxHookPayloadBytes = 8 << 20
 	// serverName is the name the executor server announces.
 	serverName = "spec-proof-dp-exec"
+	// drainAlias is the short name `drain` accepts for the module.
+	drainAlias = "dp"
 )
 
 var (
@@ -59,14 +60,14 @@ func (e Env) executorService(root string, harness hostharness.Harness) (executor
 		return executorhost.Service{}, false, err
 	}
 	service := requests.Service{
-		Store: store, Validator: responsecheck.New(), Clock: e.Now,
-		RequireAttestation: harness.AttestationRequired(settings.Host),
+		Plugin: pluginName, Store: store, Validator: responsecheck.New(), Clock: e.Now,
+		RequireAttestation: harness.AttestationRequired(settings.Host.AttestationRequired()),
 		Executor: requests.ExecutorContext{
 			Harness:   format.Harness{Name: harness.Name, Version: harness.Version},
 			Isolation: harness.Isolation(),
 		},
 	}
-	return executorhost.Service{Requests: service}, settings.Host.Sampling, nil
+	return executorhost.Service{Requests: service, ModuleNames: []string{drainAlias, moduleName}}, settings.Host.Sampling, nil
 }
 
 // mcp serves the executor tools over standard input and output until the client
@@ -97,12 +98,9 @@ func (e Env) mcp(args []string) outcome {
 	if err != nil {
 		return outcome{err: err}
 	}
-	server := mcpstdio.NewServer(mcpstdio.Options{
-		Info:            mcpstdio.Info{Name: serverName, Version: version.Version},
-		SamplingEnabled: sampling,
-		Service:         service,
-	}, e.Stdin, e.Stdout)
-	return outcome{err: server.Serve(context.Background())}
+	return outcome{err: executorhost.Serve(context.Background(), executorhost.Options{
+		ServerName: serverName, Version: version.Version, Sampling: sampling, Service: service,
+	}, e.Stdin, e.Stdout)}
 }
 
 // hook serves one hook of a harness: the payload comes on standard input and the
@@ -119,7 +117,7 @@ func (e Env) hook(args []string) outcome {
 		return outcome{err: refusal{errHookKind}}
 	}
 	kind := hostproto.HookKind(rest[0])
-	if !isHookKind(kind) {
+	if !kind.Valid() {
 		return outcome{err: refusal{errHookKind}}
 	}
 	harness, err := hostharness.ByFlag(*harnessFlag)
@@ -152,15 +150,6 @@ func (e Env) runHook(rootFlag string, harness hostharness.Harness, kind hostprot
 	if _, err := os.Stat(filepath.Join(root, projectconfig.Directory, projectconfig.FileName)); err != nil {
 		return nil, nil
 	}
-	open := func() (hooks.Store, error) { return e.hostStore(root) }
-	return hooks.Handler{Harness: harness, Open: open, Transcripts: transcriptfile.Reader{}}.Handle(kind, payload)
-}
-
-func isHookKind(kind hostproto.HookKind) bool {
-	for _, known := range hostproto.HookKinds() {
-		if known == kind {
-			return true
-		}
-	}
-	return false
+	open := func() (hookhandler.Store, error) { return e.hostStore(root) }
+	return hookhandler.Handler{Harness: harness, Open: open, Transcripts: transcriptfile.Reader{}}.Handle(kind, payload)
 }

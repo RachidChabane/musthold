@@ -11,7 +11,7 @@ import (
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/hostgit"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostbundle"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
 )
 
 const testRef = "refs/spec-proof/host/discpower/abc"

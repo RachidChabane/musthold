@@ -10,7 +10,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
 )
 
@@ -68,7 +68,7 @@ func TestValidate(t *testing.T) {
 			"nested extra member":     `{"validity":"VALID","witness":{"operation":"f","args":{},"expected":{"kind":"returns","value":"1","extra":1}}}`,
 		}
 		for name, output := range refused {
-			if err := validator.Validate(validity, []byte(output)); !errors.Is(err, ports.ErrSchemaViolation) {
+			if err := validator.Validate(validity, []byte(output)); !errors.Is(err, hostproto.ErrSchemaViolation) {
 				t.Errorf("%s: error = %v", name, err)
 			}
 		}
@@ -76,7 +76,7 @@ func TestValidate(t *testing.T) {
 
 	t.Run("every violation is listed [verifies SP-156~1]", func(t *testing.T) {
 		err := validator.Validate(validity, []byte(`{"validity":"MAYBE","confidence":"high","extra":1}`))
-		if !errors.Is(err, ports.ErrSchemaViolation) {
+		if !errors.Is(err, hostproto.ErrSchemaViolation) {
 			t.Fatalf("error = %v", err)
 		}
 		for _, want := range []string{"/validity", "/confidence", "extra"} {
@@ -103,7 +103,7 @@ func TestValidate(t *testing.T) {
 			if err := validator.Validate(c.schema, []byte(c.accepted)); err != nil {
 				t.Errorf("%s accepted: %v", c.name, err)
 			}
-			if err := validator.Validate(c.schema, []byte(c.refused)); !errors.Is(err, ports.ErrSchemaViolation) {
+			if err := validator.Validate(c.schema, []byte(c.refused)); !errors.Is(err, hostproto.ErrSchemaViolation) {
 				t.Errorf("%s refused: %v", c.name, err)
 			}
 		}
@@ -113,7 +113,7 @@ func TestValidate(t *testing.T) {
 func TestCompilation(t *testing.T) {
 	t.Run("a schema that does not compile is reported apart from a violation [verifies SP-156~1]", func(t *testing.T) {
 		err := New().Validate(json.RawMessage(`{"type":12}`), []byte(`{}`))
-		if !errors.Is(err, ErrBadSchema) || errors.Is(err, ports.ErrSchemaViolation) {
+		if !errors.Is(err, ErrBadSchema) || errors.Is(err, hostproto.ErrSchemaViolation) {
 			t.Fatalf("error = %v", err)
 		}
 		if err := New().Validate(json.RawMessage(`not json`), []byte(`{}`)); !errors.Is(err, ErrBadSchema) {
@@ -162,7 +162,7 @@ func TestProperties(t *testing.T) {
 			if known != (err == nil) {
 				t.Fatalf("verdict %q: error = %v", verdict, err)
 			}
-			if err != nil && !errors.Is(err, ports.ErrSchemaViolation) {
+			if err != nil && !errors.Is(err, hostproto.ErrSchemaViolation) {
 				t.Fatalf("error = %v", err)
 			}
 		})

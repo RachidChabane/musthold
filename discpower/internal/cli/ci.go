@@ -11,12 +11,12 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/hostgit"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/responsecheck"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/hostsync"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/prove"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/requests"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostbundle"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/projectconfig"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostsync"
+	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
 // Environment variables that name the CI run, in the order they are tried.
@@ -95,7 +95,7 @@ func (e Env) importer(project *project, dir string) (*hostsync.Importer, error) 
 	if err != nil {
 		return nil, refusal{err}
 	}
-	service := requests.Service{Store: project.store, Validator: responsecheck.New(), Clock: e.Now}
+	service := requests.Service{Plugin: pluginName, Store: project.store, Validator: responsecheck.New(), Clock: e.Now}
 	return &hostsync.Importer{Service: service, Store: project.store, Bundle: bundle}, nil
 }
 

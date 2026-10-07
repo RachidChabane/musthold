@@ -10,7 +10,7 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/recordings"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/responsecheck"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/prove"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/requests"
+	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
 // Flags of `prove` and of the commands that share its project flag.
@@ -110,8 +110,8 @@ func (e Env) runProve(rootFlag string, options prove.Options, record, replay str
 		project.deps.Record = recordings.Directory{Dir: record}
 	}
 	if replay != "" {
-		project.deps.Replay = requests.Replayer{
-			Service:    requests.Service{Store: project.store, Validator: responsecheck.New(), Clock: e.Now},
+		project.deps.Replay = requests.RecordingReplayer{
+			Service:    requests.Service{Plugin: pluginName, Store: project.store, Validator: responsecheck.New(), Clock: e.Now},
 			Recordings: recordings.Directory{Dir: replay},
 		}
 	}

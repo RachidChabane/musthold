@@ -10,10 +10,10 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ghrun"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/hostgit"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/hostsync"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostbundle"
 	"github.com/RachidChabane/spec-proof/discpower/internal/version"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostsync"
 )
 
 // Verbs and flags of `host`.
@@ -28,6 +28,9 @@ const (
 	flagArtifact = "artifact"
 
 	scratchPattern = "spec-proof-pull-"
+
+	// hostModule names the module in the refs and the artifacts of host push and pull.
+	hostModule = "discpower"
 )
 
 var (
@@ -50,7 +53,7 @@ func (e Env) host(args []string) outcome {
 	remote := set.String(flagRemote, "", "push: also publish the ref to this git remote")
 	run := set.String(flagCIRun, "", "pull: the CI run to pull the issued requests of")
 	repository := set.String(flagRepo, "", "pull: the repository of the run, as owner/name")
-	artifact := set.String(flagArtifact, hostbundle.IssuedArtifact, "pull: the artifact the run uploaded its requests as")
+	artifact := set.String(flagArtifact, hostbundle.IssuedArtifact(hostModule), "pull: the artifact the run uploaded its requests as")
 	positionals, err := parseInterleaved(set, rest)
 	switch {
 	case err != nil:
@@ -100,7 +103,7 @@ func (e Env) push(root, remote string) outcome {
 	if err != nil {
 		return outcome{err: err}
 	}
-	ref := hostbundle.RefName(head)
+	ref := hostbundle.RefName(hostModule, head)
 	if _, err := repository.Publish(ctx, ref, files); err != nil {
 		return outcome{err: err}
 	}

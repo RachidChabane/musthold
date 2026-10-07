@@ -8,7 +8,6 @@
 package prove
 
 import (
-	"errors"
 	"io"
 	"io/fs"
 	"time"
@@ -21,6 +20,8 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
 // Exit codes of the binary (ADR 0005).
@@ -67,27 +68,6 @@ type Settings struct {
 	ProducedBy format.ProducedBy
 }
 
-// ErrNothingServed is returned by a Replayer that answered none of the pending
-// tickets: the run ends with them pending instead of asking again.
-var ErrNothingServed = errors.New("the replay answered no pending ticket")
-
-// Replayer serves the pending tickets from recorded answers, the way a script
-// would, and fails hard on a ticket it holds no recording for.
-type Replayer interface {
-	Serve(tickets []PendingTicket) error
-}
-
-// Recorder keeps the answers a run consumed, each under its recording name.
-type Recorder interface {
-	Record(name string, output []byte, executor format.ExecutorProfile) error
-}
-
-// PendingTicket is a ticket waiting for an answer, with the request it belongs to.
-type PendingTicket struct {
-	Ticket string
-	Nonce  string
-}
-
 // Deps are the ports a run works through.
 type Deps struct {
 	Criteria   ports.CriteriaSource
@@ -95,7 +75,7 @@ type Deps struct {
 	Workspaces ports.Workspaces
 	Engines    *operatorgen.Registry
 	Project    fs.FS
-	Store      ports.HostStore
+	Store      hostproto.HostStore
 	Proofs     ports.ProofStore
 	Vault      ports.MutantVault
 	Memo       ports.ExecutionMemo
@@ -103,8 +83,8 @@ type Deps struct {
 	Clock      func() time.Time
 	Entropy    io.Reader
 	// Replay and Record are optional.
-	Replay Replayer
-	Record Recorder
+	Replay requests.Replayer
+	Record requests.Recorder
 }
 
 // CriterionStatus tells what a run did with a criterion.
@@ -138,7 +118,7 @@ type Result struct {
 	// example whose operation is unbound.
 	Findings []string
 
-	pending []PendingTicket
+	pending []requests.PendingTicket
 }
 
 // ExitCode maps the result to the exit codes of ADR 0005: 3 while tickets wait,

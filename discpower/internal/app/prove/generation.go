@@ -6,12 +6,12 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/hostbridge"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/prompt"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
 )
 
 const (

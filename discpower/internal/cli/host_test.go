@@ -9,8 +9,8 @@ import (
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/bundlefs"
 	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostbundle"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
 )
 
@@ -57,7 +57,7 @@ func TestHostPush(t *testing.T) {
 		if code != cli.ExitClean || !strings.Contains(stdout, "pushed refs/spec-proof/host/discpower/"+head+" 1 responses") {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
 		}
-		listing := git(t, f.root, "ls-tree", "-r", "--name-only", hostbundle.RefName(head))
+		listing := git(t, f.root, "ls-tree", "-r", "--name-only", hostbundle.RefName("discpower", head))
 		if !strings.Contains(listing, "manifest.json") || !strings.Contains(listing, "responses/"+string(ticket.RequestID)+".0.json") {
 			t.Fatalf("tree = %q", listing)
 		}
@@ -100,7 +100,7 @@ func TestHostPush(t *testing.T) {
 		if code, _, stderr := f.run(nil, "host", "push", "--remote", "origin"); code != cli.ExitClean {
 			t.Fatalf("exit %d: %s", code, stderr)
 		}
-		if got := git(t, remote, "rev-parse", hostbundle.RefName(head)); got == "" {
+		if got := git(t, remote, "rev-parse", hostbundle.RefName("discpower", head)); got == "" {
 			t.Fatal("the remote has no ref")
 		}
 	})

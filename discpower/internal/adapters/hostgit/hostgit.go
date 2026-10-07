@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostbundle"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
 )
 
 // Git command line.

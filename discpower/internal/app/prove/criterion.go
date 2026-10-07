@@ -6,13 +6,13 @@ import (
 	"slices"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/execution"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/hostbridge"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/policy"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
 )
 
 // poolMutant is one mutant of a criterion's pool with what is known of it.

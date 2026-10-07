@@ -361,23 +361,6 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 
 ## Host tickets
 
-- **SP-177~1**: WHEN a proof asks the host for an answer THE SYSTEM SHALL emit one
-  ticket per vote, record the request in the queue, reissue a rejected or
-  expired ticket with a new nonce, abandon it as unresponsive after the last
-  emission, read a vote only from its accepted, validated or consumed state,
-  move accepted votes to validated and validated ones to consumed, supersede
-  emitted tickets nobody asked for in the wave, and list the tickets still
-  waiting.
-- **SP-178~1**: WHEN tickets are listed THE SYSTEM SHALL list only the tickets in
-  state `emitted`, with the role and the view an executor sees, and WHEN a ticket
-  is shown THE SYSTEM SHALL move it to `fetched` and refuse another emission of
-  it.
-- **SP-179~1**: WHEN an answer is submitted THE SYSTEM SHALL accept it only for the
-  ticket and the nonce of the issue after the response schema holds, allow one
-  correction before it rejects, refuse a different second answer as a
-  resubmission conflict, record a submission without a capability as exposed and
-  an executor profile that cannot claim more than inline, and keep the profile
-  and the exposure out of replayed and relayed answers.
 - **SP-180~1**: WHEN recorded answers are replayed THE SYSTEM SHALL answer every
   pending ticket from the recording of its request through the same checks and
   fail with a miss when a request has no recording, and WHEN answers are recorded
@@ -442,17 +425,6 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   allowlist reaches (restricted on Claude Code, unrestricted on Codex,
   restricted-unverified on Copilot), and waive attestation on a harness that
   cannot issue a capability.
-- **SP-229~1**: WHEN a response is read for a proof THE SYSTEM SHALL credit it with
-  `restricted-attested` and the digest of its transcript only when the stop hook
-  attested the agent that answered and no leak, exposure or conflict marks its
-  ticket, and with the model the harness resolved when it reported one, leaving
-  the stored profile as it was.
-- **SP-230~1**: WHEN an executor fetches or answers through the executor server THE
-  SYSTEM SHALL refuse a call without a capability while attestation is required,
-  accept only the capability of a started agent bound to that one ticket, record
-  the answer as a restricted subagent of its harness with the capability's
-  evidence, and, when attestation is waived, accept the call and journal the
-  answer as restricted.
 - **SP-231~1**: WHEN the executor server runs THE SYSTEM SHALL offer exactly
   `fetch_request` and `submit_response`, and `drain` only when the client declared
   sampling and the project turned it on; return the schema violations of an answer
@@ -465,31 +437,6 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   JSON object of each sampled answer as a sampled response with no capability,
   serve only the module it is named for, and stop at the first refused sample or
   invalid answer without accepting it.
-- **SP-233~1**: WHEN the PreToolUse hook sees the launch of an executor THE SYSTEM
-  SHALL rebuild it to the bare ticket, in the foreground and without a model,
-  deny a prompt without exactly one ticket and a ticket that is unknown or for
-  another role, and leave every other launch and tool alone.
-- **SP-234~1**: WHEN the PreToolUse hook sees a call of an executor tool THE SYSTEM
-  SHALL add the capability of the calling agent when its type is the role of the
-  ticket, deny otherwise and journal an exposure attempt with the agent, deny when
-  the call cannot be checked, and leave the drain tool to the main agent.
-- **SP-235~1**: WHEN the SubagentStart hook sees an executor THE SYSTEM SHALL
-  journal its agent and role, and journal no other agent.
-- **SP-236~1**: WHEN the SubagentStop hook sees an executor stop THE SYSTEM SHALL
-  attest the run with the digest of its transcript when its calls are exactly the
-  fetch and the submit of one ticket and its reply is the bare receipt, journal an
-  exposure for any other call and a leak for any other reply, journal a restricted
-  run when the transcript cannot be read, and never block the subagent.
-- **SP-237~1**: WHEN the PostToolUse hook sees an executor launch finish THE SYSTEM
-  SHALL record the resolved model and the usage against its ticket and journal a
-  leak for a reply other than the bare receipt, and record nothing for another
-  agent or a launch without a ticket.
-- **SP-238~1**: WHEN a Codex or Copilot hook runs THE SYSTEM SHALL serve the hooks
-  that harness has: capabilities, the start and the stop of executors on Codex,
-  the denial of a call of the wrong role and the stop check on Copilot, resolving
-  the role of an agent from the journal when the call does not carry its type,
-  and conclude nothing from a call that carries no agent identity where the
-  harness does not identify callers.
 - **SP-239~1**: WHEN `mcp` or `hook` is run THE SYSTEM SHALL refuse a role, harness
   or hook it does not know with exit 1, report with exit 1 and never block when a
   hook cannot read its payload, leave a call that is not about the module's
@@ -531,14 +478,6 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 
 ## CI authority
 
-- **SP-246~1**: WHEN a host bundle is made or read THE SYSTEM SHALL list the
-  responses in a manifest with the module, the head commit, the journal digest and
-  the marks the journal holds, give the same bytes for the same responses in any
-  order, refuse files that are not a consistent bundle, name the ref of a commit
-  under `refs/spec-proof/host/discpower`, refuse a bundle of another version only
-  when requests found no answer and name both versions, derive the CI seed from the
-  commit and the first run only, and carry CI-issued requests in full so that their
-  ids can be recomputed.
 - **SP-247~1**: WHEN `host push` runs THE SYSTEM SHALL publish every answered ticket
   with the profile it is credited with and the marks against it as a tree under the
   ref of the head commit with git plumbing, replace a ref that exists, publish the

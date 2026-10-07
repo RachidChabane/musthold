@@ -1,6 +1,6 @@
 // Package hoststore keeps the host directory of a project on the filesystem: the
 // requests, the ticket entries, the accepted responses, the digest-chained
-// journal, the secret and the queue. It implements ports.HostStore.
+// journal, the secret and the queue. It implements hostproto.HostStore.
 //
 // Every record other than the journal is written atomically, so a reader never
 // sees a partial file. Writers are serialized by an in-process mutex and by an
@@ -16,8 +16,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/discpower/internal/platform/atomicfile"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
 
 // Layout of the host directory and the modes of what it holds.
@@ -40,9 +40,9 @@ const (
 // not a SHA-256 digest.
 var ErrInvalidKey = errors.New("invalid record key")
 
-var _ ports.HostStore = (*Store)(nil)
+var _ hostproto.HostStore = (*Store)(nil)
 
-// Store is the filesystem implementation of ports.HostStore.
+// Store is the filesystem implementation of hostproto.HostStore.
 type Store struct {
 	dir   string
 	mutex sync.Mutex

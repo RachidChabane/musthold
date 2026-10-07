@@ -11,7 +11,6 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/discpower/internal/platform/atomicfile"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
@@ -314,8 +313,8 @@ func TestProperties(t *testing.T) {
 }
 
 func TestQueue(t *testing.T) {
-	item := func(id string, wave int, criteria ...string) ports.QueueItem {
-		return ports.QueueItem{RequestID: hostproto.RequestID(id), Criteria: criteria, Wave: wave, Purpose: "validity"}
+	item := func(id string, wave int, criteria ...string) hostproto.QueueItem {
+		return hostproto.QueueItem{RequestID: hostproto.RequestID(id), Criteria: criteria, Wave: wave, Purpose: "validity"}
 	}
 
 	t.Run("the wave of the first record is kept and the criteria are merged without duplicates [verifies SP-151~1]", func(t *testing.T) {

@@ -14,11 +14,11 @@ import (
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/hoststore"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/xdg"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/hostbridge"
 	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostharness"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
 )
 
