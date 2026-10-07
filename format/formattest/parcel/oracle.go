@@ -35,26 +35,43 @@ func (Oracle) Answer(_ string, view hostproto.ExecutorView) (string, error) {
 	}
 }
 
-// mutation is one scripted edit: the text to replace in a unit and what replaces it.
-type mutation struct{ from, to string }
+// Source file suffixes of the parcel projects.
+const (
+	pythonSuffix = ".py"
+	goSuffix     = ".go"
+	goPackage    = "parcel."
+)
+
+// mutation is one scripted edit: the text to replace in a unit and what replaces
+// it. A suffix limits the edit to the files of one language; none applies to both.
+type mutation struct{ from, to, suffix string }
 
 func generationAnswer(user string) string {
 	statement := user[:strings.Index(user, "Code under test")]
 	var scripted map[string][]mutation
 	switch {
 	case strings.Contains(statement, "shipping fee"):
-		scripted = map[string][]mutation{"S2": {{">=", ">"}}, "S1": {{"return 0", "return SHIPPING_FEE"}}}
+		scripted = map[string][]mutation{
+			"S2": {{">=", ">", ""}},
+			"S1": {{"return 0", "return SHIPPING_FEE", pythonSuffix}, {"return 0", "return FlatFee", goSuffix}},
+		}
 	case strings.Contains(statement, "unit price times"):
-		scripted = map[string][]mutation{"S1": {{"unit_price * quantity", "unit_price + quantity"}}}
+		scripted = map[string][]mutation{"S1": {
+			{"unit_price * quantity", "unit_price + quantity", pythonSuffix},
+			{"unitPrice * quantity", "unitPrice + quantity", goSuffix},
+		}}
 	default:
-		scripted = map[string][]mutation{"S1": {{"MAX_PERCENT - clamp_percent(percent)", "MAX_PERCENT + clamp_percent(percent)"}}}
+		scripted = map[string][]mutation{"S1": {
+			{"MAX_PERCENT - clamp_percent(percent)", "MAX_PERCENT + clamp_percent(percent)", pythonSuffix},
+			{"MaxPercent - ClampPercent(percent)", "MaxPercent + ClampPercent(percent)", goSuffix},
+		}}
 	}
 	units := sliceUnits(user)
 	var mutants []map[string]any
 	for _, slot := range []string{"S1", "S2", "S3"} {
 		for _, change := range scripted[slot] {
 			for qualname, unit := range units {
-				if !strings.Contains(unit.source, change.from) {
+				if !strings.Contains(unit.source, change.from) || !strings.HasSuffix(unit.file, change.suffix) {
 					continue
 				}
 				mutants = append(mutants, map[string]any{
@@ -85,15 +102,16 @@ func sliceUnits(user string) map[string]sliceUnit {
 // violates reports whether the change touches what the statement is about.
 func violates(statement string, changedUnits []string) bool {
 	subjects := map[string][]string{
-		"shipping fee":  {"shipping_fee", "FREE_SHIPPING_FROM", "SHIPPING_FEE"},
-		"unit price":    {"line_total"},
-		"discount perc": {"discounted", "clamp_percent", "MAX_PERCENT"},
+		"shipping fee":  {"shipping_fee", "FREE_SHIPPING_FROM", "SHIPPING_FEE", "ShippingFee", "FreeShippingFrom", "FlatFee"},
+		"unit price":    {"line_total", "LineTotal"},
+		"discount perc": {"discounted", "clamp_percent", "MAX_PERCENT", "Discounted", "ClampPercent", "MaxPercent"},
 	}
 	for phrase, names := range subjects {
 		if !strings.Contains(statement, phrase) {
 			continue
 		}
 		for _, unit := range changedUnits {
+			unit = strings.TrimPrefix(unit, goPackage)
 			for _, name := range names {
 				if unit == name {
 					return true
