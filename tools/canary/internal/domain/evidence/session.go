@@ -12,6 +12,13 @@ const (
 	KilledInterrupted = "interrupted"
 )
 
+// Where a harness CLI keeps its state.
+const (
+	ConfigIsolated  = "isolated"
+	ConfigDedicated = "dedicated"
+	ConfigShared    = "shared"
+)
+
 // Session describes how one session was set up and how it ended. It is written
 // by the runner and holds no verdict.
 type Session struct {
@@ -26,14 +33,18 @@ type Session struct {
 	Argv     []string `json:"argv"`
 	ExitCode int      `json:"exitCode"`
 	// Killed is the reason the runner ended the session, empty when it ended itself.
-	Killed         string    `json:"killed"`
-	EventCap       int       `json:"eventCap"`
-	TimeoutSeconds int       `json:"timeoutSeconds"`
-	EditFile       string    `json:"editFile"`
-	EditFrom       string    `json:"editFrom"`
-	EditTo         string    `json:"editTo"`
-	StartedAt      time.Time `json:"startedAt"`
-	EndedAt        time.Time `json:"endedAt"`
+	Killed         string `json:"killed"`
+	EventCap       int    `json:"eventCap"`
+	TimeoutSeconds int    `json:"timeoutSeconds"`
+	// ConfigMode says where the harness CLI kept its credentials and state: in a
+	// directory of the run (ConfigIsolated, ConfigDedicated) or in the user's own
+	// (ConfigShared).
+	ConfigMode string    `json:"configMode"`
+	EditFile   string    `json:"editFile"`
+	EditFrom   string    `json:"editFrom"`
+	EditTo     string    `json:"editTo"`
+	StartedAt  time.Time `json:"startedAt"`
+	EndedAt    time.Time `json:"endedAt"`
 }
 
 // NoCall is the outcome of the probes that run before the session and make no
@@ -41,8 +52,19 @@ type Session struct {
 type NoCall struct {
 	// CapProbe is what the executor server answered to a fetch with no capability.
 	CapProbe CapProbe `json:"capProbe"`
+	// Servers is one outcome per executor server the module binaries started and
+	// asked for its tools.
+	Servers []ServerStart `json:"servers"`
 	// PluginValidation is one outcome per plugin directory the harness CLI validated.
 	PluginValidation []PluginValidation `json:"pluginValidation"`
+}
+
+// ServerStart records the start of one module's executor server: whether it
+// answered the initialize handshake and listed the executor tools.
+type ServerStart struct {
+	Binary  string `json:"binary"`
+	Started bool   `json:"started"`
+	Detail  string `json:"detail"`
 }
 
 // CapProbe records a fetch_request sent to the executor server over standard
@@ -70,4 +92,14 @@ type PluginValidation struct {
 type SandboxProbe struct {
 	File   string `json:"file"`
 	Exists bool   `json:"exists"`
+}
+
+// Touched is what changed, during the session, in the places a harness CLI keeps
+// its state in the user's home: the entries whose path names this run, and the
+// changes nothing ties to it, which another process of the user may have made.
+type Touched struct {
+	// Roots are the files and directories that were fingerprinted.
+	Roots        []string `json:"roots"`
+	Attributed   []string `json:"attributed"`
+	Unattributed []string `json:"unattributed"`
 }

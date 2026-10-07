@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -92,6 +93,8 @@ func (p *recordingProcesses) ran(fragment string) bool {
 // fakeSession plays the harness CLI: it writes the recorded files of a fixture
 // session where the CLI and the module would have left them.
 type fakeSession struct {
+	// afterRun lets a test play what else the CLI wrote while it ran.
+	afterRun func(spec app.SessionSpec)
 	t        *testing.T
 	fixture  string
 	runs     []app.SessionSpec
@@ -131,12 +134,23 @@ func (s *fakeSession) Run(spec app.SessionSpec) (app.SessionOutcome, error) {
 	if err := os.WriteFile(edit, bytes.ReplaceAll(content, []byte(launch.EditFrom), []byte(launch.EditTo)), 0o644); err != nil {
 		s.t.Fatal(err)
 	}
+	if s.afterRun != nil {
+		s.afterRun(spec)
+	}
 	return s.outcome, nil
 }
 
 type fakeProber struct {
-	result evidence.CapProbe
-	specs  []app.ServerSpec
+	result     evidence.CapProbe
+	specs      []app.ServerSpec
+	handshakes []app.ServerSpec
+	// startFails names the binary whose server does not start.
+	startFails string
+}
+
+func (p *fakeProber) Handshake(_ context.Context, spec app.ServerSpec) evidence.ServerStart {
+	p.handshakes = append(p.handshakes, spec)
+	return evidence.ServerStart{Binary: filepath.Base(spec.Binary), Started: p.startFails != filepath.Base(spec.Binary), Detail: "fetch_request, submit_response"}
 }
 
 func (p *fakeProber) Probe(_ context.Context, spec app.ServerSpec, _ string) evidence.CapProbe {
@@ -336,7 +350,7 @@ func TestDryRun(t *testing.T) {
 				t.Fatalf("%s: a dry run started something: %v", flag, w.processes.calls)
 			}
 			out := w.stdout.String()
-			for _, want := range []string{"closed (--force-window needed)", "mem-guard check", "prove --all", "request list --json", flag + " --version", "<ticket>", "<run-dir>"} {
+			for _, want := range []string{"closed (--force-window needed)", "mem-guard check", "prove --all", "request list --json", flag + " --version", "<ticket>", "<run-dir>", "outside the run directory the run writes:"} {
 				if !strings.Contains(out, want) {
 					t.Errorf("%s: the plan lacks %q:\n%s", flag, want, out)
 				}
@@ -366,6 +380,39 @@ func TestDryRun(t *testing.T) {
 		}
 		if strings.Contains(joinedClaude, "init --hooks") {
 			t.Error("the Claude plan runs an init, which would enable plugins in the project settings")
+		}
+	})
+}
+
+func TestDryRunNamesWhatTheRunTouches(t *testing.T) {
+	t.Run("the plan says what each mode writes in the user's home, which the session's fingerprints then confirm [verifies SP-1504~1]", func(t *testing.T) {
+		for _, tc := range []struct {
+			flag               string
+			shared             bool
+			codexHome          string
+			wants, doesNotWant []string
+		}{
+			{"claude", false, "", []string{"nothing: Claude Code runs with CLAUDE_CONFIG_DIR inside the run directory"}, []string{"~/.claude.json"}},
+			{"claude", true, "", []string{"~/.claude/projects/", "~/.claude.json", "--setting-sources project"}, nil},
+			{"codex", false, "", []string{"~/.codex/sessions", "--ignore-user-config"}, nil},
+			{"codex", false, "/dedicated", []string{"nothing outside /dedicated"}, []string{"~/.codex/sessions"}},
+		} {
+			w := newWorld(t, tc.flag, noon)
+			w.options.DryRun, w.options.SharedHome, w.options.CodexHome = true, tc.shared, tc.codexHome
+			if _, err := w.runner.Run(context.Background(), w.options); err != nil {
+				t.Fatal(err)
+			}
+			out := w.stdout.String()
+			for _, want := range tc.wants {
+				if !strings.Contains(out, want) {
+					t.Errorf("%s shared=%v: the plan lacks %q:\n%s", tc.flag, tc.shared, want, out)
+				}
+			}
+			for _, unwanted := range tc.doesNotWant {
+				if strings.Contains(out, unwanted) {
+					t.Errorf("%s shared=%v: the plan mentions %q", tc.flag, tc.shared, unwanted)
+				}
+			}
 		}
 	})
 }
@@ -542,7 +589,7 @@ func TestSyntheticSessionOfClaudeCode(t *testing.T) {
 				t.Errorf("line %q: %v", line, err)
 			}
 		}
-		if !strings.Contains(stderr.String(), "claude: 12 PASS, 0 FAIL, 0 INCONCLUSIVE") {
+		if !strings.Contains(stderr.String(), fmt.Sprintf("claude: %d PASS, 0 FAIL, 0 INCONCLUSIVE", len(outcome.Report.Verdicts))) {
 			t.Errorf("summary = %q", stderr.String())
 		}
 	})
@@ -570,6 +617,7 @@ func TestSyntheticSessionThatTheRunnerHadToStop(t *testing.T) {
 
 func TestSyntheticSessionOfCodex(t *testing.T) {
 	w := newWorld(t, "codex", night)
+	w.options.CodexHome = t.TempDir()
 	outcome, err := w.runner.Run(context.Background(), w.options)
 	if err != nil {
 		t.Fatal(err)
@@ -600,6 +648,109 @@ func TestSyntheticSessionOfCodex(t *testing.T) {
 		}
 		if w.session.runs[0].Cap != launch.CodexEventCap || w.session.runs[0].Argv[0] != "codex" {
 			t.Errorf("session = %+v", w.session.runs[0])
+		}
+	})
+}
+
+func TestSessionAgainstTheUsersConfiguration(t *testing.T) {
+	write := func(t *testing.T, path string) {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	verdictOf := func(report verdict.Report, name string) verdict.Verdict {
+		for _, v := range report.Verdicts {
+			if v.Check == name {
+				return v
+			}
+		}
+		t.Fatalf("no verdict for %s", name)
+		return verdict.Verdict{}
+	}
+
+	t.Run("a session with its own configuration that writes an entry naming its run fails, and the changes of others are only counted [verifies SP-1505~1]", func(t *testing.T) {
+		w := newWorld(t, "claude", night)
+		home := t.TempDir()
+		w.runner.Env = append(w.runner.Env, "HOME="+home)
+		write(t, filepath.Join(home, ".claude", "history.jsonl"))
+		w.session.afterRun = func(spec app.SessionSpec) {
+			run := filepath.Base(filepath.Dir(spec.Dir))
+			write(t, filepath.Join(home, ".claude", "projects", "-private-"+run+"-project", "session.jsonl"))
+			write(t, filepath.Join(home, ".claude", "stats-cache.json"))
+		}
+		outcome, err := w.runner.Run(context.Background(), w.options)
+		if err != nil {
+			t.Fatal(err)
+		}
+		v := verdictOf(outcome.Report, "user_config_untouched")
+		if v.Status != verdict.Fail || !strings.Contains(v.Summary, "-project") {
+			t.Fatalf("verdict = %+v", v)
+		}
+		raw, err := os.ReadFile(filepath.Join(outcome.RunDir, "records", "touched.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var touched evidence.Touched
+		if err := json.Unmarshal(raw, &touched); err != nil {
+			t.Fatal(err)
+		}
+		if len(touched.Attributed) == 0 || !slices.ContainsFunc(touched.Unattributed, func(path string) bool { return strings.HasSuffix(path, "stats-cache.json") }) {
+			t.Fatalf("touched = %+v", touched)
+		}
+		if slices.ContainsFunc(touched.Unattributed, func(path string) bool { return strings.HasSuffix(path, "history.jsonl") }) {
+			t.Error("a file that was there before and did not change was reported")
+		}
+		if want := []string{filepath.Join(home, ".claude.json"), filepath.Join(home, ".claude")}; !slices.Equal(touched.Roots, want) {
+			t.Errorf("roots = %v, want %v", touched.Roots, want)
+		}
+	})
+
+	t.Run("a session with its own configuration that leaves the user's alone passes [verifies SP-1505~1]", func(t *testing.T) {
+		w := newWorld(t, "claude", night)
+		home := t.TempDir()
+		w.runner.Env = append(w.runner.Env, "HOME="+home)
+		outcome, err := w.runner.Run(context.Background(), w.options)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if v := verdictOf(outcome.Report, "user_config_untouched"); v.Status != verdict.Pass {
+			t.Fatalf("verdict = %+v", v)
+		}
+	})
+
+	t.Run("the records say when the session shared the user's directories, and the check leaves it open [verifies SP-1505~1]", func(t *testing.T) {
+		w := newWorld(t, "claude", night)
+		w.runner.Env = []string{"HOME=" + t.TempDir(), "PATH=/usr/bin"}
+		w.options.SharedHome = true
+		outcome, err := w.runner.Run(context.Background(), w.options)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if v := verdictOf(outcome.Report, "user_config_untouched"); v.Status != verdict.Inconclusive {
+			t.Fatalf("verdict = %+v", v)
+		}
+		raw, _ := os.ReadFile(filepath.Join(outcome.RunDir, "records", "session.json"))
+		if !strings.Contains(string(raw), `"configMode": "shared"`) {
+			t.Errorf("session = %s", raw)
+		}
+	})
+
+	t.Run("each module's executor server is started in the prepared project and a server that does not start is recorded [verifies SP-1502~1]", func(t *testing.T) {
+		w := newWorld(t, "claude", night)
+		w.prober.startFails = "spec-proof-completeness"
+		outcome, err := w.runner.Run(context.Background(), w.options)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(w.prober.handshakes) != len(modules.All()) {
+			t.Fatalf("%d handshakes", len(w.prober.handshakes))
+		}
+		if v := verdictOf(outcome.Report, "executor_servers_start"); v.Status != verdict.Fail || !strings.Contains(v.Summary, "spec-proof-completeness") {
+			t.Fatalf("verdict = %+v", v)
 		}
 	})
 }

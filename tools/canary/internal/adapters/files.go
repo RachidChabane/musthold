@@ -2,9 +2,11 @@ package adapters
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -84,6 +86,37 @@ func (OSFiles) Read(path string) ([]byte, error) {
 func (OSFiles) Exists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
+}
+
+// Fingerprint implements app.Files.
+func (OSFiles) Fingerprint(path string, depth int) (map[string]string, error) {
+	found := map[string]string{}
+	err := filepath.WalkDir(path, func(entry string, info fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			if errors.Is(walkErr, fs.ErrNotExist) || errors.Is(walkErr, fs.ErrPermission) {
+				return nil
+			}
+			return walkErr
+		}
+		relative, err := filepath.Rel(path, entry)
+		if err != nil {
+			return err
+		}
+		levels := 0
+		if relative != "." {
+			levels = strings.Count(relative, string(filepath.Separator)) + 1
+		}
+		stat, err := info.Info()
+		if err != nil {
+			return nil
+		}
+		found[entry] = fmt.Sprintf("%d %d", stat.Size(), stat.ModTime().UnixNano())
+		if info.IsDir() && levels >= depth {
+			return fs.SkipDir
+		}
+		return nil
+	})
+	return found, err
 }
 
 // Glob implements app.Files.

@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,7 +12,11 @@ import (
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/cli"
 )
 
-const recordedSession = "../domain/checks/testdata/claude-session"
+const (
+	recordedSession = "../domain/checks/testdata/claude-session"
+	// claudeChecks is the number of checks of Claude Code.
+	claudeChecks = 14
+)
 
 func run(t *testing.T, stdin string, args ...string) (code int, stdout, stderr string) {
 	t.Helper()
@@ -78,7 +83,7 @@ func TestCommandLine(t *testing.T) {
 			}
 		}
 		code, stdout, stderr := run(t, "", "evaluate", "--harness", "claude", "--records", records)
-		if code != 0 || len(strings.Split(strings.TrimSpace(stdout), "\n")) != 12 || !strings.Contains(stderr, "12 PASS") {
+		if code != 0 || len(strings.Split(strings.TrimSpace(stdout), "\n")) != claudeChecks || !strings.Contains(stderr, fmt.Sprintf("%d PASS", claudeChecks)) {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
 		}
 		if _, err := os.Stat(filepath.Join(records, "report.json")); err != nil {

@@ -24,7 +24,7 @@ func (r Runner) Load(recordsDir string) (evidence.Evidence, error) {
 	}{
 		{evidence.SessionFile, &files.Session}, {evidence.StreamFile, &files.Stream}, {evidence.HooksFile, &files.Hooks},
 		{evidence.JournalFile, &files.Journal}, {evidence.NoCallFile, &files.NoCall}, {evidence.EditedFile, &files.Edited},
-		{evidence.SandboxProbeFile, &files.SandboxProbe},
+		{evidence.SandboxProbeFile, &files.SandboxProbe}, {evidence.TouchedFile, &files.Touched},
 	}
 	for _, target := range targets {
 		data, err := read(target.name)

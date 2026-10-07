@@ -21,5 +21,6 @@
   "editFrom": "SHIPPING_FEE = 4.5",
   "editTo": "SHIPPING_FEE = 4.50",
   "startedAt": "2026-10-07T21:05:12Z",
-  "endedAt": "2026-10-07T21:06:41Z"
+  "endedAt": "2026-10-07T21:06:41Z",
+  "configMode": "isolated"
 }

@@ -40,15 +40,17 @@ func claudeChecks() []Check {
 		versionCheck(harness.FlagClaude),
 		pluginsValidCheck(),
 		capWithoutHooksCheck(harness.FlagClaude),
+		serversStartCheck(),
 		listedCheck(),
 		mainFetchDeniedCheck(),
 		rewriteDropsModelCheck(),
 		hooksFireCheck(),
 		capInjectedCheck(),
 		executorWithoutBashCheck(),
-		stopProbeCheck(claudeFinished, claudeStopEvents),
+		stopProbeCheck(stopSources{finished: claudeFinished, streamStops: claudeStopEvents, controls: claudeControls}),
 		editAppliedCheck(),
 		withinCapsCheck(claudeSummary),
+		configUntouchedCheck(),
 	}
 }
 
@@ -68,6 +70,18 @@ func claudeStopEvents(found evidence.Evidence) []verdict.Pointer {
 	var pointers []verdict.Pointer
 	for _, event := range claudeStream(found).HookEvents(hookEventStop) {
 		pointers = append(pointers, evidence.StreamAt(event.Line, "hook_response Stop"))
+	}
+	return pointers
+}
+
+// claudeControls are the hooks of the project settings other than Stop that ran:
+// the probes of the events that precede the first tool call.
+func claudeControls(found evidence.Evidence) []verdict.Pointer {
+	var pointers []verdict.Pointer
+	for _, label := range []string{evidence.LabelSessionStartProbe, evidence.LabelPromptProbe} {
+		for _, probe := range found.Probes(label) {
+			pointers = append(pointers, evidence.HooksAt(probe.Line, label))
+		}
 	}
 	return pointers
 }
@@ -93,6 +107,14 @@ func agentCalls(stream evidence.ClaudeStream, role string) []evidence.ToolUse {
 	}
 	slices.SortFunc(calls, func(a, b evidence.ToolUse) int { return a.Line - b.Line })
 	return calls
+}
+
+// serverFailedToStart reports whether the no-call probe saw the module's own
+// executor server fail to start.
+func serverFailedToStart(found evidence.Evidence, binary string) bool {
+	return slices.ContainsFunc(found.NoCall.Servers, func(server evidence.ServerStart) bool {
+		return server.Binary == binary && !server.Started
+	})
 }
 
 func pluginsValidCheck() Check {
@@ -126,7 +148,7 @@ func listedCheck() Check {
 				return verdict.Undecided("the stream holds no system/init event")
 			}
 			pointer := evidence.StreamAt(init.Line, "system/init")
-			var missing []string
+			var missing, brokenModules []string
 			for _, module := range modules.All() {
 				if !slices.ContainsFunc(init.Init.Plugins, func(p evidence.Named) bool { return p.Name == module.Plugin }) {
 					missing = append(missing, "plugin "+module.Plugin)
@@ -135,9 +157,14 @@ func listedCheck() Check {
 					return strings.Contains(s.Name, module.Plugin) && strings.Contains(s.Name, harness.ExecutorServer) && (s.Status == "" || s.Status == connectedStatus)
 				}) {
 					missing = append(missing, "connected server of "+module.Plugin)
+					if serverFailedToStart(found, module.Binary) {
+						brokenModules = append(brokenModules, module.Binary)
+					}
 				}
 			}
 			switch {
+			case len(brokenModules) > 0:
+				return verdict.Undecided("a server is missing because the module's own server does not start ("+strings.Join(brokenModules, ", ")+"): see "+checkServersStart, pointer, evidence.At(evidence.NoCallFile, 0, "servers"))
 			case len(init.Init.PluginErrors) > 0:
 				return verdict.Failed(fmt.Sprintf("system/init reports %d plugin errors: %s", len(init.Init.PluginErrors), init.Init.PluginErrors[0]), pointer)
 			case len(missing) > 0:

@@ -28,6 +28,7 @@ const (
 	helperServe    = "mcp-serve"
 	helperSilent   = "mcp-silent"
 	helperErrorRPC = "mcp-rpc-error"
+	helperOneTool  = "mcp-one-tool"
 
 	recordVariable = "CANARY_TEST_RECORD"
 )
@@ -36,7 +37,7 @@ func TestMain(m *testing.M) {
 	switch os.Getenv(helperVariable) {
 	case helperShimMCP:
 		os.Exit(adapters.RunShim("/bin/echo", os.Getenv(recordVariable), []string{"mcp", "--role", "executor"}, os.Stdin, os.Stdout, os.Stderr))
-	case helperRefuse, helperServe, helperSilent, helperErrorRPC:
+	case helperRefuse, helperServe, helperSilent, helperErrorRPC, helperOneTool:
 		serveFakeMCP(os.Getenv(helperVariable))
 		os.Exit(0)
 	}
@@ -63,6 +64,12 @@ func serveFakeMCP(mode string) {
 		switch {
 		case request.Method == "initialize":
 			response["result"] = map[string]any{"protocolVersion": "2025-06-18", "capabilities": map[string]any{}, "serverInfo": map[string]string{"name": "fake"}}
+		case request.Method == "tools/list":
+			tools := []map[string]string{{"name": "fetch_request"}, {"name": "submit_response"}}
+			if mode == helperOneTool {
+				tools = tools[:1]
+			}
+			response["result"] = map[string]any{"tools": tools}
 		case mode == helperErrorRPC:
 			response["error"] = map[string]any{"code": -32602, "message": "capability required"}
 		case mode == helperRefuse:
@@ -300,6 +307,82 @@ func TestCapProbe(t *testing.T) {
 		got := adapters.McpProber{}.Probe(context.Background(), app.ServerSpec{Binary: "/no/such/binary", Harness: "claude", Dir: t.TempDir()}, "t")
 		if !got.Attempted || got.Responded || got.Detail == "" {
 			t.Fatalf("probe = %+v", got)
+		}
+	})
+}
+
+func TestHandshake(t *testing.T) {
+	handshake := func(mode string) evidence.ServerStart {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		spec := app.ServerSpec{Binary: os.Args[0], Harness: "codex", Dir: t.TempDir(), Env: append(os.Environ(), helperVariable+"="+mode)}
+		return adapters.McpProber{}.Handshake(ctx, spec)
+	}
+
+	t.Run("a server that answers the handshake and lists both executor tools has started [verifies SP-1502~1]", func(t *testing.T) {
+		got := handshake(helperServe)
+		if !got.Started || !strings.Contains(got.Detail, "submit_response") || got.Binary == "" {
+			t.Fatalf("start = %+v", got)
+		}
+	})
+
+	t.Run("a server that lists one tool, or never answers, has not started [verifies SP-1502~1]", func(t *testing.T) {
+		if got := handshake(helperOneTool); got.Started || !strings.Contains(got.Detail, "submit_response") {
+			t.Errorf("start = %+v", got)
+		}
+		if got := handshake(helperSilent); got.Started || got.Detail == "" {
+			t.Errorf("start = %+v", got)
+		}
+		missing := adapters.McpProber{}.Handshake(context.Background(), app.ServerSpec{Binary: "/no/such/binary", Harness: "claude", Dir: t.TempDir()})
+		if missing.Started || missing.Binary != "binary" {
+			t.Errorf("start = %+v", missing)
+		}
+	})
+}
+
+func TestFingerprint(t *testing.T) {
+	t.Run("a fingerprint sees an entry that appears, one that changes and the directories above them, down to a depth [verifies SP-1505~1]", func(t *testing.T) {
+		files := adapters.OSFiles{}
+		root := t.TempDir()
+		for _, path := range []string{"a.json", "projects/p1/s.jsonl", "projects/p1/deep/er/x"} {
+			if err := files.Write(filepath.Join(root, path), []byte("1"), false); err != nil {
+				t.Fatal(err)
+			}
+		}
+		before, err := files.Fingerprint(root, 2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, deeper := before[filepath.Join(root, "projects", "p1", "deep", "er")]; deeper {
+			t.Error("an entry below the depth was listed")
+		}
+		for _, path := range []string{"a.json", "projects", "projects/p1"} {
+			if _, listed := before[filepath.Join(root, path)]; !listed {
+				t.Errorf("%s is not in the fingerprint", path)
+			}
+		}
+		if _, listed := before[filepath.Join(root, "projects", "p1", "s.jsonl")]; listed {
+			t.Error("an entry three levels down was listed")
+		}
+		if err := files.Write(filepath.Join(root, "projects", "p2", "new.jsonl"), []byte("22"), false); err != nil {
+			t.Fatal(err)
+		}
+		if err := files.Write(filepath.Join(root, "a.json"), []byte("changed content"), false); err != nil {
+			t.Fatal(err)
+		}
+		after, _ := files.Fingerprint(root, 2)
+		if after[filepath.Join(root, "a.json")] == before[filepath.Join(root, "a.json")] {
+			t.Error("a changed file kept its fingerprint")
+		}
+		if _, appeared := after[filepath.Join(root, "projects", "p2")]; !appeared {
+			t.Error("a new directory is missing")
+		}
+	})
+
+	t.Run("a path that does not exist has no entries [verifies SP-1505~1]", func(t *testing.T) {
+		got, err := adapters.OSFiles{}.Fingerprint(filepath.Join(t.TempDir(), "absent"), 2)
+		if err != nil || len(got) != 0 {
+			t.Fatalf("fingerprint = %v, %v", got, err)
 		}
 	})
 }

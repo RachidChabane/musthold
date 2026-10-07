@@ -24,6 +24,8 @@ const (
 	hookTypeCommand    = "command"
 	eventStop          = "Stop"
 	eventPreToolUse    = "PreToolUse"
+	eventSessionStart  = "SessionStart"
+	eventPromptSubmit  = "UserPromptSubmit"
 	matchEveryTool     = ".*"
 )
 
@@ -48,12 +50,15 @@ func probeGroup(canary, hooksLog, label, matcher string) hookGroup {
 }
 
 // ClaudeSettings is the project-local settings of a Claude Code session: the Stop
-// probe, which no module installs, and nothing else. The session loads no other
-// settings source.
+// probe, which no module installs, and two control probes on events that precede
+// the first tool call, which show that these settings were loaded when Stop stays
+// silent. The session loads no other settings source.
 func ClaudeSettings(canary, hooksLog string) ([]byte, error) {
 	settings := map[string]any{
 		"hooks": map[string][]hookGroup{
-			eventStop: {probeGroup(canary, hooksLog, evidence.LabelStopProbe, "")},
+			eventStop:         {probeGroup(canary, hooksLog, evidence.LabelStopProbe, "")},
+			eventSessionStart: {probeGroup(canary, hooksLog, evidence.LabelSessionStartProbe, "")},
+			eventPromptSubmit: {probeGroup(canary, hooksLog, evidence.LabelPromptProbe, "")},
 		},
 	}
 	return json.MarshalIndent(settings, "", "  ")

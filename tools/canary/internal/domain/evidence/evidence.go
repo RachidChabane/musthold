@@ -26,6 +26,7 @@ const (
 	NoCallFile       = "nocall.json"
 	EditedFile       = "edited.txt"
 	SandboxProbeFile = "sandbox-probe.json"
+	TouchedFile      = "touched.json"
 )
 
 // maxLineBytes bounds one line of a recorded JSON-lines file.
@@ -34,7 +35,7 @@ const maxLineBytes = 16 << 20
 // Files holds the raw bytes of the recorded files; one that was not recorded is
 // empty.
 type Files struct {
-	Session, Stream, Hooks, Journal, NoCall, Edited, SandboxProbe []byte
+	Session, Stream, Hooks, Journal, NoCall, Edited, SandboxProbe, Touched []byte
 }
 
 // Line is one line of a JSON-lines file with its 1-based number.
@@ -52,6 +53,7 @@ type Evidence struct {
 	NoCall       NoCall
 	Edited       string
 	SandboxProbe SandboxProbe
+	Touched      Touched
 }
 
 // JournalEntry is one record of the module's journal with its line number.
@@ -87,6 +89,11 @@ func Assemble(files Files) (Evidence, error) {
 	if len(bytes.TrimSpace(files.SandboxProbe)) > 0 {
 		if err := json.Unmarshal(files.SandboxProbe, &found.SandboxProbe); err != nil {
 			return Evidence{}, fmt.Errorf("%s: %w", SandboxProbeFile, err)
+		}
+	}
+	if len(bytes.TrimSpace(files.Touched)) > 0 {
+		if err := json.Unmarshal(files.Touched, &found.Touched); err != nil {
+			return Evidence{}, fmt.Errorf("%s: %w", TouchedFile, err)
 		}
 	}
 	found.Edited = string(files.Edited)

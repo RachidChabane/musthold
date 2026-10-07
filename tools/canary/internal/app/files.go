@@ -16,6 +16,9 @@ type Files interface {
 	Read(path string) ([]byte, error)
 	// Exists reports whether the path exists.
 	Exists(path string) bool
+	// Fingerprint maps each entry of the path, down to depth levels below it, to its
+	// size and modification time. A path that does not exist has no entries.
+	Fingerprint(path string, depth int) (map[string]string, error)
 	// Glob returns the paths that match the pattern.
 	Glob(pattern string) ([]string, error)
 }

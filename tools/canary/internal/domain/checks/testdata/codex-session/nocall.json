@@ -6,5 +6,22 @@
     "servedTicket": true,
     "detail": "{\"ticket\":\"88ec618dd2f5f5a73120577c8324765babf222a1fe52b144337a61bc9116d709.2.1\",\"nonce\":\"4efabc683845104aaaf247be14a2e5d5\",\"responseSchema\":{}}"
   },
-  "pluginValidation": null
+  "pluginValidation": null,
+  "servers": [
+    {
+      "binary": "spec-proof-dp",
+      "started": true,
+      "detail": "fetch_request, submit_response"
+    },
+    {
+      "binary": "spec-proof-alignment",
+      "started": true,
+      "detail": "fetch_request, submit_response"
+    },
+    {
+      "binary": "spec-proof-completeness",
+      "started": true,
+      "detail": "fetch_request, submit_response"
+    }
+  ]
 }

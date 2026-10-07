@@ -19,6 +19,8 @@ const (
 	checkStopFires       = "stop_fires"
 	checkEditApplied     = "edit_applied"
 	checkWithinCaps      = "session_within_caps"
+	checkServersStart    = "executor_servers_start"
+	checkConfigUntouched = "user_config_untouched"
 )
 
 // noExecutorNote is the summary of a check whose subject never ran.
@@ -116,7 +118,17 @@ func editAppliedCheck() Check {
 // stopProbeCheck verifies that the harness runs a Stop hook in a non-interactive
 // session, with a probe hook the canary installs in the temporary project: the
 // modules install none.
-func stopProbeCheck(sessionFinished func(evidence.Evidence) (bool, verdict.Pointer), streamStops func(evidence.Evidence) []verdict.Pointer) Check {
+// stopSources are what a Stop check reads of a harness: whether the session
+// finished, the Stop events its own stream shows, and the control hooks that come
+// from the same project settings as the Stop probe. A Stop probe that stays silent
+// beside a silent control proves only that the settings were not loaded.
+type stopSources struct {
+	finished    func(evidence.Evidence) (bool, verdict.Pointer)
+	streamStops func(evidence.Evidence) []verdict.Pointer
+	controls    func(evidence.Evidence) []verdict.Pointer
+}
+
+func stopProbeCheck(sources stopSources) Check {
 	return newCheck(checkStopFires,
 		"The end-of-turn Stop hook runs under non-interactive execution, so a gate hung on it is reached.",
 		func(found evidence.Evidence) verdict.Verdict {
@@ -124,14 +136,62 @@ func stopProbeCheck(sessionFinished func(evidence.Evidence) (bool, verdict.Point
 			for _, probe := range found.Probes(evidence.LabelStopProbe) {
 				pointers = append(pointers, evidence.HooksAt(probe.Line, "Stop probe payload "+probe.Payload().EventName))
 			}
-			pointers = append(pointers, streamStops(found)...)
+			pointers = append(pointers, sources.streamStops(found)...)
 			if len(pointers) > 0 {
 				return verdict.Passed("a Stop hook ran in the session", pointers...)
 			}
-			if finished, pointer := sessionFinished(found); finished {
-				return verdict.Failed("the session finished normally and no Stop hook ran", pointer)
+			controls := sources.controls(found)
+			if len(controls) == 0 {
+				return verdict.Undecided("no hook of the project settings ran, control hooks included: the settings were not loaded, so Stop is untested")
 			}
-			return verdict.Undecided("the session did not finish, so a missing Stop proves nothing")
+			if finished, pointer := sources.finished(found); finished {
+				return verdict.Failed("the session finished normally, the project's control hooks ran and no Stop hook did", append(controls, pointer)...)
+			}
+			return verdict.Undecided("the session did not finish, so a missing Stop proves nothing", controls...)
+		})
+}
+
+func serversStartCheck() Check {
+	return newCheck(checkServersStart,
+		"The executor server of each module starts in the prepared project, answers the initialize handshake and lists fetch_request and submit_response: a server missing from the harness's listing is then the harness's doing, not the module's.",
+		func(found evidence.Evidence) verdict.Verdict {
+			servers := found.NoCall.Servers
+			pointer := evidence.At(evidence.NoCallFile, 0, "servers")
+			if len(servers) == 0 {
+				return verdict.Undecided("no server was started", pointer)
+			}
+			var failed []string
+			for _, server := range servers {
+				if !server.Started {
+					failed = append(failed, server.Binary+": "+server.Detail)
+				}
+			}
+			if len(failed) > 0 {
+				return verdict.Failed("servers that did not start: "+strings.Join(failed, "; "), pointer)
+			}
+			return verdict.Passed(fmt.Sprintf("%d executor servers answered the handshake and listed their tools", len(servers)), pointer)
+		})
+}
+
+// configUntouchedCheck reads the fingerprint of the places a harness CLI keeps its
+// state in the user's home. A session that has its own configuration directory
+// must leave them alone; a session that shares the user's records what it wrote.
+func configUntouchedCheck() Check {
+	return newCheck(checkConfigUntouched,
+		"The session wrote nothing that names its run in the user's own configuration directories. A session that shares them lists what it wrote; the changes nothing ties to the run are another process's and are only counted.",
+		func(found evidence.Evidence) verdict.Verdict {
+			pointer := evidence.At(evidence.TouchedFile, 0, "attributed")
+			touched := found.Touched
+			switch {
+			case len(touched.Roots) == 0:
+				return verdict.Undecided("the user's configuration directories were not fingerprinted", pointer)
+			case found.Session.ConfigMode == evidence.ConfigShared:
+				return verdict.Undecided(fmt.Sprintf("the session shares the user's configuration: it wrote %d entries that name its run (listed in %s), and the credential file may also have been updated; %d other changes are not attributed", len(touched.Attributed), evidence.TouchedFile, len(touched.Unattributed)), pointer)
+			case len(touched.Attributed) > 0:
+				return verdict.Failed(fmt.Sprintf("an isolated session wrote %d entries in the user's configuration: %s", len(touched.Attributed), strings.Join(touched.Attributed, ", ")), pointer)
+			default:
+				return verdict.Passed(fmt.Sprintf("nothing that names the run changed in %s (%d unattributed changes belong to other processes)", strings.Join(touched.Roots, ", "), len(touched.Unattributed)), pointer)
+			}
 		})
 }
 

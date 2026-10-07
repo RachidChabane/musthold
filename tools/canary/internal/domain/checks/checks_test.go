@@ -31,7 +31,7 @@ func readFiles(t *testing.T, name string) evidence.Files {
 	return evidence.Files{
 		Session: read(evidence.SessionFile), Stream: read(evidence.StreamFile), Hooks: read(evidence.HooksFile),
 		Journal: read(evidence.JournalFile), NoCall: read(evidence.NoCallFile), Edited: read(evidence.EditedFile),
-		SandboxProbe: read(evidence.SandboxProbeFile),
+		SandboxProbe: read(evidence.SandboxProbeFile), Touched: read(evidence.TouchedFile),
 	}
 }
 
@@ -257,11 +257,78 @@ func TestSyntheticClaudeSessionThatBreaksARule(t *testing.T) {
 	})
 }
 
+func TestSyntheticSessionWhereTheSetupIsInDoubt(t *testing.T) {
+	t.Run("a Stop probe that stays silent beside silent control hooks proves nothing about Stop [verifies SP-1502~1]", func(t *testing.T) {
+		files := readFiles(t, claudeSession)
+		for _, label := range []string{"Stop-probe", "SessionStart-probe", "UserPromptSubmit-probe"} {
+			files.Hooks = dropLines(files.Hooks, label)
+		}
+		files.Stream = dropLines(files.Stream, `"hook_event":"Stop"`)
+		v := want(t, evaluate(t, "claude", files), "stop_fires", verdict.Inconclusive)
+		if !strings.Contains(v.Summary, "not loaded") {
+			t.Errorf("the summary does not say the settings were not loaded: %s", v.Summary)
+		}
+	})
+
+	t.Run("a Codex Stop probe that stays silent beside a silent PreToolUse probe proves nothing about Stop [verifies SP-1503~1]", func(t *testing.T) {
+		files := readFiles(t, codexSession)
+		files.Hooks = dropLines(files.Hooks, "Stop-probe")
+		files.Hooks = dropLines(files.Hooks, "PreToolUse-probe")
+		want(t, evaluate(t, "codex", files), "stop_fires", verdict.Inconclusive)
+	})
+
+	t.Run("an executor server that does not start fails the start check and leaves the listing inconclusive [verifies SP-1502~1]", func(t *testing.T) {
+		files := readFiles(t, claudeSession)
+		files.NoCall = replace(files.NoCall, "\"binary\": \"spec-proof-alignment\",\n      \"started\": true", "\"binary\": \"spec-proof-alignment\",\n      \"started\": false")
+		files.Stream = replace(files.Stream, `{"name":"plugin:spec-proof-alignment:exec","status":"connected"}`, `{"name":"plugin:spec-proof-alignment:exec","status":"failed"}`)
+		got := evaluate(t, "claude", files)
+		v := want(t, got, "executor_servers_start", verdict.Fail)
+		if !strings.Contains(v.Summary, "spec-proof-alignment") {
+			t.Errorf("the summary does not name the module: %s", v.Summary)
+		}
+		want(t, got, "plugin_and_server_listed", verdict.Inconclusive)
+	})
+
+	t.Run("a server the harness did not list although the module's own server starts is the harness's failure [verifies SP-1502~1]", func(t *testing.T) {
+		files := readFiles(t, claudeSession)
+		files.Stream = replace(files.Stream, `{"name":"plugin:spec-proof-alignment:exec","status":"connected"}`, `{"name":"plugin:spec-proof-alignment:exec","status":"failed"}`)
+		want(t, evaluate(t, "claude", files), "plugin_and_server_listed", verdict.Fail)
+	})
+
+	t.Run("an isolated session that wrote an entry naming its run fails the configuration check [verifies SP-1502~1]", func(t *testing.T) {
+		files := readFiles(t, claudeSession)
+		files.Touched = replace(files.Touched, `"attributed": []`, `"attributed": ["/home/u/.claude/projects/-tmp-spec-proof-canary-claude-1-project"]`)
+		v := want(t, evaluate(t, "claude", files), "user_config_untouched", verdict.Fail)
+		if !strings.Contains(v.Summary, "spec-proof-canary-claude-1") {
+			t.Errorf("the summary does not list the entry: %s", v.Summary)
+		}
+	})
+
+	t.Run("a session that shares the user's configuration lists what it wrote and concludes nothing [verifies SP-1502~1]", func(t *testing.T) {
+		files := readFiles(t, claudeSession)
+		files.Session = replace(files.Session, `"configMode": "isolated"`, `"configMode": "shared"`)
+		files.Touched = replace(files.Touched, `"attributed": []`, `"attributed": ["/home/u/.claude/projects/-tmp-spec-proof-canary-claude-1-project"]`)
+		v := want(t, evaluate(t, "claude", files), "user_config_untouched", verdict.Inconclusive)
+		if !strings.Contains(v.Summary, "1 entries") {
+			t.Errorf("the summary does not count the entries: %s", v.Summary)
+		}
+	})
+
+	t.Run("a sandbox that declined the write counts as holding when the file is absent [verifies SP-1503~1]", func(t *testing.T) {
+		files := readFiles(t, codexSession)
+		files.Stream = replace(files.Stream, `"exit_code":1,"status":"failed"`, `"status":"declined"`)
+		v := want(t, evaluate(t, "codex", files), "executor_sandbox", verdict.Pass)
+		if !strings.Contains(v.Summary, "declined") {
+			t.Errorf("summary = %s", v.Summary)
+		}
+	})
+}
+
 func TestSyntheticSessionWithAbsentEvidenceIsNeverAFailure(t *testing.T) {
 	probes := []string{
 		"plugin_and_server_listed", "main_session_fetch_denied", "rewrite_drops_model", "hooks_fire_under_print",
 		"hook_allow_issues_cap", "executor_without_bash", "stop_fires", "edit_applied", "session_within_caps",
-		"cap_without_hooks", "plugin_manifests_valid", "cli_version_pinned",
+		"cap_without_hooks", "plugin_manifests_valid", "cli_version_pinned", "executor_servers_start", "user_config_untouched",
 	}
 	t.Run("a session that left nothing leaves every check inconclusive [verifies SP-1501~1]", func(t *testing.T) {
 		got := evaluate(t, "claude", evidence.Files{})

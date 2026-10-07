@@ -1,0 +1,10 @@
+{
+  "roots": [
+    "/home/u/.claude.json",
+    "/home/u/.claude"
+  ],
+  "attributed": [],
+  "unattributed": [
+    "/home/u/.claude/history.jsonl"
+  ]
+}

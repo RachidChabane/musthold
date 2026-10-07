@@ -22,5 +22,22 @@
       "exitCode": 0,
       "output": "Validation passed"
     }
+  ],
+  "servers": [
+    {
+      "binary": "spec-proof-dp",
+      "started": true,
+      "detail": "fetch_request, submit_response"
+    },
+    {
+      "binary": "spec-proof-alignment",
+      "started": true,
+      "detail": "fetch_request, submit_response"
+    },
+    {
+      "binary": "spec-proof-completeness",
+      "started": true,
+      "detail": "fetch_request, submit_response"
+    }
   ]
 }

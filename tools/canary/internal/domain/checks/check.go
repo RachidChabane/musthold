@@ -68,5 +68,5 @@ func newCheck(name, proves string, evaluate func(evidence.Evidence) verdict.Verd
 // NoCallNames lists the checks whose evidence is gathered before the session and
 // makes no model call.
 func NoCallNames() []string {
-	return []string{checkCLIVersion, checkClaudePluginsValid, checkCapWithoutHooks}
+	return []string{checkCLIVersion, checkClaudePluginsValid, checkCapWithoutHooks, checkServersStart}
 }

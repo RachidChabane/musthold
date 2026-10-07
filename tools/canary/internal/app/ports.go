@@ -63,8 +63,11 @@ type ServerSpec struct {
 	Env     []string
 }
 
-// CapProber asks the executor server for a ticket with no capability.
-type CapProber interface {
+// ServerProber talks to an executor server over standard input and output.
+type ServerProber interface {
+	// Handshake starts the server, initializes it and asks for its tools.
+	Handshake(ctx context.Context, spec ServerSpec) evidence.ServerStart
+	// Probe asks the server for a ticket with no capability.
 	Probe(ctx context.Context, spec ServerSpec, ticket string) evidence.CapProbe
 }
 

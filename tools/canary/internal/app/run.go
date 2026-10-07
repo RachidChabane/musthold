@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -56,7 +57,7 @@ type Runner struct {
 	Window    window.Window
 	Processes Processes
 	Sessions  Sessions
-	Prober    CapProber
+	Prober    ServerProber
 	Locker    Locker
 	Files     Files
 	// Env is the environment of the canary process.
@@ -140,7 +141,33 @@ func (r Runner) printPlan(options Options, now time.Time, inWindow bool, isolate
 	for index, line := range lines {
 		fmt.Fprintf(r.Stdout, "%2d. %s\n", index+1, line)
 	}
+	fmt.Fprintln(r.Stdout, "outside the run directory the run writes:")
+	for _, line := range touches(options, isolated) {
+		fmt.Fprintf(r.Stdout, "  - %s\n", line)
+	}
 	return nil
+}
+
+// touches says what a run writes outside its own directory, which is what the
+// session's fingerprints of the user's configuration directories then confirm.
+func touches(options Options, isolated bool) []string {
+	switch {
+	case options.Harness == harness.FlagClaude && isolated:
+		return []string{"nothing: Claude Code runs with CLAUDE_CONFIG_DIR inside the run directory and CLAUDE_CODE_OAUTH_TOKEN for its credential"}
+	case options.Harness == harness.FlagClaude:
+		return []string{
+			"~/.claude/projects/<the run's project path>/: the transcripts of the session and of its subagents",
+			"~/.claude.json: the entry Claude Code adds for the new project and its usage statistics",
+			"~/.claude/: any other file Claude Code keeps there (history, caches, a refreshed credential); settings.json is not read (--setting-sources project) and not written by the canary",
+		}
+	case options.CodexHome != "":
+		return []string{"nothing outside " + options.CodexHome + ", the dedicated CODEX_HOME the credentials come from"}
+	default:
+		return []string{
+			"$CODEX_HOME/sessions (default ~/.codex/sessions): the rollout of the session and of its subagents",
+			"~/.codex/: any other file Codex keeps there (a refreshed credential); config.toml is not read (--ignore-user-config) and not written by the canary",
+		}
+	}
 }
 
 func (r Runner) checkMemory(ctx context.Context, options Options) error {
@@ -164,12 +191,16 @@ type preparedSession struct {
 	noCall    evidence.NoCall
 	command   launch.Command
 	env       []string
+	// before is the fingerprint of the user's configuration directories taken
+	// before anything of the run touched them.
+	before map[string]string
 }
 
 // prepare builds the run directory, the project and the shims, makes the module
 // ask the host for tickets, and runs the probes that make no model call.
 func (r Runner) prepare(ctx context.Context, options Options, isolated bool) (preparedSession, error) {
 	var prepared preparedSession
+	prepared.before = r.fingerprint(r.configRoots(options))
 	run, err := r.Files.MakeDir(options.OutDir, runDirPrefix+options.Harness+"-")
 	if err != nil {
 		return prepared, err
@@ -220,18 +251,31 @@ func (r Runner) prepare(ctx context.Context, options Options, isolated bool) (pr
 	if err != nil {
 		return prepared, fmt.Errorf("%w: %v", ErrPrepare, err)
 	}
-	prepared.noCall = r.noCallProbes(ctx, options, l, support, prepared.selection)
 	prepared.command, err = launch.Build(options.Harness, l.input(prepared.selection, claudeConfigDir, options.CodexHome))
 	if err != nil {
 		return prepared, err
 	}
+	prepared.noCall = r.noCallProbes(ctx, options, l, probeEnvironments{support: support, cli: environment(support, prepared.command.Env...)}, prepared.selection)
 	prepared.env = l.sessionEnvironment(r.Env, prepared.command.Env)
-	prepared.session = r.describe(options, prepared)
+	prepared.session = r.describe(options, prepared, configMode(options, isolated))
 	return prepared, r.writeJSON(l.record(evidence.NoCallFile), prepared.noCall)
 }
 
-func (r Runner) describe(options Options, prepared preparedSession) evidence.Session {
+// configMode says where the harness CLI keeps its credentials and state.
+func configMode(options Options, isolated bool) string {
+	switch {
+	case options.Harness == harness.FlagClaude && isolated:
+		return evidence.ConfigIsolated
+	case options.Harness == harness.FlagCodex && options.CodexHome != "":
+		return evidence.ConfigDedicated
+	default:
+		return evidence.ConfigShared
+	}
+}
+
+func (r Runner) describe(options Options, prepared preparedSession, mode string) evidence.Session {
 	session := prepared.session
+	session.ConfigMode = mode
 	model := launch.ClaudeModel
 	if options.Harness == harness.FlagCodex {
 		model = launch.CodexModel
@@ -327,14 +371,23 @@ func (r Runner) askHost(ctx context.Context, l layout, env []string) ([]byte, er
 	return []byte(listed.Stdout), nil
 }
 
-// noCallProbes runs the checks that need no model: the harness CLI's own plugin
-// validation (Claude Code) and a fetch_request with no capability.
-func (r Runner) noCallProbes(ctx context.Context, options Options, l layout, env []string, selection Selection) evidence.NoCall {
+// probeEnvironments are the environments of the no-call probes: the one the module
+// binaries run in, and the one the harness CLI runs in, which carries its own
+// configuration directory when the session has one.
+type probeEnvironments struct{ support, cli []string }
+
+// noCallProbes runs the checks that need no model: the start of each module's
+// executor server, the harness CLI's own plugin validation (Claude Code) and a
+// fetch_request with no capability.
+func (r Runner) noCallProbes(ctx context.Context, options Options, l layout, environments probeEnvironments, selection Selection) evidence.NoCall {
 	var found evidence.NoCall
+	for _, module := range modules.All() {
+		found.Servers = append(found.Servers, r.Prober.Handshake(ctx, ServerSpec{Binary: l.binary(module.Binary), Harness: options.Harness, Dir: l.project, Env: environments.support}))
+	}
 	if options.Harness == harness.FlagClaude {
 		for _, module := range modules.All() {
 			argv := validateArgv(l, module)
-			output, err := r.Processes.Run(ctx, CommandSpec{Argv: argv, Dir: l.project, Env: r.Env, Timeout: supportTimeout})
+			output, err := r.Processes.Run(ctx, CommandSpec{Argv: argv, Dir: l.project, Env: environments.cli, Timeout: supportTimeout})
 			result := evidence.PluginValidation{Dir: argv[len(argv)-1], ExitCode: output.ExitCode, Output: strings.TrimSpace(output.Stdout + output.Stderr)}
 			if err != nil {
 				result.ExitCode, result.Output = -1, err.Error()
@@ -342,7 +395,7 @@ func (r Runner) noCallProbes(ctx context.Context, options Options, l layout, env
 			found.PluginValidation = append(found.PluginValidation, result)
 		}
 	}
-	found.CapProbe = r.Prober.Probe(ctx, ServerSpec{Binary: l.primary(), Harness: options.Harness, Dir: l.project, Env: env}, selection.ProbeTicket)
+	found.CapProbe = r.Prober.Probe(ctx, ServerSpec{Binary: l.primary(), Harness: options.Harness, Dir: l.project, Env: environments.support}, selection.ProbeTicket)
 	return found
 }
 
@@ -378,7 +431,8 @@ func (r Runner) conduct(ctx context.Context, options Options, prepared preparedS
 	if err != nil {
 		return Outcome{RunDir: l.run}, fmt.Errorf("the session could not run: %w", err)
 	}
-	if err := r.collect(options, l, session); err != nil {
+	touched := r.touched(r.configRoots(options), prepared.before, filepath.Base(l.run))
+	if err := r.collect(options, l, session, touched); err != nil {
 		return Outcome{RunDir: l.run}, err
 	}
 	report, err := r.Evaluate(l.records, options.Harness)
@@ -387,8 +441,11 @@ func (r Runner) conduct(ctx context.Context, options Options, prepared preparedS
 
 // collect writes the session's own record and copies what the module and the
 // project left behind into the records directory.
-func (r Runner) collect(options Options, l layout, session evidence.Session) error {
+func (r Runner) collect(options Options, l layout, session evidence.Session, touched evidence.Touched) error {
 	if err := r.writeJSON(l.record(evidence.SessionFile), session); err != nil {
+		return err
+	}
+	if err := r.writeJSON(l.record(evidence.TouchedFile), touched); err != nil {
 		return err
 	}
 	journals, err := r.Files.Glob(filepath.Join(l.state, "spec-proof", modules.Primary().Dir, "*", "host", evidence.JournalFile))
@@ -424,4 +481,84 @@ func (r Runner) writeJSON(path string, value any) error {
 		return err
 	}
 	return r.Files.Write(path, append(encoded, '\n'), false)
+}
+
+// configDirDepth is how deep below a configuration directory the fingerprint
+// looks: its entries and, among them, the per-project and per-session folders.
+const configDirDepth = 2
+
+// configRoots are the places in the user's home where the harness CLI keeps its
+// credentials, history and sessions.
+func (r Runner) configRoots(options Options) []string {
+	home := variable(r.Env, "HOME")
+	switch options.Harness {
+	case harness.FlagClaude:
+		return []string{filepath.Join(home, ".claude.json"), filepath.Join(home, ".claude")}
+	case harness.FlagCodex:
+		codexHome := options.CodexHome
+		if codexHome == "" {
+			codexHome = variable(r.Env, "CODEX_HOME")
+		}
+		if codexHome == "" {
+			codexHome = filepath.Join(home, ".codex")
+		}
+		return []string{codexHome}
+	default:
+		return nil
+	}
+}
+
+// variable is the value of an environment variable; as in a process environment,
+// the last of several definitions wins.
+func variable(environ []string, name string) string {
+	value := ""
+	for _, pair := range environ {
+		if found, ok := strings.CutPrefix(pair, name+"="); ok {
+			value = found
+		}
+	}
+	return value
+}
+
+// fingerprint records the size and modification time of what the roots hold. A
+// root that cannot be read has no entries: the check that reads the result then
+// has nothing to attribute.
+func (r Runner) fingerprint(roots []string) map[string]string {
+	found := map[string]string{}
+	for _, root := range roots {
+		entries, err := r.Files.Fingerprint(root, configDirDepth)
+		if err != nil {
+			continue
+		}
+		maps.Copy(found, entries)
+	}
+	return found
+}
+
+// touched compares the fingerprint of the roots after the session with the one
+// before it. A change whose path names the run's directory is the session's own;
+// any other change is counted, since another process of the user may have made it.
+func (r Runner) touched(roots []string, before map[string]string, runName string) evidence.Touched {
+	after := r.fingerprint(roots)
+	result := evidence.Touched{Roots: roots, Attributed: []string{}, Unattributed: []string{}}
+	changed := func(path string) {
+		if strings.Contains(path, runName) {
+			result.Attributed = append(result.Attributed, path)
+		} else {
+			result.Unattributed = append(result.Unattributed, path)
+		}
+	}
+	for path, now := range after {
+		if was, existed := before[path]; !existed || was != now {
+			changed(path)
+		}
+	}
+	for path := range before {
+		if _, remains := after[path]; !remains {
+			changed(path)
+		}
+	}
+	slices.Sort(result.Attributed)
+	slices.Sort(result.Unattributed)
+	return result
 }

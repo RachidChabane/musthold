@@ -200,7 +200,7 @@ func TestCommandLine(t *testing.T) {
 }
 
 func TestProjectFiles(t *testing.T) {
-	t.Run("the Claude settings hold the Stop probe and nothing else [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("the Claude settings hold the Stop probe and the control probes of the events before the first tool call, and nothing else [verifies SP-1504~1]", func(t *testing.T) {
 		settings, err := launch.ClaudeSettings("/bin/canary", "/run/records/hooks.jsonl")
 		if err != nil {
 			t.Fatal(err)
@@ -211,7 +211,7 @@ func TestProjectFiles(t *testing.T) {
 		if err := json.Unmarshal(settings, &decoded); err != nil {
 			t.Fatal(err)
 		}
-		if len(decoded) != 1 || len(decoded["hooks"]) != 1 || len(decoded["hooks"]["Stop"]) != 1 {
+		if len(decoded) != 1 || len(decoded["hooks"]) != 3 || len(decoded["hooks"]["Stop"]) != 1 || len(decoded["hooks"]["SessionStart"]) != 1 || len(decoded["hooks"]["UserPromptSubmit"]) != 1 {
 			t.Fatalf("settings = %s", settings)
 		}
 		command := decoded["hooks"]["Stop"][0].Hooks[0].Command

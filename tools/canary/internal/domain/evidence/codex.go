@@ -20,6 +20,9 @@ const (
 
 	// CodexStatusFailed is the status of an item that did not succeed.
 	CodexStatusFailed = "failed"
+	// CodexStatusDeclined is the status of an item the sandbox or the approval
+	// policy refused to run.
+	CodexStatusDeclined = "declined"
 )
 
 // CodexItem is an item of a Codex event. Only the members that are present are set.

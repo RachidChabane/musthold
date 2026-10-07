@@ -16,7 +16,12 @@ const (
 	LabelStopProbe = "Stop-probe"
 	// LabelPreToolProbe labels the probe that records every PreToolUse payload.
 	LabelPreToolProbe = "PreToolUse-probe"
-	hookCommand       = "hook"
+	// LabelSessionStartProbe and LabelPromptProbe label the probes of the events a
+	// session fires before its first tool call; they show that the project's hook
+	// settings were loaded, which a silent Stop probe could not tell.
+	LabelSessionStartProbe = "SessionStart-probe"
+	LabelPromptProbe       = "UserPromptSubmit-probe"
+	hookCommand            = "hook"
 )
 
 // HookCall is one record of the hook log.

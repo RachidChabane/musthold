@@ -27,14 +27,16 @@ func codexChecks() []Check {
 	return []Check{
 		versionCheck(harness.FlagCodex),
 		capWithoutHooksCheck(harness.FlagCodex),
+		serversStartCheck(),
 		agentFilesLoadCheck(),
 		hooksFireCodexCheck(),
 		agentTypeInPreToolCheck(),
 		toolNamingCheck(),
 		sandboxCheck(),
-		stopProbeCheck(codexFinished, func(evidence.Evidence) []verdict.Pointer { return nil }),
+		stopProbeCheck(stopSources{finished: codexFinished, streamStops: func(evidence.Evidence) []verdict.Pointer { return nil }, controls: codexControls}),
 		editAppliedCheck(),
 		withinCapsCheck(codexSummary),
+		configUntouchedCheck(),
 	}
 }
 
@@ -50,6 +52,16 @@ func codexFinished(found evidence.Evidence) (bool, verdict.Pointer) {
 		}
 	}
 	return false, verdict.Pointer{}
+}
+
+// codexControls are the hooks of the project's hooks file other than Stop that
+// ran: the probe that records every PreToolUse payload.
+func codexControls(found evidence.Evidence) []verdict.Pointer {
+	var pointers []verdict.Pointer
+	for _, probe := range found.Probes(evidence.LabelPreToolProbe) {
+		pointers = append(pointers, evidence.HooksAt(probe.Line, evidence.LabelPreToolProbe))
+	}
+	return pointers
 }
 
 func codexSummary(found evidence.Evidence) (string, bool, verdict.Pointer) {
@@ -213,8 +225,12 @@ func sandboxCheck() Check {
 			}
 			for _, item := range codexStream(found).ItemsOf(evidence.CodexItemCommand) {
 				if item.Event == evidence.CodexEventItemCompleted && strings.Contains(item.Command, probe.File) {
-					if item.ExitCode != nil && *item.ExitCode != 0 {
-						return verdict.Passed(fmt.Sprintf("the write command exited %d and %s does not exist", *item.ExitCode, probe.File), pointer, evidence.StreamAt(item.Line, "command_execution"))
+					pointers := []verdict.Pointer{pointer, evidence.StreamAt(item.Line, "command_execution")}
+					switch {
+					case item.ExitCode != nil && *item.ExitCode != 0:
+						return verdict.Passed(fmt.Sprintf("the write command exited %d and %s does not exist", *item.ExitCode, probe.File), pointers...)
+					case item.Status == evidence.CodexStatusFailed || item.Status == evidence.CodexStatusDeclined:
+						return verdict.Passed(fmt.Sprintf("the write command ended %s and %s does not exist", item.Status, probe.File), pointers...)
 					}
 				}
 			}

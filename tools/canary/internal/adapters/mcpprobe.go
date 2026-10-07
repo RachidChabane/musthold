@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -21,52 +23,107 @@ const (
 	mcpClientName      = "spec-proof-canary"
 	probeTimeout       = 30 * time.Second
 	servedMarker       = "responseSchema"
+	detailLimit        = 200
 )
 
-// McpProber probes the executor server over standard input and output.
+// McpProber talks to the executor server of a module over standard input and
+// output, as a harness does, without any model.
 type McpProber struct{}
 
+// openedServer is a started and initialized executor server.
+type openedServer struct {
+	client stdioClient
+	close  func()
+}
+
+// open starts the server and runs the initialize handshake. On failure it says why.
+func open(ctx context.Context, spec app.ServerSpec) (openedServer, string) {
+	command := exec.CommandContext(ctx, spec.Binary, "mcp", "--role", "executor", "--harness", spec.Harness)
+	command.Dir, command.Env = spec.Dir, spec.Env
+	stdin, err := command.StdinPipe()
+	if err != nil {
+		return openedServer{}, err.Error()
+	}
+	stdout, err := command.StdoutPipe()
+	if err != nil {
+		return openedServer{}, err.Error()
+	}
+	if err := command.Start(); err != nil {
+		return openedServer{}, err.Error()
+	}
+	server := openedServer{
+		client: stdioClient{in: stdin, out: bufio.NewReaderSize(stdout, mcpstdio.MaxMessageBytes)},
+		close:  func() { _ = stdin.Close(); _ = command.Wait() },
+	}
+	if _, err := server.client.call(1, "initialize", map[string]any{
+		"protocolVersion": mcpProtocolVersion, "capabilities": map[string]any{},
+		"clientInfo": map[string]string{"name": mcpClientName, "version": "0"},
+	}); err != nil {
+		server.close()
+		return openedServer{}, "initialize: " + err.Error()
+	}
+	if err := server.client.notify("notifications/initialized"); err != nil {
+		server.close()
+		return openedServer{}, err.Error()
+	}
+	return server, ""
+}
+
+// Handshake starts the module's executor server, runs the initialize handshake and
+// asks for the tools it serves.
+func (McpProber) Handshake(ctx context.Context, spec app.ServerSpec) evidence.ServerStart {
+	result := evidence.ServerStart{Binary: filepath.Base(spec.Binary)}
+	ctx, cancel := context.WithTimeout(ctx, probeTimeout)
+	defer cancel()
+	server, failure := open(ctx, spec)
+	if failure != "" {
+		result.Detail = failure
+		return result
+	}
+	defer server.close()
+	response, err := server.client.call(2, "tools/list", map[string]any{})
+	if err != nil {
+		result.Detail = "tools/list: " + err.Error()
+		return result
+	}
+	var listed struct {
+		Tools []struct {
+			Name string `json:"name"`
+		} `json:"tools"`
+	}
+	if err := json.Unmarshal(response.Result, &listed); err != nil {
+		result.Detail = "tools/list: " + err.Error()
+		return result
+	}
+	var names []string
+	for _, tool := range listed.Tools {
+		names = append(names, tool.Name)
+	}
+	for _, required := range []string{hostproto.ToolFetchRequest, hostproto.ToolSubmitResponse} {
+		if !slices.Contains(names, required) {
+			result.Detail = fmt.Sprintf("the server lists %v and not %s", names, required)
+			return result
+		}
+	}
+	result.Started, result.Detail = true, strings.Join(names, ", ")
+	return result
+}
+
 // Probe starts the executor server and calls fetch_request for the ticket with an
-// empty capability, the way an executor does when no hook fills it in. It makes no model
-// call. The outcome says whether the server refused and whether it served the
+// empty capability, the way an executor does when no hook fills it in. It makes no
+// model call. The outcome says whether the server refused and whether it served the
 // ticket.
 func (McpProber) Probe(ctx context.Context, spec app.ServerSpec, ticket string) evidence.CapProbe {
 	probe := evidence.CapProbe{Attempted: true}
 	ctx, cancel := context.WithTimeout(ctx, probeTimeout)
 	defer cancel()
-	command := exec.CommandContext(ctx, spec.Binary, "mcp", "--role", "executor", "--harness", spec.Harness)
-	command.Dir, command.Env = spec.Dir, spec.Env
-	stdin, err := command.StdinPipe()
-	if err != nil {
-		probe.Detail = err.Error()
+	server, failure := open(ctx, spec)
+	if failure != "" {
+		probe.Detail = failure
 		return probe
 	}
-	stdout, err := command.StdoutPipe()
-	if err != nil {
-		probe.Detail = err.Error()
-		return probe
-	}
-	if err := command.Start(); err != nil {
-		probe.Detail = err.Error()
-		return probe
-	}
-	defer func() {
-		_ = stdin.Close()
-		_ = command.Wait()
-	}()
-	client := stdioClient{in: stdin, out: bufio.NewReaderSize(stdout, mcpstdio.MaxMessageBytes)}
-	if _, err := client.call(1, "initialize", map[string]any{
-		"protocolVersion": mcpProtocolVersion, "capabilities": map[string]any{},
-		"clientInfo": map[string]string{"name": mcpClientName, "version": "0"},
-	}); err != nil {
-		probe.Detail = "initialize: " + err.Error()
-		return probe
-	}
-	if err := client.notify("notifications/initialized"); err != nil {
-		probe.Detail = err.Error()
-		return probe
-	}
-	response, err := client.call(2, "tools/call", map[string]any{
+	defer server.close()
+	response, err := server.client.call(2, "tools/call", map[string]any{
 		"name": hostproto.ToolFetchRequest, "arguments": map[string]string{"ticket": ticket, hostproto.CapMember: ""},
 	})
 	if err != nil {
@@ -100,7 +157,6 @@ func interpretFetch(probe evidence.CapProbe, response mcpstdio.Message) evidence
 	text := strings.Join(texts, "\n")
 	probe.Refused = result.IsError
 	probe.ServedTicket = !result.IsError && strings.Contains(text, servedMarker)
-	const detailLimit = 200
 	if len(text) > detailLimit {
 		text = text[:detailLimit] + "..."
 	}
