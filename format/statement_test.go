@@ -472,6 +472,19 @@ func TestExtensions(t *testing.T) {
 		}
 	})
 
+	t.Run("host exclusions survive an encode and decode [verifies SP-147~1]", func(t *testing.T) {
+		const excluded = 3
+		count := excluded
+		original := proofs.DiscriminatingPower(func(s *power) { s.Predicate.Extensions.HostExclusions = &count })
+		decoded, err := format.DecodeAs[format.DiscriminatingPower](mustEncode(t, original))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := decoded.Predicate.Extensions.HostExclusions; got == nil || *got != excluded {
+			t.Fatalf("host exclusions = %v", got)
+		}
+	})
+
 	t.Run("an invalid decision is reported [verifies SP-20~1]", func(t *testing.T) {
 		cases := []struct {
 			name string

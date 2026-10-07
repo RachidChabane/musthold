@@ -73,6 +73,9 @@ type OperatorScreen struct {
 type Extensions struct {
 	Decision       *Decision       `json:"decision,omitempty"`
 	OperatorScreen *OperatorScreen `json:"operatorScreen,omitempty"`
+	// HostExclusions counts the pool survivors a judged claim cleared without an
+	// executed corroboration of its own (ADR 0005, `signed_pass_basis: judged`).
+	HostExclusions *int            `json:"hostExclusions,omitempty"`
 	Matrix         json.RawMessage `json:"matrix,omitempty"`
 }
 

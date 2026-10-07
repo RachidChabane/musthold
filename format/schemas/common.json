@@ -231,7 +231,8 @@
             "flagged": { "type": "integer", "minimum": 0 },
             "screenedOut": { "type": "integer", "minimum": 0 }
           }
-        }
+        },
+        "hostExclusions": { "type": "integer", "minimum": 0 }
       }
     }
   }

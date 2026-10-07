@@ -68,6 +68,8 @@ Go tests of the module in CI.
 
 ## Executors and corroboration
 
+- **SP-147~1**: WHEN a predicate carries `extensions.hostExclusions` THE SYSTEM
+  SHALL keep it through decoding and encoding.
 - **SP-111~1**: WHEN a predicate or a judged claim carries an executor THE
   SYSTEM SHALL require a channel, an isolation level and a model source of their
   closed sets, a named harness, a named model unless its source is `unknown`,
