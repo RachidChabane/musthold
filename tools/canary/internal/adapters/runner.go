@@ -26,8 +26,20 @@ const (
 	maxStreamLine = 16 << 20
 )
 
-// Lower puts the process, and so every process it starts, at a low priority.
-func Lower() error { return syscall.Setpriority(syscall.PRIO_PROCESS, 0, niceLevel) }
+// Lower puts the process, and so every process it starts, at a low priority:
+// niceness niceLevel, or the current niceness when it is already that low or
+// lower. Setting a niceness below the current one would raise the priority,
+// which the operating system refuses to an unprivileged process.
+func Lower() error {
+	current, err := currentNiceness()
+	if err != nil {
+		return err
+	}
+	if current >= niceLevel {
+		return nil
+	}
+	return syscall.Setpriority(syscall.PRIO_PROCESS, 0, niceLevel)
+}
 
 // Exec runs commands as operating-system processes.
 type Exec struct{}

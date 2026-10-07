@@ -30,11 +30,28 @@ const (
 	helperErrorRPC = "mcp-rpc-error"
 	helperOneTool  = "mcp-one-tool"
 
+	helperLower = "lower"
+
 	recordVariable = "CANARY_TEST_RECORD"
 )
 
 func TestMain(m *testing.M) {
 	switch os.Getenv(helperVariable) {
+	case helperLower:
+		before, err := adapters.CurrentNiceness()
+		if err != nil {
+			os.Exit(1)
+		}
+		if err := adapters.Lower(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		after, err := adapters.CurrentNiceness()
+		if err != nil {
+			os.Exit(1)
+		}
+		fmt.Println(before, after)
+		os.Exit(0)
 	case helperShimMCP:
 		os.Exit(adapters.RunShim("/bin/echo", os.Getenv(recordVariable), []string{"mcp", "--role", "executor"}, os.Stdin, os.Stdout, os.Stderr))
 	case helperRefuse, helperServe, helperSilent, helperErrorRPC, helperOneTool:
@@ -442,6 +459,34 @@ func TestFiles(t *testing.T) {
 		matches, _ := files.Glob(filepath.Join(real, "run-*"))
 		if len(matches) != 1 {
 			t.Errorf("glob = %v", matches)
+		}
+	})
+}
+
+func TestLower(t *testing.T) {
+	lowered := func(t *testing.T, argv ...string) (before, after int) {
+		t.Helper()
+		command := exec.Command(argv[0], argv[1:]...)
+		command.Env = append(os.Environ(), helperVariable+"="+helperLower)
+		output, err := command.Output()
+		if err != nil {
+			t.Fatalf("%v: %v", argv, err)
+		}
+		if _, err := fmt.Sscan(string(output), &before, &after); err != nil {
+			t.Fatalf("output %q: %v", output, err)
+		}
+		return before, after
+	}
+	t.Run("a process at a higher priority than niceness 10 is lowered to it [verifies SP-1509~1]", func(t *testing.T) {
+		before, after := lowered(t, os.Args[0])
+		if want := max(before, 10); after != want {
+			t.Fatalf("niceness %d became %d, want %d", before, after, want)
+		}
+	})
+	t.Run("a process already started lower than niceness 10 keeps its priority and does not fail [verifies SP-1509~1]", func(t *testing.T) {
+		before, after := lowered(t, "nice", "-n", "15", os.Args[0])
+		if before < 10 || after != before {
+			t.Fatalf("niceness %d became %d, want it kept", before, after)
 		}
 	})
 }

@@ -75,6 +75,10 @@ which run the evaluators on recorded event streams and make no model call.
   journal, the edited file and the report into the run's records, and WHEN the
   records of a run are given THE SYSTEM SHALL evaluate them again without
   starting any process.
+- **SP-1509~1**: WHEN the canary starts THE SYSTEM SHALL run at niceness 10 or
+  lower priority, lowering its priority only when it is higher than that and
+  never failing because the scheduler or a guard already started it at a lower
+  priority.
 - **SP-1708~1**: WHEN the command lines of a Copilot CLI session are built THE
   SYSTEM SHALL give it one non-interactive run on the pinned model with the
   portable plugin of every module loaded through `--plugin-dir`, a COPILOT_HOME of
