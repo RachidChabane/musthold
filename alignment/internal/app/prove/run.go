@@ -3,12 +3,12 @@ package prove
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 
 	"github.com/RachidChabane/spec-proof/alignment/internal/app/hostbridge"
 	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/prompt"
 	"github.com/RachidChabane/spec-proof/format"
 )
 
@@ -72,7 +72,7 @@ func (u UseCase) pass(ctx context.Context, options Options) (Result, error) {
 	}
 	result := Result{Wave: wave}
 	for _, subject := range report.Project.Subjects() {
-		proved, err := pass.proveSubject(ctx, subject)
+		proved, err := pass.proveSubject(subject)
 		if err != nil {
 			return Result{}, fmt.Errorf("prove %s: %w", subject.Test.Label(), err)
 		}
@@ -116,51 +116,15 @@ func (u UseCase) writePending(result Result) error {
 		}
 	}
 	pending := format.Pending{Module: u.Settings.PendingModule}
-	for _, criterionName := range slices.Sorted(mapsKeys(reasons)) {
+	for _, criterionName := range slices.Sorted(maps.Keys(reasons)) {
 		for _, reason := range format.PendingReasons() {
 			if reasons[criterionName][reason] {
 				pending.Pending = append(pending.Pending, format.PendingEntry{Criterion: criterionName, Reason: reason})
 			}
 		}
 	}
-	slices.SortFunc(pending.Pending, func(a, b format.PendingEntry) int {
-		if byCriterion := compareText(a.Criterion, b.Criterion); byCriterion != 0 {
-			return byCriterion
-		}
-		return compareText(string(a.Reason), string(b.Reason))
-	})
 	if err := u.Deps.Pending.Write(pending); err != nil {
 		return fmt.Errorf("write the pending file: %w", err)
 	}
 	return nil
-}
-
-func compareText(a, b string) int {
-	switch {
-	case a < b:
-		return -1
-	case a > b:
-		return 1
-	}
-	return 0
-}
-
-func mapsKeys[V any](values map[string]V) func(yield func(string) bool) {
-	return func(yield func(string) bool) {
-		for key := range values {
-			if !yield(key) {
-				return
-			}
-		}
-	}
-}
-
-// templateDigest is the digest of the template of a kind of request the module emits.
-func templateDigest(kind string) string {
-	for k, digest := range prompt.TemplateDigests() {
-		if string(k) == kind {
-			return digest
-		}
-	}
-	return ""
 }

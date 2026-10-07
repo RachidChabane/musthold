@@ -3,7 +3,6 @@ package cli_test
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -51,8 +50,8 @@ type harness struct {
 	entropy io.Reader
 	// waves bounds how many times drive lets the host answer; zero means the default.
 	waves int
-	// agents counts the executor agents the host started.
-	agents int
+	// reverse makes the host meet the pending tickets in the opposite order.
+	reverse bool
 }
 
 // newHarness copies the fixture project into a temporary directory.
@@ -226,9 +225,12 @@ func (h *harness) attest(item hostproto.ListingItem, agent string) string {
 // agent started for the role fetches the ticket and submits with its capability.
 func (h *harness) serveAttested(answers hostprototest.AnswerSource) {
 	h.t.Helper()
-	for _, item := range h.requestsJSON().Items {
-		h.agents++
-		capability := h.attest(item, fmt.Sprintf("agent-%d", h.agents))
+	items := h.requestsJSON().Items
+	if h.reverse {
+		slices.Reverse(items)
+	}
+	for _, item := range items {
+		capability := h.attest(item, "agent-"+strings.ReplaceAll(item.Ticket.TicketID.String(), ".", "-"))
 		answer, err := answers.Answer(hostprototest.PersonaHonest, item.View)
 		if err != nil {
 			h.t.Fatal(err)
@@ -384,15 +386,4 @@ func (h *harness) requestsJSON() hostproto.Listing {
 		h.t.Fatal(err)
 	}
 	return listing
-}
-
-// itemsByKind lists the pending tickets of a request kind, by the role that serves them.
-func (h *harness) pendingRoles() []string {
-	h.t.Helper()
-	var roles []string
-	for _, item := range h.requestsJSON().Items {
-		roles = append(roles, item.Role)
-	}
-	slices.Sort(roles)
-	return roles
 }

@@ -4,12 +4,14 @@ import (
 	"cmp"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
 	"github.com/RachidChabane/spec-proof/alignment/internal/app/hostbridge"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
 	"github.com/RachidChabane/spec-proof/alignment/internal/domain/prompt"
+	"github.com/RachidChabane/spec-proof/alignment/internal/domain/verdict"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
@@ -22,6 +24,7 @@ const (
 	inputNameModels     = "host-models"
 	inputNameResponses  = "host-responses"
 	modelSeparator      = "@"
+	sourceSeparator     = ":"
 	responseSeparator   = "\x00"
 	// noExecutorHarness names the executor of a Statement that rests on no answer.
 	noExecutorHarness  = "spec-proof-alignment"
@@ -43,7 +46,7 @@ func sortInputs(inputs []format.Input) []format.Input {
 // baseInputs are the inputs of a Statement that exist before any answer does: the
 // statement, the test and code files, the policy, the templates, the masked
 // input and the discriminating-power proofs the matrix is read from.
-func (s *subjectRun) baseInputs(declared criterion.Criterion, evidence testEvidence) ([]format.Input, error) {
+func (s *subjectRun) baseInputs(declared criterion.Criterion, evidence testEvidence) []format.Input {
 	inputs := []format.Input{
 		descriptor(format.RoleSpec, inputNameStatement, declared.StatementDigest),
 		descriptor(format.RoleDecisionPolicy, inputNamePolicy, s.pass.policyDigest),
@@ -67,7 +70,7 @@ func (s *subjectRun) baseInputs(declared criterion.Criterion, evidence testEvide
 		inputs = append(inputs, descriptor(format.RolePromptTemplate, string(kind), digest))
 	}
 	inputs = append(inputs, evidence.proofInputs...)
-	return sortInputs(inputs), nil
+	return sortInputs(inputs)
 }
 
 // sourceFiles lists the test files the Statement rests on: those the masked input
@@ -104,17 +107,7 @@ func finalInputs(base []format.Input, used []hostbridge.Answer) []format.Input {
 }
 
 func digestOfSet(set map[string]bool) string {
-	return format.SHA256Hex([]byte(strings.Join(slices.Sorted(keysOf(set)), responseSeparator)))
-}
-
-func keysOf(set map[string]bool) func(yield func(string) bool) {
-	return func(yield func(string) bool) {
-		for key := range set {
-			if !yield(key) {
-				return
-			}
-		}
-	}
+	return format.SHA256Hex([]byte(strings.Join(slices.Sorted(maps.Keys(set)), responseSeparator)))
 }
 
 // weakest picks the executor with the weakest isolation, then the weakest
@@ -129,6 +122,8 @@ func weakest(profiles []format.ExecutorProfile) (format.ExecutorProfile, bool) {
 			cmp.Compare(a.Isolation.Strength(), b.Isolation.Strength()),
 			cmp.Compare(slices.Index(channels, b.Channel), slices.Index(channels, a.Channel)),
 			strings.Compare(a.Model.Name, b.Model.Name),
+			strings.Compare(a.Attestation.AgentID, b.Attestation.AgentID),
+			strings.Compare(a.Attestation.CapDigest, b.Attestation.CapDigest),
 		)
 	}), true
 }
@@ -192,7 +187,7 @@ func (s *subjectRun) writeStatement(declared criterion.Criterion, evidence testE
 	if err != nil {
 		return "", err
 	}
-	deciders := slices.Clone(decision.Deciders)
+	deciders := s.qualifiedDeciders(decision.Deciders, outcome.closedSource)
 	slices.Sort(deciders)
 	predicate := format.Alignment{
 		Requirement: format.Requirement{ID: declared.Ref.ID, Revision: declared.Ref.Revision, StatementCanonicalization: format.StatementCanonicalizationC1},
@@ -218,4 +213,20 @@ func (s *subjectRun) writeStatement(declared criterion.Criterion, evidence testE
 		return "", fmt.Errorf("write the Statement of %s for %s: %w", s.subject.Test.Label(), declared.Ref, err)
 	}
 	return cacheKey, nil
+}
+
+// qualifiedDeciders names, next to each signal that carries a confidence, where
+// that confidence came from: `system_one:<source>` and `judge:host-votes(<k>)`.
+func (s *subjectRun) qualifiedDeciders(deciders []string, closedSource string) []string {
+	qualified := make([]string, len(deciders))
+	for index, decider := range deciders {
+		switch {
+		case decider == verdict.DeciderSystemOne && closedSource != "":
+			decider += sourceSeparator + closedSource
+		case decider == verdict.DeciderJudge:
+			decider += sourceSeparator + fmt.Sprintf("host-votes(%d)", s.pass.settings.Policy.AlignK)
+		}
+		qualified[index] = decider
+	}
+	return qualified
 }

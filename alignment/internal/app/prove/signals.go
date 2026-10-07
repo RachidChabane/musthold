@@ -25,10 +25,11 @@ const (
 	askOverBudget
 )
 
-// ask puts a request to the host and reports where it stands. A request with a
-// cost is billed against the budget of the test the first time it is asked, in
-// the order the pass asks, so the budget never depends on what earlier runs left
-// in the store.
+// ask puts a request to the host and reports where it stands. A reasoning request,
+// one the judge answers, is billed against the budget of the test the first time
+// it is asked, in the order the pass asks, so the budget never depends on what
+// earlier runs left in the store. Closed questions, which System One or the
+// deciders answer, are not reasoning calls and cost nothing.
 func (s *subjectRun) ask(ask hostbridge.Ask, cost int) (hostbridge.Answer, askState, error) {
 	if cost > 0 {
 		if s.spent+cost > s.pass.settings.Policy.MaxReasoningCalls {
@@ -184,7 +185,7 @@ func (s *subjectRun) closedAnswer(group []string, final bool) (*closedSignal, er
 	s.closed[key] = signal
 	decideK := s.pass.settings.Policy.DecideK
 	ask := hostbridge.Ask{Request: request, Votes: 1, Criteria: s.declaredNames(), Purpose: string(hostproto.KindDecideClosed)}
-	answer, state, err := s.ask(ask, decideK)
+	answer, state, err := s.ask(ask, 0)
 	if err != nil || state != askAnswered {
 		signal.state = state
 		return signal, err

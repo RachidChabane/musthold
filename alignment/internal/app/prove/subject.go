@@ -1,7 +1,6 @@
 package prove
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -48,12 +47,12 @@ type subjectRun struct {
 	closed  map[string]*closedSignal
 }
 
-func (p *passState) proveSubject(ctx context.Context, subject criterion.Subject) ([]TestResult, error) {
+func (p *passState) proveSubject(subject criterion.Subject) ([]TestResult, error) {
 	run := &subjectRun{
 		pass: p, subject: subject, answers: map[hostproto.RequestID]hostbridge.Answer{},
 		judges: map[bool]*judgeSignal{}, closed: map[string]*closedSignal{},
 	}
-	return run.prove(ctx)
+	return run.prove()
 }
 
 func (s *subjectRun) declaredNames() []string {
@@ -64,8 +63,11 @@ func (s *subjectRun) declaredNames() []string {
 	return names
 }
 
-func (s *subjectRun) prove(_ context.Context) ([]TestResult, error) {
+func (s *subjectRun) prove() ([]TestResult, error) {
 	s.masked, s.input, s.failure = s.pass.buildInput(s.subject.Test)
+	if s.failure != nil {
+		s.pass.addFinding(fmt.Sprintf("%s %s: %s", s.failure.reason, s.subject.Test.Label(), s.failure.detail))
+	}
 	s.maskedDigest = s.digestOfInput()
 	var results []TestResult
 	allWritten := true
@@ -134,10 +136,7 @@ func (s *subjectRun) proveDeclared(ref criterion.Ref) (TestResult, error) {
 	if err != nil {
 		return TestResult{}, err
 	}
-	base, err := s.baseInputs(declared, evidence)
-	if err != nil {
-		return TestResult{}, err
-	}
+	base := s.baseInputs(declared, evidence)
 	subject := format.RequirementSubject(declared.Ref.ID, declared.Ref.Revision, declared.StatementDigest)
 	baseKey, err := format.CacheKey([]format.Subject{subject}, base)
 	if err != nil {
@@ -200,8 +199,10 @@ func (s *subjectRun) rememberFresh(baseKey string, record freshRecord) error {
 type decided struct {
 	decision verdict.Decision
 	// used lists the answers the verdict rests on.
-	used  []hostbridge.Answer
-	state askState
+	used []hostbridge.Answer
+	// closedSource is where the confidence of the closed answers came from.
+	closedSource string
+	state        askState
 }
 
 // decide gathers the signals the verdict table asks for, one at a time, until it
@@ -214,10 +215,11 @@ func (s *subjectRun) decide(declared criterion.Ref, m matrix.Result) (decided, e
 		return decided{decision: failed(s.failure.reason)}, nil
 	}
 	var used []hostbridge.Answer
+	source := ""
 	for {
 		decision := verdict.Decide(in, policy)
 		if decision.Done {
-			return decided{decision: decision, used: used}, nil
+			return decided{decision: decision, used: used, closedSource: source}, nil
 		}
 		switch decision.Need {
 		case verdict.NeedSystemOne:
@@ -229,7 +231,8 @@ func (s *subjectRun) decide(declared criterion.Ref, m matrix.Result) (decided, e
 				return decided{state: askPending}, nil
 			}
 			in.SystemOne = signal.input
-			used = append(used, s.closedAnswers()...)
+			closed := s.closedAnswers()
+			used, source = append(used, closed...), confidenceSource(closed, policy.DecideK)
 		case verdict.NeedJudge:
 			signal, err := s.judge(false)
 			if err != nil {
@@ -338,4 +341,16 @@ func (s *subjectRun) closedAnswers() []hostbridge.Answer {
 	}
 	slices.SortFunc(answers, func(a, b hostbridge.Answer) int { return strings.Compare(string(a.ID), string(b.ID)) })
 	return answers
+}
+
+// confidenceSource says where the confidence of closed answers came from: the
+// relay's source when a System One endpoint answered, the modal share of the
+// `decide_k` host votes otherwise.
+func confidenceSource(answers []hostbridge.Answer, decideK int) string {
+	for _, answer := range answers {
+		if relayed := answer.Votes[0].Executor; relayed.Channel == format.ChannelSystemOneRelay {
+			return relayed.Model.Name
+		}
+	}
+	return fmt.Sprintf("host-votes(%d)", decideK)
 }

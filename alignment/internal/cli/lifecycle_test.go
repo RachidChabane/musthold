@@ -5,6 +5,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -355,4 +356,32 @@ func TestStatementShape(t *testing.T) {
 			t.Error("two criteria share a cache key")
 		}
 	})
+}
+
+func TestConsumeOrder(t *testing.T) {
+	t.Run("the order the host answers in never changes a Statement [verifies SP-363~1]", func(t *testing.T) {
+		forward := newHarness(t, testkit.PythonParcel)
+		forward.withPowers(testkit.PythonPowers())
+		forward.driveAttested(testkit.Oracle{})
+		backward := newHarness(t, testkit.PythonParcel)
+		backward.withPowers(testkit.PythonPowers())
+		backward.reverse = true
+		backward.driveAttested(testkit.Oracle{})
+		want, got := withoutCapDigests(forward.statementBytes()), withoutCapDigests(backward.statementBytes())
+		if len(want) == 0 || !maps.Equal(want, got) {
+			t.Fatalf("%d and %d Statements, equal %t", len(want), len(got), maps.Equal(want, got))
+		}
+	})
+}
+
+// capDigest names a field that depends on the secret of the install, which two
+// hosts do not share.
+var capDigest = regexp.MustCompile(`"capDigest":"[0-9a-f]{64}"`)
+
+func withoutCapDigests(statements map[string]string) map[string]string {
+	plain := make(map[string]string, len(statements))
+	for path, content := range statements {
+		plain[path] = capDigest.ReplaceAllString(content, `"capDigest":""`)
+	}
+	return plain
 }

@@ -318,6 +318,9 @@ func TestSystemOne(t *testing.T) {
 		if decision == nil || decision.Basis != format.BasisSystemOne || decision.RawConfidence != 1 || decision.Threshold != 0.9 {
 			t.Fatalf("decision %+v", decision)
 		}
+		if !slices.Contains(decision.Deciders, "system_one:host-votes(3)") || !slices.Contains(decision.Deciders, "matrix") {
+			t.Fatalf("deciders %v", decision.Deciders)
+		}
 	})
 
 	t.Run("a dissenting decider lowers the confidence below the route threshold and the judge decides [verifies SP-361~1]", func(t *testing.T) {
@@ -346,6 +349,9 @@ func TestSystemOne(t *testing.T) {
 		decision := statement.Predicate.Extensions.Decision
 		if decision.Basis != format.BasisSystemOne || decision.RawConfidence != 0.93 || statement.Predicate.Executor.Channel != format.ChannelSystemOneRelay {
 			t.Fatalf("decision %+v executor %+v", decision, statement.Predicate.Executor.ExecutorProfile)
+		}
+		if !slices.Contains(decision.Deciders, "system_one:systemone:nimble@0123abcd") {
+			t.Fatalf("deciders %v do not name the relay source", decision.Deciders)
 		}
 		entries, err := h.store().ListEntries()
 		if err != nil {

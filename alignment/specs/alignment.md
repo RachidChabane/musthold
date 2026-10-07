@@ -135,8 +135,9 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-330~1**: WHEN a test is proved THE SYSTEM SHALL write one Statement per
   declared criterion, with the verdict as a judged claim, the executor with the
   weakest isolation of the answers it rests on and `blind`, the `corroboratedBy`
-  evidence, `extensions.decision` and `extensions.matrix`, in RFC 8785 form,
-  validated against the schemas before it is written.
+  evidence, `extensions.decision`, whose deciders name the confidence source of
+  each signal, and `extensions.matrix`, in RFC 8785 form, validated against the
+  schemas before it is written.
 - **SP-333~1**: WHEN the pending file is written THE SYSTEM SHALL list the criteria
   that wait for tickets as `awaiting_host`, those that wait for the
   discriminating-power proof as `awaiting_proof` and those whose host stopped
@@ -230,10 +231,10 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-357~1**: WHEN the host forges answers THE SYSTEM SHALL never issue a
   corroborated ALIGNED verdict for a test whose matrix is negative or whose
   discriminating-power Statement is absent.
-- **SP-358~1**: WHEN a test needs more tickets than `max_reasoning_calls` THE
-  SYSTEM SHALL decide UNDETERMINED with the reason `budget_exhausted`, and WHEN
-  its tickets are abandoned THE SYSTEM SHALL decide UNDETERMINED with the reason
-  `host_unresponsive`.
+- **SP-358~1**: WHEN a test needs more judge tickets than `max_reasoning_calls` THE
+  SYSTEM SHALL decide UNDETERMINED with the reason `budget_exhausted`, leaving the
+  closed questions outside the budget, and WHEN its tickets are abandoned THE
+  SYSTEM SHALL decide UNDETERMINED with the reason `host_unresponsive`.
 - **SP-359~1**: WHEN the discriminating-power module still waits for a criterion and
   no usable Statement exists THE SYSTEM SHALL not write the Statement and SHALL
   list the criterion as `awaiting_proof`.
@@ -244,6 +245,8 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   deciders answer it SHALL take the modal share of `decide_k` votes.
 - **SP-362~1**: WHEN the shadow audit selects a two-signal verdict THE SYSTEM SHALL
   ask the judge too and let its outcome replace the verdict.
+- **SP-363~1**: WHEN the host answers the tickets in any order THE SYSTEM SHALL write
+  the same Statements.
 
 ## Architecture
 
