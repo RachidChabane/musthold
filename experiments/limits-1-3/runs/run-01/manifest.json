@@ -1,0 +1,27 @@
+{
+  "cli_versions": {
+    "claude": "2.1.292",
+    "codex": "0.155.1"
+  },
+  "fixture_digest": "0d2e1be50cbc6ff3abdae4b4b61e11caaa8204622c850177a8884cd232f16c9b",
+  "harness_digest": "5e23a0adf15d3bc773d600c8f820eb2be7dff050101a5d051b778a29974defc3",
+  "models": [
+    {
+      "cli": "claude",
+      "model": "claude-opus-5-5",
+      "provenance": "reported"
+    },
+    {
+      "cli": "claude",
+      "model": "claude-sonnet-5-5",
+      "provenance": "reported"
+    },
+    {
+      "cli": "codex",
+      "model": "gpt-5.6-terra",
+      "provenance": "requested_only"
+    }
+  ],
+  "prereg_commit": "3fad777480c146f333671fb7ae9a9355003c3df8",
+  "run_id": "run-01"
+}

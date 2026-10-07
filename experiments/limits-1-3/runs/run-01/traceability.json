@@ -1,0 +1,635 @@
+{
+  "exit_code": 0,
+  "extensions": {},
+  "findings": [],
+  "requirements": [
+    {
+      "coverage": "covered",
+      "extensions": {},
+      "id": "PARK-1",
+      "in_focus": true,
+      "location": {
+        "file": "spec/parking.md",
+        "line": 13
+      },
+      "ref": "PARK-1~1",
+      "revision": 1,
+      "statement": "WHEN the exit time precedes the entry time THE SYSTEM SHALL raise ValueError.",
+      "status": "active",
+      "tests": [
+        {
+          "classname": "tests.test_intervals",
+          "name": "test_breakdown_rejects_exit_before_entry",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_intervals.py",
+            "line": 53
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_intervals",
+          "name": "test_exit_before_entry_raises_even_when_ticket_is_lost",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_intervals.py",
+            "line": 13
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_intervals",
+          "name": "test_exit_before_entry_reports_reversed_times",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_intervals.py",
+            "line": 25
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_intervals",
+          "name": "test_exit_earlier_than_entry_is_rejected",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_intervals.py",
+            "line": 38
+          },
+          "suite": "pytest"
+        }
+      ]
+    },
+    {
+      "coverage": "covered",
+      "extensions": {},
+      "id": "PARK-2",
+      "in_focus": true,
+      "location": {
+        "file": "spec/parking.md",
+        "line": 15
+      },
+      "ref": "PARK-2~1",
+      "revision": 1,
+      "statement": "WHEN a stay lasts 15 minutes or less THE SYSTEM SHALL charge 0.00.",
+      "status": "active",
+      "tests": [
+        {
+          "classname": "tests.test_intervals",
+          "name": "test_grace_period_ends_after_fifteen_minutes",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_intervals.py",
+            "line": 62
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_intervals",
+          "name": "test_quarter_hour_over_midnight_is_free",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_intervals.py",
+            "line": 47
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_intervals",
+          "name": "test_short_stay_within_grace_period_is_free",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_intervals.py",
+            "line": 20
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_intervals",
+          "name": "test_stay_of_fifteen_minutes_is_free",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_intervals.py",
+            "line": 32
+          },
+          "suite": "pytest"
+        }
+      ]
+    },
+    {
+      "coverage": "covered",
+      "extensions": {},
+      "id": "PARK-3",
+      "in_focus": true,
+      "location": {
+        "file": "spec/parking.md",
+        "line": 16
+      },
+      "ref": "PARK-3~1",
+      "revision": 1,
+      "statement": "WHEN a stay of at most 24 hours lasts more than 15 minutes THE SYSTEM SHALL charge 2.50 per started hour, counted from the entry time.",
+      "status": "active",
+      "tests": [
+        {
+          "classname": "tests.test_tariff",
+          "name": "test_hourly_charge_is_quoted_in_cents",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tariff.py",
+            "line": 55
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_tariff",
+          "name": "test_hours_are_counted_from_entry_time",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tariff.py",
+            "line": 75
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_tariff",
+          "name": "test_partial_hour_is_charged_as_full_hour",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tariff.py",
+            "line": 20
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_tariff",
+          "name": "test_two_hour_stay_costs_two_started_hours",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tariff.py",
+            "line": 34
+          },
+          "suite": "pytest"
+        }
+      ]
+    },
+    {
+      "coverage": "covered",
+      "extensions": {},
+      "id": "PARK-4",
+      "in_focus": true,
+      "location": {
+        "file": "spec/parking.md",
+        "line": 18
+      },
+      "ref": "PARK-4~1",
+      "revision": 1,
+      "statement": "WHEN a stay of at most 24 hours lasts more than 15 minutes THE SYSTEM SHALL cap the charge at 18.00.",
+      "status": "active",
+      "tests": [
+        {
+          "classname": "tests.test_tariff",
+          "name": "test_cap_is_reached_after_seven_hours",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tariff.py",
+            "line": 14
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_tariff",
+          "name": "test_cap_leaves_three_hour_stay_unchanged",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tariff.py",
+            "line": 80
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_tariff",
+          "name": "test_charge_is_capped_at_eighteen_euros",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tariff.py",
+            "line": 69
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_tariff",
+          "name": "test_full_day_charge_is_capped",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tariff.py",
+            "line": 49
+          },
+          "suite": "pytest"
+        }
+      ]
+    },
+    {
+      "coverage": "covered",
+      "extensions": {},
+      "id": "PARK-5",
+      "in_focus": true,
+      "location": {
+        "file": "spec/parking.md",
+        "line": 20
+      },
+      "ref": "PARK-5~1",
+      "revision": 1,
+      "statement": "WHEN a stay lasts more than 24 hours THE SYSTEM SHALL charge 15.00 per started 24-hour period, counted from the entry time.",
+      "status": "active",
+      "tests": [
+        {
+          "classname": "tests.test_tariff",
+          "name": "test_long_stay_breakdown_uses_day_rate",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tariff.py",
+            "line": 27
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_tariff",
+          "name": "test_long_stay_charges_each_started_day",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tariff.py",
+            "line": 61
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_tariff",
+          "name": "test_multi_day_stay_charge_with_lost_ticket",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tariff.py",
+            "line": 39
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_tariff",
+          "name": "test_stay_just_over_a_day_costs_two_day_periods",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tariff.py",
+            "line": 44
+          },
+          "suite": "pytest"
+        }
+      ]
+    },
+    {
+      "coverage": "covered",
+      "extensions": {},
+      "id": "PARK-6",
+      "in_focus": true,
+      "location": {
+        "file": "spec/parking.md",
+        "line": 22
+      },
+      "ref": "PARK-6~1",
+      "revision": 1,
+      "statement": "WHEN the entry time and the exit time both fall between 22:00 and 06:00 of the same night and the stay lasts more than 2 hours THE SYSTEM SHALL charge 6.00.",
+      "status": "active",
+      "tests": [
+        {
+          "classname": "tests.test_night",
+          "name": "test_night_flat_rate_applies_to_whole_night",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_night.py",
+            "line": 18
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_night",
+          "name": "test_night_rate_requires_entry_and_exit_in_same_night",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_night.py",
+            "line": 13
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_night",
+          "name": "test_night_stay_over_two_hours_costs_six_euros",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_night.py",
+            "line": 24
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_night",
+          "name": "test_night_window_compares_entry_and_exit_times",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_night.py",
+            "line": 29
+          },
+          "suite": "pytest"
+        }
+      ]
+    },
+    {
+      "coverage": "covered",
+      "extensions": {},
+      "id": "PARK-7",
+      "in_focus": true,
+      "location": {
+        "file": "spec/parking.md",
+        "line": 25
+      },
+      "ref": "PARK-7~1",
+      "revision": 1,
+      "statement": "WHEN the ticket is validated and the stay lasts 3 hours or less THE SYSTEM SHALL charge 0.00, and SHALL charge a validated stay of more than 3 hours as if the ticket were not validated.",
+      "status": "active",
+      "tests": [
+        {
+          "classname": "tests.test_tickets",
+          "name": "test_validated_stay_breakdown_is_free",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tickets.py",
+            "line": 41
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_tickets",
+          "name": "test_validated_stay_under_three_hours_is_free",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tickets.py",
+            "line": 48
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_tickets",
+          "name": "test_validated_ticket_covers_two_hour_stay",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tickets.py",
+            "line": 14
+          },
+          "suite": "pytest"
+        }
+      ]
+    },
+    {
+      "coverage": "covered",
+      "extensions": {},
+      "id": "PARK-8",
+      "in_focus": true,
+      "location": {
+        "file": "spec/parking.md",
+        "line": 28
+      },
+      "ref": "PARK-8~1",
+      "revision": 1,
+      "statement": "WHEN the ticket is lost THE SYSTEM SHALL charge 40.00, whatever the entry time, the exit time and the validation.",
+      "status": "active",
+      "tests": [
+        {
+          "classname": "tests.test_tickets",
+          "name": "test_lost_ticket_breakdown_shows_flat_fee",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tickets.py",
+            "line": 26
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_tickets",
+          "name": "test_lost_ticket_costs_forty_whatever_the_stay",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tickets.py",
+            "line": 55
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_tickets",
+          "name": "test_lost_ticket_fee_is_forty_euros",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tickets.py",
+            "line": 34
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_tickets",
+          "name": "test_lost_ticket_fee_only_applies_when_ticket_is_lost",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_tickets.py",
+            "line": 19
+          },
+          "suite": "pytest"
+        }
+      ]
+    },
+    {
+      "coverage": "covered",
+      "extensions": {},
+      "id": "PARK-9",
+      "in_focus": true,
+      "location": {
+        "file": "spec/parking.md",
+        "line": 33
+      },
+      "ref": "PARK-9~1",
+      "revision": 1,
+      "statement": "WHEN the amount is above 0.00 THE SYSTEM SHALL print the receipt as \"EUR \" followed by the amount with exactly two decimals.",
+      "status": "active",
+      "tests": [
+        {
+          "classname": "tests.test_receipt",
+          "name": "test_receipt_for_two_hour_stay_prints_euros",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_receipt.py",
+            "line": 34
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_receipt",
+          "name": "test_receipt_pads_whole_euros_to_two_decimals",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_receipt.py",
+            "line": 13
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_receipt",
+          "name": "test_receipt_separates_currency_from_amount_with_a_space",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_receipt.py",
+            "line": 44
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_receipt",
+          "name": "test_receipt_shows_amount_with_two_decimals",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_receipt.py",
+            "line": 39
+          },
+          "suite": "pytest"
+        }
+      ]
+    },
+    {
+      "coverage": "covered",
+      "extensions": {},
+      "id": "PARK-10",
+      "in_focus": true,
+      "location": {
+        "file": "spec/parking.md",
+        "line": 35
+      },
+      "ref": "PARK-10~1",
+      "revision": 1,
+      "statement": "WHEN the amount is 0.00 THE SYSTEM SHALL print the receipt as \"FREE\".",
+      "status": "active",
+      "tests": [
+        {
+          "classname": "tests.test_receipt",
+          "name": "test_free_receipt_is_printed_for_zero",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_receipt.py",
+            "line": 18
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_receipt",
+          "name": "test_receipt_is_free_only_for_exactly_zero",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_receipt.py",
+            "line": 24
+          },
+          "suite": "pytest"
+        },
+        {
+          "classname": "tests.test_receipt",
+          "name": "test_zero_amount_receipt_is_free",
+          "outcome": "passed",
+          "results_file": "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml",
+          "source": {
+            "file": "tests/test_receipt.py",
+            "line": 29
+          },
+          "suite": "pytest"
+        }
+      ]
+    }
+  ],
+  "run": {
+    "advisory": false,
+    "fail_on": "error",
+    "focus": {
+      "everything": false,
+      "files": [
+        "spec/parking.md"
+      ],
+      "ids": []
+    },
+    "id_pattern": "[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*",
+    "results_files": [
+      "/var/folders/_k/x_zyp95d6vl3j4dbwfmyd3640000gp/T/pilot-work-lh9z3nsf/1fd66c39d66348d1b2d3bbe35816c5ea/junit.xml"
+    ],
+    "spec_files": [
+      "spec/parking.md"
+    ],
+    "test_roots": [
+      "tests"
+    ]
+  },
+  "schema_version": "1.1",
+  "summary": {
+    "findings": {
+      "blocking": 0,
+      "error": 0,
+      "info": 0,
+      "warning": 0
+    },
+    "requirements": {
+      "covered": 10,
+      "failed": 0,
+      "in_focus": 10,
+      "known": 10,
+      "non_testable": 0,
+      "not_run": 0,
+      "skipped": 0,
+      "uncovered": 0
+    },
+    "tests": {
+      "bound": 38,
+      "total": 38,
+      "untagged": 0
+    }
+  },
+  "tool": {
+    "name": "shallnot",
+    "version": "v0.4.2"
+  },
+  "verdict": "pass"
+}
