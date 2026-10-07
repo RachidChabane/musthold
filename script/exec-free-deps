@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# Regenerate verify/third_party: copies of the dependencies of the Sigstore
+# verifier that import os/exec in code the verifier never runs, with that code
+# removed. verify/go.mod replaces each of them by its copy, so the verifier binary
+# links no os/exec (tools/archtest, SP-39).
+#
+# The copies hold the packages the workspace links on linux, darwin and windows,
+# without tests, at the version verify/go.mod requires. Run it again after a
+# version of one of these modules changes.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+destination=verify/third_party
+modules="github.com/digitorus/pkcs7:pkcs7 github.com/in-toto/in-toto-golang:in-toto-golang github.com/google/certificate-transparency-go:certificate-transparency-go"
+platforms="linux darwin windows"
+
+for tool in jq perl gofmt; do
+  command -v "$tool" >/dev/null 2>&1 || { echo "$tool is required" >&2; exit 2; }
+done
+
+throttle() { nice -n 10 env GOMAXPROCS=2 "$@"; }
+
+# Print "<module path> <import path>" for every package of the patched modules that
+# any module of the workspace links on any platform, tests included.
+linked_packages() {
+  local pattern
+  pattern="$(printf '%s\n' $modules | cut -d: -f1 | paste -sd'|' -)"
+  for goos in $platforms; do
+    for module in $(script/modules); do
+      (cd "$module" && throttle env GOOS="$goos" go list -deps -test \
+        -f '{{if .Module}}{{.Module.Path}} {{.ImportPath}}{{end}}' ./... 2>/dev/null)
+    done
+  done | sort -u | grep -E "^(${pattern}) "
+}
+
+upstream_directory() {
+  local module="$1" version
+  version="$(go mod edit -json verify/go.mod | jq -r --arg m "$module" '.Require[] | select(.Path == $m) | .Version')"
+  [ -n "$version" ] || { echo "verify/go.mod does not require $module" >&2; exit 2; }
+  go mod download -json "${module}@${version}" | jq -r '.Dir'
+}
+
+packages="$(linked_packages)"
+rm -rf "$destination"
+for entry in $modules; do
+  module="${entry%%:*}"
+  name="${entry##*:}"
+  source_root="$(upstream_directory "$module")"
+  target="$destination/$name"
+  mkdir -p "$target"
+  cp "$source_root/go.mod" "$target/go.mod"
+  for license in "$source_root"/LICENSE*; do
+    [ -f "$license" ] && cp "$license" "$target/"
+  done
+  chmod -R u+w "$target"
+  echo "$packages" | awk -v m="$module" '$1 == m { print $2 }' | while read -r import_path; do
+    relative="${import_path#"$module"}"
+    relative="${relative#/}"
+    mkdir -p "$target/$relative"
+    for file in "$source_root/$relative"/*.go; do
+      case "$file" in *_test.go) continue ;; esac
+      cp "$file" "$target/$relative/"
+    done
+    chmod -R u+w "$target/$relative"
+  done
+done
+
+# digitorus/pkcs7: a test file of the library is compiled into it and runs openssl.
+rm "$destination/pkcs7/verify_test_dsa.go"
+
+# certificate-transparency-go: the macOS system roots are read with the `security`
+# tool; the copy has no system roots without cgo and no other change.
+rm -f "$destination/certificate-transparency-go/x509/root_darwin_arm_gen.go"
+cat > "$destination/certificate-transparency-go/x509/root_darwin.go" <<'GO'
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package x509
+
+import (
+	"errors"
+	"os"
+	"strings"
+)
+
+var debugDarwinRoots = strings.Contains(os.Getenv("GODEBUG"), "x509roots=1")
+
+func (c *Certificate) systemVerify(opts *VerifyOptions) (chains [][]*Certificate, err error) {
+	return nil, nil
+}
+
+// execSecurityRoots has no system roots to offer: this copy starts no process.
+func execSecurityRoots() (*CertPool, error) {
+	return nil, errors.New("x509: system roots without cgo are unavailable")
+}
+GO
+
+# in-toto-golang: running a command is the one thing the verifier never does.
+perl -0pi -e 's/\/\*\nwaitErrToExitCode converts.*?\n\}\n\n\/\*\nRunCommand executes.*?\n\}\n\n/\/\*\nRunCommand is unavailable: this copy of the library starts no process.\n\*\/\nfunc RunCommand(cmdArgs []string, runDir string) (map[string]interface{}, error) {\n\treturn nil, errors.New("running a command is unavailable")\n}\n\n/s; s/\t"io"\n//; s/\t"os\/exec"\n//; s/\t"syscall"\n//' \
+  "$destination/in-toto-golang/in_toto/runlib.go"
+
+gofmt -w "$destination"
+echo "regenerated $destination"

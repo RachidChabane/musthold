@@ -36,14 +36,26 @@ const usageText = "usage:\n  %[1]s version\n  %[1]s --bundles DIR [--accept-loca
 // errUsage marks a command line that does not parse.
 var errUsage = errors.New("usage")
 
+// Environment is what the binary is given besides its arguments.
+type Environment struct {
+	// TUFRoot is the TUF root every trusted root is verified back to; nil means
+	// the public-good root embedded in the binary.
+	TUFRoot []byte
+}
+
 // Main runs the binary called binary with the given arguments and returns its
 // exit code.
 func Main(binary string, args []string, stdout, stderr io.Writer) int {
+	return Run(Environment{}, binary, args, stdout, stderr)
+}
+
+// Run runs the binary in an environment and returns its exit code.
+func Run(environment Environment, binary string, args []string, stdout, stderr io.Writer) int {
 	if len(args) == 1 && args[0] == versionCommand {
 		fmt.Fprintln(stdout, version.Line(binary))
 		return ExitClean
 	}
-	err := run(args, stdout)
+	err := run(environment, args, stdout)
 	switch {
 	case err == nil:
 		return ExitClean
@@ -89,7 +101,7 @@ func parseOptions(args []string) (options, error) {
 	return opts, nil
 }
 
-func run(args []string, stdout io.Writer) error {
+func run(environment Environment, args []string, stdout io.Writer) error {
 	opts, err := parseOptions(args)
 	if err != nil {
 		return err
@@ -105,7 +117,7 @@ func run(args []string, stdout io.Writer) error {
 		service.Local = filesource.LocalCache{Root: opts.acceptLocal}
 	}
 	if opts.bundles != "" {
-		trust, err := newBundleTrust(opts, filepath.Join(filepath.Dir(opts.out), trustPolicyFileName))
+		trust, err := newBundleTrust(environment, opts, filepath.Join(filepath.Dir(opts.out), trustPolicyFileName))
 		if err != nil {
 			return err
 		}

@@ -33,6 +33,15 @@ tests of the module in CI.
   pre-authentication encoding of the payload with the standard library, and
   SHALL refuse an unknown key, a tampered payload, signature or payload type, and
   an envelope without a valid signature of a pinned key.
+- **SP-163~1**: WHEN a bundle is a Sigstore bundle THE SYSTEM SHALL accept it
+  only when the certificate chain leads to the trusted root, a Rekor entry gives
+  the time the certificate is checked at, the signature over the DSSE envelope
+  verifies, and the certificate carries the pinned issuer, the pinned build
+  signer URI as its subject alternative name and as its build signer, and the
+  pinned commit digest, SHALL return the exact statement bytes of the envelope,
+  and SHALL refuse another signer, issuer, digest or authority, a bundle without
+  certificate or log entry, a changed byte and a payload swapped under the
+  signature.
 - **SP-164~1**: WHEN a signed bundle is admitted THE SYSTEM SHALL require its
   statement to be canonical, to satisfy the format, to be produced by `ci` and to
   sit at the module, subject key and cache key its content dictates, SHALL route
@@ -44,6 +53,19 @@ tests of the module in CI.
   trust of the manifest `local`, refuse a statement produced by `ci` in the
   cache, and keep a signed statement in place of a local one for the same
   location without downgrading the trust.
+
+## Trusted root
+
+- **SP-174~1**: WHEN a policy pins a Sigstore signer THE SYSTEM SHALL load the
+  trusted root through TUF, verifying every signature, expiry and hash back to
+  the root embedded in the binary, from the `trust/` snapshot of the exported
+  ledger without a connection when `--offline` is given and from the public-good
+  mirror otherwise, keep the metadata in memory, state the SHA-256 of the exact
+  bytes of the trusted root in the manifest, and refuse a missing, tampered,
+  unsigned or foreign snapshot; and WHEN the policy pins no Sigstore signer THE
+  SYSTEM SHALL read no snapshot and state the digest of the empty input.
+- **SP-175~1**: WHEN the binary is built THE SYSTEM SHALL embed the TUF root of the
+  public-good Sigstore instance and hand it out as a copy.
 
 ## Verified set
 
