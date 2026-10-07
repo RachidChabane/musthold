@@ -367,3 +367,31 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   take out its citation tags and unify the separators between the titles it joins,
   and match the title of a test against it with every placeholder standing for any
   text.
+
+## JavaScript and TypeScript tests
+
+- **SP-1200~1**: WHEN a JavaScript or TypeScript test of Jest or Vitest is masked THE
+  SYSTEM SHALL return the test inside the suites it is nested in, every title
+  replaced by a neutral one, with the hooks and the setup calls of those suites, the
+  declarations the test reaches and the imports they use, under neutral names,
+  without comments or citation tags.
+- **SP-1201~1**: WHEN the signatures of the code under a JavaScript or TypeScript
+  test are built THE SYSTEM SHALL return, without bodies, values, comments or
+  private members, the declarations that the project modules the test imports or
+  requires export, following re-exports, and nothing for a module the project does
+  not hold.
+- **SP-1202~1**: WHEN a Jest or Vitest test is bound by the name its runner reports
+  THE SYSTEM SHALL find it by the titles of its suites and its own title joined
+  with spaces or with the separator of the reporter, whatever the citation tags in
+  them and the values a table row gives the placeholders, preferring the most
+  specific title and then the line of the report.
+- **SP-1203~1**: WHEN a table-driven test is masked THE SYSTEM SHALL keep its table
+  and its parameters, whether the table is an array or a tagged template, and SHALL
+  NOT refuse it for the values the reported name holds.
+- **SP-1204~1**: WHEN a masked input is built for any title of a JavaScript or
+  TypeScript test THE SYSTEM SHALL hold no declared criterion reference, no marker
+  word and no run of three consecutive words of the titles, reading the whole name
+  the runner reports without its citation tags and separators.
+- **SP-1205~1**: WHEN a file is offered to the JavaScript and TypeScript masker THE
+  SYSTEM SHALL serve the files of JavaScript, JSX, TypeScript and TSX and refuse
+  every other file.
