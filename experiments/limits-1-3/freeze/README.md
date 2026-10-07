@@ -9,6 +9,3 @@ is the query it answers. Read it with:
 
 The message imprint is the SHA-256 of `prereg-commit.txt`; compare that file
 with `git rev-parse prereg-limits-1-3^{commit}`.
-
-`a1-commit.txt` holds the commit the tag `prereg-limits-1-3-a1` points to;
-`a1-commit.tsr` and `a1-commit.tsq` are its timestamp and query, read the same way.
