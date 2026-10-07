@@ -4,9 +4,10 @@
 #
 #   local.user.spec-proof.pilot     daily at 21:07, script/night-jobs pilot
 #   local.user.spec-proof.canaries  daily at 23:13, script/night-jobs canaries
+#   local.user.spec-proof.construct daily at 03:07, script/night-jobs construct
 #
-#   script/install-night-jobs            install or reload both agents
-#   script/install-night-jobs --remove   unload and delete both agents
+#   script/install-night-jobs            install or reload the agents
+#   script/install-night-jobs --remove   unload and delete the agents
 #
 # PATH holds the directories where the tools resolve on this machine; override it
 # with NIGHT_JOBS_PATH. Logs go to ~/Library/Logs/spec-proof.
@@ -22,7 +23,7 @@ readonly JOB_PATH="${NIGHT_JOBS_PATH:-${DEFAULT_PATH}}"
 readonly SHALLNOT_SRC_PATH="${SHALLNOT_SRC:-${REPO}/../shallnot-proof-gate}"
 readonly NICE_LEVEL=10
 # job name, hour, minute
-readonly JOBS=("pilot 21 7" "canaries 23 13")
+readonly JOBS=("pilot 21 7" "canaries 23 13" "construct 3 7")
 
 domain() {
   echo "gui/$(id -u)"

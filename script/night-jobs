@@ -6,6 +6,8 @@
 #                               already running or finished
 #   script/night-jobs canaries  run the live canaries of the host plugins once per
 #                               night: Claude Code, then Codex, then Copilot
+#   script/night-jobs construct build the benchmark corpus (bench/script/construct
+#                               --night) with its own nightly call budget
 #
 # Every step keeps its own guards: the run window, the nightly call budget and
 # script/mem-guard. Output goes to $NIGHT_JOBS_LOG_DIR (default
@@ -20,6 +22,7 @@ readonly PILOT_RUN="run-02"
 readonly CANARY_STAMP_DIR="${LOG_DIR}/canary-nights"
 readonly SHALLNOT_SRC_DEFAULT="${ROOT}/../shallnot-proof-gate"
 readonly EXIT_PAUSED=3
+readonly CONSTRUCT_BUDGET="${NIGHT_JOBS_CONSTRUCT_BUDGET:-120}"
 
 mkdir -p "${LOG_DIR}" "${CANARY_STAMP_DIR}"
 
@@ -69,12 +72,22 @@ run_canaries() {
   touch "${stamp}"
 }
 
+run_construct() {
+  if pgrep -f "bench/script/construct|specbench.*construct" >/dev/null; then
+    log "construct: already running"
+    return 0
+  fi
+  log "construct: budget ${CONSTRUCT_BUDGET}"
+  (cd bench && caffeinate -is script/construct --night --budget "${CONSTRUCT_BUDGET}")
+}
+
 main() {
   case "${1:-}" in
     pilot) run_pilot ;;
     canaries) run_canaries ;;
+    construct) run_construct ;;
     *)
-      echo "usage: script/night-jobs pilot | canaries" >&2
+      echo "usage: script/night-jobs pilot | canaries | construct" >&2
       return 2
       ;;
   esac
