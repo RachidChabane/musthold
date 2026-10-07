@@ -12,7 +12,7 @@ import (
 // Paths and names of what the installer reads and writes.
 const (
 	// StateDirectory is the project directory that holds spec-proof state.
-	StateDirectory = ".spec-proof"
+	StateDirectory = pluginfiles.StateDirectory
 	// SharedConfigFile is the configuration file the modules share, inside StateDirectory.
 	SharedConfigFile = "config.yaml"
 	// Marketplace is the marketplace the module plugins are published in.
@@ -39,7 +39,7 @@ const SharedConfigPath = StateDirectory + "/" + SharedConfigFile
 // LocalStatePaths are the directories of local state every module keeps out of
 // version control: the statements of the proof cache, the verified set built from
 // them and the pending files of the modules that wait on an answer.
-var LocalStatePaths = []string{StateDirectory + "/cache/", StateDirectory + "/verified/", StateDirectory + "/pending/"}
+var LocalStatePaths = []string{pluginfiles.CacheDirectory + "/", pluginfiles.VerifiedDirectory + "/", pluginfiles.PendingDirectory + "/"}
 
 // OperationsExample is the commented block of the shared configuration that shows
 // how an operation named by the examples of a spec is bound to code. It is a

@@ -21,12 +21,15 @@ spec format. `shallnot gate` traces them to the Go tests of the module in CI.
   `spec-proof`, depend on Shallnot, the three module plugins and the relay, every
   one of them an entry of the marketplace other than itself, and hold exactly one
   skill, `prove-all`, with no hook, agent, command or server.
-- **SP-823~1**: WHEN the `prove-all` skill is read THE SYSTEM SHALL open with the
+- **SP-823~2**: WHEN the `prove-all` skill is read THE SYSTEM SHALL open with the
   `doctor` of each module and name the modules that are missing, run the modules
   in the order discriminating power, alignment, completeness, advance one wave of
   each module that waits before any module starts its next, send the answering of
-  every request to the fulfil skill of its module, pre-approve only the `doctor`,
-  `prove` and `request list` of each module and the `drain` of the relay and so no
+  every request to the fulfil skill of its module, publish the local proofs once
+  every present module is done by running `spec-proof-verify --accept-local
+  .spec-proof/cache --out .spec-proof/verified`, saying so when the verifier is
+  missing, pre-approve only the `doctor`, `prove` and `request list` of each
+  module, the `drain` of the relay and that exact verifier command and so no
   command that answers a request, never answer a request itself, and carry no text
   about its own authoring.
 - **SP-906~1**: WHEN the umbrella files are generated THE SYSTEM SHALL also produce

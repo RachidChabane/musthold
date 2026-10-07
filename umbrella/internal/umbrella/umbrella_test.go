@@ -434,7 +434,7 @@ func skillText(t *testing.T) (map[string]string, string) {
 func TestProveAllSkill(t *testing.T) {
 	members, body := skillText(t)
 
-	t.Run("the skill opens with the doctor of each module and names the modules that are missing [verifies SP-823~1]", func(t *testing.T) {
+	t.Run("the skill opens with the doctor of each module and names the modules that are missing [verifies SP-823~2]", func(t *testing.T) {
 		if members["name"] != umbrella.SkillName || members["description"] == "" {
 			t.Fatalf("members = %v", members)
 		}
@@ -451,7 +451,7 @@ func TestProveAllSkill(t *testing.T) {
 		}
 	})
 
-	t.Run("the modules run in the order discriminating power, alignment, completeness and their waves interleave [verifies SP-823~1]", func(t *testing.T) {
+	t.Run("the modules run in the order discriminating power, alignment, completeness and their waves interleave [verifies SP-823~2]", func(t *testing.T) {
 		order := body[strings.Index(body, "Modules, in this order"):strings.Index(body, "\n1. Run ")]
 		previous := -1
 		for _, module := range umbrella.Modules {
@@ -468,7 +468,7 @@ func TestProveAllSkill(t *testing.T) {
 		}
 	})
 
-	t.Run("every request goes to the fulfil skill of its module and the skill never answers one itself [verifies SP-823~1]", func(t *testing.T) {
+	t.Run("every request goes to the fulfil skill of its module and the skill never answers one itself [verifies SP-823~2]", func(t *testing.T) {
 		for _, module := range umbrella.Modules {
 			if !strings.Contains(body, "`"+module.FulfilSkill()+"`") {
 				t.Errorf("the skill does not send the requests of %s to %s", module.Binary, module.FulfilSkill())
@@ -481,16 +481,16 @@ func TestProveAllSkill(t *testing.T) {
 		}
 	})
 
-	t.Run("the skill pre-approves only the doctor, the prove and the listing of each module and the relay's drain, never a command that answers a request [verifies SP-823~1]", func(t *testing.T) {
+	t.Run("the skill pre-approves only the doctor, the prove and the listing of each module, the relay's drain and the exact command that publishes the local proofs, never a command that answers a request [verifies SP-823~2]", func(t *testing.T) {
 		allowed := strings.Split(members["allowed-tools"], ", ")
 		var want []string
 		for _, module := range umbrella.Modules {
 			want = append(want, "Bash("+module.Binary+" doctor)", "Bash("+module.Binary+" prove *)", "Bash("+module.Binary+" request list)")
 		}
-		want = append(want, "Bash(spec-proof-s1 drain *)")
+		want = append(want, "Bash(spec-proof-s1 drain *)", "Bash(spec-proof-verify --accept-local .spec-proof/cache --out .spec-proof/verified)")
 		for _, rule := range allowed {
 			for _, answering := range []string{" request show", " request submit", " host ", " disable", " enable", " init", " *)"} {
-				if strings.Contains(rule, answering) && !strings.HasSuffix(rule, " prove *)") && !strings.HasSuffix(rule, " drain *)") {
+				if strings.Contains(rule, answering) && !strings.HasSuffix(rule, " prove *)") && !strings.HasSuffix(rule, " drain *)") && !strings.HasPrefix(rule, "Bash(spec-proof-verify --accept-local ") {
 					t.Errorf("%s pre-approves a command that answers or changes a project", rule)
 				}
 			}
@@ -500,7 +500,7 @@ func TestProveAllSkill(t *testing.T) {
 		}
 	})
 
-	t.Run("no generated file talks about its own authoring and every file ends with a newline [verifies SP-823~1]", func(t *testing.T) {
+	t.Run("no generated file talks about its own authoring and every file ends with a newline [verifies SP-823~2]", func(t *testing.T) {
 		forbidden := regexp.MustCompile(`(?i)\b(unverified|canary|ADR|previously|no longer|currently|this version|TODO)\b`)
 		for path, content := range generated(t) {
 			if found := forbidden.FindString(content); found != "" {

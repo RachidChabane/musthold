@@ -401,14 +401,17 @@ Go tests of the module in CI.
 - **SP-710~1**: WHEN a hook is not about the module's executors THE SYSTEM SHALL
   leave the call alone without opening any state, deny a call of the module's own
   tools that it cannot check, and accept a receipt with whitespace around it.
-- **SP-711~1**: WHEN the host files of a module are generated for a harness THE
+- **SP-711~2**: WHEN the host files of a module are generated for a harness THE
   SYSTEM SHALL give the Claude Code plugin its manifest, its executor server, one
   agent per executor role of the module holding exactly the two executor tools
   with the inherited model, a blind context and four turns, its four hooks under
   matchers that select the executor alone, and a skill that pre-approves what its
-  loop runs; give Codex read-only agents carrying the executor server, hook
-  entries and a skill; give Copilot agents naming server and tool pairs, a hooks
-  file and a skill; and carry no text about their own authoring.
+  loop runs and, once the loop ended with a verdict, publishes the local proofs by
+  running `spec-proof-verify --accept-local .spec-proof/cache --out
+  .spec-proof/verified`; give Codex read-only agents carrying the executor server,
+  hook entries and a skill that ends the same way; give Copilot agents naming
+  server and tool pairs, a hooks file and a skill that ends the same way; and
+  carry no text about their own authoring.
 - **SP-712~1**: WHEN the host files are generated twice THE SYSTEM SHALL produce
   the same bytes, refuse a harness it has no files for, and ship an agent file,
   a matcher alternative and a role only for the executor agents the module has.

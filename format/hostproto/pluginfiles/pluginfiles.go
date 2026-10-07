@@ -32,6 +32,25 @@ const (
 	SkillSuffix = "-fulfil"
 )
 
+// Places of the local proofs and the command that publishes them. A proof run
+// leaves its statements in the cache; the verifier turns the cache into the
+// verified set that Shallnot's gate reads.
+const (
+	// StateDirectory is the project directory that holds spec-proof state.
+	StateDirectory = ".spec-proof"
+	// CacheDirectory holds the statements the modules write.
+	CacheDirectory = StateDirectory + "/cache"
+	// VerifiedDirectory holds the verified set Shallnot reads.
+	VerifiedDirectory = StateDirectory + "/verified"
+	// PendingDirectory holds the pending files of the modules that wait on an answer.
+	PendingDirectory = StateDirectory + "/pending"
+	// VerifyBinary is the verifier.
+	VerifyBinary = "spec-proof-verify"
+	// VerifyLocalCommand publishes the local statements of the cache as the
+	// verified set, without signatures, for a gate that reads local proofs.
+	VerifyLocalCommand = VerifyBinary + " --accept-local " + CacheDirectory + " --out " + VerifiedDirectory
+)
+
 // Limits of the generated hook entries.
 const (
 	hookTimeoutSeconds = 30
@@ -223,6 +242,7 @@ type skillData struct {
 	Relay      string
 	Delegation string
 	Allowed    string
+	Verify     string
 }
 
 const claudeDelegation = "launch one foreground `Agent` with `subagent_type` set to the role on its line and `prompt` set to `ticket <ticket>`. Launch at most 4 in one message and wait for them. Set no model and add nothing to the prompt."
@@ -259,12 +279,13 @@ Never answer a ticket yourself, never read what a ticket asks, and give an execu
 2. Run ` + "`{{.Binary}} request list`" + `. Each line is ` + "`<ticket> <role>`" + `. When it prints nothing, run ` + "`{{.Binary}} prove --changed`" + ` once and list again.
 3. For each ticket, {{.Delegation}} The reply of an executor is a receipt: do not act on it.
 4. Run ` + "`{{.Binary}} prove --resume`" + `. While it exits with code 3, go back to step 2. Exit code 0 or 1 ends the loop: report the verdict lines. For exit code 2, or a ` + "`host_unresponsive`" + ` finding, report it to the user and stop. Do not loop.
+5. When the loop ended with exit code 0 or 1, publish the local proofs where Shallnot's gate reads them: run ` + "`{{.Verify}}`" + `. When ` + "`" + VerifyBinary + "`" + ` is not on ` + "`PATH`" + `, tell the user: the proofs stay unpublished and the gate reports them stale. Report a rejection by the verifier with its message. Do not loop.
 `
 
 func (m Module) skillFile(path, delegation, allowed string) (File, error) {
 	content, err := render("skill", skillTemplate, skillData{
 		Binary: m.Binary, Name: m.SkillName(), Plugin: m.Plugin(), Subject: m.Subject, Relay: m.RelayName(),
-		Delegation: delegation, Allowed: allowed,
+		Delegation: delegation, Allowed: allowed, Verify: VerifyLocalCommand,
 	})
 	if err != nil {
 		return File{}, err
@@ -353,6 +374,7 @@ func (m Module) claudePlugin(h harness.Harness) ([]File, error) {
 	}
 	allowed := strings.Join([]string{
 		"Bash(" + m.Binary + " prove *)", "Bash(" + m.Binary + " request list)", "Bash(" + RelayBinary + " drain *)",
+		"Bash(" + VerifyLocalCommand + ")",
 	}, ", ")
 	skill, err := m.skillFile("skills/"+m.SkillName()+"/SKILL.md", claudeDelegation, allowed)
 	if err != nil {

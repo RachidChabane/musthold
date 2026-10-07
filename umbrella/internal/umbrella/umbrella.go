@@ -14,6 +14,8 @@ import (
 	"fmt"
 	"strings"
 	"text/template"
+
+	"github.com/RachidChabane/spec-proof/format/hostproto/pluginfiles"
 )
 
 // Identity of the umbrella.
@@ -192,6 +194,7 @@ type skillData struct {
 	Allowed string
 	Relay   string
 	Names   string
+	Verify  string
 }
 
 const skillTemplate = `---
@@ -212,7 +215,8 @@ Modules, in this order, each with the skill that holds its loop:
 2. For each present module, in the order above, run ` + "`<binary> prove --changed`" + ` once.
 3. While any module exited with code 3, run one wave for each module that exited with code 3, in the order above, before any module starts its next wave: a wave is the steps its fulfil skill gives for answering the tickets, which is the relay when ` + "`{{.Relay}}`" + ` is on ` + "`PATH`" + ` and an endpoint is configured, then one foreground blind executor per ticket, then ` + "`<binary> prove --resume`" + `. Alignment's judge tickets do not wait for the discriminating-power proof, so no module's wave waits for another's.
 4. A module whose ` + "`prove`" + ` exits with code 0 or 1 is done: report its verdict lines. For exit code 2, or a ` + "`host_unresponsive`" + ` finding, report it to the user and stop that module. Do not loop.
-5. Report, per module, its last exit code and verdict lines, and the modules that were missing.
+5. When every present module is done, publish the local proofs once, where Shallnot's gate reads them: run ` + "`{{.Verify}}`" + `. When ` + "`" + pluginfiles.VerifyBinary + "`" + ` is not on ` + "`PATH`" + `, tell the user: the proofs stay unpublished and the gate reports them stale. Report a rejection by the verifier with its message.
+6. Report, per module, its last exit code and verdict lines, the modules that were missing and whether the proofs were published.
 `
 
 func skillFile() (File, error) {
@@ -222,7 +226,7 @@ func skillFile() (File, error) {
 		allowed = append(allowed, "Bash("+module.Binary+" doctor)", "Bash("+module.Binary+" prove *)", "Bash("+module.Binary+" request list)")
 		names = append(names, "`"+module.Binary+" doctor`")
 	}
-	allowed = append(allowed, "Bash("+Relay.Binary+" drain *)")
+	allowed = append(allowed, "Bash("+Relay.Binary+" drain *)", "Bash("+pluginfiles.VerifyLocalCommand+")")
 	parsed, err := template.New("skill").Parse(skillTemplate)
 	if err != nil {
 		return File{}, fmt.Errorf("parse the skill template: %w", err)
@@ -230,7 +234,7 @@ func skillFile() (File, error) {
 	var buffer bytes.Buffer
 	if err := parsed.Execute(&buffer, skillData{
 		Name: SkillName, Modules: Modules, Allowed: strings.Join(allowed, ", "), Relay: Relay.Binary,
-		Names: joinWithAnd(names),
+		Names: joinWithAnd(names), Verify: pluginfiles.VerifyLocalCommand,
 	}); err != nil {
 		return File{}, fmt.Errorf("render the skill: %w", err)
 	}

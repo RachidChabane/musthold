@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	verifiesShipped    = " [verifies SP-711~1]"
+	verifiesShipped    = " [verifies SP-711~2]"
 	verifiesGeneration = " [verifies SP-712~1]"
 	versionPattern     = `^\d+\.\d+\.\d+$`
 	hookTypeCommand    = "command"
@@ -172,6 +172,7 @@ func TestClaudePlugin(t *testing.T) {
 			allowed, _ := members["allowed-tools"].(string)
 			for _, rule := range []string{
 				"Bash(" + module.Binary + " prove *)", "Bash(" + module.Binary + " request list)", "Bash(" + pluginfiles.RelayBinary + " drain *)",
+				"Bash(spec-proof-verify --accept-local .spec-proof/cache --out .spec-proof/verified)",
 			} {
 				if !strings.Contains(allowed, rule) {
 					t.Errorf("allowed-tools lacks %s: %q", rule, allowed)
@@ -183,7 +184,7 @@ func TestClaudePlugin(t *testing.T) {
 			}
 			for _, step := range []string{
 				pluginfiles.RelayBinary + " drain --module " + module.RelayName(), module.Binary + " request list", "`Agent`", "ticket <ticket>",
-				module.Binary + " prove --resume", "exit code 3", "host_unresponsive", "at most 4",
+				module.Binary + " prove --resume", "exit code 3", "host_unresponsive", "at most 4", "`" + pluginfiles.VerifyLocalCommand + "`",
 			} {
 				if !strings.Contains(body, step) {
 					t.Errorf("the skill does not mention %q", step)
@@ -259,7 +260,7 @@ func TestCodexFiles(t *testing.T) {
 			}
 			example := delegationExample(module)
 			wantExample := "`" + hostproto.RoleFor(module.Plugin(), example) + "` is `" + module.Plugin() + "-" + string(example) + "`"
-			for _, want := range []string{wantExample, module.Binary + " prove --resume", pluginfiles.RelayBinary + " drain --module " + module.RelayName()} {
+			for _, want := range []string{wantExample, module.Binary + " prove --resume", pluginfiles.RelayBinary + " drain --module " + module.RelayName(), "`" + pluginfiles.VerifyLocalCommand + "`"} {
 				if !strings.Contains(body, want) {
 					t.Errorf("body lacks %q: %s", want, body)
 				}
@@ -336,7 +337,7 @@ func TestCopilotFiles(t *testing.T) {
 			members, body := frontMatter(t, files[skillPath(copilot.Flag, module)])
 			example := delegationExample(module)
 			wantExample := "`" + module.Plugin() + "-" + string(example) + "`"
-			if members["name"] != module.SkillName() || !strings.Contains(body, wantExample) {
+			if members["name"] != module.SkillName() || !strings.Contains(body, wantExample) || !strings.Contains(body, "`"+pluginfiles.VerifyLocalCommand+"`") {
 				t.Errorf("members = %v, body = %s", members, body)
 			}
 		})
