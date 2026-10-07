@@ -1,6 +1,6 @@
 # Front door for the limits 1-3 pilot: thin recipes over script/<verb>.
 # Every verb also runs without make: ./script/<verb>.
-.PHONY: help verify-labels runner-crosscheck leak-check traceability-check assemble-arm-p leak-audit canary relabel run-core run-secondary log-deviation test lint
+.PHONY: isolation-table import-run-01 run-blindspot run-luna amendment-check run-window help verify-labels runner-crosscheck leak-check traceability-check assemble-arm-p leak-audit canary relabel run-core run-secondary log-deviation test lint
 
 help:  ## list verbs
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-20s %s\n",$$1,$$2}'
@@ -64,3 +64,21 @@ precision-table:  ## Wilson interval table written to prereg/precision-table.csv
 .PHONY: run-pilot
 run-pilot:  ## PREREG 14 run order end to end, resumable; needs RUN_ID=<run-id>
 	./script/run-pilot $(RUN_ID)
+
+isolation-table:  ## C_D8 and the isolation of the hand-written violations (no model call)
+	./script/isolation-table
+
+import-run-01:  ## carry the sealed run-01's completed calls into a run; needs RUN_ID=<run-id>
+	./script/import-run-01 --run-id $(RUN_ID)
+
+run-blindspot:  ## contrast mutants, test writers, operator mutants, writer kill vectors; needs RUN_ID=<run-id>
+	./script/run-blindspot --run-id $(RUN_ID)
+
+run-luna:  ## the exploratory luna stratum inside its window; needs RUN_ID=<run-id>
+	./script/run-luna --run-id $(RUN_ID)
+
+amendment-check:  ## tags, declared paths, timestamps, seal and imports; needs RUN_ID=<run-id>
+	./script/amendment-check --run-id $(RUN_ID)
+
+run-window:  ## exit 0 inside the run window (PILOT_RUN_WINDOW, default 21:00-07:30), 3 outside
+	./script/run-window

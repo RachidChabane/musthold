@@ -1,0 +1,21 @@
+{
+  "amendment": "prereg-limits-1-3-a1",
+  "superseded_tag": "prereg-limits-1-3",
+  "superseded_commit": "e95f55147cd66fe778af4134cda6dfcaaad5c5a9",
+  "declared_paths": [
+    "prereg/PREREG.md",
+    "prereg/REPORT.tmpl.md",
+    "prereg/amendment.json",
+    "prereg/isolation_table.json",
+    "prereg/models.lock.json",
+    "prereg/prompts/write_tests.md",
+    "prereg/schemas/write_tests.schema.json",
+    "harness/",
+    "script/",
+    "Makefile",
+    "freeze/README.md",
+    "freeze/prereg-commit.*",
+    "runs/run-01/"
+  ],
+  "import_digests": "to be filled at the run-01 seal"
+}

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Runs the PREREG §14 order for one run id. Each completed step leaves a marker,
-# so a rerun after a quota pause (exit 3) resumes at the first unfinished step.
+# Runs the PREREG 14 order for one run id. Each completed step leaves a marker, so a rerun after a
+# pause (exit 3: quota, call budget or run window) resumes at the first unfinished step.
+# Model-calling steps start only inside the run window (PILOT_RUN_WINDOW, default 21:00-07:30 local);
+# PILOT_CALL_BUDGET overrides the daily call budget per CLI. Every heavy step runs under mem-guard and nice.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
@@ -11,34 +13,48 @@ fi
 run_id="$1"
 markers="runs/${run_id}/driver"
 mkdir -p "${markers}"
+guard=(../../script/mem-guard run -- nice -n 10)
 
+# step name | verb | model-calling (1) or local (0)
 steps=(
-  "canary"
-  "relabel"
-  "run-core"
-  "oracle-classify"
-  "audit-sample"
-  "run-secondary"
-  "oracle-classify-arm-o"
-  "analyze"
-  "report-lint"
+  "canary|canary|1"
+  "import-run-01|import-run-01|0"
+  "relabel|relabel|1"
+  "run-core|run-core|1"
+  "run-blindspot|run-blindspot|1"
+  "oracle-classify|oracle-classify|0"
+  "audit-sample|audit-sample|0"
+  "run-secondary|run-secondary|1"
+  "run-luna|run-luna|1"
+  "oracle-classify-luna|oracle-classify|0"
+  "amendment-check|amendment-check|0"
+  "analyze|analyze|0"
+  "report-lint|report-lint|0"
 )
 
-verb_of() {
-  case "$1" in
-    oracle-classify-arm-o) echo "oracle-classify" ;;
-    *) echo "$1" ;;
-  esac
-}
-
-for step in "${steps[@]}"; do
+for entry in "${steps[@]}"; do
+  IFS='|' read -r step verb calls_model <<<"${entry}"
   if [[ -f "${markers}/${step}.done" ]]; then
     echo "[run-pilot] ${step}: already done"
     continue
   fi
+  extra=()
+  if [[ "${calls_model}" == "1" ]]; then
+    if ! ./script/run-window; then
+      echo "[run-pilot] ${step}: outside the run window, not started" >&2
+      exit 3
+    fi
+    if [[ -n "${PILOT_CALL_BUDGET:-}" && "${verb}" != "canary" ]]; then
+      extra=(--call-budget "${PILOT_CALL_BUDGET}")
+    fi
+  fi
   echo "[run-pilot] ${step}: start $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   set +e
-  "./script/$(verb_of "${step}")" --run-id "${run_id}"
+  if [[ "${verb}" == "report-lint" ]]; then
+    "${guard[@]}" "./script/${verb}"
+  else
+    "${guard[@]}" "./script/${verb}" --run-id "${run_id}" ${extra[@]+"${extra[@]}"}
+  fi
   status=$?
   set -e
   if [[ ${status} -ne 0 ]]; then
