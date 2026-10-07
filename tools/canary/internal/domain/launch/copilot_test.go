@@ -85,7 +85,7 @@ func TestCopilotCommand(t *testing.T) {
 
 	t.Run("the no-call probes mount the same trees and never run a model [verifies SP-1708~1]", func(t *testing.T) {
 		for _, subject := range []string{"plugin", "skill"} {
-			argv := launch.CopilotListArgv("/repo", subject)
+			argv := launch.CopilotListArgv("/repo", "/run/copilot-logs", subject)
 			if !slices.Equal(flagValue(argv, "--plugin-dir"), flagValue(command.Argv, "--plugin-dir")) || slices.Contains(argv, "-p") {
 				t.Errorf("argv = %v", argv)
 			}
@@ -93,8 +93,14 @@ func TestCopilotCommand(t *testing.T) {
 				t.Errorf("argv = %v", argv)
 			}
 		}
-		if !slices.Contains(launch.CopilotVersionArgv(), "--no-auto-update") {
+		version := launch.CopilotVersionArgv("/run/copilot-logs")
+		if !slices.Contains(version, "--no-auto-update") {
 			t.Error("the version probe may update the CLI")
+		}
+		for _, argv := range [][]string{version, launch.CopilotListArgv("/repo", "/run/copilot-logs", "plugin")} {
+			if got := flagValue(argv, "--log-dir"); len(got) != 1 || got[0] != "/run/copilot-logs" {
+				t.Errorf("a probe logs to %v, not into the run: %v", got, argv)
+			}
 		}
 	})
 }

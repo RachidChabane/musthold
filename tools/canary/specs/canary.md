@@ -49,7 +49,8 @@ which run the evaluators on recorded event streams and make no model call.
   executor agent starts, the hooks fire, the subagentStop hook fires, PreToolUse
   spells the executor tools as the module's matchers spell them and names the
   agent type, the tool allowlist of the executor agent is honoured, the executor
-  server of each module serves a fetch with no capability, the edit was applied
+  server of each module starts and that of the primary module serves a fetch with
+  no capability, the edit was applied
   and the session ended within its caps, SHALL conclude INCONCLUSIVE on a session
   the harness refused for its credentials or quota, and SHALL conclude the
   allowlist INCONCLUSIVE when the executor tried nothing outside its two tools.

@@ -36,7 +36,7 @@ func (r Runner) copilotCredentialSource() string {
 func (r Runner) copilotListing(ctx context.Context, l layout, env []string) *evidence.CopilotListing {
 	listing := evidence.CopilotListing{Attempted: true}
 	run := func(subject string) (string, int) {
-		output, err := r.Processes.Run(ctx, CommandSpec{Argv: launch.CopilotListArgv(l.repo, subject), Dir: l.project, Env: env, Timeout: supportTimeout})
+		output, err := r.Processes.Run(ctx, CommandSpec{Argv: launch.CopilotListArgv(l.repo, l.copilotLogs, subject), Dir: l.project, Env: env, Timeout: supportTimeout})
 		if err != nil {
 			return err.Error(), notRun
 		}

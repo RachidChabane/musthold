@@ -192,9 +192,9 @@ func (l layout) copilotEnvironment(homes Homes) []string {
 }
 
 // cliVersionArgv is the command that prints the version of a harness CLI.
-func cliVersionArgv(flag string) []string {
+func cliVersionArgv(l layout, flag string) []string {
 	if flag == harness.FlagCopilot {
-		return launch.CopilotVersionArgv()
+		return launch.CopilotVersionArgv(l.copilotLogs)
 	}
 	return []string{flag, probeVersion}
 }
@@ -225,7 +225,7 @@ func Plan(flag, repo string, homes Homes) ([]string, error) {
 	}
 	lines := []string{
 		strings.Join(launchQuote(filepath.Join(repo, memGuardRelative), "check"), " "),
-		strings.Join(launchQuote(cliVersionArgv(flag)...), " "),
+		strings.Join(launchQuote(cliVersionArgv(l, flag)...), " "),
 		fmt.Sprintf("copy %s -> %s", l.fixture(), l.project),
 		"write " + l.projectFile("shallnot.yaml"),
 	}
@@ -242,7 +242,7 @@ func Plan(flag, repo string, homes Homes) ([]string, error) {
 	}
 	if flag == harness.FlagCopilot {
 		for _, subject := range copilotListSubjects {
-			lines = append(lines, strings.Join(launchQuote(launch.CopilotListArgv(repo, subject)...), " ")+"   (no model call)")
+			lines = append(lines, strings.Join(launchQuote(launch.CopilotListArgv(repo, l.copilotLogs, subject)...), " ")+"   (no model call)")
 		}
 		for _, module := range modules.All() {
 			lines = append(lines, "inspect "+filepath.Join(repo, module.PluginDir(harness.FlagPortable)))

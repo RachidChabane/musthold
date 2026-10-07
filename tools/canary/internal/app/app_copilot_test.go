@@ -157,6 +157,12 @@ func TestSyntheticSessionOfCopilot(t *testing.T) {
 				t.Errorf("no command ran %q", fragment)
 			}
 		}
+		logs := filepath.Join(outcome.RunDir, "copilot-logs")
+		for _, argv := range w.processes.calls {
+			if argv[0] == "copilot" && flagArgument(argv, "--log-dir") != logs {
+				t.Errorf("a probe logs outside the run: %v", argv)
+			}
+		}
 		raw, err := os.ReadFile(filepath.Join(outcome.RunDir, "records", "nocall.json"))
 		if err != nil {
 			t.Fatal(err)
@@ -193,6 +199,21 @@ func TestSyntheticSessionOfCopilot(t *testing.T) {
 		probe, err := os.ReadFile(filepath.Join(outcome.RunDir, "records", "sandbox-probe.json"))
 		if err != nil || !strings.Contains(string(probe), `"exists": false`) {
 			t.Fatalf("allowlist probe = %s, %v", probe, err)
+		}
+	})
+}
+
+func TestOtherHarnessesLeaveCopilotDirectoriesOut(t *testing.T) {
+	t.Run("a Claude Code run creates no Copilot directory [verifies SP-1508~1]", func(t *testing.T) {
+		w := newWorld(t, "claude", night)
+		outcome, err := w.runner.Run(context.Background(), w.options)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, dir := range []string{"copilot-home", "copilot-cache", "copilot-logs"} {
+			if _, err := os.Stat(filepath.Join(outcome.RunDir, dir)); err == nil {
+				t.Errorf("the run holds %s", dir)
+			}
 		}
 	})
 }

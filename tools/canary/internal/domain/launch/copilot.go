@@ -69,9 +69,10 @@ func DropsCopilotVariable(name string) bool {
 	return name == CopilotAllowAllVariable || name == CopilotModelVariable || strings.HasPrefix(name, CopilotProviderPrefix)
 }
 
-// CopilotVersionArgv prints the version of the CLI without updating it.
-func CopilotVersionArgv() []string {
-	return []string{harness.FlagCopilot, "--version", "--no-auto-update"}
+// CopilotVersionArgv prints the version of the CLI without updating it, logging
+// into the run.
+func CopilotVersionArgv(logDir string) []string {
+	return []string{harness.FlagCopilot, "--version", "--no-auto-update", "--log-dir", logDir}
 }
 
 // CopilotPluginDirs lists the portable tree of every module, which the session
@@ -86,8 +87,8 @@ func CopilotPluginDirs(repoRoot string) []string {
 
 // CopilotListArgv is a no-call listing (`plugin list --json`, `skill list --json`)
 // with the module trees mounted.
-func CopilotListArgv(repoRoot, subject string) []string {
-	argv := []string{harness.FlagCopilot, "--no-auto-update"}
+func CopilotListArgv(repoRoot, logDir, subject string) []string {
+	argv := []string{harness.FlagCopilot, "--no-auto-update", "--log-dir", logDir}
 	for _, dir := range CopilotPluginDirs(repoRoot) {
 		argv = append(argv, "--plugin-dir", dir)
 	}

@@ -247,7 +247,11 @@ func (r Runner) prepare(ctx context.Context, options Options, homes Homes) (prep
 	l := newLayout(options.RepoRoot, run)
 	prepared.layout = l
 	input := l.input(Selection{}, homes)
-	for _, dir := range []string{l.state, l.cache, l.tmp, l.records, l.shim, input.ClaudeConfigDir, input.Copilot.Home, input.Copilot.Cache, input.Copilot.Logs} {
+	dirs := []string{l.state, l.cache, l.tmp, l.records, l.shim, input.ClaudeConfigDir}
+	if options.Harness == harness.FlagCopilot {
+		dirs = append(dirs, input.Copilot.Home, input.Copilot.Cache, input.Copilot.Logs)
+	}
+	for _, dir := range dirs {
 		if dir == "" {
 			continue
 		}
@@ -383,7 +387,7 @@ func (r Runner) versions(ctx context.Context, options Options, l layout, env, cl
 			found[name] = strings.TrimSpace(output.Stdout + output.Stderr)
 		}
 	}
-	ask(options.Harness, cliVersionArgv(options.Harness), cliEnv)
+	ask(options.Harness, cliVersionArgv(l, options.Harness), cliEnv)
 	for _, module := range modules.All() {
 		ask(module.Binary, versionOfBinaryArgv(l.binary(module.Binary)), env)
 	}

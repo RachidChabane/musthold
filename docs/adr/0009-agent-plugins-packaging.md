@@ -113,7 +113,7 @@ which the canary passes through unchanged; a `--shared-home` flag lets a session
 `~/.copilot` and then lists what the session wrote there. The user's `~/.copilot` is
 fingerprinted before and after in both modes.
 
-The session runs on `claude-haiku-4.5` with a cap of 60 AI credits and 40 model steps,
+The session runs on a small pinned model with caps on AI credits, model steps and time,
 and never inherits `COPILOT_ALLOW_ALL`. Before it, `copilot plugin list --json` and
 `copilot skill list --json` run with the three trees mounted, and each tree is
 inspected. The session delegates one ticket to the executor agent, which is also asked

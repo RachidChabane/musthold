@@ -111,26 +111,78 @@ func pluginsAndSkillsListedCheck() Check {
 			if !pluginsDecoded || !skillsDecoded {
 				return verdict.Undecided(fmt.Sprintf("a listing is not a JSON list (plugin list exit %d, skill list exit %d)", listing.PluginsExit, listing.SkillsExit), pointer)
 			}
-			var missing []string
+			var missing, unstated []string
 			for _, module := range modules.All() {
-				if !slices.ContainsFunc(plugins, func(p evidence.ListedPlugin) bool {
-					return p.Name == module.Plugin && p.Source == externalSource && p.Enabled != nil && *p.Enabled
-				}) {
-					missing = append(missing, "plugin "+module.Plugin)
-				}
 				skill := module.Binary + fulfilSkillSuffix
-				if !slices.ContainsFunc(skills, func(s evidence.ListedSkill) bool {
-					return s.Name == skill && s.Source == pluginSource && s.Enabled != nil && *s.Enabled
-				}) {
-					missing = append(missing, "skill "+skill)
+				for _, entry := range []listedEntry{
+					listedPluginEntry(plugins, module.Plugin),
+					listedSkillEntry(skills, skill),
+				} {
+					switch entry.state() {
+					case entryWrong:
+						missing = append(missing, entry.describe())
+					case entryUnstated:
+						unstated = append(unstated, entry.describe())
+					}
 				}
 			}
-			if len(missing) > 0 {
+			switch {
+			case len(missing) > 0:
 				return verdict.Failed("not listed as an enabled external plugin or plugin skill: "+strings.Join(missing, ", "), pointer)
+			case len(unstated) > 0:
+				return verdict.Undecided("listed, but the listing does not say whether they are enabled and from where: "+strings.Join(unstated, ", "), pointer)
 			}
 			return verdict.Passed(fmt.Sprintf("%d plugins and their fulfil skills are listed and enabled", len(modules.All())), pointer)
 		})
 }
+
+type entryState int
+
+const (
+	entryRight entryState = iota
+	entryWrong
+	entryUnstated
+)
+
+// listedEntry is the entry a listing holds for one name, with the source and the
+// enabled flag it should have.
+type listedEntry struct {
+	kind, name, wantSource string
+	present                bool
+	source                 string
+	enabled                *bool
+}
+
+func listedPluginEntry(plugins []evidence.ListedPlugin, name string) listedEntry {
+	entry := listedEntry{kind: "plugin", name: name, wantSource: externalSource}
+	if index := slices.IndexFunc(plugins, func(p evidence.ListedPlugin) bool { return p.Name == name }); index >= 0 {
+		entry.present, entry.source, entry.enabled = true, plugins[index].Source, plugins[index].Enabled
+	}
+	return entry
+}
+
+func listedSkillEntry(skills []evidence.ListedSkill, name string) listedEntry {
+	entry := listedEntry{kind: "skill", name: name, wantSource: pluginSource}
+	if index := slices.IndexFunc(skills, func(s evidence.ListedSkill) bool { return s.Name == name }); index >= 0 {
+		entry.present, entry.source, entry.enabled = true, skills[index].Source, skills[index].Enabled
+	}
+	return entry
+}
+
+// state is wrong when the entry is absent, disabled, or from another source, and
+// unstated when it is present and the listing omits a member that would tell.
+func (e listedEntry) state() entryState {
+	switch {
+	case !e.present, e.enabled != nil && !*e.enabled, e.source != "" && e.source != e.wantSource:
+		return entryWrong
+	case e.enabled == nil || e.source == "":
+		return entryUnstated
+	default:
+		return entryRight
+	}
+}
+
+func (e listedEntry) describe() string { return e.kind + " " + e.name }
 
 func pluginTreesValidCheck() Check {
 	return newCheck(checkCopilotTrees,
@@ -389,13 +441,18 @@ func allowlistCheck() Check {
 					unknown = append(unknown, event)
 				}
 			}
+			mainAgent := mainAgentAttempts(stream, probe.File)
 			switch {
-			case probe.Exists:
-				return verdict.Failed("the executor created "+probe.File+": its allowlist did not hold", probePointer)
 			case len(ran) > 0:
 				return verdict.Failed("the executor ran "+toolNames(ran)+" outside its allowlist", evidence.StreamAt(ran[0].Line, ran[0].Type))
 			case probe.File == "":
 				return verdict.Undecided("the allowlist probe was not recorded")
+			case probe.Exists && len(mainAgent) > 0:
+				return verdict.Undecided(probe.File+" exists but the main agent ran the command itself, so the write is not the executor's", probePointer, evidence.StreamAt(mainAgent[0].Line, mainAgent[0].Type))
+			case probe.Exists && len(blocked)+len(unknown) > 0:
+				return verdict.Failed("the executor tried "+toolNames(append(blocked, unknown...))+", the main agent did not, and "+probe.File+" exists: its allowlist did not hold", probePointer)
+			case probe.Exists:
+				return verdict.Undecided(probe.File+" exists but the stream attributes no attempt to the executor", probePointer)
 			case len(blocked) > 0:
 				return verdict.Passed(fmt.Sprintf("the executor tried %s, which failed, and %s does not exist", toolNames(blocked), probe.File), probePointer, evidence.StreamAt(blocked[0].Line, blocked[0].Type))
 			case len(unknown) > 0:
@@ -404,6 +461,26 @@ func allowlistCheck() Check {
 				return verdict.Undecided("the executor tried nothing outside its two tools, so the allowlist was not exercised", probePointer)
 			}
 		})
+}
+
+// mainAgentAttempts returns the tool calls of the main agent, other than the one
+// that delegates to a subagent, whose JSON names the probe file: a main agent that
+// ran the command itself makes the file no evidence about the executor.
+func mainAgentAttempts(stream evidence.CopilotStream, file string) []evidence.CopilotEvent {
+	if file == "" {
+		return nil
+	}
+	delegations := map[string]bool{}
+	for _, event := range stream.Of(evidence.CopilotEventSubagentStarted) {
+		delegations[event.ToolCallID] = true
+	}
+	var attempts []evidence.CopilotEvent
+	for _, event := range stream.Of(evidence.CopilotEventToolStart) {
+		if event.AgentID == "" && !delegations[event.ToolCallID] && event.Mentions(file) {
+			attempts = append(attempts, event)
+		}
+	}
+	return attempts
 }
 
 func toolNames(events []evidence.CopilotEvent) string {

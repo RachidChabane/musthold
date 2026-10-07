@@ -49,6 +49,13 @@ func TestSyntheticCopilotSessionThatBreaksARule(t *testing.T) {
 		{"a plugin that is listed but disabled fails the listing check", "plugins_and_skills_listed", verdict.Fail, func(f *evidence.Files) {
 			f.NoCall = replace(f.NoCall, `\"enabled\": true`, `\"enabled\": false`)
 		}},
+		{"a listing that omits the enabled flag and the source leaves the listing check inconclusive", "plugins_and_skills_listed", verdict.Inconclusive, func(f *evidence.Files) {
+			f.NoCall = replace(f.NoCall, `\"enabled\": true,\n    \"source\": \"external\"`, `\"x\": 1`)
+			f.NoCall = replace(f.NoCall, `\"source\": \"plugin\",\n    \"path\"`, `\"path\"`)
+		}},
+		{"a plugin listed from another source fails the listing check", "plugins_and_skills_listed", verdict.Fail, func(f *evidence.Files) {
+			f.NoCall = replace(f.NoCall, `\"source\": \"external\"`, `\"source\": \"marketplace\"`)
+		}},
 		{"a listing that was not recorded leaves the listing check inconclusive", "plugins_and_skills_listed", verdict.Inconclusive, func(f *evidence.Files) {
 			f.NoCall = replace(f.NoCall, `"copilotListing"`, `"unrelatedMember"`)
 		}},
@@ -111,6 +118,14 @@ func TestSyntheticCopilotSessionThatBreaksARule(t *testing.T) {
 		}},
 		{"a probe file that exists fails the allowlist check", "agent_allowlist_honoured", verdict.Fail, func(f *evidence.Files) {
 			f.SandboxProbe = replace(f.SandboxProbe, `"exists": false`, `"exists": true`)
+		}},
+		{"a main agent that ran the command itself leaves the allowlist check inconclusive even though the file exists", "agent_allowlist_honoured", verdict.Inconclusive, func(f *evidence.Files) {
+			f.SandboxProbe = replace(f.SandboxProbe, `"exists": false`, `"exists": true`)
+			f.Stream = append(f.Stream, []byte(`{"type":"tool.execution_start","data":{"toolCallId":"c9","toolName":"bash","arguments":{"command":"touch sandbox-probe.txt"}}}`+"\n")...)
+		}},
+		{"a probe file that exists with no attempt in the stream leaves the allowlist check inconclusive", "agent_allowlist_honoured", verdict.Inconclusive, func(f *evidence.Files) {
+			f.SandboxProbe = replace(f.SandboxProbe, `"exists": false`, `"exists": true`)
+			f.Stream = dropLines(f.Stream, `"toolCallId":"c2"`)
 		}},
 		{"an executor that never tried a shell leaves the allowlist check inconclusive", "agent_allowlist_honoured", verdict.Inconclusive, func(f *evidence.Files) {
 			f.Stream = dropLines(f.Stream, `"toolCallId":"c2"`)
