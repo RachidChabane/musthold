@@ -65,7 +65,7 @@ func TestInitCommand(t *testing.T) {
 		if code != cli.ExitClean {
 			t.Fatalf("exit %d: %s%s", code, stdout, stderr)
 		}
-		for _, want := range []string{"unchanged " + sharedConfig, "create    .codex/agents/spec-proof-completeness-decider.toml", "create    .claude/settings.json", "next: "} {
+		for _, want := range []string{"unchanged " + sharedConfig, "create    .codex/agents/spec-proof-completeness-decider.toml", "create    .claude/settings.json", "create    .codex/config.toml", "next: "} {
 			if !strings.Contains(stdout, want) {
 				t.Errorf("output lacks %q:\n%s", want, stdout)
 			}
