@@ -292,7 +292,7 @@ func TestSyntheticSessionWhereTheSetupIsInDoubt(t *testing.T) {
 		}
 	})
 
-	t.Run("a Codex Stop probe that stays silent beside a silent PreToolUse probe proves nothing about Stop [verifies SP-1503~1]", func(t *testing.T) {
+	t.Run("a Codex Stop probe that stays silent beside a silent PreToolUse probe proves nothing about Stop [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.Hooks = dropLines(files.Hooks, "Stop-probe")
 		files.Hooks = dropLines(files.Hooks, "PreToolUse-probe")
@@ -336,7 +336,7 @@ func TestSyntheticSessionWhereTheSetupIsInDoubt(t *testing.T) {
 		}
 	})
 
-	t.Run("a sandbox that declined the write counts as holding when the file is absent [verifies SP-1503~1]", func(t *testing.T) {
+	t.Run("a sandbox that declined the write counts as holding when the file is absent [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.Stream = replace(files.Stream, `"exit_code":1,"status":"failed"`, `"status":"declined"`)
 		v := want(t, evaluate(t, "codex", files), "executor_sandbox", verdict.Pass)
@@ -415,7 +415,7 @@ func TestSyntheticSessionWithAbsentEvidenceIsNeverAFailure(t *testing.T) {
 }
 
 func TestSyntheticCodexSessionAsTheADRRelies(t *testing.T) {
-	t.Run("every check passes on the expected session [verifies SP-1503~1]", func(t *testing.T) {
+	t.Run("every check passes on the expected session [verifies SP-1503~2]", func(t *testing.T) {
 		got := evaluate(t, "codex", readFiles(t, codexSession))
 		set, err := checks.ForHarness("codex")
 		if err != nil {
@@ -431,26 +431,26 @@ func TestSyntheticCodexSessionAsTheADRRelies(t *testing.T) {
 }
 
 func TestSyntheticCodexSessionThatBreaksARule(t *testing.T) {
-	t.Run("a failed spawn fails the agent files check [verifies SP-1503~1]", func(t *testing.T) {
+	t.Run("a failed spawn fails the agent files check [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.Hooks = dropLines(files.Hooks, `"subagent-start"`)
 		files.Stream = replace(files.Stream, `"status":"completed","sender_thread_id"`, `"status":"failed","sender_thread_id"`)
 		want(t, evaluate(t, "codex", files), "agent_files_load", verdict.Fail)
 	})
 
-	t.Run("a payload with no agent type fails the attribution check [verifies SP-1503~1]", func(t *testing.T) {
+	t.Run("a payload with no agent type fails the attribution check [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.Hooks = replace(files.Hooks, `"agent_type":"spec-proof-dp-decider","tool_name"`, `"tool_name"`)
 		want(t, evaluate(t, "codex", files), "agent_type_in_pretool", verdict.Fail)
 	})
 
-	t.Run("a tool spelled another way fails the naming check [verifies SP-1503~1]", func(t *testing.T) {
+	t.Run("a tool spelled another way fails the naming check [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.Hooks = replace(files.Hooks, `"tool_name":"mcp__spec_proof_dp_exec__fetch_request"`, `"tool_name":"spec-proof-dp-exec.fetch_request"`)
 		want(t, evaluate(t, "codex", files), "mcp_tool_naming", verdict.Fail)
 	})
 
-	t.Run("the unsanitized spelling of the server name fails the naming check, which expects the name Codex gives the tool [verifies SP-1503~1]", func(t *testing.T) {
+	t.Run("the unsanitized spelling of the server name fails the naming check, which expects the name Codex gives the tool [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.Hooks = replace(files.Hooks, `"tool_name":"mcp__spec_proof_dp_exec__fetch_request"`, `"tool_name":"mcp__spec-proof-dp-exec__fetch_request"`)
 		v := want(t, evaluate(t, "codex", files), "mcp_tool_naming", verdict.Fail)
@@ -459,13 +459,13 @@ func TestSyntheticCodexSessionThatBreaksARule(t *testing.T) {
 		}
 	})
 
-	t.Run("a write that landed fails the sandbox check [verifies SP-1503~1]", func(t *testing.T) {
+	t.Run("a write that landed fails the sandbox check [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.SandboxProbe = replace(files.SandboxProbe, `"exists": false`, `"exists": true`)
 		want(t, evaluate(t, "codex", files), "executor_sandbox", verdict.Fail)
 	})
 
-	t.Run("a write that landed without any executor agent is not charged to the executor sandbox [verifies SP-1503~1]", func(t *testing.T) {
+	t.Run("a write that landed without any executor agent is not charged to the executor sandbox [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.SandboxProbe = replace(files.SandboxProbe, `"exists": false`, `"exists": true`)
 		files.Stream = dropLines(files.Stream, "spawn_agent")
@@ -473,19 +473,19 @@ func TestSyntheticCodexSessionThatBreaksARule(t *testing.T) {
 		want(t, evaluate(t, "codex", files), "executor_sandbox", verdict.Inconclusive)
 	})
 
-	t.Run("an executor that never tried the write leaves the sandbox inconclusive [verifies SP-1503~1]", func(t *testing.T) {
+	t.Run("an executor that never tried the write leaves the sandbox inconclusive [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.Stream = dropLines(files.Stream, "touch sandbox-probe.txt'")
 		want(t, evaluate(t, "codex", files), "executor_sandbox", verdict.Inconclusive)
 	})
 
-	t.Run("a refusal of the capability-less fetch fails where attestation is waived [verifies SP-1503~1]", func(t *testing.T) {
+	t.Run("a refusal of the capability-less fetch fails where attestation is waived [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.NoCall = replace(files.NoCall, `"refused": false`, `"refused": true`)
 		want(t, evaluate(t, "codex", files), "cap_without_hooks", verdict.Fail)
 	})
 
-	t.Run("hooks that never ran fail once an executor was spawned [verifies SP-1503~1]", func(t *testing.T) {
+	t.Run("hooks that never ran fail once an executor was spawned [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.Hooks = dropLines(files.Hooks, `"subagent-stop"`)
 		want(t, evaluate(t, "codex", files), "hooks_fire", verdict.Fail)
@@ -519,13 +519,13 @@ func TestSyntheticCodexSessionThatBreaksARule(t *testing.T) {
 		want(t, evaluate(t, "codex", files), "hooks_fire", verdict.Fail)
 	})
 
-	t.Run("the main agent's executor tool call, which carries no agent identity, fails the attribution check [verifies SP-1503~1]", func(t *testing.T) {
+	t.Run("the main agent's executor tool call, which carries no agent identity, fails the attribution check [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.Hooks = replace(files.Hooks, `"agent_id":"01a11334-f9a0-7c11-8e02-1b3f0c2d4e55","agent_type":"spec-proof-dp-decider","tool_name"`, `"tool_name"`)
 		want(t, evaluate(t, "codex", files), "agent_type_in_pretool", verdict.Fail)
 	})
 
-	t.Run("a session with no spawn leaves the hooks inconclusive [verifies SP-1503~1]", func(t *testing.T) {
+	t.Run("a session with no spawn leaves the hooks inconclusive [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.Hooks = nil
 		files.Stream = dropLines(files.Stream, "collab_tool_call")
@@ -535,7 +535,7 @@ func TestSyntheticCodexSessionThatBreaksARule(t *testing.T) {
 		want(t, got, "agent_files_load", verdict.Inconclusive)
 	})
 
-	t.Run("a turn that completed with no Stop hook fails the Stop check [verifies SP-1503~1]", func(t *testing.T) {
+	t.Run("a turn that completed with no Stop hook fails the Stop check [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.Hooks = dropLines(files.Hooks, "Stop-probe")
 		want(t, evaluate(t, "codex", files), "stop_fires", verdict.Fail)

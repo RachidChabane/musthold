@@ -37,12 +37,13 @@ which run the evaluators on recorded event streams and make no model call.
   the plugin trees validate, the edit was applied and the session ended within its
   caps, and SHALL fail the Stop check only when the control hooks of the same
   project settings ran.
-- **SP-1503~1**: WHEN the recorded session of Codex is evaluated THE SYSTEM SHALL
+- **SP-1503~2**: WHEN the recorded session of Codex is evaluated THE SYSTEM SHALL
   conclude from it whether the agent files load, the hooks fire, PreToolUse names
   the agent type, the MCP tools are spelled as the module's matchers spell them,
-  the read-only sandbox of the executor holds, the executor server serves a fetch
-  with no capability, and a Stop hook fires, and SHALL fail the Stop check only
-  when a control hook of the same hooks file ran.
+  the sandbox policy of the executor agrees with the isolation the harness
+  strategy declares, the executor server serves a fetch with no capability, and a
+  Stop hook fires, and SHALL fail the Stop check only when a control hook of the
+  same hooks file ran.
 - **SP-1707~2**: WHEN the recorded session of GitHub Copilot CLI is evaluated THE
   SYSTEM SHALL conclude from it whether the portable plugin and the fulfil skill of
   each module are listed before the session, the plugin trees validate, the
@@ -144,3 +145,20 @@ which run the evaluators on recorded event streams and make no model call.
   events, take the top-level `result` record with exit code 0 as the end of the
   session and report the premium requests it names, and take a `model.call_start`
   or an `assistant.turn_start` as the first turn of the session.
+
+## Codex executor sandbox
+
+- **SP-1519~1**: WHEN a Codex session wrote the rollout of a spawned thread THE
+  SYSTEM SHALL read the type of the sandbox policy that the first turn context
+  naming one records, with its line, and SHALL record none for a thread whose
+  rollout names no policy.
+- **SP-1520~1**: WHEN the sandbox of the Codex executor is judged THE SYSTEM SHALL
+  conclude from the policy its child rollout records and the isolation the harness
+  strategy declares: PASS when the policy is read-only and the write the executor
+  attempted did not land; PASS when the policy is not read-only and the declared
+  isolation is unrestricted, saying that the role file's sandbox mode was not
+  applied and which policy the executor ran with; FAIL when a write landed under a
+  policy reported read-only, or when the policy is not read-only and the declared
+  isolation is above unrestricted; and INCONCLUSIVE when no executor child rollout
+  exists, when it records no policy, or when a read-only executor never attempted
+  the write.

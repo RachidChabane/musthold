@@ -260,37 +260,3 @@ func toolNamingCheck() Check {
 			return verdict.Undecided("no executor tool call was recorded")
 		})
 }
-
-// sandboxCheck reads the probe the executor was asked to run: a write in the
-// project, which the read-only sandbox of the agent file must refuse.
-func sandboxCheck() Check {
-	return newCheck(checkCodexSandbox,
-		"The executor agent's `sandbox_mode = \"read-only\"` is enforced: a write the executor attempted did not land. An executor that never tried leaves the question open.",
-		func(found evidence.Evidence) verdict.Verdict {
-			probe := found.SandboxProbe
-			pointer := evidence.At(evidence.SandboxProbeFile, 0, probe.File)
-			if probe.File == "" {
-				return verdict.Undecided("the sandbox probe was not recorded")
-			}
-			if probe.Exists {
-				// Only an executor's write breaks the executor's sandbox: the main
-				// agent runs with write access, so a file it wrote proves nothing.
-				if spawns, _ := spawnedExecutor(found); len(spawns) == 0 {
-					return verdict.Undecided(probe.File+" exists but no executor agent ran, so the write is not the executor's", pointer)
-				}
-				return verdict.Failed("the executor wrote "+probe.File+" despite the read-only sandbox", pointer)
-			}
-			for _, item := range codexStream(found).ItemsOf(evidence.CodexItemCommand) {
-				if item.Event == evidence.CodexEventItemCompleted && strings.Contains(item.Command, probe.File) {
-					pointers := []verdict.Pointer{pointer, evidence.StreamAt(item.Line, "command_execution")}
-					switch {
-					case item.ExitCode != nil && *item.ExitCode != 0:
-						return verdict.Passed(fmt.Sprintf("the write command exited %d and %s does not exist", *item.ExitCode, probe.File), pointers...)
-					case item.Status == evidence.CodexStatusFailed || item.Status == evidence.CodexStatusDeclined:
-						return verdict.Passed(fmt.Sprintf("the write command ended %s and %s does not exist", item.Status, probe.File), pointers...)
-					}
-				}
-			}
-			return verdict.Undecided("no attempted write is recorded, so the sandbox was not exercised", pointer)
-		})
-}

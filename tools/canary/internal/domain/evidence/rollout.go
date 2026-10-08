@@ -49,6 +49,8 @@ type RolloutChild struct {
 	AgentPath      string
 	AgentRole      string
 	Depth          int
+	// Sandbox is the sandbox policy the thread ran under.
+	Sandbox SandboxPolicy
 }
 
 // Rollouts is what the rollout files of a Codex session hold. Recorded is false
@@ -196,7 +198,7 @@ func decodeChild(name string, data []byte) (RolloutChild, error) {
 	if err != nil {
 		return RolloutChild{}, err
 	}
-	child := RolloutChild{File: name}
+	child := RolloutChild{File: name, Sandbox: decodeSandboxPolicy(lines)}
 	for _, line := range lines {
 		var item rawRolloutLine
 		if json.Unmarshal(line.Raw, &item) != nil || item.Type != rolloutSessionMeta {
