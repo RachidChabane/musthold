@@ -256,7 +256,9 @@ part of CI or of the suite, and a contributor never needs it. See
 - [Releasing, installing and verifying a release](docs/usage/releasing.md)
 - [Architecture](docs/architecture.md) and [contributing](CONTRIBUTING.md)
 - [Architecture decision records](docs/adr)
+- [Security policy](SECURITY.md)
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE).
+Apache-2.0. See [LICENSE](LICENSE). The licences of the dependencies are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
