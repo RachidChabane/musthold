@@ -84,7 +84,7 @@ func NewReleaseRepository(tb testing.TB) *Repository {
 	repository := NewRepository(tb)
 	repository.Write(".gitignore", "/.tools/\n/dist/\n", fileMode)
 	repository.Write("LICENSE", "Apache License fixture\n", fileMode)
-	repository.Write("NOTICE", "spec-proof fixture\n", fileMode)
+	repository.Write("NOTICE", "Copyright 2026 Fixture Holder\n", fileMode)
 	repository.Write("THIRD_PARTY_NOTICES.md", "# Third-party notices\n", fileMode)
 	repository.Write("format/go.mod", "module github.com/RachidChabane/spec-proof/format\n\ngo 1.26.4\n", fileMode)
 	repository.Write("format/format.go", "package format\n\n// Marker is exported so that a binary links the module.\nconst Marker = \"fixture\"\n", fileMode)

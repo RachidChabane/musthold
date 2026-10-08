@@ -18,7 +18,11 @@ const (
 	PluginGenScript  = "script/plugin-gen"
 	LicenseFile      = "LICENSE"
 	ReadmeFile       = "README.md"
-	NoticeFile       = "NOTICE"
+	// NoticeFile is the file at the repository root that names the copyright holder.
+	NoticeFile = "NOTICE"
+	// NoticeHolderPlaceholder stands in NoticeFile for the copyright holder until the
+	// owner names one; a real release refuses a NoticeFile that still holds it.
+	NoticeHolderPlaceholder = "[COPYRIGHT HOLDER]"
 	// ThirdPartyNoticesFile is the third-party notices every archive ships.
 	ThirdPartyNoticesFile = "THIRD_PARTY_NOTICES.md"
 	LicenseIdentifier     = "Apache-2.0"

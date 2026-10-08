@@ -39,6 +39,8 @@ type ModuleFiles interface {
 	GoMod(module string) (domain.GoModFacts, error)
 	Manifests(roots []string) ([]domain.ManifestFact, error)
 	Marketplace() ([]domain.MarketplaceEntry, error)
+	// Notice reads the NOTICE file of the repository root; a missing file is not an error.
+	Notice() (domain.NoticeFacts, error)
 }
 
 // Checks runs the commands the pre-flight rules depend on and reports how they

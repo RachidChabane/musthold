@@ -79,6 +79,10 @@ the network.
 - **SP-1816~1**: WHEN the pre-flight is told to require a public repository THE
   SYSTEM SHALL find a private or unknown visibility as a finding only a real
   release needs.
+- **SP-1823~1**: WHEN the pre-flight reads the NOTICE file at the root of the
+  repository THE SYSTEM SHALL find a missing file, and a file that still holds the
+  placeholder `[COPYRIGHT HOLDER]` in place of the copyright holder, as findings
+  only a real release needs, for every module of the release table.
 - **SP-1817~1**: WHEN a pre-flight ends THE SYSTEM SHALL refuse a real release on
   every finding with exit code 3, and a dry run only on the findings that stop it,
   printing the others as what a real release would refuse and going on.
