@@ -4,7 +4,7 @@
 # The pilot verbs (setup, verify, test, run) drive experiments/limits-1-3; the
 # product verbs (go-test, go-lint, ci) drive every Go module of go.work through
 # script/*; name modules with MODULES="format discpower" to run a subset.
-.PHONY: help setup verify test run go-test go-lint ci shallnot-build plugin-gen release release-dry-run
+.PHONY: help setup verify test run go-test go-lint ci shallnot-build plugin-gen release release-dry-run third-party-notices third-party-notices-check
 
 help:  ## list verbs
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN{FS=":.*?## "}{printf "  %-8s %s\n",$$1,$$2}'
@@ -18,6 +18,7 @@ verify:  ## fast read-only checks (lint, typecheck, drift, Go architecture) — 
 	$(MAKE) -C experiments/limits-1-3 leak-check
 	cd experiments/limits-1-3/harness && uv run --frozen lint-imports
 	script/lint
+	script/third-party-notices --check
 	cd tools/archtest && go test -count=1 -p 1 ./...
 
 test:  ## full pilot test suite (slow — kept out of the commit gate)
@@ -55,6 +56,12 @@ watch-ci:  ## wait for the CI run of a commit and report its outcome (script/wat
 .PHONY: secrets-scan
 secrets-scan:  ## scan the whole git history for secrets with gitleaks (script/secrets-scan)
 	./script/secrets-scan
+
+third-party-notices:  ## regenerate THIRD_PARTY_NOTICES.md from the Go module graph and the uv.lock files (script/third-party-notices)
+	script/third-party-notices
+
+third-party-notices-check:  ## fail when THIRD_PARTY_NOTICES.md differs from what script/third-party-notices writes
+	script/third-party-notices --check
 
 plugin-gen:  ## regenerate the committed plugin trees (script/plugin-gen)
 	script/plugin-gen

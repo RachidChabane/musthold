@@ -1,0 +1,427 @@
+#!/usr/bin/env python3
+"""Generate THIRD_PARTY_NOTICES.md, the licences of the dependencies of the repository.
+
+    script/third-party-notices            rewrite THIRD_PARTY_NOTICES.md
+    script/third-party-notices --check    exit 1 when the file differs from what would be written
+
+Go: `go list -m -json all` lists the modules of the workspace build list. Only a module
+that provides a package to some build is listed: `go list -deps` of the released binaries
+(`cmd/spec-proof-*`) of each module marks the modules linked into a binary, and `go list -deps -test`
+of every module marks the rest. The licence files at the root of a module's source tree
+classify its licence.
+
+Python: the `uv.lock` files list the packages. A package's licence comes from the
+METADATA of an installed environment (`<lock directory>/.venv`, `--python-env`) or of
+the uv cache (`UV_CACHE_DIR`, default `~/.cache/uv`), at exactly the locked version.
+
+A licence found nowhere is the value already recorded in the file for that package and
+version, else UNKNOWN. Nothing is guessed and nothing is fetched. The output depends on
+the lock files, the module graph and the licence texts only.
+"""
+
+from __future__ import annotations
+
+import argparse
+import email
+import json
+import os
+import re
+import subprocess
+import sys
+import tomllib
+from dataclasses import dataclass
+from pathlib import Path
+
+REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
+OUTPUT_FILE = "THIRD_PARTY_NOTICES.md"
+WORKSPACE_FILE = "go.work"
+REPOSITORY_MODULE_PREFIX = "github.com/RachidChabane/spec-proof"
+PYTHON_LOCK_FILES = (
+    "bench/uv.lock",
+    "experiments/calibration/harness/uv.lock",
+    "experiments/limits-1-3/harness/uv.lock",
+)
+UNKNOWN = "UNKNOWN"
+EXIT_DRIFT = 1
+EXIT_FAILURE = 2
+
+SCOPE_BINARY = "binary"
+SCOPE_DEVELOPMENT = "tests and tools"
+INTERNAL_TOOLS_PREFIX = "tools/"
+RELEASED_BINARY_MARKER = "/cmd/spec-proof-"
+MAIN_PACKAGES_TEMPLATE = '{{if eq .Name "main"}}{{.ImportPath}}{{end}}'
+PACKAGE_MODULE_TEMPLATE = "{{with .Module}}{{.Path}}{{end}}"
+
+LICENSE_FILE_NAME = re.compile(r"^(licen[sc]e|copying|unlicense)([-._].*)?$", re.IGNORECASE)
+SOURCE_SUFFIXES = (".go", ".py", ".c", ".h", ".s")
+CLASSIFIER_PREFIX = "License :: OSI Approved :: "
+LICENSE_FIELD_MAX_LENGTH = 50
+COPYLEFT_FILE_LEVEL = "MPL-2.0"
+LICENSE_JOINER = " AND "
+
+# --- Licence classification -------------------------------------------------------------
+
+
+def classify_license_text(text: str) -> str:
+    """Return the SPDX identifier of a licence text, or UNKNOWN."""
+    body = " ".join(text.lower().split())
+    if "mozilla public license" in body and "version 2.0" in body:
+        return "MPL-2.0"
+    if "apache license" in body and "version 2.0" in body:
+        return "Apache-2.0"
+    if "attribution-sharealike 4.0 international" in body:
+        return "CC-BY-SA-4.0"
+    if "attribution 4.0 international" in body:
+        return "CC-BY-4.0"
+    if "this is free and unencumbered software released into the public domain" in body:
+        return "Unlicense"
+    if "cc0" in body and "creative commons" in body:
+        return "CC0-1.0"
+    if "permission is hereby granted, free of charge, to any person obtaining a copy" in body:
+        return "MIT" if "shall be included in all copies" in body else "MIT-0"
+    if "redistribution and use in source and binary forms" in body:
+        return _classify_bsd(body)
+    if re.search(r"permission to use, copy, modify, and(/or)? distribute this software", body):
+        return "ISC" if "appear in all copies" in body else "0BSD"
+    return UNKNOWN
+
+
+def _classify_bsd(body: str) -> str:
+    if "all advertising materials mentioning features" in body:
+        return "BSD-4-Clause"
+    if "neither the name" in body or "to endorse or promote products" in body:
+        return "BSD-3-Clause"
+    return "BSD-2-Clause"
+
+
+def license_files(directory: Path) -> list[Path]:
+    """The licence files at the root of a source tree, sorted by name."""
+    if not directory.is_dir():
+        return []
+    return sorted(
+        entry
+        for entry in directory.iterdir()
+        if entry.is_file()
+        and LICENSE_FILE_NAME.match(entry.name)
+        and not entry.name.endswith(SOURCE_SUFFIXES)
+    )
+
+
+def classify_files(paths: list[Path]) -> str:
+    """The licences of a set of texts, `A AND B` when several differ; UNKNOWN if any is."""
+    classes = {classify_license_text(path.read_text(errors="replace")) for path in paths}
+    if not classes or UNKNOWN in classes:
+        return UNKNOWN
+    return LICENSE_JOINER.join(sorted(classes))
+
+
+# --- Go ---------------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class GoModule:
+    path: str
+    version: str
+    license: str
+    scope: str
+
+
+def run_go(arguments: list[str], cwd: Path) -> str:
+    environment = {key: value for key, value in os.environ.items() if key not in ("GOFLAGS", "GOWORK")}
+    result = subprocess.run(["go", *arguments], cwd=cwd, env=environment, capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        raise RuntimeError(f"go {' '.join(arguments)} failed in {cwd}: {result.stderr.strip()}")
+    return result.stdout
+
+
+def workspace_module_directories(root: Path) -> list[Path]:
+    """The directories listed by `use` in go.work."""
+    text = (root / WORKSPACE_FILE).read_text()
+    directories = re.findall(r"^\s+\./(\S+)\s*$", text, re.MULTILINE)
+    return [root / directory for directory in sorted(directories)]
+
+
+def parse_json_stream(text: str) -> list[dict]:
+    decoder = json.JSONDecoder()
+    index, items = 0, []
+    while True:
+        while index < len(text) and text[index].isspace():
+            index += 1
+        if index >= len(text):
+            return items
+        item, index = decoder.raw_decode(text, index)
+        items.append(item)
+
+
+def listed_modules(directory: Path) -> list[dict]:
+    """The dependencies in the build list, without the modules of the workspace."""
+    items = parse_json_stream(run_go(["list", "-m", "-json", "all"], directory))
+    return [
+        item
+        for item in items
+        if not item.get("Main") and not item["Path"].startswith(REPOSITORY_MODULE_PREFIX)
+    ]
+
+
+def go_list_modules(directory: Path, packages: list[str], with_tests: bool) -> set[str]:
+    flags = ["list", "-deps"] + (["-test"] if with_tests else [])
+    output = run_go([*flags, "-f", PACKAGE_MODULE_TEMPLATE, *packages], directory)
+    return {line for line in output.split() if line}
+
+
+def main_packages(directory: Path) -> list[str]:
+    packages = run_go(["list", "-f", MAIN_PACKAGES_TEMPLATE, "./..."], directory).split()
+    return [package for package in packages if RELEASED_BINARY_MARKER in package]
+
+
+def module_scopes(root: Path, directories: list[Path]) -> dict[str, str]:
+    binary: set[str] = set()
+    compiled: set[str] = set()
+    for directory in directories:
+        compiled |= go_list_modules(directory, ["./..."], with_tests=True)
+        if directory.relative_to(root).as_posix().startswith(INTERNAL_TOOLS_PREFIX):
+            continue
+        mains = main_packages(directory)
+        if mains:
+            binary |= go_list_modules(directory, mains, with_tests=False)
+    scopes = {path: SCOPE_DEVELOPMENT for path in compiled}
+    scopes.update({path: SCOPE_BINARY for path in binary})
+    return scopes
+
+
+def go_modules(root: Path, recorded: dict[tuple[str, str, str], str]) -> list[GoModule]:
+    directories = workspace_module_directories(root)
+    scopes = module_scopes(root, directories)
+    modules = []
+    for item in listed_modules(directories[0]):
+        if item["Path"] not in scopes:
+            continue
+        license_class = classify_files(license_files(Path(item["Dir"]))) if item.get("Dir") else UNKNOWN
+        if license_class == UNKNOWN:
+            license_class = recorded.get(("go", item["Path"], item["Version"]), UNKNOWN)
+        modules.append(GoModule(item["Path"], item["Version"], license_class, scopes[item["Path"]]))
+    return sorted(modules, key=lambda module: (module.path, module.version))
+
+
+# --- Python -----------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class PythonPackage:
+    name: str
+    version: str
+    license: str
+    locks: tuple[str, ...]
+
+
+def normalize_name(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def locked_packages(lock_file: Path) -> set[tuple[str, str]]:
+    """The registry packages of a uv.lock; the project's own editable packages are left out."""
+    document = tomllib.loads(lock_file.read_text())
+    return {
+        (normalize_name(package["name"]), package["version"])
+        for package in document.get("package", [])
+        if "registry" in package.get("source", {}) and "version" in package
+    }
+
+
+def declared_license(metadata_text: str) -> str:
+    """The licence a distribution declares: SPDX expression, else classifiers, else a short field."""
+    message = email.message_from_string(metadata_text)
+    expression = (message.get("License-Expression") or "").strip()
+    if expression:
+        return expression
+    classifiers = sorted(
+        classifier.removeprefix(CLASSIFIER_PREFIX)
+        for classifier in message.get_all("Classifier", [])
+        if classifier.startswith(CLASSIFIER_PREFIX)
+    )
+    if classifiers:
+        return "; ".join(classifiers)
+    field = " ".join((message.get("License") or "").split())
+    if field and field.upper() != UNKNOWN and len(field) <= LICENSE_FIELD_MAX_LENGTH:
+        return field
+    return UNKNOWN
+
+
+def bundled_license(dist_info: Path) -> str:
+    """The licence of the texts a distribution ships in its dist-info, or UNKNOWN."""
+    return classify_files([*license_files(dist_info), *license_files(dist_info / "licenses")])
+
+
+def metadata_files(directory: Path) -> list[Path]:
+    if not directory.is_dir():
+        return []
+    return sorted(directory.glob("**/*.dist-info/METADATA"))
+
+
+def index_installed_licenses(directories: list[Path]) -> dict[tuple[str, str], str]:
+    """Licence by (name, version) over environments and caches; the first directory wins."""
+    index: dict[tuple[str, str], str] = {}
+    for directory in directories:
+        for path in metadata_files(directory):
+            text = path.read_text(errors="replace")
+            message = email.message_from_string(text)
+            if not message["Name"] or not message["Version"]:
+                continue
+            license_value = declared_license(text)
+            if license_value == UNKNOWN:
+                license_value = bundled_license(path.parent)
+            if license_value != UNKNOWN:
+                index.setdefault((normalize_name(message["Name"]), message["Version"]), license_value)
+    return index
+
+
+def default_license_sources(root: Path, extra: list[Path]) -> list[Path]:
+    environments = [root / Path(lock).parent / ".venv" for lock in PYTHON_LOCK_FILES]
+    cache = Path(os.environ.get("UV_CACHE_DIR") or Path.home() / ".cache" / "uv") / "archive-v0"
+    return [*extra, *environments, cache]
+
+
+def python_packages(
+    root: Path, sources: list[Path], recorded: dict[tuple[str, str, str], str]
+) -> list[PythonPackage]:
+    installed = index_installed_licenses(sources)
+    locks_of: dict[tuple[str, str], list[str]] = {}
+    for lock in PYTHON_LOCK_FILES:
+        for key in locked_packages(root / lock):
+            locks_of.setdefault(key, []).append(str(Path(lock).parent))
+    packages = []
+    for (name, version), locks in locks_of.items():
+        license_value = installed.get((name, version)) or recorded.get(("python", name, version), UNKNOWN)
+        packages.append(PythonPackage(name, version, license_value, tuple(sorted(locks))))
+    return sorted(packages, key=lambda package: (package.name, package.version))
+
+
+# --- Rendering --------------------------------------------------------------------------
+
+TABLE_ROW = re.compile(r"^\| `(?P<name>[^`]+)` \| `(?P<version>[^`]+)` \| (?P<license>[^|]+?) \|")
+SECTION_GO = "## Go modules"
+SECTION_PYTHON = "## Python packages"
+ECOSYSTEM_OF_SECTION = {SECTION_GO: "go", SECTION_PYTHON: "python"}
+
+
+def read_recorded(output: Path) -> dict[tuple[str, str, str], str]:
+    """The licences the committed file already records, by (ecosystem, name, version)."""
+    if not output.is_file():
+        return {}
+    recorded: dict[tuple[str, str, str], str] = {}
+    ecosystem = ""
+    for line in output.read_text().splitlines():
+        if line.startswith("## "):
+            ecosystem = ECOSYSTEM_OF_SECTION.get(line, "")
+            continue
+        match = TABLE_ROW.match(line)
+        if ecosystem and match:
+            recorded[(ecosystem, match["name"], match["version"])] = match["license"]
+    return recorded
+
+
+def count_by_license(licenses: list[str]) -> list[tuple[str, int]]:
+    counts: dict[str, int] = {}
+    for license_value in licenses:
+        counts[license_value] = counts.get(license_value, 0) + 1
+    return sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+
+
+def class_table(counts: list[tuple[str, int]]) -> list[str]:
+    lines = ["| Licence | Count |", "|---|---|"]
+    lines += [f"| {license_value} | {count} |" for license_value, count in counts]
+    return lines
+
+
+def render(go: list[GoModule], python: list[PythonPackage]) -> str:
+    copyleft = [m for m in go if COPYLEFT_FILE_LEVEL in m.license.split(LICENSE_JOINER)]
+    lines = [
+        "# Third-party notices",
+        "",
+        "The licences of the dependencies of spec-proof. Each dependency stays under its own",
+        "licence; the licence texts are in the source trees and distributions named below.",
+        "This file is generated by `script/third-party-notices` and checked by",
+        "`script/third-party-notices --check`.",
+        "",
+        "`UNKNOWN` marks a licence that could not be determined from the licence files or the",
+        "package metadata.",
+        "",
+        f"## Go licence classes ({len(go)} modules)",
+        "",
+        *class_table(count_by_license([module.license for module in go])),
+        "",
+        "Scope says where a module is compiled: `binary` for a module linked into a released",
+        "binary, `tests and tools` for a module that only tests and internal tools compile.",
+        "A module of the build list that provides no package to any build is not listed.",
+        "",
+    ]
+    if copyleft:
+        lines += [
+            "### MPL-2.0 modules",
+            "",
+            "These modules carry the Mozilla Public License 2.0, a file-level licence: changes to",
+            "their own files stay under it and the source of those files stays available. spec-proof",
+            "uses them unmodified.",
+            "",
+            *[f"- `{module.path}` {module.version} ({module.scope})" for module in copyleft],
+            "",
+        ]
+    lines += [SECTION_GO, "", "| Module | Version | Licence | Scope |", "|---|---|---|---|"]
+    lines += [f"| `{m.path}` | `{m.version}` | {m.license} | {m.scope} |" for m in go]
+    lines += [
+        "",
+        f"## Python licence classes ({len(python)} packages)",
+        "",
+        *class_table(count_by_license([package.license for package in python])),
+        "",
+        "These packages are the locked dependencies of the benchmark core (`bench`) and of the",
+        "experiment harnesses (`experiments`). No binary of a release links them. The licence is",
+        "the one the package declares, as an SPDX expression or as its trove classifiers.",
+        "",
+        SECTION_PYTHON,
+        "",
+        "| Package | Version | Licence | Locked in |",
+        "|---|---|---|---|",
+    ]
+    lines += [f"| `{p.name}` | `{p.version}` | {p.license} | {', '.join(p.locks)} |" for p in python]
+    return "\n".join(lines) + "\n"
+
+
+# --- Entry point ------------------------------------------------------------------------
+
+
+def build(root: Path, extra_sources: list[Path]) -> str:
+    recorded = read_recorded(root / OUTPUT_FILE)
+    go = go_modules(root, recorded)
+    python = python_packages(root, default_license_sources(root, extra_sources), recorded)
+    return render(go, python)
+
+
+def main(arguments: list[str]) -> int:
+    parser = argparse.ArgumentParser(description="Generate THIRD_PARTY_NOTICES.md.")
+    parser.add_argument("--check", action="store_true", help="fail when the file differs from the generated text")
+    parser.add_argument(
+        "--python-env",
+        action="append",
+        default=[],
+        type=Path,
+        help="extra environment or cache directory with *.dist-info/METADATA (repeatable)",
+    )
+    options = parser.parse_args(arguments)
+    try:
+        generated = build(REPOSITORY_ROOT, options.python_env)
+    except (RuntimeError, OSError) as error:
+        print(f"third-party-notices: {error}", file=sys.stderr)
+        return EXIT_FAILURE
+    output = REPOSITORY_ROOT / OUTPUT_FILE
+    if options.check:
+        if not output.is_file() or output.read_text() != generated:
+            print(f"third-party-notices: {OUTPUT_FILE} is out of date: run script/third-party-notices", file=sys.stderr)
+            return EXIT_DRIFT
+        return 0
+    output.write_text(generated)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

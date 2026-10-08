@@ -105,6 +105,9 @@ identifiers, comments, test names, log messages and error strings in English.
 Generated files (`<module>/plugin/`, the marketplace files) are never edited by
 hand: change the generator and run `make plugin-gen`.
 
+`THIRD_PARTY_NOTICES.md` is generated too: after a change to a `go.mod` or a `uv.lock`,
+run `make third-party-notices`. `make verify` and CI fail when the file is out of date.
+
 ## Documentation
 
 User documentation lives in `README.md`, the module READMEs and `docs/usage/`;
