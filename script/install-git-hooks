@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Installs the repository's git hooks into this clone: pre-push runs the self-gate
+# of the modules a push touches (script/pre-push).
+#
+#   script/install-git-hooks
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+hooks_dir="$(git rev-parse --git-path hooks)"
+mkdir -p "${hooks_dir}"
+cat >"${hooks_dir}/pre-push" <<'HOOK'
+#!/usr/bin/env bash
+exec "$(git rev-parse --show-toplevel)/script/pre-push" "$@"
+HOOK
+chmod +x "${hooks_dir}/pre-push"
+echo "installed ${hooks_dir}/pre-push"

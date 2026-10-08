@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Waits for the CI workflow run of a commit on GitHub and reports its outcome, so a
+# red run is seen as soon as it ends.
+#
+#   script/watch-ci [COMMIT]   (default: HEAD)
+#
+# Exit 0: the run succeeded, or no run exists for a commit CI ignores. 1: the run
+# failed or was cancelled. 2: gh is missing.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly WORKFLOW="ci.yml"
+readonly EXIT_PRECONDITION=2
+readonly POLL_SECONDS=20
+readonly START_ATTEMPTS=15
+
+command -v gh >/dev/null 2>&1 || {
+  echo "watch-ci: gh is not on PATH" >&2
+  exit "${EXIT_PRECONDITION}"
+}
+sha="$(git rev-parse "${1:-HEAD}")"
+
+run_id=""
+for _ in $(seq "${START_ATTEMPTS}"); do
+  run_id="$(gh run list --workflow "${WORKFLOW}" --commit "${sha}" --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+  [[ -n "${run_id}" ]] && break
+  sleep "${POLL_SECONDS}"
+done
+if [[ -z "${run_id}" ]]; then
+  echo "watch-ci: no ${WORKFLOW} run for ${sha:0:7} (a commit that touches only ignored paths starts none)"
+  exit 0
+fi
+echo "watch-ci: run ${run_id} for ${sha:0:7}"
+if gh run watch "${run_id}" --exit-status --interval "${POLL_SECONDS}" >/dev/null; then
+  echo "watch-ci: run ${run_id} succeeded"
+else
+  echo "watch-ci: run ${run_id} FAILED" >&2
+  gh run view "${run_id}" --log-failed | grep -E 'error |##\[error\]' | head -20 >&2 || true
+  exit 1
+fi

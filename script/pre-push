@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Git pre-push hook: before a push, runs the self-gate of every module the pushed
+# commits touch (script/gate-changed). Git passes "<local ref> <local sha> <remote
+# ref> <remote sha>" lines on standard input. A new remote branch is compared with
+# origin/main; a deleted ref is skipped. Install it with script/install-git-hooks.
+#
+# Exit 0: the push may go on. 1: a gate failed, so the push is refused.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly ZERO_SHA="0000000000000000000000000000000000000000"
+readonly DEFAULT_BASE="origin/main"
+
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+  [[ "${local_sha}" == "${ZERO_SHA}" ]] && continue
+  base="${remote_sha}"
+  if [[ "${remote_sha}" == "${ZERO_SHA}" ]] || ! git cat-file -e "${remote_sha}^{commit}" 2>/dev/null; then
+    base="${DEFAULT_BASE}"
+  fi
+  script/gate-changed "${base}" "${local_sha}"
+done

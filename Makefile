@@ -42,6 +42,16 @@ shallnot-build:  ## build the pinned Shallnot into .tools/bin (script/shallnot-b
 mem-check:  ## refuse heavy local work unless memory is free enough (script/mem-guard)
 	./script/mem-guard check
 
+.PHONY: gate-changed install-git-hooks watch-ci
+gate-changed:  ## self-gate the modules changed since the upstream (script/gate-changed; ARGS="BASE HEAD")
+	./script/gate-changed $(ARGS)
+
+install-git-hooks:  ## install the pre-push hook that gates the modules a push touches (script/install-git-hooks)
+	./script/install-git-hooks
+
+watch-ci:  ## wait for the CI run of a commit and report its outcome (script/watch-ci; ARGS=COMMIT)
+	./script/watch-ci $(ARGS)
+
 .PHONY: secrets-scan
 secrets-scan:  ## scan the whole git history for secrets with gitleaks (script/secrets-scan)
 	./script/secrets-scan

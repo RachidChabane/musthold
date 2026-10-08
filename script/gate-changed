@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# Runs the self-gate (script/ci) of every Go module a range of commits touches, so
+# a push never carries a module whose gate fails.
+#
+#   script/gate-changed [BASE [HEAD]]   gate the modules changed in BASE..HEAD
+#                                       (default: the upstream of the branch..HEAD)
+#   script/gate-changed --list ...      print the modules without gating them
+#
+# A change to the shared format module, to go.work or to the scripts that build and
+# gate every module selects every module. A change outside any module, other than
+# the notes and the ADRs, selects tools/e2e, which checks the documentation and the
+# chain of binaries. The gate runs under nice with GOMAXPROCS=2.
+#
+# Exit 0: every selected gate passed, or nothing to gate. 1: a gate failed.
+# 2: usage error.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly EXIT_USAGE=2
+readonly NICE_LEVEL=10
+readonly GATE_PROCS=2
+readonly E2E_MODULE="tools/e2e"
+# Paths whose change concerns every module.
+readonly SHARED_PATHS='^(format/|go\.work|script/(ci|lint|modules|shallnot-build|shallnot\.pin|test)$)'
+# Paths no gate reads.
+readonly UNGATED_PATHS='^(notes/|docs/adr/)'
+
+list_only=0
+if [[ "${1:-}" == "--list" ]]; then
+  list_only=1
+  shift
+fi
+if (($# > 2)); then
+  echo "usage: script/gate-changed [--list] [BASE [HEAD]]" >&2
+  exit "${EXIT_USAGE}"
+fi
+base="${1:-$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || echo origin/main)}"
+head="${2:-HEAD}"
+
+all_modules=()
+while IFS= read -r module; do
+  all_modules+=("${module#./}")
+done < <(script/modules)
+changed=()
+while IFS= read -r path; do
+  changed+=("${path}")
+done < <(git diff --name-only "${base}" "${head}")
+
+# module_of prints the module that holds a path, or nothing.
+module_of() {
+  local path="$1" module best=""
+  for module in "${all_modules[@]}"; do
+    if [[ "${path}" == "${module}/"* && ${#module} -gt ${#best} ]]; then
+      best="${module}"
+    fi
+  done
+  echo "${best}"
+}
+
+selected=()
+add() {
+  local module="$1" present
+  for present in "${selected[@]:-}"; do
+    [[ "${present}" == "${module}" ]] && return 0
+  done
+  selected+=("${module}")
+}
+
+for path in "${changed[@]:-}"; do
+  [[ -z "${path}" ]] && continue
+  if [[ "${path}" =~ ${SHARED_PATHS} ]]; then
+    selected=("${all_modules[@]}")
+    break
+  fi
+  [[ "${path}" =~ ${UNGATED_PATHS} ]] && continue
+  module="$(module_of "${path}")"
+  add "${module:-${E2E_MODULE}}"
+done
+
+if ((${#selected[@]} == 0)); then
+  echo "gate-changed: no module changed in ${base}..${head}"
+  exit 0
+fi
+if ((list_only)); then
+  printf '%s\n' "${selected[@]}"
+  exit 0
+fi
+echo "gate-changed: gating ${selected[*]}"
+GOMAXPROCS="${GATE_PROCS}" nice -n "${NICE_LEVEL}" script/ci "${selected[@]/#/./}"

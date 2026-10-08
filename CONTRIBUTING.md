@@ -27,6 +27,9 @@ Every verb is a shebang script in `script/` and a `make` target that calls it, s
 | `make go-lint` | `script/lint [MODULE...]` | `gofmt` check and `go vet` per module |
 | `make go-test` | `script/test [MODULE...]` | the Go tests of each module, writing JUnit XML to `<module>/build/test-results/go.xml` |
 | `make ci` | `script/ci [MODULE...]` | build the pinned Shallnot, then lint and self-gate each module with `shallnot gate`, which runs its tests and traces its specs to the results |
+| `make gate-changed` | `script/gate-changed [BASE [HEAD]]` | self-gate the modules a range of commits touches (every module when `format` or `go.work` changes, `tools/e2e` for changes outside the modules) |
+| `make install-git-hooks` | `script/install-git-hooks` | install the pre-push hook that runs `script/gate-changed` on what a push carries and refuses the push when a gate fails |
+| `make watch-ci` | `script/watch-ci [COMMIT]` | wait for the CI run of a commit and report its outcome |
 | `make plugin-gen` | `script/plugin-gen` | regenerate the committed plugin trees |
 | `make shallnot-build` | `script/shallnot-build` | build the pinned Shallnot |
 | `make mem-check` | `script/mem-guard check` | refuse heavy work when memory is short |
@@ -43,7 +46,7 @@ workflow publishes, on a tag the owner pushes; [releasing](docs/usage/releasing.
 describes how a release is cut, checked and verified.
 
 Before you open a change run `make verify`, then `script/ci` for the modules you
-touched. Run the tests of a package directly while you work:
+touched; `make install-git-hooks` makes every push do the second step. Run the tests of a package directly while you work:
 
 ```
 cd discpower && nice -n 10 go test -p 1 -count=1 ./internal/domain/...
