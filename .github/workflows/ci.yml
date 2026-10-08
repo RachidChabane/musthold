@@ -132,10 +132,23 @@ jobs:
     if: inputs.modules == ''
     name: benchmark core
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: Check out spec-proof
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read the pinned Shallnot commit
+        id: pin
+        run: echo "sha=$(tr -d '[:space:]' < script/shallnot.pin)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the pinned Shallnot
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: RachidChabane/shallnot-proof-gate
+          ref: ${{ steps.pin.outputs.sha }}
+          ssh-key: ${{ secrets.SHALLNOT_PROOF_GATE_DEPLOY_KEY }}
+          path: shallnot-proof-gate
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -156,6 +169,20 @@ jobs:
 
       - name: Static checks
         run: bench/script/lint
+
+      - name: Download the Go modules the product builds against
+        run: go mod download
+
+      - name: Build the product the integration tests drive
+        env:
+          SHALLNOT_SRC: ${{ github.workspace }}/shallnot-proof-gate
+          MEM_GUARD_MIN_FREE_PCT: "10"
+        run: script/product-build
+
+      - name: Check the recorded parcel answers
+        env:
+          MEM_GUARD_MIN_FREE_PCT: "10"
+        run: script/regen-bench-recordings --check
 
       - name: Tests without network
         env:
