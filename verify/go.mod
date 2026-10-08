@@ -3,7 +3,7 @@ module github.com/RachidChabane/spec-proof/verify
 go 1.26.4
 
 require (
-	github.com/RachidChabane/spec-proof/format v0.0.0
+	github.com/RachidChabane/spec-proof/format v0.1.0
 	github.com/secure-systems-lab/go-securesystemslib v0.11.0
 	github.com/sigstore/protobuf-specs v0.5.1
 	github.com/sigstore/sigstore v1.10.8
@@ -13,8 +13,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	pgregory.net/rapid v1.3.0
 )
-
-replace github.com/RachidChabane/spec-proof/format => ../format
 
 require (
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect

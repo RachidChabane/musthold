@@ -1,3 +1,5 @@
+github.com/RachidChabane/spec-proof/format v0.1.0 h1:IL6Kq5+ApCHWbN3G6nodcb2IFdFGvyuTQ5q7df3Z9U0=
+github.com/RachidChabane/spec-proof/format v0.1.0/go.mod h1:ebK82C3vFaMnWfMobDVfopwIjQADPeRfzpGpk3Rhxxs=
 github.com/bitfield/gotestdox v0.2.2 h1:x6RcPAbBbErKLnapz1QeAlf3ospg8efBsedU93CDsnE=
 github.com/bitfield/gotestdox v0.2.2/go.mod h1:D+gwtS0urjBrzguAkTM2wodsTQYFHdpx8eqRJ3N+9pY=
 github.com/dnephin/pflag v1.0.7 h1:oxONGlWxhmUct0YzKTgrpQv9AUA1wtPBn7zuSjJqptk=
