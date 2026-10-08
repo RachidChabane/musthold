@@ -31,7 +31,8 @@ class PacedGateHost:
     """Decorator over a `GateHost` for one task: a recorded gate is replayed for free, a live one is reserved and settled.
 
     `criteria` is the number of criteria of the task's spec, which sizes the reservation together with the harness and
-    the arm. A `REPLAY` makes no model call and passes through untouched. Only a complete gate is archived; a paused or
+    the arm. A `REPLAY` makes no model call and passes through untouched. Each ledger has one writing process at a
+    time; the load-and-save of the ledger is not locked across processes. Only a complete gate is archived; a paused or
     misconfigured one is charged for what it spent and run again on the next attempt.
     """
 
@@ -61,7 +62,7 @@ class PacedGateHost:
         call_id = live_gate_call_id(arm, record_dir)
         if self._calls.exists(call_id):
             return _outcome_of(self._calls.read(call_id))
-        self._settle_orphans(call_id)
+        self._settle_orphans()
         resumed_reservation = self._gate.holds_reservation(call_id)
         admission = self._gate.admit_reserved(
             call_id, self._history.load().reservation(self._harness, arm, self._criteria)
@@ -81,12 +82,16 @@ class PacedGateHost:
             return outcome.executions
         return max(outcome.executions, self._counter.count(self._events.lines(call_id)))
 
-    def _settle_orphans(self, current: str) -> None:
-        """Settle every gate that was admitted and never finished, from the events it streamed before it was killed."""
+    def _settle_orphans(self) -> None:
+        """Settle the gates of earlier nights that were admitted and never finished, from the events they streamed.
+
+        A reservation of tonight is left alone: its gate may still be running (a branch's gate runs while the next
+        branch's coder session uses the workspace), and the next night settles it on the night it was admitted.
+        """
+        tonight = self._gate.tonight()
         for orphan in self._gate.pending():
-            if orphan.call_id == current and self._gate.holds_reservation(current):
-                continue
-            self._gate.settle(orphan, self._spent_by(orphan))
+            if orphan.night < tonight:
+                self._gate.settle(orphan, self._spent_by(orphan))
 
     def _spent_by(self, orphan: Admission) -> int:
         assert orphan.call_id is not None

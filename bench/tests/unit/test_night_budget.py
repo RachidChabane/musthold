@@ -33,14 +33,14 @@ def inputs(
     )
 
 
-def legacy_construct_budget(pilot_spent: int) -> int:
-    """Construction's budget before the shared computation: the cap less the pilot and one canary call, capped."""
+def fallback_construct_budget(pilot_spent: int) -> int:
+    """Construction's budget from the pilot's spend and one canary call alone, capped at its allowance."""
     return min(DEFAULT_CONSTRUCT_ALLOWANCE, max(0, DEFAULT_NIGHTLY_CAP - pilot_spent - 1))
 
 
 @pytest.mark.parametrize("pilot_spent", [0, 1, 100, 129, 130, 200, 249, 250, 300])
 def test_construction_gets_what_the_pilot_and_one_canary_call_leave_while_it_has_work(pilot_spent: int) -> None:
-    assert share_of(NightJob.CONSTRUCT, inputs(pilot_spent=pilot_spent)) == legacy_construct_budget(pilot_spent)
+    assert share_of(NightJob.CONSTRUCT, inputs(pilot_spent=pilot_spent)) == fallback_construct_budget(pilot_spent)
 
 
 def test_construction_is_given_nothing_once_every_selected_task_is_sealed() -> None:

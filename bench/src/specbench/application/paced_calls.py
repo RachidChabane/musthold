@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 from specbench.application.ports import (
     AgentHarness,
     CallStore,
@@ -66,6 +68,9 @@ class CallGate:
     def pending(self) -> tuple[Admission, ...]:
         """The reserved calls that were admitted and never settled, oldest night first."""
         return self._ledgers.load().pending(self._harness)
+
+    def tonight(self) -> date:
+        return self._policy.night_of(self._clock.now())
 
     def holds_reservation(self, call_id: str) -> bool:
         return self._ledgers.load().is_reserved(self._policy.night_of(self._clock.now()), self._harness, call_id)

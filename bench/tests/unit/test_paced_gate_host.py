@@ -168,3 +168,24 @@ def test_a_same_night_rerun_after_a_kill_keeps_its_reservation_and_charges_every
     assert attempts[0] == attempts[1]
     assert r.ledger.ledger.calls_on(NIGHT, CLAUDE) == 14
     assert r.ledger.ledger.pending(CLAUDE) == ()
+
+
+def test_a_gate_that_starts_while_another_is_still_running_leaves_the_running_one_reserved() -> None:
+    other_record = Path("cleanroom/T1/AL/def/rec")
+    started: list[int] = []
+
+    def answer() -> GateOutcome:
+        started.append(len(started))
+        if len(started) == 1:
+            r.host.run_gate(Path("cleanroom/T1/AL/def"), Arm.AL, other_record, GateMode.LIVE)
+            assert len(r.ledger.ledger.pending(CLAUDE)) == 1
+            return complete(6)
+        return complete(4)
+
+    r = rig(answer)
+    first = r.run()
+    assert first.executions == 6
+    assert r.ledger.ledger.calls_on(NIGHT, CLAUDE) == 10
+    assert r.ledger.ledger.pending(CLAUDE) == ()
+    assert r.run() == first
+    assert len(r.inner.received) == 2

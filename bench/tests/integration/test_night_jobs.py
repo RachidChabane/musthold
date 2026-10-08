@@ -6,6 +6,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -14,11 +15,15 @@ import pytest
 
 from specbench.adapters.machine_slots import MachineSlots
 
-pytestmark = pytest.mark.integration
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(sys.platform != "darwin", reason="the night jobs run on macOS: they use BSD date and launchd"),
+]
 
 REPOSITORY = Path(__file__).resolve().parents[3]
 NIGHT_JOBS = REPOSITORY / "script" / "night-jobs"
 EXIT_PAUSED = 3
+MACOS_BASH = "/bin/bash"
 NIGHT_SHIFT = timedelta(hours=12)
 BUDGET_LINE = re.compile(r"construct: budget (\d+)")
 LAUNCH_BUDGET = re.compile(r"script/construct --night --budget (\d+)")
@@ -46,7 +51,7 @@ class Night:
     def pilot_spent(self, calls: int) -> None:
         self.pilot_ledger.write_text(json.dumps({self.night: {"claude": calls}}))
 
-    def run(self, job: str, **extra: str) -> Result:
+    def run(self, job: str, shell: str | None = None, **extra: str) -> Result:
         environment = {
             **os.environ,
             "NIGHT_JOBS_DRY_RUN": "1",
@@ -58,7 +63,12 @@ class Night:
             **extra,
         }
         done = subprocess.run(
-            [str(NIGHT_JOBS), job], env=environment, check=False, capture_output=True, text=True, cwd=REPOSITORY
+            [*([shell] if shell else []), str(NIGHT_JOBS), job],
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+            cwd=REPOSITORY,
         )
         return Result(done.returncode, done.stdout + done.stderr)
 
@@ -87,7 +97,7 @@ def test_construction_does_not_start_once_the_pilot_has_spent_the_cap(night: Nig
 
 
 @pytest.mark.parametrize("pilot_calls", [0, 200, 250])
-def test_the_shared_computation_agrees_with_the_arithmetic_it_replaces(night: Night, pilot_calls: int) -> None:
+def test_the_shared_computation_agrees_with_the_standalone_fallback_arithmetic(night: Night, pilot_calls: int) -> None:
     night.pilot_spent(pilot_calls)
     delegated = night.run("construct")
     standalone = night.run("construct", NIGHT_JOBS_BUDGET_DELEGATE="0")
@@ -134,3 +144,13 @@ def test_slots_are_off_unless_asked_for(night: Night) -> None:
 
 def test_an_unknown_job_is_a_usage_error(night: Night) -> None:
     assert night.run("nonsense").code == 2
+
+
+@pytest.mark.skipif(not Path(MACOS_BASH).exists(), reason="the system bash 3.2 is part of macOS")
+def test_the_jobs_and_the_budget_script_run_under_the_bash_that_macos_ships(night: Night) -> None:
+    night.pilot_spent(100)
+    constructed = night.run("construct", shell=MACOS_BASH, NIGHT_JOBS_SLOTS="1")
+    assert (
+        constructed.code == 0 and constructed.construct_budget() == 120 and "night-budget failed" not in constructed.log
+    )
+    assert night.run("canaries", shell=MACOS_BASH, NIGHT_JOBS_SLOTS="1").code == 0

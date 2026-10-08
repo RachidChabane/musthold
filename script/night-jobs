@@ -121,8 +121,8 @@ pilot_claude_calls() {
   jq -r --arg night "$1" '.[$night].claude // 0' "${PILOT_LEDGER}"
 }
 
-# legacy_construct_budget is construction's budget from the pilot's ledger and the canary reserve alone.
-legacy_construct_budget() {
+# fallback_construct_budget is construction's budget from the pilot's ledger and one canary call alone.
+fallback_construct_budget() {
   local left
   left=$((NIGHT_CLAUDE_CAP - $(pilot_claude_calls "$(night_date)") - CANARY_CLAUDE_RESERVE))
   ((left < CONSTRUCT_BUDGET)) && echo "$((left > 0 ? left : 0))" || echo "${CONSTRUCT_BUDGET}"
@@ -150,7 +150,7 @@ construct_budget() {
     night_budget_share construct && return 0
     log "construct: night-budget failed; using the pilot ledger and the canary reserve" >&2
   fi
-  legacy_construct_budget
+  fallback_construct_budget
 }
 
 run_construct() {
