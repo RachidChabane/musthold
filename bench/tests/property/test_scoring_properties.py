@@ -68,7 +68,8 @@ def files_over(paths: tuple[str, ...]) -> st.SearchStrategy[dict[str, bytes]]:
 def test_an_oracle_tree_either_refuses_a_collision_or_overwrites_nothing_of_the_agent(
     agent: dict[str, bytes], upstream: dict[str, bytes], overlay: dict[str, bytes]
 ) -> None:
-    colliding = (agent.keys() & overlay.keys()) - upstream.keys()
+    kept = {path for path in agent if not is_test_path(Language.PYTHON, path)}
+    colliding = (kept & overlay.keys()) - upstream.keys()
     if colliding:
         with pytest.raises(OracleTreeCollision):
             compose_oracle_tree(Language.PYTHON, agent, upstream, overlay)
@@ -79,3 +80,11 @@ def test_an_oracle_tree_either_refuses_a_collision_or_overwrites_nothing_of_the_
             assert tree[path] == content
     assert all(tree[path] == content for path, content in overlay.items())
     assert all(tree[path] == (overlay.get(path, content)) for path, content in upstream.items())
+
+
+@given(files_over(TEST_PATHS), files_over(TEST_PATHS), files_over(SOURCE_PATHS + TEST_PATHS))
+def test_agent_test_files_never_void_scoring_and_never_survive_the_overlay(
+    agent_tests: dict[str, bytes], upstream: dict[str, bytes], overlay: dict[str, bytes]
+) -> None:
+    tree = compose_oracle_tree(Language.PYTHON, agent_tests, upstream, overlay)
+    assert tree == {**upstream, **overlay}

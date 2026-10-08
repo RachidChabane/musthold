@@ -66,7 +66,7 @@ def test_upstream_tests_overwrite_the_agents_copies_and_come_back_when_deleted()
 def test_sealed_files_are_overlaid_last_and_the_agents_source_is_otherwise_kept() -> None:
     tree = compose_oracle_tree(
         Language.PYTHON,
-        {"pkg/new.py": b"agent new"},
+        {"pkg/new.py": b"agent new", "tests/test_h.py": b"agent h"},
         {"tests/test_u.py": b"u"},
         {"tests/test_h.py": b"sealed h", "tests/test_o.py": b"sealed o"},
     )
@@ -82,8 +82,7 @@ def test_sealed_files_are_overlaid_last_and_the_agents_source_is_otherwise_kept(
     ("agent_files", "colliding"),
     [
         ({"pkg/helper.py": b"agent helper"}, ["pkg/helper.py"]),
-        ({"tests/spec_h/test_h.py": b"agent h", "pkg/fee.py": b"x"}, ["tests/spec_h/test_h.py"]),
-        ({"pkg/helper.py": b"a", "tests/spec_h/test_h.py": b"b"}, ["pkg/helper.py", "tests/spec_h/test_h.py"]),
+        ({"pkg/helper.py": b"a", "tests/spec_h/test_h.py": b"b"}, ["pkg/helper.py"]),
     ],
 )
 def test_a_sealed_path_that_would_overwrite_a_file_of_the_agents_tree_is_an_error(
@@ -93,6 +92,16 @@ def test_a_sealed_path_that_would_overwrite_a_file_of_the_agents_tree_is_an_erro
     with pytest.raises(OracleTreeCollision) as raised:
         compose_oracle_tree(Language.PYTHON, agent_files, {}, overlay)
     assert str(raised.value).endswith(", ".join(colliding))
+
+
+def test_an_agent_test_file_at_a_sealed_path_is_ignored() -> None:
+    tree = compose_oracle_tree(
+        Language.PYTHON,
+        {"pkg/fee.py": b"agent", "tests/spec_h/test_h.py": b"agent's own test", "conftest.py": b"agent"},
+        {},
+        {"tests/spec_h/test_h.py": b"sealed h", "conftest.py": b"sealed"},
+    )
+    assert tree == {"pkg/fee.py": b"agent", "tests/spec_h/test_h.py": b"sealed h", "conftest.py": b"sealed"}
 
 
 def test_the_sealed_copy_of_an_upstream_test_replaces_the_agents_version_by_design() -> None:
@@ -216,9 +225,11 @@ def test_a_different_oracle_tree_is_scored_again(tmp_path: Path) -> None:
 
 def test_a_final_tree_that_holds_a_sealed_path_is_not_scored_and_runs_nothing(tmp_path: Path) -> None:
     runner = CountingRunner()
-    subject, trees = scorer(tmp_path, runner)
-    with pytest.raises(OracleTreeCollision, match=r"tests/test_h\.py"):
-        subject.score({"pkg/fee.py": b"a", "tests/test_h.py": b"the agent wrote a file at the sealed path"})
+    trees = MemoryFileTrees(tmp_path)
+    basis = ScoringBasis(Language.PYTHON, ORACLE, {}, {"pkg/sealed_helper.py": b"sealed"})
+    subject = OracleScorer(basis, trees, runner)
+    with pytest.raises(OracleTreeCollision, match=r"pkg/sealed_helper\.py"):
+        subject.score({"pkg/fee.py": b"a", "pkg/sealed_helper.py": b"the agent wrote a file at the sealed path"})
     assert runner.calls == 0
     assert trees.materialized == []
     assert subject.scored_tree_count == 0

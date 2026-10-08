@@ -38,14 +38,14 @@ def compose_oracle_tree(
 ) -> dict[str, bytes]:
     """The files the oracle runs on; the agent's own test files never reach it.
 
-    The sealed files sit at their bundle-relative paths, so a sealed path that is also a path of the agent's tree is
-    an error, never an overwrite. The one replacement by design is an upstream test file, which the sealed U and O
-    copies restore over the agent's version.
+    The sealed files sit at their bundle-relative paths, so a sealed path that is also a path of a non-test file the
+    agent leaves in the tree is an error, never an overwrite. Test files of the agent are dropped before the overlay,
+    so a sealed file at the path of one of them overwrites nothing; an upstream test file is replaced by design.
     """
-    collisions = sorted((agent_files.keys() & sealed_overlay.keys()) - upstream_tests.keys())
+    tree = {path: content for path, content in agent_files.items() if not is_test_path(language, path)}
+    collisions = sorted((tree.keys() & sealed_overlay.keys()) - upstream_tests.keys())
     if collisions:
         raise OracleTreeCollision(f"sealed files would overwrite files of the agent's tree: {', '.join(collisions)}")
-    tree = {path: content for path, content in agent_files.items() if not is_test_path(language, path)}
     tree.update(upstream_tests)
     tree.update(sealed_overlay)
     return tree
