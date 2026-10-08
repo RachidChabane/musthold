@@ -14,7 +14,7 @@ import (
 // bookkeepingTools are the tools the CLI itself calls to narrate its work. They
 // are not a use of the shell or of the project, so they do not count against an
 // agent's tool allowlist.
-var bookkeepingTools = []string{"report_intent"}
+var bookkeepingTools = []string{hostproto.CopilotIntentTool}
 
 // executorToolNames are the tools of the executor server the executor agent is
 // allowed: the ones its allowlist names.
@@ -74,9 +74,8 @@ func allowlistCheck() Check {
 // executorSubagent returns the first subagent the stream started for the executor
 // of the role.
 func executorSubagent(stream evidence.CopilotStream, role string) (evidence.CopilotSubagent, bool) {
-	agentType := copilotStrategy().AgentType(role)
 	for _, subagent := range stream.Subagents() {
-		if namesAgent(subagent.Name, agentType) {
+		if copilotStrategy().NamesRole(role, subagent.Name) {
 			return subagent, true
 		}
 	}

@@ -19,7 +19,7 @@ const (
 
 	recordedCopilotSession = "../domain/checks/testdata/copilot-session"
 	// copilotChecks is the number of checks of Copilot CLI.
-	copilotChecks = 15
+	copilotChecks = 16
 )
 
 func run(t *testing.T, stdin string, args ...string) (code int, stdout, stderr string) {
