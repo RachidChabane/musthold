@@ -11,12 +11,14 @@ dispatcher, in Shallnot's Markdown spec format. `shallnot gate` traces them to t
   the same bytes on every run, and the committed files under `umbrella/` SHALL
   equal what the generator produces, with no other file under the marketplace
   directory of the umbrella or the tree of the thin plugin.
-- **SP-821~1**: WHEN the marketplace is read against the formats Claude Code
+- **SP-821~2**: WHEN the marketplace is read against the formats Claude Code
   documents THE SYSTEM SHALL name itself `spec-proof` with an owner, and list
   each plugin once: Shallnot's plugin by its public marketplace source, the
   `plugin` directory of `RachidChabane/shallnot`; the plugins of the three proof
   modules and of the relay by the directory of their committed tree in this
-  repository; and the thin plugin by a relative path to its own tree.
+  repository, each pinned by `ref` to the release tag `<module>/v<version>` of
+  the version its plugin manifest carries, and refused when a module has no
+  version; and the thin plugin by a relative path to its own tree.
 - **SP-822~1**: WHEN the thin plugin is read THE SYSTEM SHALL name itself
   `spec-proof`, depend on Shallnot, the three module plugins and the relay, every
   one of them an entry of the marketplace other than itself, and hold exactly one

@@ -26,9 +26,29 @@ const (
 	manifestFile   = ".claude-plugin/plugin.json"
 )
 
+// moduleVersions reads the version each module's committed Claude Code plugin
+// carries, the single source of the release tag the marketplace pins.
+func moduleVersions(t *testing.T) umbrella.Versions {
+	t.Helper()
+	versions := umbrella.Versions{}
+	for _, module := range append(append([]umbrella.Module{}, umbrella.Modules...), umbrella.Relay) {
+		path := filepath.Join(repositoryRoot, module.Directory, "plugin", "claude", filepath.FromSlash(manifestFile))
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var manifest struct{ Version string }
+		if err := json.Unmarshal(content, &manifest); err != nil {
+			t.Fatalf("%s: %v", path, err)
+		}
+		versions[module.Directory] = manifest.Version
+	}
+	return versions
+}
+
 func generated(t *testing.T) map[string]string {
 	t.Helper()
-	files, err := umbrella.Files()
+	files, err := umbrella.Files(moduleVersions(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +93,7 @@ func committedFiles(t *testing.T) map[string]string {
 
 func generatedRoot(t *testing.T) map[string]string {
 	t.Helper()
-	files, err := umbrella.RootFiles()
+	files, err := umbrella.RootFiles(moduleVersions(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -280,6 +300,7 @@ type subdirSource struct {
 	Source string `json:"source"`
 	URL    string `json:"url"`
 	Path   string `json:"path"`
+	Ref    string `json:"ref"`
 }
 
 func (p listedPlugin) subdir(t *testing.T) subdirSource {
@@ -302,7 +323,7 @@ func (p listedPlugin) relative() (string, bool) {
 func TestMarketplace(t *testing.T) {
 	found := readListing(t)
 
-	t.Run("the marketplace is named spec-proof, has an owner and lists each plugin once, Shallnot's first and the thin plugin last [verifies SP-821~1]", func(t *testing.T) {
+	t.Run("the marketplace is named spec-proof, has an owner and lists each plugin once, Shallnot's first and the thin plugin last [verifies SP-821~2]", func(t *testing.T) {
 		if found.Name != umbrella.MarketplaceName || found.Owner.Name == "" {
 			t.Fatalf("marketplace = %+v", found)
 		}
@@ -324,22 +345,41 @@ func TestMarketplace(t *testing.T) {
 		}
 	})
 
-	t.Run("Shallnot's plugin is referenced by its public marketplace source and the modules by their committed trees [verifies SP-821~1]", func(t *testing.T) {
+	t.Run("Shallnot's plugin is referenced by its public marketplace source and the modules by their committed trees at the release tag of the version their plugin carries [verifies SP-821~2]", func(t *testing.T) {
 		shallnot := found.Plugins[0].subdir(t)
 		if shallnot != (subdirSource{Source: "git-subdir", URL: "RachidChabane/shallnot", Path: "plugin"}) {
 			t.Fatalf("shallnot source = %+v", shallnot)
 		}
+		versions := moduleVersions(t)
 		modules := append(append([]umbrella.Module{}, umbrella.Modules...), umbrella.Relay)
 		for index, module := range modules {
 			source := found.Plugins[index+1].subdir(t)
-			want := subdirSource{Source: "git-subdir", URL: "RachidChabane/spec-proof", Path: module.Directory + "/plugin/claude"}
+			want := subdirSource{
+				Source: "git-subdir", URL: "RachidChabane/spec-proof", Path: module.Directory + "/plugin/claude",
+				Ref: module.Directory + "/v" + versions[module.Directory],
+			}
 			if source != want {
 				t.Errorf("%s source = %+v, want %+v", module.Plugin, source, want)
 			}
 		}
 	})
 
-	t.Run("the thin plugin is a relative path to its own tree, which exists in the umbrella [verifies SP-821~1]", func(t *testing.T) {
+	t.Run("a module without a plugin version makes the generator fail instead of writing an unpinned entry [verifies SP-821~2]", func(t *testing.T) {
+		if _, err := umbrella.Files(umbrella.Versions{}); err == nil {
+			t.Fatal("the marketplace was generated with no module version")
+		}
+		if _, err := umbrella.RootFiles(umbrella.Versions{"discpower": ""}); err == nil {
+			t.Fatal("the root marketplace was generated with an empty module version")
+		}
+	})
+
+	t.Run("a release tag reads module/vVERSION [verifies SP-821~2]", func(t *testing.T) {
+		if got := umbrella.ReleaseTag("discpower", "0.1.0"); got != "discpower/v0.1.0" {
+			t.Fatalf("tag = %q", got)
+		}
+	})
+
+	t.Run("the thin plugin is a relative path to its own tree, which exists in the umbrella [verifies SP-821~2]", func(t *testing.T) {
 		thin := found.Plugins[len(found.Plugins)-1]
 		path, relative := thin.relative()
 		if !relative || path != "./"+umbrella.PluginDirectory {
