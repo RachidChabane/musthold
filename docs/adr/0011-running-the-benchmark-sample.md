@@ -110,6 +110,19 @@ against the code and the installed CLIs.
      - The table Codex persists from it is removed after each session, as the
        canary does.
      - `--ignore-user-config` is never passed, because it disables every hook.
+   - **Neutral home:** every coder session, on both harnesses, runs with `HOME`
+     set to an empty directory the bench owns, and with `GIT_CONFIG_GLOBAL` set
+     to `/dev/null`. Codex keeps the owner's `CODEX_HOME` as an absolute path.
+     - With the owner's home, Codex lists the owner's user skills and the
+       account's connector apps in the model's prompt. `codex debug
+       prompt-input` shows that the neutral home leaves only the bundled system
+       skills and the workspace's project skills.
+     - Every Codex invocation (fresh, resume and fork) also passes `--disable
+       apps` and `-c include_apps_instructions=false`.
+   - **Toolchains:** the toolchain install directories are resolved once per run
+     (`script/resolve-tool-dirs`, shared with the night jobs) and recorded, then
+     placed first in the session's `PATH`. No shims directory is ever on it, and
+     the caches point at the prepared task environment.
    - **Tamper checks:** at every stop the bench takes the digests of `.claude/`
      and `.codex/` and scans the events. In the cheat arm a change is tampering;
      in ALL-native it marks the session `contaminated`.
