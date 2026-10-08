@@ -1,10 +1,19 @@
 from __future__ import annotations
 
+import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
+from specbench.domain.languages import Language, is_test_path
 from specbench.domain.oracle import Oracle, OracleTest, Outcome, Part
-from specbench.domain.scoring import SCORING_RUNS, settle, settled_outcome, truth_of
+from specbench.domain.scoring import (
+    SCORING_RUNS,
+    OracleTreeCollision,
+    compose_oracle_tree,
+    settle,
+    settled_outcome,
+    truth_of,
+)
 
 TESTS = tuple(OracleTest(f"t{index}::{part.value}", part, "T-1") for index, part in enumerate(Part))
 ORACLE = Oracle(TESTS, (), ())
@@ -44,3 +53,29 @@ def test_a_test_is_settled_as_failing_exactly_when_two_runs_fail(runs: list[Outc
     assert settled.is_failure == (failures >= 2)
     assert (settled is Outcome.FLAKY) == (failures == 1)
     assert (settled is Outcome.PASSED) == (failures == 0)
+
+
+SOURCE_PATHS = ("pkg/a.py", "pkg/b.py", "setup.py")
+TEST_PATHS = ("tests/test_a.py", "tests/test_b.py", "tests/spec_h/test_h.py", "conftest.py")
+CONTENT = st.binary(max_size=4)
+
+
+def files_over(paths: tuple[str, ...]) -> st.SearchStrategy[dict[str, bytes]]:
+    return st.dictionaries(st.sampled_from(paths), CONTENT)
+
+
+@given(files_over(SOURCE_PATHS + TEST_PATHS), files_over(TEST_PATHS), files_over(SOURCE_PATHS + TEST_PATHS))
+def test_an_oracle_tree_either_refuses_a_collision_or_overwrites_nothing_of_the_agent(
+    agent: dict[str, bytes], upstream: dict[str, bytes], overlay: dict[str, bytes]
+) -> None:
+    colliding = (agent.keys() & overlay.keys()) - upstream.keys()
+    if colliding:
+        with pytest.raises(OracleTreeCollision):
+            compose_oracle_tree(Language.PYTHON, agent, upstream, overlay)
+        return
+    tree = compose_oracle_tree(Language.PYTHON, agent, upstream, overlay)
+    for path, content in agent.items():
+        if not is_test_path(Language.PYTHON, path):
+            assert tree[path] == content
+    assert all(tree[path] == content for path, content in overlay.items())
+    assert all(tree[path] == (overlay.get(path, content)) for path, content in upstream.items())

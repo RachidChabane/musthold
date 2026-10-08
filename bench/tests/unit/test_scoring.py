@@ -13,6 +13,7 @@ from specbench.domain.records import Truth
 from specbench.domain.scoring import (
     FAILURE_QUORUM,
     SCORING_RUNS,
+    OracleTreeCollision,
     compose_oracle_tree,
     settle,
     settled_outcome,
@@ -65,7 +66,7 @@ def test_upstream_tests_overwrite_the_agents_copies_and_come_back_when_deleted()
 def test_sealed_files_are_overlaid_last_and_the_agents_source_is_otherwise_kept() -> None:
     tree = compose_oracle_tree(
         Language.PYTHON,
-        {"pkg/new.py": b"agent new", "tests/test_h.py": b"agent h"},
+        {"pkg/new.py": b"agent new"},
         {"tests/test_u.py": b"u"},
         {"tests/test_h.py": b"sealed h", "tests/test_o.py": b"sealed o"},
     )
@@ -75,6 +76,33 @@ def test_sealed_files_are_overlaid_last_and_the_agents_source_is_otherwise_kept(
         "tests/test_h.py": b"sealed h",
         "tests/test_o.py": b"sealed o",
     }
+
+
+@pytest.mark.parametrize(
+    ("agent_files", "colliding"),
+    [
+        ({"pkg/helper.py": b"agent helper"}, ["pkg/helper.py"]),
+        ({"tests/spec_h/test_h.py": b"agent h", "pkg/fee.py": b"x"}, ["tests/spec_h/test_h.py"]),
+        ({"pkg/helper.py": b"a", "tests/spec_h/test_h.py": b"b"}, ["pkg/helper.py", "tests/spec_h/test_h.py"]),
+    ],
+)
+def test_a_sealed_path_that_would_overwrite_a_file_of_the_agents_tree_is_an_error(
+    agent_files: Mapping[str, bytes], colliding: list[str]
+) -> None:
+    overlay = {"pkg/helper.py": b"sealed o", "tests/spec_h/test_h.py": b"sealed h"}
+    with pytest.raises(OracleTreeCollision) as raised:
+        compose_oracle_tree(Language.PYTHON, agent_files, {}, overlay)
+    assert str(raised.value).endswith(", ".join(colliding))
+
+
+def test_the_sealed_copy_of_an_upstream_test_replaces_the_agents_version_by_design() -> None:
+    tree = compose_oracle_tree(
+        Language.PYTHON,
+        {"tests/test_u.py": b"weakened by the agent", "pkg/fee.py": b"agent"},
+        {"tests/test_u.py": b"upstream"},
+        {"tests/test_u.py": b"upstream"},
+    )
+    assert tree == {"pkg/fee.py": b"agent", "tests/test_u.py": b"upstream"}
 
 
 def test_go_test_files_and_testdata_are_the_tests_of_a_go_tree() -> None:
@@ -184,3 +212,13 @@ def test_a_different_oracle_tree_is_scored_again(tmp_path: Path) -> None:
     subject.score({"pkg/fee.py": b"b"})
     assert runner.calls == 2 * SCORING_RUNS
     assert subject.scored_tree_count == 2
+
+
+def test_a_final_tree_that_holds_a_sealed_path_is_not_scored_and_runs_nothing(tmp_path: Path) -> None:
+    runner = CountingRunner()
+    subject, trees = scorer(tmp_path, runner)
+    with pytest.raises(OracleTreeCollision, match=r"tests/test_h\.py"):
+        subject.score({"pkg/fee.py": b"a", "tests/test_h.py": b"the agent wrote a file at the sealed path"})
+    assert runner.calls == 0
+    assert trees.materialized == []
+    assert subject.scored_tree_count == 0

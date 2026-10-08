@@ -2,7 +2,8 @@
 
 The oracle tree is the agent's final non-test source, the upstream test files at their merge-commit paths
 (overwriting the agent's copies) and the sealed U, H and O files at their bundle-relative paths, so that the node
-ids of the oracle manifest address the same files in every tree.
+ids of the oracle manifest address the same files in every tree. A sealed path never overwrites another file of the
+agent's tree.
 """
 
 from __future__ import annotations
@@ -25,13 +26,25 @@ OUT_OF_SPEC_PARTS: Final = (Part.O,)
 FAILURE_ORDER: Final = (Outcome.FAILED, Outcome.ERROR, Outcome.MISSING)
 
 
+class OracleTreeCollision(ValueError):
+    """A sealed H or O file whose path is already a file of the agent's tree."""
+
+
 def compose_oracle_tree(
     language: Language,
     agent_files: Mapping[str, bytes],
     upstream_tests: Mapping[str, bytes],
     sealed_overlay: Mapping[str, bytes],
 ) -> dict[str, bytes]:
-    """The files the oracle runs on; the agent's own test files never reach it."""
+    """The files the oracle runs on; the agent's own test files never reach it.
+
+    The sealed files sit at their bundle-relative paths, so a sealed path that is also a path of the agent's tree is
+    an error, never an overwrite. The one replacement by design is an upstream test file, which the sealed U and O
+    copies restore over the agent's version.
+    """
+    collisions = sorted((agent_files.keys() & sealed_overlay.keys()) - upstream_tests.keys())
+    if collisions:
+        raise OracleTreeCollision(f"sealed files would overwrite files of the agent's tree: {', '.join(collisions)}")
     tree = {path: content for path, content in agent_files.items() if not is_test_path(language, path)}
     tree.update(upstream_tests)
     tree.update(sealed_overlay)
