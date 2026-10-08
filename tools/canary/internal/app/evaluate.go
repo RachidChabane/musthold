@@ -25,6 +25,7 @@ func (r Runner) Load(recordsDir string) (evidence.Evidence, error) {
 		{evidence.SessionFile, &files.Session}, {evidence.StreamFile, &files.Stream}, {evidence.HooksFile, &files.Hooks},
 		{evidence.JournalFile, &files.Journal}, {evidence.NoCallFile, &files.NoCall}, {evidence.EditedFile, &files.Edited},
 		{evidence.SandboxProbeFile, &files.SandboxProbe}, {evidence.TouchedFile, &files.Touched},
+		{evidence.RolloutMainFile, &files.RolloutMain},
 	}
 	for _, target := range targets {
 		data, err := read(target.name)
@@ -33,7 +34,29 @@ func (r Runner) Load(recordsDir string) (evidence.Evidence, error) {
 		}
 		*target.into = data
 	}
+	var err error
+	if files.RolloutChildren, err = r.loadRolloutChildren(recordsDir); err != nil {
+		return evidence.Evidence{}, err
+	}
 	return evidence.Assemble(files)
+}
+
+// loadRolloutChildren reads the rollouts of the spawned threads a Codex session
+// left in its records, keyed by file name.
+func (r Runner) loadRolloutChildren(recordsDir string) (map[string][]byte, error) {
+	paths, err := r.Files.Glob(filepath.Join(recordsDir, evidence.RolloutChildrenDir, "*"))
+	if err != nil || len(paths) == 0 {
+		return nil, err
+	}
+	children := make(map[string][]byte, len(paths))
+	for _, path := range paths {
+		data, err := r.Files.Read(path)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", filepath.Join(evidence.RolloutChildrenDir, filepath.Base(path)), err)
+		}
+		children[filepath.Base(path)] = data
+	}
+	return children, nil
 }
 
 // Evaluate reads a recorded session and concludes every check of the harness. It

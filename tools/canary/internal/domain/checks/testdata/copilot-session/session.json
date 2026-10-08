@@ -1,6 +1,6 @@
 {
   "harness": "copilot",
-  "model": "claude-haiku-4.5",
+  "model": "gpt-5.6-luna",
   "ticket": "864f5e696da12d6944d9380733d5c5a9fba0f0140f3b243c3efae9a6cc74cb38.0.1",
   "role": "spec-proof-dp:decider",
   "probeTicket": "88ec618dd2f5f5a73120577c8324765babf222a1fe52b144337a61bc9116d709.2.1",

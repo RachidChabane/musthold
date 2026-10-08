@@ -19,6 +19,7 @@ const (
 	checkCopilotListed    = "plugins_and_skills_listed"
 	checkCopilotTrees     = "plugin_trees_valid"
 	checkCopilotAgent     = "executor_agent_starts"
+	checkCopilotModel     = "session_model"
 	checkCopilotHooks     = "hooks_fire"
 	checkCopilotStop      = "subagent_stop_fires"
 	checkCopilotNaming    = "mcp_tool_naming"
@@ -44,6 +45,7 @@ func copilotStrategy() harness.Harness { return strategy(harness.FlagCopilot) }
 func copilotChecks() []Check {
 	return []Check{
 		versionCheck(harness.FlagCopilot),
+		sessionModelCheck(),
 		capWithoutHooksCheck(harness.FlagCopilot),
 		serversStartCheck(),
 		pluginsAndSkillsListedCheck(),
@@ -247,7 +249,7 @@ func executorAgentStartsCheck() Check {
 			named := func(event evidence.CopilotEvent) bool { return strings.Contains(event.AgentName, agentType) }
 			for _, event := range stream.Of(evidence.CopilotEventSubagentStarted) {
 				if named(event) {
-					return verdict.Passed(fmt.Sprintf("subagent %q started for the executor type %s", event.AgentName, agentType), evidence.StreamAt(event.Line, event.Type))
+					return verdict.Passed(fmt.Sprintf("subagent %q started for the executor type %s%s", event.AgentName, agentType, taskCallNote(stream, agentType)), evidence.StreamAt(event.Line, event.Type))
 				}
 			}
 			for _, event := range stream.Of(evidence.CopilotEventSubagentFailed) {
@@ -391,10 +393,10 @@ func copilotAgentTypeCheck() Check {
 					continue
 				}
 				pointer := evidence.HooksAt(call.Line, "pre-tool payload")
-				switch payload.AgentType {
-				case want:
-					return verdict.Passed(fmt.Sprintf("the payload names agentType %q", want), pointer)
-				case "":
+				switch {
+				case namesAgent(payload.AgentType, want):
+					return verdict.Passed(fmt.Sprintf("the payload names agentType %q for the agent %q", payload.AgentType, want), pointer)
+				case payload.AgentType == "":
 					empty = &records[index]
 				default:
 					return verdict.Failed(fmt.Sprintf("the payload carries agentType %q, expected %q: a hook cannot attribute the call", payload.AgentType, want), pointer)
@@ -404,6 +406,47 @@ func copilotAgentTypeCheck() Check {
 				return verdict.Undecided("the payload of an executor tool call carries no agentType", evidence.HooksAt(empty.Line, "pre-tool payload"))
 			}
 			return verdict.Undecided("no PreToolUse payload for an executor tool was recorded")
+		})
+}
+
+// pluginPrefixSeparators are the characters a client may put between a plugin's
+// name and the name of one of its agents.
+const pluginPrefixSeparators = ":/.-_@"
+
+// namesAgent reports whether a name is the agent's plain name or the name with a
+// plugin prefix in front of it.
+func namesAgent(got, want string) bool {
+	if got == want {
+		return true
+	}
+	prefix, found := strings.CutSuffix(got, want)
+	return found && prefix != "" && strings.ContainsRune(pluginPrefixSeparators, rune(prefix[len(prefix)-1]))
+}
+
+// taskCallNote names the agent_type the main agent passed to the task tool for
+// the executor, which shows whether the client spells a plugin's agent with a prefix.
+func taskCallNote(stream evidence.CopilotStream, agentType string) string {
+	for _, event := range stream.Of(evidence.CopilotEventToolStart) {
+		if got, isTask := event.TaskAgentType(); isTask && namesAgent(got, agentType) {
+			return fmt.Sprintf("; the task tool was called with agent_type %q", got)
+		}
+	}
+	return ""
+}
+
+func sessionModelCheck() Check {
+	return newCheck(checkCopilotModel,
+		"The session ran on the model the canary asked for: the model that session.start reports as selected is the one the session was launched with.",
+		func(found evidence.Evidence) verdict.Verdict {
+			event, reported := copilotStream(found).SelectedModel()
+			if !reported {
+				return verdict.Undecided("the stream holds no session.start that names the selected model, so the model the session ran on is unknown")
+			}
+			pointer := evidence.StreamAt(event.Line, event.Type)
+			if event.SelectedModel != found.Session.Model {
+				return verdict.Undecided(fmt.Sprintf("the session was launched with model %q and selected %q", found.Session.Model, event.SelectedModel), pointer)
+			}
+			return verdict.Passed("the session selected model "+event.SelectedModel, pointer)
 		})
 }
 

@@ -107,4 +107,20 @@ type Touched struct {
 	Roots        []string `json:"roots"`
 	Attributed   []string `json:"attributed"`
 	Unattributed []string `json:"unattributed"`
+	// ConfigWrites are the tables the session wrote into the user's own
+	// configuration file, and what the runner did about each.
+	ConfigWrites []ConfigWrite `json:"configWrites,omitempty"`
+}
+
+// ConfigWrite is a table that names the run's project, written by the session
+// into a configuration file of the user's, for the runner to remove afterwards.
+type ConfigWrite struct {
+	Path string `json:"path"`
+	// Table is the text of the table the session wrote, as the runner removed it.
+	Table string `json:"table"`
+	// Removed says the runner took the table out of the file.
+	Removed bool `json:"removed"`
+	// Verified says a re-read of the file showed the table gone and every other
+	// byte of the file as it was before the removal.
+	Verified bool `json:"verified"`
 }

@@ -98,7 +98,7 @@ func CopilotListArgv(repoRoot, logDir, subject string) []string {
 func copilotCommand(in Input) Command {
 	argv := []string{
 		harness.FlagCopilot, "-p", CopilotPrompt(in.Role, in.Ticket),
-		"--model", CopilotModel,
+		"--model", in.modelOr(CopilotModel),
 		"--output-format", "json", "--stream", "off",
 		"--allow-all-tools", "--no-ask-user", "--no-auto-update",
 		"--no-custom-instructions", "--disable-builtin-mcps",
@@ -118,8 +118,8 @@ func CopilotPrompt(role, ticket string) string {
 	agentType := mustAgentType(harness.FlagCopilot, role)
 	return fmt.Sprintf(`This is a scripted check of a tool harness. Do exactly the three steps below, in order, with no other action, and ask no question.
 
-1. Delegate to exactly one subagent, the custom agent named %q, with this message: "ticket %s. Before you fetch the ticket, run the shell command touch %s once and ignore its outcome." Wait for it to finish and do not act on its reply.
+1. Call the task tool once with agent_type %q (the name the tool lists for the custom agent, which may carry the plugin's prefix) and prompt %q. Wait for it to finish and do not act on its reply.
 2. In the file %s replace the line %q with the line %q.
 3. Reply with the single word done.`,
-		agentType, ticket, SandboxProbeFile, EditFile, EditFrom, EditTo)
+		agentType, ExecutorMessage(ticket), EditFile, EditFrom, EditTo)
 }

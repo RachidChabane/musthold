@@ -27,6 +27,9 @@ var (
 	ErrNoClaudeAuth  = errors.New("no isolated Claude Code credential")
 	ErrMissingBinary = errors.New("binary not built")
 	ErrPrepare       = errors.New("the project could not be prepared")
+	// ErrNeverStarted is the refusal of a session that ended before its first
+	// turn: what its stream would show says nothing about the harness.
+	ErrNeverStarted = errors.New("the session ended before its first turn")
 )
 
 // Options select what a run does.
@@ -50,6 +53,8 @@ type Options struct {
 	SharedHome bool
 	// CodexHome is a dedicated Codex home; empty uses the user's.
 	CodexHome string
+	// Model is the model the session runs on; empty uses the default of the harness.
+	Model string
 }
 
 // Runner runs canary sessions.
@@ -154,7 +159,7 @@ func (r Runner) isolatedClaude(options Options) (bool, error) {
 }
 
 func (r Runner) printPlan(options Options, now time.Time, inWindow bool, homes Homes, authErr error) error {
-	lines, err := Plan(options.Harness, options.RepoRoot, homes)
+	lines, err := Plan(options.Harness, options.RepoRoot, options.Model, homes)
 	if err != nil {
 		return err
 	}
@@ -204,7 +209,8 @@ func touches(options Options, homes Homes) []string {
 	default:
 		return []string{
 			"$CODEX_HOME/sessions (default ~/.codex/sessions): the rollout of the session and of its subagents",
-			"~/.codex/: any other file Codex keeps there (a refreshed credential); config.toml is not read (--ignore-user-config) and not written by the canary",
+			"~/.codex/config.toml: read for the hooks of the session; the table Codex persists there for the trusted project is removed after the session",
+			"~/.codex/: any other file Codex keeps there (a refreshed credential)",
 		}
 	}
 }
@@ -246,7 +252,7 @@ func (r Runner) prepare(ctx context.Context, options Options, homes Homes) (prep
 	}
 	l := newLayout(options.RepoRoot, run)
 	prepared.layout = l
-	input := l.input(Selection{}, homes)
+	input := l.input(Selection{}, homes, options.Model)
 	dirs := []string{l.state, l.cache, l.tmp, l.records, l.shim, input.ClaudeConfigDir}
 	if options.Harness == harness.FlagCopilot {
 		dirs = append(dirs, input.Copilot.Home, input.Copilot.Cache, input.Copilot.Logs)
@@ -295,7 +301,7 @@ func (r Runner) prepare(ctx context.Context, options Options, homes Homes) (prep
 	if err != nil {
 		return prepared, fmt.Errorf("%w: %v", ErrPrepare, err)
 	}
-	prepared.command, err = launch.Build(options.Harness, l.input(prepared.selection, homes))
+	prepared.command, err = launch.Build(options.Harness, l.input(prepared.selection, homes, options.Model))
 	if err != nil {
 		return prepared, err
 	}
@@ -320,7 +326,7 @@ func configMode(options Options, homes Homes) string {
 func (r Runner) describe(options Options, prepared preparedSession, mode string) evidence.Session {
 	session := prepared.session
 	session.ConfigMode = mode
-	model := launch.Model(options.Harness)
+	model := launch.Model(options.Harness, options.Model)
 	session.Model, session.Ticket, session.Role, session.ProbeTicket = model, prepared.selection.Ticket, prepared.selection.Role, prepared.selection.ProbeTicket
 	session.Argv = prepared.command.Argv
 	session.EventCap, session.TimeoutSeconds = launch.EventCap(options.Harness), launch.TimeoutSeconds
@@ -478,8 +484,11 @@ func (r Runner) conduct(ctx context.Context, options Options, prepared preparedS
 	if err != nil {
 		return Outcome{RunDir: l.run}, fmt.Errorf("the session could not run: %w", err)
 	}
-	touched := r.touched(r.configRoots(options), prepared.before, filepath.Base(l.run))
+	touched := r.touched(r.configRoots(options), prepared.before, filepath.Base(l.run), r.restoreCodexTrust(options, l))
 	if err := r.collect(options, l, session, touched); err != nil {
+		return Outcome{RunDir: l.run}, err
+	}
+	if err := r.requireATurn(options, l, session); err != nil {
 		return Outcome{RunDir: l.run}, err
 	}
 	report, err := r.Evaluate(l.records, options.Harness)
@@ -517,9 +526,37 @@ func (r Runner) collect(options Options, l layout, session evidence.Session, tou
 	}
 	if options.Harness == harness.FlagCodex || options.Harness == harness.FlagCopilot {
 		probe := evidence.SandboxProbe{File: launch.SandboxProbeFile, Exists: r.Files.Exists(l.projectFile(launch.SandboxProbeFile))}
-		return r.writeJSON(l.record(evidence.SandboxProbeFile), probe)
+		if err := r.writeJSON(l.record(evidence.SandboxProbeFile), probe); err != nil {
+			return err
+		}
 	}
-	return nil
+	return r.collectRollouts(options, l, session)
+}
+
+// requireATurn refuses a session whose stream shows no model turn: the harness
+// CLI never reached the model, so the setup is at fault and not the harness. The
+// error carries the line the CLI printed to say why.
+func (r Runner) requireATurn(options Options, l layout, session evidence.Session) error {
+	data, err := r.Files.Read(l.record(evidence.StreamFile))
+	if err != nil {
+		return err
+	}
+	lines, err := evidence.Lines(evidence.StreamFile, data)
+	if err != nil {
+		return err
+	}
+	if evidence.StartedATurn(options.Harness, lines) {
+		return nil
+	}
+	stderr, err := r.Files.Read(l.record(evidence.StderrFile))
+	if err != nil {
+		return err
+	}
+	reason := evidence.ErrorLine(string(stderr))
+	if reason == "" {
+		reason = fmt.Sprintf("the CLI printed nothing to its error stream (exit code %d)", session.ExitCode)
+	}
+	return fmt.Errorf("%w: %s", ErrNeverStarted, reason)
 }
 
 func (r Runner) writeJSON(path string, value any) error {
@@ -542,14 +579,7 @@ func (r Runner) configRoots(options Options) []string {
 	case harness.FlagClaude:
 		return []string{filepath.Join(home, ".claude.json"), filepath.Join(home, ".claude")}
 	case harness.FlagCodex:
-		codexHome := options.CodexHome
-		if codexHome == "" {
-			codexHome = variable(r.Env, "CODEX_HOME")
-		}
-		if codexHome == "" {
-			codexHome = filepath.Join(home, ".codex")
-		}
-		return []string{codexHome}
+		return []string{r.codexHome(options)}
 	case harness.FlagCopilot:
 		copilotHome := variable(r.Env, launch.CopilotHomeVariable)
 		if copilotHome == "" {
@@ -589,13 +619,17 @@ func (r Runner) fingerprint(roots []string) map[string]string {
 }
 
 // touched compares the fingerprint of the roots after the session with the one
-// before it. A change whose path names the run's directory is the session's own;
-// any other change is counted, since another process of the user may have made it.
-func (r Runner) touched(roots []string, before map[string]string, runName string) evidence.Touched {
+// before it. A change whose path names the run's directory, or that is a file the
+// session wrote a table naming its run into, is the session's own; any other
+// change is counted, since another process of the user may have made it.
+func (r Runner) touched(roots []string, before map[string]string, runName string, writes []evidence.ConfigWrite) evidence.Touched {
 	after := r.fingerprint(roots)
-	result := evidence.Touched{Roots: roots, Attributed: []string{}, Unattributed: []string{}}
+	result := evidence.Touched{Roots: roots, Attributed: []string{}, Unattributed: []string{}, ConfigWrites: writes}
+	written := func(path string) bool {
+		return slices.ContainsFunc(writes, func(write evidence.ConfigWrite) bool { return write.Path == path })
+	}
 	changed := func(path string) {
-		if strings.Contains(path, runName) {
+		if strings.Contains(path, runName) || written(path) {
 			result.Attributed = append(result.Attributed, path)
 		} else {
 			result.Unattributed = append(result.Unattributed, path)

@@ -12,6 +12,7 @@ const (
 	CodexEventTurnCompleted = "turn.completed"
 	CodexEventTurnFailed    = "turn.failed"
 	CodexEventError         = "error"
+	CodexEventThreadStarted = "thread.started"
 
 	CodexItemMessage = "agent_message"
 	CodexItemCommand = "command_execution"
@@ -49,11 +50,15 @@ type CodexStream struct {
 	Items []CodexItem
 	// Types lists the event types in order, one per line, for counts.
 	Types []string
+	// ThreadID is the id of the main thread, from thread.started; it names the
+	// thread's rollout file.
+	ThreadID string
 }
 
 type rawCodex struct {
-	Type string          `json:"type"`
-	Item json.RawMessage `json:"item"`
+	Type     string          `json:"type"`
+	ThreadID string          `json:"thread_id"`
+	Item     json.RawMessage `json:"item"`
 }
 
 type rawCodexItem struct {
@@ -74,6 +79,9 @@ func DecodeCodex(lines []Line) CodexStream {
 		var raw rawCodex
 		_ = json.Unmarshal(line.Raw, &raw)
 		stream.Types = append(stream.Types, raw.Type)
+		if raw.Type == CodexEventThreadStarted && stream.ThreadID == "" {
+			stream.ThreadID = raw.ThreadID
+		}
 		if len(raw.Item) == 0 {
 			continue
 		}

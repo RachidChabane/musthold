@@ -57,12 +57,14 @@ which run the evaluators on recorded event streams and make no model call.
 
 ## Commands
 
-- **SP-1504~1**: WHEN the command lines of a session are built THE SYSTEM SHALL
-  give each harness one non-interactive run on its pinned model with the plugin
-  of every module loaded from its generated tree, no setting that hides the hooks,
-  no read of the user's settings, no persisted trust, and a prompt whose padded
-  launch holds exactly one ticket, and WHEN a dry run is requested SHALL print
-  those command lines and start nothing.
+- **SP-1504~2**: WHEN the command lines of a session are built THE SYSTEM SHALL
+  give each harness one non-interactive run on its default model, or on the model
+  the operator names, with the plugin of every module loaded from its generated
+  tree, no setting that hides the hooks, no read of the user's settings except the
+  configuration file of Codex, whose hooks the harness disables without it, and a
+  prompt that names the tool and the arguments that start the executor and whose
+  padded launch holds exactly one ticket, and WHEN a dry run is requested SHALL
+  print those command lines and start nothing.
 - **SP-1506~1**: WHEN the harness runs a hook or starts an executor server of a
   module THE SYSTEM SHALL record the payload, the decision and the exit code of
   the hook without changing either, append whole lines under concurrency, and
@@ -79,10 +81,45 @@ which run the evaluators on recorded event streams and make no model call.
   lower priority, lowering its priority only when it is higher than that and
   never failing because the scheduler or a guard already started it at a lower
   priority.
-- **SP-1708~1**: WHEN the command lines of a Copilot CLI session are built THE
-  SYSTEM SHALL give it one non-interactive run on the pinned model with the
+- **SP-1708~2**: WHEN the command lines of a Copilot CLI session are built THE
+  SYSTEM SHALL give it one non-interactive run on the default model of the CLI, or
+  on the model the operator names, with the
   portable plugin of every module loaded through `--plugin-dir`, a COPILOT_HOME of
   the run unless the shared home is chosen, a COPILOT_CACHE_HOME and a `--log-dir`
   of the run, no automatic update, a cap on the AI credits, no environment variable
   that trusts the working directory or approves every tool, and the fingerprint of
   the user's `~/.copilot` taken before and after the session.
+
+## Codex executor spawn
+
+- **SP-1510~1**: WHEN a Codex session has run THE SYSTEM SHALL copy the rollout of
+  its main thread and the rollouts of the threads it spawned into the records,
+  read the spawn calls and the identity of each spawned thread from them, take the
+  starts of the executor from the rollouts, fall back on the collab items of the
+  event stream only when the session left no rollout, and reject a rollout line
+  that is not JSON naming its file and line.
+- **SP-1511~1**: WHEN the recorded session of Codex is evaluated THE SYSTEM SHALL
+  conclude PASS for the executor spawn when every spawn of the executor's agent
+  type sets `fork_turns` to `"none"`, FAIL when one omits it or sets `"all"` or a
+  number, and INCONCLUSIVE when no spawn of the executor is recorded, and SHALL
+  report the members of the SubagentStart payload the hook received.
+- **SP-1512~1**: WHEN a Codex session wrote a table that names its project into the
+  user's configuration file THE SYSTEM SHALL attribute the change to the session,
+  remove exactly that table after the session keeping the mode of the file, record
+  the table it removed, and conclude the configuration check PASS only when a
+  re-read of the file confirms the removal, and FAIL otherwise.
+
+## Session startup and model
+
+- **SP-1513~1**: WHEN a session ends before its first turn, because the harness CLI
+  refused its model or failed to start, THE SYSTEM SHALL end the run as a setup
+  error with the exit code 2 and the error line the CLI printed, and SHALL NOT
+  report checks for it.
+- **SP-1514~1**: WHEN a model is named for a session THE SYSTEM SHALL launch the
+  harness on it instead of its default, record the model the session was launched
+  with, and for Copilot CLI conclude from the model that `session.start` reports
+  as selected whether the session ran on it.
+- **SP-1515~1**: WHEN the recorded session of GitHub Copilot CLI names the executor
+  agent THE SYSTEM SHALL accept its plain name or the name carrying a plugin prefix,
+  and report the exact name the client used, in the `task` call and in the payload
+  of PreToolUse.

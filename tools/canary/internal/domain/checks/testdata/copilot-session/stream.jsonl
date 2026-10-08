@@ -1,4 +1,4 @@
-{"id":"evt-01","timestamp":"2026-10-07T21:05:11Z","parentId":null,"type":"session.start","data":{"sessionId":"7c0a1e52-3b64-4c0e-9a57-0d1f2b3c4d5e","selectedModel":"claude-haiku-4.5"}}
+{"id":"evt-01","timestamp":"2026-10-07T21:05:11Z","parentId":null,"type":"session.start","data":{"sessionId":"7c0a1e52-3b64-4c0e-9a57-0d1f2b3c4d5e","selectedModel":"gpt-5.6-luna"}}
 {"id":"evt-02","timestamp":"2026-10-07T21:05:12Z","parentId":"evt-01","type":"user.message","data":{"content":"scripted prompt"}}
 {"id":"evt-03","timestamp":"2026-10-07T21:05:13Z","parentId":"evt-02","type":"assistant.turn_start","data":{"turnId":"0"}}
 {"id":"evt-04","timestamp":"2026-10-07T21:05:14Z","parentId":"evt-03","type":"assistant.message","data":{"messageId":"m1","content":"","toolRequests":[{"toolCallId":"c1","name":"task","arguments":{"agent_type":"spec-proof-dp-decider"}}]}}
@@ -18,4 +18,4 @@
 {"id":"evt-18","timestamp":"2026-10-07T21:05:28Z","parentId":"evt-17","type":"assistant.message","data":{"messageId":"m3","content":"done"}}
 {"id":"evt-19","timestamp":"2026-10-07T21:05:29Z","parentId":"evt-18","type":"assistant.turn_end","data":{"turnId":"0"}}
 {"id":"evt-20","timestamp":"2026-10-07T21:05:30Z","parentId":"evt-19","ephemeral":true,"type":"session.idle","data":{}}
-{"id":"evt-21","timestamp":"2026-10-07T21:05:31Z","parentId":"evt-20","type":"session.shutdown","data":{"shutdownType":"routine","totalPremiumRequests":1,"totalApiDurationMs":4200,"sessionStartTime":1791407110000,"codeChanges":{"linesAdded":1,"linesRemoved":1,"filesModified":["parcel/rates.py"]},"modelMetrics":{},"currentModel":"claude-haiku-4.5"}}
+{"id":"evt-21","timestamp":"2026-10-07T21:05:31Z","parentId":"evt-20","type":"session.shutdown","data":{"shutdownType":"routine","totalPremiumRequests":1,"totalApiDurationMs":4200,"sessionStartTime":1791407110000,"codeChanges":{"linesAdded":1,"linesRemoved":1,"filesModified":["parcel/rates.py"]},"modelMetrics":{},"currentModel":"gpt-5.6-luna"}}

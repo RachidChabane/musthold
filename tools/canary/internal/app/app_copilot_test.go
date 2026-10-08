@@ -71,7 +71,7 @@ func environmentOf(pairs []string) map[string]string {
 }
 
 func TestCopilotDryRun(t *testing.T) {
-	t.Run("the dry run prints the Copilot command, the no-call probes, the credential source and what the run writes, and starts nothing [verifies SP-1708~1]", func(t *testing.T) {
+	t.Run("the dry run prints the Copilot command, the no-call probes, the credential source and what the run writes, and starts nothing [verifies SP-1708~2]", func(t *testing.T) {
 		w := copilotWorld(t)
 		w.options.DryRun = true
 		if _, err := w.runner.Run(context.Background(), w.options); err != nil {
@@ -82,7 +82,7 @@ func TestCopilotDryRun(t *testing.T) {
 		}
 		out := w.stdout.String()
 		for _, want := range []string{
-			"copilot -p", "--model claude-haiku-4.5", "--output-format json", "--plugin-dir " + w.repo + "/discpower/plugin/portable",
+			"copilot -p", "--model gpt-5.6-luna", "--output-format json", "--plugin-dir " + w.repo + "/discpower/plugin/portable",
 			"COPILOT_HOME='<run-dir>/copilot-home'", "COPILOT_CACHE_HOME='<run-dir>/copilot-cache'", "--log-dir '<run-dir>/copilot-logs'",
 			"copilot --version --no-auto-update", "plugin list --json", "skill list --json", "inspect " + w.repo + "/alignment/plugin/portable",
 			"credentials: the GH_TOKEN environment variable, passed through unchanged", "nothing: Copilot CLI runs with COPILOT_HOME",
@@ -96,7 +96,7 @@ func TestCopilotDryRun(t *testing.T) {
 		}
 	})
 
-	t.Run("without a token variable the plan says the login comes from the keychain, and a shared home sets no COPILOT_HOME [verifies SP-1708~1]", func(t *testing.T) {
+	t.Run("without a token variable the plan says the login comes from the keychain, and a shared home sets no COPILOT_HOME [verifies SP-1708~2]", func(t *testing.T) {
 		w := copilotWorld(t)
 		w.runner.Env = []string{"HOME=/home/u", "PATH=/usr/bin"}
 		w.options.DryRun, w.options.SharedHome = true, true
@@ -122,7 +122,7 @@ func TestSyntheticSessionOfCopilot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Run("the session runs the built command with the state in the run and the trust variables dropped [verifies SP-1708~1]", func(t *testing.T) {
+	t.Run("the session runs the built command with the state in the run and the trust variables dropped [verifies SP-1708~2]", func(t *testing.T) {
 		spec := w.session.runs[0]
 		environment := environmentOf(spec.Env)
 		for variable, want := range map[string]string{
@@ -151,7 +151,7 @@ func TestSyntheticSessionOfCopilot(t *testing.T) {
 		}
 	})
 
-	t.Run("every probe that runs the Copilot CLI uses the environment of the run, and the portable trees are inspected [verifies SP-1708~1]", func(t *testing.T) {
+	t.Run("every probe that runs the Copilot CLI uses the environment of the run, and the portable trees are inspected [verifies SP-1708~2]", func(t *testing.T) {
 		for _, fragment := range []string{"copilot --version --no-auto-update", "plugin list --json", "skill list --json"} {
 			if !w.processes.ran(fragment) {
 				t.Errorf("no command ran %q", fragment)
@@ -259,7 +259,7 @@ func TestCopilotAgainstTheUsersCopilotDirectory(t *testing.T) {
 		return verdict.Verdict{}
 	}
 
-	t.Run("an isolated session is fingerprinted against ~/.copilot and passes when it leaves it alone [verifies SP-1708~1]", func(t *testing.T) {
+	t.Run("an isolated session is fingerprinted against ~/.copilot and passes when it leaves it alone [verifies SP-1708~2]", func(t *testing.T) {
 		w := copilotWorld(t)
 		home := t.TempDir()
 		w.runner.Env = append(w.runner.Env, "HOME="+home)
@@ -276,7 +276,7 @@ func TestCopilotAgainstTheUsersCopilotDirectory(t *testing.T) {
 		}
 	})
 
-	t.Run("an isolated session that writes an entry naming its run in ~/.copilot fails [verifies SP-1708~1]", func(t *testing.T) {
+	t.Run("an isolated session that writes an entry naming its run in ~/.copilot fails [verifies SP-1708~2]", func(t *testing.T) {
 		w := copilotWorld(t)
 		home := t.TempDir()
 		w.runner.Env = append(w.runner.Env, "HOME="+home)
@@ -292,7 +292,7 @@ func TestCopilotAgainstTheUsersCopilotDirectory(t *testing.T) {
 		}
 	})
 
-	t.Run("a shared-home session lists what it wrote in ~/.copilot and the check leaves it open [verifies SP-1708~1]", func(t *testing.T) {
+	t.Run("a shared-home session lists what it wrote in ~/.copilot and the check leaves it open [verifies SP-1708~2]", func(t *testing.T) {
 		w := copilotWorld(t)
 		home := t.TempDir()
 		w.runner.Env = append(w.runner.Env, "HOME="+home)
@@ -316,7 +316,7 @@ func TestCopilotAgainstTheUsersCopilotDirectory(t *testing.T) {
 		}
 	})
 
-	t.Run("a COPILOT_HOME in the user's own environment is the directory that is fingerprinted [verifies SP-1708~1]", func(t *testing.T) {
+	t.Run("a COPILOT_HOME in the user's own environment is the directory that is fingerprinted [verifies SP-1708~2]", func(t *testing.T) {
 		w := copilotWorld(t)
 		own := t.TempDir()
 		w.runner.Env = append(w.runner.Env, "COPILOT_HOME="+own)

@@ -22,10 +22,10 @@ import (
 const (
 	ClaudeModel = "claude-sonnet-5-5"
 	CodexModel  = "gpt-6-luna"
-	// CopilotModel is the pinned model of the Copilot session, in the spelling
-	// `copilot help config` lists. It is the cheapest listed model that calls
-	// tools (a 0.33 multiplier in GitHub's model multiplier table).
-	CopilotModel = "claude-haiku-4.5"
+	// CopilotModel is the default model of the Copilot session, in the spelling
+	// `copilot help config` lists: the default of the CLI itself, which every
+	// account that can run it may use.
+	CopilotModel = "gpt-5.6-luna"
 )
 
 // Caps that bound a session. The runner ends the session when one is reached.
@@ -108,8 +108,18 @@ type Input struct {
 	ClaudeConfigDir string
 	// CodexHome is a dedicated Codex home, or empty to use the user's.
 	CodexHome string
+	// Model is the model the operator chose for the session, or empty for the
+	// harness's default.
+	Model string
 	// Copilot says where the Copilot CLI keeps its state.
 	Copilot CopilotDirs
+}
+
+func (i Input) modelOr(fallback string) string {
+	if i.Model != "" {
+		return i.Model
+	}
+	return fallback
 }
 
 // Project is the temporary project the session works in.
@@ -135,7 +145,7 @@ func Build(flag string, in Input) (Command, error) {
 func claudeCommand(in Input) Command {
 	argv := []string{
 		"claude", "-p", ClaudePrompt(in.Role, in.Ticket),
-		"--model", ClaudeModel,
+		"--model", in.modelOr(ClaudeModel),
 		"--output-format", "stream-json", "--verbose",
 		"--include-hook-events", "--forward-subagent-text",
 		"--setting-sources", "project",
@@ -154,8 +164,8 @@ func claudeCommand(in Input) Command {
 
 func codexCommand(in Input) Command {
 	argv := []string{
-		"codex", "exec", "-m", CodexModel, "--json",
-		"--skip-git-repo-check", "--ignore-user-config", "--ignore-rules",
+		"codex", "exec", "-m", in.modelOr(CodexModel), "--json",
+		"--skip-git-repo-check", "--ignore-rules",
 		"--enable", "hooks", "--enable", "multi_agent",
 		"--dangerously-bypass-hook-trust",
 		"-s", "workspace-write",
@@ -192,16 +202,22 @@ func ClaudePrompt(role, ticket string) string {
 		fetchTool, ticket, role, PaddedLaunchPrompt(ticket), EditFile, EditFrom, EditTo)
 }
 
+// ExecutorMessage is the message the main agent gives the executor: the ticket and
+// the request for a write that the executor's read-only sandbox must refuse.
+func ExecutorMessage(ticket string) string {
+	return fmt.Sprintf("ticket %s. Before you fetch the ticket, run the shell command touch %s once and ignore its outcome.", ticket, SandboxProbeFile)
+}
+
 // CodexPrompt scripts the Codex session: one executor spawn that also asks the
 // executor for a write the read-only sandbox must refuse, one edit, and the end.
 func CodexPrompt(role, ticket string) string {
 	agentType := mustAgentType(harness.FlagCodex, role)
 	return fmt.Sprintf(`This is a scripted check of a tool harness. Do exactly the three steps below, in order, with no other action, and ask no question.
 
-1. Spawn exactly one subagent whose agent type is %q, with this message: "ticket %s. Before you fetch the ticket, run the shell command touch %s once and ignore its outcome." Wait for it to finish and do not act on its reply.
+1. Call spawn_agent with agent_type %q, fork_turns "none" and message %q, then call wait_agent for it. Do not act on its reply.
 2. In the file %s replace the line %q with the line %q.
 3. Reply with the single word done.`,
-		agentType, ticket, SandboxProbeFile, EditFile, EditFrom, EditTo)
+		agentType, ExecutorMessage(ticket), EditFile, EditFrom, EditTo)
 }
 
 func mustTool(flag string) string {
@@ -257,8 +273,9 @@ func EventCap(flag string) int {
 	}
 }
 
-// Model is the pinned model of a harness's session.
-func Model(flag string) string {
+// DefaultModel is the model a harness's session runs on unless the operator names
+// another.
+func DefaultModel(flag string) string {
 	switch flag {
 	case harness.FlagCodex:
 		return CodexModel
@@ -267,4 +284,10 @@ func Model(flag string) string {
 	default:
 		return ClaudeModel
 	}
+}
+
+// Model is the model of a harness's session: the one the operator named, or the
+// harness's default.
+func Model(flag, chosen string) string {
+	return Input{Model: chosen}.modelOr(DefaultModel(flag))
 }

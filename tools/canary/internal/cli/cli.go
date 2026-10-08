@@ -109,6 +109,7 @@ func (e Env) run(args []string) int {
 	set.BoolVar(&options.ForceWindow, "force-window", false, "run outside the nightly window")
 	set.BoolVar(&options.SharedHome, "shared-home", false, "let Claude Code use the credentials of ~/.claude, and Copilot CLI the COPILOT_HOME of the user, instead of an isolated configuration directory")
 	set.StringVar(&options.CodexHome, "codex-home", "", "a dedicated CODEX_HOME; empty uses the user's")
+	set.StringVar(&options.Model, "model", "", "the model the session runs on; empty uses the default of the harness")
 	if err := set.Parse(args); err != nil || set.NArg() > 0 {
 		return ExitUsage
 	}

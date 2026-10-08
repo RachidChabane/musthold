@@ -19,7 +19,7 @@ const (
 
 	recordedCopilotSession = "../domain/checks/testdata/copilot-session"
 	// copilotChecks is the number of checks of Copilot CLI.
-	copilotChecks = 14
+	copilotChecks = 15
 )
 
 func run(t *testing.T, stdin string, args ...string) (code int, stdout, stderr string) {
@@ -34,7 +34,7 @@ func run(t *testing.T, stdin string, args ...string) (code int, stdout, stderr s
 }
 
 func TestCommandLine(t *testing.T) {
-	t.Run("the modules are listed as directory, binary and build tags for the build script [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("the modules are listed as directory, binary and build tags for the build script [verifies SP-1504~2]", func(t *testing.T) {
 		code, stdout, _ := run(t, "", "modules")
 		lines := strings.Split(strings.TrimSpace(stdout), "\n")
 		if code != 0 || len(lines) != 3 {
@@ -49,7 +49,7 @@ func TestCommandLine(t *testing.T) {
 		}
 	})
 
-	t.Run("a command line the binary cannot act on is a usage error [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("a command line the binary cannot act on is a usage error [verifies SP-1504~2]", func(t *testing.T) {
 		for _, args := range [][]string{nil, {"unknown"}, {"run", "--bogus"}, {"run", "extra"}, {"evaluate"}} {
 			if code, _, _ := run(t, "", args...); code != cli.ExitUsage {
 				t.Errorf("%v: exit %d, want %d", args, code, cli.ExitUsage)
@@ -57,20 +57,29 @@ func TestCommandLine(t *testing.T) {
 		}
 	})
 
-	t.Run("a dry run prints its plan and exits 0 [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("a dry run prints its plan and exits 0 [verifies SP-1504~2]", func(t *testing.T) {
 		code, stdout, stderr := run(t, "", "run", "--harness", "codex", "--dry-run", "--repo", t.TempDir())
 		if code != 0 || !strings.Contains(stdout, "codex exec -m gpt-6-luna") {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
 		}
 	})
 
-	t.Run("a dry run of Copilot CLI prints its plan with the shared-home flag and exits 0 [verifies SP-1708~1]", func(t *testing.T) {
+	t.Run("the model flag replaces the default of every harness in the printed plan [verifies SP-1514~1]", func(t *testing.T) {
+		for harness, option := range map[string]string{"claude": "--model", "codex": "-m", "copilot": "--model"} {
+			code, stdout, stderr := run(t, "", "run", "--harness", harness, "--dry-run", "--model", "custom-model", "--repo", t.TempDir())
+			if code != 0 || !strings.Contains(stdout, option+" custom-model") {
+				t.Fatalf("%s: exit %d, stdout %q, stderr %q", harness, code, stdout, stderr)
+			}
+		}
+	})
+
+	t.Run("a dry run of Copilot CLI prints its plan with the shared-home flag and exits 0 [verifies SP-1708~2]", func(t *testing.T) {
 		for _, args := range [][]string{
 			{"run", "--harness", "copilot", "--dry-run", "--repo", t.TempDir()},
 			{"run", "--harness", "copilot", "--dry-run", "--shared-home", "--repo", t.TempDir()},
 		} {
 			code, stdout, stderr := run(t, "", args...)
-			if code != 0 || !strings.Contains(stdout, "copilot -p") || !strings.Contains(stdout, "--model claude-haiku-4.5") {
+			if code != 0 || !strings.Contains(stdout, "copilot -p") || !strings.Contains(stdout, "--model gpt-5.6-luna") {
 				t.Fatalf("%v: exit %d, stdout %q, stderr %q", args, code, stdout, stderr)
 			}
 		}
@@ -97,7 +106,7 @@ func TestCommandLine(t *testing.T) {
 		}
 	})
 
-	t.Run("a run of Claude Code with no credential is refused with exit 2 [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("a run of Claude Code with no credential is refused with exit 2 [verifies SP-1504~2]", func(t *testing.T) {
 		code, _, stderr := run(t, "", "run", "--harness", "claude", "--force-window", "--repo", t.TempDir())
 		if code != cli.ExitRefused || !strings.Contains(stderr, "--shared-home") {
 			t.Fatalf("exit %d, stderr %q", code, stderr)

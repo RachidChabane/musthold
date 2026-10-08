@@ -3,6 +3,7 @@ package checks
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/RachidChabane/spec-proof/format/hostproto"
@@ -178,21 +179,65 @@ func serversStartCheck() Check {
 // must leave them alone; a session that shares the user's records what it wrote.
 func configUntouchedCheck() Check {
 	return newCheck(checkConfigUntouched,
-		"The session wrote nothing that names its run in the user's own configuration directories. A session that shares them lists what it wrote; the changes nothing ties to the run are another process's and are only counted.",
+		"The session left nothing that names its run in the user's own configuration directories. A table the session wrote into a configuration file passes only when the runner removed it and a re-read confirmed it; a session that shares the directories lists what it wrote; the changes nothing ties to the run are another process's and are only counted.",
 		func(found evidence.Evidence) verdict.Verdict {
 			pointer := evidence.At(evidence.TouchedFile, 0, "attributed")
 			touched := found.Touched
+			if left := unrestoredWrites(touched.ConfigWrites); len(left) > 0 {
+				return verdict.Failed("the session wrote a table that names its run into "+strings.Join(left, ", ")+" and it was not removed and verified by a re-read", pointer)
+			}
+			restored := restoredNote(touched.ConfigWrites)
+			remaining := attributedBesides(touched)
 			switch {
 			case len(touched.Roots) == 0:
 				return verdict.Undecided("the user's configuration directories were not fingerprinted", pointer)
-			case found.Session.ConfigMode == evidence.ConfigShared:
-				return verdict.Undecided(fmt.Sprintf("the session shares the user's configuration: it wrote %d entries that name its run (listed in %s), and the credential file may also have been updated; %d other changes are not attributed", len(touched.Attributed), evidence.TouchedFile, len(touched.Unattributed)), pointer)
-			case len(touched.Attributed) > 0:
-				return verdict.Failed(fmt.Sprintf("an isolated session wrote %d entries in the user's configuration: %s", len(touched.Attributed), strings.Join(touched.Attributed, ", ")), pointer)
+			case found.Session.ConfigMode == evidence.ConfigShared && (len(remaining) > 0 || len(touched.ConfigWrites) == 0):
+				return verdict.Undecided(fmt.Sprintf("the session shares the user's configuration: it wrote %d entries that name its run (listed in %s), and the credential file may also have been updated; %d other changes are not attributed%s", len(remaining), evidence.TouchedFile, len(touched.Unattributed), restored), pointer)
+			case len(remaining) > 0:
+				return verdict.Failed(fmt.Sprintf("an isolated session wrote %d entries in the user's configuration: %s", len(remaining), strings.Join(remaining, ", ")), pointer)
+			case len(touched.ConfigWrites) > 0:
+				return verdict.Passed(fmt.Sprintf("%s; %d other changes in %s belong to other processes", strings.TrimPrefix(restored, "; "), len(touched.Unattributed), strings.Join(touched.Roots, ", ")), pointer)
 			default:
 				return verdict.Passed(fmt.Sprintf("nothing that names the run changed in %s (%d unattributed changes belong to other processes)", strings.Join(touched.Roots, ", "), len(touched.Unattributed)), pointer)
 			}
 		})
+}
+
+// unrestoredWrites lists the files that still hold a table the session wrote: the
+// runner did not remove it, or a re-read did not confirm the removal.
+func unrestoredWrites(writes []evidence.ConfigWrite) []string {
+	var left []string
+	for _, write := range writes {
+		if !write.Removed || !write.Verified {
+			left = append(left, write.Path)
+		}
+	}
+	return left
+}
+
+// attributedBesides lists the attributed entries that are not a file the runner
+// restored.
+func attributedBesides(touched evidence.Touched) []string {
+	var remaining []string
+	for _, path := range touched.Attributed {
+		if !slices.ContainsFunc(touched.ConfigWrites, func(write evidence.ConfigWrite) bool { return write.Path == path }) {
+			remaining = append(remaining, path)
+		}
+	}
+	return remaining
+}
+
+// restoredNote says what the session wrote into configuration files and that the
+// runner removed it; it is empty when the session wrote none.
+func restoredNote(writes []evidence.ConfigWrite) string {
+	if len(writes) == 0 {
+		return ""
+	}
+	paths := make([]string, len(writes))
+	for index, write := range writes {
+		paths[index] = write.Path
+	}
+	return fmt.Sprintf("; the session wrote %d table(s) naming its run into %s, the runner removed exactly those and a re-read confirmed the files", len(writes), strings.Join(paths, ", "))
 }
 
 func withinCapsCheck(finished func(evidence.Evidence) (summary string, ended bool, pointer verdict.Pointer)) Check {

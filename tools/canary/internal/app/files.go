@@ -12,8 +12,14 @@ type Files interface {
 	CopyTree(from, to string) error
 	// Write creates or replaces a file, creating its directory.
 	Write(path string, data []byte, executable bool) error
+	// Replace overwrites an existing file's content in place, keeping its mode and
+	// following a symbolic link to the file it names.
+	Replace(path string, data []byte) error
 	// Read returns the file's content, and nil when the file does not exist.
 	Read(path string) ([]byte, error)
+	// FirstLine returns the first line of the file without reading the rest, and nil
+	// when the file does not exist.
+	FirstLine(path string) ([]byte, error)
 	// Exists reports whether the path exists.
 	Exists(path string) bool
 	// Fingerprint maps each entry of the path, down to depth levels below it, to its

@@ -1,8 +1,11 @@
 package adapters
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -13,6 +16,10 @@ const (
 	directoryMode  os.FileMode = 0o755
 	fileMode       os.FileMode = 0o644
 	executableMode os.FileMode = 0o755
+
+	// firstLineBuffer is the read size of FirstLine: the first line of a rollout
+	// holds the thread's identity and fits in it.
+	firstLineBuffer = 1 << 20
 )
 
 // skippedDirectories are the caches a project copy leaves out.
@@ -71,6 +78,36 @@ func (OSFiles) Write(path string, data []byte, executable bool) error {
 		mode = executableMode
 	}
 	return os.WriteFile(path, data, mode)
+}
+
+// Replace implements app.Files.
+func (OSFiles) Replace(path string, data []byte) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(path, data, info.Mode().Perm()); err != nil {
+		return err
+	}
+	return os.Chmod(path, info.Mode().Perm())
+}
+
+// FirstLine implements app.Files.
+func (OSFiles) FirstLine(path string) ([]byte, error) {
+	file, err := os.Open(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	reader := bufio.NewReaderSize(file, firstLineBuffer)
+	line, err := reader.ReadBytes('\n')
+	if err != nil && !errors.Is(err, io.EOF) {
+		return nil, err
+	}
+	return bytes.TrimRight(line, "\r\n"), nil
 }
 
 // Read implements app.Files.

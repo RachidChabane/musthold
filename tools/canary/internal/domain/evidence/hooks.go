@@ -3,6 +3,7 @@ package evidence
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -99,6 +100,21 @@ func (c HookCall) Payload() HookPayload {
 	var payload HookPayload
 	_ = json.Unmarshal(c.Stdin, &payload)
 	return payload
+}
+
+// PayloadKeys lists, sorted, the top-level members of the payload the harness
+// sent; empty when it is not a JSON object.
+func (c HookCall) PayloadKeys() []string {
+	var members map[string]json.RawMessage
+	if json.Unmarshal(c.Stdin, &members) != nil {
+		return nil
+	}
+	keys := make([]string, 0, len(members))
+	for key := range members {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	return keys
 }
 
 // Decision decodes what the hook answered on standard output. The answer of a

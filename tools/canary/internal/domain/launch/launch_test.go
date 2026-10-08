@@ -3,6 +3,7 @@ package launch_test
 import (
 	"encoding/json"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -35,7 +36,7 @@ func TestClaudeCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Run("the session is one non-interactive stream-json run on the pinned model [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("the session is one non-interactive stream-json run on the pinned model [verifies SP-1504~2]", func(t *testing.T) {
 		argv := command.Argv
 		if argv[0] != "claude" || !slices.Contains(argv, "-p") || !slices.Contains(argv, "--verbose") {
 			t.Fatalf("argv = %v", argv)
@@ -50,7 +51,7 @@ func TestClaudeCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("the plugin of every module loads from its generated tree and nothing hides the hooks [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("the plugin of every module loads from its generated tree and nothing hides the hooks [verifies SP-1504~2]", func(t *testing.T) {
 		dirs := flagValue(command.Argv, "--plugin-dir")
 		want := []string{"/repo/discpower/plugin/claude", "/repo/alignment/plugin/claude", "/repo/completeness/plugin/claude"}
 		if !slices.Equal(dirs, want) {
@@ -90,7 +91,7 @@ func TestCodexCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Run("the session is one json exec run on the pinned model in the temporary project [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("the session is one json exec run on the pinned model in the temporary project [verifies SP-1504~2]", func(t *testing.T) {
 		argv := command.Argv
 		if !slices.Equal(argv[:2], []string{"codex", "exec"}) || flagValue(argv, "-m")[0] != "gpt-6-luna" || !slices.Contains(argv, "--json") {
 			t.Fatalf("argv = %v", argv)
@@ -100,10 +101,18 @@ func TestCodexCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("nothing of the user's configuration or trust is read or persisted [verifies SP-1504~1]", func(t *testing.T) {
-		for _, flag := range []string{"--ignore-user-config", "--ignore-rules", "--dangerously-bypass-hook-trust", "--skip-git-repo-check"} {
+	t.Run("the user's configuration is read, since the harness disables its hooks without it, and rules and hook trust are not [verifies SP-1504~2]", func(t *testing.T) {
+		for _, flag := range []string{"--ignore-rules", "--dangerously-bypass-hook-trust", "--skip-git-repo-check"} {
 			if !slices.Contains(command.Argv, flag) {
 				t.Errorf("the command lacks %s", flag)
+			}
+		}
+		if slices.Contains(command.Argv, "--ignore-user-config") {
+			t.Error("the command ignores the user configuration, which disables every hook of the session")
+		}
+		for _, enabled := range []string{"hooks", "multi_agent"} {
+			if !slices.Contains(flagValue(command.Argv, "--enable"), enabled) {
+				t.Errorf("the command does not enable %s", enabled)
 			}
 		}
 		if slices.Contains(command.Argv, "--dangerously-bypass-approvals-and-sandbox") {
@@ -124,7 +133,7 @@ func TestCodexCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("an unknown harness has no command [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("an unknown harness has no command [verifies SP-1504~2]", func(t *testing.T) {
 		if _, err := launch.Build("gemini", input()); err == nil {
 			t.Fatal("gemini was built")
 		}
@@ -132,7 +141,7 @@ func TestCodexCommand(t *testing.T) {
 }
 
 func TestPrompts(t *testing.T) {
-	t.Run("the padded launch prompt holds exactly one ticket, so the hook accepts and rewrites it [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("the padded launch prompt holds exactly one ticket, so the hook accepts and rewrites it [verifies SP-1504~2]", func(t *testing.T) {
 		found, err := hostproto.FindTicketID(launch.PaddedLaunchPrompt(ticket))
 		if err != nil || found.String() != ticket {
 			t.Fatalf("ticket %v, %v", found, err)
@@ -142,7 +151,7 @@ func TestPrompts(t *testing.T) {
 		}
 	})
 
-	t.Run("the Claude prompt scripts the fetch, the launch with a model, the edit and the end [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("the Claude prompt scripts the fetch, the launch with a model, the edit and the end [verifies SP-1504~2]", func(t *testing.T) {
 		prompt := launch.ClaudePrompt(role, ticket)
 		for _, part := range []string{"mcp__plugin_spec-proof-dp_exec__fetch_request", `model "haiku"`, role, launch.EditFile, launch.EditFrom, launch.EditTo, "foreground"} {
 			if !strings.Contains(prompt, part) {
@@ -151,12 +160,28 @@ func TestPrompts(t *testing.T) {
 		}
 	})
 
-	t.Run("the Codex prompt names the agent type as the harness spells it and asks for a write [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("the Codex prompt names the agent type as the harness spells it and asks for a write [verifies SP-1504~2]", func(t *testing.T) {
 		prompt := launch.CodexPrompt(role, ticket)
 		for _, part := range []string{`"spec-proof-dp-decider"`, "touch " + launch.SandboxProbeFile, launch.EditFrom} {
 			if !strings.Contains(prompt, part) {
 				t.Errorf("the prompt lacks %q", part)
 			}
+		}
+	})
+
+	t.Run("the Codex prompt names the spawn tool, its arguments and the wait literally and gives the executor the ticket line alone [verifies SP-1504~2]", func(t *testing.T) {
+		prompt := launch.CodexPrompt(role, ticket)
+		message := launch.ExecutorMessage(ticket)
+		for _, part := range []string{
+			"spawn_agent with agent_type \"spec-proof-dp-decider\", fork_turns \"none\" and message " + strconv.Quote(message),
+			"call wait_agent", launch.EditFile,
+		} {
+			if !strings.Contains(prompt, part) {
+				t.Errorf("the prompt lacks %q:\n%s", part, prompt)
+			}
+		}
+		if found, err := hostproto.FindTicketID(prompt); err != nil || found.String() != ticket {
+			t.Errorf("the prompt holds ticket %v, %v", found, err)
 		}
 	})
 }
@@ -187,7 +212,7 @@ func TestEventCap(t *testing.T) {
 }
 
 func TestCommandLine(t *testing.T) {
-	t.Run("a command prints as a shell line that quotes what needs it and puts the environment first [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("a command prints as a shell line that quotes what needs it and puts the environment first [verifies SP-1504~2]", func(t *testing.T) {
 		command := launch.Command{Argv: []string{"claude", "-p", "it's here", "--model", "m"}, Env: []string{"A=b c"}}
 		want := `A='b c' claude -p 'it'\''s here' --model m`
 		if got := command.Line(); got != want {
@@ -200,7 +225,7 @@ func TestCommandLine(t *testing.T) {
 }
 
 func TestProjectFiles(t *testing.T) {
-	t.Run("the Claude settings hold the Stop probe and the control probes of the events before the first tool call, and nothing else [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("the Claude settings hold the Stop probe and the control probes of the events before the first tool call, and nothing else [verifies SP-1504~2]", func(t *testing.T) {
 		settings, err := launch.ClaudeSettings("/bin/canary", "/run/records/hooks.jsonl")
 		if err != nil {
 			t.Fatal(err)
@@ -222,7 +247,7 @@ func TestProjectFiles(t *testing.T) {
 		}
 	})
 
-	t.Run("the Codex probes are added to the entries the generated file holds and displace none [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("the Codex probes are added to the entries the generated file holds and displace none [verifies SP-1504~2]", func(t *testing.T) {
 		existing := `{"hooks":{"PreToolUse":[{"matcher":"mcp__x__.*","hooks":[{"type":"command","command":"x hook pre-tool"}]}],"SubagentStop":[{"hooks":[{"type":"command","command":"x hook stop"}]}]}}`
 		merged, err := launch.MergeCodexProbes([]byte(existing), "/bin/canary", "/run/hooks.jsonl")
 		if err != nil {

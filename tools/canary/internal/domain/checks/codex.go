@@ -14,6 +14,7 @@ import (
 // Names of the Codex checks.
 const (
 	checkCodexAgentLoads  = "agent_files_load"
+	checkCodexSpawnBlind  = "executor_spawn_blind"
 	checkCodexHooksFire   = "hooks_fire"
 	checkCodexAgentType   = "agent_type_in_pretool"
 	checkCodexToolNaming  = "mcp_tool_naming"
@@ -29,6 +30,7 @@ func codexChecks() []Check {
 		capWithoutHooksCheck(harness.FlagCodex),
 		serversStartCheck(),
 		agentFilesLoadCheck(),
+		executorSpawnBlindCheck(),
 		hooksFireCodexCheck(),
 		agentTypeInPreToolCheck(),
 		toolNamingCheck(),
@@ -72,14 +74,36 @@ func codexSummary(found evidence.Evidence) (string, bool, verdict.Pointer) {
 	return fmt.Sprintf("the turn completed after %d events", len(found.Stream)), true, pointer
 }
 
-// spawnedExecutor returns the collab call items that mention the executor's agent
-// type, and the agent type.
-func spawnedExecutor(found evidence.Evidence) ([]evidence.CodexItem, string) {
+// executorSpawn is one start of the executor agent, as the recorded session shows it.
+type executorSpawn struct {
+	Pointer verdict.Pointer
+	// Failed says the harness reported the start as failed.
+	Failed bool
+	Detail string
+}
+
+// spawnedExecutor returns the starts of the executor's agent type and the agent
+// type. The rollouts are the primary source: the spawn calls of the main thread
+// whose agent type is the executor's, and the threads whose role is. The collab
+// items of the event stream stand in when the session left no rollout, and report
+// the starts that failed whatever the rollouts hold.
+func spawnedExecutor(found evidence.Evidence) ([]executorSpawn, string) {
 	agentType := codexStrategy().AgentType(found.Session.Role)
-	var spawns []evidence.CodexItem
+	var spawns []executorSpawn
+	for _, call := range found.Rollouts.SpawnsOf(agentType) {
+		spawns = append(spawns, executorSpawn{Pointer: evidence.At(evidence.RolloutMainFile, call.Line, evidence.RolloutSpawnTool)})
+	}
+	for _, child := range found.Rollouts.ChildrenOf(agentType) {
+		spawns = append(spawns, executorSpawn{Pointer: evidence.At(evidence.RolloutChildrenDir+"/"+child.File, 1, "session_meta")})
+	}
+	fromRollouts := len(spawns) > 0
 	for _, item := range codexStream(found).ItemsOf(evidence.CodexItemCollab) {
-		if item.Mentions(agentType) {
-			spawns = append(spawns, item)
+		if !item.Mentions(agentType) {
+			continue
+		}
+		failed := item.Status == evidence.CodexStatusFailed
+		if failed || !fromRollouts {
+			spawns = append(spawns, executorSpawn{Pointer: evidence.StreamAt(item.Line, "collab call"), Failed: failed, Detail: truncate(string(item.Raw))})
 		}
 	}
 	return spawns, agentType
@@ -96,12 +120,12 @@ func agentFilesLoadCheck() Check {
 				}
 			}
 			for _, spawn := range spawns {
-				if spawn.Status == evidence.CodexStatusFailed {
-					return verdict.Failed("the spawn of "+agentType+" failed: "+truncate(string(spawn.Raw)), evidence.StreamAt(spawn.Line, "collab call"))
+				if spawn.Failed {
+					return verdict.Failed("the spawn of "+agentType+" failed: "+spawn.Detail, spawn.Pointer)
 				}
 			}
 			if len(spawns) > 0 {
-				return verdict.Undecided("a spawn of "+agentType+" was attempted but no SubagentStart hook recorded it", evidence.StreamAt(spawns[0].Line, "collab call"))
+				return verdict.Undecided("a spawn of "+agentType+" was attempted but no SubagentStart hook recorded it", spawns[0].Pointer)
 			}
 			return verdict.Undecided(checkCodexNoSpawnNote)
 		})

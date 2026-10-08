@@ -21,12 +21,12 @@ func TestCopilotCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Run("the session is one non-interactive json run on the pinned model in the temporary project [verifies SP-1708~1]", func(t *testing.T) {
+	t.Run("the session is one non-interactive json run on the pinned model in the temporary project [verifies SP-1708~2]", func(t *testing.T) {
 		argv := command.Argv
 		if argv[0] != "copilot" || !slices.Contains(argv, "-p") {
 			t.Fatalf("argv = %v", argv)
 		}
-		for flag, want := range map[string]string{"--model": "claude-haiku-4.5", "--output-format": "json", "-C": "/run/project", "--log-dir": "/run/copilot-logs", "--max-ai-credits": launch.CopilotMaxAICredits} {
+		for flag, want := range map[string]string{"--model": "gpt-5.6-luna", "--output-format": "json", "-C": "/run/project", "--log-dir": "/run/copilot-logs", "--max-ai-credits": launch.CopilotMaxAICredits} {
 			if got := flagValue(argv, flag); len(got) != 1 || got[0] != want {
 				t.Errorf("%s = %v, want %s", flag, got, want)
 			}
@@ -41,7 +41,7 @@ func TestCopilotCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("the portable plugin of every module loads through --plugin-dir [verifies SP-1708~1]", func(t *testing.T) {
+	t.Run("the portable plugin of every module loads through --plugin-dir [verifies SP-1708~2]", func(t *testing.T) {
 		got := flagValue(command.Argv, "--plugin-dir")
 		want := []string{"/repo/discpower/plugin/portable", "/repo/alignment/plugin/portable", "/repo/completeness/plugin/portable"}
 		if !slices.Equal(got, want) {
@@ -49,7 +49,7 @@ func TestCopilotCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("nothing hides the events and nothing trusts the working directory or approves everything [verifies SP-1708~1]", func(t *testing.T) {
+	t.Run("nothing hides the events and nothing trusts the working directory or approves everything [verifies SP-1708~2]", func(t *testing.T) {
 		for _, forbidden := range []string{"--silent", "-s", "--allow-all", "--yolo", "--allow-all-paths", "--allow-all-urls", "--share-gist", "--experimental"} {
 			if slices.Contains(command.Argv, forbidden) {
 				t.Errorf("the command passes %s", forbidden)
@@ -57,7 +57,7 @@ func TestCopilotCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("the state of the session is in the run, and the shared home sets no COPILOT_HOME [verifies SP-1708~1]", func(t *testing.T) {
+	t.Run("the state of the session is in the run, and the shared home sets no COPILOT_HOME [verifies SP-1708~2]", func(t *testing.T) {
 		want := []string{"COPILOT_HOME=/run/copilot-home", "COPILOT_CACHE_HOME=/run/copilot-cache", "COPILOT_AUTO_UPDATE=false"}
 		if !slices.Equal(command.Env, want) {
 			t.Errorf("env = %v, want %v", command.Env, want)
@@ -70,7 +70,7 @@ func TestCopilotCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("the variables that trust everything, override the model or route to another provider are dropped, the tokens are not [verifies SP-1708~1]", func(t *testing.T) {
+	t.Run("the variables that trust everything, override the model or route to another provider are dropped, the tokens are not [verifies SP-1708~2]", func(t *testing.T) {
 		for _, name := range []string{"COPILOT_ALLOW_ALL", "COPILOT_MODEL", "COPILOT_PROVIDER_BASE_URL", "COPILOT_PROVIDER_API_KEY"} {
 			if !launch.DropsCopilotVariable(name) {
 				t.Errorf("%s reaches the session", name)
@@ -83,7 +83,7 @@ func TestCopilotCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("the no-call probes mount the same trees and never run a model [verifies SP-1708~1]", func(t *testing.T) {
+	t.Run("the no-call probes mount the same trees and never run a model [verifies SP-1708~2]", func(t *testing.T) {
 		for _, subject := range []string{"plugin", "skill"} {
 			argv := launch.CopilotListArgv("/repo", "/run/copilot-logs", subject)
 			if !slices.Equal(flagValue(argv, "--plugin-dir"), flagValue(command.Argv, "--plugin-dir")) || slices.Contains(argv, "-p") {
@@ -106,7 +106,7 @@ func TestCopilotCommand(t *testing.T) {
 }
 
 func TestCopilotPrompt(t *testing.T) {
-	t.Run("the Copilot prompt names the agent type as the harness spells it, asks for a shell command and one edit [verifies SP-1708~1]", func(t *testing.T) {
+	t.Run("the Copilot prompt names the agent type as the harness spells it, asks for a shell command and one edit [verifies SP-1708~2]", func(t *testing.T) {
 		prompt := launch.CopilotPrompt(role, ticket)
 		for _, part := range []string{`"spec-proof-dp-decider"`, "touch " + launch.SandboxProbeFile, launch.EditFile, launch.EditFrom, launch.EditTo} {
 			if !strings.Contains(prompt, part) {
@@ -133,10 +133,10 @@ func TestCopilotEventCap(t *testing.T) {
 				t.Errorf("%s: counts %v, want %v", line, got, counts)
 			}
 		}
-		if launch.EventCap("copilot") <= 0 || launch.Model("copilot") != launch.CopilotModel {
+		if launch.EventCap("copilot") <= 0 || launch.Model("copilot", "") != launch.CopilotModel {
 			t.Error("Copilot has no cap or no pinned model")
 		}
-		if launch.Model("claude") != launch.ClaudeModel || launch.Model("codex") != launch.CodexModel {
+		if launch.Model("claude", "") != launch.ClaudeModel || launch.Model("codex", "") != launch.CodexModel {
 			t.Error("another harness runs on the wrong model")
 		}
 	})

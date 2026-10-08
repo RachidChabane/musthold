@@ -36,6 +36,10 @@ const maxLineBytes = 16 << 20
 // empty.
 type Files struct {
 	Session, Stream, Hooks, Journal, NoCall, Edited, SandboxProbe, Touched []byte
+	// RolloutMain is the rollout of a Codex session's main thread, and
+	// RolloutChildren those of the threads it spawned, keyed by file name.
+	RolloutMain     []byte
+	RolloutChildren map[string][]byte
 }
 
 // Line is one line of a JSON-lines file with its 1-based number.
@@ -54,6 +58,7 @@ type Evidence struct {
 	Edited       string
 	SandboxProbe SandboxProbe
 	Touched      Touched
+	Rollouts     Rollouts
 }
 
 // JournalEntry is one record of the module's journal with its line number.
@@ -95,6 +100,9 @@ func Assemble(files Files) (Evidence, error) {
 		if err := json.Unmarshal(files.Touched, &found.Touched); err != nil {
 			return Evidence{}, fmt.Errorf("%s: %w", TouchedFile, err)
 		}
+	}
+	if found.Rollouts, err = decodeRollouts(files.RolloutMain, files.RolloutChildren); err != nil {
+		return Evidence{}, err
 	}
 	found.Edited = string(files.Edited)
 	return found, nil

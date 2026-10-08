@@ -100,11 +100,21 @@ type fakeSession struct {
 	runs     []app.SessionSpec
 	outcome  app.SessionOutcome
 	editFile string
+	// stderr, when set, makes the CLI print it and stop before any event.
+	stderr string
 }
 
 func (s *fakeSession) Run(spec app.SessionSpec) (app.SessionOutcome, error) {
 	s.runs = append(s.runs, spec)
 	records := filepath.Dir(spec.StdoutPath)
+	if s.stderr != "" {
+		for path, content := range map[string]string{spec.StdoutPath: "", spec.StderrPath: s.stderr} {
+			if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+				s.t.Fatal(err)
+			}
+		}
+		return app.SessionOutcome{ExitCode: 1}, nil
+	}
 	copyFile := func(name, to string) {
 		data, err := os.ReadFile(filepath.Join(fixturesRoot, s.fixture, name))
 		if err != nil {
@@ -305,7 +315,7 @@ func TestRefusals(t *testing.T) {
 		}
 	})
 
-	t.Run("Claude Code with no isolated credential is refused unless the shared home is chosen [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("Claude Code with no isolated credential is refused unless the shared home is chosen [verifies SP-1504~2]", func(t *testing.T) {
 		w := newWorld(t, "claude", night)
 		w.runner.Env = []string{"HOME=/home/u", "PATH=/usr/bin"}
 		_, err := w.runner.Run(context.Background(), w.options)
@@ -321,7 +331,7 @@ func TestRefusals(t *testing.T) {
 		}
 	})
 
-	t.Run("a binary that was not built is named, with the script that builds it [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("a binary that was not built is named, with the script that builds it [verifies SP-1504~2]", func(t *testing.T) {
 		w := newWorld(t, "claude", night)
 		if err := os.Remove(filepath.Join(w.repo, ".tools", "bin", "spec-proof-alignment")); err != nil {
 			t.Fatal(err)
@@ -332,7 +342,7 @@ func TestRefusals(t *testing.T) {
 		}
 	})
 
-	t.Run("a harness the canary has no checks for is refused [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("a harness the canary has no checks for is refused [verifies SP-1504~2]", func(t *testing.T) {
 		w := newWorld(t, "claude", night)
 		w.options.Harness = "gemini"
 		if _, err := w.runner.Run(context.Background(), w.options); err == nil {
@@ -342,7 +352,7 @@ func TestRefusals(t *testing.T) {
 }
 
 func TestDryRun(t *testing.T) {
-	t.Run("a dry run prints the exact command lines and starts nothing, in or out of the window [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("a dry run prints the exact command lines and starts nothing, in or out of the window [verifies SP-1504~2]", func(t *testing.T) {
 		for _, flag := range []string{"claude", "codex"} {
 			w := newWorld(t, flag, noon)
 			w.options.DryRun = true
@@ -362,12 +372,12 @@ func TestDryRun(t *testing.T) {
 		}
 	})
 
-	t.Run("the plan of Claude Code writes the settings and validates the plugins, and that of Codex runs each module's init [verifies SP-1504~1]", func(t *testing.T) {
-		claude, err := app.Plan("claude", "/repo", app.Homes{})
+	t.Run("the plan of Claude Code writes the settings and validates the plugins, and that of Codex runs each module's init [verifies SP-1504~2]", func(t *testing.T) {
+		claude, err := app.Plan("claude", "/repo", "", app.Homes{})
 		if err != nil {
 			t.Fatal(err)
 		}
-		codex, err := app.Plan("codex", "/repo", app.Homes{CodexHome: "/dedicated"})
+		codex, err := app.Plan("codex", "/repo", "", app.Homes{CodexHome: "/dedicated"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -389,7 +399,7 @@ func TestDryRun(t *testing.T) {
 }
 
 func TestDryRunNamesWhatTheRunTouches(t *testing.T) {
-	t.Run("the plan says what each mode writes in the user's home, which the session's fingerprints then confirm [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("the plan says what each mode writes in the user's home, which the session's fingerprints then confirm [verifies SP-1504~2]", func(t *testing.T) {
 		for _, tc := range []struct {
 			flag               string
 			shared             bool
@@ -398,7 +408,7 @@ func TestDryRunNamesWhatTheRunTouches(t *testing.T) {
 		}{
 			{"claude", false, "", []string{"nothing: Claude Code runs with CLAUDE_CONFIG_DIR inside the run directory"}, []string{"~/.claude.json"}},
 			{"claude", true, "", []string{"~/.claude/projects/", "~/.claude.json", "--setting-sources project"}, nil},
-			{"codex", false, "", []string{"~/.codex/sessions", "--ignore-user-config"}, nil},
+			{"codex", false, "", []string{"~/.codex/sessions", "~/.codex/config.toml: read for the hooks of the session"}, []string{"--ignore-user-config", "not read"}},
 			{"codex", false, "/dedicated", []string{"nothing outside /dedicated"}, []string{"~/.codex/sessions"}},
 		} {
 			w := newWorld(t, tc.flag, noon)
@@ -422,7 +432,7 @@ func TestDryRunNamesWhatTheRunTouches(t *testing.T) {
 }
 
 func TestPrepareOnly(t *testing.T) {
-	t.Run("the project is prepared and the no-call probes run, but no session starts [verifies SP-1504~1]", func(t *testing.T) {
+	t.Run("the project is prepared and the no-call probes run, but no session starts [verifies SP-1504~2]", func(t *testing.T) {
 		w := newWorld(t, "claude", night)
 		w.options.PrepareOnly = true
 		outcome, err := w.runner.Run(context.Background(), w.options)
@@ -622,6 +632,7 @@ func TestSyntheticSessionThatTheRunnerHadToStop(t *testing.T) {
 func TestSyntheticSessionOfCodex(t *testing.T) {
 	w := newWorld(t, "codex", night)
 	w.options.CodexHome = t.TempDir()
+	w.session.afterRun = func(app.SessionSpec) { leaveCodexRollouts(t, w.options.CodexHome) }
 	outcome, err := w.runner.Run(context.Background(), w.options)
 	if err != nil {
 		t.Fatal(err)

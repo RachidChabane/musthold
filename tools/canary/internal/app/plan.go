@@ -171,9 +171,9 @@ func (l layout) shimExports() []string {
 	return exports
 }
 
-func (l layout) input(selection Selection, homes Homes) launch.Input {
+func (l layout) input(selection Selection, homes Homes, model string) launch.Input {
 	in := launch.Input{
-		RepoRoot: l.repo, RunDir: l.run, Ticket: selection.Ticket, Role: selection.Role, CodexHome: homes.CodexHome,
+		RepoRoot: l.repo, RunDir: l.run, Ticket: selection.Ticket, Role: selection.Role, CodexHome: homes.CodexHome, Model: model,
 		Copilot: launch.CopilotDirs{Cache: l.copilotCache, Logs: l.copilotLogs},
 	}
 	if homes.IsolatedClaude {
@@ -188,7 +188,7 @@ func (l layout) input(selection Selection, homes Homes) launch.Input {
 // copilotEnvironment is the environment of a Copilot CLI process of the run: the
 // no-call probes and the session.
 func (l layout) copilotEnvironment(homes Homes) []string {
-	return launch.CopilotEnvironment(l.input(Selection{}, homes).Copilot)
+	return launch.CopilotEnvironment(l.input(Selection{}, homes, "").Copilot)
 }
 
 // cliVersionArgv is the command that prints the version of a harness CLI.
@@ -216,10 +216,10 @@ func validateArgv(l layout, module modules.Module) []string {
 
 // Plan lists the exact command lines of a run for a harness, with the run
 // directory and the ticket left as placeholders.
-func Plan(flag, repo string, homes Homes) ([]string, error) {
+func Plan(flag, repo, model string, homes Homes) ([]string, error) {
 	l := newLayout(repo, placeholderRun)
 	placeholder := Selection{Ticket: "<ticket>", Role: hostproto.RoleFor(modules.Primary().Plugin, hostproto.AgentDecider)}
-	session, err := launch.Build(flag, l.input(placeholder, homes))
+	session, err := launch.Build(flag, l.input(placeholder, homes, model))
 	if err != nil {
 		return nil, err
 	}

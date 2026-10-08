@@ -16,6 +16,7 @@ import (
 // events is an inference, which is why a check that finds none of them concludes
 // INCONCLUSIVE and why every other member of a record is kept in Raw.
 const (
+	CopilotEventSessionStart     = "session.start"
 	CopilotEventAssistantMessage = "assistant.message"
 	CopilotEventToolStart        = "tool.execution_start"
 	CopilotEventToolComplete     = "tool.execution_complete"
@@ -25,6 +26,9 @@ const (
 	CopilotEventSessionIdle      = "session.idle"
 	CopilotEventSessionShutdown  = "session.shutdown"
 	CopilotEventSessionError     = "session.error"
+
+	// CopilotTaskTool is the tool through which the main agent starts a custom agent.
+	CopilotTaskTool = "task"
 
 	// CopilotShutdownRoutine is the shutdownType of a session that ended normally.
 	CopilotShutdownRoutine = "routine"
@@ -53,6 +57,11 @@ type CopilotEvent struct {
 	Success *bool
 	// AgentName is the name of the agent of a subagent.* event.
 	AgentName string
+	// SelectedModel is the selectedModel of session.start: the model the session
+	// actually ran on.
+	SelectedModel string
+	// Arguments are the arguments of a tool.execution_start.
+	Arguments json.RawMessage
 	// ShutdownType is the shutdownType of session.shutdown.
 	ShutdownType string
 	// ErrorType and Message are the members of session.error.
@@ -76,15 +85,17 @@ type rawCopilot struct {
 }
 
 type rawCopilotData struct {
-	ToolCallID   string          `json:"toolCallId"`
-	ToolName     string          `json:"toolName"`
-	MCPServer    string          `json:"mcpServerName"`
-	MCPTool      string          `json:"mcpToolName"`
-	Success      json.RawMessage `json:"success"`
-	AgentName    string          `json:"agentName"`
-	ShutdownType string          `json:"shutdownType"`
-	ErrorType    string          `json:"errorType"`
-	Message      string          `json:"message"`
+	ToolCallID    string          `json:"toolCallId"`
+	ToolName      string          `json:"toolName"`
+	MCPServer     string          `json:"mcpServerName"`
+	MCPTool       string          `json:"mcpToolName"`
+	Success       json.RawMessage `json:"success"`
+	AgentName     string          `json:"agentName"`
+	SelectedModel string          `json:"selectedModel"`
+	Arguments     json.RawMessage `json:"arguments"`
+	ShutdownType  string          `json:"shutdownType"`
+	ErrorType     string          `json:"errorType"`
+	Message       string          `json:"message"`
 }
 
 // DecodeCopilot decodes the stream. A member that does not have the shape above is
@@ -98,7 +109,7 @@ func DecodeCopilot(lines []Line) CopilotStream {
 		stream.Events = append(stream.Events, CopilotEvent{
 			Line: line.Number, Type: raw.Type, AgentID: raw.AgentID, ToolCallID: raw.Data.ToolCallID,
 			ToolName: raw.Data.ToolName, MCPServer: raw.Data.MCPServer, MCPTool: raw.Data.MCPTool, Success: boolMember(raw.Data.Success),
-			AgentName: raw.Data.AgentName, ShutdownType: raw.Data.ShutdownType, ErrorType: raw.Data.ErrorType,
+			AgentName: raw.Data.AgentName, SelectedModel: raw.Data.SelectedModel, Arguments: raw.Data.Arguments, ShutdownType: raw.Data.ShutdownType, ErrorType: raw.Data.ErrorType,
 			Message: raw.Data.Message, Raw: line.Raw,
 		})
 	}
@@ -114,6 +125,30 @@ func (s CopilotStream) Of(eventType string) []CopilotEvent {
 		}
 	}
 	return found
+}
+
+// SelectedModel returns the model the session reports it ran on, from the first
+// session.start that names one.
+func (s CopilotStream) SelectedModel() (CopilotEvent, bool) {
+	for _, event := range s.Of(CopilotEventSessionStart) {
+		if event.SelectedModel != "" {
+			return event, true
+		}
+	}
+	return CopilotEvent{}, false
+}
+
+// TaskAgentType returns the agent_type argument of a tool.execution_start of the
+// tool that starts a custom agent, and whether the event is such a call.
+func (e CopilotEvent) TaskAgentType() (string, bool) {
+	if e.Type != CopilotEventToolStart || e.ToolName != CopilotTaskTool {
+		return "", false
+	}
+	var arguments struct {
+		AgentType string `json:"agent_type"`
+	}
+	_ = json.Unmarshal(e.Arguments, &arguments)
+	return arguments.AgentType, true
 }
 
 // CompletionOf returns the tool.execution_complete that closes a tool call.

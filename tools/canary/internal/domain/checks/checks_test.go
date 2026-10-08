@@ -32,7 +32,29 @@ func readFiles(t *testing.T, name string) evidence.Files {
 		Session: read(evidence.SessionFile), Stream: read(evidence.StreamFile), Hooks: read(evidence.HooksFile),
 		Journal: read(evidence.JournalFile), NoCall: read(evidence.NoCallFile), Edited: read(evidence.EditedFile),
 		SandboxProbe: read(evidence.SandboxProbeFile), Touched: read(evidence.TouchedFile),
+		RolloutMain: read(evidence.RolloutMainFile), RolloutChildren: readChildren(t, name),
 	}
+}
+
+// readChildren reads the rollouts of the spawned threads of a session directory.
+func readChildren(t *testing.T, name string) map[string][]byte {
+	t.Helper()
+	paths, err := filepath.Glob(filepath.Join("testdata", name, evidence.RolloutChildrenDir, "*"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var children map[string][]byte
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if children == nil {
+			children = map[string][]byte{}
+		}
+		children[filepath.Base(path)] = data
+	}
+	return children
 }
 
 // evaluate assembles the files and returns the verdicts by check name.
@@ -438,6 +460,7 @@ func TestSyntheticCodexSessionThatBreaksARule(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.SandboxProbe = replace(files.SandboxProbe, `"exists": false`, `"exists": true`)
 		files.Stream = dropLines(files.Stream, "spawn_agent")
+		files.RolloutMain, files.RolloutChildren = nil, nil
 		want(t, evaluate(t, "codex", files), "executor_sandbox", verdict.Inconclusive)
 	})
 
@@ -463,6 +486,7 @@ func TestSyntheticCodexSessionThatBreaksARule(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.Hooks = nil
 		files.Stream = dropLines(files.Stream, "collab_tool_call")
+		files.RolloutMain, files.RolloutChildren = nil, nil
 		got := evaluate(t, "codex", files)
 		want(t, got, "hooks_fire", verdict.Inconclusive)
 		want(t, got, "agent_files_load", verdict.Inconclusive)
