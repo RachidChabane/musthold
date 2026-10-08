@@ -207,10 +207,14 @@ harnesses; `--hooks auto` (the default) installs Claude Code's and those of ever
 harness whose configuration the project already holds, and `--hooks none`
 installs none.
 
-- **Codex CLI.** `init` writes `.codex/agents/*.toml`, `.codex/hooks.json` and
-  `.agents/skills/<module>-fulfil/SKILL.md`. Codex executors keep the shell, so
-  isolation is `unrestricted`. Codex reads these files only after the two reviews
-  in [Codex: trust the project and its hooks](#codex-trust-the-project-and-its-hooks).
+- **Codex CLI.** `init` writes `.codex/agents/*.toml`, `.codex/hooks.json`,
+  `.codex/config.toml` and `.agents/skills/<module>-fulfil/SKILL.md`. The
+  `config.toml` holds the module's executor server as one table
+  (`[mcp_servers.<module>-exec]`, tools approved) between `# <module>:begin` and
+  `# <module>:end` comment lines; every other line of the file stays as it is, and
+  `disable` removes the table. Codex executors keep the shell, so isolation is
+  `unrestricted`. Codex reads these files only after the two reviews in
+  [Codex: trust the project and its hooks](#codex-trust-the-project-and-its-hooks).
 - **Copilot CLI.** `init` writes `.github/agents/*.agent.md`,
   `.github/hooks/<module>.json` and `.github/skills/<module>-fulfil/SKILL.md`.
   Isolation is `restricted-unverified`.
@@ -225,8 +229,8 @@ and escalate but earn no pass credit; see [trust model](trust-model.md#harness-i
 
 ### Codex: trust the project and its hooks
 
-Codex loads a project's `.codex/agents/` and `.codex/hooks.json` only from a
-trusted project, and runs a project hook only after you review it.
+Codex loads a project's `.codex/agents/`, `.codex/config.toml` and
+`.codex/hooks.json` only from a trusted project, and runs a project hook only after you review it.
 
 1. **Trust the project.** Accept the prompt Codex shows the first time it starts
    in the project, or add the project to `~/.codex/config.toml`:

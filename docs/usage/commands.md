@@ -51,7 +51,9 @@ file it creates, updates or leaves `unchanged`, then the next steps. With
   `.spec-proof/verified/` and `.spec-proof/pending/` in `.gitignore`, and installs the files of each selected
   harness by merging into files other tools share and writing the files it owns.
   `--hooks auto` installs Claude Code's files and those of every harness whose
-  configuration the project holds. A second run changes nothing. Shallnot's
+  configuration the project holds. For Codex, `init` and `enable` keep the
+  module's executor server as one marked table of `.codex/config.toml`, replaced in
+  place and never touching another line. A second run changes nothing. Shallnot's
   configuration, its `AGENTS.md` block and its hooks are never touched.
 - `enable` sets the module's proof to `true` in `.spec-proof/config.yaml`, adds its
   kind to `proofs.require` in `shallnot.yaml` and adds its block to `AGENTS.md`,
@@ -66,9 +68,10 @@ file it creates, updates or leaves `unchanged`, then the next steps. With
   refuses a project with no `shallnot.yaml` and a layout it cannot extend without
   rewriting. Completeness writes no `proofs.require`, `proofs.trust` or
   `proofs.code` entry and works without a `shallnot.yaml`.
-- `disable` turns the proof off and removes its `proofs.require` entry and its
-  block of `AGENTS.md`. It leaves `proofs.trust` and `proofs.code`, which the other
-  modules rely on.
+- `disable` turns the proof off and removes its `proofs.require` entry, its
+  block of `AGENTS.md` and its executor server table in `.codex/config.toml`
+  (the file too when that table was its only content). It leaves `proofs.trust`
+  and `proofs.code`, which the other modules rely on.
 
 ## prove
 
