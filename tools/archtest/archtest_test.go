@@ -27,6 +27,11 @@ const (
 	s1relayModule      = "s1relay"
 	umbrellaModule     = "umbrella"
 
+	releaseToolModule  = "tools/release"
+	releaseDomainDir   = "internal/domain"
+	releaseDomainRoot  = "./" + releaseDomainDir + "/..."
+	allPackagesPattern = "./..."
+
 	formatTestSupportDir = "formattest"
 	hostprotoDir         = "hostproto"
 	mcpstdioDir          = "mcpstdio"
@@ -221,9 +226,9 @@ func linkedProcessSymbols(t *testing.T, cgo string) []string {
 	return found
 }
 
-// formatCoreViolations lists what a package of the format library may not
-// import.
-func formatCoreViolations(imports []string) []string {
+// ioImportViolations lists what a package that performs no input or output may
+// not import: the format library and the domain of the release tool.
+func ioImportViolations(imports []string) []string {
 	var found []string
 	for _, importPath := range imports {
 		if importPath == osPackage || importPath == ioFSPackage || importPath == osExecPackage || isNet(importPath) {
@@ -342,7 +347,7 @@ func TestFormatIsPure(t *testing.T) {
 			if isFormatTestSupport(pkg) {
 				continue
 			}
-			if found := formatCoreViolations(imports); len(found) > 0 {
+			if found := ioImportViolations(imports); len(found) > 0 {
 				t.Errorf("%s imports %v", pkg, found)
 			}
 			for _, dependency := range dependencies(t, formatModule, pkg) {
@@ -354,8 +359,46 @@ func TestFormatIsPure(t *testing.T) {
 	})
 
 	t.Run("the rule detects each forbidden import [verifies SP-106~2]", func(t *testing.T) {
-		got := formatCoreViolations([]string{"fmt", "os", "net/url", "os/exec", "io/fs", "strings", "net"})
+		got := ioImportViolations([]string{"fmt", "os", "net/url", "os/exec", "io/fs", "strings", "net"})
 		if len(got) != 5 {
+			t.Fatalf("violations = %v", got)
+		}
+	})
+}
+
+// productModuleImports lists the imports that reach a product module, the format
+// library included.
+func productModuleImports(imports []string) []string {
+	roots := make([]string, 0, len(modules))
+	for _, module := range modules {
+		roots = append(roots, modulePath(module))
+	}
+	return reachesAny(imports, roots...)
+}
+
+func TestReleaseToolIsIsolated(t *testing.T) {
+	t.Run("the release tool and its tests import no product module [verifies SP-1830~1]", func(t *testing.T) {
+		for pkg, imports := range directImports(t, releaseToolModule, allPackagesPattern, true) {
+			if found := productModuleImports(imports); len(found) > 0 {
+				t.Errorf("%s imports %v", pkg, found)
+			}
+		}
+	})
+
+	t.Run("the domain of the release tool imports no os, io/fs, os/exec or net [verifies SP-1830~1]", func(t *testing.T) {
+		for pkg, imports := range directImports(t, releaseToolModule, releaseDomainRoot, false) {
+			if found := ioImportViolations(imports); len(found) > 0 {
+				t.Errorf("%s imports %v", pkg, found)
+			}
+		}
+	})
+
+	t.Run("the rule detects a product module and each forbidden import [verifies SP-1830~1]", func(t *testing.T) {
+		got := productModuleImports([]string{"fmt", modulePath(formatModule) + "/cliconv", modulePath(ledgerModule), modulePath(ledgerModule) + "x", rootPath + "/tools/release/internal/domain"})
+		if len(got) != 2 {
+			t.Fatalf("violations = %v", got)
+		}
+		if got := ioImportViolations([]string{"os", "os/exec", "net/http", "io/fs", "fmt", "encoding/json"}); len(got) != 4 {
 			t.Fatalf("violations = %v", got)
 		}
 	})

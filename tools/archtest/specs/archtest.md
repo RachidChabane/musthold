@@ -25,6 +25,10 @@ module in CI.
 - **SP-144~2**: WHEN the binaries of every module that ships one are linked THE
   SYSTEM SHALL contain no package of the test support of `format`, the format
   library and the umbrella shipping none.
+- **SP-1830~1**: WHEN the packages of `tools/release` and their tests are
+  inspected THE SYSTEM SHALL find no import of a product module, the `format`
+  library included, and no non-test package of its domain importing `os`,
+  `io/fs`, `os/exec` or a package of the `net` family.
 - **SP-39~2**: WHEN the `spec-proof-verify` binary is linked THE SYSTEM SHALL
   hold no symbol of `os/exec`, with and without cgo, no package of the `verify`
   module SHALL import `os/exec`, and the set of packages reachable from the
