@@ -1,0 +1,16 @@
+# Secret scanning configuration for gitleaks: the default rules, minus the
+# content digests and identifiers whose key names look like credentials.
+title = "spec-proof"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "SHA-256 cache keys, upstream base commits, call ids and golden-vector keys"
+regexTarget = "line"
+regexes = ['''(?i)"?(cacheKey|api_base_sha|apiCallId|goldenKey)"?\s*[:=]''']
+
+[[allowlists]]
+description = "The fixed per-install secret of the host-protocol test fixtures"
+regexTarget = "line"
+regexes = ['''fixture-secret-0123456789abcdef''']

@@ -42,6 +42,10 @@ shallnot-build:  ## build the pinned Shallnot into .tools/bin (script/shallnot-b
 mem-check:  ## refuse heavy local work unless memory is free enough (script/mem-guard)
 	./script/mem-guard check
 
+.PHONY: secrets-scan
+secrets-scan:  ## scan the whole git history for secrets with gitleaks (script/secrets-scan)
+	./script/secrets-scan
+
 plugin-gen:  ## regenerate the committed plugin trees (script/plugin-gen)
 	script/plugin-gen
 
