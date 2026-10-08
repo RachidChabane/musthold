@@ -64,15 +64,6 @@ func TestParseTag(t *testing.T) {
 		}
 	})
 
-	t.Run("only a format tag parses as a format tag"+verifiesTags, func(t *testing.T) {
-		if _, err := domain.ParseFormatTag("format/v0.1.0"); err != nil {
-			t.Error(err)
-		}
-		if _, err := domain.ParseFormatTag("discpower/v0.1.0"); err == nil {
-			t.Error("a discpower tag parsed as a format tag")
-		}
-	})
-
 	t.Run("rendering a parsed tag gives the text back for every module and version"+verifiesTags, func(t *testing.T) {
 		names := []string{}
 		for _, module := range domain.Modules() {

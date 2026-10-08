@@ -131,10 +131,11 @@ release:
 
 ```
 go install github.com/RachidChabane/spec-proof/ledger/cmd/spec-proof-ledger@v0.2.0
+curl -fsSLO https://github.com/RachidChabane/spec-proof/releases/download/ledger/v0.2.0/install
 bash install ledger 0.2.0
 ```
 
-The installer needs `cosign` or `gh`. It downloads the archive and `SHA256SUMS`,
+The installer is listed in `SHA256SUMS` and attested like an archive. It needs `cosign` or `gh`. It downloads the archive and `SHA256SUMS`,
 verifies the signature, checks the archive against its line of `SHA256SUMS`, runs
 the extracted binary with `--version` and requires exactly the version asked for.
 Any failure, or the absence of both verifiers, aborts the install and leaves

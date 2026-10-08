@@ -81,6 +81,25 @@ jobs:
           go-version-file: go.work
           cache: false
 
+      - name: Set up Java 21 for the JUnit 5 fixtures
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Python for the pytest fixtures
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check "pytest==9.1.1"
+
+      - name: Set up Node for the Jest and Vitest fixtures
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+
       - name: Run the pre-flight, build every target and verify dist
         env:
           TAG: ${{ github.ref_name }}

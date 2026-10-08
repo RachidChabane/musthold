@@ -74,10 +74,12 @@ carries:
 
 ```
 go install github.com/RachidChabane/spec-proof/discpower/cmd/spec-proof-dp@v0.2.0
+curl -fsSLO https://github.com/RachidChabane/spec-proof/releases/download/discpower/v0.2.0/install
 bash install discpower 0.2.0
 ```
 
-The installer needs `cosign` or `gh`. It verifies the signature of `SHA256SUMS`,
+The installer is a file of the release, listed in `SHA256SUMS` and attested like an
+archive. It needs `cosign` or `gh`. It verifies the signature of `SHA256SUMS`,
 checks the archive against it and requires the extracted binary to print exactly
 the version asked for with `--version`; on any failure it installs nothing.
 

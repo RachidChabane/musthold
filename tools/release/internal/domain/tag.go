@@ -122,16 +122,3 @@ func ParseTag(text string) (Tag, error) {
 	}
 	return Tag{Module: module, Version: version}, nil
 }
-
-// ParseFormatTag parses a tag of the format library, which the release of every
-// other module requires.
-func ParseFormatTag(text string) (Tag, error) {
-	tag, err := ParseTag(text)
-	if err != nil {
-		return Tag{}, err
-	}
-	if tag.Module.Name != FormatModuleName {
-		return Tag{}, fmt.Errorf("tag %q is not a tag of %s", text, FormatModuleName)
-	}
-	return tag, nil
-}

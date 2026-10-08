@@ -25,6 +25,7 @@ with its own `go.mod`, tests and, where it ships one, binary, plugin and release
 | `umbrella` | none | marketplace and the thin `spec-proof` plugin |
 | `tools/archtest` | none | architecture tests that span the modules |
 | `tools/e2e` | none | black-box tests of the built binaries and of the documentation |
+| `tools/release` | `spec-proof-release` | the release pipeline: tags, pre-flight, archives, checksums, SBOMs, formula, notes (never released) |
 
 `bench/` (the benchmark core) and `experiments/` (the pilot and calibration
 harnesses) measure the product and are not part of it.

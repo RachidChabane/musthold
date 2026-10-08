@@ -21,12 +21,6 @@ const (
 	LinkedCommitVariable  = "main.commit"
 )
 
-// ControlledVariables are the environment variables a release build sets itself;
-// whatever the caller's environment holds for them is dropped.
-func ControlledVariables() []string {
-	return []string{EnvWorkspace, EnvCgo, EnvToolchain, EnvFlags, EnvOS, EnvArch}
-}
-
 // CheckEnvironment lists the variables the build and test checks of the pre-flight
 // set: no workspace, the pinned toolchain and read-only modules, so that they
 // certify the dependency set that ships.

@@ -22,6 +22,7 @@ const (
 	verifiesDryRun       = " [verifies SP-1820~1]"
 	verifiesReproducible = " [verifies SP-1810~1]"
 	verifiesSBOMSchema   = " [verifies SP-1807~1]"
+	verifiesChecksumTool = " [verifies SP-1806~1]"
 	throwawayTag         = "discpower/v0.0.0-e2e"
 	throwawaySemver      = "0.0.0-e2e"
 	exitRefused          = 3
@@ -153,6 +154,18 @@ func TestDryRunEndToEnd(t *testing.T) {
 		firstDist = readDist(t, filepath.Join(repository.Root, "dist"))
 		if got, want := fileNames(firstDist), expectedNames(t); !slices.Equal(got, want) {
 			t.Fatalf("dist holds %v, want %v", got, want)
+		}
+	})
+
+	t.Run("SHA256SUMS is accepted by the checksum tool of the machine"+verifiesChecksumTool, func(t *testing.T) {
+		name, arguments := "sha256sum", []string{"-c", domain.ChecksumsFileName}
+		if _, err := exec.LookPath(name); err != nil {
+			name, arguments = "shasum", []string{"-a", "256", "-c", domain.ChecksumsFileName}
+		}
+		command := exec.Command(name, arguments...)
+		command.Dir = filepath.Join(repository.Root, "dist")
+		if output, err := command.CombinedOutput(); err != nil {
+			t.Fatalf("%s: %v\n%s", name, err, output)
 		}
 	})
 

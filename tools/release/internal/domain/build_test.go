@@ -117,16 +117,6 @@ func TestBuildCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("the variables the build sets are the ones the caller's values are dropped for"+verifiesBuild, func(t *testing.T) {
-		controlled := domain.ControlledVariables()
-		for _, assignment := range spec.Environment() {
-			name, _, _ := strings.Cut(assignment, "=")
-			if !slices.Contains(controlled, name) {
-				t.Errorf("%s is set and not controlled", name)
-			}
-		}
-	})
-
 	t.Run("the checks run outside the workspace on the pinned toolchain"+verifiesBuild, func(t *testing.T) {
 		want := []string{"GOWORK=off", "GOTOOLCHAIN=go1.26.4", "GOFLAGS=-mod=readonly"}
 		if got := domain.CheckEnvironment(); !slices.Equal(got, want) {

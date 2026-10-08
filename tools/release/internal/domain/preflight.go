@@ -96,7 +96,6 @@ type Facts struct {
 
 // Rule is one check of the pre-flight.
 type Rule interface {
-	Name() string
 	Check(facts Facts) []Finding
 }
 
@@ -151,8 +150,6 @@ func (r Report) Refusals(dryRun bool) []Finding {
 
 type tagAtHead struct{}
 
-func (tagAtHead) Name() string { return RuleTagAtHead }
-
 func (tagAtHead) Check(f Facts) []Finding {
 	switch {
 	case f.TagCommit == "":
@@ -165,8 +162,6 @@ func (tagAtHead) Check(f Facts) []Finding {
 
 type cleanTree struct{}
 
-func (cleanTree) Name() string { return RuleCleanTree }
-
 func (cleanTree) Check(f Facts) []Finding {
 	if len(f.DirtyPaths) == 0 {
 		return nil
@@ -175,8 +170,6 @@ func (cleanTree) Check(f Facts) []Finding {
 }
 
 type goModReleasable struct{}
-
-func (goModReleasable) Name() string { return RuleGoModReleasable }
 
 func (goModReleasable) Check(f Facts) []Finding {
 	var findings []Finding
@@ -190,8 +183,6 @@ func (goModReleasable) Check(f Facts) []Finding {
 }
 
 type formatTagged struct{}
-
-func (formatTagged) Name() string { return RuleFormatTagged }
 
 func (formatTagged) Check(f Facts) []Finding {
 	requirement := f.GoMod.FormatRequirement
@@ -210,8 +201,6 @@ type stepPasses struct {
 	describe string
 }
 
-func (s stepPasses) Name() string { return s.name }
-
 func (s stepPasses) Check(f Facts) []Finding {
 	if outcome := s.step(f); outcome.Ran && outcome.Failure != "" {
 		return []Finding{{s.name, ScopeAlways, s.describe + " fails: " + outcome.Failure}}
@@ -220,8 +209,6 @@ func (s stepPasses) Check(f Facts) []Finding {
 }
 
 type pluginVersions struct{}
-
-func (pluginVersions) Name() string { return RulePluginVersions }
 
 func (pluginVersions) Check(f Facts) []Finding {
 	if !f.Tag.Module.ShipsPlugin() {
@@ -241,8 +228,6 @@ func (pluginVersions) Check(f Facts) []Finding {
 
 type pluginGenerated struct{}
 
-func (pluginGenerated) Name() string { return RulePluginGenerated }
-
 func (pluginGenerated) Check(f Facts) []Finding {
 	if !f.Tag.Module.ShipsPlugin() || !f.PluginGen.Ran || f.PluginGen.Failure == "" {
 		return nil
@@ -251,8 +236,6 @@ func (pluginGenerated) Check(f Facts) []Finding {
 }
 
 type marketplaceRef struct{}
-
-func (marketplaceRef) Name() string { return RuleMarketplaceRef }
 
 func (marketplaceRef) Check(f Facts) []Finding {
 	module := f.Tag.Module
@@ -273,8 +256,6 @@ func (marketplaceRef) Check(f Facts) []Finding {
 
 type marketplaceRefsResolve struct{}
 
-func (marketplaceRefsResolve) Name() string { return RuleMarketplaceRefs }
-
 func (marketplaceRefsResolve) Check(f Facts) []Finding {
 	if !f.Tag.Module.ShipsPlugin() {
 		return nil
@@ -290,8 +271,6 @@ func (marketplaceRefsResolve) Check(f Facts) []Finding {
 }
 
 type repositoryPublic struct{}
-
-func (repositoryPublic) Name() string { return RuleRepositoryPublic }
 
 func (repositoryPublic) Check(f Facts) []Finding {
 	if !f.RequirePublic || f.Visibility == VisibilityPublic {

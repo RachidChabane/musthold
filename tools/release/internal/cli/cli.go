@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/RachidChabane/spec-proof/tools/release/internal/app"
@@ -86,7 +87,7 @@ func Run(wiring Wiring, args []string, stdout, stderr io.Writer) int {
 		fmt.Fprint(stdout, usage())
 		return ExitClean
 	}
-	if !contains(verbs, verb) {
+	if !slices.Contains(verbs, verb) {
 		fmt.Fprintf(stderr, "%s: unknown verb %q\n%s", Binary, verb, usage())
 		return ExitUsage
 	}
@@ -311,15 +312,6 @@ func parseVisibility(text string) (domain.Visibility, error) {
 		return domain.VisibilityPrivate, nil
 	}
 	return domain.VisibilityUnknown, fmt.Errorf("visibility %q is neither %s nor %s", text, visibilityPublic, visibilityPrivate)
-}
-
-func contains(items []string, item string) bool {
-	for _, candidate := range items {
-		if candidate == item {
-			return true
-		}
-	}
-	return false
 }
 
 func usage() string {

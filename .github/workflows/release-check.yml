@@ -82,7 +82,9 @@ jobs:
         run: go install "github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION}"
 
       - name: Lint the workflows
-        run: "$(go env GOPATH)/bin/actionlint"
+        run: |
+          gopath="$(go env GOPATH)"
+          "$gopath/bin/actionlint"
 
       - name: Lint the release scripts
         run: shellcheck script/release script/install
