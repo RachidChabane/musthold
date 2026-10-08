@@ -11,7 +11,7 @@
     <property name="java.vm.specification.version" value="21"/>
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="user.country" value="FR"/>
-    <property name="sun.boot.library.path" value="/home/user/dev-env/1-tools/installs/java/21.0.2/lib"/>
+    <property name="sun.boot.library.path" value="/opt/java/21.0.2/lib"/>
     <property name="sun.java.command" value="target/surefire/surefirebooter-20260918214850469_3.jar target/surefire 2026-09-18T21-48-50_423-jvmRun1 surefire-20260918214850469_1tmp surefire_0-20260918214850469_2tmp"/>
     <property name="http.nonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
     <property name="jdk.debug" value="release"/>
@@ -21,7 +21,7 @@
     <property name="user.language" value="fr"/>
     <property name="java.specification.vendor" value="Oracle Corporation"/>
     <property name="java.version.date" value="2024-01-16"/>
-    <property name="java.home" value="/home/user/dev-env/1-tools/installs/java/21.0.2"/>
+    <property name="java.home" value="/opt/java/21.0.2"/>
     <property name="file.separator" value="/"/>
     <property name="basedir" value=""/>
     <property name="java.vm.compressedOopsMode" value="Zero based"/>
