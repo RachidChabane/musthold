@@ -324,7 +324,9 @@ table in the project's `config.toml` starts once per agent, the executor include
 Tool names replace every character of the server name outside `[A-Za-z0-9_]` with
 `_` (`mcp__spec_proof_dp_exec__fetch_request`). Under `codex exec` an MCP tool call
 needs `default_tools_approval_mode = "approve"`, and `--ignore-user-config` runs no
-hook at all. The `codex exec --json` stream omits `spawn_agent`; the session's
+hook at all. A role file's `sandbox_mode` is not applied to an agent spawned under
+`codex exec -s workspace-write`: the executor runs with the parent's sandbox, which
+the `unrestricted` isolation already assumes. The `codex exec --json` stream omits `spawn_agent`; the session's
 rollout files record it.
 
 **Not documented:** a per-agent allowlist of built-in tools, so the executor keeps
@@ -345,8 +347,18 @@ The plugin ships agents with `tools: ["spec-proof-dp-exec/fetch_request",
 and `subagentStop` hooks. **V:** the agent profile reference documents
 `server/tool` names, `tools: []`, and that unrecognized names are ignored.
 **U:** whether the CLI honours an MCP-only allowlist and what an all-unresolved
-list does (possibly fail-open); a fresh context per subagent; `agentType` in
-`preToolUse`.
+list does (possibly fail-open); a fresh context per subagent.
+
+**D (live canary, 2026-10-08, model `gpt-5.6-luna`):** the main agent starts a
+plugin agent through the `task` tool with `agent_type` set to the plugin-prefixed
+name (`spec-proof-dp:spec-proof-dp-decider`); the executor fetched, submitted and
+had its answer accepted. `preToolUse` payloads carry `cwd`, `sessionId`,
+`timestamp`, `toolArgs` and `toolName` only, for the main agent and the executor
+alike, so a hook cannot tell them apart (`IdentifiesCaller` stays false);
+`subagentStop` carries `agentId`, `agentName` and `agentType`. Hooks see an MCP tool
+as `<server>-<tool>` (`spec-proof-dp-exec-fetch_request`). `copilot -p` streams no
+`session.start`: the model is in `model.call_start` and a final `result` event
+closes the session.
 
 Until the canary passes, isolation is `restricted-unverified`, with no local pass
 credit for judged components and `require_attestation: false`. In interactive
