@@ -5,7 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from specbench.application.paced_calls import CallGate, ModelNotFrozen, PacedAgentHarness, PacedHostExecutor
+from specbench.application.paced_calls import CallGate, ModelNotFrozen, PacedAgentHarness
+from specbench.application.paced_host_executor import PacedHostExecutor
 from specbench.domain.arms import FROZEN_MODEL, Arm, Harness, Host
 from specbench.domain.deviations import (
     ARM_ORDER,

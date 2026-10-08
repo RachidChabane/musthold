@@ -9,10 +9,11 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Protocol
 
-from specbench.domain.arms import Harness
+from specbench.domain.arms import Arm, Harness
 from specbench.domain.candidates import Candidate
 from specbench.domain.canonical import JsonValue
 from specbench.domain.construction import ModelRequest, ModelResponse
+from specbench.domain.gate import GateMode, GateOutcome
 from specbench.domain.languages import Language
 from specbench.domain.manifest import Provenance
 from specbench.domain.mining import BaseSnapshot, PullRequest, PullSummary, Rejection, Repository
@@ -20,7 +21,7 @@ from specbench.domain.oracle import OracleTest, Outcome
 from specbench.domain.pacing import CallLedger
 from specbench.domain.sealing import CorpusLock, SealedBundle
 from specbench.domain.selection import ProbedTask
-from specbench.domain.sessions import CallRecord, HostRequest, HostResponse, SessionRequest, SessionResult
+from specbench.domain.sessions import CallRecord, SessionRequest, SessionResult
 
 
 class GhClient(Protocol):
@@ -172,10 +173,14 @@ class AgentHarness(Protocol):
     def run_session(self, request: SessionRequest) -> SessionResult: ...
 
 
-class HostExecutor(Protocol):
-    """Strategy: executes a product request in an isolated, blind subagent and returns its response."""
+class GateHost(Protocol):
+    """Strategy: one gate-host session that runs `prove-all` on a tree in a clean room and returns the Shallnot report.
 
-    def execute(self, request: HostRequest) -> HostResponse: ...
+    `record_dir` receives (`LIVE`) or supplies (`REPLAY`) the recorded responses, so a gate that was killed resumes from
+    the tickets still pending.
+    """
+
+    def run_gate(self, tree: Path, arm: Arm, record_dir: Path, mode: GateMode) -> GateOutcome: ...
 
 
 class FeasibilityProbe(Protocol):

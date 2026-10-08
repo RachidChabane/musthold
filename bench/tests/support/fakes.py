@@ -8,8 +8,9 @@ from datetime import datetime
 from pathlib import Path
 
 from specbench.application.ports import OperatorMutants, TreeSpec
-from specbench.domain.arms import Harness, Host
+from specbench.domain.arms import Arm, Harness, Host
 from specbench.domain.canonical import JsonValue
+from specbench.domain.gate import GateMode, GateOutcome
 from specbench.domain.oracle import OracleTest, Outcome
 from specbench.domain.pacing import CallLedger
 from specbench.domain.sessions import CallRecord, HostRequest, HostResponse, SessionRequest, SessionResult
@@ -120,3 +121,15 @@ class FakeHostExecutor:
     def execute(self, request: HostRequest) -> HostResponse:
         self.calls += 1
         return HostResponse(request.request_id, self._host, self._payloads[request.request_id])
+
+
+class FakeGateHost:
+    """A scripted `GateHost`: answers each call from a callback and remembers every call it received."""
+
+    def __init__(self, answer: Callable[[Path, Arm, Path, GateMode], GateOutcome]) -> None:
+        self._answer = answer
+        self.received: list[tuple[Path, Arm, Path, GateMode]] = []
+
+    def run_gate(self, tree: Path, arm: Arm, record_dir: Path, mode: GateMode) -> GateOutcome:
+        self.received.append((tree, arm, record_dir, mode))
+        return self._answer(tree, arm, record_dir, mode)

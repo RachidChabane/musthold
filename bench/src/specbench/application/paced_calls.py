@@ -2,19 +2,15 @@
 
 from __future__ import annotations
 
-import json
-
 from specbench.application.ports import (
     AgentHarness,
     CallStore,
     Clock,
     ConstructionModel,
     FailureLog,
-    HostExecutor,
     LedgerStore,
 )
-from specbench.domain.arms import FROZEN_MODEL, Harness, Host
-from specbench.domain.canonical import stable_json
+from specbench.domain.arms import FROZEN_MODEL, Harness
 from specbench.domain.construction import (
     ModelCallFailed,
     ModelRequest,
@@ -23,9 +19,7 @@ from specbench.domain.construction import (
     response_from_stdout,
 )
 from specbench.domain.pacing import PacingPolicy, PauseReason, RunPaused, looks_like_quota_exhausted
-from specbench.domain.sessions import CallRecord, HostRequest, HostResponse, SessionRequest, SessionResult
-
-HOST_CALL_PREFIX = "host-"
+from specbench.domain.sessions import CallRecord, SessionRequest, SessionResult
 
 
 class ModelNotFrozen(ValueError):
@@ -94,37 +88,6 @@ class PacedAgentHarness:
         )
         self._gate.charge()
         return result
-
-
-class PacedHostExecutor:
-    """Decorator over a `HostExecutor`; a gate-host session is a model call and obeys the same pacing."""
-
-    def __init__(self, inner: HostExecutor, host: Host, gate: CallGate, calls: CallStore) -> None:
-        self._inner = inner
-        self._host = host
-        self._gate = gate
-        self._calls = calls
-
-    def execute(self, request: HostRequest) -> HostResponse:
-        call_id = HOST_CALL_PREFIX + request.request_id
-        if self._calls.exists(call_id):
-            recorded = self._calls.read(call_id)
-            return HostResponse(request.request_id, self._host, json.loads(recorded.stdout))
-        self._gate.admit()
-        response = self._inner.execute(request)
-        record = CallRecord(
-            call_id,
-            (request.kind.value, self._host.value),
-            request.prompt,
-            stable_json(response.payload),
-            (),
-            0,
-            call_id,
-            None,
-        )
-        self._calls.write(record)
-        self._gate.charge()
-        return response
 
 
 class PacedConstructionModel:

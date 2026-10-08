@@ -102,3 +102,10 @@ type = "forbidden"
 source_modules = ["specbench"]
 forbidden_modules = ["pilot", "experiments"]
 allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "the single-shot host executor is imported only by its pacing decorator, never by the trunk or branch engines"
+type = "forbidden"
+source_modules = ["specbench.application.*"]
+forbidden_modules = ["specbench.application.host_executor", "specbench.application.paced_host_executor"]
+ignore_imports = ["specbench.application.paced_host_executor -> specbench.application.host_executor"]
