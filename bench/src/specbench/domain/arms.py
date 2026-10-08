@@ -52,6 +52,17 @@ class Module(Enum):
     COMPLETENESS = "completeness"
 
 
+class EvaluationKind(Enum):
+    """How an arm's outcome is obtained: from the trunk's own snapshots, a forked branch, a session of its own, or a gapped spec."""
+
+    TRUNK_SNAPSHOT = "trunk-snapshot"
+    BRANCH = "branch"
+    SELECTION_ONLY = "selection-only"
+    IN_SESSION = "in-session"
+    ADVERSARIAL = "adversarial"
+    SPEC_GAP = "spec-gap"
+
+
 def host_for(arm: Arm) -> Host:
     """Honest arms are gated by a gate-host session; only the in-session deployment and the adversary use the coder's."""
     return Host.PLUGIN if arm in PLUGIN_HOST_ARMS else Host.ISOLATED_CLI
