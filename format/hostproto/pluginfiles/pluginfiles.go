@@ -257,9 +257,15 @@ type skillData struct {
 	// the name of its agent.
 	RoleExample  string
 	AgentExample string
+	// PromptExample is the prompt of an executor, as the portable skill spells it.
+	PromptExample string
 }
 
-const claudeDelegation = "launch one foreground `Agent` with `subagent_type` set to the role on its line and `prompt` set to `ticket <ticket>`. Launch at most 4 in one message and wait for them. Set no model and add nothing to the prompt."
+// promptExample is the prompt of an executor as the skills spell it out, in code
+// formatting: the one prompt the module's checks of a launch accept.
+var promptExample = "`" + hostproto.ExecutorPromptOf(hostproto.TicketPlaceholder) + "`"
+
+var claudeDelegation = "launch one foreground `Agent` with `subagent_type` set to the role on its line and `prompt` set to " + promptExample + ". Launch at most 4 in one message and wait for them. Set no model and add nothing to the prompt."
 
 // exampleAgent is the agent a skill uses to show how a role maps to the name of its
 // agent: the judge when the module ships one.
@@ -284,14 +290,14 @@ func (m Module) roleMapping() string {
 // by `spawn_agent` with no history of the main agent, and awaited with `wait_agent`.
 func (m Module) codexDelegation() string {
 	return "call `spawn_agent` with `agent_type` set to the role on its line with its colon replaced by a dash (" + m.roleMapping() +
-		"), `fork_turns` set to `\"none\"` and `message` set to `ticket <ticket>` and nothing else. Start at most 3 at a time, then call `wait_agent` for each of them."
+		"), `fork_turns` set to `\"none\"` and `message` set to " + promptExample + " and nothing else. Start at most 3 at a time, then call `wait_agent` for each of them."
 }
 
 // copilotDelegation is the delegation of GitHub Copilot CLI: the executor is a
 // custom agent, started through the `task` tool.
 func (m Module) copilotDelegation() string {
 	return "call the `task` tool with `agent_type` set to the role on its line with its colon replaced by a dash (" + m.roleMapping() +
-		") and `prompt` set to `ticket <ticket>` and nothing else. Run at most 4 at a time and wait for them."
+		") and `prompt` set to " + promptExample + " and nothing else. Run at most 4 at a time and wait for them."
 }
 
 // Steps the fulfil skills of every harness share.
@@ -333,7 +339,7 @@ description: Answer the pending host requests of {{.Plugin}} ({{.Subject}}) and 
 
 ` + "`{{.Binary}} prove`" + ` stops with exit code 3 when it needs model work it cannot do itself. Each request is a ticket, and ` + "`{{.Binary}} prove --resume`" + ` consumes the answers.
 
-` + skillRelayStep + `3. For each ticket, answer it in one of two ways. When your client can start a custom agent named like the role on the ticket's line, with its colon replaced by a dash (` + "`{{.RoleExample}}` is `{{.AgentExample}}`" + `), start it through the client's subagent tool (for GitHub Copilot CLI, the ` + "`task`" + ` tool with ` + "`agent_type`" + ` set to the agent's name) with ` + "`ticket <ticket>`" + ` as the whole prompt and no conversation history, run at most 4 at a time, and do not act on its reply, a receipt. Otherwise answer inline through the ` + "`{{.Plugin}}`" + ` MCP server: call ` + "`fetch_request`" + ` with ` + "`ticket`" + ` set to the ticket and ` + "`cap`" + ` set to an empty string, follow the instructions it returns, then call ` + "`submit_response`" + ` with ` + "`ticket`" + `, ` + "`nonce`" + ` from the fetch, ` + "`cap`" + ` set to an empty string and ` + "`output`" + ` set to a JSON object that matches the schema it returned. When ` + "`submit_response`" + ` returns ` + "`schemaErrors`" + `, correct the output once. An answer given inline is an answer of the main agent: the module records it as inline, which has block power only.
+` + skillRelayStep + `3. For each ticket, answer it in one of two ways. When your client can start a custom agent named like the role on the ticket's line, with its colon replaced by a dash (` + "`{{.RoleExample}}` is `{{.AgentExample}}`" + `), start it through the client's subagent tool (for GitHub Copilot CLI, the ` + "`task`" + ` tool with ` + "`agent_type`" + ` set to the agent's name) with ` + "{{.PromptExample}}" + ` as the whole prompt and no conversation history, run at most 4 at a time, and do not act on its reply, a receipt. Otherwise answer inline through the ` + "`{{.Plugin}}`" + ` MCP server: call ` + "`fetch_request`" + ` with ` + "`ticket`" + ` set to the ticket and ` + "`cap`" + ` set to an empty string, follow the instructions it returns, then call ` + "`submit_response`" + ` with ` + "`ticket`" + `, ` + "`nonce`" + ` from the fetch, ` + "`cap`" + ` set to an empty string and ` + "`output`" + ` set to a JSON object that matches the schema it returned. When ` + "`submit_response`" + ` returns ` + "`schemaErrors`" + `, correct the output once. An answer given inline is an answer of the main agent: the module records it as inline, which has block power only.
 ` + skillResumeSteps
 
 func (m Module) skillFile(path, delegation, allowed string) (File, error) {

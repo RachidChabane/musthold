@@ -120,7 +120,7 @@ func (m Module) Portable() ([]File, error) {
 	example := m.exampleAgent()
 	skill, err := render("portable-skill", portableSkillTemplate, skillData{
 		Binary: m.Binary, Name: m.SkillName(), Plugin: m.Plugin(), Subject: m.Subject, Relay: m.RelayName(), Verify: VerifyLocalCommand,
-		RoleExample: hostproto.RoleFor(m.Plugin(), example), AgentExample: m.agentName(example),
+		RoleExample: hostproto.RoleFor(m.Plugin(), example), AgentExample: m.agentName(example), PromptExample: promptExample,
 	})
 	if err != nil {
 		return nil, err
