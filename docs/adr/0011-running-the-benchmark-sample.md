@@ -146,6 +146,49 @@ against the code and the installed CLIs.
       instead of a separate directory, because the oracle manifests name tests
       relative to the tree root; a colliding path is an error.`
 
+12. **Every clean-room gate is signed, with a simulated CI round trip and one
+    CI seed per tree.**
+    - Users merge under `trust: signed`, where local trust is advisory. Local
+      trust is also not the same across arms: with no discriminating-power proof
+      to corroborate it, an ALIGNED verdict clears under local trust and
+      escalates under signed. Local gating would therefore change the AL-versus-
+      ALL contrast itself.
+    - `prove --ci --import-host` draws CI-issued discriminating-power requests
+      that no pushed bundle holds.
+    - **Seed:**
+      - The clean room commits the agent's tree alone, then each arm's setup on
+        top.
+      - The CI run id is `bench-<tree digest>`.
+      - The seed record of the final head is restored with the seed of the
+        agent-only commit, so every arm draws the same CI requests on the same
+        tree.
+    - **Settle step:**
+      1. It replays the recordings once. The local report is kept as a secondary
+         readout.
+      2. It clears `.spec-proof/ci-issued/` and runs `prove --ci --import-host`
+         on the archived bundles. A module that exits 3 is pending.
+    - **Round trips** (at most three, named after `MaxHostWaits`):
+      1. A pending round returns `PAUSED` with `ci_round_pending`.
+      2. The bench reserves one round, runs `host pull` through a `gh` shim no
+         session can reach, and has the gate-host session answer.
+      3. It runs `host push` and archives the round under `record_dir/ci/<k>/`.
+    - **Replay** stays byte-identical at zero executions.
+    - **Cost:** TR, AL and CO cost no extra executions. DP, ALL and PL pay one
+      session plus their executor launches per round. Rounds at S_T are shared by
+      the arms on the same tree.
+    - **Disclosure**, logged at the start of the run: `protocol | arms: TR, AL, DP,
+      CO, ALL, PL, ALL-native, cheat | The clean-room gate's CI run is simulated:
+      SPEC_PROOF_CI_RUN_ID is bench-<tree digest prefix>, and the seed record of
+      the head is restored with the seed of the agent tree's own commit, so every
+      arm gets the same CI seed on the same tree; CI-issued artifacts reach host
+      pull through a gh shim no session can reach.`
+    - **Deviation from decision 10**, logged at the start of the run: `protocol |
+      arms: ALL-native | The clean-room re-gate of ALL-native returns its
+      CI-issued requests to ALL-native's own session, as the cheat arm does (ADR
+      0007, Host execution), instead of a reserved isolated-fallback live gate;
+      only misses of its harvested local responses use isolated-fallback; the
+      extra executions are reported in E5.`
+
 ## Consequences
 
 - **Budget:** decisions 1, 2 and 7 combine into one nightly budget, counted in
