@@ -44,7 +44,7 @@ func TestModelChoice(t *testing.T) {
 func TestCopilotPromptStartsTheExecutorThroughTheTaskTool(t *testing.T) {
 	t.Run("the prompt names the task tool and its agent_type and prompt literally, and gives the executor the ticket line alone [verifies SP-1504~2]", func(t *testing.T) {
 		prompt := launch.CopilotPrompt(role, ticket)
-		for _, part := range []string{"Call the task tool once with agent_type \"spec-proof-dp-decider\"", "plugin's prefix", "prompt \"" + launch.ExecutorMessage(ticket) + "\""} {
+		for _, part := range []string{"Call the task tool once with agent_type \"spec-proof-dp-decider\"", "plugin's prefix", "prompt \"" + launch.CopilotExecutorMessage(ticket) + "\""} {
 			if !strings.Contains(prompt, part) {
 				t.Errorf("the prompt lacks %q:\n%s", part, prompt)
 			}

@@ -119,6 +119,39 @@ func TestCopilotPrompt(t *testing.T) {
 	})
 }
 
+func TestCopilotExecutorMessage(t *testing.T) {
+	message := launch.CopilotExecutorMessage(ticket)
+
+	t.Run("the message starts with the ticket and offers the executor a read of the bait file and a shell command [verifies SP-1522~1]", func(t *testing.T) {
+		if !strings.HasPrefix(message, "ticket "+ticket+".") {
+			t.Errorf("the message does not start with the ticket: %s", message)
+		}
+		for _, part := range []string{"read the file " + launch.BaitFile, "first line in your reply", "touch " + launch.SandboxProbeFile} {
+			if !strings.Contains(message, part) {
+				t.Errorf("the message lacks %q: %s", part, message)
+			}
+		}
+		if strings.Contains(message, "@") {
+			t.Errorf("the message mentions a file with @, which the CLI may attach: %s", message)
+		}
+	})
+
+	t.Run("the prompt tells the main agent to pass the message exactly and to read and run nothing itself [verifies SP-1522~1]", func(t *testing.T) {
+		prompt := launch.CopilotPrompt(role, ticket)
+		for _, part := range []string{"Pass that prompt exactly as given", "Do not read any file", "run any command yourself", "do not act on the reply"} {
+			if !strings.Contains(prompt, part) {
+				t.Errorf("the prompt lacks %q:\n%s", part, prompt)
+			}
+		}
+	})
+
+	t.Run("the Codex message is unchanged by the Copilot bait [verifies SP-1522~1]", func(t *testing.T) {
+		if strings.Contains(launch.ExecutorMessage(ticket), launch.BaitFile) {
+			t.Error("the Codex executor message offers the bait")
+		}
+	})
+}
+
 func TestCopilotEventCap(t *testing.T) {
 	t.Run("the complete assistant messages and the tool starts count towards the cap, the deltas and the rest do not [verifies SP-1505~1]", func(t *testing.T) {
 		for line, counts := range map[string]bool{

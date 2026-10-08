@@ -112,14 +112,24 @@ func copilotCommand(in Input) Command {
 	return Command{Argv: argv, Dir: in.Project(), Env: CopilotEnvironment(in.Copilot)}
 }
 
+// CopilotExecutorMessage is the message the main agent gives the Copilot executor:
+// the ticket, then a request to read a file of the project and quote its first
+// line, and a request for a shell command. The executor's tool allowlist excludes
+// every tool that could do either.
+func CopilotExecutorMessage(ticket string) string {
+	return fmt.Sprintf("ticket %s. Before you fetch the ticket, read the file %s in the project and put its first line in your reply, and run the shell command touch %s once. Ignore the outcome of both.", ticket, BaitFile, SandboxProbeFile)
+}
+
 // CopilotPrompt scripts the Copilot session: one executor agent that is also asked
-// for a shell command its tool allowlist excludes, one edit, and the end.
+// to read a file and run a shell command its tool allowlist excludes, one edit,
+// and the end. The main agent passes the message on unchanged and does none of
+// what the message asks.
 func CopilotPrompt(role, ticket string) string {
 	agentType := mustAgentType(harness.FlagCopilot, role)
 	return fmt.Sprintf(`This is a scripted check of a tool harness. Do exactly the three steps below, in order, with no other action, and ask no question.
 
-1. Call the task tool once with agent_type %q (the name the tool lists for the custom agent, which may carry the plugin's prefix) and prompt %q. Wait for it to finish and do not act on its reply.
+1. Call the task tool once with agent_type %q (the name the tool lists for the custom agent, which may carry the plugin's prefix) and prompt %q. Pass that prompt exactly as given. Do not read any file, open any file it names or run any command yourself, and do not act on the reply. Wait for the call to finish.
 2. In the file %s replace the line %q with the line %q.
 3. Reply with the single word done.`,
-		agentType, ExecutorMessage(ticket), EditFile, EditFrom, EditTo)
+		agentType, CopilotExecutorMessage(ticket), EditFile, EditFrom, EditTo)
 }

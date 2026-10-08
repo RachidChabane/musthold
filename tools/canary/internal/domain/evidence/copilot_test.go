@@ -107,7 +107,7 @@ func TestInspectPluginTree(t *testing.T) {
 		Namespace: []string{"com.github.copilot/hooks/hooks.json"},
 	}
 
-	t.Run("a tree of the expected shape has no problem [verifies SP-1707~2]", func(t *testing.T) {
+	t.Run("a tree of the expected shape has no problem [verifies SP-1707~3]", func(t *testing.T) {
 		tree := evidence.InspectPluginTree("/t", files)
 		if len(tree.Problems) != 0 || tree.Name != "spec-proof-dp" || !reflect.DeepEqual(tree.Servers, []string{"spec-proof-dp"}) {
 			t.Fatalf("tree = %+v", tree)
@@ -117,7 +117,7 @@ func TestInspectPluginTree(t *testing.T) {
 		}
 	})
 
-	t.Run("each shape the standard does not allow is a problem [verifies SP-1707~2]", func(t *testing.T) {
+	t.Run("each shape the standard does not allow is a problem [verifies SP-1707~3]", func(t *testing.T) {
 		for name, edit := range map[string]func(*evidence.TreeFiles){
 			"a missing manifest":             func(f *evidence.TreeFiles) { f.Manifest = nil },
 			"a manifest that is a list":      func(f *evidence.TreeFiles) { f.Manifest = []byte(`[1]`) },

@@ -96,6 +96,23 @@ func TestCopilotDryRun(t *testing.T) {
 		}
 	})
 
+	t.Run("the dry run shows the bait step and the message that offers it, and writes nothing [verifies SP-1522~1]", func(t *testing.T) {
+		w := copilotWorld(t)
+		w.options.DryRun = true
+		if _, err := w.runner.Run(context.Background(), w.options); err != nil {
+			t.Fatal(err)
+		}
+		out := w.stdout.String()
+		for _, want := range []string{"write <run-dir>/project/" + launch.BaitFile, "a random token of the run", "read the file " + launch.BaitFile, "touch " + launch.SandboxProbeFile} {
+			if !strings.Contains(out, want) {
+				t.Errorf("the plan lacks %q:\n%s", want, out)
+			}
+		}
+		if entries, _ := os.ReadDir(w.out); len(entries) != 0 {
+			t.Errorf("the dry run wrote %v", entries)
+		}
+	})
+
 	t.Run("without a token variable the plan says the login comes from the keychain, and a shared home sets no COPILOT_HOME [verifies SP-1708~2]", func(t *testing.T) {
 		w := copilotWorld(t)
 		w.runner.Env = []string{"HOME=/home/u", "PATH=/usr/bin"}
@@ -181,17 +198,13 @@ func TestSyntheticSessionOfCopilot(t *testing.T) {
 		}
 	})
 
-	t.Run("the Copilot session passes every check but the allowlist the executor never exercised and records the pinned model [verifies SP-1707~2]", func(t *testing.T) {
+	t.Run("the Copilot session passes every check and records the pinned model [verifies SP-1707~3]", func(t *testing.T) {
 		for _, v := range outcome.Report.Verdicts {
-			wanted := verdict.Pass
-			if v.Check == "agent_allowlist_honoured" {
-				wanted = verdict.Inconclusive
-			}
-			if v.Status != wanted {
+			if v.Status != verdict.Pass {
 				t.Errorf("%s: %s %s", v.Check, v.Status, v.Summary)
 			}
 		}
-		if outcome.Report.ExitCode() != verdict.ExitInconclusive {
+		if outcome.Report.ExitCode() != verdict.ExitAllPass {
 			t.Fatalf("exit code %d", outcome.Report.ExitCode())
 		}
 		raw, _ := os.ReadFile(filepath.Join(outcome.RunDir, "records", "session.json"))

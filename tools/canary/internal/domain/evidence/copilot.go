@@ -17,9 +17,11 @@ import (
 const (
 	CopilotEventModelCallStart   = "model.call_start"
 	CopilotEventAssistantMessage = "assistant.message"
+	CopilotEventUserMessage      = "user.message"
 	CopilotEventToolStart        = "tool.execution_start"
 	CopilotEventToolComplete     = "tool.execution_complete"
 	CopilotEventSubagentStarted  = "subagent.started"
+	CopilotEventSubagentSelected = "subagent.selected"
 	CopilotEventSubagentDone     = "subagent.completed"
 	CopilotEventSubagentFailed   = "subagent.failed"
 	CopilotEventSessionError     = "session.error"
@@ -46,8 +48,14 @@ type CopilotEvent struct {
 	Type string
 	// AgentID is the envelope's agentId: set on events a sub-agent originated.
 	AgentID string
-	// ToolCallID joins a tool's start to its completion.
+	// ToolCallID joins a tool's start to its completion. On a subagent.started and a
+	// subagent.completed it is the call of the task tool that launched the subagent.
 	ToolCallID string
+	// ParentToolCallID is the task call whose subagent originated a tool event or a
+	// message: the explicit link from a subagent's work to the call that launched it.
+	ParentToolCallID string
+	// Tools are the tools a subagent.selected lists for the subagent.
+	Tools []string
 	// ToolName, MCPServer and MCPTool are the members of tool.execution_start.
 	ToolName  string
 	MCPServer string
@@ -88,16 +96,18 @@ type rawCopilot struct {
 }
 
 type rawCopilotData struct {
-	ToolCallID string          `json:"toolCallId"`
-	ToolName   string          `json:"toolName"`
-	MCPServer  string          `json:"mcpServerName"`
-	MCPTool    string          `json:"mcpToolName"`
-	Success    json.RawMessage `json:"success"`
-	AgentName  string          `json:"agentName"`
-	Model      string          `json:"model"`
-	Arguments  json.RawMessage `json:"arguments"`
-	ErrorType  string          `json:"errorType"`
-	Message    string          `json:"message"`
+	ToolCallID       string          `json:"toolCallId"`
+	ParentToolCallID string          `json:"parentToolCallId"`
+	ToolName         string          `json:"toolName"`
+	MCPServer        string          `json:"mcpServerName"`
+	MCPTool          string          `json:"mcpToolName"`
+	Success          json.RawMessage `json:"success"`
+	AgentName        string          `json:"agentName"`
+	Model            string          `json:"model"`
+	Arguments        json.RawMessage `json:"arguments"`
+	Tools            json.RawMessage `json:"tools"`
+	ErrorType        string          `json:"errorType"`
+	Message          string          `json:"message"`
 }
 
 // DecodeCopilot decodes the stream. A member that does not have the shape above is
@@ -110,6 +120,7 @@ func DecodeCopilot(lines []Line) CopilotStream {
 		_ = json.Unmarshal(line.Raw, &raw)
 		stream.Events = append(stream.Events, CopilotEvent{
 			Line: line.Number, Type: raw.Type, AgentID: raw.AgentID, ToolCallID: raw.Data.ToolCallID,
+			ParentToolCallID: raw.Data.ParentToolCallID, Tools: stringList(raw.Data.Tools),
 			ToolName: raw.Data.ToolName, MCPServer: raw.Data.MCPServer, MCPTool: raw.Data.MCPTool, Success: boolMember(raw.Data.Success),
 			AgentName: raw.Data.AgentName, Model: raw.Data.Model, Arguments: raw.Data.Arguments, ErrorType: raw.Data.ErrorType,
 			ExitCode: intMember(raw.ExitCode), PremiumRequests: intMember(raw.Usage.PremiumRequests),
@@ -204,4 +215,14 @@ func intMember(raw json.RawMessage) *int {
 		return nil
 	}
 	return &value
+}
+
+// stringList reads a list of strings, and nothing when the member is absent or is
+// not one: a list that does not have that shape must never read as an empty one.
+func stringList(raw json.RawMessage) []string {
+	var values []string
+	if len(raw) == 0 || json.Unmarshal(raw, &values) != nil {
+		return nil
+	}
+	return values
 }

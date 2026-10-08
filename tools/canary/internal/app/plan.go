@@ -252,6 +252,11 @@ func Plan(flag, repo, model string, homes Homes) ([]string, error) {
 		strings.Join(launchQuote(proveArgv(l)...), " ")+"   (in "+l.project+", exit 3 expected)",
 		strings.Join(launchQuote(listArgv(l)...), " "),
 		strings.Join(launchQuote(l.primary(), "mcp", "--role", "executor", "--harness", flag), " ")+"   (stdio: fetch_request with no capability)",
+	)
+	if flag == harness.FlagCopilot {
+		lines = append(lines, baitPlanLine(l))
+	}
+	lines = append(lines,
 		"session environment: "+strings.Join(sessionEnvironmentWords(l), " "),
 		session.Line()+"   (in "+session.Dir+")",
 	)

@@ -53,6 +53,9 @@ const (
 	// SandboxProbeFile is the file an executor that may not use a shell is asked to
 	// create.
 	SandboxProbeFile = "sandbox-probe.txt"
+	// BaitFile is the file of the project an executor that may not read files is
+	// asked to read. It holds a token the canary generates for the run.
+	BaitFile = "canary-note.txt"
 )
 
 // Directories of a run, relative to the run directory.

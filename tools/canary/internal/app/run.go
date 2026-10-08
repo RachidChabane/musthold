@@ -66,6 +66,7 @@ type Runner struct {
 	Prober    ServerProber
 	Locker    Locker
 	Files     Files
+	Tokens    Tokens
 	// Env is the environment of the canary process.
 	Env    []string
 	Stdout io.Writer
@@ -236,6 +237,8 @@ type preparedSession struct {
 	noCall    evidence.NoCall
 	command   launch.Command
 	env       []string
+	// bait is the file laid for the executor to read, or nil when the harness has none.
+	bait *evidence.ReadBait
 	// before is the fingerprint of the user's configuration directories taken
 	// before anything of the run touched them.
 	before map[string]string
@@ -306,6 +309,11 @@ func (r Runner) prepare(ctx context.Context, options Options, homes Homes) (prep
 		return prepared, err
 	}
 	prepared.noCall = r.noCallProbes(ctx, options, l, probeEnvironments{support: support, cli: environment(support, prepared.command.Env...)}, prepared.selection)
+	if options.Harness == harness.FlagCopilot {
+		if prepared.bait, err = r.layBait(l); err != nil {
+			return prepared, err
+		}
+	}
 	prepared.env = l.sessionEnvironment(r.Env, prepared.command.Env)
 	prepared.session = r.describe(options, prepared, configMode(options, homes))
 	return prepared, r.writeJSON(l.record(evidence.NoCallFile), prepared.noCall)
@@ -485,7 +493,7 @@ func (r Runner) conduct(ctx context.Context, options Options, prepared preparedS
 		return Outcome{RunDir: l.run}, fmt.Errorf("the session could not run: %w", err)
 	}
 	touched := r.touched(r.configRoots(options), prepared.before, filepath.Base(l.run), r.restoreCodexTrust(options, l))
-	if err := r.collect(options, l, session, touched); err != nil {
+	if err := r.collect(options, prepared, session, touched); err != nil {
 		return Outcome{RunDir: l.run}, err
 	}
 	if err := r.requireATurn(options, l, session); err != nil {
@@ -497,7 +505,8 @@ func (r Runner) conduct(ctx context.Context, options Options, prepared preparedS
 
 // collect writes the session's own record and copies what the module and the
 // project left behind into the records directory.
-func (r Runner) collect(options Options, l layout, session evidence.Session, touched evidence.Touched) error {
+func (r Runner) collect(options Options, prepared preparedSession, session evidence.Session, touched evidence.Touched) error {
+	l := prepared.layout
 	if err := r.writeJSON(l.record(evidence.SessionFile), session); err != nil {
 		return err
 	}
@@ -525,7 +534,7 @@ func (r Runner) collect(options Options, l layout, session evidence.Session, tou
 		return err
 	}
 	if options.Harness == harness.FlagCodex || options.Harness == harness.FlagCopilot {
-		probe := evidence.SandboxProbe{File: launch.SandboxProbeFile, Exists: r.Files.Exists(l.projectFile(launch.SandboxProbeFile))}
+		probe := evidence.SandboxProbe{File: launch.SandboxProbeFile, Exists: r.Files.Exists(l.projectFile(launch.SandboxProbeFile)), Bait: prepared.bait}
 		if err := r.writeJSON(l.record(evidence.SandboxProbeFile), probe); err != nil {
 			return err
 		}

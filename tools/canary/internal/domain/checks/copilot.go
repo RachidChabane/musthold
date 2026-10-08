@@ -35,11 +35,6 @@ const (
 	noExecutorAgent    = "the session started no executor agent of the primary module"
 )
 
-// bookkeepingTools are the tools the CLI itself calls to narrate its work. They
-// are not a use of the shell or of the project, so they do not count against an
-// agent's tool allowlist.
-var bookkeepingTools = []string{"report_intent"}
-
 func copilotStrategy() harness.Harness { return strategy(harness.FlagCopilot) }
 
 func copilotChecks() []Check {
@@ -482,88 +477,4 @@ func sessionModelCheck() Check {
 			}
 			return verdict.Passed("the session ran on model "+event.Model, pointer)
 		})
-}
-
-// isExecutorTool reports whether a tool.execution_start is a tool of the executor
-// server of the primary module.
-func isExecutorTool(event evidence.CopilotEvent) bool {
-	if event.MCPServer == copilotStrategy().Server() {
-		return true
-	}
-	_, executor := copilotStrategy().ExecutorTool(event.ToolName)
-	return executor
-}
-
-// allowlistCheck reads what the executor subagent used besides its two tools.
-// Events a subagent originated carry the envelope's agentId; the session starts
-// one subagent.
-func allowlistCheck() Check {
-	return newCheck(checkCopilotAllowlist,
-		"The executor agent's MCP-only tool allowlist is honoured: a shell command it was asked to run did not run and left no file. A session in which the executor never tried leaves the question open; ADR 0005 marks the allowlist unverified.",
-		func(found evidence.Evidence) verdict.Verdict {
-			probe := found.SandboxProbe
-			probePointer := evidence.At(evidence.SandboxProbeFile, 0, probe.File)
-			stream := copilotStream(found)
-			var ran, blocked, unknown []evidence.CopilotEvent
-			for _, event := range stream.Of(evidence.CopilotEventToolStart) {
-				if event.AgentID == "" || isExecutorTool(event) || slices.Contains(bookkeepingTools, event.ToolName) {
-					continue
-				}
-				switch completion, closed := stream.CompletionOf(event.ToolCallID); {
-				case closed && completion.Success != nil && *completion.Success:
-					ran = append(ran, event)
-				case closed && completion.Success != nil:
-					blocked = append(blocked, event)
-				default:
-					unknown = append(unknown, event)
-				}
-			}
-			mainAgent := mainAgentAttempts(stream, probe.File)
-			switch {
-			case len(ran) > 0:
-				return verdict.Failed("the executor ran "+toolNames(ran)+" outside its allowlist", evidence.StreamAt(ran[0].Line, ran[0].Type))
-			case probe.File == "":
-				return verdict.Undecided("the allowlist probe was not recorded")
-			case probe.Exists && len(mainAgent) > 0:
-				return verdict.Undecided(probe.File+" exists but the main agent ran the command itself, so the write is not the executor's", probePointer, evidence.StreamAt(mainAgent[0].Line, mainAgent[0].Type))
-			case probe.Exists && len(blocked)+len(unknown) > 0:
-				return verdict.Failed("the executor tried "+toolNames(append(blocked, unknown...))+", the main agent did not, and "+probe.File+" exists: its allowlist did not hold", probePointer)
-			case probe.Exists:
-				return verdict.Undecided(probe.File+" exists but the stream attributes no attempt to the executor", probePointer)
-			case len(blocked) > 0:
-				return verdict.Passed(fmt.Sprintf("the executor tried %s, which failed, and %s does not exist", toolNames(blocked), probe.File), probePointer, evidence.StreamAt(blocked[0].Line, blocked[0].Type))
-			case len(unknown) > 0:
-				return verdict.Undecided("the executor tried "+toolNames(unknown)+" but the stream does not say how it ended", evidence.StreamAt(unknown[0].Line, unknown[0].Type))
-			default:
-				return verdict.Undecided("the executor tried nothing outside its two tools, so the allowlist was not exercised", probePointer)
-			}
-		})
-}
-
-// mainAgentAttempts returns the tool calls of the main agent, other than the one
-// that delegates to a subagent, whose JSON names the probe file: a main agent that
-// ran the command itself makes the file no evidence about the executor.
-func mainAgentAttempts(stream evidence.CopilotStream, file string) []evidence.CopilotEvent {
-	if file == "" {
-		return nil
-	}
-	delegations := map[string]bool{}
-	for _, event := range stream.Of(evidence.CopilotEventSubagentStarted) {
-		delegations[event.ToolCallID] = true
-	}
-	var attempts []evidence.CopilotEvent
-	for _, event := range stream.Of(evidence.CopilotEventToolStart) {
-		if event.AgentID == "" && !delegations[event.ToolCallID] && event.Mentions(file) {
-			attempts = append(attempts, event)
-		}
-	}
-	return attempts
-}
-
-func toolNames(events []evidence.CopilotEvent) string {
-	names := make([]string, len(events))
-	for index, event := range events {
-		names[index] = event.ToolName
-	}
-	return strings.Join(names, ", ")
 }

@@ -79,5 +79,11 @@ type Locker interface {
 	Acquire(path string) (Lock, error)
 }
 
+// Tokens draws the secrets of a run.
+type Tokens interface {
+	// New returns a token no agent of the session can know before it reads it.
+	New() (string, error)
+}
+
 // Clock tells the time.
 type Clock interface{ Now() time.Time }

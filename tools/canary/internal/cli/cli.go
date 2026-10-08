@@ -150,7 +150,7 @@ func (e Env) runner() app.Runner {
 	return app.Runner{
 		Clock: systemClock{e.Now}, Window: window.Nightly(),
 		Processes: adapters.Exec{}, Sessions: adapters.Sessions{}, Prober: adapters.McpProber{},
-		Locker: adapters.FileLocker{}, Files: adapters.OSFiles{},
+		Locker: adapters.FileLocker{}, Files: adapters.OSFiles{}, Tokens: adapters.RandomTokens{},
 		Env: e.Environ, Stdout: e.Stdout, Stderr: e.Stderr,
 	}
 }

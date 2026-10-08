@@ -97,6 +97,19 @@ type PluginValidation struct {
 type SandboxProbe struct {
 	File   string `json:"file"`
 	Exists bool   `json:"exists"`
+	// Bait is the file the executor was asked to read, when the session offered one.
+	Bait *ReadBait `json:"bait,omitempty"`
+}
+
+// ReadBait is a file of the project that holds a token no agent has any other way
+// to know, and that the executor is asked to read although its tool allowlist
+// excludes every tool that could. The token is recorded only after the session, so
+// that nothing the session can read holds it.
+type ReadBait struct {
+	// File is the path of the file in the project, relative to its root.
+	File string `json:"file"`
+	// Token is the first line of the file.
+	Token string `json:"token"`
 }
 
 // Touched is what changed, during the session, in the places a harness CLI keeps

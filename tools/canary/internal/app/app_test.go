@@ -186,6 +186,16 @@ type releaser struct{ locker *fakeLocker }
 
 func (r releaser) Release() { r.locker.released++ }
 
+// fakeTokens hands out one token, or fails.
+type fakeTokens struct {
+	token string
+	err   error
+}
+
+func (f fakeTokens) New() (string, error) { return f.token, f.err }
+
+const runToken = "0a1b2c3d4e5f60718293a4b5c6d7e8f9"
+
 type fixedClock struct{ at time.Time }
 
 func (c fixedClock) Now() time.Time { return c.at }
@@ -260,7 +270,7 @@ func newWorld(t *testing.T, flag string, now time.Time) *world {
 	w.locker = &fakeLocker{}
 	w.runner = app.Runner{
 		Clock: fixedClock{now}, Window: window.Nightly(), Processes: w.processes, Sessions: w.session, Prober: w.prober,
-		Locker: w.locker, Files: files, Env: []string{"HOME=/home/u", "PATH=/usr/bin", "CLAUDE_CODE_OAUTH_TOKEN=secret"},
+		Locker: w.locker, Files: files, Tokens: fakeTokens{token: runToken}, Env: []string{"HOME=/home/u", "PATH=/usr/bin", "CLAUDE_CODE_OAUTH_TOKEN=secret"},
 		Stdout: w.stdout, Stderr: &bytes.Buffer{},
 	}
 	w.options = app.Options{Harness: flag, RepoRoot: repo, Canary: "/bin/canary", OutDir: w.out}

@@ -85,7 +85,7 @@ func TestCommandLine(t *testing.T) {
 		}
 	})
 
-	t.Run("a recorded Copilot session is evaluated from its directory [verifies SP-1707~2]", func(t *testing.T) {
+	t.Run("a recorded Copilot session is evaluated from its directory [verifies SP-1707~3]", func(t *testing.T) {
 		records := t.TempDir()
 		entries, err := os.ReadDir(recordedCopilotSession)
 		if err != nil {
@@ -101,7 +101,7 @@ func TestCommandLine(t *testing.T) {
 			}
 		}
 		code, stdout, stderr := run(t, "", "evaluate", "--harness", "copilot", "--records", records)
-		if code != 3 || len(strings.Split(strings.TrimSpace(stdout), "\n")) != copilotChecks || !strings.Contains(stderr, fmt.Sprintf("%d PASS", copilotChecks-1)) {
+		if code != 0 || len(strings.Split(strings.TrimSpace(stdout), "\n")) != copilotChecks || !strings.Contains(stderr, fmt.Sprintf("%d PASS", copilotChecks)) {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
 		}
 	})

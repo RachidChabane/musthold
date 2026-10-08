@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -29,6 +30,25 @@ func (r Runner) copilotCredentialSource() string {
 		}
 	}
 	return "the Copilot CLI login in the system keychain (no token variable is set: " + strings.Join(launch.CopilotTokenVariables, ", ") + ")"
+}
+
+// layBait writes the file the executor is asked to read: a fresh token on its first
+// line. The token is returned for the records of the run and is written nowhere
+// else before the session ends.
+func (r Runner) layBait(l layout) (*evidence.ReadBait, error) {
+	token, err := r.Tokens.New()
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrPrepare, err)
+	}
+	if err := r.Files.Write(l.projectFile(launch.BaitFile), []byte(token+"\n"), false); err != nil {
+		return nil, err
+	}
+	return &evidence.ReadBait{File: launch.BaitFile, Token: token}, nil
+}
+
+// baitPlanLine is the step of the plan that lays the bait.
+func baitPlanLine(l layout) string {
+	return "write " + l.projectFile(launch.BaitFile) + " (a random token of the run on its first line: the file the executor is asked to read)"
 }
 
 // copilotListing runs the no-call listings of the plugins and skills the session
