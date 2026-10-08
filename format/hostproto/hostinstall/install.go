@@ -382,11 +382,14 @@ func (m Module) BuildDisable(files Files) (Plan, error) {
 		provisioners = append(provisioners, provisioner{path: shallnotConfig, desired: m.dropFromGate})
 	}
 	provisioners = append(provisioners, provisioner{path: agentsPath, desired: m.removeAgentsBlock})
-	codex, err := m.codexConfigProvisioner(false)
-	if err != nil {
-		return Plan{}, err
+	if files.Exists(pluginfiles.CodexConfigPath) {
+		codex, err := m.codexConfigProvisioner(false)
+		if err != nil {
+			return Plan{}, err
+		}
+		provisioners = append(provisioners, codex)
 	}
-	return buildPlan(files, append(provisioners, codex), nil)
+	return buildPlan(files, provisioners, nil)
 }
 
 func (m Module) setProofFlag(enabled bool) func([]byte) ([]byte, error) {

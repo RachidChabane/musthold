@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
 )
 
 // Keys of the JSON files the installer merges into.
@@ -77,8 +78,9 @@ func firstCommand(group any) string {
 }
 
 // mergeHookEntries adds to the hooks of `current` every matcher group of
-// `desired` that the file does not already run, keeping every other setting and
-// hook. The layout is the one Claude Code defined and Codex shares.
+// `desired` that the file does not already run, replaces a group of the module
+// that runs the same command under another matcher, and keeps every other setting
+// and hook. The layout is the one Claude Code defined and Codex shares.
 func mergeHookEntries(current, desired []byte) ([]byte, error) {
 	settings, err := decodeObject(current)
 	if err != nil {
@@ -94,19 +96,43 @@ func mergeHookEntries(current, desired []byte) ([]byte, error) {
 		list, _ := groups.([]any)
 		for _, group := range list {
 			command := firstCommand(group)
-			events := objectMember(settings, keyHooks)
-			if command == "" || mentions(events[event], command) {
+			if command == "" {
 				continue
 			}
+			events := objectMember(settings, keyHooks)
 			existing, _ := events[event].([]any)
-			events[event] = append(existing, group)
-			changed = true
+			merged, updated := mergeGroup(existing, group, command)
+			if updated {
+				events[event] = merged
+				changed = true
+			}
 		}
 	}
 	if !changed {
 		return current, nil
 	}
 	return encodeObject(settings)
+}
+
+// mergeGroup puts a wanted matcher group in the groups of an event: appended when
+// no group runs its command, swapped for the group of the same command that
+// differs from it, and left out when the event already runs the command in a
+// group the module does not own.
+func mergeGroup(existing []any, group any, command string) ([]any, bool) {
+	for index, held := range existing {
+		if firstCommand(held) == command {
+			if reflect.DeepEqual(held, group) {
+				return existing, false
+			}
+			replaced := append([]any(nil), existing...)
+			replaced[index] = group
+			return replaced, true
+		}
+	}
+	if mentions(existing, command) {
+		return existing, false
+	}
+	return append(existing, group), true
 }
 
 // enablePlugin sets `enabledPlugins[name]` to true when the file does not mention
