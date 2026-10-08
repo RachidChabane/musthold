@@ -14,22 +14,24 @@ import (
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
+	"github.com/RachidChabane/spec-proof/tools/release/internal/adapters"
 	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
 	"github.com/RachidChabane/spec-proof/tools/release/internal/testkit"
 )
 
 const (
-	verifiesDryRun       = " [verifies SP-1820~1]"
-	verifiesReproducible = " [verifies SP-1810~1]"
-	verifiesSBOMSchema   = " [verifies SP-1807~1]"
-	verifiesChecksumTool = " [verifies SP-1806~1]"
-	throwawayTag         = "discpower/v0.0.0-e2e"
-	throwawaySemver      = "0.0.0-e2e"
-	exitRefused          = 3
-	exitDistInvalid      = 4
-	toolPath             = ".tools/bin/spec-proof-release"
-	spdxSchemaRelative   = "tools/release/testdata/spdx-2.3/spdx-schema.json"
-	spdxSchemaID         = "http://spdx.org/rdf/terms/2.3"
+	verifiesDryRun         = " [verifies SP-1820~1]"
+	verifiesReproducible   = " [verifies SP-1810~1]"
+	verifiesArchiveContent = " [verifies SP-1805~2]"
+	verifiesSBOMSchema     = " [verifies SP-1807~1]"
+	verifiesChecksumTool   = " [verifies SP-1806~1]"
+	throwawayTag           = "discpower/v0.0.0-e2e"
+	throwawaySemver        = "0.0.0-e2e"
+	exitRefused            = 3
+	exitDistInvalid        = 4
+	toolPath               = ".tools/bin/spec-proof-release"
+	spdxSchemaRelative     = "tools/release/testdata/spdx-2.3/spdx-schema.json"
+	spdxSchemaID           = "http://spdx.org/rdf/terms/2.3"
 )
 
 // sequentialBuilds keeps the fixture builds to one target at a time.
@@ -154,6 +156,27 @@ func TestDryRunEndToEnd(t *testing.T) {
 		firstDist = readDist(t, filepath.Join(repository.Root, "dist"))
 		if got, want := fileNames(firstDist), expectedNames(t); !slices.Equal(got, want) {
 			t.Fatalf("dist holds %v, want %v", got, want)
+		}
+	})
+
+	t.Run("every archive holds the binary, the licence, the README, the NOTICE and the third-party notices"+verifiesArchiveContent, func(t *testing.T) {
+		tag, err := domain.ParseTag(throwawayTag)
+		if err != nil {
+			t.Fatal(err)
+		}
+		facts, err := adapters.DistDirectory{}.ReadDist(filepath.Join(repository.Root, "dist"), tag, domain.Targets())
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, target := range domain.Targets() {
+			name := target.ArchiveName(testkit.FixtureBinary, tag.Version)
+			var got []string
+			for _, entry := range facts.Files[name].Entries {
+				got = append(got, entry.Name)
+			}
+			if want := domain.ExpectedEntryNames(target, testkit.FixtureBinary, true); !slices.Equal(got, want) {
+				t.Errorf("%s holds %v, want %v", name, got, want)
+			}
 		}
 	})
 

@@ -144,13 +144,24 @@ func (b Builder) buildTarget(request BuildRequest, target domain.Target) ([]doma
 }
 
 func (b Builder) archiveContent(module domain.Module, binary []byte) (domain.ArchiveContent, error) {
-	license, err := b.Files.ReadFile(domain.LicenseFile)
-	if err != nil {
-		return domain.ArchiveContent{}, fmt.Errorf("read the licence: %w", err)
+	content := domain.ArchiveContent{Binary: binary}
+	var err error
+	if content.License, err = b.Files.ReadFile(domain.LicenseFile); err != nil {
+		return content, fmt.Errorf("read the licence: %w", err)
 	}
-	readme, err := b.Files.ReadFile(path.Join(module.Name, domain.ReadmeFile))
-	if err != nil {
-		return domain.ArchiveContent{}, fmt.Errorf("read the README of %s: %w", module.Name, err)
+	if content.Readme, err = b.Files.ReadFile(path.Join(module.Name, domain.ReadmeFile)); err != nil {
+		return content, fmt.Errorf("read the README of %s: %w", module.Name, err)
 	}
-	return domain.ArchiveContent{Binary: binary, License: license, Readme: readme}, nil
+	if content.ThirdPartyNotices, err = b.Files.ReadFile(domain.ThirdPartyNoticesFile); err != nil {
+		return content, fmt.Errorf("read the third-party notices: %w", err)
+	}
+	if content.HasNotice, err = b.Files.Exists(domain.NoticeFile); err != nil {
+		return content, fmt.Errorf("look for %s: %w", domain.NoticeFile, err)
+	}
+	if content.HasNotice {
+		if content.Notice, err = b.Files.ReadFile(domain.NoticeFile); err != nil {
+			return content, fmt.Errorf("read the notice: %w", err)
+		}
+	}
+	return content, nil
 }

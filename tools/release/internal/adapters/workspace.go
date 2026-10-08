@@ -1,6 +1,7 @@
 package adapters
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -36,6 +37,18 @@ func (d Disk) resolve(name string) string {
 // ReadFile reads a file.
 func (d Disk) ReadFile(name string) ([]byte, error) { return os.ReadFile(d.resolve(name)) }
 
+// Exists reports whether a regular file exists.
+func (d Disk) Exists(name string) (bool, error) {
+	info, err := os.Stat(d.resolve(name))
+	if errors.Is(err, fs.ErrNotExist) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return info.Mode().IsRegular(), nil
+}
+
 // WriteFile writes a file with a mode, creating its directory.
 func (d Disk) WriteFile(name string, data []byte, mode int64) error {
 	target := d.resolve(name)
@@ -56,6 +69,9 @@ type Workspace struct{ disk Disk }
 
 // NewWorkspace returns a reader of the repository rooted at root.
 func NewWorkspace(root string) Workspace { return Workspace{disk: NewDisk(root)} }
+
+// Exists reports whether a regular file exists in the repository.
+func (w Workspace) Exists(name string) (bool, error) { return w.disk.Exists(name) }
 
 // GoMod reads the replace and exclude rules of a module's go.mod and the version
 // of the format library it requires.

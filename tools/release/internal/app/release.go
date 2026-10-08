@@ -10,7 +10,11 @@ import (
 const notesMode = 0o644
 
 // DistVerifier checks a dist directory against the release it must hold.
-type DistVerifier struct{ Reader DistReader }
+type DistVerifier struct {
+	Reader DistReader
+	// Presence tells whether the work has a NOTICE file.
+	Presence FilePresence
+}
 
 // Verify reads the directory and returns what is wrong with it. A module that
 // ships no binary has nothing to verify.
@@ -21,6 +25,9 @@ func (v DistVerifier) Verify(dir string, tag domain.Tag, commit string, commitTi
 	facts, err := v.Reader.ReadDist(dir, tag, targets)
 	if err != nil {
 		return nil, err
+	}
+	if facts.HasNotice, err = v.Presence.Exists(domain.NoticeFile); err != nil {
+		return nil, fmt.Errorf("look for %s: %w", domain.NoticeFile, err)
 	}
 	facts.Tag, facts.Commit, facts.CommitTime, facts.Targets = tag, commit, domain.CommitTime(commitTime), targets
 	return domain.VerifyDist(facts), nil

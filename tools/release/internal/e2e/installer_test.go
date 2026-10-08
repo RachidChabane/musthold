@@ -43,7 +43,7 @@ func releaseDirectory(t *testing.T, reported string) (directory, archive string)
 	target := hostTarget(t)
 	directory = t.TempDir()
 	script := "#!/bin/sh\necho " + reported + "\n"
-	entries := domain.ArchiveEntries(target, installerBinary, domain.ArchiveContent{Binary: []byte(script), License: []byte("licence\n"), Readme: []byte("readme\n")})
+	entries := domain.ArchiveEntries(target, installerBinary, domain.ArchiveContent{Binary: []byte(script), License: []byte("licence\n"), Readme: []byte("readme\n"), ThirdPartyNotices: []byte("third party\n")})
 	packed, err := adapters.ArchivePacker{}.Pack(target.Format(), entries, time.Unix(1_700_000_000, 0))
 	if err != nil {
 		t.Fatal(err)

@@ -89,6 +89,9 @@ type Facts struct {
 	Manifests []ManifestFact
 	// Marketplace lists the plugins of the root marketplace.
 	Marketplace []MarketplaceEntry
+	// ThirdPartyNotices is whether the repository root holds the third-party
+	// notices, read only for a module that ships a binary.
+	ThirdPartyNotices bool
 	// Visibility is the repository's, read only when RequirePublic is set.
 	Visibility    Visibility
 	RequirePublic bool
@@ -112,6 +115,7 @@ const (
 	RuleMarketplaceRef   = "marketplace-ref"
 	RuleMarketplaceRefs  = "marketplace-refs-resolve"
 	RuleRepositoryPublic = "repository-public"
+	RuleNotices          = "third-party-notices"
 )
 
 // Rules returns the pre-flight rule set that CI and the dry run share.
@@ -120,7 +124,7 @@ func Rules() []Rule {
 		tagAtHead{}, cleanTree{}, goModReleasable{}, formatTagged{},
 		stepPasses{name: RuleBuild, step: func(f Facts) Outcome { return f.Build }, describe: "GOWORK=off go build ./..."},
 		stepPasses{name: RuleTest, step: func(f Facts) Outcome { return f.Test }, describe: "GOWORK=off go test ./..."},
-		pluginVersions{}, pluginGenerated{}, marketplaceRef{}, marketplaceRefsResolve{}, repositoryPublic{},
+		pluginVersions{}, pluginGenerated{}, marketplaceRef{}, marketplaceRefsResolve{}, repositoryPublic{}, thirdPartyNotices{},
 	}
 }
 
@@ -281,4 +285,13 @@ func (repositoryPublic) Check(f Facts) []Finding {
 		reason = "the visibility of the repository is unknown"
 	}
 	return []Finding{{RuleRepositoryPublic, ScopeRelease, reason + ": a release is published only from a public repository"}}
+}
+
+type thirdPartyNotices struct{}
+
+func (thirdPartyNotices) Check(f Facts) []Finding {
+	if !f.Tag.Module.ShipsBinary() || f.ThirdPartyNotices {
+		return nil
+	}
+	return []Finding{{RuleNotices, ScopeAlways, ThirdPartyNoticesFile + " is missing from the repository root: every archive ships it"}}
 }

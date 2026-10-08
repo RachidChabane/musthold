@@ -28,8 +28,14 @@ type HistoryReader interface {
 	CommitsSince(previous string, paths []string) ([]domain.Commit, error)
 }
 
+// FilePresence tells whether a file exists.
+type FilePresence interface {
+	Exists(path string) (bool, error)
+}
+
 // ModuleFiles reads the committed files the pre-flight rules inspect.
 type ModuleFiles interface {
+	FilePresence
 	GoMod(module string) (domain.GoModFacts, error)
 	Manifests(roots []string) ([]domain.ManifestFact, error)
 	Marketplace() ([]domain.MarketplaceEntry, error)
@@ -62,6 +68,7 @@ type BinaryInspector interface {
 // Files reads and writes the files of the release: sources, the staging area and
 // the dist directory.
 type Files interface {
+	FilePresence
 	ReadFile(path string) ([]byte, error)
 	WriteFile(path string, data []byte, mode int64) error
 	RemoveAll(path string) error

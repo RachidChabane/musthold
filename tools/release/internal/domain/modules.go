@@ -6,19 +6,22 @@ package domain
 // Repository identity, the one place the release pipeline names where the
 // project lives.
 const (
-	RepositoryOwner   = "RachidChabane"
-	RepositoryName    = "spec-proof"
-	RepositorySlug    = RepositoryOwner + "/" + RepositoryName
-	RepositoryURL     = "https://github.com/" + RepositorySlug
-	ModulePathPrefix  = "github.com/" + RepositorySlug + "/"
-	FormatModuleName  = "format"
-	FormatModulePath  = ModulePathPrefix + FormatModuleName
-	ReleaseWorkflow   = ".github/workflows/release.yml"
-	MarketplaceFile   = ".claude-plugin/marketplace.json"
-	PluginGenScript   = "script/plugin-gen"
-	LicenseFile       = "LICENSE"
-	ReadmeFile        = "README.md"
-	LicenseIdentifier = "Apache-2.0"
+	RepositoryOwner  = "RachidChabane"
+	RepositoryName   = "spec-proof"
+	RepositorySlug   = RepositoryOwner + "/" + RepositoryName
+	RepositoryURL    = "https://github.com/" + RepositorySlug
+	ModulePathPrefix = "github.com/" + RepositorySlug + "/"
+	FormatModuleName = "format"
+	FormatModulePath = ModulePathPrefix + FormatModuleName
+	ReleaseWorkflow  = ".github/workflows/release.yml"
+	MarketplaceFile  = ".claude-plugin/marketplace.json"
+	PluginGenScript  = "script/plugin-gen"
+	LicenseFile      = "LICENSE"
+	ReadmeFile       = "README.md"
+	NoticeFile       = "NOTICE"
+	// ThirdPartyNoticesFile is the third-party notices every archive ships.
+	ThirdPartyNoticesFile = "THIRD_PARTY_NOTICES.md"
+	LicenseIdentifier     = "Apache-2.0"
 )
 
 // Kind says what a module releases.

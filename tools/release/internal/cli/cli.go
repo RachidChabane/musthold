@@ -234,7 +234,7 @@ func verifyDist(services Services, root string, tag domain.Tag, opts options, st
 		fmt.Fprintf(stderr, "%s: %v\n", Binary, err)
 		return ExitFailure
 	}
-	findings, err := app.DistVerifier{Reader: services.Dist}.Verify(absolute(root, opts.dist), tag, commit, commitTime, targets)
+	findings, err := app.DistVerifier{Reader: services.Dist, Presence: services.Files}.Verify(absolute(root, opts.dist), tag, commit, commitTime, targets)
 	if err != nil {
 		fmt.Fprintf(stderr, "%s: %v\n", Binary, err)
 		return ExitFailure

@@ -64,6 +64,7 @@ release.
 | `marketplace-ref` | the module's marketplace entry has the tag as its `ref` | a real release |
 | `marketplace-refs-resolve` | every `ref` of this repository in the marketplace is a tag | a real release |
 | `repository-public` | the repository is public, when the run requires it | a real release |
+| `third-party-notices` | the repository root holds `THIRD_PARTY_NOTICES.md`, for a module that ships a binary | every run |
 
 A plugin whose marketplace source is a path inside the marketplace needs no `ref`.
 
@@ -120,8 +121,10 @@ Each binary is built with `GOWORK=off CGO_ENABLED=0 GOTOOLCHAIN=go1.26.4
 GOFLAGS=-mod=readonly` and `go build -trimpath -buildvcs=false -ldflags "-s -w
 -buildid= -X main.version=<semver> -X main.commit=<sha>"`. An archive is
 `<bin>_<semver>_<os>_<arch>.tar.gz`, or `.zip` for Windows, and holds the binary,
-`LICENSE` and `README.md`. Its entries are sorted, with fixed modes, owner root and
-the commit time. `SHA256SUMS` lists the archives, their SPDX 2.3 SBOMs
+`LICENSE`, `README.md`, `THIRD_PARTY_NOTICES.md` and, when the repository root has
+a `NOTICE` file, `NOTICE` (Apache-2.0 section 4(d)). Its entries are sorted, with
+fixed modes, owner root and the commit time. `verify-dist` expects `NOTICE` in an
+archive exactly when the repository root has it. `SHA256SUMS` lists the archives, their SPDX 2.3 SBOMs
 (`<archive>.spdx.json`) and the installer.
 
 ## Install a release

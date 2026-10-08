@@ -34,8 +34,9 @@ the network.
   `-trimpath`, no VCS stamping and link flags that strip the binary, drop the build
   id and link the version and the commit, dropping the caller's own values of
   those variables.
-- **SP-1805~1**: WHEN an archive is written THE SYSTEM SHALL list the binary, the
-  licence and the README sorted by name with fixed modes, owner root and the
+- **SP-1805~2**: WHEN an archive is written THE SYSTEM SHALL list the binary, the
+  licence, the README, the third-party notices and, when the repository root has
+  a NOTICE file, the NOTICE, sorted by name with fixed modes, owner root and the
   commit time, and no name or time in the compression header, so that writing it
   twice gives the same bytes and the extracted tree equals the entries given.
 - **SP-1806~1**: WHEN checksums are rendered THE SYSTEM SHALL write
@@ -81,6 +82,9 @@ the network.
 - **SP-1817~1**: WHEN a pre-flight ends THE SYSTEM SHALL refuse a real release on
   every finding with exit code 3, and a dry run only on the findings that stop it,
   printing the others as what a real release would refuse and going on.
+- **SP-1824~1**: WHEN the module ships a binary THE SYSTEM SHALL find a repository
+  root that lacks `THIRD_PARTY_NOTICES.md` as a finding that stops every run, and
+  SHALL ask a module that ships no binary for no such file.
 
 ## Dist directory
 

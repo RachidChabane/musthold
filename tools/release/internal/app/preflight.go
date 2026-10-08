@@ -59,6 +59,11 @@ func (p Preflight) collect(tag domain.Tag, options PreflightOptions) (domain.Fac
 			return facts, fmt.Errorf("read the marketplace: %w", err)
 		}
 	}
+	if module.ShipsBinary() {
+		if facts.ThirdPartyNotices, err = p.Files.Exists(domain.ThirdPartyNoticesFile); err != nil {
+			return facts, fmt.Errorf("look for %s: %w", domain.ThirdPartyNoticesFile, err)
+		}
+	}
 	facts.Build = p.Checks.Build(module.Name)
 	if !options.SkipTests {
 		facts.Test = p.Checks.Test(module.Name)

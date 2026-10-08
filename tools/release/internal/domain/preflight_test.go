@@ -15,6 +15,7 @@ const (
 	verifiesMarketRules   = " [verifies SP-1815~1]"
 	verifiesVisibility    = " [verifies SP-1816~1]"
 	verifiesRefusalPolicy = " [verifies SP-1817~1]"
+	verifiesNoticesRule   = " [verifies SP-1824~1]"
 	releasedCommit        = "1111111111111111111111111111111111111111"
 	otherCommit           = "2222222222222222222222222222222222222222"
 )
@@ -28,7 +29,7 @@ func releasableFacts(t *testing.T, text string) domain.Facts {
 		GoMod: domain.GoModFacts{FormatRequirement: "v0.1.0"},
 		Tags:  []string{"format/v0.1.0"},
 		Build: domain.Outcome{Ran: true}, Test: domain.Outcome{Ran: true}, PluginGen: domain.Outcome{Ran: true},
-		Visibility: domain.VisibilityPublic, RequirePublic: true,
+		Visibility: domain.VisibilityPublic, RequirePublic: true, ThirdPartyNotices: true,
 	}
 	if tag.Module.ShipsPlugin() {
 		facts.Manifests = []domain.ManifestFact{{Path: tag.Module.Name + "/plugin/claude/.claude-plugin/plugin.json", Version: tag.Semver()}}
@@ -187,6 +188,29 @@ func TestPluginRules(t *testing.T) {
 		facts.PluginGen = domain.Outcome{Ran: true, Failure: "M x"}
 		if findings := findingsOf(facts); len(findings) != 0 {
 			t.Errorf("findings = %v", findings)
+		}
+	})
+}
+
+func TestNoticesRule(t *testing.T) {
+	t.Run("a binary module whose repository lacks the third-party notices stops every run"+verifiesNoticesRule, func(t *testing.T) {
+		for _, tag := range []string{"discpower/v0.2.0", "ledger/v0.2.0"} {
+			facts := releasableFacts(t, tag)
+			facts.ThirdPartyNotices = false
+			finding := onlyFinding(t, facts, domain.RuleNotices, domain.ScopeAlways)
+			if !strings.Contains(finding.Message, domain.ThirdPartyNoticesFile) {
+				t.Errorf("%s: message %q", tag, finding.Message)
+			}
+		}
+	})
+
+	t.Run("a module that ships no binary is asked for no third-party notices"+verifiesNoticesRule, func(t *testing.T) {
+		for _, tag := range []string{"format/v0.2.0", "umbrella/v0.2.0"} {
+			facts := releasableFacts(t, tag)
+			facts.ThirdPartyNotices = false
+			if findings := findingsOf(facts); len(findings) != 0 {
+				t.Errorf("%s: findings = %v", tag, findings)
+			}
 		}
 	})
 }
