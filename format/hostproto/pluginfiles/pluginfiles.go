@@ -115,6 +115,22 @@ func (m Module) agentDescription(agent hostproto.Agent) string {
 
 const executorInstructions = "Fetch the ticket in your task, follow its instructions, submit JSON matching its schema, reply only with the receipt."
 
+// codexExecutorInstructionsFormat is the text of a Codex executor, which names the
+// fetch tool and then the submit tool as Codex spells them for the module. The
+// text holds no double quote and no backslash, so it is a
+// valid TOML basic string.
+const codexExecutorInstructionsFormat = "Call `%s` with the ticket from your task and an empty `cap`. " +
+	"Follow the instructions it returns. " +
+	"Call `%s` with the ticket, the nonce from the fetch, an empty `cap` and the JSON output matching the schema it returned. " +
+	"Then reply only with the receipt. Use no skill and no shell command for this."
+
+// codexExecutorInstructions is the developer instructions of the Codex executor
+// agents of the module.
+func (m Module) codexExecutorInstructions(h harness.Harness) string {
+	return fmt.Sprintf(codexExecutorInstructionsFormat,
+		h.ToolName(hostproto.ToolFetchRequest), h.ToolName(hostproto.ToolSubmitResponse))
+}
+
 // HookCommand is the command line of a hook of a harness.
 func (m Module) HookCommand(kind hostproto.HookKind, h harness.Harness) string {
 	return fmt.Sprintf("%s%s --harness %s", m.HookCommandMarker(), kind, h.Flag)
@@ -504,7 +520,7 @@ func (m Module) codexFiles(h harness.Harness) ([]File, error) {
 	var files []File
 	for _, agent := range m.Identity.Agents {
 		content, err := render("codex-agent", codexAgentTemplate, codexAgentData{
-			Name: m.agentName(agent), Description: m.agentDescription(agent), Instructions: executorInstructions,
+			Name: m.agentName(agent), Description: m.agentDescription(agent), Instructions: m.codexExecutorInstructions(h),
 		})
 		if err != nil {
 			return nil, err

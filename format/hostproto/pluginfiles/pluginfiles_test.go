@@ -216,11 +216,28 @@ func TestCodexFiles(t *testing.T) {
 				name := module.Plugin() + "-" + string(agent)
 				tables := tomlTable(t, files[agentPath(codex.Flag, module, agent)])
 				root := tables[""]
-				if root["name"] != name || root["sandbox_mode"] != "read-only" || root["developer_instructions"] != executorInstructions || root["description"] == "" {
+				if root["name"] != name || root["sandbox_mode"] != "read-only" || root["developer_instructions"] != codexInstructions(codex) || root["description"] == "" {
 					t.Errorf("%s: root = %v", agent, root)
 				}
 				if len(tables) != 1 {
 					t.Errorf("%s: tables = %v", agent, tables)
+				}
+			}
+		})
+
+		t.Run(s.name+": the instructions of a Codex executor name its two tools as Codex spells them for the module and forbid skills and the shell [verifies SP-723~1]", func(t *testing.T) {
+			for _, agent := range module.Identity.Agents {
+				instructions := tomlTable(t, files[agentPath(codex.Flag, module, agent)])[""]["developer_instructions"]
+				text, _ := instructions.(string)
+				fetch, submit := codex.ToolName(hostproto.ToolFetchRequest), codex.ToolName(hostproto.ToolSubmitResponse)
+				fetchAt, submitAt := strings.Index(text, "`"+fetch+"`"), strings.Index(text, "`"+submit+"`")
+				if fetchAt < 0 || submitAt < fetchAt {
+					t.Errorf("%s: the instructions do not name %s then %s: %q", agent, fetch, submit, text)
+				}
+				for _, phrase := range []string{"the ticket from your task", "an empty `cap`", "the nonce from the fetch", "reply only with the receipt", "Use no skill and no shell command"} {
+					if !strings.Contains(text, phrase) {
+						t.Errorf("%s: the instructions lack %q: %q", agent, phrase, text)
+					}
 				}
 			}
 		})

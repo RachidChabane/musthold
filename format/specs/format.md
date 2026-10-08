@@ -412,6 +412,13 @@ Go tests of the module in CI.
   project's `config.toml`, hook entries and a skill that ends the same way; give Copilot agents naming
   server and tool pairs, a hooks file and a skill that ends the same way; and
   carry no text about their own authoring.
+- **SP-723~1**: WHEN the agent files of a module are generated for Codex THE
+  SYSTEM SHALL give each executor instructions that name the fetch tool and then
+  the submit tool exactly as Codex spells them for the module, tell it to fetch
+  with the ticket of its task and an empty capability, to submit the ticket, the
+  nonce of the fetch, an empty capability and the JSON output matching the
+  returned schema, to reply only with the receipt, and to use no skill and no
+  shell command.
 - **SP-712~1**: WHEN the host files are generated twice THE SYSTEM SHALL produce
   the same bytes, refuse a harness it has no files for, and ship an agent file,
   a matcher alternative and a role only for the executor agents the module has.

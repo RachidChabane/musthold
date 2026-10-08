@@ -1,4 +1,4 @@
 name = "spec-proof-alignment-judge"
 description = "Executes one judgment ticket of spec-proof-alignment as a blind executor. Launch it only through the spec-proof-alignment-fulfil skill, with a prompt that is the ticket."
-developer_instructions = "Fetch the ticket in your task, follow its instructions, submit JSON matching its schema, reply only with the receipt."
+developer_instructions = "Call `mcp__spec_proof_alignment_exec__fetch_request` with the ticket from your task and an empty `cap`. Follow the instructions it returns. Call `mcp__spec_proof_alignment_exec__submit_response` with the ticket, the nonce from the fetch, an empty `cap` and the JSON output matching the schema it returned. Then reply only with the receipt. Use no skill and no shell command for this."
 sandbox_mode = "read-only"

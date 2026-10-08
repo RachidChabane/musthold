@@ -21,6 +21,15 @@ const (
 
 const executorInstructions = "Fetch the ticket in your task, follow its instructions, submit JSON matching its schema, reply only with the receipt."
 
+// codexInstructions is the text a Codex executor reads: it names both tools as the
+// harness spells them and tells the executor to use no skill and no shell.
+func codexInstructions(codex harness.Harness) string {
+	fetch, submit := codex.ToolName(hostproto.ToolFetchRequest), codex.ToolName(hostproto.ToolSubmitResponse)
+	return "Call `" + fetch + "` with the ticket from your task and an empty `cap`. Follow the instructions it returns. " +
+		"Call `" + submit + "` with the ticket, the nonce from the fetch, an empty `cap` and the JSON output matching the schema it returned. " +
+		"Then reply only with the receipt. Use no skill and no shell command for this."
+}
+
 // sample is one module the generator is exercised with.
 type sample struct {
 	name   string
