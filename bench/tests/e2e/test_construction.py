@@ -35,9 +35,11 @@ from specbench.application.verify_task import TaskVerifier
 from specbench.domain.arms import Harness
 from specbench.domain.canonical import JsonValue
 from specbench.domain.construction import HAIKU, OPUS, SONNET
+from specbench.domain.gaps import GAP_FILE_NAME
 from specbench.domain.manifest import RunLayout
 from specbench.domain.oracle import oracle_from_bundle
 from specbench.domain.pacing import PacingPolicy, RunPaused, RunWindow
+from specbench.domain.sealing import CURRENT_BUNDLE_VERSION
 from specbench.domain.selection import ProbedTask, Selection
 from support.fake_claude import install_fake_claude, recorded_calls
 from support.fakes import FixedClock
@@ -48,6 +50,7 @@ pytestmark = pytest.mark.integration
 ISSUE_TEXT = "Stays under ten minutes should cost nothing at the barrier."
 PULL_BODY = "Closes #3. Short stays are free."
 TASK_ID = "ACME-PARKFEE-12"
+GAP_SEED = 20261007
 
 SPEC = {
     "title": "Parking fee",
@@ -59,12 +62,16 @@ SPEC = {
             "statement": "WHEN a stay lasts less than ten minutes THE SYSTEM SHALL charge nothing",
             "examples": ["fee(minutes=7) => 0"],
             "status": "new",
+            "dimension": "boundary",
+            "implementingHunks": [{"path": "pkg/fee.py", "startLine": 2, "endLine": 3}],
         },
         {
             "number": 2,
-            "statement": "WHEN a stay lasts ten minutes or more THE SYSTEM SHALL charge 5",
-            "examples": ["fee(minutes=60) => 5"],
-            "status": "unchanged",
+            "statement": "WHEN a stay lasts zero minutes THE SYSTEM SHALL charge nothing",
+            "examples": ["fee(minutes=0) => 0"],
+            "status": "new",
+            "dimension": "boundary",
+            "implementingHunks": [{"path": "pkg/fee.py", "startLine": 2, "endLine": 2}],
         },
     ],
 }
@@ -72,11 +79,9 @@ H_TESTS = (
     "from hypothesis import given, settings, strategies as st\n"
     "from pkg.fee import fee\n\n\n"
     "@settings(derandomize=True, max_examples=30, deadline=None)\n"
-    "@given(st.integers(min_value=0, max_value=9))\n"
+    "@given(st.integers(min_value=1, max_value=9))\n"
     "def test_c1_short_stays_are_free(minutes):\n    assert fee(minutes) == 0\n\n\n"
-    "@settings(derandomize=True, max_examples=30, deadline=None)\n"
-    "@given(st.integers(min_value=10, max_value=1000))\n"
-    "def test_c2_longer_stays_cost_five(minutes):\n    assert fee(minutes) == 5\n"
+    "def test_c2_a_zero_minute_stay_is_free():\n    assert fee(0) == 0\n"
 )
 CLASSIFICATION = {
     "classifications": [
@@ -91,10 +96,10 @@ def edit(search: str, replace: str) -> dict[str, str]:
 
 VIOLATIONS = {
     "violations": [
-        {"criterion": 1, "title": "charges one", "edits": [edit("return 0", "return 1")]},
-        {"criterion": 1, "title": "short threshold", "edits": [edit("minutes < 10", "minutes < 6")]},
-        {"criterion": 2, "title": "charges six", "edits": [edit("return 5", "return 6")]},
-        {"criterion": 2, "title": "long threshold", "edits": [edit("minutes < 10", "minutes < 11")]},
+        {"criterion": 1, "title": "skips three", "edits": [edit("minutes < 10", "minutes < 10 and minutes != 3")]},
+        {"criterion": 1, "title": "short threshold", "edits": [edit("minutes < 10", "minutes < 1")]},
+        {"criterion": 2, "title": "zero is charged", "edits": [edit("minutes < 10", "0 < minutes < 10")]},
+        {"criterion": 2, "title": "zero is excluded", "edits": [edit("minutes < 10", "minutes < 10 and minutes != 0")]},
     ]
 }
 REFACTORS = {
@@ -187,6 +192,7 @@ class World:
             {key: construction_schema(name) for key, name in keys.items()},
             JsonSchemaChecker(),
             GitDiffPatchBuilder(plain),
+            GAP_SEED,
         )
 
         def verifier_for(task: ProbedTask) -> TaskVerifier:
@@ -239,6 +245,11 @@ def test_one_task_is_constructed_verified_and_sealed(world: World) -> None:
     assert "oracle/O/tests/test_fee.py" not in files
     assignment = json.loads(files["construction/assignment.json"])
     assert assignment["u"] == {"tests/test_fee.py::test_free": 1} and assignment["o"] == []
+    assert unsealed.bundle.schema_version == CURRENT_BUNDLE_VERSION
+    assert json.loads(files[GAP_FILE_NAME]) == {"criteria": [f"{TASK_ID}-1", f"{TASK_ID}-2"], "seed": GAP_SEED}
+    assert json.loads(files["construction/spec.json"])["criteria"][1]["implementingHunks"] == [
+        {"endLine": 2, "path": "pkg/fee.py", "startLine": 2}
+    ]
 
 
 def test_each_role_sees_only_what_the_design_gives_it(world: World) -> None:
@@ -247,7 +258,7 @@ def test_each_role_sees_only_what_the_design_gives_it(world: World) -> None:
     for text in (author, reviewer, writer):
         assert "test_free" not in text and "assert fee(5)" not in text and "test_needs_network" not in text
     assert ISSUE_TEXT in author and "if minutes < 10" in author and "pkg.fee: def fee(minutes)" in author
-    assert "if minutes < 10" not in reviewer and ISSUE_TEXT not in reviewer
+    assert "if minutes < 10" in reviewer and ISSUE_TEXT not in reviewer
     assert "if minutes < 10" not in writer and ISSUE_TEXT not in writer and "ACME-PARKFEE-12-1~1" in writer
     assert "assert fee(5) == 0" in assigner
 

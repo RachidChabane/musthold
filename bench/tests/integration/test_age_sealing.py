@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -13,8 +14,10 @@ from specbench.adapters.sealed_store import (
     write_identity_file,
 )
 from specbench.application.corpus import seal_task, unseal_task, verify_corpus
+from specbench.domain.canonical import sha256_hex
+from specbench.domain.gaps import GAP_FILE_NAME
 from specbench.domain.languages import Language
-from specbench.domain.sealing import SealedBundle, SealingError
+from specbench.domain.sealing import BUNDLE_VERSION_PATH, CURRENT_BUNDLE_VERSION, SealedBundle, SealingError
 from support.builders import TASK_ID, make_bundle, task_json
 
 pytestmark = pytest.mark.integration
@@ -107,3 +110,36 @@ def test_plain_task_directory_is_read_as_task_json_plus_bundle(tmp_path: Path) -
     text, files = read_plain_task(tmp_path)
     assert text == task_json()
     assert files == make_bundle().files
+
+
+def test_sealing_refuses_a_version_one_bundle_and_writes_nothing(corpus: tuple[FileCorpus, str]) -> None:
+    repository, _ = corpus
+    legacy = make_bundle(version=1)
+    assert legacy.schema_version == 1
+    with pytest.raises(SealingError, match="below 2"):
+        AgeSealStore().seal(legacy, repository.read_recipients())
+    with pytest.raises(SealingError, match="below 2"):
+        seal_task(repository, AgeSealStore(), task_json(), legacy)
+    assert repository.task_ids() == [] and repository.read_lock().entries == ()
+
+
+def test_a_version_two_bundle_round_trips_through_age_with_its_spec_gap_data(corpus: tuple[FileCorpus, str]) -> None:
+    repository, identity = corpus
+    bundle = make_bundle()
+    assert bundle.schema_version == CURRENT_BUNDLE_VERSION
+    entry = seal_task(repository, AgeSealStore(), task_json(), bundle)
+    assert entry.files[BUNDLE_VERSION_PATH] == sha256_hex(bundle.files[BUNDLE_VERSION_PATH])
+    unsealed = unseal_task(repository, AgeSealStore(), identity, TASK_ID)
+    assert unsealed.bundle.schema_version == CURRENT_BUNDLE_VERSION
+    assert unsealed.bundle.files == bundle.files
+    assert json.loads(unsealed.bundle.files[GAP_FILE_NAME])["criteria"] == [f"{TASK_ID}-1", f"{TASK_ID}-2"]
+    assert verify_corpus(repository, AgeSealStore(), identity) == []
+
+
+def test_a_bundle_whose_version_record_was_changed_after_sealing_is_reported(corpus: tuple[FileCorpus, str]) -> None:
+    repository, identity = corpus
+    store = AgeSealStore()
+    seal_task(repository, store, task_json(), make_bundle())
+    newer = make_bundle(version=CURRENT_BUNDLE_VERSION + 1)
+    repository.write_task(Language.PYTHON, TASK_ID, task_json(), store.seal(newer, repository.read_recipients()))
+    assert any(f"{BUNDLE_VERSION_PATH} digest differs" in p for p in verify_corpus(repository, store, identity))

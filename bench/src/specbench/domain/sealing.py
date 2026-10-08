@@ -18,6 +18,11 @@ LOCK_FILE_NAME: Final = "corpus.lock.json"
 ARCHIVE_MODE: Final = 0o644
 ARCHIVE_MTIME: Final = 0
 MAX_BUNDLE_FILES: Final = 10_000
+BUNDLE_VERSION_PATH: Final = "bundle.json"
+LEGACY_BUNDLE_VERSION: Final = 1
+"""The version of a bundle that carries no version record."""
+CURRENT_BUNDLE_VERSION: Final = 2
+"""Version 2 adds the spec-gap data: a dimension and implementing hunks per criterion, and the two drawn criteria."""
 
 
 class SealingError(ValueError):
@@ -32,9 +37,16 @@ def validate_bundle_path(path: str) -> str:
     return path
 
 
+def version_record(version: int) -> bytes:
+    return canonical_bytes({"schema_version": version})
+
+
 @dataclass(frozen=True)
 class SealedBundle:
-    """Everything of a task that is sealed: the spec, the oracle parts, violations and classifications."""
+    """Everything of a task that is sealed: the spec, the oracle parts, violations and classifications.
+
+    The schema version is a file of the bundle, so the lock's digests cover it; a bundle without one is version 1.
+    """
 
     files: Mapping[str, bytes]
 
@@ -43,6 +55,21 @@ class SealedBundle:
             raise SealingError("a bundle holds between 1 and 10000 files")
         for path in self.files:
             validate_bundle_path(path)
+        if self.schema_version < LEGACY_BUNDLE_VERSION:
+            raise SealingError("a bundle schema version starts at 1")
+
+    @property
+    def schema_version(self) -> int:
+        if BUNDLE_VERSION_PATH not in self.files:
+            return LEGACY_BUNDLE_VERSION
+        try:
+            record = parse_canonical(self.files[BUNDLE_VERSION_PATH].decode())
+        except ValueError as error:
+            raise SealingError(f"{BUNDLE_VERSION_PATH} is not a version record") from error
+        version = record.get("schema_version") if isinstance(record, dict) else None
+        if isinstance(version, bool) or not isinstance(version, int):
+            raise SealingError(f"{BUNDLE_VERSION_PATH} holds no schema version")
+        return version
 
     @property
     def paths(self) -> frozenset[str]:
@@ -58,6 +85,19 @@ class SealedBundle:
     @property
     def bundle_digest(self) -> str:
         return bundle_digest_of(self.file_digests())
+
+
+def versioned_bundle(files: Mapping[str, bytes], version: int = CURRENT_BUNDLE_VERSION) -> SealedBundle:
+    """A bundle of the given version: its files plus the version record."""
+    return SealedBundle({**files, BUNDLE_VERSION_PATH: version_record(version)})
+
+
+def require_current_version(bundle: SealedBundle) -> None:
+    """Sealing refuses a bundle built before the current schema: its spec-gap data would be missing."""
+    if bundle.schema_version < CURRENT_BUNDLE_VERSION:
+        raise SealingError(
+            f"bundle schema version {bundle.schema_version} is below {CURRENT_BUNDLE_VERSION}: rebuild the task"
+        )
 
 
 def bundle_digest_of(file_digests: Mapping[str, str]) -> str:

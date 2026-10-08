@@ -9,9 +9,11 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Final
 
 from specbench.domain.canonical import JsonValue
+from specbench.domain.hunks import ChangedRegions, CodeHunk, hunk_problems, hunks_from_record
 from specbench.domain.jsonread import RecordError, enum_of, integer, mapping, sequence, text
 from specbench.domain.task import Criterion, CriterionStatus
 
@@ -28,6 +30,21 @@ ISO_DATETIME: Final = re.compile(r"^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)
 NUMBER: Final = re.compile(r"^-?\d+(\.\d+)?$")
 KEYWORD_LITERALS: Final = frozenset({"true", "false", "null"})
 SPEC_FILE_NAME: Final = "SPEC.md"
+GAP_CRITERIA_COUNT: Final = 2
+"""Criteria drawn for the spec-gap arm; each needs a behaviour the change adds or alters and the hunks that implement it."""
+
+
+class Dimension(StrEnum):
+    """The kind of behaviour a criterion specifies (ADR 0004, spec-gap arm)."""
+
+    ERROR = "error"
+    BOUNDARY = "boundary"
+    PERMISSION = "permission"
+    CONCURRENCY = "concurrency"
+    COMPATIBILITY = "compatibility"
+
+
+CHANGING_STATUSES: Final = (CriterionStatus.NEW, CriterionStatus.REVISED)
 
 
 class SpecError(RecordError):
@@ -47,6 +64,13 @@ class SpecCriterion:
     statement: str
     examples: tuple[str, ...]
     status: CriterionStatus
+    dimension: Dimension
+    implementing_hunks: tuple[CodeHunk, ...]
+
+    @property
+    def is_gap_eligible(self) -> bool:
+        """A behaviour the change adds or alters can be removed from a spec; an unchanged one carries no change to find."""
+        return self.status in CHANGING_STATUSES and bool(self.implementing_hunks)
 
 
 @dataclass(frozen=True)
@@ -125,8 +149,11 @@ def parse_example(example: str) -> ExampleCall | None:
     return ExampleCall(operation, tuple(values), outcome)
 
 
-def spec_problems(draft: SpecDraft) -> list[str]:
-    """Every writing rule the draft breaks, in a stable order; empty when it may be rendered."""
+def spec_problems(draft: SpecDraft, regions: ChangedRegions) -> list[str]:
+    """Every writing rule the draft breaks, in a stable order; empty when it may be rendered.
+
+    `regions` are the changed lines of the non-test merge diff that the cited implementing hunks must lie inside.
+    """
     problems: list[str] = []
     if not draft.title.strip() or not draft.overview.strip():
         problems.append("title and overview must not be empty")
@@ -140,13 +167,13 @@ def spec_problems(draft: SpecDraft) -> list[str]:
     if [c.number for c in draft.criteria] != list(range(1, len(draft.criteria) + 1)):
         problems.append("criterion numbers must run 1, 2, 3, ... in order")
     for criterion in draft.criteria:
-        problems += _criterion_problems(criterion)
-    if not any(c.status in (CriterionStatus.NEW, CriterionStatus.REVISED) for c in draft.criteria):
-        problems.append("at least one criterion must be new or revised")
+        problems += _criterion_problems(criterion, regions)
+    if sum(c.is_gap_eligible for c in draft.criteria) < GAP_CRITERIA_COUNT:
+        problems.append(f"at least {GAP_CRITERIA_COUNT} criteria must be new or revised and cite implementing hunks")
     return problems
 
 
-def _criterion_problems(criterion: SpecCriterion) -> list[str]:
+def _criterion_problems(criterion: SpecCriterion, regions: ChangedRegions) -> list[str]:
     label = f"criterion {criterion.number}"
     problems: list[str] = []
     if STATEMENT_PATTERN.match(criterion.statement.strip()) is None or "\n" in criterion.statement.strip():
@@ -156,7 +183,9 @@ def _criterion_problems(criterion: SpecCriterion) -> list[str]:
     for example in criterion.examples:
         if parse_example(example) is None:
             problems.append(f"{label}: example {example!r} is outside the grammar operation(name=literal) => outcome")
-    return problems
+    if criterion.status in CHANGING_STATUSES and not criterion.implementing_hunks:
+        problems.append(f"{label}: a new or revised criterion must cite at least one implementing hunk")
+    return problems + hunk_problems(label, criterion.implementing_hunks, regions)
 
 
 def criterion_id(task_id: str, number: int) -> str:
@@ -205,6 +234,8 @@ def _criterion_from_record(record: object) -> SpecCriterion:
         statement=text(body.get("statement"), "statement"),
         examples=tuple(text(e, "example") for e in sequence(body.get("examples"), "examples")),
         status=enum_of(CriterionStatus, body.get("status"), "status"),
+        dimension=enum_of(Dimension, body.get("dimension"), "dimension"),
+        implementing_hunks=hunks_from_record(body.get("implementingHunks")),
     )
 
 
@@ -212,7 +243,9 @@ def spec_to_record(draft: SpecDraft) -> dict[str, JsonValue]:
     return {
         "criteria": [
             {
+                "dimension": c.dimension.value,
                 "examples": list(c.examples),
+                "implementingHunks": [h.to_record() for h in c.implementing_hunks],
                 "number": c.number,
                 "statement": c.statement,
                 "status": c.status.value,

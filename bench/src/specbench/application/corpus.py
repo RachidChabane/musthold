@@ -10,6 +10,7 @@ from specbench.domain.sealing import (
     SealedBundle,
     SealingError,
     lock_entry_for,
+    require_current_version,
     verify_bundle,
     verify_task_json,
 )
@@ -27,6 +28,7 @@ def seal_task(corpus: CorpusRepository, seals: SealStore, task_json: str, bundle
     task = parse_task(task_json)
     if not task.is_constructed:
         raise SealingError(f"task {task.task_id} has no criteria: it is selected but not constructed")
+    require_current_version(bundle)
     ciphertext = seals.seal(bundle, corpus.read_recipients())
     corpus.write_task(task.language, task.task_id, task_json, ciphertext)
     entry = lock_entry_for(task.task_id, task.language, task_json, bundle)

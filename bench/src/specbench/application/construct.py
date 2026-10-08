@@ -6,11 +6,12 @@ files of the plain task, ready for `verify-task` and sealing, or a drop with its
 
 Order, with the reason for it:
 
-1. the spec is drafted, checked, reviewed and revised once;
+1. the spec is drafted, checked (writing rules and cited hunks against the diff), reviewed and revised once;
 2. the leak controls run on the final spec, and a spec that leaks is fixed once or the task is dropped;
 3. H tests are written from that final spec and its Interface only;
 4. U assertions are classified against the same spec;
-5. violations and planted refactors are written against the merge code.
+5. violations and planted refactors are written against the merge code;
+6. two spec-gap criteria are drawn by seed and the bundle is stamped with the current schema version.
 """
 
 from __future__ import annotations
@@ -45,7 +46,9 @@ from specbench.domain.edits import (
     select_violations,
     violations_from_record,
 )
+from specbench.domain.gaps import GAP_FILE_NAME, draw_gap_criteria, gaps_record
 from specbench.domain.h_tests import HFile, HTest, go_directory_of, h_files_from_record, h_problems
+from specbench.domain.hunks import ChangedRegions
 from specbench.domain.jsonread import mapping, optional_text, sequence, text
 from specbench.domain.languages import Language
 from specbench.domain.leaks import (
@@ -55,7 +58,7 @@ from specbench.domain.leaks import (
     probe_hits,
 )
 from specbench.domain.prompts import PromptLibrary
-from specbench.domain.sealing import SealedBundle
+from specbench.domain.sealing import SealedBundle, versioned_bundle
 from specbench.domain.selection import ProbedTask
 from specbench.domain.spec import (
     SPEC_FILE_NAME,
@@ -104,6 +107,7 @@ class ConstructionInputs:
     pull_title: str
     pull_body: str
     diff: str
+    regions: ChangedRegions
     public_api: str
     reference_texts: tuple[str, ...]
     merge_files: Mapping[str, str]
@@ -157,7 +161,9 @@ class TaskConstruction:
         schemas: SchemaLibrary,
         checker: SchemaChecker,
         patches: PatchBuilder,
+        gap_seed: int,
     ) -> None:
+        self._gap_seed = gap_seed
         self._model = model
         self._prompts = prompts
         self._schemas = schemas
@@ -192,7 +198,9 @@ class TaskConstruction:
             (first, second),
             self._patch_files(inputs, violations, planted),
         )
-        return Constructed(task, SealedBundle(files))
+        gaps = draw_gap_criteria(self._gap_seed, task_id, draft)
+        files[GAP_FILE_NAME] = canonical_json(gaps_record(self._gap_seed, task_id, gaps)).encode()
+        return Constructed(task, versioned_bundle(files))
 
     # -- model calls ---------------------------------------------------------------------------------------------
 
@@ -216,30 +224,32 @@ class TaskConstruction:
         request = spec_revision_request(self._prompts, self._schemas, inputs.author_view(), draft, findings, key)
         return self._structured(request, DropStage.SPEC, spec_from_record)
 
-    def _valid(self, draft: SpecDraft) -> SpecDraft | list[str]:
-        problems = spec_problems(draft)
+    def _valid(self, inputs: ConstructionInputs, draft: SpecDraft) -> SpecDraft | list[str]:
+        problems = spec_problems(draft, inputs.regions)
         return problems or draft
 
     def _reviewed_spec(self, inputs: ConstructionInputs) -> SpecDraft:
         task_id = inputs.task.task_id
         draft = self._draft(inputs, f"{task_id}:spec-draft")
-        checked = self._valid(draft)
+        checked = self._valid(inputs, draft)
         if isinstance(checked, list):
             draft = self._revise(inputs, draft, checked, f"{task_id}:spec-repair")
-            checked = self._valid(draft)
+            checked = self._valid(inputs, draft)
             if isinstance(checked, list):
                 raise ConstructionFailure(DropStage.SPEC, "; ".join(checked[:3]))
-        flags = self._review(render_spec(task_id, draft), f"{task_id}:review")
+        flags = self._review(inputs, draft, f"{task_id}:review")
         if not flags:
             return draft
         revised = self._revise(inputs, draft, flags, f"{task_id}:spec-revise")
-        checked = self._valid(revised)
+        checked = self._valid(inputs, revised)
         if isinstance(checked, list):
             raise ConstructionFailure(DropStage.SPEC, "; ".join(checked[:3]))
         return revised
 
-    def _review(self, spec_text: str, key: str) -> list[str]:
-        request = reviewer_request(self._prompts, self._schemas, spec_text, key)
+    def _review(self, inputs: ConstructionInputs, draft: SpecDraft, key: str) -> list[str]:
+        request = reviewer_request(
+            self._prompts, self._schemas, render_spec(inputs.task.task_id, draft), draft, inputs.diff, key
+        )
 
         def read(payload: JsonValue) -> list[str]:
             findings = sequence(mapping(payload, "review").get("findings"), "findings")
@@ -269,7 +279,7 @@ class TaskConstruction:
 
     def _fixed(self, inputs: ConstructionInputs, draft: SpecDraft, findings: Sequence[str], key: str) -> SpecDraft:
         revised = self._revise(inputs, draft, findings, key)
-        checked = self._valid(revised)
+        checked = self._valid(inputs, revised)
         if isinstance(checked, list):
             raise ConstructionFailure(DropStage.SPEC, "; ".join(checked[:3]))
         return revised

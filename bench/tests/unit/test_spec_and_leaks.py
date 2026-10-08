@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from specbench.domain.assignment import Classification, assign
 from specbench.domain.edits import Change, Edit, applicable, apply_edits, select_planted, select_violations
 from specbench.domain.h_tests import HFile, h_problems
+from specbench.domain.hunks import CodeHunk, changed_regions
 from specbench.domain.languages import Language
 from specbench.domain.leaks import (
     MAX_EXCESS_PROBE_HITS,
@@ -21,6 +24,7 @@ from specbench.domain.leaks import (
 )
 from specbench.domain.public_api import go_api, public_api, python_api, python_module_path
 from specbench.domain.spec import (
+    Dimension,
     InterfaceEntry,
     SpecCriterion,
     SpecDraft,
@@ -34,6 +38,10 @@ from specbench.domain.spec import (
 from specbench.domain.task import CriterionStatus
 
 TASK = "ACME-PARKFEE-12"
+REGIONS = changed_regions(
+    Language.PYTHON,
+    "+++ b/pkg/fee.py\n@@ -1,2 +1,4 @@\n def fee(m):\n+    if m < 10:\n+        return 0\n     return 5\n",
+)
 
 
 def draft(*examples: str, statement: str = "WHEN a stay lasts under 10 minutes THE SYSTEM SHALL charge 0") -> SpecDraft:
@@ -42,19 +50,28 @@ def draft(*examples: str, statement: str = "WHEN a stay lasts under 10 minutes T
         overview="A fee for a stay.",
         interface=(InterfaceEntry("pkg.fee", "fee(minutes: int) -> int", "the fee of a stay"),),
         criteria=(
-            SpecCriterion(1, statement, examples or ("fee(minutes=7) => 0",), CriterionStatus.NEW),
+            SpecCriterion(
+                1,
+                statement,
+                examples or ("fee(minutes=7) => 0",),
+                CriterionStatus.NEW,
+                Dimension.BOUNDARY,
+                (CodeHunk("pkg/fee.py", 2, 3),),
+            ),
             SpecCriterion(
                 2,
                 "WHEN a stay lasts 10 minutes or more THE SYSTEM SHALL charge 5",
                 ("fee(minutes=60) => 5",),
-                CriterionStatus.UNCHANGED,
+                CriterionStatus.REVISED,
+                Dimension.COMPATIBILITY,
+                (CodeHunk("pkg/fee.py", 4, 4),),
             ),
         ),
     )
 
 
 def test_a_conforming_spec_has_no_problem_and_renders_the_adr_format() -> None:
-    assert spec_problems(draft()) == []
+    assert spec_problems(draft(), REGIONS) == []
     text = render_spec(TASK, draft())
     assert "- ACME-PARKFEE-12-1~1: WHEN a stay lasts under 10 minutes THE SYSTEM SHALL charge 0\n" in text
     assert "  - Example: fee(minutes=7) => 0\n" in text
@@ -95,24 +112,24 @@ def test_examples_outside_the_grammar_are_refused(example: str) -> None:
 
 
 def test_each_writing_rule_names_its_problem() -> None:
-    assert any("one line" in p for p in spec_problems(draft(statement="the fee is zero")))
-    assert any("outside the grammar" in p for p in spec_problems(draft("fee 7 gives 0")))
+    assert any("one line" in p for p in spec_problems(draft(statement="the fee is zero"), REGIONS))
+    assert any("outside the grammar" in p for p in spec_problems(draft("fee 7 gives 0"), REGIONS))
     assert any(
         "examples" in p
         for p in spec_problems(
-            draft("fee(minutes=1) => 0", "fee(minutes=2) => 0", "fee(minutes=3) => 0", "fee(minutes=4) => 0")
+            draft("fee(minutes=1) => 0", "fee(minutes=2) => 0", "fee(minutes=3) => 0", "fee(minutes=4) => 0"), REGIONS
         )
     )
     single = SpecDraft("t", "o", draft().interface, draft().criteria[:1])
-    assert any("criteria" in p for p in spec_problems(single))
+    assert any("criteria" in p for p in spec_problems(single, REGIONS))
     unchanged = SpecDraft(
         "t",
         "o",
         draft().interface,
-        tuple(SpecCriterion(c.number, c.statement, c.examples, CriterionStatus.UNCHANGED) for c in draft().criteria),
+        tuple(replace(c, status=CriterionStatus.UNCHANGED) for c in draft().criteria),
     )
-    assert any("new or revised" in p for p in spec_problems(unchanged))
-    assert any("Interface" in p for p in spec_problems(SpecDraft("t", "o", (), draft().criteria)))
+    assert any("new or revised" in p for p in spec_problems(unchanged, REGIONS))
+    assert any("Interface" in p for p in spec_problems(SpecDraft("t", "o", (), draft().criteria), REGIONS))
 
 
 def test_literals_are_normalised_across_spec_python_and_go() -> None:

@@ -135,6 +135,12 @@ SUITE_TIMEOUT_SECONDS: Final = 900
 MIRROR_TIMEOUT_SECONDS: Final = 3600
 
 
+def _mining_seed(mining_dir: Path) -> int:
+    """The seed recorded by `mine`, which also seeds the spec-gap draw of construction."""
+    mining = cast(dict[str, JsonValue], json.loads((mining_dir / MINING_FILE).read_text(encoding=ENCODING)))
+    return int(str(mining["seed"]))
+
+
 def run_select(
     mining_dir: Path,
     mirrors_dir: Path,
@@ -146,8 +152,7 @@ def run_select(
 ) -> int:
     """Probe the mined candidates in seeded order and keep the first feasible tasks and reserves."""
     refuse_inside_repository(work_dir, find_repository_root(mining_dir), "work directory")
-    mining = cast(dict[str, JsonValue], json.loads((mining_dir / MINING_FILE).read_text(encoding=ENCODING)))
-    seed = int(str(mining["seed"]))
+    seed = _mining_seed(mining_dir)
     candidates = read_candidates(mining_dir / CANDIDATES_FILE)
     denied = NetworkDeniedRunner(MemoryFloorRunner(SubprocessRunner(SUITE_TIMEOUT_SECONDS), system_free_percent))
     denied.assert_denied()
@@ -228,6 +233,7 @@ def run_construct(
         {key: construction_schema(name) for key, name in SCHEMA_KEYS.items()},
         JsonSchemaChecker(),
         GitDiffPatchBuilder(plain),
+        _mining_seed(mining_dir),
     )
     corpus = FileCorpus(corpus_dir)
     corpus.read_recipients()

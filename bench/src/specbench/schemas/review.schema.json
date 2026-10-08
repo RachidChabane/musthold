@@ -13,7 +13,7 @@
         "required": ["criterion", "kind", "comment"],
         "properties": {
           "criterion": {"type": ["integer", "null"], "minimum": 1},
-          "kind": {"enum": ["ambiguous", "untestable", "internal_structure", "missing_interface", "overlapping", "other"]},
+          "kind": {"enum": ["ambiguous", "untestable", "internal_structure", "missing_interface", "overlapping", "wrong_dimension", "wrong_hunks", "other"]},
           "comment": {"type": "string", "minLength": 1}
         }
       }

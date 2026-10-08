@@ -8,7 +8,7 @@ from datetime import date
 from specbench.domain.canonical import canonical_json
 from specbench.domain.languages import Language
 from specbench.domain.manifest import CODING_AGENT_CLIS, PRODUCT_ARTIFACTS, Provenance
-from specbench.domain.sealing import SealedBundle
+from specbench.domain.sealing import CURRENT_BUNDLE_VERSION, SealedBundle, versioned_bundle
 from specbench.domain.task import Criterion, CriterionStatus, Task, Toolchain
 
 TASK_ID = "ACME-PARKFEE-12"
@@ -71,11 +71,16 @@ def oracle_files(task_id: str = TASK_ID) -> dict[str, bytes]:
         "oracle/O/tests/test_o.py": b"def test_o1():\n    assert True\n",
         "violations/index.json": canonical_json(violations).encode(),  # type: ignore[arg-type]
         "planted/index.json": canonical_json(planted).encode(),  # type: ignore[arg-type]
+        "construction/gaps.json": canonical_json(
+            {"seed": 20261007, "criteria": [f"{task_id}-1", f"{task_id}-2"]}
+        ).encode(),  # type: ignore[arg-type]
     }
     for patch in ("violations/V1", "violations/V2", "violations/V3", "violations/V4", "planted/P1", "planted/P2"):
         files[f"{patch}.patch"] = f"--- {patch}\n".encode()
     return files
 
 
-def make_bundle(extra: Mapping[str, bytes] | None = None) -> SealedBundle:
-    return SealedBundle({**oracle_files(), **(extra or {})})
+def make_bundle(extra: Mapping[str, bytes] | None = None, version: int = CURRENT_BUNDLE_VERSION) -> SealedBundle:
+    """A bundle of the given schema version; version 1 carries no version record, as bundles built before 2 did."""
+    files = {**oracle_files(), **(extra or {})}
+    return SealedBundle(files) if version == 1 else versioned_bundle(files, version)

@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 
 from specbench.adapters.prompt_files import construction_schema, load_prompts
-from specbench.adapters.schemas import JsonSchemaChecker, SchemaName
+from specbench.adapters.schemas import JsonSchemaChecker, SchemaName, schema_problems
 from specbench.application.construct import (
     Constructed,
     ConstructionInputs,
@@ -22,8 +22,11 @@ from specbench.application.construct import (
 from specbench.domain.candidates import Candidate
 from specbench.domain.canonical import JsonValue
 from specbench.domain.construction import ModelRequest, ModelResponse, Role
+from specbench.domain.gaps import GAP_FILE_NAME
+from specbench.domain.hunks import changed_regions
 from specbench.domain.languages import Language
 from specbench.domain.prompts import Prompt, fill
+from specbench.domain.sealing import CURRENT_BUNDLE_VERSION
 from specbench.domain.selection import ProbedTask
 from specbench.domain.task import Toolchain
 
@@ -38,10 +41,15 @@ SCHEMAS = {
     "probe": SchemaName.PROBE,
 }
 U_SOURCE = "def test_free():\n    assert fee(5) == 0\n"
+DIFF = (
+    "diff --git a/pkg/fee.py b/pkg/fee.py\n--- a/pkg/fee.py\n+++ b/pkg/fee.py\n@@ -1,2 +1,4 @@\n"
+    " def fee(m):\n+    if m < 10:\n+        return 0\n     return 5\n"
+)
+GAP_SEED = 20261007
 MERGE_FILES = {"pkg/fee.py": "def fee(m):\n    if m < 10:\n        return 0\n    return 5\n"}
 
 
-def spec(first_example: str = "fee(minutes=7) => 0") -> dict[str, JsonValue]:
+def spec(first_example: str = "fee(minutes=7) => 0") -> dict[str, Any]:
     return {
         "title": "Parking fee",
         "overview": "The fee of one stay.",
@@ -52,12 +60,16 @@ def spec(first_example: str = "fee(minutes=7) => 0") -> dict[str, JsonValue]:
                 "statement": "WHEN a stay is short THE SYSTEM SHALL charge nothing",
                 "examples": [first_example],
                 "status": "new",
+                "dimension": "boundary",
+                "implementingHunks": [{"path": "pkg/fee.py", "startLine": 2, "endLine": 3}],
             },
             {
                 "number": 2,
                 "statement": "WHEN a stay is long THE SYSTEM SHALL charge 5",
                 "examples": ["fee(minutes=60) => 5"],
-                "status": "unchanged",
+                "status": "revised",
+                "dimension": "compatibility",
+                "implementingHunks": [{"path": "pkg/fee.py", "startLine": 4, "endLine": 4}],
             },
         ],
     }
@@ -150,7 +162,8 @@ def inputs(u_sources: Mapping[str, str] | None = None) -> ConstructionInputs:
         "Short stays should be free.",
         "feat: free",
         "Closes #3",
-        "diff --git a/pkg/fee.py b/pkg/fee.py\n+    if m < 10:",
+        DIFF,
+        changed_regions(Language.PYTHON, DIFF),
         "pkg.fee: def fee(m)",
         ("Short stays should be free.",),
         MERGE_FILES,
@@ -180,6 +193,7 @@ def construction(answers: Answers) -> tuple[TaskConstruction, ScriptedModel]:
             {key: construction_schema(name) for key, name in SCHEMAS.items()},
             JsonSchemaChecker(),
             FakePatches(),
+            GAP_SEED,
         ),
         model,
     )
@@ -226,7 +240,7 @@ def test_the_blind_inputs_hold_for_every_role() -> None:
         assert "assert fee(5)" not in prompts[key] and "test_free" not in prompts[key], key
     assert "assert fee(5) == 0" in prompts["assign-0"]
     assert "if m < 10" in prompts["spec-draft"] and "if m < 10" in prompts["violations-0"]
-    assert "if m < 10" not in prompts["h-0"] and "if m < 10" not in prompts["review"]
+    assert "if m < 10" not in prompts["h-0"]
     assert "Short stays should be free." not in prompts["h-0"] and "Closes #3" not in prompts["h-0"]
     assert "ACME-PARKFEE-12-1~1" in prompts["h-0"] and "## Interface" in prompts["h-0"]
 
@@ -330,3 +344,67 @@ def test_every_committed_prompt_is_ascii_and_its_placeholders_all_fill(prompt: P
     names = {name for m in Template.pattern.finditer(template) if (name := m.group("named") or m.group("braced"))}
     assert "$" not in fill(template, **dict.fromkeys(names, "x"))
     assert template.isascii() and template.strip()
+
+
+def test_the_bundle_is_version_two_and_holds_the_spec_gap_data_beside_the_spec_record() -> None:
+    built, _ = build(happy())
+    assert isinstance(built, Constructed)
+    files = built.bundle.files
+    assert built.bundle.schema_version == CURRENT_BUNDLE_VERSION
+    record = json.loads(files["construction/spec.json"])
+    assert [c["dimension"] for c in record["criteria"]] == ["boundary", "compatibility"]
+    assert record["criteria"][0]["implementingHunks"] == [{"endLine": 3, "path": "pkg/fee.py", "startLine": 2}]
+    gaps = json.loads(files[GAP_FILE_NAME])
+    assert gaps == {"criteria": ["ACME-PARKFEE-12-1", "ACME-PARKFEE-12-2"], "seed": GAP_SEED}
+    assert schema_problems(SchemaName.GAPS, gaps) == []
+
+
+def test_no_spec_gap_data_reaches_the_agent_visible_spec_or_a_later_role() -> None:
+    built, model = build(happy())
+    assert isinstance(built, Constructed)
+    spec_text = built.bundle.files["SPEC.md"].decode()
+    for gap_text in ("pkg/fee.py", "startLine", "implementingHunks", "dimension", "boundary"):
+        assert gap_text not in spec_text, gap_text
+    later = {r.key.split(":", 1)[1]: r.system_prompt + r.prompt for r in model.requests}
+    for key in ("h-0", "assign-0", "violations-0", "planted-0", "probe-spec-0"):
+        assert "implementingHunks" not in later[key] and "startLine" not in later[key], key
+
+
+def test_the_reviewer_sees_the_cited_hunks_the_dimensions_and_the_diff() -> None:
+    _, model = build(happy())
+    review = next(r for r in model.requests if r.role is Role.REVIEWER)
+    assert '"implementingHunks"' in review.prompt and '"dimension": "boundary"' in review.prompt
+    assert "+    if m < 10:" in review.prompt
+
+
+def test_a_hunk_outside_the_non_test_diff_is_repaired_once_then_the_task_is_dropped() -> None:
+    outside = spec()
+    outside["criteria"][0]["implementingHunks"] = [{"path": "pkg/fee.py", "startLine": 2, "endLine": 40}]
+    built, model = build(happy() | {"spec-draft": [outside], "spec-repair": [spec()]})
+    assert isinstance(built, Constructed) and model.keys[:3] == ["spec-draft", "spec-repair", "review"]
+    assert "pkg/fee.py:2-40 is not inside the changed lines" in model.requests[1].prompt
+    dropped, _ = build(happy() | {"spec-draft": [outside], "spec-repair": [outside]})
+    assert isinstance(dropped, Dropped) and dropped.stage is DropStage.SPEC and "pkg/fee.py:2-40" in dropped.reason
+
+
+def test_a_hunk_in_a_test_file_is_never_accepted() -> None:
+    in_test = spec()
+    in_test["criteria"][0]["implementingHunks"] = [{"path": "tests/test_fee.py", "startLine": 1, "endLine": 2}]
+    dropped, _ = build(happy() | {"spec-draft": [in_test], "spec-repair": [in_test]})
+    assert isinstance(dropped, Dropped) and "not a non-test file of the diff" in dropped.reason
+
+
+def test_a_revision_that_breaks_a_hunk_is_dropped_at_the_spec_stage() -> None:
+    flagged = {"findings": [{"criterion": 2, "kind": "wrong_hunks", "comment": "Cite the return statement."}]}
+    revised = spec()
+    revised["criteria"][1]["implementingHunks"] = [{"path": "pkg/fee.py", "startLine": 9, "endLine": 9}]
+    dropped, _ = build(happy() | {"review": [flagged], "spec-revise": [revised]})
+    assert isinstance(dropped, Dropped) and dropped.stage is DropStage.SPEC and "pkg/fee.py:9-9" in dropped.reason
+
+
+def test_a_spec_with_fewer_than_two_gap_eligible_criteria_is_dropped_at_the_spec_stage() -> None:
+    one = spec()
+    one["criteria"][1]["status"] = "unchanged"
+    one["criteria"][1]["implementingHunks"] = []
+    dropped, _ = build(happy() | {"spec-draft": [one], "spec-repair": [one]})
+    assert isinstance(dropped, Dropped) and dropped.stage is DropStage.SPEC and "at least 2 criteria" in dropped.reason

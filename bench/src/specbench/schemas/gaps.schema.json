@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "specbench.construction.gaps/1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["seed", "criteria"],
+  "properties": {
+    "seed": {"type": "integer"},
+    "criteria": {"type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+  }
+}

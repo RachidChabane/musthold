@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Protocol, cast
 
-from specbench.domain.sealing import SealedBundle, SealingError, pack_bundle, unpack_bundle
+from specbench.domain.sealing import SealedBundle, SealingError, pack_bundle, require_current_version, unpack_bundle
 
 IDENTITY_PREFIX = "AGE-SECRET-KEY-"
 IDENTITY_FILE_MODE = 0o600
@@ -70,6 +70,7 @@ class AgeSealStore:
     """`SealStore` over age: the bundle is packed deterministically, then encrypted to every recipient."""
 
     def seal(self, bundle: SealedBundle, recipients: Sequence[str]) -> bytes:
+        require_current_version(bundle)
         if not recipients:
             raise SealingError("sealing needs at least one recipient")
         parsed = [_x25519().Recipient.from_str(r) for r in recipients]

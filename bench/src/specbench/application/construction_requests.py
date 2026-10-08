@@ -70,14 +70,28 @@ def spec_revision_request(
     return ModelRequest(Role.SPEC_AUTHOR, key, prompts[Prompt.SPEC_AUTHOR_SYSTEM], prompt, schemas["spec"])
 
 
-def reviewer_request(prompts: PromptLibrary, schemas: SchemaLibrary, spec_text: str, key: str) -> ModelRequest:
-    return ModelRequest(
-        Role.REVIEWER,
-        key,
-        prompts[Prompt.REVIEWER_SYSTEM],
-        fill(prompts[Prompt.REVIEWER_USER], spec=spec_text),
-        schemas["review"],
+def _annotations(draft: SpecDraft) -> str:
+    """Per criterion, the dimension and the implementing hunks the spec author cited; the agent never sees them."""
+    return json.dumps(
+        [
+            {
+                "criterion": c.number,
+                "dimension": c.dimension.value,
+                "implementingHunks": [h.to_record() for h in c.implementing_hunks],
+            }
+            for c in draft.criteria
+        ],
+        indent=2,
+        sort_keys=True,
     )
+
+
+def reviewer_request(
+    prompts: PromptLibrary, schemas: SchemaLibrary, spec_text: str, draft: SpecDraft, diff: str, key: str
+) -> ModelRequest:
+    """The reviewer sees the rendered spec, the dimension and hunks cited per criterion, and the non-test diff."""
+    prompt = fill(prompts[Prompt.REVIEWER_USER], spec=spec_text, annotations=_annotations(draft), diff=diff)
+    return ModelRequest(Role.REVIEWER, key, prompts[Prompt.REVIEWER_SYSTEM], prompt, schemas["review"])
 
 
 def h_writer_request(

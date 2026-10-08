@@ -10,7 +10,7 @@ from pathlib import Path
 
 from specbench.domain.canonical import canonical_json
 from specbench.domain.languages import Language
-from specbench.domain.sealing import SealedBundle
+from specbench.domain.sealing import SealedBundle, versioned_bundle
 from specbench.domain.task import Criterion, CriterionStatus, Task, Toolchain
 
 TASK = "ACME-PARKFEE-12"
@@ -76,7 +76,7 @@ def bundle(violation_one: str) -> SealedBundle:
     for name, content in planted.items():
         files[f"planted/{name}.patch"] = patch("pkg/fee.py", MERGE_FEE, content)
     files["planted/index.json"] = canonical_json([{"id": n, "patch": f"planted/{n}.patch"} for n in planted]).encode()  # type: ignore[arg-type]
-    return SealedBundle(files)
+    return versioned_bundle(files)
 
 
 def task(base: str, merge: str) -> Task:

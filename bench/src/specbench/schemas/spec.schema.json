@@ -28,12 +28,27 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["number", "statement", "examples", "status"],
+        "required": ["number", "statement", "examples", "status", "dimension", "implementingHunks"],
         "properties": {
           "number": {"type": "integer", "minimum": 1},
           "statement": {"type": "string", "minLength": 1},
           "examples": {"type": "array", "minItems": 1, "maxItems": 3, "items": {"type": "string", "minLength": 1}},
-          "status": {"enum": ["new", "revised", "unchanged"]}
+          "status": {"enum": ["new", "revised", "unchanged"]},
+          "dimension": {"enum": ["error", "boundary", "permission", "concurrency", "compatibility"]},
+          "implementingHunks": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["path", "startLine", "endLine"],
+              "properties": {
+                "path": {"type": "string", "minLength": 1},
+                "startLine": {"type": "integer", "minimum": 1},
+                "endLine": {"type": "integer", "minimum": 1}
+              }
+            }
+          }
         }
       }
     }
