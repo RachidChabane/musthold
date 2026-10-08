@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Build every product artifact the live canaries and the benchmark need into .tools/:
+# the canary, the pinned Shallnot, the binary of each proof module (the list comes
+# from the canary: `spec-proof-canary modules`), the verification, ledger and System
+# One binaries, and the umbrella plugin tree (.tools/plugins/spec-proof; the plugin
+# ships no binary). With --canary-only only the canary is built, which is all a dry
+# run needs. Every compile runs under nice, one job at a time.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly BIN_DIR=".tools/bin"
+readonly PLUGIN_DIR=".tools/plugins"
+readonly UMBRELLA_PLUGIN_SOURCE="umbrella/plugins/spec-proof"
+readonly UMBRELLA_PLUGIN_NAME="spec-proof"
+readonly CANARY="${BIN_DIR}/spec-proof-canary"
+readonly BUILD_PROCS=1
+readonly BUILD_GOMAXPROCS=2
+readonly BUILD_NICE=10
+# <module dir> <binary> of the product binaries that are not proof modules.
+readonly EXTRA_BINARIES=(
+  "verify spec-proof-verify"
+  "ledger spec-proof-ledger"
+  "s1relay spec-proof-s1"
+)
+
+build() { # <module dir> <binary> <tags>
+  local dir="$1" binary="$2" tags="$3"
+  echo "product-build: ${binary}"
+  GOMAXPROCS="${BUILD_GOMAXPROCS}" nice -n "${BUILD_NICE}" \
+    go build -C "${dir}" -p "${BUILD_PROCS}" ${tags:+-tags "${tags}"} \
+    -o "${PWD}/${BIN_DIR}/${binary}" "./cmd/${binary}"
+}
+
+install_umbrella_plugin() {
+  local target="${PLUGIN_DIR}/${UMBRELLA_PLUGIN_NAME}"
+  echo "product-build: ${target}"
+  mkdir -p "${PLUGIN_DIR}"
+  rm -rf "${target}"
+  cp -R "${UMBRELLA_PLUGIN_SOURCE}" "${target}"
+}
+
+mkdir -p "${BIN_DIR}"
+./script/mem-guard check
+build tools/canary spec-proof-canary ""
+
+[[ "${1:-}" == "--canary-only" ]] && exit 0
+
+./script/shallnot-build
+while IFS=$'\t' read -r dir binary tags; do
+  build "${dir}" "${binary}" "${tags}"
+done < <("${CANARY}" modules)
+for entry in "${EXTRA_BINARIES[@]}"; do
+  read -r dir binary <<<"${entry}"
+  build "${dir}" "${binary}" ""
+done
+install_umbrella_plugin

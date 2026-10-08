@@ -4,7 +4,7 @@
 # The pilot verbs (setup, verify, test, run) drive experiments/limits-1-3; the
 # product verbs (go-test, go-lint, ci) drive every Go module of go.work through
 # script/*; name modules with MODULES="format discpower" to run a subset.
-.PHONY: help setup verify test run go-test go-lint ci shallnot-build plugin-gen release release-dry-run third-party-notices third-party-notices-check
+.PHONY: help setup verify test run go-test go-lint ci shallnot-build product-build plugin-gen release release-dry-run third-party-notices third-party-notices-check
 
 help:  ## list verbs
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN{FS=":.*?## "}{printf "  %-8s %s\n",$$1,$$2}'
@@ -38,6 +38,9 @@ ci:  ## build the pinned shallnot when SHALLNOT_SRC exists, lint, then self-gate
 
 shallnot-build:  ## build the pinned Shallnot into .tools/bin (script/shallnot-build)
 	script/shallnot-build
+
+product-build:  ## build every product binary and the umbrella plugin tree into .tools (script/product-build)
+	script/product-build
 
 .PHONY: mem-check
 mem-check:  ## refuse heavy local work unless memory is free enough (script/mem-guard)
@@ -81,7 +84,7 @@ release-dry-run:  ## rehearse the release of TAG: report what a real release wou
 # pass flags with ARGS="--dry-run" (see script/canary).
 .PHONY: canary-build canary-claude canary-codex canary-copilot
 
-canary-build:  ## build the canary, the module binaries and the pinned Shallnot into .tools/bin (script/canary-build)
+canary-build:  ## build what the canaries need, a front door of script/product-build (script/canary-build)
 	script/canary-build
 
 canary-claude:  ## live canary of Claude Code under -p (ARGS="--dry-run --shared-home")
