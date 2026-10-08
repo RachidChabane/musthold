@@ -15,6 +15,9 @@ MAX_HOST_WAITS: Final = 3
 PLACEBO_MESSAGE: Final = "Re-read the spec and strengthen your tests"
 """What the placebo arm tells the coder wherever ALL blocks, in place of the product's findings."""
 
+SETTING_SOURCE_USER: Final = "user"
+SETTING_SOURCE_PROJECT: Final = "project"
+
 ALL_MODULES: Final = frozenset(Module)
 _PROOF_MODULES: Final = (Module.ALIGNMENT, Module.DISCRIMINATING_POWER)
 """The modules whose proof gates under ALL; completeness only shows questions and never gates."""
@@ -65,6 +68,19 @@ class ArmPolicy:
     @property
     def host(self) -> Host:
         return host_for(self.arm)
+
+    @property
+    def loads_product_plugins(self) -> bool:
+        """Whether the coder session itself runs the product's plugins: only where the coder is the host."""
+        return self.host is Host.PLUGIN
+
+    @property
+    def setting_sources(self) -> tuple[str, ...]:
+        """The settings sources of the coder session. The user source is the bench-owned configuration directory;
+        project settings load only where the product's own files, which `init` writes into the workspace, must."""
+        if self.loads_product_plugins:
+            return (SETTING_SOURCE_USER, SETTING_SOURCE_PROJECT)
+        return (SETTING_SOURCE_USER,)
 
     @property
     def branches(self) -> bool:

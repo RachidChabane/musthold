@@ -14,7 +14,7 @@ from specbench.domain.deviations import (
     parse_deviations,
     render_deviations,
 )
-from specbench.domain.jsonread import integer, mapping, optional_text, sequence, text
+from specbench.domain.jsonread import enum_of, integer, mapping, optional_text, sequence, text
 from specbench.domain.manifest import (
     CALL_ARGV,
     CALL_EVENTS,
@@ -27,7 +27,7 @@ from specbench.domain.manifest import (
 )
 from specbench.domain.records import TrunkRecord, trunk_from_record
 from specbench.domain.reservation import ExecutionHistory
-from specbench.domain.sessions import CallRecord
+from specbench.domain.sessions import CallRecord, SessionOutcome
 
 ENCODING: Final = "utf-8"
 FAILURES_FILE_NAME: Final = "failures.jsonl"
@@ -57,7 +57,13 @@ class FileCallStore:
         (directory / CALL_STDIN).write_text(record.stdin, encoding=ENCODING)
         (directory / CALL_STDOUT).write_text(record.stdout, encoding=ENCODING)
         (directory / CALL_EVENTS).write_text("".join(f"{event}\n" for event in record.events), encoding=ENCODING)
-        meta = {"exit_code": record.exit_code, "model_reported": record.model_reported, "session_id": record.session_id}
+        meta = {
+            "executions": record.executions,
+            "exit_code": record.exit_code,
+            "model_reported": record.model_reported,
+            "outcome": record.outcome.value,
+            "session_id": record.session_id,
+        }
         (directory / CALL_META).write_text(canonical_json(meta), encoding=ENCODING)
 
     def read(self, call_id: str) -> CallRecord:
@@ -73,6 +79,8 @@ class FileCallStore:
             exit_code=integer(meta.get("exit_code"), "exit_code", -1_000),
             session_id=text(meta.get("session_id"), "session_id"),
             model_reported=optional_text(meta.get("model_reported"), "model_reported"),
+            outcome=enum_of(SessionOutcome, meta.get("outcome", SessionOutcome.COMPLETED.value), "outcome"),
+            executions=integer(meta.get("executions", 1), "executions", 0),
         )
 
 

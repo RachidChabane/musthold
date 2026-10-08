@@ -24,6 +24,8 @@ RESULTS_FILE_NAME: Final = "results.json"
 REPORT_FILE_NAME: Final = "REPORT.md"
 TRUNKS_DIRECTORY: Final = "trunks"
 CALLS_DIRECTORY: Final = "calls"
+HOMES_DIRECTORY: Final = "homes"
+SETTINGS_DIRECTORY: Final = "settings"
 CALL_ARGV: Final = "argv.json"
 CALL_STDIN: Final = "stdin.txt"
 CALL_STDOUT: Final = "stdout.txt"
@@ -86,6 +88,14 @@ class RunLayout:
 
     def call(self, call_id: str) -> Path:
         return self.root / CALLS_DIRECTORY / call_id
+
+    def settings_file(self, arm: Arm) -> Path:
+        """The bench-owned settings of a coder session, outside every workspace."""
+        return self.root / SETTINGS_DIRECTORY / f"{arm.value}.json"
+
+    def homes(self, trunk_id: str) -> Path:
+        """The directory that holds the configuration homes of one trunk's coder sessions."""
+        return self.root / HOMES_DIRECTORY / trunk_id
 
     def stop_diff(self, task_id: str, harness: Harness, arm: Arm, stop: int) -> Path:
         return self.root / TRUNKS_DIRECTORY / task_id / harness.value / arm.value / f"stop-{stop}.diff"

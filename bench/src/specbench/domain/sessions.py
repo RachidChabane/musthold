@@ -20,6 +20,15 @@ class SessionKind(Enum):
     GATE_HOST = "gate-host"
 
 
+class SessionOutcome(Enum):
+    """How a session ended, judged from its own events: the arm's verdict is never part of it."""
+
+    COMPLETED = "completed"
+    INTERRUPTED = "interrupted"
+    HARNESS_MISCONFIGURED = "harness_misconfigured"
+    CONTAMINATED = "contaminated"
+
+
 class RequestKind(Enum):
     MUTANTS = "mutants"
     VALIDITY = "validity"
@@ -35,6 +44,10 @@ class SessionRequest:
 
     `key` names the call within the run (task, arm, replicate, stop or attempt). Two sessions with the same
     prompt but different keys are different calls; the run directory resumes a call by its identity alone.
+
+    `trunk_id` (the task, with the replicate when a task has several trunks) and `arm` say where the session lives:
+    which per-trunk home it uses and which arm policy configures it. Both are already named by `key`, so neither is
+    part of the identity.
     """
 
     harness: Harness
@@ -45,6 +58,8 @@ class SessionRequest:
     prompt: str
     resume_session_id: str | None = None
     fork: bool = False
+    trunk_id: str = ""
+    arm: Arm | None = None
 
     def identity(self) -> dict[str, JsonValue]:
         return {
@@ -70,6 +85,9 @@ class SessionResult:
     events: tuple[str, ...]
     model_reported: str | None
     stderr: str = ""
+    outcome: SessionOutcome = SessionOutcome.COMPLETED
+    executions: int = 1
+    problems: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -101,6 +119,8 @@ class CallRecord:
     exit_code: int
     session_id: str
     model_reported: str | None
+    outcome: SessionOutcome = SessionOutcome.COMPLETED
+    executions: int = 1
 
 
 def live_gate_call_id(arm: Arm, record_dir: Path) -> str:

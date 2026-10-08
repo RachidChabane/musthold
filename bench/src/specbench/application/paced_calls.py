@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Final
 
 from specbench.application.ports import (
     AgentHarness,
@@ -22,7 +23,10 @@ from specbench.domain.construction import (
     response_from_stdout,
 )
 from specbench.domain.pacing import PacingPolicy, PauseReason, RunPaused, looks_like_quota_exhausted
-from specbench.domain.sessions import CallRecord, SessionRequest, SessionResult
+from specbench.domain.sessions import CallRecord, SessionOutcome, SessionRequest, SessionResult
+
+UNARCHIVED_OUTCOMES: Final = frozenset({SessionOutcome.HARNESS_MISCONFIGURED, SessionOutcome.INTERRUPTED})
+"""A session that did not finish, or never ran on a configured harness, is run again rather than replayed."""
 
 
 class ModelNotFrozen(ValueError):
@@ -81,7 +85,11 @@ class CallGate:
 
 
 class PacedAgentHarness:
-    """Decorator over an `AgentHarness`: a recorded call is replayed for free, a new one is admitted, run and archived."""
+    """Decorator over an `AgentHarness`: a recorded call is replayed for free, a new one is admitted, run and archived.
+
+    A session that ended `harness_misconfigured` or `interrupted` is never archived, so it runs again once the harness
+    is fixed or the window reopens; it is charged only when it streamed events, that is, when a model session started.
+    """
 
     def __init__(self, inner: AgentHarness, gate: CallGate, calls: CallStore) -> None:
         self._inner = inner
@@ -98,12 +106,22 @@ class PacedAgentHarness:
         if self._calls.exists(call_id):
             recorded = self._calls.read(call_id)
             return SessionResult(
-                recorded.session_id, recorded.stdout, recorded.exit_code, recorded.events, recorded.model_reported
+                recorded.session_id,
+                recorded.stdout,
+                recorded.exit_code,
+                recorded.events,
+                recorded.model_reported,
+                outcome=recorded.outcome,
+                executions=recorded.executions,
             )
         admission = self._gate.admit()
         result = self._inner.run_session(request)
         if result.exit_code != 0 and looks_like_quota_exhausted(result.stderr, result.final_message):
             raise RunPaused(PauseReason.QUOTA_EXHAUSTED, request.harness.value)
+        if result.outcome in UNARCHIVED_OUTCOMES:
+            if result.events:
+                self._gate.charge(admission)
+            return result
         self._calls.write(
             CallRecord(
                 call_id=call_id,
@@ -114,6 +132,8 @@ class PacedAgentHarness:
                 exit_code=result.exit_code,
                 session_id=result.session_id,
                 model_reported=result.model_reported,
+                outcome=result.outcome,
+                executions=result.executions,
             )
         )
         self._gate.charge(admission)
