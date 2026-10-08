@@ -202,6 +202,9 @@ finding names the command that resolves it.
 
 ## Other harnesses
 
+Statements about a harness below hold as of Claude Code 2.1.293, Codex CLI 0.155.1 and
+Copilot CLI 1.0.92 (`format/hostproto/harness/harness.go`).
+
 `spec-proof-dp init --hooks claude,codex,copilot` installs the files of several
 harnesses; `--hooks auto` (the default) installs Claude Code's and those of every
 harness whose configuration the project already holds, and `--hooks none`
@@ -229,7 +232,7 @@ and escalate but earn no pass credit; see [trust model](trust-model.md#harness-i
 
 ### Codex: trust the project and its hooks
 
-Codex loads a project's `.codex/agents/`, `.codex/config.toml` and
+As of Codex CLI 0.155.1, Codex loads a project's `.codex/agents/`, `.codex/config.toml` and
 `.codex/hooks.json` only from a trusted project, and runs a project hook only after you review it.
 
 1. **Trust the project.** Accept the prompt Codex shows the first time it starts
@@ -250,7 +253,7 @@ Codex loads a project's `.codex/agents/`, `.codex/config.toml` and
 To check the result, look for one `[hooks.state."<project>/.codex/hooks.json:…"]`
 table with a `trusted_hash` per hook in `~/.codex/config.toml`.
 
-An untrusted hook does not run, in interactive sessions and under `codex exec`
+As of Codex CLI 0.155.1, an untrusted hook does not run, in interactive sessions and under `codex exec`
 alike, and neither does any hook of a `codex exec --ignore-user-config` run.
 Without the hooks, the executor tool guard and the subagent records do not run.
 `codex exec
