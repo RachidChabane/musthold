@@ -57,21 +57,45 @@ func Marked(events []hostproto.Event) bool {
 
 // Effective returns the profile a response is credited with: the profile stored at
 // acceptance, raised to `restricted-attested` when the stop hook attested the very
-// agent that answered and nothing marks the run, and carrying the model the
-// harness resolved. The events are those journaled for the response's ticket.
+// agent that answered and nothing marks the run, raised from
+// `restricted-unverified` to `restricted` when the stop hook observed the
+// allowlist and the launch of one and the same agent and nothing marks the run,
+// and carrying the model the harness resolved. An observed run is never credited
+// as attested. The events are those journaled for the response's ticket.
 func Effective(stored format.ExecutorProfile, events []hostproto.Event) format.ExecutorProfile {
 	profile := stored
 	if report, found := lastReport(events); found && report.Model != "" {
 		profile.Model = format.ExecutorModel{Name: report.Model, Source: format.ModelSourceResolved}
 	}
-	if profile.Isolation != format.IsolationRestricted || Marked(events) {
+	if Marked(events) {
 		return profile
 	}
-	if digest, attested := attestedDigest(events, stored.Attestation.AgentID); attested {
-		profile.Isolation = format.IsolationRestrictedAttested
-		profile.Attestation.TranscriptDigest = digest
+	switch profile.Isolation {
+	case format.IsolationRestricted:
+		if digest, attested := attestedDigest(events, stored.Attestation.AgentID); attested {
+			profile.Isolation = format.IsolationRestrictedAttested
+			profile.Attestation.TranscriptDigest = digest
+		}
+	case format.IsolationRestrictedUnverified:
+		if observedRun(events) {
+			profile.Isolation = format.IsolationRestricted
+		}
 	}
 	return profile
+}
+
+// observedRun reports whether the events show an agent whose allowlist and whose
+// launch were both observed.
+func observedRun(events []hostproto.Event) bool {
+	allowed := map[string]bool{}
+	for _, event := range events {
+		if event.Kind == hostproto.EventAllowlistObserved && event.AgentID != "" {
+			allowed[event.AgentID] = true
+		}
+	}
+	return slices.ContainsFunc(events, func(event hostproto.Event) bool {
+		return event.Kind == hostproto.EventLaunchBare && allowed[event.AgentID]
+	})
 }
 
 func attestedDigest(events []hostproto.Event, agentID string) (string, bool) {

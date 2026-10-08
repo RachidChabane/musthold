@@ -339,6 +339,9 @@ func (in AgentInput) Sanitize(plugin string) (AgentInput, error) {
 	return AgentInput{SubagentType: in.SubagentType, Description: in.Description, Prompt: ExecutorPrompt(ticket)}, nil
 }
 
+// ExecutorInstructions is the body of every executor agent the module ships.
+const ExecutorInstructions = "Fetch the ticket in your task, follow its instructions, submit JSON matching its schema, reply only with the receipt."
+
 // executorPromptPrefix starts the only prompt an executor is given.
 const executorPromptPrefix = "ticket "
 

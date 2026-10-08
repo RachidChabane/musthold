@@ -113,8 +113,6 @@ func (m Module) agentDescription(agent hostproto.Agent) string {
 		" as a blind executor. Launch it only through the " + m.SkillName() + " skill, with a prompt that is the ticket."
 }
 
-const executorInstructions = "Fetch the ticket in your task, follow its instructions, submit JSON matching its schema, reply only with the receipt."
-
 // codexExecutorInstructionsFormat is the text of a Codex executor, which names the
 // fetch tool and then the submit tool as Codex spells them for the module. The
 // text holds no double quote and no backslash, so it is a
@@ -421,7 +419,7 @@ func (m Module) claudePlugin(h harness.Harness) ([]File, error) {
 	for _, agent := range m.Identity.Agents {
 		content, err := render("claude-agent", claudeAgentTemplate, agentData{
 			Agent: string(agent), Description: m.agentDescription(agent), Tools: strings.Join(h.ToolNames(), ", "),
-			MaxTurns: maxTurns, Instructions: executorInstructions,
+			MaxTurns: maxTurns, Instructions: hostproto.ExecutorInstructions,
 		})
 		if err != nil {
 			return nil, err
@@ -610,7 +608,7 @@ func (m Module) copilotAgents(h harness.Harness) ([]namedFile, error) {
 	var agents []namedFile
 	for _, agent := range m.Identity.Agents {
 		content, err := render("copilot-agent", copilotAgentTemplate, copilotAgentData{
-			Name: m.agentName(agent), Description: m.agentDescription(agent), Instructions: executorInstructions,
+			Name: m.agentName(agent), Description: m.agentDescription(agent), Instructions: hostproto.ExecutorInstructions,
 			Tools:  quotedList(h.ToolNames()),
 			Server: h.Server(), Command: m.Binary, Args: quotedList(serverArgs(h)),
 			ServerTools: quotedList([]string{hostproto.ToolFetchRequest, hostproto.ToolSubmitResponse}),

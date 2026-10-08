@@ -46,6 +46,22 @@ func TestPersonas(t *testing.T) {
 		})
 	}
 
+	for _, name := range hostprototest.CopilotPersonaNames() {
+		t.Run(name+" receives the asserted verdict from the reference host on the session log [verifies SP-1871~1]", func(t *testing.T) {
+			persona, err := hostprototest.NewPersona(name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			outcome, err := hostprototest.Drive(persona, newReferenceHost)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := hostprototest.Check(persona, outcome); err != nil {
+				t.Fatalf("%v\noutcome: %+v", err, outcome)
+			}
+		})
+	}
+
 	t.Run("a hookless executor is recorded as restricted when attestation is waived [verifies SP-140~1]", func(t *testing.T) {
 		persona := hostprototest.Hookless{OptOut: true}
 		outcome, err := hostprototest.Drive(persona, newReferenceHost)

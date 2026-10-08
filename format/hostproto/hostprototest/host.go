@@ -10,6 +10,7 @@ import (
 
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/spec-proof/format/hostproto/executorrun"
 )
 
 // Errors a Host returns for the situations the personas provoke.
@@ -79,6 +80,9 @@ type Run struct {
 	Transcript    []hostproto.ToolCall
 	Reply         string
 	ResolvedModel string
+	// SessionLog is the session log of a harness that records its sessions, which
+	// the stop hook reads in place of Transcript.
+	SessionLog []byte
 }
 
 // ReferenceHost implements Host in memory over the pure protocol, the way a
@@ -313,6 +317,9 @@ func (h *ReferenceHost) profile(binding hostproto.Binding) format.ExecutorProfil
 
 // AfterRun implements Host.
 func (h *ReferenceHost) AfterRun(run Run) error {
+	if run.SessionLog != nil {
+		return h.observeSession(run)
+	}
 	ticket := run.Ticket.String()
 	if err := hostproto.CheckExecutorTranscript(run.Transcript, run.Ticket); err != nil {
 		h.journal(hostproto.Event{Kind: hostproto.EventExposed, Ticket: ticket, AgentID: run.AgentID, Detail: err.Error()})
@@ -324,6 +331,35 @@ func (h *ReferenceHost) AfterRun(run Run) error {
 	}
 	h.journal(hostproto.Event{Kind: hostproto.EventAttested, Ticket: ticket, AgentID: run.AgentID, Detail: run.ResolvedModel})
 	return nil
+}
+
+// observeSession runs the stop check of the harness on the session log of the run
+// and journals what it finds, the way the stop hook does.
+func (h *ReferenceHost) observeSession(run Run) error {
+	copilot := copilotHarness()
+	session, err := copilot.ReadRun(run.SessionLog, run.AgentID)
+	if err != nil {
+		h.journal(hostproto.Event{Kind: hostproto.EventRestricted, AgentID: run.AgentID, Detail: err.Error()})
+		return nil
+	}
+	findings := executorrun.CheckStop(executorrun.StopInput{Harness: copilot, Run: session, Record: run.SessionLog, Reply: run.Reply, Stored: h.storedOutput})
+	exposed := false
+	for _, finding := range findings {
+		h.journal(hostproto.Event{Kind: finding.Kind, Ticket: finding.Ticket, AgentID: run.AgentID, Detail: finding.Detail})
+		exposed = exposed || finding.Kind == hostproto.EventExposed
+	}
+	if exposed {
+		return hostproto.ErrTranscriptDeviation
+	}
+	return nil
+}
+
+func (h *ReferenceHost) storedOutput(ticket hostproto.TicketID) json.RawMessage {
+	response, err := h.store.GetResponse(ticket.Key())
+	if err != nil {
+		return nil
+	}
+	return response.Output
 }
 
 // Advance implements Host.
@@ -394,7 +430,21 @@ func (h *ReferenceHost) Profile(key hostproto.Key) (format.ExecutorProfile, erro
 			profile.Model = format.ExecutorModel{Name: event.Detail, Source: format.ModelSourceResolved}
 		}
 	}
+	if h.Observed.Allowlist == hostproto.AllowlistUnverified {
+		profile = executorrun.Effective(profile, h.eventsOf(key))
+	}
 	return profile, nil
+}
+
+// eventsOf returns the journaled events bound to the ticket of the key.
+func (h *ReferenceHost) eventsOf(key hostproto.Key) []hostproto.Event {
+	var events []hostproto.Event
+	for _, event := range h.Journal() {
+		if ticket, err := hostproto.ParseTicketID(event.Ticket); err == nil && ticket.Key() == key {
+			events = append(events, event)
+		}
+	}
+	return events
 }
 
 // Journal implements Host.

@@ -7,9 +7,12 @@
 package harness
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
+	"slices"
 
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
@@ -86,6 +89,10 @@ type Behaviours struct {
 	ReportsRun bool
 	// IdentifiesCaller: a tool hook says which agent called the tool.
 	IdentifiesCaller bool
+	// ObservesSelection: the record the stop hook reads shows the tools the
+	// harness selected for the agent and the messages it was given, so the stop
+	// hook can verify the allowlist and the launch of the run itself.
+	ObservesSelection bool
 }
 
 // Harness is one host harness, as one module serves it.
@@ -116,10 +123,26 @@ type Harness struct {
 	agentType func(plugin string, agent hostproto.Agent) string
 	// acceptedForms are the other spellings a hook payload may use for a tool.
 	acceptedForms []func(server, tool string) string
+	// otherAgentTypes are the other types a hook payload may report for an executor agent.
+	otherAgentTypes []func(plugin string, agent hostproto.Agent) string
+	// transcript reads the run of one agent out of the record the stop hook is given.
+	transcript func(reader io.Reader, agentID string) (hostproto.SessionRun, error)
 }
 
 func standaloneAgentName(plugin string, agent hostproto.Agent) string {
 	return plugin + standaloneSeparator + string(agent)
+}
+
+// pluginScopedAgentName is the type Copilot CLI reports for a plugin's agent: the
+// plugin, a colon and the name of the agent file.
+func pluginScopedAgentName(plugin string, agent hostproto.Agent) string {
+	return plugin + hostproto.RoleSeparator + standaloneAgentName(plugin, agent)
+}
+
+// callsTranscript reads a transcript that records the tool calls of the agent.
+func callsTranscript(reader io.Reader, _ string) (hostproto.SessionRun, error) {
+	calls, err := hostproto.DecodeTranscript(reader)
+	return hostproto.RunOfCalls(calls), err
 }
 
 func mcpDoubleUnderscore(server, tool string) string { return "mcp__" + server + "__" + tool }
@@ -170,16 +193,19 @@ func Codex(identity Identity) Harness {
 }
 
 // Copilot is GitHub Copilot CLI, whose MCP-only allowlist is unverified and
-// which has no start hook to issue a capability against.
+// which has no start hook to issue a capability against. Its stop hook is given
+// the session log, from which each run's selection and launch are observed.
 func Copilot(identity Identity) Harness {
 	return Harness{
 		Identity: identity, Flag: FlagCopilot, Name: hostproto.HarnessCopilot, Version: CopilotVersion,
 		Allowlist: hostproto.AllowlistUnverified, AttestationOptOut: true,
-		Behaviours:    Behaviours{ChecksStop: true},
-		server:        identity.StandaloneExecutorServer(),
-		toolName:      slashed,
-		agentType:     standaloneAgentName,
-		acceptedForms: []func(string, string) string{mcpDoubleUnderscore, hyphenJoined},
+		Behaviours:      Behaviours{ChecksStop: true, ObservesSelection: true},
+		server:          identity.StandaloneExecutorServer(),
+		toolName:        slashed,
+		agentType:       standaloneAgentName,
+		acceptedForms:   []func(string, string) string{mcpDoubleUnderscore, hyphenJoined},
+		otherAgentTypes: []func(string, hostproto.Agent) string{pluginScopedAgentName},
+		transcript:      hostproto.DecodeCopilotSessionLog,
 	}
 }
 
@@ -270,11 +296,38 @@ func (h Harness) AgentTypeOf(agent hostproto.Agent) string {
 // does not ship.
 func (h Harness) RoleOf(agentType string) (string, bool) {
 	for _, agent := range h.Identity.Agents {
-		if h.AgentTypeOf(agent) == agentType {
+		if slices.Contains(h.agentTypesOf(agent), agentType) {
 			return hostproto.RoleFor(h.Identity.Plugin, agent), true
 		}
 	}
 	return "", false
+}
+
+// NamesRole reports whether an agent type is one of the types this harness
+// reports for the executor agent of a role.
+func (h Harness) NamesRole(role, agentType string) bool {
+	if reported, ours := h.RoleOf(agentType); ours {
+		return reported == role
+	}
+	return false
+}
+
+// agentTypesOf lists every type the harness may report for an executor agent.
+func (h Harness) agentTypesOf(agent hostproto.Agent) []string {
+	types := []string{h.AgentTypeOf(agent)}
+	for _, form := range h.otherAgentTypes {
+		types = append(types, form(h.Identity.Plugin, agent))
+	}
+	return types
+}
+
+// ReadRun reads the run of one agent out of the record the stop hook was given.
+func (h Harness) ReadRun(record []byte, agentID string) (hostproto.SessionRun, error) {
+	read := h.transcript
+	if read == nil {
+		read = callsTranscript
+	}
+	return read(bytes.NewReader(record), agentID)
 }
 
 // Observed is what the host shows: the plugin and its server are present, and the

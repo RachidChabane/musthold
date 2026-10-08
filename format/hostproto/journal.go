@@ -37,6 +37,14 @@ const (
 	// EventRunReported records what the harness reported about a finished
 	// executor run, the resolved model and the usage, as the event's detail.
 	EventRunReported EventKind = "run_reported"
+	// EventAllowlistObserved records that the session log of an executor run shows
+	// the pinned CLI applying exactly the two executor tools to the agent, and the
+	// agent doing no more than fetch and submit its ticket. Its detail holds the
+	// version, the selection and the digest of the log.
+	EventAllowlistObserved EventKind = "allowlist_observed"
+	// EventLaunchBare records that the executor of the ticket was launched with the
+	// bare ticket as its only prompt and its own profile as its only system prompt.
+	EventLaunchBare EventKind = "launch_bare"
 )
 
 // Event is one journaled fact. Only the fields that apply are set.
