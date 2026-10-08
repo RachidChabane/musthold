@@ -77,3 +77,11 @@ the module in CI.
 - **SP-208~1**: WHEN the seed of a head commit is asked THE SYSTEM SHALL print the
   seed the ledger records for it, and otherwise the seed the given run would
   record, which is the SHA-256 of the head commit and the run joined by a newline.
+
+## Release version
+
+- **SP-1854~1**: WHEN `spec-proof-ledger` is run with the lone argument `--version` THE SYSTEM
+  SHALL print the bare version, the one a release build linked with
+  `-X main.version`, else the one `go install` recorded, else `dev`, and the
+  `version` command SHALL print the binary name, that version and the linked
+  commit when the build has one.

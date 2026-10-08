@@ -118,3 +118,11 @@ to the Go tests of the module in CI.
   SHALL produce a root manifest valid for Agent Plugins 1.0.0 and the relay skill
   with no `allowed-tools`, declare no MCP server, and the committed tree SHALL
   equal what the generator produces.
+
+## Release version
+
+- **SP-1856~1**: WHEN `spec-proof-s1` is run with the lone argument `--version` THE SYSTEM
+  SHALL print the bare version, the one a release build linked with
+  `-X main.version`, else the one `go install` recorded, else `dev`, and the
+  `version` command SHALL print the binary name, that version and the linked
+  commit when the build has one.

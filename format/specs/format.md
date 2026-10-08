@@ -532,6 +532,10 @@ Go tests of the module in CI.
 - **SP-1601~1**: WHEN the fields of an output line are joined THE SYSTEM SHALL
   separate the non-empty fields with one space and leave out the empty ones, so
   that a line never starts or ends with a space and never holds two in a row.
+- **SP-1850~1**: WHEN a binary is asked for its version with the lone argument
+  `--version` THE SYSTEM SHALL report the version the linker set, else the module
+  version `go install` recorded in the build information without its leading
+  `v`, else `dev`, and no other command line SHALL ask for the version.
 
 ## Portable plugin (Agent Plugins 1.0)
 

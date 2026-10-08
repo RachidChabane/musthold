@@ -91,3 +91,11 @@ tests of the module in CI.
   beside its destination and swap it in, leave no file of an earlier run and no
   staging directory behind, keep the previous directory when the write fails, and
   give a byte-identical manifest when the same inputs are verified again.
+
+## Release version
+
+- **SP-1855~1**: WHEN `spec-proof-verify` is run with the lone argument `--version` THE SYSTEM
+  SHALL print the bare version, the one a release build linked with
+  `-X main.version`, else the one `go install` recorded, else `dev`, and the
+  `version` command SHALL print the binary name, that version and the linked
+  commit when the build has one.

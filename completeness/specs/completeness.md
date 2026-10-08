@@ -485,3 +485,11 @@ traces them to the Go tests of the module in CI.
   SHALL serve the portable harness: the two executor tools with no `drain`, the
   project learned from the client's roots, and a refusal that says so for a
   directory with no project of the module.
+
+## Release version
+
+- **SP-1853~1**: WHEN `spec-proof-completeness` is run with the lone argument `--version` THE SYSTEM
+  SHALL print the bare version, the one a release build linked with
+  `-X main.version`, else the one `go install` recorded, else `dev`, and the
+  `version` command SHALL print the binary name, that version and the linked
+  commit when the build has one.
