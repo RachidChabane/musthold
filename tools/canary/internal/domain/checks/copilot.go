@@ -71,7 +71,11 @@ func copilotSummary(found evidence.Evidence) (string, bool, verdict.Pointer) {
 	if !ended {
 		return "", false, verdict.Pointer{}
 	}
-	return fmt.Sprintf("the session closed (%s) after %d events", closing.Type, len(found.Stream)), true, evidence.StreamAt(closing.Line, closing.Type)
+	summary := fmt.Sprintf("the session closed (%s) after %d events", closing.Type, len(found.Stream))
+	if closing.PremiumRequests != nil {
+		summary += fmt.Sprintf(", using %d premium requests", *closing.PremiumRequests)
+	}
+	return summary, true, evidence.StreamAt(closing.Line, closing.Type)
 }
 
 // unlessRefused makes a check that reads the session inconclusive when the
@@ -328,7 +332,7 @@ func classifyTool(name string) toolRole {
 	plugin := primaryModule().Plugin
 	for _, tool := range []string{hostproto.ToolFetchRequest, hostproto.ToolSubmitResponse} {
 		switch {
-		case name == plugin+"/"+tool || name == "mcp__"+plugin+"__"+tool:
+		case name == plugin+"/"+tool || name == plugin+"-"+tool || name == "mcp__"+plugin+"__"+tool:
 			return toolRoot
 		case strings.Contains(name, plugin) && strings.Contains(name, tool):
 			return toolMisspelled
@@ -340,7 +344,7 @@ func classifyTool(name string) toolRole {
 func copilotToolNamingCheck() Check {
 	copilot := copilotStrategy()
 	return newCheck(checkCopilotNaming,
-		"A hook sees the executor's MCP tools under the name the module's matchers and allowlists spell, `<plugin>-exec/<tool>`.",
+		"A hook sees the executor's MCP tools under a name the module recognizes: `<plugin>-exec-<tool>` in the payload, `<plugin>-exec/<tool>` in the agent allowlist.",
 		func(found evidence.Evidence) verdict.Verdict {
 			var executor *evidence.HookCall
 			records := found.HookCalls(primaryModule().Binary, hookKindPreTool)
@@ -380,33 +384,63 @@ func namingFromStream(found evidence.Evidence, copilot harness.Harness) verdict.
 	return verdict.Undecided("no executor tool call was recorded")
 }
 
+// copilotAgentTypeCheck judges the identity an executor tool payload carries
+// against what the harness strategy declares of it: Behaviours.IdentifiesCaller.
 func copilotAgentTypeCheck() Check {
 	return newCheck(checkCopilotAgentType,
-		"PreToolUse names the calling agent: the payload of an executor tool call carries the agent type, so a hook can tell the executor from the main agent. ADR 0005 leaves this unverified.",
+		"PreToolUse carries the calling agent exactly as the harness strategy declares: the agent type of the executor where the strategy says the caller is identified, no agent identity where it says it is not.",
 		func(found evidence.Evidence) verdict.Verdict {
-			want := copilotStrategy().AgentType(found.Session.Role)
-			var empty *evidence.HookCall
-			records := found.HookCalls(primaryModule().Binary, hookKindPreTool)
-			for index, call := range records {
-				payload := call.CopilotHook()
-				if classifyTool(payload.ToolName) != toolExecutor {
-					continue
-				}
-				pointer := evidence.HooksAt(call.Line, "pre-tool payload")
-				switch {
-				case namesAgent(payload.AgentType, want):
-					return verdict.Passed(fmt.Sprintf("the payload names agentType %q for the agent %q", payload.AgentType, want), pointer)
-				case payload.AgentType == "":
-					empty = &records[index]
-				default:
-					return verdict.Failed(fmt.Sprintf("the payload carries agentType %q, expected %q: a hook cannot attribute the call", payload.AgentType, want), pointer)
-				}
+			calls := copilotExecutorToolCalls(found)
+			if len(calls) == 0 {
+				return verdict.Undecided("no PreToolUse payload for an executor tool was recorded")
 			}
-			if empty != nil {
-				return verdict.Undecided("the payload of an executor tool call carries no agentType", evidence.HooksAt(empty.Line, "pre-tool payload"))
+			if copilotStrategy().Behaviours.IdentifiesCaller {
+				return identityExpected(found, calls)
 			}
-			return verdict.Undecided("no PreToolUse payload for an executor tool was recorded")
+			return identityNotDeclared(calls)
 		})
+}
+
+// copilotExecutorToolCalls returns the pre-tool records of the primary module
+// whose tool is an executor tool.
+func copilotExecutorToolCalls(found evidence.Evidence) []evidence.HookCall {
+	var calls []evidence.HookCall
+	for _, call := range found.HookCalls(primaryModule().Binary, hookKindPreTool) {
+		if classifyTool(call.CopilotHook().ToolName) == toolExecutor {
+			calls = append(calls, call)
+		}
+	}
+	return calls
+}
+
+// identityExpected passes when a payload names the executor agent and fails on
+// the first one that does not.
+func identityExpected(found evidence.Evidence, calls []evidence.HookCall) verdict.Verdict {
+	want := copilotStrategy().AgentType(found.Session.Role)
+	for _, call := range calls {
+		payload := call.CopilotHook()
+		pointer := evidence.HooksAt(call.Line, "pre-tool payload")
+		if namesAgent(payload.AgentType, want) {
+			return verdict.Passed(fmt.Sprintf("the payload names agentType %q for the agent %q", payload.AgentType, want), pointer)
+		}
+	}
+	first := calls[0].CopilotHook()
+	return verdict.Failed(fmt.Sprintf("the strategy declares that the caller is identified, but the payload carries agentType %q, expected %q: a hook cannot attribute the call", first.AgentType, want),
+		evidence.HooksAt(calls[0].Line, "pre-tool payload"))
+}
+
+// identityNotDeclared passes when no payload carries an agent identity, as the
+// strategy declares, and fails when one does: the strategy then needs revisiting.
+func identityNotDeclared(calls []evidence.HookCall) verdict.Verdict {
+	for _, call := range calls {
+		payload := call.CopilotHook()
+		if payload.AgentID != "" || payload.AgentType != "" {
+			return verdict.Failed(fmt.Sprintf("the payload carries agentId %q and agentType %q although the strategy declares that the harness does not identify the caller: revisit the strategy", payload.AgentID, payload.AgentType),
+				evidence.HooksAt(call.Line, "pre-tool payload"))
+		}
+	}
+	return verdict.Passed(fmt.Sprintf("the %d executor tool payloads carry no agent identity, as the strategy declares for this harness (IdentifiesCaller is false)", len(calls)),
+		evidence.HooksAt(calls[0].Line, "pre-tool payload"))
 }
 
 // pluginPrefixSeparators are the characters a client may put between a plugin's
@@ -436,17 +470,17 @@ func taskCallNote(stream evidence.CopilotStream, agentType string) string {
 
 func sessionModelCheck() Check {
 	return newCheck(checkCopilotModel,
-		"The session ran on the model the canary asked for: the model that session.start reports as selected is the one the session was launched with.",
+		"The session ran on the model the canary asked for: the model that model.call_start reports is the one the session was launched with.",
 		func(found evidence.Evidence) verdict.Verdict {
 			event, reported := copilotStream(found).SelectedModel()
 			if !reported {
-				return verdict.Undecided("the stream holds no session.start that names the selected model, so the model the session ran on is unknown")
+				return verdict.Undecided("the stream holds no model.call_start that names the model, so the model the session ran on is unknown")
 			}
 			pointer := evidence.StreamAt(event.Line, event.Type)
-			if event.SelectedModel != found.Session.Model {
-				return verdict.Undecided(fmt.Sprintf("the session was launched with model %q and selected %q", found.Session.Model, event.SelectedModel), pointer)
+			if event.Model != found.Session.Model {
+				return verdict.Undecided(fmt.Sprintf("the session was launched with model %q and selected %q", found.Session.Model, event.Model), pointer)
 			}
-			return verdict.Passed("the session selected model "+event.SelectedModel, pointer)
+			return verdict.Passed("the session ran on model "+event.Model, pointer)
 		})
 }
 

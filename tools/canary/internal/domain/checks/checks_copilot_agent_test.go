@@ -10,14 +10,14 @@ import (
 func TestCopilotModelSelected(t *testing.T) {
 	const check = "session_model"
 
-	t.Run("a session that selected the model it was launched with passes and points at session.start [verifies SP-1514~1]", func(t *testing.T) {
+	t.Run("a session that ran on the model it was launched with passes and points at its model.call_start [verifies SP-1514~2]", func(t *testing.T) {
 		v := want(t, evaluate(t, "copilot", readFiles(t, copilotSession)), check, verdict.Pass)
-		if !strings.Contains(v.Summary, "gpt-5.6-luna") || v.Evidence[0].File != "stream.jsonl" || v.Evidence[0].Line != 1 {
+		if !strings.Contains(v.Summary, "gpt-5.6-luna") || v.Evidence[0].File != "stream.jsonl" || v.Evidence[0].Line != 11 {
 			t.Errorf("verdict = %+v", v)
 		}
 	})
 
-	t.Run("a session that selected another model than it was launched with is inconclusive and names both [verifies SP-1514~1]", func(t *testing.T) {
+	t.Run("a session that ran on another model than it was launched with is inconclusive and names both [verifies SP-1514~2]", func(t *testing.T) {
 		files := readFiles(t, copilotSession)
 		files.Session = replace(files.Session, `"model": "gpt-5.6-luna"`, `"model": "claude-haiku-4.5"`)
 		v := want(t, evaluate(t, "copilot", files), check, verdict.Inconclusive)
@@ -28,41 +28,24 @@ func TestCopilotModelSelected(t *testing.T) {
 		}
 	})
 
-	t.Run("a stream with no selected model leaves the model unknown [verifies SP-1514~1]", func(t *testing.T) {
+	t.Run("a stream with no model.call_start leaves the model unknown [verifies SP-1514~2]", func(t *testing.T) {
 		files := readFiles(t, copilotSession)
-		files.Stream = replace(files.Stream, `,"selectedModel":"gpt-5.6-luna"`, ``)
+		files.Stream = dropLines(files.Stream, `"model.call_start"`)
 		want(t, evaluate(t, "copilot", files), check, verdict.Inconclusive)
 	})
 }
 
 func TestCopilotAgentNamedWithAPluginPrefix(t *testing.T) {
-	prefixed := func(separator string) string { return "spec-proof-dp" + separator + "spec-proof-dp-decider" }
-
-	t.Run("the executor named with a plugin prefix in the payload passes and the report gives the exact name [verifies SP-1515~1]", func(t *testing.T) {
-		for _, separator := range []string{":", "/", "."} {
-			files := readFiles(t, copilotSession)
-			files.Hooks = replace(files.Hooks, `"agentType":"spec-proof-dp-decider"`, `"agentType":"`+prefixed(separator)+`"`)
-			v := want(t, evaluate(t, "copilot", files), "agent_type_in_pretool", verdict.Pass)
-			if !strings.Contains(v.Summary, prefixed(separator)) {
-				t.Errorf("separator %q: the summary lacks the exact name: %s", separator, v.Summary)
-			}
-		}
-	})
-
-	t.Run("the plain name passes too, and a name that merely ends alike fails [verifies SP-1515~1]", func(t *testing.T) {
-		want(t, evaluate(t, "copilot", readFiles(t, copilotSession)), "agent_type_in_pretool", verdict.Pass)
-		files := readFiles(t, copilotSession)
-		files.Hooks = replace(files.Hooks, `"agentType":"spec-proof-dp-decider"`, `"agentType":"xspec-proof-dp-decider"`)
-		want(t, evaluate(t, "copilot", files), "agent_type_in_pretool", verdict.Fail)
-	})
-
-	t.Run("a prefixed subagent and task call start the executor and the call's agent_type is reported [verifies SP-1515~1]", func(t *testing.T) {
-		files := readFiles(t, copilotSession)
-		files.Stream = replace(files.Stream, `"agent_type":"spec-proof-dp-decider"`, `"agent_type":"`+prefixed(":")+`"`)
-		files.Stream = replace(files.Stream, `"agentName":"spec-proof-dp-decider"`, `"agentName":"`+prefixed(":")+`"`)
-		v := want(t, evaluate(t, "copilot", files), "executor_agent_starts", verdict.Pass)
-		if !strings.Contains(v.Summary, `the task tool was called with agent_type "`+prefixed(":")+`"`) {
+	t.Run("the executor named with the plugin prefix in the subagent and the task call passes and the report gives the exact name [verifies SP-1515~2]", func(t *testing.T) {
+		v := want(t, evaluate(t, "copilot", readFiles(t, copilotSession)), "executor_agent_starts", verdict.Pass)
+		if !strings.Contains(v.Summary, `the task tool was called with agent_type "spec-proof-dp:spec-proof-dp-decider"`) {
 			t.Errorf("summary = %s", v.Summary)
 		}
+	})
+
+	t.Run("the plain name starts the executor too [verifies SP-1515~2]", func(t *testing.T) {
+		files := readFiles(t, copilotSession)
+		files.Stream = replace(files.Stream, `spec-proof-dp:spec-proof-dp-decider`, `spec-proof-dp-decider`)
+		want(t, evaluate(t, "copilot", files), "executor_agent_starts", verdict.Pass)
 	})
 }

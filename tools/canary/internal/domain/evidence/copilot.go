@@ -5,33 +5,32 @@ import (
 	"strings"
 )
 
-// The event stream of `copilot -p --output-format json` is JSON lines. The
-// canary relies on the session event envelope the Copilot SDK documents
-// (https://docs.github.com/copilot/how-tos/copilot-sdk/features/streaming-events,
-// source github/copilot-sdk docs/features/streaming-events.md): every record is
-// `{id, timestamp, parentId, agentId?, ephemeral?, type, data}`, `agentId` is
-// present on events a sub-agent originated, and the members of `data` read below
-// belong to the types named here. The CLI reference documents the format only as
-// "JSONL, one JSON object per line"; that its prompt mode prints these session
-// events is an inference, which is why a check that finds none of them concludes
-// INCONCLUSIVE and why every other member of a record is kept in Raw.
+// The event stream of `copilot -p --output-format json` is JSON lines. Every
+// session event is `{id, timestamp, parentId, agentId?, ephemeral?, type, data}`,
+// `agentId` is present on events a sub-agent originated, and the members of
+// `data` read below belong to the types named here. The stream has no
+// session.start and no session.shutdown: the model of a session is the `model` of
+// its model.call_start events, and the session ends with a top-level
+// `{"type":"result","exitCode":0,"usage":{"premiumRequests":N}}` record. A check
+// that finds none of these events concludes INCONCLUSIVE, and every other member
+// of a record is kept in Raw.
 const (
-	CopilotEventSessionStart     = "session.start"
+	CopilotEventModelCallStart   = "model.call_start"
 	CopilotEventAssistantMessage = "assistant.message"
 	CopilotEventToolStart        = "tool.execution_start"
 	CopilotEventToolComplete     = "tool.execution_complete"
 	CopilotEventSubagentStarted  = "subagent.started"
 	CopilotEventSubagentDone     = "subagent.completed"
 	CopilotEventSubagentFailed   = "subagent.failed"
-	CopilotEventSessionIdle      = "session.idle"
-	CopilotEventSessionShutdown  = "session.shutdown"
 	CopilotEventSessionError     = "session.error"
+	// CopilotEventResult is the record that closes the stream.
+	CopilotEventResult = "result"
 
 	// CopilotTaskTool is the tool through which the main agent starts a custom agent.
 	CopilotTaskTool = "task"
 
-	// CopilotShutdownRoutine is the shutdownType of a session that ended normally.
-	CopilotShutdownRoutine = "routine"
+	// CopilotExitSuccess is the exitCode of a session that ended by itself.
+	CopilotExitSuccess = 0
 
 	// Error types of session.error that say the session was refused, not that the
 	// harness misbehaved.
@@ -57,13 +56,13 @@ type CopilotEvent struct {
 	Success *bool
 	// AgentName is the name of the agent of a subagent.* event.
 	AgentName string
-	// SelectedModel is the selectedModel of session.start: the model the session
-	// actually ran on.
-	SelectedModel string
+	// Model is the model of a model.call_start: the model the session actually ran on.
+	Model string
 	// Arguments are the arguments of a tool.execution_start.
 	Arguments json.RawMessage
-	// ShutdownType is the shutdownType of session.shutdown.
-	ShutdownType string
+	// ExitCode and PremiumRequests are the members of the closing result record.
+	ExitCode        *int
+	PremiumRequests *int
 	// ErrorType and Message are the members of session.error.
 	ErrorType string
 	Message   string
@@ -79,23 +78,26 @@ type CopilotStream struct {
 }
 
 type rawCopilot struct {
-	Type    string         `json:"type"`
-	AgentID string         `json:"agentId"`
-	Data    rawCopilotData `json:"data"`
+	Type     string          `json:"type"`
+	AgentID  string          `json:"agentId"`
+	ExitCode json.RawMessage `json:"exitCode"`
+	Usage    struct {
+		PremiumRequests json.RawMessage `json:"premiumRequests"`
+	} `json:"usage"`
+	Data rawCopilotData `json:"data"`
 }
 
 type rawCopilotData struct {
-	ToolCallID    string          `json:"toolCallId"`
-	ToolName      string          `json:"toolName"`
-	MCPServer     string          `json:"mcpServerName"`
-	MCPTool       string          `json:"mcpToolName"`
-	Success       json.RawMessage `json:"success"`
-	AgentName     string          `json:"agentName"`
-	SelectedModel string          `json:"selectedModel"`
-	Arguments     json.RawMessage `json:"arguments"`
-	ShutdownType  string          `json:"shutdownType"`
-	ErrorType     string          `json:"errorType"`
-	Message       string          `json:"message"`
+	ToolCallID string          `json:"toolCallId"`
+	ToolName   string          `json:"toolName"`
+	MCPServer  string          `json:"mcpServerName"`
+	MCPTool    string          `json:"mcpToolName"`
+	Success    json.RawMessage `json:"success"`
+	AgentName  string          `json:"agentName"`
+	Model      string          `json:"model"`
+	Arguments  json.RawMessage `json:"arguments"`
+	ErrorType  string          `json:"errorType"`
+	Message    string          `json:"message"`
 }
 
 // DecodeCopilot decodes the stream. A member that does not have the shape above is
@@ -109,7 +111,8 @@ func DecodeCopilot(lines []Line) CopilotStream {
 		stream.Events = append(stream.Events, CopilotEvent{
 			Line: line.Number, Type: raw.Type, AgentID: raw.AgentID, ToolCallID: raw.Data.ToolCallID,
 			ToolName: raw.Data.ToolName, MCPServer: raw.Data.MCPServer, MCPTool: raw.Data.MCPTool, Success: boolMember(raw.Data.Success),
-			AgentName: raw.Data.AgentName, SelectedModel: raw.Data.SelectedModel, Arguments: raw.Data.Arguments, ShutdownType: raw.Data.ShutdownType, ErrorType: raw.Data.ErrorType,
+			AgentName: raw.Data.AgentName, Model: raw.Data.Model, Arguments: raw.Data.Arguments, ErrorType: raw.Data.ErrorType,
+			ExitCode: intMember(raw.ExitCode), PremiumRequests: intMember(raw.Usage.PremiumRequests),
 			Message: raw.Data.Message, Raw: line.Raw,
 		})
 	}
@@ -128,10 +131,10 @@ func (s CopilotStream) Of(eventType string) []CopilotEvent {
 }
 
 // SelectedModel returns the model the session reports it ran on, from the first
-// session.start that names one.
+// model.call_start that names one.
 func (s CopilotStream) SelectedModel() (CopilotEvent, bool) {
-	for _, event := range s.Of(CopilotEventSessionStart) {
-		if event.SelectedModel != "" {
+	for _, event := range s.Of(CopilotEventModelCallStart) {
+		if event.Model != "" {
 			return event, true
 		}
 	}
@@ -173,14 +176,11 @@ func (s CopilotStream) Refusal() (CopilotEvent, bool) {
 	return CopilotEvent{}, false
 }
 
-// Closing returns the event that shows the session ended normally: a routine
-// shutdown, or the idle event that follows the last turn.
+// Closing returns the result record that shows the session ended by itself: the
+// closing record of the stream with exit code 0.
 func (s CopilotStream) Closing() (CopilotEvent, bool) {
-	for _, event := range s.Events {
-		switch {
-		case event.Type == CopilotEventSessionShutdown && event.ShutdownType == CopilotShutdownRoutine:
-			return event, true
-		case event.Type == CopilotEventSessionIdle:
+	for _, event := range s.Of(CopilotEventResult) {
+		if event.ExitCode != nil && *event.ExitCode == CopilotExitSuccess {
 			return event, true
 		}
 	}
@@ -191,6 +191,15 @@ func (s CopilotStream) Closing() (CopilotEvent, bool) {
 // a value of another type must never read as false.
 func boolMember(raw json.RawMessage) *bool {
 	var value bool
+	if len(raw) == 0 || json.Unmarshal(raw, &value) != nil {
+		return nil
+	}
+	return &value
+}
+
+// intMember reads an integer member, and nothing when it is absent or is not one.
+func intMember(raw json.RawMessage) *int {
+	var value int
 	if len(raw) == 0 || json.Unmarshal(raw, &value) != nil {
 		return nil
 	}

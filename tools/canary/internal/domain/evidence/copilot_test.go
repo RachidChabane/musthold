@@ -48,15 +48,16 @@ func TestCopilotStreamDecoder(t *testing.T) {
 		}
 	})
 
-	t.Run("the closing event is a routine shutdown or the idle event, and an error shutdown is neither [verifies SP-1501~1]", func(t *testing.T) {
-		if _, closed := decodeCopilot(`{"type":"session.shutdown","data":{"shutdownType":"error"}}`).Closing(); closed {
-			t.Error("an error shutdown closed the session")
+	t.Run("the closing event is the result record with exit code 0 and it reports the premium requests [verifies SP-1518~1]", func(t *testing.T) {
+		if _, closed := decodeCopilot(`{"type":"result","exitCode":1,"usage":{"premiumRequests":1}}`).Closing(); closed {
+			t.Error("a result with a failing exit code closed the session")
 		}
-		if event, closed := decodeCopilot(`{"type":"session.shutdown","data":{"shutdownType":"routine"}}`).Closing(); !closed || event.Line != 1 {
-			t.Errorf("routine shutdown: %+v, %v", event, closed)
+		if _, closed := decodeCopilot(`{"type":"assistant.idle","data":{}}`, `{"type":"result","usage":{}}`).Closing(); closed {
+			t.Error("a result with no exit code, or an idle event, closed the session")
 		}
-		if _, closed := decodeCopilot(`{"type":"session.idle","data":{}}`).Closing(); !closed {
-			t.Error("the idle event did not close the session")
+		event, closed := decodeCopilot(`{"type":"assistant.idle","data":{}}`, `{"type":"result","exitCode":0,"usage":{"premiumRequests":3}}`).Closing()
+		if !closed || event.Line != 2 || event.PremiumRequests == nil || *event.PremiumRequests != 3 {
+			t.Errorf("result: %+v, %v", event, closed)
 		}
 	})
 

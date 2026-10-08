@@ -446,8 +446,17 @@ func TestSyntheticCodexSessionThatBreaksARule(t *testing.T) {
 
 	t.Run("a tool spelled another way fails the naming check [verifies SP-1503~1]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
-		files.Hooks = replace(files.Hooks, `"tool_name":"mcp__spec-proof-dp-exec__fetch_request"`, `"tool_name":"spec-proof-dp-exec.fetch_request"`)
+		files.Hooks = replace(files.Hooks, `"tool_name":"mcp__spec_proof_dp_exec__fetch_request"`, `"tool_name":"spec-proof-dp-exec.fetch_request"`)
 		want(t, evaluate(t, "codex", files), "mcp_tool_naming", verdict.Fail)
+	})
+
+	t.Run("the unsanitized spelling of the server name fails the naming check, which expects the name Codex gives the tool [verifies SP-1503~1]", func(t *testing.T) {
+		files := readFiles(t, codexSession)
+		files.Hooks = replace(files.Hooks, `"tool_name":"mcp__spec_proof_dp_exec__fetch_request"`, `"tool_name":"mcp__spec-proof-dp-exec__fetch_request"`)
+		v := want(t, evaluate(t, "codex", files), "mcp_tool_naming", verdict.Fail)
+		if !strings.Contains(v.Summary, "mcp__spec_proof_dp_exec__fetch_request") {
+			t.Errorf("summary = %s", v.Summary)
+		}
 	})
 
 	t.Run("a write that landed fails the sandbox check [verifies SP-1503~1]", func(t *testing.T) {
@@ -480,6 +489,40 @@ func TestSyntheticCodexSessionThatBreaksARule(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.Hooks = dropLines(files.Hooks, `"subagent-stop"`)
 		want(t, evaluate(t, "codex", files), "hooks_fire", verdict.Fail)
+	})
+
+	t.Run("a missing pre-tool hook leaves the hooks inconclusive when no executor tool was called for it to match [verifies SP-1516~1]", func(t *testing.T) {
+		files := readFiles(t, codexSession)
+		files.Hooks = dropLines(files.Hooks, "fetch_request")
+		files.Stream = dropLines(files.Stream, "mcp_tool_call")
+		v := want(t, evaluate(t, "codex", files), "hooks_fire", verdict.Inconclusive)
+		if !strings.Contains(v.Summary, "no executor tool call was made") {
+			t.Errorf("summary = %s", v.Summary)
+		}
+	})
+
+	t.Run("a missing pre-tool hook fails the hooks when an executor tool call is recorded by the probe or by the stream [verifies SP-1516~1]", func(t *testing.T) {
+		probeOnly := readFiles(t, codexSession)
+		probeOnly.Hooks = dropLines(probeOnly.Hooks, `"pre-tool"`)
+		want(t, evaluate(t, "codex", probeOnly), "hooks_fire", verdict.Fail)
+
+		streamOnly := readFiles(t, codexSession)
+		streamOnly.Hooks = dropLines(streamOnly.Hooks, "fetch_request")
+		want(t, evaluate(t, "codex", streamOnly), "hooks_fire", verdict.Fail)
+	})
+
+	t.Run("a hook other than the pre-tool one that never ran still fails when no executor tool was called [verifies SP-1516~1]", func(t *testing.T) {
+		files := readFiles(t, codexSession)
+		files.Hooks = dropLines(files.Hooks, "fetch_request")
+		files.Hooks = dropLines(files.Hooks, `"subagent-stop"`)
+		files.Stream = dropLines(files.Stream, "mcp_tool_call")
+		want(t, evaluate(t, "codex", files), "hooks_fire", verdict.Fail)
+	})
+
+	t.Run("the main agent's executor tool call, which carries no agent identity, fails the attribution check [verifies SP-1503~1]", func(t *testing.T) {
+		files := readFiles(t, codexSession)
+		files.Hooks = replace(files.Hooks, `"agent_id":"01a11334-f9a0-7c11-8e02-1b3f0c2d4e55","agent_type":"spec-proof-dp-decider","tool_name"`, `"tool_name"`)
+		want(t, evaluate(t, "codex", files), "agent_type_in_pretool", verdict.Fail)
 	})
 
 	t.Run("a session with no spawn leaves the hooks inconclusive [verifies SP-1503~1]", func(t *testing.T) {

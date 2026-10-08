@@ -144,8 +144,13 @@ func hooksFireCodexCheck() Check {
 			}
 			var missing []string
 			var pointers []verdict.Pointer
+			unexercised := false
 			for _, kind := range required {
 				calls := found.HookCalls(binary, kind)
+				if len(calls) == 0 && kind == hookKindPreTool && !executorToolCalled(found) {
+					unexercised = true
+					continue
+				}
 				if len(calls) == 0 {
 					missing = append(missing, kind)
 					continue
@@ -160,8 +165,29 @@ func hooksFireCodexCheck() Check {
 			if len(missing) > 0 {
 				return verdict.Failed("hooks that never ran: "+strings.Join(missing, ", "), pointers...)
 			}
+			if unexercised {
+				return verdict.Undecided("the pre-tool hook never ran, but no executor tool call was made for it to match", pointers...)
+			}
 			return verdict.Passed("the subagent start, subagent stop and pre-tool hooks ran and exited 0", pointers...)
 		})
+}
+
+// executorToolCalled reports whether the session called an executor tool, as a
+// PreToolUse payload of any spelling that names one, or as an MCP call the event
+// stream records.
+func executorToolCalled(found evidence.Evidence) bool {
+	for _, call := range preToolRecords(found) {
+		name := call.Payload().ToolName
+		if strings.Contains(name, hostproto.ToolFetchRequest) || strings.Contains(name, hostproto.ToolSubmitResponse) {
+			return true
+		}
+	}
+	for _, item := range codexStream(found).ItemsOf(evidence.CodexItemMCPCall) {
+		if item.Tool == hostproto.ToolFetchRequest || item.Tool == hostproto.ToolSubmitResponse {
+			return true
+		}
+	}
+	return false
 }
 
 // preToolRecords returns every recorded PreToolUse payload: the module's own hook
@@ -211,7 +237,10 @@ func toolNamingCheck() Check {
 			for _, call := range preToolRecords(found) {
 				name := call.Payload().ToolName
 				pointer := evidence.HooksAt(call.Line, "pre-tool payload")
-				if _, executor := codex.ExecutorTool(name); executor {
+				if tool, executor := codex.ExecutorTool(name); executor {
+					if name != codex.ToolName(tool) {
+						return verdict.Failed(fmt.Sprintf("the hook saw %q, the harness spells %q", name, codex.ToolName(tool)), pointer)
+					}
 					return verdict.Passed("the hook saw "+name, pointer)
 				}
 				if strings.Contains(name, hostproto.ToolFetchRequest) || strings.Contains(name, hostproto.ToolSubmitResponse) {

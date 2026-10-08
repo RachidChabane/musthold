@@ -64,7 +64,7 @@ func TestCommandLine(t *testing.T) {
 		}
 	})
 
-	t.Run("the model flag replaces the default of every harness in the printed plan [verifies SP-1514~1]", func(t *testing.T) {
+	t.Run("the model flag replaces the default of every harness in the printed plan [verifies SP-1514~2]", func(t *testing.T) {
 		for harness, option := range map[string]string{"claude": "--model", "codex": "-m", "copilot": "--model"} {
 			code, stdout, stderr := run(t, "", "run", "--harness", harness, "--dry-run", "--model", "custom-model", "--repo", t.TempDir())
 			if code != 0 || !strings.Contains(stdout, option+" custom-model") {
@@ -85,7 +85,7 @@ func TestCommandLine(t *testing.T) {
 		}
 	})
 
-	t.Run("a synthetic recorded Copilot session is evaluated from its directory [verifies SP-1707~1]", func(t *testing.T) {
+	t.Run("a recorded Copilot session is evaluated from its directory [verifies SP-1707~1]", func(t *testing.T) {
 		records := t.TempDir()
 		entries, err := os.ReadDir(recordedCopilotSession)
 		if err != nil {
@@ -101,7 +101,7 @@ func TestCommandLine(t *testing.T) {
 			}
 		}
 		code, stdout, stderr := run(t, "", "evaluate", "--harness", "copilot", "--records", records)
-		if code != 0 || len(strings.Split(strings.TrimSpace(stdout), "\n")) != copilotChecks || !strings.Contains(stderr, fmt.Sprintf("%d PASS", copilotChecks)) {
+		if code != 3 || len(strings.Split(strings.TrimSpace(stdout), "\n")) != copilotChecks || !strings.Contains(stderr, fmt.Sprintf("%d PASS", copilotChecks-1)) {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
 		}
 	})

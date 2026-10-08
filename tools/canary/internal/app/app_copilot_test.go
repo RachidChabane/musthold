@@ -181,11 +181,17 @@ func TestSyntheticSessionOfCopilot(t *testing.T) {
 		}
 	})
 
-	t.Run("the Copilot session passes every check on the expected recordings and records the pinned model [verifies SP-1707~1]", func(t *testing.T) {
-		if outcome.Report.ExitCode() != verdict.ExitAllPass {
-			for _, v := range outcome.Report.Verdicts {
-				t.Logf("%s %s %s", v.Status, v.Check, v.Summary)
+	t.Run("the Copilot session passes every check but the allowlist the executor never exercised and records the pinned model [verifies SP-1707~1]", func(t *testing.T) {
+		for _, v := range outcome.Report.Verdicts {
+			wanted := verdict.Pass
+			if v.Check == "agent_allowlist_honoured" {
+				wanted = verdict.Inconclusive
 			}
+			if v.Status != wanted {
+				t.Errorf("%s: %s %s", v.Check, v.Status, v.Summary)
+			}
+		}
+		if outcome.Report.ExitCode() != verdict.ExitInconclusive {
 			t.Fatalf("exit code %d", outcome.Report.ExitCode())
 		}
 		raw, _ := os.ReadFile(filepath.Join(outcome.RunDir, "records", "session.json"))

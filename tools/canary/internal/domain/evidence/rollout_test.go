@@ -184,8 +184,9 @@ func TestStartedATurn(t *testing.T) {
 			{harness.FlagCodex, lines(`{"type":"thread.started","thread_id":"t"}`, `{"type":"turn.started"}`, `{"type":"item.started","item":{"type":"reasoning"}}`), true},
 			{harness.FlagCodex, lines(`{"type":"thread.started","thread_id":"t"}`, `{"type":"turn.started"}`, `{"type":"error","message":"model not available"}`, `{"type":"turn.failed"}`), false},
 			{harness.FlagCodex, lines(`{"type":"thread.started","thread_id":"t"}`, `{"type":"turn.started"}`, `{"type":"item.completed","item":{"type":"error","message":"model not available"}}`, `{"type":"turn.failed"}`), false},
-			{harness.FlagCopilot, lines(`{"type":"session.start","data":{}}`, `{"type":"assistant.turn_start","data":{}}`), true},
-			{harness.FlagCopilot, lines(`{"type":"session.start","data":{}}`, `{"type":"session.error","data":{"errorType":"model"}}`), false},
+			{harness.FlagCopilot, lines(`{"type":"session.mcp_servers_loaded","data":{}}`, `{"type":"assistant.turn_start","data":{}}`), true},
+			{harness.FlagCopilot, lines(`{"type":"session.mcp_servers_loaded","data":{}}`, `{"type":"model.call_start","data":{"model":"gpt-5.6-luna"}}`), true},
+			{harness.FlagCopilot, lines(`{"type":"session.mcp_servers_loaded","data":{}}`, `{"type":"session.error","data":{"errorType":"model"}}`), false},
 			{harness.FlagCopilot, nil, false},
 			{"gemini", lines(`{"type":"assistant"}`), false},
 		} {
@@ -220,20 +221,20 @@ func TestErrorLine(t *testing.T) {
 }
 
 func TestCopilotModelAndTaskCall(t *testing.T) {
-	t.Run("the model a session selected is read from the first session.start that names one [verifies SP-1514~1]", func(t *testing.T) {
+	t.Run("the model a session ran on is read from the first model.call_start that names one [verifies SP-1514~2]", func(t *testing.T) {
 		stream := decodeCopilot(
-			`{"type":"session.start","data":{"sessionId":"s"}}`,
-			`{"type":"session.start","data":{"selectedModel":"gpt-5.6-luna"}}`)
+			`{"type":"model.call_start","data":{"callId":"s"}}`,
+			`{"type":"model.call_start","data":{"model":"gpt-5.6-luna"}}`)
 		event, ok := stream.SelectedModel()
-		if !ok || event.SelectedModel != "gpt-5.6-luna" || event.Line != 2 {
+		if !ok || event.Model != "gpt-5.6-luna" || event.Line != 2 {
 			t.Fatalf("event = %+v, %v", event, ok)
 		}
-		if _, ok := decodeCopilot(`{"type":"session.start","data":{}}`).SelectedModel(); ok {
-			t.Error("a model was read from a start that names none")
+		if _, ok := decodeCopilot(`{"type":"model.call_start","data":{}}`, `{"type":"assistant.message","data":{"model":"x"}}`).SelectedModel(); ok {
+			t.Error("a model was read from an event that is not a call start with a model")
 		}
 	})
 
-	t.Run("the agent type of a task call is read from its arguments, and only a task call has one [verifies SP-1515~1]", func(t *testing.T) {
+	t.Run("the agent type of a task call is read from its arguments, and only a task call has one [verifies SP-1515~2]", func(t *testing.T) {
 		stream := decodeCopilot(
 			`{"type":"tool.execution_start","data":{"toolCallId":"c","toolName":"task","arguments":{"agent_type":"spec-proof-dp:spec-proof-dp-decider","prompt":"p"}}}`,
 			`{"type":"tool.execution_start","data":{"toolCallId":"d","toolName":"bash","arguments":{"agent_type":"x"}}}`,

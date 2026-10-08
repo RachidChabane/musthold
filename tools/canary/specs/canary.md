@@ -117,11 +117,30 @@ which run the evaluators on recorded event streams and make no model call.
   refused its model or failed to start, THE SYSTEM SHALL end the run as a setup
   error with the exit code 2 and the error line the CLI printed, and SHALL NOT
   report checks for it.
-- **SP-1514~1**: WHEN a model is named for a session THE SYSTEM SHALL launch the
+- **SP-1514~2**: WHEN a model is named for a session THE SYSTEM SHALL launch the
   harness on it instead of its default, record the model the session was launched
-  with, and for Copilot CLI conclude from the model that `session.start` reports
-  as selected whether the session ran on it.
-- **SP-1515~1**: WHEN the recorded session of GitHub Copilot CLI names the executor
+  with, and for Copilot CLI conclude from the model that its `model.call_start`
+  events report whether the session ran on it.
+- **SP-1515~2**: WHEN the recorded session of GitHub Copilot CLI names the executor
   agent THE SYSTEM SHALL accept its plain name or the name carrying a plugin prefix,
-  and report the exact name the client used, in the `task` call and in the payload
-  of PreToolUse.
+  and report the exact name the client used in the `task` call.
+
+## Codex hooks, caller identity and the Copilot stream
+
+- **SP-1516~1**: WHEN the recorded session of Codex is evaluated THE SYSTEM SHALL
+  conclude the hooks check INCONCLUSIVE when the pre-tool hook of the primary
+  module never ran and no executor tool call was made, in a payload or in the
+  event stream, for it to match, and FAIL when an executor tool call is recorded
+  and that hook never ran or when any other hook never ran.
+- **SP-1517~1**: WHEN the recorded session of Copilot CLI is evaluated THE SYSTEM
+  SHALL judge the agent attribution of an executor tool payload against what the
+  harness strategy declares, concluding PASS when the strategy declares no caller
+  identification and the payloads carry no agent identity, FAIL when a payload
+  carries an identity the strategy does not declare or lacks the one it does,
+  and INCONCLUSIVE when no executor tool payload was recorded, and SHALL accept
+  the tool name the payload spells with the server and the tool joined by a hyphen.
+- **SP-1518~1**: WHEN the stream of `copilot -p --output-format json` is evaluated
+  THE SYSTEM SHALL read the model of the session from its `model.call_start`
+  events, take the top-level `result` record with exit code 0 as the end of the
+  session and report the premium requests it names, and take a `model.call_start`
+  or an `assistant.turn_start` as the first turn of the session.

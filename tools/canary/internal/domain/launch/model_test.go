@@ -9,7 +9,7 @@ import (
 )
 
 func TestModelChoice(t *testing.T) {
-	t.Run("each harness runs on its default model unless the operator names one, which replaces it in the command [verifies SP-1514~1]", func(t *testing.T) {
+	t.Run("each harness runs on its default model unless the operator names one, which replaces it in the command [verifies SP-1514~2]", func(t *testing.T) {
 		for _, tc := range []struct{ flag, option, defaultModel string }{
 			{"claude", "--model", launch.ClaudeModel},
 			{"codex", "-m", launch.CodexModel},
@@ -34,7 +34,7 @@ func TestModelChoice(t *testing.T) {
 		}
 	})
 
-	t.Run("the default model of Copilot CLI is the CLI's own default [verifies SP-1514~1]", func(t *testing.T) {
+	t.Run("the default model of Copilot CLI is the CLI's own default [verifies SP-1514~2]", func(t *testing.T) {
 		if launch.CopilotModel != "gpt-5.6-luna" {
 			t.Errorf("CopilotModel = %s", launch.CopilotModel)
 		}

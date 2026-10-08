@@ -287,7 +287,7 @@ func TestModelOption(t *testing.T) {
 		{"codex", "gpt-6-luna", "-m"},
 		{"copilot", "gpt-5.6-luna", "--model"},
 	} {
-		t.Run(tc.flag+": the model the operator names replaces the default in the command and in the session record [verifies SP-1514~1]", func(t *testing.T) {
+		t.Run(tc.flag+": the model the operator names replaces the default in the command and in the session record [verifies SP-1514~2]", func(t *testing.T) {
 			w := newWorld(t, tc.flag, night)
 			w.options.CodexHome = t.TempDir()
 			w.options.Model = "custom-model"
@@ -306,7 +306,7 @@ func TestModelOption(t *testing.T) {
 			}
 		})
 
-		t.Run(tc.flag+": the plan prints the model the operator names [verifies SP-1514~1]", func(t *testing.T) {
+		t.Run(tc.flag+": the plan prints the model the operator names [verifies SP-1514~2]", func(t *testing.T) {
 			lines, err := app.Plan(tc.flag, "/repo", "custom-model", app.Homes{})
 			if err != nil || !strings.Contains(strings.Join(lines, "\n"), tc.option+" custom-model") {
 				t.Fatalf("plan %v, %v", lines, err)
