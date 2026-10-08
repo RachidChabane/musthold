@@ -15,7 +15,7 @@ from specbench.analysis.results import analyze
 from specbench.domain.arms import FROZEN_MODEL, Harness
 from specbench.domain.canonical import JsonValue, canonical_results_json
 from specbench.domain.manifest import Manifest
-from support.builders import DIGEST
+from support.builders import DIGEST, PROVENANCE
 from support.synthetic_run import synthetic_trunks, write_synthetic_run
 
 GOLDEN = Path(__file__).parent.parent / "golden"
@@ -27,8 +27,7 @@ def manifest() -> Manifest:
         run_id="sample-synthetic-01",
         seed=7,
         prereg_tag="prereg-sample-1",
-        product_release_digest=DIGEST,
-        shallnot_commit="c" * 40,
+        provenance=PROVENANCE,
         corpus_lock_digest=DIGEST,
         prices_lock_digest=DIGEST,
         os_name="darwin",

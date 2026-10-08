@@ -7,13 +7,13 @@ import pytest
 
 from specbench.adapters.schemas import SchemaName, load_schema, schema_problems
 from specbench.domain.arms import FROZEN_MODEL, Harness
-from specbench.domain.canonical import JsonValue
+from specbench.domain.canonical import JsonValue, canonical_json
 from specbench.domain.jsonread import RecordError
 from specbench.domain.languages import Language
-from specbench.domain.manifest import Manifest, parse_manifest
+from specbench.domain.manifest import CODING_AGENT_CLIS, PRODUCT_ARTIFACTS, Manifest, Provenance, parse_manifest
 from specbench.domain.sealing import CorpusLock, lock_entry_for, parse_lock
 from specbench.domain.task import task_from_record
-from support.builders import DIGEST, TASK_ID, make_bundle, make_task, task_json
+from support.builders import DIGEST, PROVENANCE, TASK_ID, make_bundle, make_task, task_json
 
 
 def manifest() -> Manifest:
@@ -21,8 +21,7 @@ def manifest() -> Manifest:
         run_id="sample-claude-01",
         seed=20261007,
         prereg_tag="prereg-sample-1",
-        product_release_digest=DIGEST,
-        shallnot_commit="c" * 40,
+        provenance=PROVENANCE,
         corpus_lock_digest=DIGEST,
         prices_lock_digest=DIGEST,
         os_name="darwin",
@@ -71,6 +70,32 @@ def test_manifest_conforms_and_round_trips() -> None:
     value = manifest()
     assert schema_problems(SchemaName.MANIFEST, value.to_record()) == []
     assert parse_manifest(value.to_canonical_json()) == value
+
+
+def test_the_manifest_schema_names_exactly_the_domains_product_artifacts_and_clis() -> None:
+    properties = load_schema(SchemaName.MANIFEST)["properties"]
+    assert tuple(properties["product_digests"]["required"]) == tuple(sorted(PRODUCT_ARTIFACTS))
+    assert tuple(properties["cli_versions"]["required"]) == tuple(sorted(CODING_AGENT_CLIS))
+
+
+def test_a_manifest_missing_a_product_digest_or_a_cli_version_is_refused_by_the_schema_and_the_parser() -> None:
+    record = manifest().to_record()
+    digests = {k: v for k, v in PROVENANCE.product_digests.items() if k != "spec-proof-s1"}
+    versions = {k: v for k, v in PROVENANCE.cli_versions.items() if k != "codex"}
+    for field, remaining in (("product_digests", digests), ("cli_versions", versions)):
+        broken: dict[str, JsonValue] = {**record, field: remaining}
+        assert schema_problems(SchemaName.MANIFEST, broken) != []
+        with pytest.raises(RecordError):
+            parse_manifest(canonical_json(broken))
+
+
+def test_a_malformed_provenance_is_refused() -> None:
+    with pytest.raises(RecordError):
+        Provenance({**PROVENANCE.product_digests, "spec-proof-s1": "short"}, "c" * 40, PROVENANCE.cli_versions)
+    with pytest.raises(RecordError):
+        Provenance(PROVENANCE.product_digests, "not-a-sha", PROVENANCE.cli_versions)
+    with pytest.raises(RecordError):
+        Provenance(PROVENANCE.product_digests, "c" * 40, {"claude": "1.0.0", "codex": ""})
 
 
 def test_manifest_refuses_a_model_other_than_the_frozen_one() -> None:

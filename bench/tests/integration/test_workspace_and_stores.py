@@ -18,6 +18,7 @@ from specbench.domain.manifest import CALL_FILES, Manifest, RunLayout
 from specbench.domain.pacing import PacingPolicy, RunPaused, RunWindow
 from specbench.domain.sealing import SealedBundle
 from specbench.domain.sessions import CallRecord, SessionKind, SessionRequest, SessionResult
+from support.builders import PROVENANCE
 from support.fakes import FakeAgentHarness, FixedClock
 from support.upstream import GOOD_V1, TASK, bundle, make_upstream, task
 
@@ -140,8 +141,7 @@ def test_manifest_and_deviations_are_stored_in_canonical_form(tmp_path: Path) ->
         run_id="sample-claude-01",
         seed=1,
         prereg_tag="prereg-sample-1",
-        product_release_digest="1" * 64,
-        shallnot_commit="c" * 40,
+        provenance=PROVENANCE,
         corpus_lock_digest="2" * 64,
         prices_lock_digest="3" * 64,
         os_name="darwin",

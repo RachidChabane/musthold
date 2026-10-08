@@ -65,6 +65,11 @@ def bundle_digest_of(file_digests: Mapping[str, str]) -> str:
     return sha256_hex(canonical_bytes(dict(sorted(file_digests.items()))))
 
 
+def tree_digest(files: Mapping[str, bytes]) -> str:
+    """The content digest of a tree: equal digests are equal trees, whatever the insertion order."""
+    return bundle_digest_of({path: sha256_hex(content) for path, content in files.items()})
+
+
 def pack_bundle(bundle: SealedBundle) -> bytes:
     """A deterministic tar of the bundle: sorted names, fixed owner, mode and time."""
     buffer = io.BytesIO()

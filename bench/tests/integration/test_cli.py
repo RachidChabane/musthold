@@ -17,7 +17,7 @@ from specbench.domain.languages import Language
 from specbench.domain.manifest import Manifest
 from specbench.domain.mining import MiningConfig
 from specbench.domain.pacing import EXIT_PAUSED
-from support.builders import task_json
+from support.builders import PROVENANCE, task_json
 from support.github_world import FakeGitHub, WorldRepo
 from support.synthetic_run import write_synthetic_run
 from support.upstream import GOOD_V1, TASK, bundle, make_upstream, task
@@ -191,8 +191,7 @@ def test_analyze_and_report_lint_through_the_cli(tmp_path: Path) -> None:
         run_id="sample-synthetic-01",
         seed=7,
         prereg_tag="prereg-sample-1",
-        product_release_digest="1" * 64,
-        shallnot_commit="c" * 40,
+        provenance=PROVENANCE,
         corpus_lock_digest="2" * 64,
         prices_lock_digest="3" * 64,
         os_name="darwin",

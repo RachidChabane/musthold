@@ -7,6 +7,7 @@ from datetime import date
 
 from specbench.domain.canonical import canonical_json
 from specbench.domain.languages import Language
+from specbench.domain.manifest import CODING_AGENT_CLIS, PRODUCT_ARTIFACTS, Provenance
 from specbench.domain.sealing import SealedBundle
 from specbench.domain.task import Criterion, CriterionStatus, Task, Toolchain
 
@@ -14,6 +15,11 @@ TASK_ID = "ACME-PARKFEE-12"
 BASE = "1" * 40
 MERGE = "2" * 40
 DIGEST = "3" * 64
+PROVENANCE = Provenance(
+    product_digests={name: f"{index:x}" * 64 for index, name in enumerate(PRODUCT_ARTIFACTS, start=1)},
+    shallnot_commit="c" * 40,
+    cli_versions={cli: f"{cli} 1.0.0" for cli in CODING_AGENT_CLIS},
+)
 
 
 def make_task(**changes: object) -> Task:

@@ -14,6 +14,7 @@ from specbench.domain.candidates import Candidate
 from specbench.domain.canonical import JsonValue
 from specbench.domain.construction import ModelRequest, ModelResponse
 from specbench.domain.languages import Language
+from specbench.domain.manifest import Provenance
 from specbench.domain.mining import BaseSnapshot, PullRequest, PullSummary, Rejection, Repository
 from specbench.domain.oracle import OracleTest, Outcome
 from specbench.domain.pacing import CallLedger
@@ -221,3 +222,9 @@ class LedgerStore(Protocol):
     def load(self) -> CallLedger: ...
 
     def save(self, ledger: CallLedger) -> None: ...
+
+
+class ProvenanceSource(Protocol):
+    """Reads what a run is about to execute: the product artifacts, the Shallnot pin and the coding-agent CLIs."""
+
+    def read(self) -> Provenance: ...
