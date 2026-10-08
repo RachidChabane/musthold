@@ -10,6 +10,7 @@ use (
 	./tools/archtest
 	./tools/canary
 	./tools/e2e
+	./tools/release
 	./umbrella
 	./verify
 )
