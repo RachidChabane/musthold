@@ -224,6 +224,12 @@ class LedgerStore(Protocol):
     def save(self, ledger: CallLedger) -> None: ...
 
 
+class FileTreeFactory(Protocol):
+    """Materializes a tree from its files alone, with no history behind it."""
+
+    def materialize_files(self, files: Mapping[str, bytes]) -> AbstractContextManager[Path]: ...
+
+
 class ProvenanceSource(Protocol):
     """Reads what a run is about to execute: the product artifacts, the Shallnot pin and the coding-agent CLIs."""
 
