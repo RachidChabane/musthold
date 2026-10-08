@@ -85,7 +85,7 @@ func TestCommandLine(t *testing.T) {
 		}
 	})
 
-	t.Run("a recorded Copilot session is evaluated from its directory [verifies SP-1707~1]", func(t *testing.T) {
+	t.Run("a recorded Copilot session is evaluated from its directory [verifies SP-1707~2]", func(t *testing.T) {
 		records := t.TempDir()
 		entries, err := os.ReadDir(recordedCopilotSession)
 		if err != nil {

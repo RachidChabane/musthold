@@ -181,7 +181,7 @@ func TestSyntheticSessionOfCopilot(t *testing.T) {
 		}
 	})
 
-	t.Run("the Copilot session passes every check but the allowlist the executor never exercised and records the pinned model [verifies SP-1707~1]", func(t *testing.T) {
+	t.Run("the Copilot session passes every check but the allowlist the executor never exercised and records the pinned model [verifies SP-1707~2]", func(t *testing.T) {
 		for _, v := range outcome.Report.Verdicts {
 			wanted := verdict.Pass
 			if v.Check == "agent_allowlist_honoured" {

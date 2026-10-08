@@ -13,7 +13,6 @@ import (
 // nothing about the harness.
 const (
 	copilotAssistantPrefix = "assistant."
-	copilotModelPrefix     = "model."
 	copilotToolPrefix      = "tool."
 	copilotSubagentPrefix  = "subagent."
 	codexItemPrefix        = "item."
@@ -49,7 +48,7 @@ func beginsATurn(flag, eventType, itemType string) bool {
 	case harness.FlagCodex:
 		return strings.HasPrefix(eventType, codexItemPrefix) && itemType != codexItemError || eventType == CodexEventTurnCompleted
 	case harness.FlagCopilot:
-		return strings.HasPrefix(eventType, copilotAssistantPrefix) || strings.HasPrefix(eventType, copilotModelPrefix) || strings.HasPrefix(eventType, copilotToolPrefix) || strings.HasPrefix(eventType, copilotSubagentPrefix)
+		return strings.HasPrefix(eventType, copilotAssistantPrefix) || eventType == CopilotEventModelCallStart || strings.HasPrefix(eventType, copilotToolPrefix) || strings.HasPrefix(eventType, copilotSubagentPrefix)
 	default:
 		return false
 	}
