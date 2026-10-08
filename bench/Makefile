@@ -11,7 +11,7 @@
 #   6. script/verify-corpus --corpus corpus --identity ~/.specbench/identity.txt
 # construct --night shares the per-night Claude cap with any other job on the same night: lower --budget accordingly.
 # Construction files that hold sealed material live under $SPECBENCH_WORK (default ~/.specbench-work), never in the repository.
-.PHONY: help setup test lint check mine select construct keygen seal unseal verify-corpus build-env verify-task build-workspace analyze report-lint window-status
+.PHONY: help setup test lint check mine select construct keygen seal unseal verify-corpus build-env verify-task build-workspace analyze report-lint window-status night-budget
 
 help:  ## list verbs
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n",$$1,$$2}'
@@ -66,3 +66,6 @@ report-lint:  ## lint a rendered report
 
 window-status:  ## exit 0 inside the nightly window, 3 outside
 	script/window-status $(ARGS)
+
+night-budget:  ## the executions a night job may spend tonight (ARGS="construct")
+	script/night-budget $(ARGS)

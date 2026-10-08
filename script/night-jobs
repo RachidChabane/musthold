@@ -12,6 +12,15 @@
 # Every step keeps its own guards: the run window, the nightly call budget and
 # script/mem-guard. Output goes to $NIGHT_JOBS_LOG_DIR (default
 # ~/Library/Logs/spec-proof).
+#
+# Environment:
+#   NIGHT_JOBS_SLOTS=1           run each job under script/with-slot (pilot 2 slots, canaries 1,
+#                                construct 1), so at most two jobs run at once on the machine.
+#                                Off by default: a pilot holding both slots keeps the canaries and
+#                                construct from starting until it ends.
+#   NIGHT_JOBS_SLOT_WAIT_SECONDS how long a job waits for its slots before it pauses (default 0)
+#   NIGHT_JOBS_DRY_RUN=1         print the commands the jobs would launch instead of launching them
+#   NIGHT_JOBS_BUDGET_DELEGATE=0 compute construction's budget here instead of in bench/script/night-budget
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
@@ -27,12 +36,28 @@ readonly CONSTRUCT_BUDGET="${NIGHT_JOBS_CONSTRUCT_BUDGET:-120}"
 # quota; the canaries keep one call per harness session in reserve.
 readonly NIGHT_CLAUDE_CAP="${NIGHT_JOBS_CLAUDE_CAP:-250}"
 readonly CANARY_CLAUDE_RESERVE=1
-readonly PILOT_LEDGER="${PILOT_DIR}/runs/${PILOT_RUN}/call_budget.json"
+readonly PILOT_LEDGER="${NIGHT_BUDGET_PILOT_LEDGER:-${ROOT}/${PILOT_DIR}/runs/${PILOT_RUN}/call_budget.json}"
+readonly WITH_SLOT="${ROOT}/script/with-slot"
+readonly NIGHT_BUDGET="${ROOT}/bench/script/night-budget"
+readonly EXIT_NO_SLOT=75
+readonly PILOT_SLOTS=2
+readonly CANARY_SLOTS=1
+readonly CONSTRUCT_SLOTS=1
+readonly SLOT_WAIT_SECONDS="${NIGHT_JOBS_SLOT_WAIT_SECONDS:-0}"
 
 mkdir -p "${LOG_DIR}" "${CANARY_STAMP_DIR}"
 
 log() {
   echo "[night-jobs $(date -u +%Y-%m-%dT%H:%M:%SZ)] $*"
+}
+
+# launch runs a command of a job, or only prints it under NIGHT_JOBS_DRY_RUN=1.
+launch() {
+  if [[ "${NIGHT_JOBS_DRY_RUN:-0}" == 1 ]]; then
+    log "dry-run: ${PWD}: $*"
+    return 0
+  fi
+  "$@"
 }
 
 run_pilot() {
@@ -46,7 +71,7 @@ run_pilot() {
     return 0
   fi
   log "pilot: resuming ${PILOT_RUN}"
-  (cd "${PILOT_DIR}" && caffeinate -is ./script/run-pilot "${PILOT_RUN}")
+  (cd "${PILOT_DIR}" && launch caffeinate -is ./script/run-pilot "${PILOT_RUN}")
 }
 
 # run_canary runs one harness's canary and returns its exit status.
@@ -55,7 +80,7 @@ run_canary() {
   shift
   log "canary: ${harness}"
   local status=0
-  "script/canary-${harness}" "$@" || status=$?
+  launch "script/canary-${harness}" "$@" || status=$?
   log "canary: ${harness} exit ${status}"
   return "${status}"
 }
@@ -70,7 +95,7 @@ run_canaries() {
   fi
   export SHALLNOT_SRC="${SHALLNOT_SRC:-${SHALLNOT_SRC_DEFAULT}}"
   log "canaries: building"
-  script/canary-build
+  launch script/canary-build
   local failed=0
   run_canary claude --shared-home || failed=1
   run_canary codex || failed=1
@@ -96,12 +121,36 @@ pilot_claude_calls() {
   jq -r --arg night "$1" '.[$night].claude // 0' "${PILOT_LEDGER}"
 }
 
-# construct_budget prints the calls construction may make tonight: its own
-# budget, bounded by what the nightly cap leaves after the pilot and the canaries.
-construct_budget() {
+# legacy_construct_budget is construction's budget from the pilot's ledger and the canary reserve alone.
+legacy_construct_budget() {
   local left
   left=$((NIGHT_CLAUDE_CAP - $(pilot_claude_calls "$(night_date)") - CANARY_CLAUDE_RESERVE))
   ((left < CONSTRUCT_BUDGET)) && echo "$((left > 0 ? left : 0))" || echo "${CONSTRUCT_BUDGET}"
+}
+
+# night_budget_share prints the executions bench/script/night-budget hands to a job tonight. It fails unless the
+# computation succeeds and prints one integer.
+night_budget_share() {
+  local share
+  share="$(
+    NIGHT_BUDGET_PILOT_LEDGER="${PILOT_LEDGER}" \
+      NIGHT_JOBS_CLAUDE_CAP="${NIGHT_CLAUDE_CAP}" \
+      NIGHT_JOBS_CONSTRUCT_BUDGET="${CONSTRUCT_BUDGET}" \
+      "${NIGHT_BUDGET}" "$1" --night "$(night_date)"
+  )" || return 1
+  [[ "${share}" =~ ^[0-9]+$ ]] || return 1
+  echo "${share}"
+}
+
+# construct_budget prints the calls construction may make tonight: the share of the nightly cap that
+# bench/script/night-budget gives it after the pilot and the canary reserve. When that computation fails the
+# pilot-and-canary arithmetic stands in, so a fault in the computation never stops the night.
+construct_budget() {
+  if [[ "${NIGHT_JOBS_BUDGET_DELEGATE:-1}" == 1 ]]; then
+    night_budget_share construct && return 0
+    log "construct: night-budget failed; using the pilot ledger and the canary reserve" >&2
+  fi
+  legacy_construct_budget
 }
 
 run_construct() {
@@ -116,14 +165,30 @@ run_construct() {
     return 0
   fi
   log "construct: budget ${budget}"
-  (cd bench && caffeinate -is script/construct --night --budget "${budget}")
+  (cd bench && launch caffeinate -is script/construct --night --budget "${budget}")
+}
+
+# run_job_in_slots runs a job under script/with-slot when NIGHT_JOBS_SLOTS=1, by starting this script again as a child
+# of the slot holder; a job already inside its slots runs directly. No free slot pauses the job with exit 3.
+run_job_in_slots() {
+  local job="$1" slots="$2" status=0
+  if [[ "${NIGHT_JOBS_SLOTS:-0}" != 1 || -n "${SPEC_PROOF_SLOTS_HELD:-}" ]]; then
+    "run_${job}"
+    return
+  fi
+  "${WITH_SLOT}" "${slots}" --wait "${SLOT_WAIT_SECONDS}" -- "${ROOT}/script/night-jobs" "${job}" || status=$?
+  if [[ ${status} -eq ${EXIT_NO_SLOT} ]]; then
+    log "${job}: ${slots} machine slot(s) are held by other jobs"
+    return "${EXIT_PAUSED}"
+  fi
+  return "${status}"
 }
 
 main() {
   case "${1:-}" in
-    pilot) run_pilot ;;
-    canaries) run_canaries ;;
-    construct) run_construct ;;
+    pilot) run_job_in_slots pilot "${PILOT_SLOTS}" ;;
+    canaries) run_job_in_slots canaries "${CANARY_SLOTS}" ;;
+    construct) run_job_in_slots construct "${CONSTRUCT_SLOTS}" ;;
     *)
       echo "usage: script/night-jobs pilot | canaries | construct" >&2
       return 2

@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# The executions a night job may spend tonight, as one integer on standard output.
+#
+#   bench/script/night-budget pilot|canaries|construct|sample [--harness claude-code|codex] [--night YYYY-MM-DD]
+#                             [--canary-reserve N] [--record-canary N] [--explain] [verb options]
+#
+# The nightly cap is handed out in priority order: pilot, canary reserve, construction (while a selected task is
+# unsealed), then the sample. The computation reads every ledger under an exclusive budget.lock: the pilot's
+# (key "claude" is read as "claude-code"), construction's, the sample's and the separate Codex sample ledger. The
+# canary reserve is the canaries' measured executions: pass --canary-reserve, or record it once with --record-canary N.
+# A share is the job's total allowance for the night, for its own --budget; what the job already spent is not
+# subtracted from it.
+#
+# Environment: NIGHT_JOBS_CLAUDE_CAP and NIGHT_JOBS_CODEX_CAP (the caps, default 250 each),
+# NIGHT_JOBS_CONSTRUCT_BUDGET (construction's ceiling, default 120), NIGHT_BUDGET_PILOT_LEDGER,
+# SPECBENCH_SAMPLE_CLAUDE_RUN and SPECBENCH_SAMPLE_CODEX_RUN (run directories under bench/runs),
+# SPEC_PROOF_STATE_DIR (where budget.lock and the recorded canary reserve live).
+set -euo pipefail
+# shellcheck source=bench/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+args=("$@")
+has_option() {
+  local option
+  for option in "${args[@]}"; do [[ "${option}" == "$1" ]] && return 0; done
+  return 1
+}
+SEED="${SPECBENCH_SEED:-20261007}"
+PILOT_LEDGER="${NIGHT_BUDGET_PILOT_LEDGER:-${REPO_ROOT}/experiments/limits-1-3/runs/run-02/call_budget.json}"
+SAMPLE_CLAUDE_RUN="${SPECBENCH_SAMPLE_CLAUDE_RUN:-sample-claude-01}"
+SAMPLE_CODEX_RUN="${SPECBENCH_SAMPLE_CODEX_RUN:-sample-codex-01}"
+has_option --claude-cap || args+=(--claude-cap "${NIGHT_JOBS_CLAUDE_CAP:-250}")
+has_option --codex-cap || args+=(--codex-cap "${NIGHT_JOBS_CODEX_CAP:-250}")
+has_option --construct-allowance || args+=(--construct-allowance "${NIGHT_JOBS_CONSTRUCT_BUDGET:-120}")
+has_option --pilot-ledger || args+=(--pilot-ledger "${PILOT_LEDGER}")
+has_option --construct-ledger || args+=(--construct-ledger "${SPECBENCH_WORK}/construction/call_budget.json")
+has_option --sample-ledger || args+=(--sample-ledger "${BENCH_DIR}/runs/${SAMPLE_CLAUDE_RUN}/call_budget.json")
+has_option --codex-ledger || args+=(--codex-ledger "${BENCH_DIR}/runs/${SAMPLE_CODEX_RUN}/call_budget.json")
+has_option --selection || args+=(--selection "${BENCH_DIR}/selection/${SEED}")
+has_option --corpus || args+=(--corpus "${BENCH_DIR}/corpus")
+specbench_light night-budget "${args[@]}"

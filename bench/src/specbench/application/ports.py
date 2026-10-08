@@ -18,6 +18,7 @@ from specbench.domain.gate import GateMode, GateOutcome
 from specbench.domain.languages import Language
 from specbench.domain.manifest import Provenance
 from specbench.domain.mining import BaseSnapshot, PullRequest, PullSummary, Rejection, Repository
+from specbench.domain.night_budget import NightJob
 from specbench.domain.oracle import OracleTest, Outcome
 from specbench.domain.reservation import ExecutionHistory
 from specbench.domain.sealing import CorpusLock, SealedBundle
@@ -248,6 +249,26 @@ class ExecutionCounter(Protocol):
     """Counts the model executions a harness's stream shows: the session plus every subagent it started."""
 
     def count(self, events: Sequence[str]) -> int: ...
+
+
+class NightLedgers(Protocol):
+    """The ledger of each job that spends a harness's nightly cap; a harness with no ledger of its own reads as empty."""
+
+    def read(self, job: NightJob, harness: Harness) -> CallLedger: ...
+
+
+class ConstructionProgress(Protocol):
+    def has_unsealed_task(self) -> bool:
+        """Whether a language has fewer sealed tasks than the selection chose for it."""
+        ...
+
+
+class CanaryReserveStore(Protocol):
+    """The executions the canaries measured per harness, recorded after a canary night."""
+
+    def measured(self, harness: Harness) -> int | None: ...
+
+    def record(self, harness: Harness, executions: int) -> None: ...
 
 
 class FileTreeFactory(Protocol):

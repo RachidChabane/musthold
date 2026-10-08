@@ -24,11 +24,14 @@ from specbench.analysis.selection_null import DEFAULT_PERMUTATIONS
 from specbench.application.paced_calls import ModelNotFrozen
 from specbench.cli import commands
 from specbench.cli.commands import Console
+from specbench.cli.night_commands import NightBudgetRequest, run_night_budget
+from specbench.domain.arms import Harness
 from specbench.domain.canonical import CanonicalError
 from specbench.domain.construction import ModelCallFailed
 from specbench.domain.jsonread import RecordError
 from specbench.domain.languages import Language
 from specbench.domain.mining import RESERVE_TASKS_PER_LANGUAGE, SAMPLE_TASKS_PER_LANGUAGE
+from specbench.domain.night_budget import DEFAULT_CONSTRUCT_ALLOWANCE, DEFAULT_NIGHTLY_CAP, NightJob
 from specbench.domain.pacing import (
     ALWAYS_OPEN,
     DEFAULT_CALL_BUDGET,
@@ -78,6 +81,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_corpus_verbs(verbs.add_parser)
     _add_task_verbs(verbs.add_parser)
     _add_run_verbs(verbs.add_parser)
+    _add_night_verbs(verbs.add_parser)
     return parser
 
 
@@ -176,6 +180,47 @@ def _add_run_verbs(add: AddVerb) -> None:
     window.add_argument("--now", type=datetime.fromisoformat, default=None)
 
 
+def _add_night_verbs(add: AddVerb) -> None:
+    budget = add("night-budget", help="the executions a night job may spend tonight, computed under budget.lock")
+    budget.add_argument("job", choices=[job.value for job in NightJob])
+    budget.add_argument("--harness", choices=[harness.value for harness in Harness], default=Harness.CLAUDE_CODE.value)
+    budget.add_argument("--night", type=date.fromisoformat, default=None, help="the night's date (default: now)")
+    budget.add_argument("--claude-cap", type=int, default=DEFAULT_NIGHTLY_CAP)
+    budget.add_argument("--codex-cap", type=int, default=DEFAULT_NIGHTLY_CAP)
+    budget.add_argument("--construct-allowance", type=int, default=DEFAULT_CONSTRUCT_ALLOWANCE)
+    budget.add_argument("--canary-reserve", type=int, default=None, help="executions the canaries use tonight")
+    budget.add_argument("--record-canary", type=int, default=None, help="record the canaries' measured executions")
+    budget.add_argument("--pilot-ledger", type=_path, required=True)
+    budget.add_argument("--construct-ledger", type=_path, required=True)
+    budget.add_argument("--sample-ledger", type=_path, required=True)
+    budget.add_argument("--codex-ledger", type=_path, required=True)
+    budget.add_argument("--selection", type=_path, required=True)
+    budget.add_argument("--corpus", type=_path, required=True)
+    budget.add_argument("--state-dir", type=_path, default=None)
+    budget.add_argument("--explain", action="store_true", help="print every input and every share as JSON")
+
+
+def _night_budget(a: argparse.Namespace, console: Console) -> int:
+    request = NightBudgetRequest(
+        NightJob(a.job),
+        Harness(a.harness),
+        a.night,
+        {Harness.CLAUDE_CODE: a.claude_cap, Harness.CODEX: a.codex_cap},
+        a.construct_allowance,
+        a.canary_reserve,
+        a.record_canary,
+        a.pilot_ledger,
+        a.construct_ledger,
+        a.sample_ledger,
+        a.codex_ledger,
+        a.selection,
+        a.corpus,
+        a.state_dir,
+        a.explain,
+    )
+    return run_night_budget(request, console)
+
+
 def _handlers() -> dict[str, Handler]:
     return {
         "mine": lambda a, c: (
@@ -212,6 +257,7 @@ def _handlers() -> dict[str, Handler]:
         "analyze": lambda a, c: commands.run_analyze(a.run, a.resamples, a.permutations, c),
         "report-lint": lambda a, c: commands.run_report_lint(a.report, c),
         "window-status": lambda a, c: commands.run_window_status(a.window, a.now, c),
+        "night-budget": _night_budget,
     }
 
 

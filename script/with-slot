@@ -1,0 +1,72 @@
+#!/usr/bin/env -S python3 -I
+"""Run a command while holding machine-wide execution slots; at most two are held at once on this machine.
+
+    script/with-slot N [--wait SECONDS] [--dir DIRECTORY] -- COMMAND [ARGS...]
+
+N is 1 or 2. The slots are exclusive `flock`s on slot-<n>.lock (default directory
+~/Library/Application Support/spec-proof/slots, or $SPEC_PROOF_SLOTS_DIR). The command replaces this process and
+inherits the locks, so the slots are freed when the command and everything it started has exited, or died.
+The command sees SPEC_PROOF_SLOTS_HELD, a comma-separated list of the slot numbers it holds.
+
+--wait SECONDS  poll for free slots for up to SECONDS (default 0: do not wait).
+Exit status: 75 when the slots did not come free in time, 2 on a usage error, else the command's own.
+"""
+
+import argparse
+import os
+import sys
+from pathlib import Path
+
+REPOSITORY = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPOSITORY / "bench" / "src"))
+
+from specbench.adapters.machine_slots import (  # noqa: E402
+    DEFAULT_POLL_SECONDS,
+    HELD_SLOTS_ENV,
+    SLOT_COUNT,
+    MachineSlots,
+    default_slots_directory,
+)
+
+EXIT_NO_SLOT = 75
+EXIT_USAGE = 2
+
+
+def partition(argv):
+    """The options before the first `--`, whether there was one, and the command after it."""
+    if "--" not in argv:
+        return argv, False, []
+    cut = argv.index("--")
+    return argv[:cut], True, argv[cut + 1 :]
+
+
+def parse(argv):
+    parser = argparse.ArgumentParser(prog="with-slot", usage="with-slot N [--wait SECONDS] [--dir DIR] -- COMMAND...")
+    parser.add_argument("count", type=int, choices=range(1, SLOT_COUNT + 1))
+    parser.add_argument("--wait", type=float, default=0.0)
+    parser.add_argument("--dir", type=Path, default=None)
+    own, separator, command = partition(argv)
+    arguments = parser.parse_args(own)
+    if not separator or not command:
+        parser.error("a command is required after --")
+    return arguments, command
+
+
+def main(argv):
+    arguments, command = parse(argv)
+    slots = MachineSlots(arguments.dir or default_slots_directory())
+    hold = slots.acquire(arguments.count, arguments.wait, DEFAULT_POLL_SECONDS)
+    if hold is None:
+        print(f"with-slot: {arguments.count} slot(s) not free after {arguments.wait:g}s", file=sys.stderr)
+        return EXIT_NO_SLOT
+    hold.make_inheritable()
+    os.environ[HELD_SLOTS_ENV] = ",".join(str(index) for index in hold.indices)
+    try:
+        os.execvp(command[0], command)
+    except OSError as error:
+        print(f"with-slot: cannot run {command[0]}: {error}", file=sys.stderr)
+        return 127
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
