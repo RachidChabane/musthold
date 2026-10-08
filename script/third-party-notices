@@ -35,6 +35,7 @@ from pathlib import Path
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 OUTPUT_FILE = "THIRD_PARTY_NOTICES.md"
 WORKSPACE_FILE = "go.work"
+WORKSPACE_SUMS_FILE = "go.work.sum"
 REPOSITORY_MODULE_PREFIX = "github.com/RachidChabane/spec-proof"
 PYTHON_LOCK_FILES = (
     "bench/uv.lock",
@@ -392,7 +393,13 @@ def render(go: list[GoModule], python: list[PythonPackage]) -> str:
 
 def build(root: Path, extra_sources: list[Path]) -> str:
     recorded = read_recorded(root / OUTPUT_FILE)
-    go = go_modules(root, recorded)
+    sums = root / WORKSPACE_SUMS_FILE
+    sums_existed = sums.exists()
+    try:
+        go = go_modules(root, recorded)
+    finally:
+        if not sums_existed:
+            sums.unlink(missing_ok=True)
     python = python_packages(root, default_license_sources(root, extra_sources), recorded)
     return render(go, python)
 
