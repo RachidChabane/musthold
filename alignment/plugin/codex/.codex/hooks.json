@@ -2,7 +2,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "mcp__spec-proof-alignment-exec__.*",
+        "matcher": "mcp__spec_proof_alignment_exec__.*",
         "hooks": [
           {
             "type": "command",

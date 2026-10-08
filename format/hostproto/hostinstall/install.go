@@ -152,7 +152,7 @@ func (m Module) Installed(files Files) []string {
 	if fileMentions(files, claudeSettings, m.pluginKey()) {
 		installed = append(installed, harness.FlagClaude)
 	}
-	if fileMentions(files, pluginfiles.CodexHooksPath, m.Files.HookCommandMarker()) {
+	if m.codexInstalled(files) {
 		installed = append(installed, harness.FlagCodex)
 	}
 	if files.Exists(m.Files.CopilotHooksPath()) {
@@ -199,7 +199,7 @@ func (m Module) harnessProvisioners(selected harness.Harness) ([]provisioner, []
 		steps = append(steps, fmt.Sprintf("Claude Code: install the %s plugin from the %s marketplace; the project settings enable it.", m.Files.Plugin(), Marketplace))
 	default:
 		for _, file := range generated {
-			provisioners = append(provisioners, filePath(file))
+			provisioners = append(provisioners, m.filePath(file))
 		}
 	}
 	if selected.Flag == harness.FlagCodex {
@@ -210,16 +210,44 @@ func (m Module) harnessProvisioners(selected harness.Harness) ([]provisioner, []
 
 // filePath is the strategy for one generated file: hook files shared with other
 // tools are merged into, every other file is owned.
-func filePath(file pluginfiles.File) provisioner {
-	if file.Path == pluginfiles.CodexHooksPath {
+func (m Module) filePath(file pluginfiles.File) provisioner {
+	switch file.Path {
+	case pluginfiles.CodexHooksPath:
 		return provisioner{path: file.Path, desired: func(current []byte) ([]byte, error) {
 			if current == nil {
 				return file.Content, nil
 			}
 			return mergeHookEntries(current, file.Content)
 		}}
+	case pluginfiles.CodexConfigPath:
+		return provisioner{path: file.Path, desired: m.codexConfigBlock(file).set}
 	}
 	return provisioner{path: file.Path, desired: fixed(file.Content)}
+}
+
+// codexConfigBlock is the module's table of the project's Codex config.toml.
+func (m Module) codexConfigBlock(file pluginfiles.File) markedBlock {
+	return markedBlock{begin: m.Files.CodexConfigBegin(), end: m.Files.CodexConfigEnd(), text: string(file.Content)}
+}
+
+// codexConfigProvisioner is the strategy for the module's table of the Codex
+// config.toml: put it in, or take it out.
+func (m Module) codexConfigProvisioner(present bool) (provisioner, error) {
+	files, err := m.Files.For(harness.Codex(m.Files.Identity))
+	if err != nil {
+		return provisioner{}, err
+	}
+	for _, file := range files {
+		if file.Path != pluginfiles.CodexConfigPath {
+			continue
+		}
+		block := m.codexConfigBlock(file)
+		if present {
+			return provisioner{path: file.Path, desired: block.set}, nil
+		}
+		return provisioner{path: file.Path, desired: block.remove}, nil
+	}
+	return provisioner{}, fmt.Errorf("the Codex files of %s have no %s", m.Files.Plugin(), pluginfiles.CodexConfigPath)
 }
 
 // seedConfig writes the configuration of a project that has none, and makes sure
@@ -330,18 +358,35 @@ func (m Module) BuildEnable(files Files) (Plan, error) {
 		steps = append(steps, m.advisoryNote())
 	}
 	provisioners = append(provisioners, provisioner{path: agentsPath, desired: m.setAgentsBlock})
+	if m.codexInstalled(files) {
+		codex, err := m.codexConfigProvisioner(true)
+		if err != nil {
+			return Plan{}, err
+		}
+		provisioners = append(provisioners, codex)
+	}
 	return buildPlan(files, provisioners, steps)
 }
 
+// codexInstalled reports whether the project runs the module's hooks on Codex.
+func (m Module) codexInstalled(files Files) bool {
+	return fileMentions(files, pluginfiles.CodexHooksPath, m.Files.HookCommandMarker())
+}
+
 // BuildDisable plans the reverse of BuildEnable, leaving the files of the
-// harnesses in place.
+// harnesses in place except the module's table of the Codex config.toml, which
+// starts the executor server.
 func (m Module) BuildDisable(files Files) (Plan, error) {
 	provisioners := []provisioner{{path: m.ConfigPath, desired: m.disableFlag}}
 	if m.Required {
 		provisioners = append(provisioners, provisioner{path: shallnotConfig, desired: m.dropFromGate})
 	}
 	provisioners = append(provisioners, provisioner{path: agentsPath, desired: m.removeAgentsBlock})
-	return buildPlan(files, provisioners, nil)
+	codex, err := m.codexConfigProvisioner(false)
+	if err != nil {
+		return Plan{}, err
+	}
+	return buildPlan(files, append(provisioners, codex), nil)
 }
 
 func (m Module) setProofFlag(enabled bool) func([]byte) ([]byte, error) {

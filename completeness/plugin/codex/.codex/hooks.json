@@ -2,7 +2,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "mcp__spec-proof-completeness-exec__.*",
+        "matcher": "mcp__spec_proof_completeness_exec__.*",
         "hooks": [
           {
             "type": "command",

@@ -171,7 +171,7 @@ func tomlTable(t *testing.T, text string) map[string]map[string]any {
 	for _, line := range strings.Split(strings.TrimSpace(text), "\n") {
 		line = strings.TrimSpace(line)
 		switch {
-		case line == "":
+		case line == "" || strings.HasPrefix(line, "#"):
 		case strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]"):
 			current = strings.TrimSuffix(strings.TrimPrefix(line, "["), "]")
 			tables[current] = map[string]any{}

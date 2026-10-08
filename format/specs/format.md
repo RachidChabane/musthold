@@ -401,15 +401,15 @@ Go tests of the module in CI.
 - **SP-710~1**: WHEN a hook is not about the module's executors THE SYSTEM SHALL
   leave the call alone without opening any state, deny a call of the module's own
   tools that it cannot check, and accept a receipt with whitespace around it.
-- **SP-711~2**: WHEN the host files of a module are generated for a harness THE
+- **SP-711~3**: WHEN the host files of a module are generated for a harness THE
   SYSTEM SHALL give the Claude Code plugin its manifest, its executor server, one
   agent per executor role of the module holding exactly the two executor tools
   with the inherited model, a blind context and four turns, its four hooks under
   matchers that select the executor alone, and a skill that pre-approves what its
   loop runs and, once the loop ended with a verdict, publishes the local proofs by
   running `spec-proof-verify --accept-local .spec-proof/cache --out
-  .spec-proof/verified`; give Codex read-only agents carrying the executor server,
-  hook entries and a skill that ends the same way; give Copilot agents naming
+  .spec-proof/verified`; give Codex read-only agents, the executor server in the
+  project's `config.toml`, hook entries and a skill that ends the same way; give Copilot agents naming
   server and tool pairs, a hooks file and a skill that ends the same way; and
   carry no text about their own authoring.
 - **SP-712~1**: WHEN the host files are generated twice THE SYSTEM SHALL produce
@@ -485,6 +485,19 @@ Go tests of the module in CI.
   THE SYSTEM SHALL keep attestation required and sampling off when the section is
   absent, read `sampling` and `require_attestation`, refuse an unknown or
   mistyped member, and tolerate the sections the other modules keep in the file.
+- **SP-721~1**: WHEN a module is installed for Codex, enabled or disabled THE
+  SYSTEM SHALL keep its executor server as one table of `.codex/config.toml`,
+  named after its plugin, whose tools run without asking, between begin and end
+  comment markers named after the plugin, create the file when it is absent,
+  replace the module's own table in place on a second run, leave every other byte
+  of the file, refuse unbalanced markers, and on disable remove the table and the
+  file when the table was its only content.
+- **SP-722~1**: WHEN a hook payload names an executor tool THE SYSTEM SHALL
+  recognize on Codex the name with every character of the server name outside
+  `[A-Za-z0-9_]` replaced by `_` and select it with the matcher of the module's
+  hook, keep the unsanitized and the slashed spellings accepted there, and
+  recognize on Copilot the server and the tool joined by a hyphen besides the
+  slashed spelling the agent allowlist uses.
 - **SP-720~1**: WHEN recorded answers are replayed THE SYSTEM SHALL answer each
   pending ticket from the recording of its vote, falling back on the first vote's
   recording, keep the recorded executor and give the inline profile when there is

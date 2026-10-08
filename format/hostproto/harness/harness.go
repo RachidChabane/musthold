@@ -9,6 +9,7 @@ package harness
 import (
 	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
@@ -124,6 +125,20 @@ func standaloneAgentName(plugin string, agent hostproto.Agent) string {
 func mcpDoubleUnderscore(server, tool string) string { return "mcp__" + server + "__" + tool }
 func slashed(server, tool string) string             { return server + "/" + tool }
 
+// hyphenJoined is how the preToolUse payload of Copilot CLI spells a tool: the
+// server and the tool joined by a hyphen.
+func hyphenJoined(server, tool string) string { return server + "-" + tool }
+
+// toolNameUnsafe matches every character Codex replaces in a server name when it
+// builds the name of a tool.
+var toolNameUnsafe = regexp.MustCompile(`[^A-Za-z0-9_]`)
+
+// sanitizedMCP is how Codex spells a tool: the double-underscore form with every
+// character of the server name outside `[A-Za-z0-9_]` replaced by `_`.
+func sanitizedMCP(server, tool string) string {
+	return mcpDoubleUnderscore(toolNameUnsafe.ReplaceAllString(server, "_"), tool)
+}
+
 // pluginScopedServer is the server name Claude Code gives a plugin's server.
 func pluginScopedServer(plugin string) string { return "plugin_" + plugin + "_" + ExecutorServer }
 
@@ -148,9 +163,9 @@ func Codex(identity Identity) Harness {
 		Allowlist: hostproto.AllowlistAbsent, AttestationOptOut: true,
 		Behaviours:    Behaviours{JournalsStart: true, IssuesCap: true, ChecksStop: true, IdentifiesCaller: true},
 		server:        identity.StandaloneExecutorServer(),
-		toolName:      mcpDoubleUnderscore,
+		toolName:      sanitizedMCP,
 		agentType:     standaloneAgentName,
-		acceptedForms: []func(string, string) string{slashed},
+		acceptedForms: []func(string, string) string{mcpDoubleUnderscore, slashed},
 	}
 }
 
@@ -164,7 +179,7 @@ func Copilot(identity Identity) Harness {
 		server:        identity.StandaloneExecutorServer(),
 		toolName:      slashed,
 		agentType:     standaloneAgentName,
-		acceptedForms: []func(string, string) string{mcpDoubleUnderscore},
+		acceptedForms: []func(string, string) string{mcpDoubleUnderscore, hyphenJoined},
 	}
 }
 
@@ -211,6 +226,10 @@ func (h Harness) Server() string { return h.server }
 // ToolName is the name the harness gives an executor tool, which is what an
 // agent's allowlist and a hook matcher spell.
 func (h Harness) ToolName(tool string) string { return h.toolName(h.server, tool) }
+
+// ToolMatcher is the pattern of a hook matcher that selects every tool of the
+// server in the form the harness names them.
+func (h Harness) ToolMatcher() string { return h.ToolName("") + ".*" }
 
 // ToolNames lists the names of the two executor tools, fetch first.
 func (h Harness) ToolNames() []string {

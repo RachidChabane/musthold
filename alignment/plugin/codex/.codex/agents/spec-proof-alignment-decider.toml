@@ -2,7 +2,3 @@ name = "spec-proof-alignment-decider"
 description = "Executes one closed-question ticket of spec-proof-alignment as a blind executor. Launch it only through the spec-proof-alignment-fulfil skill, with a prompt that is the ticket."
 developer_instructions = "Fetch the ticket in your task, follow its instructions, submit JSON matching its schema, reply only with the receipt."
 sandbox_mode = "read-only"
-
-[mcp_servers.spec-proof-alignment-exec]
-command = "spec-proof-alignment"
-args = ["mcp", "--role", "executor", "--harness", "codex"]

@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	verifiesShipped    = " [verifies SP-711~2]"
+	verifiesShipped    = " [verifies SP-711~3]"
 	verifiesGeneration = " [verifies SP-712~1]"
 	versionPattern     = `^\d+\.\d+\.\d+$`
 	hookTypeCommand    = "command"
@@ -200,8 +200,8 @@ func TestCodexFiles(t *testing.T) {
 		codex := harness.Codex(module.Identity)
 		files := generated(t, module, codex)
 
-		t.Run(s.name+": the files are the agents, the skill and the hooks of the module"+verifiesShipped, func(t *testing.T) {
-			want := []string{skillPath(codex.Flag, module), pluginfiles.CodexHooksPath}
+		t.Run(s.name+": the files are the agents, the skill, the hooks and the server of the module"+verifiesShipped, func(t *testing.T) {
+			want := []string{skillPath(codex.Flag, module), pluginfiles.CodexHooksPath, pluginfiles.CodexConfigPath}
 			for _, agent := range module.Identity.Agents {
 				want = append(want, agentPath(codex.Flag, module, agent))
 			}
@@ -211,17 +211,30 @@ func TestCodexFiles(t *testing.T) {
 			}
 		})
 
-		t.Run(s.name+": each agent is a read-only custom agent that carries only the executor server"+verifiesShipped, func(t *testing.T) {
+		t.Run(s.name+": each agent is a read-only custom agent that carries no server"+verifiesShipped, func(t *testing.T) {
 			for _, agent := range module.Identity.Agents {
 				name := module.Plugin() + "-" + string(agent)
 				tables := tomlTable(t, files[agentPath(codex.Flag, module, agent)])
-				root, server := tables[""], tables["mcp_servers."+codex.Server()]
+				root := tables[""]
 				if root["name"] != name || root["sandbox_mode"] != "read-only" || root["developer_instructions"] != executorInstructions || root["description"] == "" {
 					t.Errorf("%s: root = %v", agent, root)
 				}
-				if server["command"] != module.Binary || !slices.Equal(stringList(t, server["args"]), []string{"mcp", "--role", "executor", "--harness", "codex"}) || len(tables) != 2 {
+				if len(tables) != 1 {
 					t.Errorf("%s: tables = %v", agent, tables)
 				}
+			}
+		})
+
+		t.Run(s.name+": the project's config.toml starts the executor server of the module between its markers, with its tools approved"+verifiesShipped, func(t *testing.T) {
+			text := files[pluginfiles.CodexConfigPath]
+			if !strings.HasPrefix(text, module.CodexConfigBegin()+"\n") || !strings.HasSuffix(text, module.CodexConfigEnd()+"\n") {
+				t.Fatalf("the markers do not delimit the file:\n%s", text)
+			}
+			tables := tomlTable(t, text)
+			server := tables["mcp_servers."+codex.Server()]
+			if server["command"] != module.Binary || !slices.Equal(stringList(t, server["args"]), []string{"mcp", "--role", "executor", "--harness", "codex"}) ||
+				server["default_tools_approval_mode"] != "approve" || len(tables) != 2 {
+				t.Errorf("tables = %v", tables)
 			}
 		})
 
@@ -242,6 +255,9 @@ func TestCodexFiles(t *testing.T) {
 				}
 			}
 			matcher := regexp.MustCompile(parsed.Hooks["PreToolUse"][0].Matcher)
+			if want := "mcp__" + strings.NewReplacer("-", "_").Replace(module.Plugin()) + "_exec__.*"; parsed.Hooks["PreToolUse"][0].Matcher != want {
+				t.Errorf("matcher = %q, want %q", parsed.Hooks["PreToolUse"][0].Matcher, want)
+			}
 			for _, name := range codex.ToolNames() {
 				if !matcher.MatchString(name) {
 					t.Errorf("the matcher does not select %s", name)

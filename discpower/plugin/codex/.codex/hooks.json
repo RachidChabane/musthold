@@ -2,7 +2,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "mcp__spec-proof-dp-exec__.*",
+        "matcher": "mcp__spec_proof_dp_exec__.*",
         "hooks": [
           {
             "type": "command",

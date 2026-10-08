@@ -102,10 +102,6 @@ func (m Module) claudeToolMatcher() string {
 	return launchTool + "|mcp__plugin_" + m.Plugin() + "_" + harness.ExecutorServer + "__.*"
 }
 
-func (m Module) codexToolMatcher() string {
-	return "mcp__" + m.Identity.StandaloneExecutorServer() + "__.*"
-}
-
 var agentTickets = map[hostproto.Agent]string{
 	hostproto.AgentGenerator: "generation",
 	hostproto.AgentJudge:     "judgment",
@@ -433,20 +429,39 @@ const codexAgentTemplate = `name = "{{.Name}}"
 description = "{{.Description}}"
 developer_instructions = "{{.Instructions}}"
 sandbox_mode = "read-only"
-
-[mcp_servers.{{.Server}}]
-command = "{{.Command}}"
-args = [{{.Args}}]
 `
 
 type codexAgentData struct {
 	Name         string
 	Description  string
 	Instructions string
-	Server       string
-	Command      string
-	Args         string
 }
+
+// codexServerTemplate is the module's executor server inside the project's
+// config.toml, between the markers that delimit what the module owns. Codex
+// starts a server of this file for the main session and for every agent it
+// spawns, and `default_tools_approval_mode` lets the executor call its tools
+// under a policy that never asks.
+const codexServerTemplate = `{{.Begin}}
+[mcp_servers.{{.Server}}]
+command = "{{.Command}}"
+args = [{{.Args}}]
+default_tools_approval_mode = "{{.Approval}}"
+{{.End}}
+`
+
+type codexServerData struct {
+	Begin    string
+	End      string
+	Server   string
+	Command  string
+	Args     string
+	Approval string
+}
+
+// codexToolsApproval is the value of `default_tools_approval_mode` that runs the
+// server's tools without asking.
+const codexToolsApproval = "approve"
 
 // agentName is the name an agent goes by on a harness without plugin scope.
 func (m Module) agentName(agent hostproto.Agent) string { return m.Plugin() + "-" + string(agent) }
@@ -459,15 +474,37 @@ func quotedList(values []string) string {
 	return strings.Join(quoted, ", ")
 }
 
-// CodexHooksPath is where Codex reads project hooks, a file other tools write too.
-const CodexHooksPath = ".codex/hooks.json"
+// Files Codex reads from the project, both shared with other tools.
+const (
+	// CodexHooksPath is where Codex reads project hooks.
+	CodexHooksPath = ".codex/hooks.json"
+	// CodexConfigPath is where Codex reads the project's MCP servers.
+	CodexConfigPath = ".codex/config.toml"
+)
+
+// CodexConfigBegin and CodexConfigEnd are the comment lines that delimit the
+// module's table in the project's Codex config.toml.
+func (m Module) CodexConfigBegin() string { return "# " + m.Plugin() + ":begin" }
+
+// CodexConfigEnd is the line that closes the module's table in config.toml.
+func (m Module) CodexConfigEnd() string { return "# " + m.Plugin() + ":end" }
+
+func (m Module) codexServerFile(h harness.Harness) (File, error) {
+	content, err := render("codex-server", codexServerTemplate, codexServerData{
+		Begin: m.CodexConfigBegin(), End: m.CodexConfigEnd(), Server: h.Server(),
+		Command: m.Binary, Args: quotedList(serverArgs(h)), Approval: codexToolsApproval,
+	})
+	if err != nil {
+		return File{}, err
+	}
+	return File{Path: CodexConfigPath, Content: content}, nil
+}
 
 func (m Module) codexFiles(h harness.Harness) ([]File, error) {
 	var files []File
 	for _, agent := range m.Identity.Agents {
 		content, err := render("codex-agent", codexAgentTemplate, codexAgentData{
 			Name: m.agentName(agent), Description: m.agentDescription(agent), Instructions: executorInstructions,
-			Server: h.Server(), Command: m.Binary, Args: quotedList(serverArgs(h)),
 		})
 		if err != nil {
 			return nil, err
@@ -479,14 +516,18 @@ func (m Module) codexFiles(h harness.Harness) ([]File, error) {
 		return nil, err
 	}
 	hooks, err := encodeJSON(snakeHooks{Hooks: map[string][]matcherGroup{
-		eventPreToolUse:    m.group(m.codexToolMatcher(), hostproto.HookPreTool, h),
+		eventPreToolUse:    m.group(h.ToolMatcher(), hostproto.HookPreTool, h),
 		eventSubagentStart: m.group(m.ExecutorRoleMatcher(h), hostproto.HookSubagentStart, h),
 		eventSubagentStop:  m.group(m.ExecutorRoleMatcher(h), hostproto.HookSubagentStop, h),
 	}})
 	if err != nil {
 		return nil, err
 	}
-	return append(files, skill, File{Path: CodexHooksPath, Content: hooks}), nil
+	server, err := m.codexServerFile(h)
+	if err != nil {
+		return nil, err
+	}
+	return append(files, skill, File{Path: CodexHooksPath, Content: hooks}, server), nil
 }
 
 // ---- Copilot ----

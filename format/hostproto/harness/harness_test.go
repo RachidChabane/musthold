@@ -19,7 +19,7 @@ func TestHarnessStrategies(t *testing.T) {
 	t.Run("each harness names the executor tools as it spells them [verifies SP-700~1]", func(t *testing.T) {
 		want := map[string][]string{
 			harness.FlagClaude:  {"mcp__plugin_spec-proof-sample_exec__fetch_request", "mcp__plugin_spec-proof-sample_exec__submit_response"},
-			harness.FlagCodex:   {"mcp__spec-proof-sample-exec__fetch_request", "mcp__spec-proof-sample-exec__submit_response"},
+			harness.FlagCodex:   {"mcp__spec_proof_sample_exec__fetch_request", "mcp__spec_proof_sample_exec__submit_response"},
 			harness.FlagCopilot: {"spec-proof-sample-exec/fetch_request", "spec-proof-sample-exec/submit_response"},
 		}
 		for _, h := range harness.All(sample) {
@@ -53,6 +53,40 @@ func TestHarnessStrategies(t *testing.T) {
 			if _, ok := copilot.ExecutorTool(name); !ok {
 				t.Errorf("copilot did not recognize %s", name)
 			}
+		}
+	})
+
+	t.Run("Codex recognizes the sanitized, the unsanitized and the slashed spelling of its tools [verifies SP-722~1]", func(t *testing.T) {
+		codex := harness.Codex(sample)
+		for _, name := range []string{
+			"mcp__spec_proof_sample_exec__fetch_request", "mcp__spec-proof-sample-exec__fetch_request", "spec-proof-sample-exec/fetch_request",
+		} {
+			if got, ok := codex.ExecutorTool(name); !ok || got != hostproto.ToolFetchRequest {
+				t.Errorf("%s: got %q, %v", name, got, ok)
+			}
+		}
+		for _, name := range []string{"mcp__spec_proof_other_exec__fetch_request", "mcp__spec_proof_sample_exec__other", "spec-proof-sample-exec-fetch_request"} {
+			if got, ok := codex.ExecutorTool(name); ok {
+				t.Errorf("%s was recognized as %q", name, got)
+			}
+		}
+		if got := codex.ToolMatcher(); got != "mcp__spec_proof_sample_exec__.*" {
+			t.Errorf("matcher = %q", got)
+		}
+	})
+
+	t.Run("Copilot recognizes the hyphen-joined spelling of its tools besides the slashed one [verifies SP-722~1]", func(t *testing.T) {
+		copilot := harness.Copilot(sample)
+		if got := copilot.ToolName(hostproto.ToolFetchRequest); got != "spec-proof-sample-exec/fetch_request" {
+			t.Errorf("the allowlist spelling = %q", got)
+		}
+		for _, name := range []string{"spec-proof-sample-exec-fetch_request", "spec-proof-sample-exec-submit_response"} {
+			if _, ok := copilot.ExecutorTool(name); !ok {
+				t.Errorf("%s was not recognized", name)
+			}
+		}
+		if _, ok := copilot.ExecutorTool("spec-proof-other-exec-fetch_request"); ok {
+			t.Error("a tool of another server was recognized")
 		}
 	})
 

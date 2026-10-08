@@ -13,7 +13,7 @@ func TestHarnessesOfTheModule(t *testing.T) {
 	t.Run("each harness names the executor tools of the module's plugin as it spells them [verifies SP-782~1]", func(t *testing.T) {
 		want := map[string][]string{
 			hostharness.FlagClaude:  {"mcp__plugin_spec-proof-completeness_exec__fetch_request", "mcp__plugin_spec-proof-completeness_exec__submit_response"},
-			hostharness.FlagCodex:   {"mcp__spec-proof-completeness-exec__fetch_request", "mcp__spec-proof-completeness-exec__submit_response"},
+			hostharness.FlagCodex:   {"mcp__spec_proof_completeness_exec__fetch_request", "mcp__spec_proof_completeness_exec__submit_response"},
 			hostharness.FlagCopilot: {"spec-proof-completeness-exec/fetch_request", "spec-proof-completeness-exec/submit_response"},
 		}
 		for _, harness := range hostharness.All() {
