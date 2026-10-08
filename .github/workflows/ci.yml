@@ -10,6 +10,15 @@ on:
     paths-ignore:
       - "notes/**"
       - "docs/adr/**"
+  workflow_call:
+    inputs:
+      modules:
+        description: "Space-separated modules to lint and self-gate, as MODULES of make ci; empty runs every module and every other job"
+        type: string
+        default: ""
+    secrets:
+      SHALLNOT_PROOF_GATE_DEPLOY_KEY:
+        required: true
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -80,13 +89,15 @@ jobs:
           cache: npm
           cache-dependency-path: spec-proof/discpower/fixtures/ecosystems/*/package-lock.json
 
-      - name: Lint and self-gate every module
+      - name: Lint and self-gate the modules
         working-directory: spec-proof
         env:
           SHALLNOT_SRC: ${{ github.workspace }}/shallnot-proof-gate
-        run: make ci
+          MODULES: ${{ inputs.modules }}
+        run: make ci MODULES="$MODULES"
 
   pilot:
+    if: inputs.modules == ''
     name: pilot harness
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -118,6 +129,7 @@ jobs:
         run: make -C experiments/limits-1-3 test
 
   bench:
+    if: inputs.modules == ''
     name: benchmark core
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -158,6 +170,7 @@ jobs:
         run: bench/script/test
 
   calibration:
+    if: inputs.modules == ''
     name: calibration harness
     runs-on: ubuntu-24.04
     timeout-minutes: 45

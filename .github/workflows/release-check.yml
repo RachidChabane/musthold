@@ -1,0 +1,88 @@
+name: release-check
+
+# Rehearses the release pipeline on every change that touches it: the dry run of
+# the real discpower module on a throwaway local tag, and actionlint on the
+# workflows. Nothing is published and no tag leaves the runner.
+on:
+  pull_request:
+    paths:
+      - "tools/release/**"
+      - "script/release*"
+      - "script/install"
+      - ".github/workflows/release.yml"
+      - ".github/workflows/release-check.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/release/**"
+      - "script/release*"
+      - "script/install"
+      - ".github/workflows/release.yml"
+      - ".github/workflows/release-check.yml"
+
+concurrency:
+  group: release-check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  MEM_GUARD_MIN_FREE_PCT: "10"
+  THROWAWAY_TAG: discpower/v0.0.0-e2e
+  ACTIONLINT_VERSION: v1.7.12
+
+jobs:
+  dry-run:
+    name: dry run
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out spec-proof with its tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.work
+          cache: false
+
+      - name: Create the throwaway tag on the runner
+        run: |
+          tag_exists=$(git tag --list "$THROWAWAY_TAG")
+          if [[ -n "$tag_exists" ]]; then
+            echo "the throwaway tag already exists" >&2
+            exit 1
+          fi
+          git tag "$THROWAWAY_TAG"
+
+      - name: Dry run of the release
+        run: make release-dry-run TAG="$THROWAWAY_TAG" ARGS="--skip-tests"
+
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out spec-proof
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.work
+          cache: false
+
+      - name: Install the pinned actionlint
+        run: go install "github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION}"
+
+      - name: Lint the workflows
+        run: "$(go env GOPATH)/bin/actionlint"
+
+      - name: Lint the release scripts
+        run: shellcheck script/release script/install

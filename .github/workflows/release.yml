@@ -1,0 +1,257 @@
+name: release
+
+# A release starts on a tag the owner pushes and on nothing else. The tag is
+# <module>/vMAJOR.MINOR.PATCH[-pre]; ADR 0010 describes the pipeline and
+# docs/usage/releasing.md how to cut and verify a release.
+on:
+  push:
+    tags: ["*/v*"]
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  MEM_GUARD_MIN_FREE_PCT: "10"
+
+jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.plan.outputs.tag }}
+      module: ${{ steps.plan.outputs.module }}
+      kind: ${{ steps.plan.outputs.kind }}
+      binary: ${{ steps.plan.outputs.binary }}
+      semver: ${{ steps.plan.outputs.semver }}
+      ships_binary: ${{ steps.plan.outputs.ships_binary }}
+      ships_plugin: ${{ steps.plan.outputs.ships_plugin }}
+      ci_modules: ${{ steps.plan.outputs.ci_modules }}
+    steps:
+      - name: Check out spec-proof
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.work
+          cache: false
+
+      - name: Plan the release of the tag
+        id: plan
+        env:
+          TAG: ${{ github.ref_name }}
+        run: script/release plan "$TAG" >> "$GITHUB_OUTPUT"
+
+  ci:
+    name: gate
+    needs: plan
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+    with:
+      modules: ${{ needs.plan.outputs.ci_modules }}
+    secrets:
+      SHALLNOT_PROOF_GATE_DEPLOY_KEY: ${{ secrets.SHALLNOT_PROOF_GATE_DEPLOY_KEY }}
+
+  build:
+    name: build
+    needs: [plan, ci]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    steps:
+      - name: Check out spec-proof with its tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.work
+          cache: false
+
+      - name: Run the pre-flight, build every target and verify dist
+        env:
+          TAG: ${{ github.ref_name }}
+          RELEASE_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
+        run: script/release "$TAG"
+
+      - name: Keep the release files
+        if: needs.plan.outputs.ships_binary == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  reproduce:
+    name: reproduce
+    needs: [plan, ci]
+    if: needs.plan.outputs.ships_binary == 'true'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    steps:
+      - name: Check out spec-proof with its tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.work
+          cache: false
+
+      - name: Build the release again on another machine
+        env:
+          TAG: ${{ github.ref_name }}
+        run: script/release "$TAG" --skip-tests --dist reproduced
+
+      - name: Keep the checksums of the second build
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reproduced-sums
+          path: reproduced/SHA256SUMS
+          if-no-files-found: error
+
+  publish:
+    name: publish
+    needs: [plan, build, reproduce]
+    if: ${{ !cancelled() && !failure() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    env:
+      TAG: ${{ github.ref_name }}
+      SEMVER: ${{ needs.plan.outputs.semver }}
+      BINARY: ${{ needs.plan.outputs.binary }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Refuse a private repository
+        if: github.event.repository.private
+        run: |
+          echo "publish refuses a private repository: attestations need GitHub Enterprise Cloud there and a keyless signature writes the workflow identity to the public Rekor log" >&2
+          exit 1
+
+      - name: Check out spec-proof with its tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.work
+          cache: false
+
+      - name: Download the release files
+        if: needs.plan.outputs.ships_binary == 'true'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+
+      - name: Download the checksums of the second build
+        if: needs.plan.outputs.ships_binary == 'true'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: reproduced-sums
+          path: reproduced
+
+      - name: Require the second build to match the first
+        if: needs.plan.outputs.ships_binary == 'true'
+        run: diff dist/SHA256SUMS reproduced/SHA256SUMS
+
+      - name: Install cosign
+        if: needs.plan.outputs.ships_binary == 'true'
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Sign the checksums
+        if: needs.plan.outputs.ships_binary == 'true'
+        run: cosign sign-blob --yes --bundle dist/SHA256SUMS.sigstore.json dist/SHA256SUMS
+
+      - name: Attest the provenance of every archive
+        if: needs.plan.outputs.ships_binary == 'true'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: dist/SHA256SUMS
+
+      - name: Attest the SBOM of linux amd64
+        if: needs.plan.outputs.ships_binary == 'true'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/${{ env.BINARY }}_${{ env.SEMVER }}_linux_amd64.tar.gz
+          sbom-path: dist/${{ env.BINARY }}_${{ env.SEMVER }}_linux_amd64.tar.gz.spdx.json
+
+      - name: Attest the SBOM of linux arm64
+        if: needs.plan.outputs.ships_binary == 'true'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/${{ env.BINARY }}_${{ env.SEMVER }}_linux_arm64.tar.gz
+          sbom-path: dist/${{ env.BINARY }}_${{ env.SEMVER }}_linux_arm64.tar.gz.spdx.json
+
+      - name: Attest the SBOM of darwin amd64
+        if: needs.plan.outputs.ships_binary == 'true'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/${{ env.BINARY }}_${{ env.SEMVER }}_darwin_amd64.tar.gz
+          sbom-path: dist/${{ env.BINARY }}_${{ env.SEMVER }}_darwin_amd64.tar.gz.spdx.json
+
+      - name: Attest the SBOM of darwin arm64
+        if: needs.plan.outputs.ships_binary == 'true'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/${{ env.BINARY }}_${{ env.SEMVER }}_darwin_arm64.tar.gz
+          sbom-path: dist/${{ env.BINARY }}_${{ env.SEMVER }}_darwin_arm64.tar.gz.spdx.json
+
+      - name: Attest the SBOM of windows amd64
+        if: needs.plan.outputs.ships_binary == 'true'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/${{ env.BINARY }}_${{ env.SEMVER }}_windows_amd64.zip
+          sbom-path: dist/${{ env.BINARY }}_${{ env.SEMVER }}_windows_amd64.zip.spdx.json
+
+      - name: Attest the SBOM of windows arm64
+        if: needs.plan.outputs.ships_binary == 'true'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/${{ env.BINARY }}_${{ env.SEMVER }}_windows_arm64.zip
+          sbom-path: dist/${{ env.BINARY }}_${{ env.SEMVER }}_windows_arm64.zip.spdx.json
+
+      - name: Render the Homebrew formula
+        if: needs.plan.outputs.ships_binary == 'true'
+        run: script/release formula --dist dist "$TAG"
+
+      - name: Render the release notes
+        run: script/release notes --out notes.md "$TAG"
+
+      - name: Create the release
+        run: |
+          flags=(--verify-tag --notes-file notes.md --title "$TAG")
+          if [[ "$SEMVER" == *-* ]]; then
+            flags+=(--prerelease)
+          fi
+          if [[ -d dist ]]; then
+            gh release create "$TAG" dist/* "${flags[@]}"
+          else
+            gh release create "$TAG" "${flags[@]}"
+          fi
