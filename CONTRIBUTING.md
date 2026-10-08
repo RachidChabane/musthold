@@ -30,11 +30,17 @@ Every verb is a shebang script in `script/` and a `make` target that calls it, s
 | `make plugin-gen` | `script/plugin-gen` | regenerate the committed plugin trees |
 | `make shallnot-build` | `script/shallnot-build` | build the pinned Shallnot |
 | `make mem-check` | `script/mem-guard check` | refuse heavy work when memory is short |
+| `make release-dry-run TAG=<module>/vX.Y.Z` | `script/release <tag> --dry-run` | rehearse a release: report what a real release would refuse, build every target, verify `dist/` and install from it |
+| `make release TAG=<module>/vX.Y.Z` | `script/release <tag>` | run the pre-flight, build and verify the release files into `dist/`; publishes nothing |
 
 Name modules to run a subset: `make ci MODULES="format discpower"` or
 `script/ci format discpower`. The modules are those listed in `go.work`
 (`script/modules`). `.github/workflows/ci.yml` calls the same scripts, so what
 passes locally passes in CI.
+
+`script/install` is the verified installer a release publishes. Only the release
+workflow publishes, on a tag the owner pushes; [releasing](docs/usage/releasing.md)
+describes how a release is cut, checked and verified.
 
 Before you open a change run `make verify`, then `script/ci` for the modules you
 touched. Run the tests of a package directly while you work:

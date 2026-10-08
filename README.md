@@ -66,6 +66,36 @@ missing or stale proof never passes.
 Tests bind to requirements with Shallnot's `[verifies ID~REV]` tag in the form
 each runner reports ([binding documentation](https://github.com/RachidChabane/shallnot/blob/main/docs/binding.md)).
 
+## Install a release
+
+Each module has its own releases, tagged `<module>/vMAJOR.MINOR.PATCH`. A binary
+installs with Go or with the verified installer, which every binary release
+carries:
+
+```
+go install github.com/RachidChabane/spec-proof/discpower/cmd/spec-proof-dp@v0.2.0
+bash install discpower 0.2.0
+```
+
+The installer needs `cosign` or `gh`. It verifies the signature of `SHA256SUMS`,
+checks the archive against it and requires the extracted binary to print exactly
+the version asked for with `--version`; on any failure it installs nothing.
+
+Verify a release by hand with `cosign`, against the identity of the release
+workflow at the tag, and check the archive against `SHA256SUMS`:
+
+```
+cosign verify-blob --bundle SHA256SUMS.sigstore.json \
+  --certificate-identity https://github.com/RachidChabane/spec-proof/.github/workflows/release.yml@refs/tags/discpower/v0.2.0 \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  SHA256SUMS
+sha256sum --ignore-missing -c SHA256SUMS
+```
+
+Every archive is also attested (SLSA provenance and an SPDX SBOM), and
+`gh attestation verify` checks it. [Releasing](docs/usage/releasing.md) lists the
+files of a release, how a maintainer cuts one and the checks it must pass.
+
 ## Quickstart (Claude Code)
 
 Prerequisites: Go, Claude Code, your project's test runner, and a Shallnot whose
@@ -192,8 +222,10 @@ What the test suite exercises, so you can weigh each harness:
   Shallnot below 1.2.
 - The install URLs above (`git clone` and `/plugin marketplace add`) resolve only
   once the repositories are public.
-- The module `go.mod` files reference the `format` module by a local `replace`,
-  so binaries are built from a clone as shown, not with `go install pkg@version`.
+- The module `go.mod` files of the development tree reference the `format` module
+  by a local `replace`, so binaries are built from a clone as shown. The commit
+  that is tagged for a release drops the rule, and `go install pkg@version`
+  resolves that tag.
 - The Codex and Copilot files are generated from the same definition as the
   Claude Code plugin and checked against the formats each harness documents.
 
@@ -205,6 +237,7 @@ What the test suite exercises, so you can weigh each harness:
 - [Trust model](docs/usage/trust-model.md)
 - [System One](docs/usage/system-one.md)
 - [Troubleshooting, exit codes and pending reasons](docs/usage/troubleshooting.md)
+- [Releasing, installing and verifying a release](docs/usage/releasing.md)
 - [Architecture](docs/architecture.md) and [contributing](CONTRIBUTING.md)
 - [Architecture decision records](docs/adr)
 
