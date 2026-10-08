@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
-# Everything CI runs: static checks, then the tests.
+# Everything CI runs: static checks, the tests, then the check of the recorded parcel answers.
+# The recordings check needs the product built into .tools/bin (script/product-build) and is
+# announced as skipped where it is not, as the integration tests that need it are.
 set -euo pipefail
 # shellcheck source=bench/script/_lib
 source "$(dirname "${BASH_SOURCE[0]}")/_lib"
 "$(dirname "${BASH_SOURCE[0]}")/lint"
 "$(dirname "${BASH_SOURCE[0]}")/test" "$@"
+if [[ -x "${REPO_ROOT}/.tools/bin/spec-proof-completeness" && -x "${REPO_ROOT}/.tools/bin/shallnot" ]]; then
+  "${REPO_ROOT}/script/regen-bench-recordings" --check
+else
+  echo "check: the product is not built; skipping the parcel recordings check (run script/product-build)" >&2
+fi

@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Regenerate the recorded answers of the parcel project that the benchmark's clean-room gate tests
+# replay (bench/tests/fixtures/parcel_answers), or with --check verify that the committed ones are
+# exactly what the generator writes. The generator is format/hostproto/hostprototest/cmd/recordparcel:
+# the product's honest parcel oracle answers each proof module through its command line, and the
+# closed completeness questions take their first option. It needs the proof module binaries and the
+# pinned Shallnot of .tools/bin (script/product-build). Exit 0: written, or identical; 1: --check
+# found a difference; 2: a precondition is missing.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly EXIT_DIFFERENT=1
+readonly EXIT_PRECONDITION=2
+readonly BIN_DIR=".tools/bin"
+readonly NEEDED_BINARIES=(shallnot spec-proof-dp spec-proof-alignment spec-proof-completeness)
+readonly FIXTURE_DIR="discpower/fixtures/prove/parcel"
+readonly RECORDINGS_DIR="bench/tests/fixtures/parcel_answers"
+readonly RECORDER_PACKAGE="./hostproto/hostprototest/cmd/recordparcel"
+readonly BUILD_PROCS=1
+readonly BUILD_GOMAXPROCS=2
+readonly BUILD_NICE=10
+readonly MODE_CHECK="--check"
+
+fail() {
+  echo "regen-bench-recordings: $*" >&2
+  exit "${EXIT_PRECONDITION}"
+}
+
+mode="${1:-}"
+[[ -z "${mode}" || "${mode}" == "${MODE_CHECK}" ]] || fail "usage: regen-bench-recordings [${MODE_CHECK}]"
+
+for binary in "${NEEDED_BINARIES[@]}"; do
+  [[ -x "${BIN_DIR}/${binary}" ]] || fail "${BIN_DIR}/${binary} is missing: run script/product-build"
+done
+command -v go >/dev/null 2>&1 || fail "go is required to build the recorder"
+
+./script/mem-guard check
+
+scratch="$(mktemp -d)"
+trap 'rm -rf "${scratch}"' EXIT
+recorder="${scratch}/recordparcel"
+generated="${scratch}/recordings"
+
+GOMAXPROCS="${BUILD_GOMAXPROCS}" nice -n "${BUILD_NICE}" \
+  go build -C format -p "${BUILD_PROCS}" -o "${recorder}" "${RECORDER_PACKAGE}"
+nice -n "${BUILD_NICE}" "${recorder}" \
+  -binaries "${BIN_DIR}" -fixture "${FIXTURE_DIR}" -out "${generated}"
+
+if [[ "${mode}" == "${MODE_CHECK}" ]]; then
+  if diff -r "${generated}" "${RECORDINGS_DIR}"; then
+    echo "regen-bench-recordings: ${RECORDINGS_DIR} is up to date"
+    exit 0
+  fi
+  echo "regen-bench-recordings: ${RECORDINGS_DIR} differs from what the generator writes; run script/regen-bench-recordings" >&2
+  exit "${EXIT_DIFFERENT}"
+fi
+
+rm -f "${RECORDINGS_DIR}"/*.json
+cp "${generated}"/*.json "${RECORDINGS_DIR}/"
+echo "regen-bench-recordings: wrote $(find "${RECORDINGS_DIR}" -name '*.json' | wc -l | tr -d ' ') recordings to ${RECORDINGS_DIR}"

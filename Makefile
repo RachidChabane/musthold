@@ -98,7 +98,7 @@ canary-copilot:  ## live canary of GitHub Copilot CLI under -p (ARGS="--dry-run 
 
 # The benchmark core (bench/): every target calls bench/script/<verb> from the repository root, so paths in ARGS are
 # relative to the root. bench/Makefile offers the same verbs from inside bench/.
-.PHONY: bench-setup bench-test bench-lint bench-check bench-verify-corpus bench-analyze bench-report-lint
+.PHONY: bench-setup bench-test bench-lint bench-check bench-recordings bench-recordings-check bench-verify-corpus bench-analyze bench-report-lint
 
 bench-setup:  ## install the benchmark core's locked dependencies (bench/script/setup)
 	bench/script/setup
@@ -111,6 +111,12 @@ bench-lint:  ## benchmark core ruff, pyright strict and import contracts (bench/
 
 bench-check:  ## benchmark core lint then tests, as CI runs them (bench/script/check)
 	bench/script/check
+
+bench-recordings:  ## regenerate the parcel answers the clean-room gate tests replay (script/regen-bench-recordings; needs make product-build)
+	script/regen-bench-recordings
+
+bench-recordings-check:  ## fail when the committed parcel answers differ from what the generator writes (script/regen-bench-recordings --check)
+	script/regen-bench-recordings --check
 
 bench-verify-corpus:  ## R0: corpus digests against corpus.lock.json (ARGS="--corpus bench/corpus")
 	bench/script/verify-corpus $(ARGS)

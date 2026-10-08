@@ -30,6 +30,8 @@ Every verb is a shebang script in `script/` and a `make` target that calls it, s
 | `make gate-changed` | `script/gate-changed [BASE [HEAD]]` | self-gate the modules a range of commits touches (every module when `format` or `go.work` changes, `tools/e2e` for changes outside the modules) |
 | `make install-git-hooks` | `script/install-git-hooks` | install the pre-push hook that runs `script/gate-changed` on what a push carries and refuses the push when a gate fails |
 | `make watch-ci` | `script/watch-ci [COMMIT]` | wait for the CI run of a commit and report its outcome |
+| `make bench-recordings` | `script/regen-bench-recordings` | regenerate the parcel answers the benchmark's clean-room gate tests replay (`bench/tests/fixtures/parcel_answers`) from the product's honest parcel oracle; needs `script/product-build` |
+| `make bench-recordings-check` | `script/regen-bench-recordings --check` | fail when the committed parcel answers differ from what the generator writes; CI runs it after building the product |
 | `make plugin-gen` | `script/plugin-gen` | regenerate the committed plugin trees |
 | `make shallnot-build` | `script/shallnot-build` | build the pinned Shallnot |
 | `make mem-check` | `script/mem-guard check` | refuse heavy work when memory is short |
