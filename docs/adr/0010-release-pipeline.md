@@ -77,6 +77,8 @@ The judge checked the decisive claims against GoReleaser's source:
    - `script/plugin-gen` leaves no diff;
    - the module's entry in the root marketplace carries `"ref": "<tag>"`, and
      every `ref` there resolves to a tag;
+   - the root `NOTICE` exists and holds a copyright holder, not the placeholder
+     `[COPYRIGHT HOLDER]`;
    - in CI, `publish` refuses a private repository.
 5. **Build.**
    - Environment: `GOWORK=off CGO_ENABLED=0 GOTOOLCHAIN=go1.26.4

@@ -33,9 +33,10 @@ go install github.com/RachidChabane/spec-proof/discpower/cmd/spec-proof-dp@v0.2.
    - set the version constant the plugin files are generated from
      (`hostfiles.PluginVersion` for `discpower`, `alignment` and `completeness`,
      `plugin.Version` for `s1relay`, `umbrella.Version` for `umbrella`);
-   - run `make plugin-gen` and commit what it changes;
-   - pin the plugin in the root marketplace: the entry of the module carries
-     `"ref": "<module>/vX.Y.Z"`.
+   - run `make plugin-gen` and commit what it changes: it writes the plugin manifests
+     and, in the root marketplace, the `"ref": "<module>/vX.Y.Z"` of every module
+     plugin, taken from the version in that module's plugin manifest;
+   - name the copyright holder in `NOTICE` in place of `[COPYRIGHT HOLDER]`.
 2. Rehearse it: `make release-dry-run TAG=<module>/vX.Y.Z`. The report lists what a
    real release would refuse. Fix those findings.
 3. Tag `format` first when the module requires a newer one, push the tag and let
@@ -45,6 +46,62 @@ go install github.com/RachidChabane/spec-proof/discpower/cmd/spec-proof-dp@v0.2.
 
 A release is published only from a public repository. Tags are mutable unless a
 ruleset protects `*/v*`; protect them.
+
+## Tag the first release of every module
+
+Every module is released at `v0.1.0`. The tags name one commit, the release commit,
+which holds the `NOTICE` with its copyright holder, the `go.mod` files that require
+`format v0.1.0` without a `replace` rule, and the marketplace `ref` of every module
+plugin. Run the commands from a clone of the public repository whose `main` is that
+commit. Each command pushes named tags; `--tags` is never used.
+
+1. Name the holder: replace `[COPYRIGHT HOLDER]` in `NOTICE`, commit and push.
+2. Tag `format` and rehearse it:
+
+   ```
+   git tag format/v0.1.0
+   make release-dry-run TAG=format/v0.1.0
+   ```
+
+   The report lists no finding.
+3. Push the tag and wait until its release workflow succeeds:
+
+   ```
+   git push origin format/v0.1.0
+   ```
+
+   Until `format/v0.1.0` exists on the remote, `GOWORK=off go build ./...` and
+   `go install` fail in every other module, because its `go.mod` requires that
+   version and no `replace` rule points at `../format`. The workspace (`go.work`)
+   keeps development and the gates working.
+4. Tag the other modules on the same commit. The marketplace pins every plugin of
+   this repository to its tag, and the pre-flight of a plugin release requires each
+   of those tags to exist, so all of them are created before any is pushed:
+
+   ```
+   for module in ledger verify discpower alignment completeness s1relay umbrella; do
+     git tag "$module/v0.1.0"
+   done
+   ```
+5. Rehearse each one; the report lists no finding:
+
+   ```
+   make release-dry-run TAG=discpower/v0.1.0
+   ```
+
+   Repeat for `ledger`, `verify`, `alignment`, `completeness`, `s1relay` and
+   `umbrella`.
+6. Push the tags in one command; each starts its own release workflow:
+
+   ```
+   git push origin ledger/v0.1.0 verify/v0.1.0 discpower/v0.1.0 alignment/v0.1.0 \
+     completeness/v0.1.0 s1relay/v0.1.0 umbrella/v0.1.0
+   ```
+
+The `go.sum` of each module holds the hash of `format v0.1.0`, which covers the
+files of `format/` and the root `LICENSE`. A change to either after the tag needs a
+new `format` version and `go get github.com/RachidChabane/spec-proof/format@<version>`
+in each module that requires it.
 
 ## The pre-flight
 
@@ -63,6 +120,7 @@ release.
 | `plugin-generated` | `script/plugin-gen` changes no committed file | every run |
 | `marketplace-ref` | the module's marketplace entry has the tag as its `ref` | a real release |
 | `marketplace-refs-resolve` | every `ref` of this repository in the marketplace is a tag | a real release |
+| `notice-holder` | the `NOTICE` file exists and no longer holds the placeholder `[COPYRIGHT HOLDER]` | a real release |
 | `repository-public` | the repository is public, when the run requires it | a real release |
 | `third-party-notices` | the repository root holds `THIRD_PARTY_NOTICES.md`, for a module that ships a binary | every run |
 

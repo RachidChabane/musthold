@@ -270,10 +270,10 @@ part of CI or of the suite, and a contributor never needs it. See
   Shallnot below 1.2.
 - The install URLs above (`git clone` and `/plugin marketplace add`) resolve only
   once the repositories are public.
-- The module `go.mod` files of the development tree reference the `format` module
-  by a local `replace`, so binaries are built from a clone as shown. The commit
-  that is tagged for a release drops the rule, and `go install pkg@version`
-  resolves that tag.
+- The module `go.mod` files require the `format` module at its release tag, and
+  `go.work` resolves it to the local `format` directory, so binaries are built
+  from a clone as shown. `go install pkg@version` resolves the tags described in
+  [releasing](docs/usage/releasing.md).
 - The Codex and Copilot files are generated from the same definition as the
   Claude Code plugin and checked against the formats each harness documents.
 
