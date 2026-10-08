@@ -303,25 +303,40 @@ Missing hooks mean no cap, so the server refuses and tickets stay pending
 #### Codex CLI (pinned 0.155.1)
 
 `init` writes `.codex/agents/spec-proof-dp-<role>.toml` (with
-`developer_instructions`, agent-scoped `mcp_servers` holding the executor server,
-and `sandbox_mode = "read-only"`), the skill in `.agents/skills`, and hook entries.
+`developer_instructions` and `sandbox_mode = "read-only"`), the executor server as
+a marked `[mcp_servers.spec-proof-dp-exec]` table in the project's
+`.codex/config.toml` (with `default_tools_approval_mode = "approve"`), the skill in
+`.agents/skills`, and hook entries.
 
-**V:** custom agent files accept `mcp_servers` and `sandbox_mode`; subagents use
-the parent's tools; skill instructions can request delegation; SubagentStart and
-SubagentStop carry `agent_id`, `agent_type` and `agent_transcript_path`;
-PreToolUse `updatedInput` works for MCP tools; non-managed hooks need a per-hash
-trust review, and project hooks load only in a trusted `.codex/`; tool hooks are
-"a guardrail, not a complete enforcement boundary".
+**V:** custom agent files accept `sandbox_mode`; skill instructions can request
+delegation; SubagentStart and SubagentStop carry `agent_id`, `agent_type` and
+`agent_transcript_path`; PreToolUse `updatedInput` works for MCP tools; non-managed
+hooks need a per-hash trust review, and project hooks load only in a trusted
+`.codex/`; tool hooks are "a guardrail, not a complete enforcement boundary".
+
+**D (live canary, 2026-10-08):** `spawn_agent` takes `agent_type` (the role file's
+`name`) and `fork_turns`; with `fork_turns` omitted the child inherits the parent's
+whole history, so the skill requires `fork_turns: "none"`. PreToolUse payloads of a
+spawned agent carry `agent_id` and `agent_type`, those of the main agent carry
+neither, so the pre-tool hook tells the executor from the main agent. A
+`mcp_servers` table in a role file is not started for a spawned agent; the same
+table in the project's `config.toml` starts once per agent, the executor included.
+Tool names replace every character of the server name outside `[A-Za-z0-9_]` with
+`_` (`mcp__spec_proof_dp_exec__fetch_request`). Under `codex exec` an MCP tool call
+needs `default_tools_approval_mode = "approve"`, and `--ignore-user-config` runs no
+hook at all. The `codex exec --json` stream omits `spawn_agent`; the session's
+rollout files record it.
 
 **Not documented:** a per-agent allowlist of built-in tools, so the executor keeps
-the shell and isolation is `unrestricted`. **U:** `agent_type` in PreToolUse; hooks
-under `codex exec` before review.
+the shell and isolation is `unrestricted`. Because the executor server sits in the
+project configuration, the main agent sees the executor tools too; the pre-tool
+hook refuses them to any caller that is not an executor of the module.
 
 **Consequence:** block power only, no local judged pass credit,
 `require_attestation: false`.
 
-**B:** the live canary, until the free quota resets on 2026-10-10 11:01, on
-pre-listed calls and no spending.
+**B:** none since the owner's ChatGPT Plus plan serves the live canary, in the
+nightly window, on pre-listed calls and no spending.
 
 #### GitHub Copilot CLI (pinned 1.0.92)
 
@@ -666,8 +681,6 @@ Unverified at decision time, to settle before relying on them:
 
 Blocked, external:
 
-- The Codex live canary, until the free quota resets on 2026-10-10 11:01; no
-  spending.
 - Copilot execution, until its allowance is verified; no spending.
 - Live CI `prove`: CI holds no model credential.
 - Tuning confidence thresholds per `confidenceSource` needs run history.
