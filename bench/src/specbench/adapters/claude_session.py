@@ -49,6 +49,7 @@ MISSING_TOKEN_MESSAGE: Final = (
     "a coder session never falls back to the credentials of ~/.claude"
 )
 STDERR_EXCERPT_LENGTH: Final = 300
+DIAGNOSTICS_LENGTH: Final = 4000
 DENIED_TOOLS: Final = ("WebFetch", "WebSearch")
 PERMISSION_MODE: Final = "acceptEdits"
 
@@ -255,7 +256,7 @@ class ClaudeSessionHarness:
             streamed.returncode,
             log.lines,
             assessment.model_reported,
-            streamed.stderr,
+            _diagnostics(streamed, log.lines, assessment),
             assessment.outcome,
             assessment.executions,
             _with_stderr(assessment, streamed),
@@ -283,6 +284,14 @@ def _arm_of(request: SessionRequest) -> Arm:
 
 def _interrupted(streamed: StreamedProcess) -> bool:
     return streamed.timed_out or streamed.returncode < 0
+
+
+def _diagnostics(streamed: StreamedProcess, events: Sequence[str], assessment: ClaudeAssessment) -> str:
+    """What the pacing layer reads to tell a spent quota from a failure: standard error and, when the stream could not
+    be read as events, what the CLI printed on standard output instead."""
+    printed = events if assessment.outcome is SessionOutcome.HARNESS_MISCONFIGURED else ()
+    text = "\n".join(part for part in (streamed.stderr.strip(), *printed) if part)
+    return text[:DIAGNOSTICS_LENGTH]
 
 
 def _with_stderr(assessment: ClaudeAssessment, streamed: StreamedProcess) -> tuple[str, ...]:

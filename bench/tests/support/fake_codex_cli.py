@@ -218,6 +218,10 @@ def main(state_directory: str) -> None:
     for name, content in response.get("leave_files", {}).items():
         Path(cwd, name).parent.mkdir(parents=True, exist_ok=True)
         Path(cwd, name).write_text(content)
+    if "error" in response:
+        _emit({"type": "error", "message": response["error"]})
+        _emit({"type": "turn.failed", "error": {"message": response["error"]}})
+        sys.exit(response.get("exit_after", 1))
     _emit({"type": "turn.completed", "usage": {"input_tokens": 10, "cached_input_tokens": 0, "output_tokens": 5}})
 
 

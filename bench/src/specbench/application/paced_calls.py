@@ -51,8 +51,8 @@ class CallGate:
     def require_open(self) -> None:
         self._policy.require_open(self._clock.now())
 
-    def charge(self, admission: Admission) -> None:
-        self._ledgers.save(self._ledgers.load().with_call(admission.night, self._harness))
+    def charge(self, admission: Admission, executions: int = 1) -> None:
+        self._ledgers.save(self._ledgers.load().with_call(admission.night, self._harness, executions))
 
     def admit_reserved(self, call_id: str, size: int) -> Admission:
         """Reserve `size` executions for a call on tonight's share; the call's own reservation is reused on a rerun."""
@@ -88,7 +88,7 @@ class PacedAgentHarness:
     """Decorator over an `AgentHarness`: a recorded call is replayed for free, a new one is admitted, run and archived.
 
     A session that ended `harness_misconfigured` or `interrupted` is never archived, so it runs again once the harness
-    is fixed or the window reopens; it is charged only when it streamed events, that is, when a model session started.
+    is fixed or the window reopens; it is charged the executions its events show, which is nothing when no model session started.
     """
 
     def __init__(self, inner: AgentHarness, gate: CallGate, calls: CallStore) -> None:
@@ -119,8 +119,8 @@ class PacedAgentHarness:
         if result.exit_code != 0 and looks_like_quota_exhausted(result.stderr, result.final_message):
             raise RunPaused(PauseReason.QUOTA_EXHAUSTED, request.harness.value)
         if result.outcome in UNARCHIVED_OUTCOMES:
-            if result.events:
-                self._gate.charge(admission)
+            if result.executions > 0:
+                self._gate.charge(admission, result.executions)
             return result
         self._calls.write(
             CallRecord(
@@ -136,7 +136,7 @@ class PacedAgentHarness:
                 executions=result.executions,
             )
         )
-        self._gate.charge(admission)
+        self._gate.charge(admission, result.executions)
         return result
 
 

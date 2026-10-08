@@ -17,7 +17,7 @@ from specbench.domain.arms import Arm, Harness
 from specbench.domain.call_ledger import EMPTY_LEDGER
 from specbench.domain.pacing import PacingPolicy
 from specbench.domain.sessions import SessionKind, SessionOutcome
-from support.coder_rigs import TEST_TOKEN, TRUNK_ID, make_claude_rig
+from support.coder_rigs import KILL_AFTER_SECONDS, TEST_TOKEN, TRUNK_ID, make_claude_rig
 from support.fake_claude import recorded_session_calls
 from support.fakes import FixedClock
 
@@ -144,7 +144,7 @@ def test_the_owner_home_is_never_written_and_variables_that_reroute_claude_are_n
 
 def test_a_session_killed_mid_stream_leaves_its_events_and_settles_from_them(tmp_path: Path) -> None:
     rig = make_claude_rig(
-        tmp_path, [{"events": [{"agent": "one"}, {"agent": "two"}, {"hang": True}]}], timeout_seconds=2
+        tmp_path, [{"events": [{"agent": "one"}, {"agent": "two"}, {"hang": True}]}], timeout_seconds=KILL_AFTER_SECONDS
     )
     request = rig.request("t1")
 
@@ -171,7 +171,7 @@ def test_an_attempt_after_a_kill_appends_to_whole_events(tmp_path: Path) -> None
 
 
 def test_paced_wrapper_does_not_archive_an_interrupted_or_misconfigured_session(tmp_path: Path) -> None:
-    rig = make_claude_rig(tmp_path, [{"events": [{"hang": True}]}, {"final": "ok"}], timeout_seconds=2)
+    rig = make_claude_rig(tmp_path, [{"events": [{"hang": True}]}, {"final": "ok"}], timeout_seconds=KILL_AFTER_SECONDS)
     ledgers = FileLedgerStore(rig.layout)
     calls = FileCallStore(rig.layout)
     gate = CallGate(Harness.CLAUDE_CODE, PacingPolicy(None, budget_per_night=10), ledgers, FixedClock(_NOON))

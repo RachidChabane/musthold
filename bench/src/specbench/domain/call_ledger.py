@@ -77,10 +77,12 @@ class CallLedger:
             for call_id in sorted(per_harness.get(harness.value, Account()).reserved)
         )
 
-    def with_call(self, night: date, harness: Harness) -> CallLedger:
-        """One execution charged on a night."""
+    def with_call(self, night: date, harness: Harness, executions: int = 1) -> CallLedger:
+        """The executions of one call charged on a night: one for a plain call, more for a session with subagents."""
+        if executions < 0:
+            raise RecordError("a call cannot spend a negative number of executions")
         account = self.account(night, harness)
-        return self._with_account(night, harness, Account(account.charged + 1, account.reserved))
+        return self._with_account(night, harness, Account(account.charged + executions, account.reserved))
 
     def with_reservation(self, night: date, harness: Harness, call_id: str, size: int) -> CallLedger:
         """Reserve `size` executions for a call; a call that already holds a reservation on that night keeps it."""

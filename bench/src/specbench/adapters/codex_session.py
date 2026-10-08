@@ -89,6 +89,7 @@ class CodexAssessment:
     final_message: str
     model_reported: str | None
     executions: int
+    errors: tuple[str, ...] = ()
 
 
 def codex_home_of(environ: Mapping[str, str]) -> Path:
@@ -158,6 +159,7 @@ def assess_codex_session(
         stream.final_message if stream is not None else "",
         _model_reported(rollouts),
         _executions(stream, rollouts, baseline),
+        stream.errors if stream is not None else (),
     )
 
 
@@ -224,7 +226,9 @@ class CodexSessionHarness:
         workspace = request.workdir.resolve()
         argv = codex_argv(request, policy, workspace)
         argv[0] = self._executable
-        baseline = CodexBaseline(self._rollouts.own_spawns(request.resume_session_id or ""))
+        baseline = CodexBaseline(
+            self._rollouts.own_spawns(request.resume_session_id) if request.resume_session_id is not None else 0
+        )
         with SessionEventLog(self._setup.layout.call(request.call_id)) as log:
             try:
                 streamed = self._run(argv, request, workspace, log)
@@ -239,7 +243,7 @@ class CodexSessionHarness:
             streamed.returncode,
             log.lines,
             assessment.model_reported,
-            streamed.stderr,
+            _diagnostics(streamed, assessment.errors),
             assessment.outcome,
             assessment.executions,
             _with_stderr(assessment, streamed),
@@ -289,6 +293,11 @@ def _arm_of(request: SessionRequest) -> Arm:
 
 def _interrupted(streamed: StreamedProcess) -> bool:
     return streamed.timed_out or streamed.returncode < 0
+
+
+def _diagnostics(streamed: StreamedProcess, errors: Sequence[str]) -> str:
+    """What the pacing layer reads to tell a spent quota from a failure: standard error and the stream's own errors."""
+    return "\n".join(part for part in (streamed.stderr.strip(), *errors) if part)
 
 
 def _with_stderr(assessment: CodexAssessment, streamed: StreamedProcess) -> tuple[str, ...]:

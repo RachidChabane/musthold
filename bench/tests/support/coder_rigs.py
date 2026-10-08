@@ -18,6 +18,7 @@ from support.fake_claude import install_fake_claude_sessions
 from support.fake_codex import install_fake_codex
 
 PLENTY_OF_MEMORY = 100
+KILL_AFTER_SECONDS = 6
 TEST_TOKEN = "test-oauth-token"
 TRUNK_ID = "task-a"
 DEFAULT_PROMPT = "implement the change"

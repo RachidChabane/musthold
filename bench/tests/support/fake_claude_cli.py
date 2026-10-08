@@ -136,7 +136,7 @@ def main(state_directory: str) -> None:
         {
             "type": "result",
             "subtype": "success",
-            "is_error": False,
+            "is_error": bool(response.get("is_error", False)),
             "result": response.get("final", f"done {session_id}"),
             "session_id": session_id,
             "num_turns": session["turns"],
@@ -146,3 +146,4 @@ def main(state_directory: str) -> None:
             "permission_denials": [],
         }
     )
+    sys.exit(response.get("exit_after", 0))

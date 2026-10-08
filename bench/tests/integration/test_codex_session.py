@@ -12,7 +12,7 @@ from specbench.adapters.execution_counter import execution_counter_for
 from specbench.adapters.run_store import FileEventStream
 from specbench.domain.arms import Arm, Harness
 from specbench.domain.sessions import SessionKind, SessionOutcome
-from support.coder_rigs import OWNER_CONFIG, make_codex_rig
+from support.coder_rigs import KILL_AFTER_SECONDS, OWNER_CONFIG, make_codex_rig
 from support.fake_codex import recorded_codex_calls
 
 SPAWN = {"spawn": "spec-proof-dp-decider"}
@@ -47,7 +47,7 @@ def test_the_trust_table_codex_persisted_is_removed_and_the_owner_config_is_what
 
 
 def test_the_trust_table_is_removed_even_when_the_session_is_killed(tmp_path: Path) -> None:
-    rig = make_codex_rig(tmp_path, [{"events": [{"hang": True}]}], timeout_seconds=2)
+    rig = make_codex_rig(tmp_path, [{"events": [{"hang": True}]}], timeout_seconds=KILL_AFTER_SECONDS)
 
     result = rig.harness.run_session(rig.request("t1"))
 
@@ -104,7 +104,7 @@ def test_a_subagent_that_spawns_is_counted_through_its_own_rollout(tmp_path: Pat
 
 
 def test_a_killed_session_settles_from_its_events(tmp_path: Path) -> None:
-    rig = make_codex_rig(tmp_path, [{"events": [SPAWN, SPAWN, {"hang": True}]}], timeout_seconds=2)
+    rig = make_codex_rig(tmp_path, [{"events": [SPAWN, SPAWN, {"hang": True}]}], timeout_seconds=KILL_AFTER_SECONDS)
     request = rig.request("t1")
 
     result = rig.harness.run_session(request)

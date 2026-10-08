@@ -9,7 +9,7 @@ import pytest
 
 from specbench.domain.arms import PLUGIN_HOST_ARMS, Arm
 from specbench.domain.sessions import SessionOutcome
-from support.coder_rigs import make_claude_rig
+from support.coder_rigs import KILL_AFTER_SECONDS, make_claude_rig
 from support.fake_claude import recorded_session_calls
 
 PLUGIN_NAMES = ("spec-proof-dp", "spec-proof-alignment")
@@ -145,7 +145,9 @@ def test_a_command_in_a_toolchain_root_is_not_an_outside_path(tmp_path: Path) ->
 
 
 def test_a_session_that_is_both_cut_short_and_contaminated_runs_again(tmp_path: Path) -> None:
-    rig = make_claude_rig(tmp_path, [{"events": [{"web": "WebSearch"}, {"hang": True}]}], timeout_seconds=2)
+    rig = make_claude_rig(
+        tmp_path, [{"events": [{"web": "WebSearch"}, {"hang": True}]}], timeout_seconds=KILL_AFTER_SECONDS
+    )
 
     result = rig.harness.run_session(rig.request("t1"))
 
