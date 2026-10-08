@@ -2,22 +2,23 @@
 # Installs the night jobs as launchd agents of the current user (macOS), so they
 # start from the operating system's scheduler whatever the state of any session:
 #
-#   local.user.spec-proof.pilot     daily at 21:07, script/night-jobs pilot
-#   local.user.spec-proof.canaries  daily at 23:13, script/night-jobs canaries
-#   local.user.spec-proof.construct daily at 03:07, script/night-jobs construct
+#   <prefix>.pilot     daily at 21:07, script/night-jobs pilot
+#   <prefix>.canaries  daily at 23:13, script/night-jobs canaries
+#   <prefix>.construct daily at 03:07, script/night-jobs construct
 #
 #   script/install-night-jobs            install or reload the agents
 #   script/install-night-jobs --remove   unload and delete the agents
 #
-# PATH holds the directories where the tools resolve on this machine; override it
-# with NIGHT_JOBS_PATH. Logs go to ~/Library/Logs/spec-proof.
+# The label prefix is local.<user>.spec-proof; override it with
+# NIGHT_JOBS_LABEL_PREFIX. PATH holds the directories where the tools resolve on
+# this machine; override it with NIGHT_JOBS_PATH. Logs go to ~/Library/Logs/spec-proof.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 readonly REPO="${PWD}"
 readonly AGENTS_DIR="${HOME}/Library/LaunchAgents"
 readonly LOG_DIR="${HOME}/Library/Logs/spec-proof"
-readonly LABEL_PREFIX="local.user.spec-proof"
+readonly LABEL_PREFIX="${NIGHT_JOBS_LABEL_PREFIX:-local.$(id -un).spec-proof}"
 readonly DEFAULT_PATH="${MISE_DATA_DIR:-${HOME}/dev-env/1-tools}/shims:${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 # Tools the night jobs call that mise provides; their install directories go first
 # in PATH, because a shim without a global version does not resolve under launchd.
