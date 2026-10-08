@@ -196,7 +196,7 @@ Every statement here about what a harness does holds as of Claude Code 2.1.293, 
 |---|---|---|---|
 | Claude Code | plugin per module and the `spec-proof` plugin | `restricted`: the executor holds only `fetch_request` and `submit_response`; hooks issue a per-subagent capability and attest the transcript | full, under the default `proofs.min_isolation: restricted` |
 | Codex CLI | `.codex/agents`, `.codex/hooks.json` and a skill, written by `init` | `unrestricted`: Codex has no per-agent allowlist of built-in tools; attestation is waived | none: judged answers keep their power to block and escalate, and criteria without examples reach no PASS unless the floor is lowered |
-| Copilot CLI | `.github/agents`, `.github/hooks` and a skill, written by `init` | `restricted-unverified` | none, as for Codex |
+| Copilot CLI | `.github/agents`, `.github/hooks` and a skill, written by `init` | `restricted` for an answer whose run the stop hook verified from the session log, otherwise `restricted-unverified` | full for a verified run; none otherwise, as for Codex |
 
 The Claude Code integration relies on plugin hooks firing in the session. When
 they do not fire, no capability is issued, the executor server refuses every

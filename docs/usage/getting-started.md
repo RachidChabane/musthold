@@ -220,7 +220,8 @@ installs none.
   [Codex: trust the project and its hooks](#codex-trust-the-project-and-its-hooks).
 - **Copilot CLI.** `init` writes `.github/agents/*.agent.md`,
   `.github/hooks/<module>.json` and `.github/skills/<module>-fulfil/SKILL.md`.
-  Isolation is `restricted-unverified`.
+  Isolation is `restricted` for an answer whose run the stop hook verified from the
+  session log, and `restricted-unverified` otherwise.
 - **Any other harness.** The main agent answers each ticket itself:
   `spec-proof-dp request list`, `spec-proof-dp request show <ticket>`, then
   `spec-proof-dp request submit <ticket> --nonce <nonce>` with the JSON answer on

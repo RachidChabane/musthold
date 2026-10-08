@@ -89,13 +89,13 @@ whatever its level. A floor weaker than `restricted` is flagged in the report.
 |---|---|---|
 | Claude Code | `restricted`, `restricted-attested` when attested | the executor is a plugin subagent whose `tools` list names exactly `fetch_request` and `submit_response`; it holds no shell and no file tool |
 | Codex CLI | `unrestricted` | Codex has no per-agent allowlist of built-in tools; the executor keeps the shell, and attestation is waived |
-| Copilot CLI | `restricted-unverified` | the allowlist is written, but its enforcement is not verified |
+| Copilot CLI | `restricted` for an answer whose run the stop hook verified from the session log, otherwise `restricted-unverified`; never `restricted-attested` | a verified run has the pinned CLI version, exactly the two executor tools selected, only the fetch and the submit of its ticket, a launch prompt that is the bare ticket, and a bare receipt; any other answer is `restricted-unverified`, which earns no judged pass credit under the default floor |
 | any other harness | `inline` | the main agent answers through `request show` and `request submit` |
 
-Consequences: on Codex, Copilot and inline harnesses, requirements without examples
-reach no PASS, local or signed, unless the floor is lowered; requirements with
-examples pass on executed evidence everywhere. Judged answers there still block and
-escalate.
+Consequences: on Codex and inline harnesses, and on Copilot for every answer whose run
+the stop hook did not verify, requirements without examples reach no PASS, local or
+signed, unless the floor is lowered; requirements with examples pass on executed
+evidence everywhere. Judged answers there still block and escalate.
 
 ## What a module checks
 
