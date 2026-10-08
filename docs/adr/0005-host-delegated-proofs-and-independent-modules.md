@@ -346,8 +346,7 @@ The plugin ships agents with `tools: ["spec-proof-dp-exec/fetch_request",
 "spec-proof-dp-exec/submit_response"]`, the server, the skill, and `preToolUse`
 and `subagentStop` hooks. **V:** the agent profile reference documents
 `server/tool` names, `tools: []`, and that unrecognized names are ignored.
-**U:** whether the CLI honours an MCP-only allowlist and what an all-unresolved
-list does (possibly fail-open); a fresh context per subagent.
+GitHub's reference also states that an unset `tools` list defaults to all tools.
 
 **D (live canary, 2026-10-08, model `gpt-5.6-luna`):** the main agent starts a
 plugin agent through the `task` tool with `agent_type` set to the plugin-prefixed
@@ -358,10 +357,26 @@ alike, so a hook cannot tell them apart (`IdentifiesCaller` stays false);
 `subagentStop` carries `agentId`, `agentName` and `agentType`. Hooks see an MCP tool
 as `<server>-<tool>` (`spec-proof-dp-exec-fetch_request`). `copilot -p` streams no
 `session.start`: the model is in `model.call_start` and a final `result` event
-closes the session.
+closes the session. The `subagentStop` payload's `agentType` is plugin-prefixed, and
+its `transcriptPath` is the CLI's session log. The log carries `copilotVersion`, and
+for each agent the `subagent.selected` tool list, its system and user messages, and
+its tool starts. Under a bait asking it to read a file and run a shell command, the
+executor selected exactly its two tools and ran nothing else.
 
-Until the canary passes, isolation is `restricted-unverified`, with no local pass
-credit for judged components and `require_attestation: false`. In interactive
+An answer is recorded `restricted-unverified`. It is raised to `restricted` when
+the `subagentStop` hook finds every condition of `allowlist_observed` and
+`launch_bare` in the session log for the answering agent:
+- the pinned CLI version;
+- exactly the two executor tools selected;
+- only the fetch and submit of its own ticket;
+- a submitted output that matches the stored response;
+- a bare receipt as the reply;
+- a launch prompt that is the bare ticket, with the agent body as the only system
+  message.
+
+Copilot keeps `require_attestation: false` and never reaches
+`restricted-attested`, because no hook issues a capability. A collapsed or
+unresolved `tools` list is not exactly the two names, so its run gets no raise. In interactive
 sessions that declare `sampling`, `drain` is available, and each request then needs
 one human review; that is measured, not assumed.
 
@@ -571,7 +586,7 @@ the optional local System One endpoint) and the bench's local work alike.
 | Architecture | the rules of "Independent modules with one shared package" |
 | Integration | real stdio server driven by a real client process; concurrent submits; `host push` and pull against a bare repository; Shallnot reading `pending[]`; relay against a stub server |
 | End to end | `fakehost` drives each module **alone** and all of them **through the umbrella**: `init`, an edit, the real `shallnot hook claude-stop` blocks, exit 3, fakehost serves, waves, `host push`, simulated CI `--import-host`, a CI-issued round trip, `sign`, `verify --offline`, two byte-identical reports. Also: an absent module never passes; a stale discriminating-power proof makes alignment stale |
-| Live canary (laptop, per harness version; no-call checks first) | Claude Code under `-p`: plugin and server in `system/init`; executor with no Bash; main-session `fetch` denied; rewrite drops `model`; cap refused without hooks; Stop fires. Copilot: allowlist fail-closed. Codex: blocked until the quota resets |
+| Live canary (laptop, per harness version; no-call checks first) | Claude Code under `-p`: plugin and server in `system/init`; executor with no Bash; main-session `fetch` denied; rewrite drops `model`; cap refused without hooks; Stop fires. Copilot: allowlist honoured under bait; the product journals the observed selection and refuses the raise for a non-bare launch. Codex: blocked until the quota resets |
 
 **Fake-host personas** (asserted verdicts): `honest` (recordings); `forger`
 (uncapped, VALID everywhere, EQUIVALENT and NOT_VIOLATING on every survivor,
@@ -660,8 +675,8 @@ of the benchmark's arms.
   provenance fails closed (tickets stay pending) until the user sets
   `host.require_attestation: false`, which records `restricted`; blindness still
   holds.
-- Copilot's allowlist may fail open when every name is unresolved. Until the canary,
-  its judged components carry no pass credit.
+- Any Copilot selection other than exactly the two tools, and any launch other than
+  the bare ticket, leaves the answer `restricted-unverified`.
 - Codex has no executor blindness, so its contribution is limited to block power.
 - The git-status snapshot and the environment details leak file names to every
   executor. This is unavoidable per subagent.
@@ -686,13 +701,11 @@ Unverified at decision time, to settle before relying on them:
 
 - plugin hooks and Stop under `claude -p`;
 - the behaviour of an all-unresolved `tools` list;
-- Copilot's MCP-only allowlist, fresh subagent context and `agentType` in
-  `preToolUse`;
+- `agentType` in Copilot's `preToolUse`;
 - Codex `agent_type` in PreToolUse and hooks under `codex exec`;
 - plugin dependencies on Codex and Copilot.
 
 Blocked, external:
 
-- Copilot execution, until its allowance is verified; no spending.
 - Live CI `prove`: CI holds no model credential.
 - Tuning confidence thresholds per `confidenceSource` needs run history.
