@@ -1,9 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "specbench.manifest/2",
+  "$id": "specbench.manifest/3",
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "budget_unit",
     "cli_versions",
     "corpus_lock_digest",
     "harness_models",
@@ -19,7 +20,8 @@
     "toolchains"
   ],
   "properties": {
-    "schema": {"const": "specbench.manifest/2"},
+    "schema": {"const": "specbench.manifest/3"},
+    "budget_unit": {"const": "model-execution"},
     "run_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$"},
     "seed": {"type": "integer"},
     "prereg_tag": {"type": "string", "minLength": 1},

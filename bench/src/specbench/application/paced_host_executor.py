@@ -28,7 +28,7 @@ class PacedHostExecutor:
         if self._calls.exists(call_id):
             recorded = self._calls.read(call_id)
             return HostResponse(request.request_id, self._host, json.loads(recorded.stdout))
-        self._gate.admit()
+        admission = self._gate.admit()
         response = self._inner.execute(request)
         record = CallRecord(
             call_id,
@@ -41,5 +41,5 @@ class PacedHostExecutor:
             None,
         )
         self._calls.write(record)
-        self._gate.charge()
+        self._gate.charge(admission)
         return response

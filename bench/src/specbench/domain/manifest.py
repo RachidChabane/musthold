@@ -13,9 +13,12 @@ from specbench.domain.canonical import JsonValue, canonical_json, parse_canonica
 from specbench.domain.deviations import DEVIATIONS_FILE_NAME
 from specbench.domain.jsonread import RecordError, enum_of, mapping, sequence, text
 from specbench.domain.pacing import CALL_LEDGER_FILE_NAME
+from specbench.domain.reservation import EXECUTION_HISTORY_FILE_NAME
 from specbench.domain.task import DIGEST_PATTERN, SHA_PATTERN
 
-MANIFEST_SCHEMA: Final = "specbench.manifest/2"
+MANIFEST_SCHEMA: Final = "specbench.manifest/3"
+BUDGET_UNIT: Final = "model-execution"
+BUDGET_UNIT_KEY: Final = "budget_unit"
 MANIFEST_FILE_NAME: Final = "manifest.json"
 RESULTS_FILE_NAME: Final = "results.json"
 REPORT_FILE_NAME: Final = "REPORT.md"
@@ -61,6 +64,10 @@ class RunLayout:
     @property
     def call_ledger(self) -> Path:
         return self.root / CALL_LEDGER_FILE_NAME
+
+    @property
+    def execution_history(self) -> Path:
+        return self.root / EXECUTION_HISTORY_FILE_NAME
 
     @property
     def results(self) -> Path:
@@ -134,6 +141,7 @@ class Manifest:
 
     def to_record(self) -> dict[str, JsonValue]:
         return {
+            BUDGET_UNIT_KEY: BUDGET_UNIT,
             "cli_versions": dict(sorted(self.provenance.cli_versions.items())),
             "corpus_lock_digest": self.corpus_lock_digest,
             "harness_models": {h.value: m for h, m in sorted(self.harness_models.items(), key=lambda kv: kv[0].value)},
@@ -161,6 +169,8 @@ def parse_manifest(content: str) -> Manifest:
     body = mapping(parse_canonical(content), "manifest")
     if body.get("schema") != MANIFEST_SCHEMA:
         raise RecordError(f"schema must be {MANIFEST_SCHEMA}")
+    if body.get(BUDGET_UNIT_KEY) != BUDGET_UNIT:
+        raise RecordError(f"{BUDGET_UNIT_KEY} must be {BUDGET_UNIT}")
     seed = body.get("seed")
     if isinstance(seed, bool) or not isinstance(seed, int):
         raise RecordError("seed must be an integer")

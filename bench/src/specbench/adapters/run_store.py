@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Final
 
+from specbench.domain.call_ledger import EMPTY_LEDGER, CallLedger
 from specbench.domain.canonical import JsonValue, canonical_json, stable_json
 from specbench.domain.deviations import (
     DeviationEntry,
@@ -23,12 +25,20 @@ from specbench.domain.manifest import (
     RunLayout,
     parse_manifest,
 )
-from specbench.domain.pacing import EMPTY_LEDGER, CallLedger
 from specbench.domain.records import TrunkRecord, trunk_from_record
+from specbench.domain.reservation import ExecutionHistory
 from specbench.domain.sessions import CallRecord
 
 ENCODING: Final = "utf-8"
 FAILURES_FILE_NAME: Final = "failures.jsonl"
+
+
+def write_atomically(path: Path, content: str) -> None:
+    """Write beside the target and rename over it, so a process killed mid-write leaves the previous file intact."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pending = path.with_name(f".{path.name}.pending")
+    pending.write_text(content, encoding=ENCODING)
+    os.replace(pending, path)
 
 
 class FileCallStore:
@@ -75,17 +85,36 @@ class FileLedgerStore:
     def load(self) -> CallLedger:
         if not self._path.is_file():
             return EMPTY_LEDGER
-        body = mapping(json.loads(self._path.read_text(encoding=ENCODING)), "ledger")
-        return CallLedger(
-            {
-                night: {name: integer(count, f"ledger.{night}.{name}") for name, count in mapping(per, night).items()}
-                for night, per in body.items()
-            }
-        )
+        return CallLedger.from_record(mapping(json.loads(self._path.read_text(encoding=ENCODING)), "ledger"))
 
     def save(self, ledger: CallLedger) -> None:
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        self._path.write_text(canonical_json(ledger.to_record()), encoding=ENCODING)
+        write_atomically(self._path, canonical_json(ledger.to_record()))
+
+
+class FileExecutionHistoryStore:
+    """`ExecutionHistoryStore`: what completed gates spent, in the run directory."""
+
+    def __init__(self, layout: RunLayout) -> None:
+        self._path = layout.execution_history
+
+    def load(self) -> ExecutionHistory:
+        if not self._path.is_file():
+            return ExecutionHistory()
+        return ExecutionHistory.from_json(self._path.read_text(encoding=ENCODING))
+
+    def save(self, history: ExecutionHistory) -> None:
+        write_atomically(self._path, history.to_json())
+
+
+class FileEventStream:
+    """`EventStream`: the events a session streamed to `calls/<call-id>/events.jsonl` as it ran."""
+
+    def __init__(self, layout: RunLayout) -> None:
+        self._layout = layout
+
+    def lines(self, call_id: str) -> tuple[str, ...]:
+        path = self._layout.call(call_id) / CALL_EVENTS
+        return tuple(path.read_text(encoding=ENCODING).splitlines()) if path.is_file() else ()
 
 
 class RunStore:

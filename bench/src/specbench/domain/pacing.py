@@ -8,14 +8,13 @@ on calls that were never made. A pause ends the process with `EXIT_PAUSED`.
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from enum import Enum
 from typing import Final
 
 from specbench.domain.arms import Harness
-from specbench.domain.canonical import JsonValue
+from specbench.domain.call_ledger import CallLedger
 
 EXIT_PAUSED: Final = 3
 RUN_WINDOW_ENV: Final = "SPECBENCH_RUN_WINDOW"
@@ -97,28 +96,6 @@ def looks_like_quota_exhausted(*streams: str) -> bool:
 
 
 @dataclass(frozen=True)
-class CallLedger:
-    """New model calls per night and harness."""
-
-    counts: Mapping[str, Mapping[str, int]]
-
-    def calls_on(self, night: date, harness: Harness) -> int:
-        return self.counts.get(night.isoformat(), {}).get(harness.value, 0)
-
-    def with_call(self, night: date, harness: Harness) -> CallLedger:
-        updated = {key: dict(value) for key, value in self.counts.items()}
-        nightly = updated.setdefault(night.isoformat(), {})
-        nightly[harness.value] = nightly.get(harness.value, 0) + 1
-        return CallLedger(updated)
-
-    def to_record(self) -> dict[str, JsonValue]:
-        return {night: dict(sorted(per.items())) for night, per in sorted(self.counts.items())}
-
-
-EMPTY_LEDGER: Final = CallLedger({})
-
-
-@dataclass(frozen=True)
 class PacingPolicy:
     window: RunWindow | None
     budget_per_night: int = DEFAULT_CALL_BUDGET
@@ -137,5 +114,23 @@ class PacingPolicy:
             return
         if self.window is not None and not self.window.is_open(now):
             raise RunPaused(PauseReason.WINDOW_CLOSED)
-        if ledger.calls_on(self.night_of(now), harness) >= self.budget_per_night:
+        if ledger.committed_on(self.night_of(now), harness) >= self.budget_per_night:
             raise RunPaused(PauseReason.BUDGET_REACHED, f"{harness.value} made {self.budget_per_night} calls tonight")
+
+    def admit_reserved(self, now: datetime, harness: Harness, ledger: CallLedger, call_id: str, size: int) -> None:
+        """Raise `RunPaused` unless a call may reserve `size` executions now.
+
+        A call that already holds its reservation tonight is admitted again at no cost. Any other call needs its
+        whole reservation to fit in what the night's share has left after what is charged and what is reserved.
+        """
+        if self.window is not None and not self.window.is_open(now):
+            raise RunPaused(PauseReason.WINDOW_CLOSED)
+        night = self.night_of(now)
+        if ledger.is_reserved(night, harness, call_id):
+            return
+        remaining = self.budget_per_night - ledger.committed_on(night, harness)
+        if size > remaining:
+            raise RunPaused(
+                PauseReason.BUDGET_REACHED,
+                f"{harness.value} needs {size} executions of the {max(remaining, 0)} left tonight",
+            )

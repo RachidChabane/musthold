@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Protocol
 
 from specbench.domain.arms import Arm, Harness
+from specbench.domain.call_ledger import CallLedger
 from specbench.domain.candidates import Candidate
 from specbench.domain.canonical import JsonValue
 from specbench.domain.construction import ModelRequest, ModelResponse
@@ -18,7 +19,7 @@ from specbench.domain.languages import Language
 from specbench.domain.manifest import Provenance
 from specbench.domain.mining import BaseSnapshot, PullRequest, PullSummary, Rejection, Repository
 from specbench.domain.oracle import OracleTest, Outcome
-from specbench.domain.pacing import CallLedger
+from specbench.domain.reservation import ExecutionHistory
 from specbench.domain.sealing import CorpusLock, SealedBundle
 from specbench.domain.selection import ProbedTask
 from specbench.domain.sessions import CallRecord, SessionRequest, SessionResult
@@ -227,6 +228,26 @@ class LedgerStore(Protocol):
     def load(self) -> CallLedger: ...
 
     def save(self, ledger: CallLedger) -> None: ...
+
+
+class ExecutionHistoryStore(Protocol):
+    """The executions that completed gates spent, which size the reservation of the next one."""
+
+    def load(self) -> ExecutionHistory: ...
+
+    def save(self, history: ExecutionHistory) -> None: ...
+
+
+class EventStream(Protocol):
+    """The events a session streamed to its call directory, which survive a session that was killed."""
+
+    def lines(self, call_id: str) -> tuple[str, ...]: ...
+
+
+class ExecutionCounter(Protocol):
+    """Counts the model executions a harness's stream shows: the session plus every subagent it started."""
+
+    def count(self, events: Sequence[str]) -> int: ...
 
 
 class FileTreeFactory(Protocol):

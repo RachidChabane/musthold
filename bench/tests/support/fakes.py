@@ -9,10 +9,11 @@ from pathlib import Path
 
 from specbench.application.ports import OperatorMutants, TreeSpec
 from specbench.domain.arms import Arm, Harness, Host
+from specbench.domain.call_ledger import CallLedger
 from specbench.domain.canonical import JsonValue
 from specbench.domain.gate import GateMode, GateOutcome
 from specbench.domain.oracle import OracleTest, Outcome
-from specbench.domain.pacing import CallLedger
+from specbench.domain.reservation import ExecutionHistory
 from specbench.domain.sessions import CallRecord, HostRequest, HostResponse, SessionRequest, SessionResult
 
 
@@ -130,6 +131,39 @@ class FakeGateHost:
         self._answer = answer
         self.received: list[tuple[Path, Arm, Path, GateMode]] = []
 
+    @classmethod
+    def returning(cls, outcome: Callable[[], GateOutcome]) -> FakeGateHost:
+        """A host that answers every call from `outcome`, whatever the tree, arm, record directory and mode."""
+        return cls(lambda _tree, _arm, _record, _mode: outcome())
+
     def run_gate(self, tree: Path, arm: Arm, record_dir: Path, mode: GateMode) -> GateOutcome:
         self.received.append((tree, arm, record_dir, mode))
         return self._answer(tree, arm, record_dir, mode)
+
+
+class MemoryEvents:
+    """An `EventStream` the test fills: the events a session streamed to its call directory."""
+
+    def __init__(self) -> None:
+        self.streamed: dict[str, tuple[str, ...]] = {}
+
+    def lines(self, call_id: str) -> tuple[str, ...]:
+        return self.streamed.get(call_id, ())
+
+
+class LineCounter:
+    """An `ExecutionCounter` that reads one execution per event line."""
+
+    def count(self, events: Sequence[str]) -> int:
+        return len(events)
+
+
+class MemoryHistory:
+    def __init__(self) -> None:
+        self.history = ExecutionHistory()
+
+    def load(self) -> ExecutionHistory:
+        return self.history
+
+    def save(self, history: ExecutionHistory) -> None:
+        self.history = history

@@ -8,6 +8,7 @@ import pytest
 from specbench.application.paced_calls import CallGate, ModelNotFrozen, PacedAgentHarness
 from specbench.application.paced_host_executor import PacedHostExecutor
 from specbench.domain.arms import FROZEN_MODEL, Arm, Harness, Host
+from specbench.domain.call_ledger import EMPTY_LEDGER
 from specbench.domain.deviations import (
     ARM_ORDER,
     DeviationEntry,
@@ -19,7 +20,6 @@ from specbench.domain.deviations import (
 )
 from specbench.domain.pacing import (
     DEFAULT_RUN_WINDOW,
-    EMPTY_LEDGER,
     EXIT_PAUSED,
     InvalidRunWindow,
     PacingPolicy,
@@ -157,7 +157,7 @@ def test_a_quota_failure_pauses_and_is_not_recorded_as_a_call() -> None:
     with pytest.raises(RunPaused) as paused:
         harness.run_session(request())
     assert paused.value.reason is PauseReason.QUOTA_EXHAUSTED
-    assert not calls.records and ledger.ledger.counts == {}
+    assert not calls.records and ledger.ledger.accounts == {}
 
 
 def test_only_the_frozen_model_of_the_harness_may_run() -> None:

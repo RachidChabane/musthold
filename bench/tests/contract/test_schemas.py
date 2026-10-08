@@ -98,6 +98,19 @@ def test_a_malformed_provenance_is_refused() -> None:
         Provenance(PROVENANCE.product_digests, "c" * 40, {"claude": "1.0.0", "codex": ""})
 
 
+def test_the_manifest_states_that_the_budget_is_counted_in_model_executions() -> None:
+    record = manifest().to_record()
+    assert record["budget_unit"] == "model-execution"
+    assert schema_problems(SchemaName.MANIFEST, record) == []
+    for unit in ("call", "cli-invocation", None):
+        changed = {**record, "budget_unit": unit}
+        assert schema_problems(SchemaName.MANIFEST, changed) != []
+        with pytest.raises(RecordError):
+            parse_manifest(canonical_json(changed))
+    without = {key: value for key, value in record.items() if key != "budget_unit"}
+    assert schema_problems(SchemaName.MANIFEST, without) != []
+
+
 def test_manifest_refuses_a_model_other_than_the_frozen_one() -> None:
     record = {**manifest().to_record(), "harness_models": {"claude-code": "claude-opus-5-5"}}
     assert schema_problems(SchemaName.MANIFEST, record) != []

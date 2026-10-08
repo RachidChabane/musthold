@@ -6,11 +6,12 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-from specbench.domain.arms import Harness, Host
+from specbench.domain.arms import Arm, Harness, Host
 from specbench.domain.canonical import JsonValue, canonical_json, sha256_hex
 
 CALL_ID_PREFIX = "call-"
 CALL_ID_DIGEST_LENGTH = 20
+GATE_CALL_ID_PREFIX = "gate-"
 
 
 class SessionKind(Enum):
@@ -100,3 +101,8 @@ class CallRecord:
     exit_code: int
     session_id: str
     model_reported: str | None
+
+
+def live_gate_call_id(arm: Arm, record_dir: Path) -> str:
+    """The identity of a live gate: its arm and its record directory, which is deterministic per task, arm and tree digest."""
+    return GATE_CALL_ID_PREFIX + sha256_hex(f"{arm.value}\n{record_dir.as_posix()}".encode())[:CALL_ID_DIGEST_LENGTH]

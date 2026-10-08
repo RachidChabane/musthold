@@ -11,6 +11,7 @@ from specbench.application.ports import (
     LedgerStore,
 )
 from specbench.domain.arms import FROZEN_MODEL, Harness
+from specbench.domain.call_ledger import Admission
 from specbench.domain.construction import (
     ModelCallFailed,
     ModelRequest,
@@ -35,15 +36,39 @@ class CallGate:
         self._ledgers = ledgers
         self._clock = clock
 
-    def admit(self) -> None:
-        self._policy.admit(self._clock.now(), self._harness, self._ledgers.load(), resumed=False)
+    def admit(self) -> Admission:
+        """Admit one new call; its charge lands on the night it is admitted, whenever it completes."""
+        now = self._clock.now()
+        self._policy.admit(now, self._harness, self._ledgers.load(), resumed=False)
+        return Admission(self._policy.night_of(now))
 
     def require_open(self) -> None:
         self._policy.require_open(self._clock.now())
 
-    def charge(self) -> None:
+    def charge(self, admission: Admission) -> None:
+        self._ledgers.save(self._ledgers.load().with_call(admission.night, self._harness))
+
+    def admit_reserved(self, call_id: str, size: int) -> Admission:
+        """Reserve `size` executions for a call on tonight's share; the call's own reservation is reused on a rerun."""
         now = self._clock.now()
-        self._ledgers.save(self._ledgers.load().with_call(self._policy.night_of(now), self._harness))
+        ledger = self._ledgers.load()
+        self._policy.admit_reserved(now, self._harness, ledger, call_id, size)
+        night = self._policy.night_of(now)
+        self._ledgers.save(ledger.with_reservation(night, self._harness, call_id, size))
+        return Admission(night, call_id)
+
+    def settle(self, admission: Admission, actual: int) -> None:
+        """Charge the executions a reserved call spent and release its reservation, on the night it was admitted."""
+        if admission.call_id is None:
+            raise ValueError("only a reserved admission settles")
+        self._ledgers.save(self._ledgers.load().settled(admission.night, self._harness, admission.call_id, actual))
+
+    def pending(self) -> tuple[Admission, ...]:
+        """The reserved calls that were admitted and never settled, oldest night first."""
+        return self._ledgers.load().pending(self._harness)
+
+    def holds_reservation(self, call_id: str) -> bool:
+        return self._ledgers.load().is_reserved(self._policy.night_of(self._clock.now()), self._harness, call_id)
 
     def require_frozen(self, model: str) -> None:
         if model != FROZEN_MODEL[self._harness]:
@@ -70,7 +95,7 @@ class PacedAgentHarness:
             return SessionResult(
                 recorded.session_id, recorded.stdout, recorded.exit_code, recorded.events, recorded.model_reported
             )
-        self._gate.admit()
+        admission = self._gate.admit()
         result = self._inner.run_session(request)
         if result.exit_code != 0 and looks_like_quota_exhausted(result.stderr, result.final_message):
             raise RunPaused(PauseReason.QUOTA_EXHAUSTED, request.harness.value)
@@ -86,7 +111,7 @@ class PacedAgentHarness:
                 model_reported=result.model_reported,
             )
         )
-        self._gate.charge()
+        self._gate.charge(admission)
         return result
 
 
@@ -107,14 +132,14 @@ class PacedConstructionModel:
         call_id = request.call_id
         if self._calls.exists(call_id):
             return response_from_stdout(request, self._calls.read(call_id).stdout)
-        self._gate.admit()
+        admission = self._gate.admit()
         try:
             response = self._inner.call(request)
         except QuotaExhausted as error:
             raise RunPaused(PauseReason.QUOTA_EXHAUSTED, request.role.value) from error
         except ModelCallFailed as error:
             self._failures.append(call_id, request.key, str(error))
-            self._gate.charge()
+            self._gate.charge(admission)
             raise
         self._calls.write(
             CallRecord(
@@ -128,5 +153,5 @@ class PacedConstructionModel:
                 model_reported=",".join(response.reported_models),
             )
         )
-        self._gate.charge()
+        self._gate.charge(admission)
         return response
