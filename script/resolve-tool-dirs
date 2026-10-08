@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Prints the real install directory of each tool, one "<tool><TAB><directory>" line per tool that resolves:
+#
+#   script/resolve-tool-dirs [TOOL...]     default tools: uv go python3 node npm java mvn gradle jq
+#
+# A mise shim only resolves while MISE_DATA_DIR and the home are the owner's, so anything that runs with another
+# home (the launchd night jobs, the benchmark's coder sessions) puts these directories first in PATH instead.
+# Resolution order: `mise which`, the newest installed mise version (a tool with no global version has no shim
+# target), then `command -v` outside any shims directory. Used by script/install-night-jobs and by the benchmark's
+# toolchain adapter (bench/src/specbench/adapters/toolchain_paths.py).
+set -euo pipefail
+
+readonly DEFAULT_TOOLS=(uv go python3 node npm java mvn gradle jq)
+
+installed_tool_dir() {
+  local tool="$1" version where binary
+  version="$(mise ls --installed --json "${tool}" 2>/dev/null | jq -r 'map(.version) | last // empty' 2>/dev/null || true)"
+  [[ -z "${version}" ]] && return 0
+  where="$(mise where "${tool}@${version}" 2>/dev/null || true)"
+  [[ -z "${where}" ]] && return 0
+  binary="$(find "${where}" -maxdepth 3 -type f -name "${tool}" -perm -u+x 2>/dev/null | head -1)"
+  [[ -n "${binary}" ]] && dirname "${binary}"
+  return 0
+}
+
+outside_shims() {
+  [[ -n "$1" && "$1" != "." && "$(basename "$1")" != "shims" ]] && echo "$1"
+  return 0
+}
+
+path_tool_dir() {
+  local found
+  found="$(command -v "$1" 2>/dev/null || true)"
+  [[ -n "${found}" ]] && outside_shims "$(dirname "${found}")"
+  return 0
+}
+
+tool_dir() {
+  local tool="$1" dir=""
+  if command -v mise >/dev/null 2>&1; then
+    dir="$(outside_shims "$(dirname "$(mise which "${tool}" 2>/dev/null || true)")")"
+    [[ -z "${dir}" ]] && dir="$(outside_shims "$(installed_tool_dir "${tool}")")"
+  fi
+  [[ -z "${dir}" ]] && dir="$(path_tool_dir "${tool}")"
+  echo "${dir}"
+}
+
+main() {
+  local tools=("$@") tool dir
+  [[ ${#tools[@]} -eq 0 ]] && tools=("${DEFAULT_TOOLS[@]}")
+  for tool in "${tools[@]}"; do
+    dir="$(tool_dir "${tool}")"
+    [[ -n "${dir}" ]] && printf '%s\t%s\n' "${tool}" "${dir}"
+  done
+  return 0
+}
+
+main "$@"

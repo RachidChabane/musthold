@@ -174,3 +174,26 @@ def test_no_value_of_a_session_environment_points_into_the_owners_home(
         if name != "PATH" and (value == OWNER_HOME or value.startswith(OWNER_HOME + "/"))
     }
     assert pointing == set()
+
+
+PATH_ENTRIES = st.one_of(
+    SEGMENT.map(lambda name: f"/opt/{name}/bin"),
+    SEGMENT.map(lambda name: f"/opt/{name}/shims"),
+    st.just("/Users/owner/dev-env/1-tools/shims"),
+    st.just("/usr/bin"),
+)
+
+
+@given(
+    st.lists(PATH_ENTRIES, min_size=1, max_size=8),
+    st.lists(SEGMENT.map(lambda name: f"/installs/{name}/bin"), unique=True, max_size=4),
+)
+def test_a_session_path_never_contains_a_shims_directory_and_starts_with_the_tool_directories(
+    entries: list[str], tool_dirs: list[str]
+) -> None:
+    path = neutral_environment(
+        {"HOME": OWNER_HOME, "PATH": ":".join(entries)}, Path("/runs/r1/homes/t/home"), None, tool_dirs
+    )["PATH"].split(":")
+
+    assert not [entry for entry in path if Path(entry).name == "shims"]
+    assert path[: len(tool_dirs)] == list(dict.fromkeys(tool_dirs))

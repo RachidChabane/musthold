@@ -61,7 +61,8 @@ class ClaudeSessionSetup:
 
     `plugin_dirs` and `required_plugins` apply to the arms whose coder is the host. `toolchain_roots` are the places
     outside a workspace where a coder legitimately runs: the task environments and the toolchains; they are writable
-    in the sandbox and are not out-of-workspace paths for the scan.
+    in the sandbox and are not out-of-workspace paths for the scan. `tool_dirs` are the resolved install
+    directories of the toolchain binaries, which lead the session's `PATH`.
     """
 
     layout: RunLayout
@@ -69,6 +70,7 @@ class ClaudeSessionSetup:
     required_plugins: tuple[str, ...] = ()
     required_servers: tuple[str, ...] = ()
     toolchain_roots: tuple[Path, ...] = ()
+    tool_dirs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -245,7 +247,7 @@ class ClaudeSessionHarness:
         session_home = bench_home(self._setup.layout, request.trunk_id)
         session_home.mkdir(parents=True, exist_ok=True)
         environment = claude_environment(
-            neutral_environment(self._environ, session_home, request.environment), home, token
+            neutral_environment(self._environ, session_home, request.environment, self._setup.tool_dirs), home, token
         )
         call_directory = self._setup.layout.call(request.call_id)
         with SessionEventLog(call_directory) as log:

@@ -81,6 +81,7 @@ def make_claude_rig(
     toolchain_roots: tuple[Path, ...] = (),
     timeout_seconds: int = 60,
     executable_name: str | None = None,
+    tool_dirs: tuple[str, ...] = (),
 ) -> ClaudeRig:
     layout = RunLayout(root / "run")
     workspace = root / "ws"
@@ -91,7 +92,9 @@ def make_claude_rig(
     fake_dir.mkdir()
     executable = install_fake_claude_sessions(fake_dir, responses)
     default = {**base_environment(owner_home), OAUTH_TOKEN_VARIABLE: TEST_TOKEN}
-    setup = ClaudeSessionSetup(layout, plugin_dirs, required_plugins, toolchain_roots=toolchain_roots)
+    setup = ClaudeSessionSetup(
+        layout, plugin_dirs, required_plugins, toolchain_roots=toolchain_roots, tool_dirs=tool_dirs
+    )
     harness = ClaudeSessionHarness(
         setup,
         free_runner(timeout_seconds),

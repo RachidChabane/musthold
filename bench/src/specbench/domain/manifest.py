@@ -22,6 +22,7 @@ BUDGET_UNIT_KEY: Final = "budget_unit"
 MANIFEST_FILE_NAME: Final = "manifest.json"
 RESULTS_FILE_NAME: Final = "results.json"
 REPORT_FILE_NAME: Final = "REPORT.md"
+TOOLCHAIN_PATHS_FILE_NAME: Final = "toolchain-paths.json"
 TRUNKS_DIRECTORY: Final = "trunks"
 CALLS_DIRECTORY: Final = "calls"
 HOMES_DIRECTORY: Final = "homes"
@@ -88,6 +89,11 @@ class RunLayout:
 
     def call(self, call_id: str) -> Path:
         return self.root / CALLS_DIRECTORY / call_id
+
+    @property
+    def toolchain_paths(self) -> Path:
+        """The install directories of the toolchain binaries, resolved once for the whole run."""
+        return self.root / TOOLCHAIN_PATHS_FILE_NAME
 
     def settings_file(self, arm: Arm) -> Path:
         """The bench-owned settings of a coder session, outside every workspace."""

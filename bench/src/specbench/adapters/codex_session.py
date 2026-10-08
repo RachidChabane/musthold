@@ -57,6 +57,7 @@ class CodexSessionSetup:
     layout: RunLayout
     codex_home: Path
     toolchain_roots: tuple[Path, ...] = ()
+    tool_dirs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -261,7 +262,7 @@ class CodexSessionHarness:
         session_home = bench_home(self._setup.layout, request.trunk_id)
         session_home.mkdir(parents=True, exist_ok=True)
         environment = {
-            **neutral_environment(self._environ, session_home, request.environment),
+            **neutral_environment(self._environ, session_home, request.environment, self._setup.tool_dirs),
             CODEX_HOME_VARIABLE: str(self._codex_home),
         }
         try:

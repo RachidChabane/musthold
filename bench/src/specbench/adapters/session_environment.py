@@ -7,7 +7,7 @@ cache points into the prewarmed task environment the environment builder prepare
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Final
 
@@ -16,6 +16,9 @@ from specbench.domain.manifest import RunLayout
 
 HOME_VARIABLE: Final = "HOME"
 PATH_VARIABLE: Final = "PATH"
+PATH_SEPARATOR: Final = ":"
+SHIMS_DIRECTORY: Final = "shims"
+DEFAULT_SYSTEM_PATH: Final = "/usr/bin:/bin"
 BENCH_HOME_DIRECTORY: Final = "home"
 GIT_IDENTITY_NAME: Final = "specbench"
 GIT_IDENTITY_EMAIL: Final = "specbench@localhost"
@@ -71,11 +74,22 @@ def _inside(value: str, directory: Path) -> bool:
     return value == prefix or value.startswith(prefix + "/")
 
 
+def session_path(inherited_path: str | None, tool_dirs: Sequence[str]) -> str:
+    """The `PATH` of a session: the resolved toolchain directories first, then the inherited entries without any mise
+    shims directory, which cannot resolve once `HOME` is not the owner's."""
+    inherited = inherited_path.split(PATH_SEPARATOR) if inherited_path else DEFAULT_SYSTEM_PATH.split(PATH_SEPARATOR)
+    entries = [*tool_dirs, *(entry for entry in inherited if entry and Path(entry).name != SHIMS_DIRECTORY)]
+    return PATH_SEPARATOR.join(dict.fromkeys(entries))
+
+
 def neutral_environment(
-    inherited: Mapping[str, str], session_home: Path, task_environment: Path | None
+    inherited: Mapping[str, str],
+    session_home: Path,
+    task_environment: Path | None,
+    tool_dirs: Sequence[str] = (),
 ) -> dict[str, str]:
     """The inherited environment without any value that points into the owner's home (`PATH` aside, which only
-    lists where programs are), with `HOME` replaced, the toolchain caches set and git's configuration cut off."""
+    lists where programs are and is recomposed), with `HOME` replaced, the toolchain caches set and git's configuration cut off."""
     owner_home = Path(inherited.get(HOME_VARIABLE, "")) if inherited.get(HOME_VARIABLE) else None
     kept = {
         name: value
@@ -83,4 +97,5 @@ def neutral_environment(
         if name != HOME_VARIABLE and (name == PATH_VARIABLE or owner_home is None or not _inside(value, owner_home))
     }
     caches = toolchain_caches(task_environment) if task_environment is not None else {}
-    return {**kept, **caches, **GIT_ENVIRONMENT, HOME_VARIABLE: str(session_home)}
+    path = session_path(inherited.get(PATH_VARIABLE), tool_dirs)
+    return {**kept, **caches, **GIT_ENVIRONMENT, HOME_VARIABLE: str(session_home), PATH_VARIABLE: path}

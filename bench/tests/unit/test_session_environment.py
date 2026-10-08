@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from specbench.adapters.session_environment import bench_home, neutral_environment, toolchain_caches
+from specbench.adapters.session_environment import bench_home, neutral_environment, session_path, toolchain_caches
 from specbench.domain.manifest import RunLayout
 
 OWNER = "/Users/owner"
@@ -56,3 +56,23 @@ def test_the_bench_home_lives_under_the_trunks_homes(tmp_path: Path) -> None:
 def test_toolchain_caches_are_all_absolute_paths_of_the_task_environment() -> None:
     caches = toolchain_caches(TASK_ENV)
     assert caches["XDG_CACHE_HOME"] == str(TASK_ENV / "cache")
+
+
+def test_the_tool_directories_lead_the_path_and_no_shims_directory_remains() -> None:
+    inherited = "/Users/owner/dev-env/1-tools/shims:/opt/homebrew/bin:/shims/:/usr/bin:/bin"
+    assert session_path(inherited, ["/installs/go/bin", "/installs/uv"]) == (
+        "/installs/go/bin:/installs/uv:/opt/homebrew/bin:/usr/bin:/bin"
+    )
+
+
+def test_a_tool_directory_already_on_the_path_is_not_repeated() -> None:
+    assert session_path("/bin:/installs/go/bin", ["/installs/go/bin"]) == "/installs/go/bin:/bin"
+
+
+def test_a_missing_path_falls_back_to_the_system_directories() -> None:
+    assert session_path(None, ["/installs/go/bin"]) == "/installs/go/bin:/usr/bin:/bin"
+
+
+def test_the_neutral_environment_carries_the_composed_path() -> None:
+    environment = neutral_environment({"HOME": OWNER, "PATH": f"{OWNER}/shims:/bin"}, SESSION_HOME, None, ["/i/go"])
+    assert environment["PATH"] == "/i/go:/bin"
