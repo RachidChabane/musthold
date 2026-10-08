@@ -74,7 +74,7 @@ func TestExecutorSpawnIsBlind(t *testing.T) {
 		files := readFiles(t, codexSession)
 		files.RolloutMain, files.RolloutChildren = nil, nil
 		v := want(t, evaluate(t, "codex", files), check, verdict.Inconclusive)
-		if !strings.Contains(v.Summary, "no rollout recorded its arguments") {
+		if !strings.Contains(v.Summary, "no rollout recorded the arguments of its spawn") {
 			t.Errorf("summary = %s", v.Summary)
 		}
 	})

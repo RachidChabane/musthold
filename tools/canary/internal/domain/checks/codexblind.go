@@ -40,11 +40,11 @@ func executorSpawnBlindCheck() Check {
 		})
 }
 
-// noSpawnRecordNote says why no spawn of the executor could be read: the session
-// started none, or it started one the stream shows but no rollout recorded.
+// noSpawnRecordNote says why no spawn call of the executor could be read: the
+// session started none, or it started one whose arguments the main rollout does not hold.
 func noSpawnRecordNote(found evidence.Evidence, agentType string) string {
 	if spawns, _ := spawnedExecutor(found); len(spawns) > 0 {
-		return "a spawn of " + agentType + " is in the stream, but no rollout recorded its arguments"
+		return "a start of " + agentType + " is recorded, but no rollout recorded the arguments of its spawn"
 	}
 	return checkCodexNoSpawnNote
 }

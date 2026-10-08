@@ -96,8 +96,10 @@ which run the evaluators on recorded event streams and make no model call.
   its main thread and the rollouts of the threads it spawned into the records,
   read the spawn calls and the identity of each spawned thread from them, take the
   starts of the executor from the rollouts, fall back on the collab items of the
-  event stream only when the session left no rollout, and reject a rollout line
-  that is not JSON naming its file and line.
+  event stream only when the session left no rollout, take the starts the stream
+  reports as failed whatever the rollouts hold, reject a rollout line that is not
+  JSON naming its file and line, and ignore a last line that an interrupted write
+  left incomplete.
 - **SP-1511~1**: WHEN the recorded session of Codex is evaluated THE SYSTEM SHALL
   conclude PASS for the executor spawn when every spawn of the executor's agent
   type sets `fork_turns` to `"none"`, FAIL when one omits it or sets `"all"` or a

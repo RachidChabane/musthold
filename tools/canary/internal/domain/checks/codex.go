@@ -96,13 +96,12 @@ func spawnedExecutor(found evidence.Evidence) ([]executorSpawn, string) {
 	for _, child := range found.Rollouts.ChildrenOf(agentType) {
 		spawns = append(spawns, executorSpawn{Pointer: evidence.At(evidence.RolloutChildrenDir+"/"+child.File, 1, "session_meta")})
 	}
-	fromRollouts := len(spawns) > 0
 	for _, item := range codexStream(found).ItemsOf(evidence.CodexItemCollab) {
 		if !item.Mentions(agentType) {
 			continue
 		}
 		failed := item.Status == evidence.CodexStatusFailed
-		if failed || !fromRollouts {
+		if failed || !found.Rollouts.Recorded {
 			spawns = append(spawns, executorSpawn{Pointer: evidence.StreamAt(item.Line, "collab call"), Failed: failed, Detail: truncate(string(item.Raw))})
 		}
 	}

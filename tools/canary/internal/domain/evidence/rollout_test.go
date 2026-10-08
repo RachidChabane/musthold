@@ -96,6 +96,21 @@ func TestRolloutDecoder(t *testing.T) {
 		}
 	})
 
+	t.Run("a last line left incomplete by an interrupted write is ignored and the lines before it are read [verifies SP-1510~1]", func(t *testing.T) {
+		whole := string(fixture(t, "rollout-main.jsonl"))
+		found, err := evidence.Assemble(evidence.Files{
+			RolloutMain:     []byte(whole + `{"type":"response_item","payload":{"type":"function_ca`),
+			RolloutChildren: map[string][]byte{"c.jsonl": []byte(`{"type":"session_meta","payl`)},
+		})
+		if err != nil || len(found.Rollouts.Spawns) != 4 || len(found.Rollouts.Children) != 1 || found.Rollouts.Children[0].ThreadID != "" {
+			t.Fatalf("rollouts = %+v, %v", found.Rollouts, err)
+		}
+		_, err = evidence.Assemble(evidence.Files{RolloutMain: []byte("not json\n" + whole)})
+		if err == nil || !strings.Contains(err.Error(), "rollout-main.jsonl:1") {
+			t.Fatalf("a bad line before the end was accepted: %v", err)
+		}
+	})
+
 	t.Run("a spawn whose arguments are not JSON is kept with nothing read from them [verifies SP-1510~1]", func(t *testing.T) {
 		line := `{"type":"response_item","payload":{"type":"function_call","name":"spawn_agent","arguments":"not json","call_id":"c"}}`
 		found, err := evidence.Assemble(evidence.Files{RolloutMain: []byte(line + "\n")})
@@ -168,6 +183,7 @@ func TestStartedATurn(t *testing.T) {
 			{harness.FlagClaude, lines(`{"type":"system","subtype":"init"}`, `{"type":"result","is_error":true}`), false},
 			{harness.FlagCodex, lines(`{"type":"thread.started","thread_id":"t"}`, `{"type":"turn.started"}`, `{"type":"item.started","item":{"type":"reasoning"}}`), true},
 			{harness.FlagCodex, lines(`{"type":"thread.started","thread_id":"t"}`, `{"type":"turn.started"}`, `{"type":"error","message":"model not available"}`, `{"type":"turn.failed"}`), false},
+			{harness.FlagCodex, lines(`{"type":"thread.started","thread_id":"t"}`, `{"type":"turn.started"}`, `{"type":"item.completed","item":{"type":"error","message":"model not available"}}`, `{"type":"turn.failed"}`), false},
 			{harness.FlagCopilot, lines(`{"type":"session.start","data":{}}`, `{"type":"assistant.turn_start","data":{}}`), true},
 			{harness.FlagCopilot, lines(`{"type":"session.start","data":{}}`, `{"type":"session.error","data":{"errorType":"model"}}`), false},
 			{harness.FlagCopilot, nil, false},

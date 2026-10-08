@@ -196,7 +196,7 @@ func configUntouchedCheck() Check {
 			case len(remaining) > 0:
 				return verdict.Failed(fmt.Sprintf("an isolated session wrote %d entries in the user's configuration: %s", len(remaining), strings.Join(remaining, ", ")), pointer)
 			case len(touched.ConfigWrites) > 0:
-				return verdict.Passed(fmt.Sprintf("%s; %d other changes in %s belong to other processes", strings.TrimPrefix(restored, "; "), len(touched.Unattributed), strings.Join(touched.Roots, ", ")), pointer)
+				return verdict.Passed(fmt.Sprintf("%s; %d other changes in %s are not attributed to the run", strings.TrimPrefix(restored, "; "), len(touched.Unattributed), strings.Join(touched.Roots, ", ")), pointer)
 			default:
 				return verdict.Passed(fmt.Sprintf("nothing that names the run changed in %s (%d unattributed changes belong to other processes)", strings.Join(touched.Roots, ", "), len(touched.Unattributed)), pointer)
 			}

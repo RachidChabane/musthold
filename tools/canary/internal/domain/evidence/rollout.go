@@ -1,6 +1,7 @@
 package evidence
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"path"
@@ -135,8 +136,22 @@ func decodeRollouts(main []byte, children map[string][]byte) (Rollouts, error) {
 	return found, nil
 }
 
+// withoutIncompleteTail drops the last line of a rollout when it is not JSON and
+// not ended by a newline: a session ended while it wrote leaves such a line, and
+// it is no corruption of what came before it.
+func withoutIncompleteTail(data []byte) []byte {
+	if len(data) == 0 || data[len(data)-1] == '\n' {
+		return data
+	}
+	complete := bytes.LastIndexByte(data, '\n') + 1
+	if json.Valid(bytes.TrimSpace(data[complete:])) {
+		return data
+	}
+	return data[:complete]
+}
+
 func decodeSpawns(data []byte) ([]RolloutSpawn, error) {
-	lines, err := Lines(RolloutMainFile, data)
+	lines, err := Lines(RolloutMainFile, withoutIncompleteTail(data))
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +192,7 @@ func forkTurnsOf(raw json.RawMessage) (string, bool) {
 
 func decodeChild(name string, data []byte) (RolloutChild, error) {
 	file := path.Join(RolloutChildrenDir, name)
-	lines, err := Lines(file, data)
+	lines, err := Lines(file, withoutIncompleteTail(data))
 	if err != nil {
 		return RolloutChild{}, err
 	}

@@ -16,6 +16,9 @@ const (
 	copilotToolPrefix      = "tool."
 	copilotSubagentPrefix  = "subagent."
 	codexItemPrefix        = "item."
+	// codexItemError is the item that reports a failure of the CLI or the model,
+	// which is not a step of the model.
+	codexItemError = "error"
 )
 
 // StartedATurn reports whether the event stream of a harness shows that a model
@@ -24,23 +27,26 @@ func StartedATurn(flag string, stream []Line) bool {
 	for _, line := range stream {
 		var event struct {
 			Type string `json:"type"`
+			Item struct {
+				Type string `json:"type"`
+			} `json:"item"`
 		}
 		if json.Unmarshal(line.Raw, &event) != nil {
 			continue
 		}
-		if beginsATurn(flag, event.Type) {
+		if beginsATurn(flag, event.Type, event.Item.Type) {
 			return true
 		}
 	}
 	return false
 }
 
-func beginsATurn(flag, eventType string) bool {
+func beginsATurn(flag, eventType, itemType string) bool {
 	switch flag {
 	case harness.FlagClaude:
 		return eventType == ClaudeTypeAssistant
 	case harness.FlagCodex:
-		return strings.HasPrefix(eventType, codexItemPrefix) || eventType == CodexEventTurnCompleted
+		return strings.HasPrefix(eventType, codexItemPrefix) && itemType != codexItemError || eventType == CodexEventTurnCompleted
 	case harness.FlagCopilot:
 		return strings.HasPrefix(eventType, copilotAssistantPrefix) || strings.HasPrefix(eventType, copilotToolPrefix) || strings.HasPrefix(eventType, copilotSubagentPrefix)
 	default:
