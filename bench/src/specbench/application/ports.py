@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -183,6 +183,31 @@ class GateHost(Protocol):
     """
 
     def run_gate(self, tree: Path, arm: Arm, record_dir: Path, mode: GateMode) -> GateOutcome: ...
+
+
+@dataclass(frozen=True)
+class GateSessionSpec:
+    """One gate-host session to start: the command, its whole environment, and where it runs."""
+
+    argv: tuple[str, ...]
+    env: Mapping[str, str]
+    cwd: Path
+
+
+@dataclass(frozen=True)
+class GateSessionEnd:
+    exit_code: int
+    stderr: str = ""
+
+
+EventSink = Callable[[str], bool]
+"""Receives each event line of a running session as it is streamed; returns `False` to have the session stopped."""
+
+
+class GateSessionRunner(Protocol):
+    """Starts a gate-host session and streams its event lines to the sink until it ends or the sink stops it."""
+
+    def run(self, spec: GateSessionSpec, on_event: EventSink) -> GateSessionEnd: ...
 
 
 class FeasibilityProbe(Protocol):

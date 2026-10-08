@@ -1,0 +1,1 @@
+{"confidence":0.9,"validity":"VALID","witness":{"args":{"total":{"type":"integer","value":"50"}},"expected":{"kind":"returns","type":"integer","value":"0"},"operation":"shipping_fee"}}

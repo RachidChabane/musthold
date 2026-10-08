@@ -1,0 +1,1 @@
+{"mutants":[{"edits":[{"file":"parcel/rates.py","new_source":"def line_total(unit_price, quantity):\n    return unit_price + quantity","qualname":"line_total"}],"mechanism":"replace unit_price * quantity by unit_price + quantity","slot":"S1"}]}

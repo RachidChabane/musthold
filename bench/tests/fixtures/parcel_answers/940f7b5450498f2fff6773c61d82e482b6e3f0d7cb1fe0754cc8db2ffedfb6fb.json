@@ -1,0 +1,1 @@
+{"mutants":[{"edits":[{"file":"parcel/rates.py","new_source":"def discounted(total, percent):\n    kept = MAX_PERCENT + clamp_percent(percent)\n    return round(total * kept / MAX_PERCENT, 2)","qualname":"discounted"}],"mechanism":"replace MAX_PERCENT - clamp_percent(percent) by MAX_PERCENT + clamp_percent(percent)","slot":"S1"}]}
