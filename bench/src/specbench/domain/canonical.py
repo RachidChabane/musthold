@@ -82,5 +82,13 @@ def parse_canonical(text: str) -> JsonValue:
     return value
 
 
+def parse_stable_json(text: str) -> JsonValue:
+    """The value of a document `stable_json` wrote, refusing text that is not byte-for-byte what it writes."""
+    value: JsonValue = json.loads(text)
+    if stable_json(value) != text:
+        raise CanonicalError("document is valid JSON but not in stable form")
+    return value
+
+
 def sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()

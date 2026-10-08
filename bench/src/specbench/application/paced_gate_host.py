@@ -21,7 +21,7 @@ from specbench.application.ports import (
 )
 from specbench.domain.arms import Arm, Harness
 from specbench.domain.call_ledger import Admission
-from specbench.domain.canonical import parse_canonical, stable_json
+from specbench.domain.canonical import parse_stable_json, stable_json
 from specbench.domain.gate import GateMode, GateOutcome, GateStatus
 from specbench.domain.jsonread import RecordError
 from specbench.domain.sessions import CallRecord, live_gate_call_id
@@ -107,7 +107,7 @@ def _record_of(call_id: str, arm: Arm, outcome: GateOutcome, spent: int) -> Call
 
 
 def _outcome_of(record: CallRecord) -> GateOutcome:
-    body = parse_canonical(record.stdout)
+    body = parse_stable_json(record.stdout)
     if not isinstance(body, dict):
         raise RecordError(f"the record of {record.call_id} is not a gate outcome")
     return GateOutcome.from_record(body)

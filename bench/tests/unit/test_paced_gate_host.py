@@ -81,6 +81,18 @@ def test_a_resumed_gate_costs_nothing_and_returns_the_recorded_outcome() -> None
     assert len(r.inner.received) == 1
 
 
+def test_a_recorded_report_with_fractional_numbers_is_read_back_unchanged() -> None:
+    report = {
+        "verdict": "fail",
+        "extensions": {"proofs": {"policy": {"validityThreshold": 0.7, "minIsolation": "restricted"}}},
+    }
+    first = rig(lambda: GateOutcome(report, GateStatus.COMPLETE, "session-1", 12, (TICKET,)))
+    first.run()
+    again = first.run()
+    assert again.report == report
+    assert len(first.inner.received) == 1
+
+
 def test_a_replay_passes_through_without_touching_the_ledger() -> None:
     r = rig(lambda: complete(0))
     assert r.run(GateMode.REPLAY).executions == 0
