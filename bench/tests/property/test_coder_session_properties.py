@@ -11,6 +11,7 @@ from hypothesis import strategies as st
 from specbench.adapters.claude_homes import ClaudeConfigHomes
 from specbench.adapters.claude_session import claude_argv, claude_environment
 from specbench.adapters.codex_session import codex_argv
+from specbench.adapters.session_environment import neutral_environment
 from specbench.domain.arm_policy import policy_for
 from specbench.domain.arms import FROZEN_MODEL, PLUGIN_HOST_ARMS, Arm, Harness
 from specbench.domain.codex_config import names_project, remove_project_table
@@ -146,3 +147,30 @@ def test_a_table_between_owner_sections_leaves_every_other_line_in_place(before:
 def test_a_file_that_does_not_name_the_project_comes_back_unchanged(content: str) -> None:
     removal = remove_project_table(content.replace(PROJECT, ""), PROJECT)
     assert not removal.found and removal.cleaned == content.replace(PROJECT, "")
+
+
+OWNER_HOME = "/Users/owner"
+ENV_NAMES = st.from_regex(r"[A-Z][A-Z0-9_]{0,15}", fullmatch=True).filter(lambda name: name not in {"HOME", "PATH"})
+ENV_VALUES = st.one_of(
+    st.text(max_size=20).filter(lambda value: not value.startswith(OWNER_HOME)),
+    SEGMENT.map(lambda segment: f"{OWNER_HOME}/{segment}"),
+    st.just(OWNER_HOME),
+)
+
+
+@given(st.dictionaries(ENV_NAMES, ENV_VALUES, max_size=10), st.none() | SEGMENT)
+def test_no_value_of_a_session_environment_points_into_the_owners_home(
+    inherited: dict[str, str], task: str | None
+) -> None:
+    environment = neutral_environment(
+        {**inherited, "HOME": OWNER_HOME, "PATH": f"{OWNER_HOME}/bin:/bin"},
+        Path("/runs/r1/homes/t/home"),
+        Path("/work/envs") / task if task is not None else None,
+    )
+
+    pointing = {
+        name
+        for name, value in environment.items()
+        if name != "PATH" and (value == OWNER_HOME or value.startswith(OWNER_HOME + "/"))
+    }
+    assert pointing == set()

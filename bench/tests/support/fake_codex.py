@@ -30,6 +30,8 @@ class RecordedCodexCall(TypedDict):
     stdin: str
     cwd: str
     codex_home: str
+    home: str | None
+    env: dict[str, str]
     overrides: dict[str, str]
     options: list[str]
 

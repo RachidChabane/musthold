@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -162,3 +163,28 @@ def test_a_request_without_a_trunk_or_an_arm_is_a_programming_error(tmp_path: Pa
     rig = make_codex_rig(tmp_path, [{}])
     with pytest.raises(ValueError, match="names its trunk and its arm"):
         rig.harness.run_session(rig.request("t1", arm=None))
+
+
+def test_the_session_sees_the_bench_home_and_the_owners_codex_home_unchanged(tmp_path: Path) -> None:
+    rig = make_codex_rig(tmp_path, [{}])
+
+    rig.harness.run_session(rig.request("t1"))
+
+    call = recorded_codex_calls(rig.fake_dir)[0]
+    assert call["home"] == str(rig.layout.homes("task-a") / "home")
+    assert call["env"]["CODEX_HOME"] == str(rig.codex_home) and Path(call["env"]["CODEX_HOME"]).is_absolute()
+    assert call["env"]["GIT_CONFIG_GLOBAL"] == "/dev/null"
+    assert "--disable" in call["options"]
+    assert not list(Path(str(call["home"])).iterdir())
+
+
+def test_the_task_environment_caches_reach_the_session(tmp_path: Path) -> None:
+    rig = make_codex_rig(tmp_path, [{}])
+    environment = tmp_path / "envs" / "task-a"
+    request = rig.request("t1")
+    with_env = replace(request, environment=environment)
+
+    rig.harness.run_session(with_env)
+
+    env = recorded_codex_calls(rig.fake_dir)[0]["env"]
+    assert env["GOMODCACHE"] == str(environment / "gomodcache") and env["UV_CACHE_DIR"] == str(environment / "uv-cache")

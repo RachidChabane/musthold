@@ -185,6 +185,8 @@ def main(state_directory: str) -> None:
                 "stdin": prompt,
                 "cwd": cwd,
                 "codex_home": str(home),
+                "home": os.environ.get("HOME"),
+                "env": dict(os.environ),
                 "overrides": overrides,
                 "options": sorted(options),
             }

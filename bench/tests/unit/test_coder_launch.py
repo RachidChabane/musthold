@@ -125,6 +125,7 @@ def test_a_fresh_codex_session_sets_sandbox_cwd_network_search_and_trust() -> No
     assert overrides == [
         "web_search=disabled",
         "sandbox_workspace_write.network_access=false",
+        "include_apps_instructions=false",
         f'projects."{WORKSPACE}".trust_level="trusted"',
     ]
     assert argv[-1] == "-" and "--ignore-user-config" not in argv
@@ -239,3 +240,13 @@ def test_the_outcome_and_executions_of_a_session_survive_the_call_store(tmp_path
     del legacy["outcome"], legacy["executions"]
     meta.write_text(json.dumps(legacy))
     assert store.read("call-1").outcome is SessionOutcome.COMPLETED and store.read("call-1").executions == 1
+
+
+@pytest.mark.parametrize("arm", list(Arm))
+@pytest.mark.parametrize(("resume", "fork"), [(None, False), (SESSION, False), (SESSION, True)])
+def test_every_codex_session_disables_the_apps_feature_and_its_instructions(
+    arm: Arm, resume: str | None, fork: bool
+) -> None:
+    argv = codex_argv(request(Harness.CODEX, arm, resume, fork), policy_for(arm), WORKSPACE)
+    assert [argv[i + 1] for i, word in enumerate(argv) if word == "--disable"] == ["apps"]
+    assert "include_apps_instructions=false" in argv

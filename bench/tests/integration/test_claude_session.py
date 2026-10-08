@@ -200,3 +200,13 @@ def test_paced_wrapper_archives_nothing_and_charges_nothing_for_a_missing_token(
 
     assert result.outcome is SessionOutcome.HARNESS_MISCONFIGURED and not calls.exists(request.call_id)
     assert ledgers.load() == EMPTY_LEDGER
+
+
+def test_claude_runs_in_the_bench_home_too(tmp_path: Path) -> None:
+    rig = make_claude_rig(tmp_path, [{}])
+
+    rig.harness.run_session(rig.request("t1"))
+
+    call = recorded_session_calls(rig.fake_dir)[0]
+    assert call["home"] == str(rig.layout.homes(TRUNK_ID) / "home")
+    assert call["env"]["GIT_CONFIG_GLOBAL"] == "/dev/null"

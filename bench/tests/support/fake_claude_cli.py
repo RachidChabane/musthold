@@ -87,6 +87,8 @@ def main(state_directory: str) -> None:
                 "cwd": cwd,
                 "config_dir": str(home),
                 "token": os.environ.get("CLAUDE_CODE_OAUTH_TOKEN"),
+                "home": os.environ.get("HOME"),
+                "env": dict(os.environ),
                 "env_names": sorted(os.environ),
                 "project_settings_loaded": "project" in sources and (Path(cwd) / ".claude" / "settings.json").is_file(),
                 "settings": json.loads(Path(settings).read_text()) if settings and Path(settings).is_file() else None,

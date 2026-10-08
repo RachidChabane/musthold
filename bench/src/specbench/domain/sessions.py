@@ -47,7 +47,8 @@ class SessionRequest:
 
     `trunk_id` (the task, with the replicate when a task has several trunks) and `arm` say where the session lives:
     which per-trunk home it uses and which arm policy configures it. Both are already named by `key`, so neither is
-    part of the identity.
+    part of the identity. `environment` is the prewarmed task environment whose caches the session builds and
+    tests with.
     """
 
     harness: Harness
@@ -60,6 +61,7 @@ class SessionRequest:
     fork: bool = False
     trunk_id: str = ""
     arm: Arm | None = None
+    environment: Path | None = None
 
     def identity(self) -> dict[str, JsonValue]:
         return {

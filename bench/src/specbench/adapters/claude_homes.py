@@ -12,6 +12,7 @@ import shutil
 from pathlib import Path
 from typing import Final
 
+from specbench.adapters.session_environment import checked_trunk_id
 from specbench.domain.arms import Arm
 from specbench.domain.manifest import RunLayout
 from specbench.domain.sessions import SessionKind, SessionRequest
@@ -36,13 +37,13 @@ class ClaudeConfigHomes:
         self._layout = layout
 
     def trunk(self, trunk_id: str) -> Path:
-        return self._layout.homes(_checked(trunk_id)) / TRUNK_HOME
+        return self._layout.homes(checked_trunk_id(trunk_id)) / TRUNK_HOME
 
     def snapshot_path(self, trunk_id: str) -> Path:
-        return self._layout.homes(_checked(trunk_id)) / SNAPSHOT_HOME
+        return self._layout.homes(checked_trunk_id(trunk_id)) / SNAPSHOT_HOME
 
     def branch(self, trunk_id: str, arm: Arm) -> Path:
-        return self._layout.homes(_checked(trunk_id)) / f"{HOME_PREFIX}{arm.value}"
+        return self._layout.homes(checked_trunk_id(trunk_id)) / f"{HOME_PREFIX}{arm.value}"
 
     def snapshot(self, trunk_id: str) -> Path:
         """Copy the trunk's home as it stands, replacing an earlier snapshot of the same trunk."""
@@ -76,12 +77,6 @@ def _arm_of(request: SessionRequest) -> Arm:
     if request.arm is None or not request.trunk_id:
         raise ValueError("a coder session names its trunk and its arm")
     return request.arm
-
-
-def _checked(trunk_id: str) -> str:
-    if not trunk_id or Path(trunk_id).name != trunk_id or trunk_id in {".", ".."}:
-        raise ValueError(f"{trunk_id!r} is not a trunk id")
-    return trunk_id
 
 
 def _replace_with_copy(source: Path, destination: Path) -> Path:

@@ -23,6 +23,7 @@ from specbench.adapters.codex_rollouts import CodexRollouts
 from specbench.adapters.codex_stream import CodexExec, RolloutFile, parse_codex_exec
 from specbench.adapters.codex_trust import CodexTrustTable
 from specbench.adapters.execution_counter import SESSION_EXECUTIONS, intact_stream
+from specbench.adapters.session_environment import bench_home, neutral_environment
 from specbench.adapters.session_events import SessionEventLog
 from specbench.adapters.streaming_process import StreamedProcess, StreamingRunner
 from specbench.domain.agent_events import AgentAction
@@ -45,6 +46,8 @@ CONFIG_WEB_SEARCH: Final = "web_search=disabled"
 CONFIG_NETWORK: Final = "sandbox_workspace_write.network_access=false"
 CONFIG_SANDBOX_MODE: Final = f'sandbox_mode="{SANDBOX_MODE}"'
 FEATURES: Final = ("hooks", "multi_agent")
+DISABLED_FEATURES: Final = ("apps",)
+CONFIG_NO_APPS_INSTRUCTIONS: Final = "include_apps_instructions=false"
 
 
 @dataclass(frozen=True)
@@ -109,11 +112,13 @@ def codex_argv(request: SessionRequest, policy: ArmPolicy, workspace: Path) -> l
     argv += ["-m", request.model, "--json"]
     for feature in FEATURES:
         argv += ["--enable", feature]
+    for feature in DISABLED_FEATURES:
+        argv += ["--disable", feature]
     if session is None:
         argv += ["-s", SANDBOX_MODE, "-C", str(workspace)]
     if policy.loads_product_plugins:
         argv.append("--dangerously-bypass-hook-trust")
-    overrides = [CONFIG_WEB_SEARCH, CONFIG_NETWORK, trust_override(str(workspace))]
+    overrides = [CONFIG_WEB_SEARCH, CONFIG_NETWORK, CONFIG_NO_APPS_INSTRUCTIONS, trust_override(str(workspace))]
     if session is not None:
         overrides.insert(0, CONFIG_SANDBOX_MODE)
     for override in overrides:
@@ -214,8 +219,9 @@ class CodexSessionHarness:
         self._runner = runner
         self._environ = environ
         self._executable = executable
-        self._rollouts = CodexRollouts(setup.codex_home)
-        self._trust = CodexTrustTable(setup.codex_home)
+        self._codex_home = setup.codex_home.resolve()
+        self._rollouts = CodexRollouts(self._codex_home)
+        self._trust = CodexTrustTable(self._codex_home)
 
     @property
     def harness(self) -> Harness:
@@ -252,7 +258,12 @@ class CodexSessionHarness:
     def _run(
         self, argv: Sequence[str], request: SessionRequest, workspace: Path, log: SessionEventLog
     ) -> StreamedProcess:
-        environment = {**self._environ, CODEX_HOME_VARIABLE: str(self._setup.codex_home)}
+        session_home = bench_home(self._setup.layout, request.trunk_id)
+        session_home.mkdir(parents=True, exist_ok=True)
+        environment = {
+            **neutral_environment(self._environ, session_home, request.environment),
+            CODEX_HOME_VARIABLE: str(self._codex_home),
+        }
         try:
             return self._runner.run(argv, request.prompt, workspace, environment, log.append)
         finally:

@@ -27,6 +27,7 @@ from specbench.adapters.claude_homes import ClaudeConfigHomes
 from specbench.adapters.claude_stream import ClaudeStream, check_claude_harness, parse_claude_stream
 from specbench.adapters.execution_counter import ClaudeExecutionCounter, intact_stream
 from specbench.adapters.run_store import write_atomically
+from specbench.adapters.session_environment import bench_home, neutral_environment
 from specbench.adapters.session_events import SessionEventLog
 from specbench.adapters.streaming_process import StreamedProcess, StreamingRunner
 from specbench.domain.agent_events import HarnessOutcome
@@ -241,7 +242,11 @@ class ClaudeSessionHarness:
         home = self._homes.home_for(request, workspace)
         argv = claude_argv(request, policy, self._write_settings(arm), self._setup.plugin_dirs)
         argv[0] = self._executable
-        environment = claude_environment(self._environ, home, token)
+        session_home = bench_home(self._setup.layout, request.trunk_id)
+        session_home.mkdir(parents=True, exist_ok=True)
+        environment = claude_environment(
+            neutral_environment(self._environ, session_home, request.environment), home, token
+        )
         call_directory = self._setup.layout.call(request.call_id)
         with SessionEventLog(call_directory) as log:
             try:

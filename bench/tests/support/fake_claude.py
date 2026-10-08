@@ -94,6 +94,8 @@ class RecordedSessionCall(TypedDict):
     cwd: str
     config_dir: str
     token: str | None
+    home: str | None
+    env: dict[str, str]
     env_names: list[str]
     project_settings_loaded: bool
     settings: dict[str, JsonValue] | None
