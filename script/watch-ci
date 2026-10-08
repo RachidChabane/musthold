@@ -5,12 +5,15 @@
 #   script/watch-ci [COMMIT]   (default: HEAD)
 #
 # Exit 0: the run succeeded, or no run exists for a commit CI ignores. 1: the run
-# failed or was cancelled. 2: gh is missing.
+# failed. 2: gh is missing. 3: the run was cancelled, as when a newer push to the
+# same branch supersedes it; watch the newer commit instead.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 readonly WORKFLOW="ci.yml"
 readonly EXIT_PRECONDITION=2
+readonly EXIT_CANCELLED=3
+readonly CONCLUSION_CANCELLED="cancelled"
 readonly POLL_SECONDS=20
 readonly START_ATTEMPTS=15
 
@@ -33,6 +36,9 @@ fi
 echo "watch-ci: run ${run_id} for ${sha:0:7}"
 if gh run watch "${run_id}" --exit-status --interval "${POLL_SECONDS}" >/dev/null; then
   echo "watch-ci: run ${run_id} succeeded"
+elif [[ "$(gh run view "${run_id}" --json conclusion --jq .conclusion)" == "${CONCLUSION_CANCELLED}" ]]; then
+  echo "watch-ci: run ${run_id} was cancelled (superseded by a newer run, or stopped by hand)" >&2
+  exit "${EXIT_CANCELLED}"
 else
   echo "watch-ci: run ${run_id} FAILED" >&2
   gh run view "${run_id}" --log-failed | grep -E 'error |##\[error\]' | head -20 >&2 || true
