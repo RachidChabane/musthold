@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+# Front door of the release pipeline (ADR 0010).
+#
+#   script/release plan <tag>
+#       print what the tag releases, as key=value lines.
+#   script/release formula [--dist DIR] <tag> | script/release notes [--out FILE] <tag>
+#       render the Homebrew formula into dist/ or the release notes (the workflow
+#       publishes both).
+#   script/release <tag> [--dry-run] [--skip-tests] [--targets LIST] [--jobs N] [--dist DIR]
+#       run the pre-flight, build every target into dist/ and verify dist/.
+#       Nothing is published: only the release workflow publishes, on a tag the
+#       owner pushes. With --dry-run the findings only a real release needs are
+#       reported and the run goes on, and the result is installed from dist/ into a
+#       throwaway prefix and run.
+#
+# <tag> is <module>/vMAJOR.MINOR.PATCH[-pre]. --skip-tests leaves out the Go tests
+# and the plugin regeneration of the pre-flight. --targets takes os/arch pairs
+# separated by commas. The build runs under nice with GOMAXPROCS=2, at most
+# RELEASE_JOBS (default 2) targets at once, after script/mem-guard check.
+#
+# In CI, RELEASE_REPOSITORY_PRIVATE=true|false makes the pre-flight refuse a
+# repository that is not public.
+#
+# Exit codes: 0 done, 1 failure, 2 usage, 3 pre-flight refused, 4 dist invalid.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly TOOL_DIR="tools/release"
+readonly TOOL_BIN=".tools/bin/spec-proof-release"
+readonly DEFAULT_DIST="dist"
+readonly DEFAULT_JOBS=2
+readonly BUILD_GOMAXPROCS=2
+readonly BUILD_NICE=10
+readonly INSTALLER="script/install"
+
+readonly EXIT_FAILURE=1
+readonly EXIT_USAGE=2
+
+die() { # <exit code> <message>
+  local code="$1"
+  shift
+  echo "release: $*" >&2
+  exit "${code}"
+}
+
+usage() {
+  die "${EXIT_USAGE}" "usage: script/release plan|formula|notes <tag> | script/release <tag> [--dry-run] [--skip-tests] [--targets LIST] [--jobs N] [--dist DIR]"
+}
+
+rehearsal_prefix=""
+trap 'rm -rf "${rehearsal_prefix}"' EXIT
+
+export GOMAXPROCS="${BUILD_GOMAXPROCS}"
+
+throttled() { nice -n "${BUILD_NICE}" "$@"; }
+
+build_tool() {
+  mkdir -p "$(dirname "${TOOL_BIN}")"
+  GOWORK=off throttled go build -C "${TOOL_DIR}" -o "${PWD}/${TOOL_BIN}" ./cmd/spec-proof-release
+}
+
+plan_value() { # <plan output> <key>
+  printf '%s\n' "$1" | awk -F= -v key="$2" '$1 == key {print substr($0, length(key) + 2)}'
+}
+
+# Installs the dist directory into a throwaway prefix and checks the installed binary
+# reports exactly the version of the tag.
+rehearse_install() { # <module> <semver> <binary> <dist>
+  local module="$1" semver="$2" binary="$3" dist="$4" reported
+  rehearsal_prefix="$(mktemp -d)"
+  bash "${INSTALLER}" "${module}" "${semver}" --from "${dist}" --prefix "${rehearsal_prefix}"
+  reported="$("${rehearsal_prefix}/bin/${binary}" --version)"
+  [[ "${reported}" == "${semver}" ]] || die "${EXIT_FAILURE}" "the installed ${binary} reports ${reported}, expected ${semver}"
+  echo "release: installed ${binary} ${reported} from ${dist} and ran it"
+}
+
+main() {
+  [[ $# -ge 1 ]] || usage
+  case "$1" in
+    plan | formula | notes)
+      build_tool
+      exec "${TOOL_BIN}" "$@"
+      ;;
+  esac
+
+  local tag="" dry_run=0 skip_tests=0 targets="" dist="${DEFAULT_DIST}" jobs="${RELEASE_JOBS:-${DEFAULT_JOBS}}"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --dry-run) dry_run=1; shift ;;
+      --skip-tests) skip_tests=1; shift ;;
+      --targets) targets="${2:?--targets needs a list}"; shift 2 ;;
+      --jobs) jobs="${2:?--jobs needs a number}"; shift 2 ;;
+      --dist) dist="${2:?--dist needs a directory}"; shift 2 ;;
+      -h | --help) usage ;;
+      -*) usage ;;
+      *) [[ -z "${tag}" ]] || usage; tag="$1"; shift ;;
+    esac
+  done
+  [[ -n "${tag}" ]] || usage
+
+  ./script/mem-guard check
+  build_tool
+
+  local plan module semver binary
+  plan="$("${TOOL_BIN}" plan "${tag}")"
+  module="$(plan_value "${plan}" module)"
+  semver="$(plan_value "${plan}" semver)"
+  binary="$(plan_value "${plan}" binary)"
+  printf '%s\n' "${plan}"
+
+  local preflight=(preflight)
+  ((dry_run)) && preflight+=(--dry-run)
+  ((skip_tests)) && preflight+=(--skip-tests)
+  if [[ -n "${RELEASE_REPOSITORY_PRIVATE:-}" ]]; then
+    local visibility="public"
+    [[ "${RELEASE_REPOSITORY_PRIVATE}" == "true" ]] && visibility="private"
+    preflight+=(--require-public --visibility "${visibility}")
+  fi
+  throttled "${TOOL_BIN}" "${preflight[@]}" "${tag}"
+
+  local build=(build --dist "${dist}" --jobs "${jobs}")
+  [[ -n "${targets}" ]] && build+=(--targets "${targets}")
+  throttled "${TOOL_BIN}" "${build[@]}" "${tag}"
+
+  local verify=(verify-dist --dist "${dist}")
+  [[ -n "${targets}" ]] && verify+=(--targets "${targets}")
+  "${TOOL_BIN}" "${verify[@]}" "${tag}"
+
+  if ((dry_run)) && [[ -n "${binary}" ]]; then
+    rehearse_install "${module}" "${semver}" "${binary}" "${dist}"
+  fi
+  echo "release: ${tag} done"
+}
+
+main "$@"

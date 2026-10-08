@@ -4,7 +4,7 @@
 # The pilot verbs (setup, verify, test, run) drive experiments/limits-1-3; the
 # product verbs (go-test, go-lint, ci) drive every Go module of go.work through
 # script/*; name modules with MODULES="format discpower" to run a subset.
-.PHONY: help setup verify test run go-test go-lint ci shallnot-build plugin-gen
+.PHONY: help setup verify test run go-test go-lint ci shallnot-build plugin-gen release release-dry-run
 
 help:  ## list verbs
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN{FS=":.*?## "}{printf "  %-8s %s\n",$$1,$$2}'
@@ -48,6 +48,16 @@ secrets-scan:  ## scan the whole git history for secrets with gitleaks (script/s
 
 plugin-gen:  ## regenerate the committed plugin trees (script/plugin-gen)
 	script/plugin-gen
+
+# The release pipeline (ADR 0010): TAG=<module>/vMAJOR.MINOR.PATCH, ARGS for extra flags such as
+# ARGS="--skip-tests --targets linux/amd64". Only the release workflow publishes.
+release:  ## build and verify the release files of TAG into dist/ without publishing (script/release)
+	$(if $(TAG),,$(error TAG is required, for example TAG=discpower/v0.2.0))
+	script/release $(TAG) $(ARGS)
+
+release-dry-run:  ## rehearse the release of TAG: report what a real release would refuse, build, verify and install from dist/ (script/release --dry-run)
+	$(if $(TAG),,$(error TAG is required, for example TAG=discpower/v0.2.0))
+	script/release $(TAG) --dry-run $(ARGS)
 
 # The live canaries (ADR 0005, "Live canary"): one short model session per harness,
 # recorded and evaluated. They spend model quota and run only in the nightly window;
