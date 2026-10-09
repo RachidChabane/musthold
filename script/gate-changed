@@ -12,7 +12,9 @@
 # chain of binaries. A change to the benchmark core, to the product it drives or
 # records (every Go module), to the bench scripts or to the CI workflow also runs
 # the benchmark core's checks (bench/script/check), which include the check of the
-# recorded parcel answers. The gate runs under nice with GOMAXPROCS=2.
+# recorded parcel answers. The gate runs under nice with GOMAXPROCS=2, and waits
+# for script/mem-guard to allow the benchmark core's tests rather than failing on
+# a busy machine.
 #
 # Exit 0: every selected gate passed, or nothing to gate. 1: a gate failed.
 # 2: usage error.
@@ -30,6 +32,26 @@ readonly UNGATED_PATHS='^(notes/|docs/adr/)'
 # Paths the benchmark core's checks read besides the Go modules.
 readonly BENCH_PATHS='^(bench/|\.github/workflows/|script/(product-build|regen-bench-recordings|mem-guard)$)'
 readonly BENCH_PSEUDO_MODULE="bench"
+# How long the gate waits for script/mem-guard to allow the benchmark core's
+# tests, and how often it asks.
+readonly MEMORY_WAIT_SECONDS=1800
+readonly MEMORY_POLL_SECONDS=30
+readonly EXIT_GATE_FAILED=1
+
+# wait_for_memory waits until script/mem-guard allows heavy work, so a busy
+# machine delays the gate instead of failing it; it fails once the wait is over.
+wait_for_memory() {
+  local waited=0
+  until script/mem-guard check >/dev/null 2>&1; do
+    if ((waited >= MEMORY_WAIT_SECONDS)); then
+      echo "gate-changed: memory stayed short for ${MEMORY_WAIT_SECONDS}s; the benchmark core was not checked" >&2
+      return "${EXIT_GATE_FAILED}"
+    fi
+    echo "gate-changed: waiting for memory before the benchmark core's checks"
+    sleep "${MEMORY_POLL_SECONDS}"
+    waited=$((waited + MEMORY_POLL_SECONDS))
+  done
+}
 
 list_only=0
 if [[ "${1:-}" == "--list" ]]; then
@@ -109,5 +131,6 @@ if ((${#selected[@]} > 0)); then
 fi
 if ((bench_needed)); then
   echo "gate-changed: checking the benchmark core"
+  wait_for_memory
   GOMAXPROCS="${GATE_PROCS}" nice -n "${NICE_LEVEL}" bench/script/check
 fi
