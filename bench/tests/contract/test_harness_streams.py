@@ -11,6 +11,7 @@ from specbench.adapters.codex_stream import SourceKind, parse_codex_exec, parse_
 from specbench.domain.agent_events import ActionKind, HarnessOutcome
 from specbench.domain.contamination import FindingKind, ScanPolicy, scan_actions
 from specbench.domain.jsonread import RecordError
+from support.pinned_claude import OTHER_CLAUDE_VERSION, TEST_CLAUDE_VERSION, with_claude_version
 
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "streams"
 PLUGINS = {"spec-proof-dp", "spec-proof-alignment", "spec-proof-completeness"}
@@ -24,18 +25,25 @@ def read(name: str) -> str:
     return (FIXTURES / name).read_text()
 
 
+def versioned(name: str, version: str | None = TEST_CLAUDE_VERSION) -> str:
+    return "\n".join(with_claude_version(read(name).splitlines(), version))
+
+
 def test_claude_init_lists_the_plugins_and_connected_servers() -> None:
-    stream = parse_claude_stream(read("claude_session.jsonl"))
+    stream = parse_claude_stream(versioned("claude_session.jsonl"))
     assert stream.init is not None
     assert set(stream.init.plugins) == PLUGINS
     assert {server.name for server in stream.init.mcp_servers} == SERVERS
     assert stream.init.model == "claude-sonnet-5-5"
-    assert check_claude_harness(stream.init, PLUGINS, SERVERS).outcome is HarnessOutcome.OK
+    assert stream.init.claude_code_version == TEST_CLAUDE_VERSION
+    assert check_claude_harness(stream.init, PLUGINS, SERVERS, TEST_CLAUDE_VERSION).outcome is HarnessOutcome.OK
 
 
 def test_a_missing_plugin_or_disconnected_server_is_a_misconfigured_harness() -> None:
-    init = parse_claude_stream(read("claude_session.jsonl")).init
-    check = check_claude_harness(init, PLUGINS | {"spec-proof-extra"}, SERVERS | {"plugin:spec-proof-extra:exec"})
+    init = parse_claude_stream(versioned("claude_session.jsonl")).init
+    check = check_claude_harness(
+        init, PLUGINS | {"spec-proof-extra"}, SERVERS | {"plugin:spec-proof-extra:exec"}, TEST_CLAUDE_VERSION
+    )
     assert check.outcome is HarnessOutcome.HARNESS_MISCONFIGURED
     assert check.missing == ("plugin:spec-proof-extra", "mcp:plugin:spec-proof-extra:exec")
 
@@ -43,7 +51,24 @@ def test_a_missing_plugin_or_disconnected_server_is_a_misconfigured_harness() ->
 def test_a_stream_without_init_is_a_misconfigured_harness() -> None:
     stream = parse_claude_stream(read("claude_result_pilot.jsonl"))
     assert stream.init is None
-    assert check_claude_harness(stream.init, PLUGINS, SERVERS).outcome is HarnessOutcome.HARNESS_MISCONFIGURED
+    check = check_claude_harness(stream.init, PLUGINS, SERVERS, TEST_CLAUDE_VERSION)
+    assert check.outcome is HarnessOutcome.HARNESS_MISCONFIGURED
+
+
+def test_an_init_that_names_another_version_than_the_pin_is_a_misconfigured_harness() -> None:
+    init = parse_claude_stream(versioned("claude_session.jsonl", OTHER_CLAUDE_VERSION)).init
+    check = check_claude_harness(init, PLUGINS, SERVERS, TEST_CLAUDE_VERSION)
+    assert check.outcome is HarnessOutcome.HARNESS_MISCONFIGURED and check.missing == ()
+    assert (
+        check.version_fault == f"the session ran Claude Code {OTHER_CLAUDE_VERSION}, the pin is {TEST_CLAUDE_VERSION}"
+    )
+
+
+def test_an_init_without_a_version_is_a_misconfigured_harness() -> None:
+    recorded = parse_claude_stream(read("claude_session.jsonl")).init
+    assert recorded is not None and recorded.claude_code_version is None
+    check = check_claude_harness(recorded, PLUGINS, SERVERS, TEST_CLAUDE_VERSION)
+    assert check.outcome is HarnessOutcome.HARNESS_MISCONFIGURED and check.version_fault is not None
 
 
 def test_claude_result_reports_usage_per_model() -> None:

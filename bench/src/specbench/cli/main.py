@@ -10,7 +10,6 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Final
 
-from specbench.adapters.claude_cli import CLAUDE_EXECUTABLE
 from specbench.adapters.env_builder import EnvironmentBuildError
 from specbench.adapters.gh_miner import GhError
 from specbench.adapters.git_history import GitError
@@ -23,6 +22,7 @@ from specbench.adapters.site_output import NotASiteDirectory
 from specbench.analysis.bootstrap import BOOTSTRAP_RESAMPLES
 from specbench.analysis.selection_null import DEFAULT_PERMUTATIONS
 from specbench.application.paced_calls import ModelNotFrozen
+from specbench.application.ports import PinnedClaudeUnavailable
 from specbench.cli import commands
 from specbench.cli.commands import Console
 from specbench.cli.night_commands import NightBudgetRequest, run_night_budget
@@ -50,7 +50,6 @@ from specbench.domain.workspace import WorkspaceLeak
 DEFAULT_SEED: Final = 20261007
 DEFAULT_PER_LANGUAGE: Final = 4 * SAMPLE_TASKS_PER_LANGUAGE
 USAGE_ERROR: Final = 2
-CLAUDE_ENV: Final = "SPECBENCH_CLAUDE"
 EXPECTED_FAILURES: Final = (
     CanonicalError,
     EnvironmentBuildError,
@@ -64,6 +63,7 @@ EXPECTED_FAILURES: Final = (
     NotASiteDirectory,
     NetworkDenialUnavailable,
     ModelNotFrozen,
+    PinnedClaudeUnavailable,
     RecordError,
     SealingError,
     TreeBuildError,
@@ -120,7 +120,6 @@ def _add_mining_verbs(add: AddVerb) -> None:
         help=f"only inside the run window ({RUN_WINDOW_ENV}, default {DEFAULT_RUN_WINDOW})",
     )
     construct.add_argument("--budget", type=int, default=DEFAULT_CALL_BUDGET, help="new model calls per night")
-    construct.add_argument("--claude", default=os.environ.get(CLAUDE_ENV, CLAUDE_EXECUTABLE))
 
     keygen = add("keygen", help="create an age identity outside the repository and add its recipient")
     keygen.add_argument("--identity", type=_path, required=True)
@@ -252,7 +251,6 @@ def _handlers() -> dict[str, Handler]:
             a.tasks_per_language,
             os.environ.get(RUN_WINDOW_ENV, DEFAULT_RUN_WINDOW) if a.night else ALWAYS_OPEN,
             a.budget,
-            a.claude,
             c,
         ),
         "keygen": lambda a, c: commands.run_keygen(a.identity, a.recipients, c),

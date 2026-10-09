@@ -16,6 +16,7 @@ from specbench.domain.arms import FROZEN_MODEL, PLUGIN_HOST_ARMS, Arm, Harness
 from specbench.domain.codex_config import names_project, remove_project_table, trust_override
 from specbench.domain.manifest import RunLayout
 from specbench.domain.sessions import CallRecord, SessionKind, SessionOutcome, SessionRequest
+from support.pinned_claude import UNUSED_EXECUTABLE
 
 WORKSPACE = Path("/runs/r1/work/ws")
 SETTINGS = Path("/runs/r1/settings/T.json")
@@ -34,9 +35,9 @@ def value_after(argv: list[str], flag: str) -> str:
 
 
 def test_a_fresh_claude_session_has_the_frozen_model_stream_json_and_the_bench_settings() -> None:
-    argv = claude_argv(request(Harness.CLAUDE_CODE, Arm.T), policy_for(Arm.T), SETTINGS, PLUGINS)
+    argv = claude_argv(UNUSED_EXECUTABLE, request(Harness.CLAUDE_CODE, Arm.T), policy_for(Arm.T), SETTINGS, PLUGINS)
 
-    assert argv[:3] == ["claude", "-p", "--model"] and value_after(argv, "--model") == "claude-sonnet-5-5"
+    assert argv[:3] == [UNUSED_EXECUTABLE, "-p", "--model"] and value_after(argv, "--model") == "claude-sonnet-5-5"
     assert value_after(argv, "--output-format") == "stream-json"
     assert {"--verbose", "--include-hook-events"} <= set(argv)
     assert value_after(argv, "--settings") == str(SETTINGS)
@@ -45,21 +46,25 @@ def test_a_fresh_claude_session_has_the_frozen_model_stream_json_and_the_bench_s
 
 @pytest.mark.parametrize("arm", [arm for arm in Arm if arm not in PLUGIN_HOST_ARMS])
 def test_honest_arms_read_user_settings_only(arm: Arm) -> None:
-    argv = claude_argv(request(Harness.CLAUDE_CODE, arm), policy_for(arm), SETTINGS, PLUGINS)
+    argv = claude_argv(UNUSED_EXECUTABLE, request(Harness.CLAUDE_CODE, arm), policy_for(arm), SETTINGS, PLUGINS)
     assert value_after(argv, "--setting-sources") == "user"
     assert "--plugin-dir" not in argv
 
 
 @pytest.mark.parametrize("arm", [arm for arm in Arm if arm in PLUGIN_HOST_ARMS])
 def test_plugin_host_arms_read_user_and_project_settings_and_load_the_plugins(arm: Arm) -> None:
-    argv = claude_argv(request(Harness.CLAUDE_CODE, arm), policy_for(arm), SETTINGS, PLUGINS)
+    argv = claude_argv(UNUSED_EXECUTABLE, request(Harness.CLAUDE_CODE, arm), policy_for(arm), SETTINGS, PLUGINS)
     assert value_after(argv, "--setting-sources") == "user,project"
     assert value_after(argv, "--plugin-dir") == str(PLUGINS[0])
 
 
 def test_resume_and_fork_add_the_session_and_only_a_fork_adds_fork_session() -> None:
-    resumed = claude_argv(request(Harness.CLAUDE_CODE, Arm.T, SESSION), policy_for(Arm.T), SETTINGS, ())
-    forked = claude_argv(request(Harness.CLAUDE_CODE, Arm.AL, SESSION, True), policy_for(Arm.AL), SETTINGS, ())
+    resumed = claude_argv(
+        UNUSED_EXECUTABLE, request(Harness.CLAUDE_CODE, Arm.T, SESSION), policy_for(Arm.T), SETTINGS, ()
+    )
+    forked = claude_argv(
+        UNUSED_EXECUTABLE, request(Harness.CLAUDE_CODE, Arm.AL, SESSION, True), policy_for(Arm.AL), SETTINGS, ()
+    )
 
     assert resumed[-2:] == ["--resume", SESSION] and "--fork-session" not in resumed
     assert forked[-3:] == ["--resume", SESSION, "--fork-session"]
@@ -69,7 +74,7 @@ def test_the_prompt_is_never_on_the_command_line() -> None:
     sent = SessionRequest(
         Harness.CLAUDE_CODE, "claude-sonnet-5-5", SessionKind.TRUNK, "k", WORKSPACE, "--rm -rf", None, False, "t", Arm.T
     )
-    assert "--rm -rf" not in claude_argv(sent, policy_for(Arm.T), SETTINGS, ())
+    assert "--rm -rf" not in claude_argv(UNUSED_EXECUTABLE, sent, policy_for(Arm.T), SETTINGS, ())
     assert "--rm -rf" not in codex_argv(
         SessionRequest(
             Harness.CODEX, "gpt-6-luna", SessionKind.TRUNK, "k", WORKSPACE, "--rm -rf", None, False, "t", Arm.T
@@ -98,6 +103,7 @@ def test_the_environment_points_claude_at_the_bench_home_and_drops_what_would_re
         "HOME": "/Users/owner",
         "CLAUDE_CONFIG_DIR": "/runs/r1/homes/t/claude",
         "CLAUDE_CODE_OAUTH_TOKEN": "fresh",
+        "DISABLE_AUTOUPDATER": "1",
     }
 
 

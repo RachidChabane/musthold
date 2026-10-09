@@ -19,6 +19,7 @@ from typing import Final
 from specbench.adapters.workspace_repo import IDENTITY
 from specbench.application.ports import EventSink, GateSessionEnd, GateSessionSpec
 from specbench.domain.product import PROOF_MODULES, ProofModule
+from support.pinned_claude import TEST_CLAUDE_VERSION
 
 REPOSITORY: Final = Path(__file__).resolve().parents[3]
 BINARIES: Final = REPOSITORY / ".tools" / "bin"
@@ -119,6 +120,7 @@ def init_event(modules: tuple[ProofModule, ...], omit_plugin: str | None) -> str
             "subtype": "init",
             "session_id": SESSION_ID,
             "model": RESOLVED_MODEL,
+            "claude_code_version": TEST_CLAUDE_VERSION,
             "plugins": [p for p in plugins if p["name"] != omit_plugin],
             "mcp_servers": servers,
             "tools": ["Agent"],

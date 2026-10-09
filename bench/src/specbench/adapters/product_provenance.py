@@ -1,13 +1,16 @@
-"""`ProvenanceSource` over the local machine: `.tools/bin` and `.tools/plugins` as `script/product-build` leaves them."""
+"""`ProvenanceSource` over the local machine: `.tools/bin` and `.tools/plugins` as `script/product-build` leaves them,
+and the pinned Claude Code CLI as `script/claude-code-install` leaves it."""
 
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 from typing import Final
 
+from specbench.adapters.pinned_claude_code import updater_disabled
 from specbench.adapters.workspace_repo import DiskTreeReader
-from specbench.application.ports import ProcessRunner
+from specbench.application.ports import PinnedClaude, PinnedClaudeUnavailable, ProcessRunner
 from specbench.domain.manifest import (
     CODING_AGENT_CLIS,
     PRODUCT_BINARIES,
@@ -23,6 +26,7 @@ UMBRELLA_PLUGIN_DIRECTORY: Final = "spec-proof"
 SHALLNOT_PIN_PATH: Final = Path("script") / "shallnot.pin"
 VERSION_FLAG: Final = "--version"
 BUILD_COMMAND: Final = "script/product-build"
+CLAUDE_CLI: Final = "claude"
 
 
 class ProvenanceError(RuntimeError):
@@ -35,11 +39,15 @@ def file_digest(path: Path) -> str:
 
 
 class LocalProvenance:
-    """Digests the built binaries and the umbrella plugin tree, reads the Shallnot pin and asks each CLI its version."""
+    """Digests the built binaries and the umbrella plugin tree, reads the Shallnot pin and asks each CLI its version.
 
-    def __init__(self, repository: Path, runner: ProcessRunner) -> None:
+    Claude Code is asked through the pinned binary, and its recorded version is the pin, which it must report.
+    """
+
+    def __init__(self, repository: Path, runner: ProcessRunner, claude: PinnedClaude) -> None:
         self._repository = repository
         self._runner = runner
+        self._claude = claude
 
     def read(self) -> Provenance:
         return Provenance(
@@ -64,7 +72,22 @@ class LocalProvenance:
         return (self._repository / SHALLNOT_PIN_PATH).read_text(encoding="utf-8").strip()
 
     def _cli_version(self, cli: str) -> str:
-        result = self._runner.run([cli, VERSION_FLAG])
+        if cli == CLAUDE_CLI:
+            return self._claude_version()
+        return self._reported_version(cli, cli)
+
+    def _claude_version(self) -> str:
+        try:
+            pinned = self._claude.version
+            reported = self._reported_version(CLAUDE_CLI, self._claude.executable())
+        except PinnedClaudeUnavailable as error:
+            raise ProvenanceError(str(error)) from error
+        if reported.split()[0] != pinned:
+            raise ProvenanceError(f"{CLAUDE_CLI} {VERSION_FLAG} reported {reported!r}, the pin is {pinned}")
+        return pinned
+
+    def _reported_version(self, cli: str, executable: str) -> str:
+        result = self._runner.run([executable, VERSION_FLAG], None, updater_disabled(os.environ))
         lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
         if result.returncode != 0 or not lines:
             raise ProvenanceError(f"{cli} {VERSION_FLAG} reported no version")

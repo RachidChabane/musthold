@@ -1,10 +1,11 @@
-"""`ConstructionModel` over the `claude` CLI: one isolated single-shot call per request.
+"""`ConstructionModel` over the pinned `claude` CLI: one isolated single-shot call per request.
 
 Isolation, as the pilot's adapter established it:
 
 - no tools, no settings source, no MCP server, no slash command, no session persistence;
 - the call runs in a fresh empty directory that must still be empty afterwards;
-- the nesting variables of an enclosing Claude Code session are removed from the environment;
+- the nesting variables of an enclosing Claude Code session are removed from the environment, and the CLI's
+  self-update is off in it;
 - the `$schema` meta-schema key, which the CLI rejects, is stripped from the schema argument only;
 - the response must be a result whose `modelUsage` names exactly the pinned model, and whose input tokens stay
   within the baseline of an empty call at that model and effort plus the request's own size plus a fixed slack, and the
@@ -21,6 +22,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Final
 
+from specbench.adapters.pinned_claude_code import updater_disabled
 from specbench.application.ports import PromptRunner
 from specbench.domain.canonical import JsonValue
 from specbench.domain.construction import (
@@ -34,7 +36,6 @@ from specbench.domain.construction import (
 )
 from specbench.domain.pacing import looks_like_quota_exhausted
 
-CLAUDE_EXECUTABLE: Final = "claude"
 NESTING_ENV_VARS: Final = ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT")
 SCHEMA_DIALECT_KEY: Final = "$schema"
 CALL_DIRECTORY_PREFIX: Final = "specbench-call-"
@@ -47,8 +48,8 @@ def schema_argument(schema: JsonValue) -> str:
     return json.dumps(schema, sort_keys=True)
 
 
-def claude_argv(request: ModelRequest) -> list[str]:
-    argv = [CLAUDE_EXECUTABLE, "-p", "--model", request.model]
+def claude_argv(executable: str, request: ModelRequest) -> list[str]:
+    argv = [executable, "-p", "--model", request.model]
     if request.effort is not None:
         argv += ["--effort", request.effort]
     return [
@@ -76,7 +77,7 @@ def isolated_environment(environ: Mapping[str, str] | None = None) -> dict[str, 
 class ClaudeCliModel:
     """Runs one request per call; the process runner is the only way it reaches the CLI."""
 
-    def __init__(self, runner: PromptRunner, executable: str = CLAUDE_EXECUTABLE) -> None:
+    def __init__(self, runner: PromptRunner, executable: str) -> None:
         self._runner = runner
         self._executable = executable
 
@@ -88,11 +89,12 @@ class ClaudeCliModel:
 
     def _run(self, request: ModelRequest) -> str:
         """The stdout of one isolated run, once the process and the call directory are known to be clean."""
-        argv = claude_argv(request)
-        argv[0] = self._executable
+        argv = claude_argv(self._executable, request)
         call_dir = Path(tempfile.mkdtemp(prefix=CALL_DIRECTORY_PREFIX))
         try:
-            result = self._runner.run_with_input(argv, request.prompt, call_dir, isolated_environment())
+            result = self._runner.run_with_input(
+                argv, request.prompt, call_dir, updater_disabled(isolated_environment())
+            )
             leftovers = sorted(path.name for path in call_dir.iterdir())
         finally:
             shutil.rmtree(call_dir, ignore_errors=True)

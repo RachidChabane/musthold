@@ -58,6 +58,7 @@ class FileCallStore:
         (directory / CALL_STDOUT).write_text(record.stdout, encoding=ENCODING)
         (directory / CALL_EVENTS).write_text("".join(f"{event}\n" for event in record.events), encoding=ENCODING)
         meta = {
+            "cli_version": record.cli_version,
             "executions": record.executions,
             "exit_code": record.exit_code,
             "model_reported": record.model_reported,
@@ -81,6 +82,7 @@ class FileCallStore:
             model_reported=optional_text(meta.get("model_reported"), "model_reported"),
             outcome=enum_of(SessionOutcome, meta.get("outcome", SessionOutcome.COMPLETED.value), "outcome"),
             executions=integer(meta.get("executions", 1), "executions", 0),
+            cli_version=optional_text(meta.get("cli_version"), "cli_version"),
         )
 
 

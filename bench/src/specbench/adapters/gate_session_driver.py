@@ -1,5 +1,6 @@
 """Runs one gate-host session and keeps what it streamed: every line goes to the call's events file, and a session whose
-`system/init` lacks a plugin or an executor server is stopped as misconfigured (ADR 0011, decision 1)."""
+`system/init` lacks a plugin or an executor server, or names another Claude Code version than the pin, is stopped as
+misconfigured (ADR 0011, decisions 1 and 13)."""
 
 from __future__ import annotations
 
@@ -28,16 +29,18 @@ class LiveRun:
     status: GateStatus
     session_id: str | None
     lines: tuple[str, ...]
+    cli_version: str | None = None
 
 
 class _EventRecorder:
-    """Appends every streamed line to the call's events file and stops the session whose init lacks a plugin or server."""
+    """Appends every streamed line to the call's events file and stops the session whose init lacks a plugin or server or names another Claude Code version."""
 
-    def __init__(self, events_file: Path, plugins: set[str], servers: set[str]) -> None:
+    def __init__(self, events_file: Path, plugins: set[str], servers: set[str], pinned_version: str) -> None:
         events_file.parent.mkdir(parents=True, exist_ok=True)
         self._handle = events_file.open("a", encoding="utf-8")
         self._plugins = plugins
         self._servers = servers
+        self._pinned_version = pinned_version
         self.lines: list[str] = []
         self.init_seen = False
         self.misconfigured = False
@@ -49,7 +52,7 @@ class _EventRecorder:
         if self.init_seen or not _is_init(line):
             return True
         self.init_seen = True
-        check = check_claude_harness(parse_claude_stream(line).init, self._plugins, self._servers)
+        check = check_claude_harness(parse_claude_stream(line).init, self._plugins, self._servers, self._pinned_version)
         self.misconfigured = check.outcome is HarnessOutcome.HARNESS_MISCONFIGURED
         return not self.misconfigured
 
@@ -74,16 +77,19 @@ class GateSessionDriver:
     def __init__(self, sessions: GateSessionRunner) -> None:
         self._sessions = sessions
 
-    def run(self, spec: GateSessionSpec, events_file: Path, plugins: set[str], servers: set[str]) -> LiveRun:
-        recorder = _EventRecorder(events_file, plugins, servers)
+    def run(
+        self, spec: GateSessionSpec, events_file: Path, plugins: set[str], servers: set[str], pinned_version: str
+    ) -> LiveRun:
+        recorder = _EventRecorder(events_file, plugins, servers, pinned_version)
         try:
             end = self._sessions.run(spec, recorder.accept)
         finally:
             recorder.close()
         stream = parse_claude_stream(intact_stream(recorder.lines))
         session_id = stream.init.session_id if stream.init else None
+        cli_version = stream.init.claude_code_version if stream.init else None
         lines = tuple(recorder.lines)
         if recorder.misconfigured or not recorder.init_seen:
-            return LiveRun(GateStatus.HARNESS_MISCONFIGURED, session_id, lines)
+            return LiveRun(GateStatus.HARNESS_MISCONFIGURED, session_id, lines, cli_version)
         finished = end.exit_code == 0 and stream.result is not None and not stream.result.is_error
-        return LiveRun(GateStatus.COMPLETE if finished else GateStatus.PAUSED, session_id, lines)
+        return LiveRun(GateStatus.COMPLETE if finished else GateStatus.PAUSED, session_id, lines, cli_version)

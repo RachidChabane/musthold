@@ -13,6 +13,8 @@ from pathlib import Path
 
 import pytest
 
+from specbench.adapters.pinned_claude_code import pinned_binary
+
 pytestmark = pytest.mark.integration
 
 REPOSITORY = Path(__file__).resolve().parents[3]
@@ -33,7 +35,7 @@ printf '#!/bin/sh\\n[ "${{DISABLE_AUTOUPDATER:-}}" = 1 ] || exit 64\\necho "{rep
 chmod 755 "$prefix/node_modules/.bin/claude"
 """
 HARNESS_SOURCE = 'const (\n\tClaudeCodeVersion = "{version}"\n)\n'
-CLASSIFY_SOURCE = 'func ClassifyPinnedCLIVersions() []string {{ return []string{{{versions}}} }}\n'
+CLASSIFY_SOURCE = "func ClassifyPinnedCLIVersions() []string {{ return []string{{{versions}}} }}\n"
 
 
 def executable(path: Path, content: str) -> Path:
@@ -90,6 +92,12 @@ def test_the_native_binary_is_copied_and_its_checksum_recorded(checkout: Checkou
     assert checkout.checksum.read_text(encoding="utf-8").strip() == hashlib.sha256(source.read_bytes()).hexdigest()
 
 
+def test_the_installed_path_is_the_one_the_bench_resolves(checkout: Checkout) -> None:
+    checkout.native_binary()
+    done = checkout.run("claude-code-install")
+    assert done.stdout.strip().splitlines()[-1] == str(pinned_binary(checkout.root, PIN))
+
+
 def test_a_rerun_with_the_binary_in_place_installs_nothing(checkout: Checkout) -> None:
     checkout.native_binary()
     checkout.run("claude-code-install")
@@ -124,9 +132,10 @@ def test_without_a_native_binary_the_npm_package_at_the_pinned_version_is_instal
     done = checkout.run("claude-code-install", CLAUDE_CODE_NPM=str(npm))
     assert done.returncode == 0, done.stderr
     assert done.stdout.strip().splitlines()[-1] == str(checkout.installed)
-    assert checkout.checksum.read_text(encoding="utf-8").strip() == hashlib.sha256(
-        checkout.installed.read_bytes()
-    ).hexdigest()
+    assert (
+        checkout.checksum.read_text(encoding="utf-8").strip()
+        == hashlib.sha256(checkout.installed.read_bytes()).hexdigest()
+    )
 
 
 def test_the_npm_package_reporting_another_version_is_refused(checkout: Checkout) -> None:

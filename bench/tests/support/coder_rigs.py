@@ -11,13 +11,14 @@ from specbench.adapters.claude_credentials import OAUTH_TOKEN_VARIABLE, Environm
 from specbench.adapters.claude_session import ClaudeSessionHarness, ClaudeSessionSetup
 from specbench.adapters.codex_session import CodexSessionHarness, CodexSessionSetup
 from specbench.adapters.streaming_process import StreamingRunner
-from specbench.application.ports import ClaudeCredentialSource
+from specbench.application.ports import ClaudeCredentialSource, PinnedClaude
 from specbench.domain.arms import FROZEN_MODEL, Arm, Harness
 from specbench.domain.canonical import JsonValue
 from specbench.domain.manifest import RunLayout
 from specbench.domain.sessions import SessionKind, SessionRequest
 from support.fake_claude import install_fake_claude_sessions
 from support.fake_codex import install_fake_codex
+from support.pinned_claude import TEST_CLAUDE_VERSION, FixedClaude
 
 PLENTY_OF_MEMORY = 100
 KILL_AFTER_SECONDS = 6
@@ -84,6 +85,8 @@ def make_claude_rig(
     toolchain_roots: tuple[Path, ...] = (),
     timeout_seconds: int = 60,
     executable_name: str | None = None,
+    claude_version: str = TEST_CLAUDE_VERSION,
+    pinned: PinnedClaude | None = None,
     tool_dirs: tuple[str, ...] = (),
 ) -> ClaudeRig:
     layout = RunLayout(root / "run")
@@ -103,7 +106,7 @@ def make_claude_rig(
         free_runner(timeout_seconds),
         credentials or EnvironmentCredentialSource(session_environ),
         session_environ,
-        executable_name or str(executable),
+        pinned or FixedClaude(executable_name or str(executable), claude_version),
     )
     return ClaudeRig(root, layout, workspace.resolve(), owner_home, fake_dir, harness)
 

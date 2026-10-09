@@ -94,6 +94,7 @@ class CodexAssessment:
     model_reported: str | None
     executions: int
     errors: tuple[str, ...] = ()
+    cli_version: str | None = None
 
 
 def codex_home_of(environ: Mapping[str, str]) -> Path:
@@ -166,6 +167,7 @@ def assess_codex_session(
         _model_reported(rollouts),
         _executions(stream, rollouts, baseline),
         stream.errors if stream is not None else (),
+        _cli_version(rollouts),
     )
 
 
@@ -195,6 +197,10 @@ def _model_reported(rollouts: CodexRolloutFacts) -> str | None:
     if rollouts.main is None or not rollouts.main.turns:
         return None
     return rollouts.main.turns[-1].model
+
+
+def _cli_version(rollouts: CodexRolloutFacts) -> str | None:
+    return rollouts.main.cli_version if rollouts.main is not None else None
 
 
 def _executions(stream: CodexExec | None, rollouts: CodexRolloutFacts, baseline: CodexBaseline) -> int:
@@ -254,6 +260,7 @@ class CodexSessionHarness:
             assessment.outcome,
             assessment.executions,
             _with_stderr(assessment, streamed),
+            assessment.cli_version,
         )
 
     def _run(

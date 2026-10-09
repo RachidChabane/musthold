@@ -29,6 +29,7 @@ from specbench.domain.jsonread import mapping, sequence, text
 from specbench.domain.manifest import CALL_EVENTS, RunLayout
 from specbench.domain.sessions import ci_round_call_id, live_gate_call_id
 from support.credentials import FAKE_TOKEN, StaticCredentialSource
+from support.pinned_claude import FixedClaude
 from support.product_world import (
     BINARIES,
     PARCEL_ANSWERS,
@@ -91,7 +92,7 @@ def build_rig(
     answers: Path = PARCEL_ANSWERS,
 ) -> Rig:
     played = session or FakeGateSession(fakehost, BINARIES, answers)
-    config = IsolatedHostConfig(REPOSITORY, BINARIES, UMBRELLA_PLUGIN, root / "rooms")
+    config = IsolatedHostConfig(REPOSITORY, BINARIES, UMBRELLA_PLUGIN, root / "rooms", FixedClaude())
     host = build_isolated_host(
         config,
         RunLayout(root / "run"),

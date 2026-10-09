@@ -24,6 +24,7 @@ from specbench.domain.gate import GateMode, GateStatus
 from specbench.domain.manifest import CALL_EVENTS, RunLayout
 from specbench.domain.sessions import live_gate_call_id
 from support.credentials import FAKE_TOKEN, FailingCredentialSource, StaticCredentialSource
+from support.pinned_claude import TEST_CLAUDE_VERSION, FixedClaude
 
 BINARIES = Path("/tools/bin")
 
@@ -59,6 +60,7 @@ def init_line(plugins: list[str], servers: list[tuple[str, str]]) -> str:
             "type": "system",
             "subtype": "init",
             "session_id": "s-1",
+            "claude_code_version": TEST_CLAUDE_VERSION,
             "plugins": [{"name": name} for name in plugins],
             "mcp_servers": [{"name": name, "status": status} for name, status in servers],
         }
@@ -83,7 +85,9 @@ def make_host(
     token: str | None = "token",
     credentials: ClaudeCredentialSource | None = None,
 ) -> IsolatedCliHost:
-    config = IsolatedHostConfig(Path("/repo"), BINARIES, Path("/tools/plugins/spec-proof"), tmp_path / "rooms")
+    config = IsolatedHostConfig(
+        Path("/repo"), BINARIES, Path("/tools/plugins/spec-proof"), tmp_path / "rooms", FixedClaude()
+    )
     return build_isolated_host(
         config,
         RunLayout(tmp_path / "run"),

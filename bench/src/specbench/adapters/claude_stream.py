@@ -1,6 +1,6 @@
 """Parser of `claude -p --output-format stream-json --verbose` output.
 
-Reads the events a session emits: `system/init` (the plugins and MCP servers that loaded), assistant tool calls
+Reads the events a session emits: `system/init` (the CLI version, the plugins and MCP servers that loaded), assistant tool calls
 (as `AgentAction`s, attributed to a subagent through `parent_tool_use_id`), hook events and the closing `result` with
 its usage per model. Nothing here calls the CLI.
 """
@@ -28,6 +28,7 @@ from specbench.domain.agent_events import (
     ModelUsage,
     TokenUsage,
 )
+from specbench.domain.cli_pin import claude_version_fault
 from specbench.domain.jsonread import boolean, integer, mapping, optional_text, text
 
 STREAM_NAME: Final = "claude stream"
@@ -59,6 +60,7 @@ class ClaudeInit:
     plugins: tuple[str, ...]
     mcp_servers: tuple[McpServer, ...]
     tools: tuple[str, ...]
+    claude_code_version: str | None = None
 
 
 @dataclass(frozen=True)
@@ -116,6 +118,7 @@ def _parse_init(event: EventLine) -> ClaudeInit:
         _names(optional_sequence(body, "plugins", where), f"{where} plugin"),
         servers,
         tools,
+        optional_text(body.get("claude_code_version"), f"{where} claude_code_version"),
     )
 
 
@@ -236,9 +239,13 @@ def parse_claude_stream(stream: str) -> ClaudeStream:
 
 
 def check_claude_harness(
-    init: ClaudeInit | None, required_plugins: Collection[str], required_servers: Collection[str]
+    init: ClaudeInit | None,
+    required_plugins: Collection[str],
+    required_servers: Collection[str],
+    pinned_version: str,
 ) -> HarnessCheck:
-    """`harness_misconfigured` unless `system/init` lists every required plugin and a connected MCP server of each name."""
+    """`harness_misconfigured` unless `system/init` lists every required plugin and a connected MCP server of each name,
+    and names the pinned Claude Code version."""
     if init is None:
         return HarnessCheck(HarnessOutcome.HARNESS_MISCONFIGURED, (MISSING_INIT,))
     connected = {server.name for server in init.mcp_servers if server.status == MCP_CONNECTED}
@@ -246,5 +253,6 @@ def check_claude_harness(
         [f"{PLUGIN_PREFIX}:{name}" for name in sorted(required_plugins) if name not in init.plugins]
         + [f"{MCP_PREFIX}:{name}" for name in sorted(required_servers) if name not in connected]
     )
-    outcome = HarnessOutcome.HARNESS_MISCONFIGURED if missing else HarnessOutcome.OK
-    return HarnessCheck(outcome, missing)
+    fault = claude_version_fault(pinned_version, init.claude_code_version)
+    outcome = HarnessOutcome.HARNESS_MISCONFIGURED if missing or fault else HarnessOutcome.OK
+    return HarnessCheck(outcome, missing, fault)

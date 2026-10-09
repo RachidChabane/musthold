@@ -117,6 +117,7 @@ class PacedAgentHarness:
                 recorded.model_reported,
                 outcome=recorded.outcome,
                 executions=recorded.executions,
+                cli_version=recorded.cli_version,
             )
         admission = self._gate.admit()
         result = self._inner.run_session(request)
@@ -138,6 +139,7 @@ class PacedAgentHarness:
                 model_reported=result.model_reported,
                 outcome=result.outcome,
                 executions=result.executions,
+                cli_version=result.cli_version,
             )
         )
         self._gate.charge(admission, result.executions)

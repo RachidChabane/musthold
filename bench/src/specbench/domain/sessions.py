@@ -81,6 +81,9 @@ class SessionRequest:
 
 @dataclass(frozen=True)
 class SessionResult:
+    """What one session came to. `cli_version` is the version of the coding-agent CLI that ran it, as its own stream
+    reports it, or `None` when the stream does not say."""
+
     session_id: str
     final_message: str
     exit_code: int
@@ -90,6 +93,7 @@ class SessionResult:
     outcome: SessionOutcome = SessionOutcome.COMPLETED
     executions: int = 1
     problems: tuple[str, ...] = ()
+    cli_version: str | None = None
 
 
 @dataclass(frozen=True)
@@ -123,6 +127,7 @@ class CallRecord:
     model_reported: str | None
     outcome: SessionOutcome = SessionOutcome.COMPLETED
     executions: int = 1
+    cli_version: str | None = None
 
 
 def live_gate_call_id(arm: Arm, record_dir: Path) -> str:

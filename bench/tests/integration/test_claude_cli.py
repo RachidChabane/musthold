@@ -88,7 +88,7 @@ def test_the_call_is_isolated_as_the_pilot_adapter_isolates_it(tmp_path: Path, m
 
 
 def test_haiku_runs_without_an_effort_flag() -> None:
-    assert "--effort" not in claude_argv(request(Role.REVIEWER))
+    assert "--effort" not in claude_argv("claude", request(Role.REVIEWER))
 
 
 def test_the_schema_argument_drops_only_the_dialect_key() -> None:

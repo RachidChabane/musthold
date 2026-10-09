@@ -43,10 +43,12 @@ class HarnessOutcome(Enum):
 
 @dataclass(frozen=True)
 class HarnessCheck:
-    """The verdict on a session's start: the plugins and servers the arm needs, and the ones that are missing."""
+    """The verdict on a session's start: the plugins and servers the arm needs and the ones that are missing, and why the
+    CLI that ran is not the pinned one."""
 
     outcome: HarnessOutcome
     missing: tuple[str, ...] = ()
+    version_fault: str | None = None
 
 
 @dataclass(frozen=True)

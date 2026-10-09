@@ -13,8 +13,9 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Final
 
-from specbench.adapters.claude_cli import CLAUDE_EXECUTABLE, isolated_environment
+from specbench.adapters.claude_cli import isolated_environment
 from specbench.adapters.claude_credentials import OAUTH_TOKEN_VARIABLE
+from specbench.adapters.pinned_claude_code import updater_disabled
 from specbench.adapters.process import MachineUnsafe, min_free_percent
 from specbench.application.ports import EventSink, GateSessionEnd, GateSessionSpec
 from specbench.domain.arms import FROZEN_MODEL, Harness
@@ -51,7 +52,7 @@ def round_prompt(modules: Sequence[ProofModule]) -> str:
 def session_argv(
     prompt: str,
     plugin_directories: Sequence[Path],
-    executable: str = CLAUDE_EXECUTABLE,
+    executable: str,
     model: str = CLAUDE_MODEL,
     resume: str | None = None,
 ) -> tuple[str, ...]:
@@ -87,13 +88,15 @@ def session_environment(
     base: Mapping[str, str], extra: Mapping[str, str], config_directory: Path, token: str
 ) -> dict[str, str]:
     """The whole environment of the session: `base` without the nesting variables, the area's variables, the config
-    home and the token."""
-    return {
-        **isolated_environment(base),
-        **extra,
-        CONFIG_DIRECTORY_ENV: str(config_directory),
-        OAUTH_TOKEN_VARIABLE: token,
-    }
+    home and the token, with the CLI's self-update off."""
+    return updater_disabled(
+        {
+            **isolated_environment(base),
+            **extra,
+            CONFIG_DIRECTORY_ENV: str(config_directory),
+            OAUTH_TOKEN_VARIABLE: token,
+        }
+    )
 
 
 class SubprocessGateSessionRunner:

@@ -27,6 +27,7 @@ def test_a_fresh_session_runs_in_the_workspace_with_the_sandbox_flags(tmp_path: 
 
     assert result.outcome is SessionOutcome.COMPLETED and result.final_message == "done"
     assert result.model_reported == "gpt-6-luna" and result.executions == 1
+    assert result.cli_version == "0.155.1"
     call = recorded_codex_calls(rig.fake_dir)[0]
     assert call["mode"] == "exec" and call["cwd"] == str(rig.workspace) and call["stdin"] == request.prompt
     assert call["argv"][:6] == ["exec", "-m", "gpt-6-luna", "--json", "--enable", "hooks"]

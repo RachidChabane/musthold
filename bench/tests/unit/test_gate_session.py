@@ -15,6 +15,7 @@ from specbench.domain.arms import FROZEN_MODEL, Harness, Module
 from specbench.domain.product import PROOF_MODULES, proof_modules_in_order
 
 RECORD = Path("/runs/r1/rec")
+EXECUTABLE = "claude"
 
 
 def flag_values(argv: tuple[str, ...], flag: str) -> list[str]:
@@ -22,7 +23,7 @@ def flag_values(argv: tuple[str, ...], flag: str) -> list[str]:
 
 
 def test_the_session_runs_the_frozen_model_and_streams_hook_events() -> None:
-    argv = session_argv(session_prompt(RECORD), (Path("/u"),))
+    argv = session_argv(session_prompt(RECORD), (Path("/u"),), EXECUTABLE)
     assert argv[:2] == ("claude", "-p")
     assert flag_values(argv, "--model") == [FROZEN_MODEL[Harness.CLAUDE_CODE]]
     assert flag_values(argv, "--output-format") == ["stream-json"]
@@ -38,7 +39,7 @@ def test_each_plugin_of_the_arm_is_loaded_after_the_umbrella_that_holds_prove_al
         "/repo/discpower/plugin/claude",
         "/repo/alignment/plugin/claude",
     ]
-    assert flag_values(session_argv("p", directories), "--plugin-dir") == [str(d) for d in directories]
+    assert flag_values(session_argv("p", directories, EXECUTABLE), "--plugin-dir") == [str(d) for d in directories]
 
 
 def test_the_prompt_asks_for_the_skill_and_a_recording_of_every_prove() -> None:
@@ -64,8 +65,8 @@ def test_the_proof_modules_are_listed_in_generate_order() -> None:
 
 
 def test_a_resumed_session_continues_the_session_it_names() -> None:
-    fresh = session_argv("p", (Path("/u"),))
-    resumed = session_argv("p", (Path("/u"),), resume="5b0c2a64")
+    fresh = session_argv("p", (Path("/u"),), EXECUTABLE)
+    resumed = session_argv("p", (Path("/u"),), EXECUTABLE, resume="5b0c2a64")
     assert "--resume" not in fresh
     assert flag_values(resumed, "--resume") == ["5b0c2a64"]
     assert flag_values(resumed, "--model") == flag_values(fresh, "--model")

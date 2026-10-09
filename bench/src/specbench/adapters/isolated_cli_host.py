@@ -170,14 +170,16 @@ class IsolatedCliHost:
             session_argv(
                 session_prompt(record_dir),
                 plugin_directories(self._config.repository, self._config.umbrella_plugin, modules),
-                self._config.claude_executable,
+                self._config.claude.executable(),
             ),
             session_environment(self._base_environment, self._environment.of(area), area.config_directory, token),
             area.tree,
         )
         events = self._layout.call(live_gate_call_id(arm, record_dir)) / CALL_EVENTS
         plugins = {UMBRELLA_PLUGIN_NAME, *[module.plugin for module in modules]}
-        return self._driver.run(spec, events, plugins, {module.server for module in modules})
+        return self._driver.run(
+            spec, events, plugins, {module.server for module in modules}, self._config.claude.version
+        )
 
 
 def _outcome(settlement: Settlement, spent: _Spent) -> GateOutcome:

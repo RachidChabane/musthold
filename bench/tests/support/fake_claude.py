@@ -138,7 +138,7 @@ class RecordedSessionCall(TypedDict):
 
 def install_fake_claude_sessions(directory: Path, responses: Sequence[Mapping[str, JsonValue]]) -> Path:
     """The stream-json executable's path. `responses` script the n-th call: `events` (steps `agent`, `bash`, `edit`,
-    `web`, `text`, `hang`), `plugins`, `omit_init`, `final`, `models`, `leave_files`, `write_project_settings`,
+    `web`, `text`, `hang`), `plugins`, `claude_code_version`, `omit_init`, `final`, `models`, `leave_files`, `write_project_settings`,
     and `exit` with `stderr`."""
     state = directory / "state"
     state.mkdir(parents=True, exist_ok=True)

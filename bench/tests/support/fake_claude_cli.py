@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 HANG_SECONDS = 3600
+DEFAULT_CLAUDE_VERSION = "2.1.290"
 NO_CONVERSATION = "No conversation found with session ID: "
 
 
@@ -115,6 +116,7 @@ def main(state_directory: str) -> None:
                 "tools": ["Agent", "Edit", "Bash"],
                 "mcp_servers": [],
                 "model": model,
+                "claude_code_version": response.get("claude_code_version", DEFAULT_CLAUDE_VERSION),
                 "plugins": [{"name": name, "path": f"/plugins/{name}"} for name in response.get("plugins", [])],
             }
         )

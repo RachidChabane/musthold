@@ -14,12 +14,14 @@ from specbench.domain.arms import Arm
 from specbench.domain.contamination import ScanPolicy
 from specbench.domain.manifest import RunLayout
 from specbench.domain.sessions import SessionOutcome
+from support.pinned_claude import OTHER_CLAUDE_VERSION, TEST_CLAUDE_VERSION, with_claude_version
 
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "streams"
 CLAUDE_WORKSPACE = "/private/var/T/project"
 CODEX_WORKSPACE = "/run/project"
 MAIN_THREAD = "01a11334-f5df-7a33-ba1e-3dd65b19d059"
 CHILD_THREAD = "01a11334-f9a0-7c11-8e02-1b3f0c2d4e55"
+CODEX_RECORDED_VERSION = "0.155.1"
 PLUGINS = ("spec-proof-dp", "spec-proof-alignment", "spec-proof-completeness")
 SERVERS = ("plugin:spec-proof-dp:exec", "plugin:spec-proof-alignment:exec", "plugin:spec-proof-completeness:exec")
 
@@ -28,17 +30,23 @@ def lines(name: str) -> list[str]:
     return (FIXTURES / name).read_text().splitlines()
 
 
+def claude_lines(name: str, version: str | None = TEST_CLAUDE_VERSION) -> list[str]:
+    """A recorded Claude stream whose `system/init` names `version`, the pinned one unless a test says otherwise."""
+    return with_claude_version(lines(name), version)
+
+
 def claude_setup(plugins: tuple[str, ...] = PLUGINS, servers: tuple[str, ...] = SERVERS) -> ClaudeSessionSetup:
     return ClaudeSessionSetup(RunLayout(Path("/runs/r1")), (), plugins, servers)
 
 
 def test_the_recorded_plugin_host_session_is_a_clean_complete_session() -> None:
     assessment = assess_claude_session(
-        lines("claude_session.jsonl"),
+        claude_lines("claude_session.jsonl"),
         policy_for(Arm.ALL_NATIVE),
         claude_setup(),
         ScanPolicy(CLAUDE_WORKSPACE),
         interrupted=False,
+        pinned_version=TEST_CLAUDE_VERSION,
     )
 
     assert assessment.outcome is SessionOutcome.COMPLETED and assessment.problems == ()
@@ -48,7 +56,12 @@ def test_the_recorded_plugin_host_session_is_a_clean_complete_session() -> None:
 
 def test_the_same_session_under_an_honest_arm_shows_plugins_that_arm_must_not_have() -> None:
     assessment = assess_claude_session(
-        lines("claude_session.jsonl"), policy_for(Arm.ALL), claude_setup(), ScanPolicy(CLAUDE_WORKSPACE), False
+        claude_lines("claude_session.jsonl"),
+        policy_for(Arm.ALL),
+        claude_setup(),
+        ScanPolicy(CLAUDE_WORKSPACE),
+        False,
+        TEST_CLAUDE_VERSION,
     )
     assert assessment.outcome is SessionOutcome.HARNESS_MISCONFIGURED
     assert set(assessment.problems) == {f"unexpected plugin {name}" for name in PLUGINS}
@@ -57,7 +70,12 @@ def test_the_same_session_under_an_honest_arm_shows_plugins_that_arm_must_not_ha
 def test_a_required_server_that_did_not_connect_is_a_misconfigured_harness() -> None:
     setup = claude_setup(servers=(*SERVERS, "plugin:spec-proof-extra:exec"))
     assessment = assess_claude_session(
-        lines("claude_session.jsonl"), policy_for(Arm.CHEAT), setup, ScanPolicy(CLAUDE_WORKSPACE), False
+        claude_lines("claude_session.jsonl"),
+        policy_for(Arm.CHEAT),
+        setup,
+        ScanPolicy(CLAUDE_WORKSPACE),
+        False,
+        TEST_CLAUDE_VERSION,
     )
     assert assessment.outcome is SessionOutcome.HARNESS_MISCONFIGURED
     assert assessment.problems == ("missing mcp:plugin:spec-proof-extra:exec",)
@@ -65,7 +83,12 @@ def test_a_required_server_that_did_not_connect_is_a_misconfigured_harness() -> 
 
 def test_a_recorded_result_without_init_is_a_misconfigured_harness() -> None:
     assessment = assess_claude_session(
-        lines("claude_result_pilot.jsonl"), policy_for(Arm.T), claude_setup((), ()), ScanPolicy("/w"), False
+        claude_lines("claude_result_pilot.jsonl"),
+        policy_for(Arm.T),
+        claude_setup((), ()),
+        ScanPolicy("/w"),
+        False,
+        TEST_CLAUDE_VERSION,
     )
     assert assessment.outcome is SessionOutcome.HARNESS_MISCONFIGURED and assessment.problems == (
         "missing system/init",
@@ -73,20 +96,83 @@ def test_a_recorded_result_without_init_is_a_misconfigured_harness() -> None:
 
 
 def test_a_stream_cut_before_init_is_interrupted_and_after_init_keeps_its_session_id() -> None:
-    cut = assess_claude_session([], policy_for(Arm.T), claude_setup((), ()), ScanPolicy("/w"), interrupted=True)
+    cut = assess_claude_session(
+        [], policy_for(Arm.T), claude_setup((), ()), ScanPolicy("/w"), True, TEST_CLAUDE_VERSION
+    )
     assert cut.outcome is SessionOutcome.INTERRUPTED and cut.executions == 0
 
     after_init = assess_claude_session(
-        lines("claude_session.jsonl")[:4], policy_for(Arm.ALL_NATIVE), claude_setup(), ScanPolicy("/w"), True
+        claude_lines("claude_session.jsonl")[:4],
+        policy_for(Arm.ALL_NATIVE),
+        claude_setup(),
+        ScanPolicy("/w"),
+        True,
+        TEST_CLAUDE_VERSION,
     )
     assert after_init.outcome is SessionOutcome.INTERRUPTED and after_init.session_id.startswith("5b0c2a64")
     assert after_init.final_message == "" and after_init.executions == 2
 
 
 def test_a_line_that_is_not_json_in_the_middle_of_the_stream_is_a_misconfigured_harness() -> None:
-    stream = ["Error: something went wrong", *lines("claude_session.jsonl")]
-    assessment = assess_claude_session(stream, policy_for(Arm.ALL_NATIVE), claude_setup(), ScanPolicy("/w"), False)
+    stream = ["Error: something went wrong", *claude_lines("claude_session.jsonl")]
+    assessment = assess_claude_session(
+        stream, policy_for(Arm.ALL_NATIVE), claude_setup(), ScanPolicy("/w"), False, TEST_CLAUDE_VERSION
+    )
     assert assessment.outcome is SessionOutcome.HARNESS_MISCONFIGURED and "line 0 is not JSON" in assessment.problems[0]
+
+
+def test_the_version_the_init_reports_is_kept_with_the_assessment() -> None:
+    assessment = assess_claude_session(
+        claude_lines("claude_session.jsonl"),
+        policy_for(Arm.ALL_NATIVE),
+        claude_setup(),
+        ScanPolicy(CLAUDE_WORKSPACE),
+        False,
+        TEST_CLAUDE_VERSION,
+    )
+    assert assessment.cli_version == TEST_CLAUDE_VERSION
+
+
+def test_a_session_that_ran_another_version_than_the_pin_is_a_misconfigured_harness() -> None:
+    assessment = assess_claude_session(
+        claude_lines("claude_session.jsonl", OTHER_CLAUDE_VERSION),
+        policy_for(Arm.ALL_NATIVE),
+        claude_setup(),
+        ScanPolicy(CLAUDE_WORKSPACE),
+        False,
+        TEST_CLAUDE_VERSION,
+    )
+    assert assessment.outcome is SessionOutcome.HARNESS_MISCONFIGURED
+    assert assessment.problems == (
+        f"the session ran Claude Code {OTHER_CLAUDE_VERSION}, the pin is {TEST_CLAUDE_VERSION}",
+    )
+    assert assessment.cli_version == OTHER_CLAUDE_VERSION
+
+
+def test_a_stream_whose_init_names_no_version_is_a_misconfigured_harness() -> None:
+    assessment = assess_claude_session(
+        claude_lines("claude_session.jsonl", None),
+        policy_for(Arm.ALL_NATIVE),
+        claude_setup(),
+        ScanPolicy(CLAUDE_WORKSPACE),
+        False,
+        TEST_CLAUDE_VERSION,
+    )
+    assert assessment.outcome is SessionOutcome.HARNESS_MISCONFIGURED
+    assert assessment.problems == (f"the stream reports no Claude Code version, the pin is {TEST_CLAUDE_VERSION}",)
+    assert assessment.cli_version is None
+
+
+def test_a_session_cut_after_a_wrong_version_init_is_still_a_fault_not_an_interruption() -> None:
+    cut = assess_claude_session(
+        claude_lines("claude_session.jsonl", OTHER_CLAUDE_VERSION)[:4],
+        policy_for(Arm.ALL_NATIVE),
+        claude_setup(),
+        ScanPolicy("/w"),
+        True,
+        TEST_CLAUDE_VERSION,
+    )
+    assert cut.outcome is SessionOutcome.HARNESS_MISCONFIGURED
 
 
 def codex_facts(main: str, children: tuple[str, ...] = ()) -> CodexRolloutFacts:
@@ -105,7 +191,7 @@ def test_the_recorded_codex_session_counts_its_spawn_from_the_rollout_and_scans_
 
     assert assessment.outcome is SessionOutcome.COMPLETED and assessment.problems == ()
     assert assessment.session_id == MAIN_THREAD and assessment.final_message == "done"
-    assert assessment.executions == 2
+    assert assessment.executions == 2 and assessment.cli_version == CODEX_RECORDED_VERSION
 
 
 def test_the_rollout_is_the_authority_when_it_holds_more_spawns_than_the_stream_shows() -> None:

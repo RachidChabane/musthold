@@ -34,6 +34,7 @@ from specbench.domain.manifest import CALL_EVENTS, RunLayout
 from specbench.domain.product import PROOF_MODULES
 from specbench.domain.sessions import ci_round_call_id
 from support.credentials import FAKE_TOKEN, FailingCredentialSource, StaticCredentialSource
+from support.pinned_claude import TEST_CLAUDE_VERSION, FixedClaude
 
 BINARIES = Path("/tools/bin")
 DP = PROOF_MODULES[0]
@@ -100,6 +101,7 @@ class RecordingSession:
             "type": "system",
             "subtype": "init",
             "session_id": SESSION_ID,
+            "claude_code_version": TEST_CLAUDE_VERSION,
             "plugins": [],
             "mcp_servers": [],
         }
@@ -122,7 +124,7 @@ class Rig:
     ) -> None:
         self.runner = runner
         self.session = session
-        self.config = IsolatedHostConfig(Path("/repo"), BINARIES, Path("/u"), tmp_path / "rooms")
+        self.config = IsolatedHostConfig(Path("/repo"), BINARIES, Path("/u"), tmp_path / "rooms", FixedClaude())
         self.layout = RunLayout(tmp_path / "run")
         self.area = RoomArea(tmp_path / "rooms" / "session")
         self.area.tree.mkdir(parents=True)

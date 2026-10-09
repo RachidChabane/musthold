@@ -198,6 +198,23 @@ class ClaudeCredentialSource(Protocol):
         ...
 
 
+class PinnedClaudeUnavailable(RuntimeError):
+    """The pinned Claude Code CLI is not installed. The message names the script that installs it."""
+
+
+class PinnedClaude(Protocol):
+    """The one Claude Code CLI every session of the bench runs, frozen at a version for the whole sample."""
+
+    @property
+    def version(self) -> str:
+        """The pinned version, as `claude --version` reports it."""
+        ...
+
+    def executable(self) -> str:
+        """The pinned binary; `PinnedClaudeUnavailable` when it is not installed."""
+        ...
+
+
 class CiRoundTrip(Protocol):
     """Strategy: answers the requests CI issued to a gate and archives the pushed answers under its record directory.
 

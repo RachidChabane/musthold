@@ -112,7 +112,7 @@ class IsolatedCiRoundTrip:
             session_argv(
                 round_prompt(request.pending),
                 plugin_directories(self._config.repository, self._config.umbrella_plugin, request.modules),
-                self._config.claude_executable,
+                self._config.claude.executable(),
                 resume=state.session_id,
             ),
             session_environment(self._base_environment, env, area.config_directory, token),
@@ -120,7 +120,9 @@ class IsolatedCiRoundTrip:
         )
         events = self._layout.call(ci_round_call_id(request.arm, request.record_dir, request.number)) / CALL_EVENTS
         plugins = {UMBRELLA_PLUGIN_NAME, *[module.plugin for module in request.modules]}
-        live = self._driver.run(spec, events, plugins, {module.server for module in request.modules})
+        live = self._driver.run(
+            spec, events, plugins, {module.server for module in request.modules}, self._config.claude.version
+        )
         if live.session_id:
             state_file.write(SessionState(live.session_id, state.finished))
         return live

@@ -1,5 +1,9 @@
 """`AgentHarness` over `claude -p`: one coder session per call, isolated from the owner's Claude Code.
 
+The binary is the pinned private copy (ADR 0011 decision 13), started with its self-update off; the version the
+session's `system/init` reports is recorded with the session, and a session that ran another version is a
+misconfigured harness.
+
 Isolation (ADR 0011 decision 9):
 
 - every trunk runs with its own `CLAUDE_CONFIG_DIR` under the run, authenticated by `CLAUDE_CODE_OAUTH_TOKEN`, which a
@@ -28,11 +32,17 @@ from specbench.adapters.claude_credentials import KEYCHAIN_SERVICE, OAUTH_TOKEN_
 from specbench.adapters.claude_homes import ClaudeConfigHomes
 from specbench.adapters.claude_stream import ClaudeStream, check_claude_harness, parse_claude_stream
 from specbench.adapters.execution_counter import ClaudeExecutionCounter, intact_stream
+from specbench.adapters.pinned_claude_code import updater_disabled
 from specbench.adapters.run_store import write_atomically
 from specbench.adapters.session_environment import bench_home, neutral_environment
 from specbench.adapters.session_events import SessionEventLog
 from specbench.adapters.streaming_process import StreamedProcess, StreamingRunner
-from specbench.application.ports import ClaudeCredentialSource, CredentialSourceFailed
+from specbench.application.ports import (
+    ClaudeCredentialSource,
+    CredentialSourceFailed,
+    PinnedClaude,
+    PinnedClaudeUnavailable,
+)
 from specbench.domain.agent_events import HarnessOutcome
 from specbench.domain.arm_policy import ArmPolicy, policy_for
 from specbench.domain.arms import Arm, Harness
@@ -41,7 +51,6 @@ from specbench.domain.jsonread import RecordError
 from specbench.domain.manifest import RunLayout
 from specbench.domain.sessions import SessionKind, SessionOutcome, SessionRequest, SessionResult
 
-CLAUDE_EXECUTABLE: Final = "claude"
 CONFIG_DIR_VARIABLE: Final = "CLAUDE_CONFIG_DIR"
 INHERITED_PREFIXES_DROPPED: Final = ("ANTHROPIC_", "CLAUDE_CODE_", "CLAUDE_CONFIG_DIR")
 """Variables that would reroute the model, the credential or the home of a session are never inherited."""
@@ -86,6 +95,7 @@ class ClaudeAssessment:
     final_message: str
     model_reported: str | None
     executions: int
+    cli_version: str | None = None
 
 
 def claude_settings(toolchain_roots: Sequence[Path]) -> dict[str, object]:
@@ -103,11 +113,11 @@ def claude_settings(toolchain_roots: Sequence[Path]) -> dict[str, object]:
 
 
 def claude_argv(
-    request: SessionRequest, policy: ArmPolicy, settings_file: Path, plugin_dirs: Sequence[Path]
+    executable: str, request: SessionRequest, policy: ArmPolicy, settings_file: Path, plugin_dirs: Sequence[Path]
 ) -> list[str]:
     """The command line of one session. The prompt is not on it: it goes through standard input."""
     argv = [
-        CLAUDE_EXECUTABLE,
+        executable,
         "-p",
         "--model",
         request.model,
@@ -134,13 +144,13 @@ def claude_argv(
 
 def claude_environment(environ: Mapping[str, str], config_dir: Path, token: str) -> dict[str, str]:
     """The environment of a session: the inherited one without the variables that reroute Claude, plus the home and
-    the credential."""
+    the credential, with the CLI's self-update off."""
     kept = {
         name: value
         for name, value in environ.items()
         if name not in NESTING_ENV_VARS and not name.startswith(INHERITED_PREFIXES_DROPPED)
     }
-    return {**kept, CONFIG_DIR_VARIABLE: str(config_dir), OAUTH_TOKEN_VARIABLE: token}
+    return updater_disabled({**kept, CONFIG_DIR_VARIABLE: str(config_dir), OAUTH_TOKEN_VARIABLE: token})
 
 
 def scan_policy_for(workspace: Path, unresolved: Path, toolchain_roots: Sequence[Path]) -> ScanPolicy:
@@ -158,6 +168,7 @@ def assess_claude_session(
     setup: ClaudeSessionSetup,
     scan: ScanPolicy,
     interrupted: bool,
+    pinned_version: str,
 ) -> ClaudeAssessment:
     """Judge a session from its events alone, so that a recorded session is judged the same way as a live one.
 
@@ -167,7 +178,7 @@ def assess_claude_session(
         stream = _parsed(events)
     except RecordError as error:
         return ClaudeAssessment(SessionOutcome.HARNESS_MISCONFIGURED, (str(error),), "", "", None, 0)
-    problems = _configuration_problems(stream, policy, setup)
+    problems = _configuration_problems(stream, policy, setup, pinned_version)
     findings = tuple(describe_finding(finding) for finding in scan_actions(stream.actions, scan))
     started = stream.init is not None
     if problems and (started or not interrupted):
@@ -185,6 +196,7 @@ def assess_claude_session(
         stream.result.final_message if stream.result is not None else "",
         _model_reported(stream),
         ClaudeExecutionCounter().count(events),
+        stream.init.claude_code_version if stream.init is not None else None,
     )
 
 
@@ -193,13 +205,17 @@ def _parsed(events: Sequence[str]) -> ClaudeStream:
     return parse_claude_stream(text) if text else ClaudeStream(None, (), (), {}, None)
 
 
-def _configuration_problems(stream: ClaudeStream, policy: ArmPolicy, setup: ClaudeSessionSetup) -> tuple[str, ...]:
+def _configuration_problems(
+    stream: ClaudeStream, policy: ArmPolicy, setup: ClaudeSessionSetup, pinned_version: str
+) -> tuple[str, ...]:
     required_plugins: Collection[str] = setup.required_plugins if policy.loads_product_plugins else ()
     required_servers: Collection[str] = setup.required_servers if policy.loads_product_plugins else ()
-    check = check_claude_harness(stream.init, required_plugins, required_servers)
+    check = check_claude_harness(stream.init, required_plugins, required_servers, pinned_version)
     problems = (
         [f"missing {name}" for name in check.missing] if check.outcome is HarnessOutcome.HARNESS_MISCONFIGURED else []
     )
+    if check.version_fault is not None:
+        problems.append(check.version_fault)
     if stream.init is not None and not policy.loads_product_plugins:
         problems += [f"unexpected plugin {name}" for name in stream.init.plugins]
     return tuple(problems)
@@ -226,13 +242,13 @@ class ClaudeSessionHarness:
         runner: StreamingRunner,
         credentials: ClaudeCredentialSource,
         environ: Mapping[str, str],
-        executable: str = CLAUDE_EXECUTABLE,
+        pinned: PinnedClaude,
     ) -> None:
         self._setup = setup
         self._runner = runner
         self._credentials = credentials
         self._environ = without_oauth_token(environ)
-        self._executable = executable
+        self._pinned = pinned
         self._homes = ClaudeConfigHomes(setup.layout)
 
     @property
@@ -242,6 +258,10 @@ class ClaudeSessionHarness:
     def run_session(self, request: SessionRequest) -> SessionResult:
         arm = _arm_of(request)
         try:
+            executable = self._pinned.executable()
+        except PinnedClaudeUnavailable as error:
+            return _not_started(str(error))
+        try:
             token = self._credentials.token()
         except CredentialSourceFailed as error:
             return _not_started(f"the Claude Code token could not be read: {error}")
@@ -250,8 +270,7 @@ class ClaudeSessionHarness:
         policy = policy_for(arm)
         workspace = request.workdir.resolve()
         home = self._homes.home_for(request, workspace)
-        argv = claude_argv(request, policy, self._write_settings(arm), self._setup.plugin_dirs)
-        argv[0] = self._executable
+        argv = claude_argv(executable, request, policy, self._write_settings(arm), self._setup.plugin_dirs)
         session_home = bench_home(self._setup.layout, request.trunk_id)
         session_home.mkdir(parents=True, exist_ok=True)
         environment = claude_environment(
@@ -262,9 +281,11 @@ class ClaudeSessionHarness:
             try:
                 streamed = self._runner.run(argv, request.prompt, workspace, environment, log.append)
             except FileNotFoundError:
-                return _not_started(f"the {self._executable} executable was not found")
+                return _not_started(f"the {executable} executable was not found")
         scan = scan_policy_for(workspace, request.workdir, self._setup.toolchain_roots)
-        assessment = assess_claude_session(log.lines, policy, self._setup, scan, _interrupted(streamed))
+        assessment = assess_claude_session(
+            log.lines, policy, self._setup, scan, _interrupted(streamed), self._pinned.version
+        )
         return SessionResult(
             assessment.session_id,
             assessment.final_message,
@@ -275,6 +296,7 @@ class ClaudeSessionHarness:
             assessment.outcome,
             assessment.executions,
             _with_stderr(assessment, streamed),
+            assessment.cli_version,
         )
 
     def _write_settings(self, arm: Arm) -> Path:

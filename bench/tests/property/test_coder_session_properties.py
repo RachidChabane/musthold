@@ -17,6 +17,7 @@ from specbench.domain.arms import FROZEN_MODEL, PLUGIN_HOST_ARMS, Arm, Harness
 from specbench.domain.codex_config import names_project, remove_project_table
 from specbench.domain.manifest import RunLayout
 from specbench.domain.sessions import SessionKind, SessionRequest
+from support.pinned_claude import UNUSED_EXECUTABLE
 
 HONEST_ARMS = [arm for arm in Arm if arm not in PLUGIN_HOST_ARMS]
 SEGMENT = st.from_regex(r"[a-z][a-z0-9-]{0,12}", fullmatch=True)
@@ -46,7 +47,9 @@ def sessions(draw: st.DrawFn, harness: Harness, arms: list[Arm]) -> SessionReque
 @given(sessions(Harness.CLAUDE_CODE, HONEST_ARMS))
 def test_an_honest_arm_never_reads_project_settings_and_never_loads_a_plugin(request: SessionRequest) -> None:
     assert request.arm is not None
-    argv = claude_argv(request, policy_for(request.arm), Path("/runs/r1/settings/T.json"), (Path("/repo/plugin"),))
+    argv = claude_argv(
+        UNUSED_EXECUTABLE, request, policy_for(request.arm), Path("/runs/r1/settings/T.json"), (Path("/repo/plugin"),)
+    )
 
     sources = argv[argv.index("--setting-sources") + 1].split(",")
     assert sources == ["user"] and "project" not in sources and "local" not in sources
@@ -56,14 +59,16 @@ def test_an_honest_arm_never_reads_project_settings_and_never_loads_a_plugin(req
 @given(sessions(Harness.CLAUDE_CODE, list(PLUGIN_HOST_ARMS)))
 def test_a_plugin_host_arm_reads_exactly_user_and_project(request: SessionRequest) -> None:
     assert request.arm is not None
-    argv = claude_argv(request, policy_for(request.arm), Path("/runs/r1/settings/cheat.json"), ())
+    argv = claude_argv(UNUSED_EXECUTABLE, request, policy_for(request.arm), Path("/runs/r1/settings/cheat.json"), ())
     assert argv[argv.index("--setting-sources") + 1] == "user,project"
 
 
 @given(sessions(Harness.CLAUDE_CODE, list(Arm)))
 def test_no_option_of_a_claude_session_points_into_the_workspace(request: SessionRequest) -> None:
     assert request.arm is not None
-    argv = claude_argv(request, policy_for(request.arm), Path("/runs/r1/settings/x.json"), (Path("/repo/plugin"),))
+    argv = claude_argv(
+        UNUSED_EXECUTABLE, request, policy_for(request.arm), Path("/runs/r1/settings/x.json"), (Path("/repo/plugin"),)
+    )
     assert not [word for word in argv if word.startswith(str(request.workdir) + "/") or word == str(request.workdir)]
 
 

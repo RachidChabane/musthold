@@ -39,6 +39,7 @@ from specbench.adapters.offline_probe import OfflineProbe, environment_directory
 from specbench.adapters.operator_engine import UnavailableOperatorEngine
 from specbench.adapters.oracle_runners import GoTestOracleRunner, PytestOracleRunner
 from specbench.adapters.patch_builder import GitDiffPatchBuilder
+from specbench.adapters.pinned_claude_code import PinnedClaudeCode
 from specbench.adapters.process import (
     MemoryFloorRunner,
     SubprocessPromptRunner,
@@ -201,12 +202,14 @@ def run_construct(
     tasks_per_language: int,
     window_text: str,
     budget: int,
-    claude: str,
     console: Console,
 ) -> int:
-    """Build, verify and seal the selected tasks; a pause or an unsafe machine ends the run with its own exit code."""
+    """Build, verify and seal the selected tasks; a pause or an unsafe machine ends the run with its own exit code.
+
+    Every call runs the pinned Claude Code CLI; the run does not start without it."""
     root = find_repository_root(selection_dir)
     refuse_inside_repository(work_dir, root, "work directory")
+    claude = PinnedClaudeCode(root).executable()
     layout = RunLayout(work_dir / CONSTRUCTION_DIRECTORY)
     policy = PacingPolicy(RunWindow.parse(window_text), budget)
     gate = CallGate(Harness.CLAUDE_CODE, policy, FileLedgerStore(layout), SystemClock())
