@@ -568,3 +568,27 @@ Go tests of the module in CI.
   digests and source are recorded, every skill against the Agent Skills format,
   and the list of plugin trees against the list the repository holds, so that an
   empty or incomplete search fails.
+
+## Host classification
+
+- **SP-1900~1**: WHEN a confidence source of a classification is built or read
+  THE SYSTEM SHALL write it `host-classify(<k>,<scheme>):<model>*<n>[+<model>*<n>]`
+  with a known scheme, counts that sum to `k`, no model twice and the voters by
+  descending count then model identifier, accept only that spelling, read back
+  what it wrote, treat it as a known source of the kind `host-classify` for
+  decisions and thresholds, and refuse every other text.
+- **SP-1901~1**: WHEN the mapping that turns the modal share of a classification
+  into a confidence is named or read THE SYSTEM SHALL write it
+  `host-classify.share-isotonic@<table digest>`, read the digest back, and refuse
+  a text without a SHA-256 digest.
+- **SP-1902~1**: WHEN a question set is planned for classification THE SYSTEM
+  SHALL give each question five calls whose label order is derived only from the
+  digest of the set and the question id: a seeded Fisher-Yates permutation of
+  the canonical order rotated by the call index for a choice or a noul question,
+  and ascending and descending levels alternating from a direction the seed sets
+  for a score question; give every call a text that describes the options in the
+  order of its labels; give every model the same order for a call; and record the
+  seed input and the seed of each question.
+- **SP-1903~1**: WHEN an executor profile or a decision names the channel
+  `host-classify` or a classification source THE SYSTEM SHALL accept them in the
+  closed sets of the format and in the embedded schemas.

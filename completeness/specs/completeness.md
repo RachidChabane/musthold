@@ -493,3 +493,14 @@ traces them to the Go tests of the module in CI.
   `-X main.version`, else the one `go install` recorded, else `dev`, and the
   `version` command SHALL print the binary name, that version and the linked
   commit when the build has one.
+
+## Claude Code classification
+
+- **SP-1912~1**: WHEN `systemone classify-plan` runs with a model, or with voters
+  whose counts sum to five, THE SYSTEM SHALL list for each closed request that
+  waits for its first vote its ticket and nonce, the confidence source
+  `host-classify(5,rot1):<voters>`, the digest of its question set and, for each
+  question and each of the five calls, the model that answers it, the text with
+  the options in the planned order, the labels in that order and the seed input
+  of the order; and SHALL refuse a call that names neither or both of a model and
+  voters, and voters that do not make a valid source.

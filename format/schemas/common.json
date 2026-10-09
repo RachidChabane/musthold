@@ -83,7 +83,7 @@
       "type": "object",
       "required": ["channel", "harness", "isolation", "attestation", "model"],
       "properties": {
-        "channel": { "enum": ["host-subagent", "host-sampled", "host-inline", "systemone-relay"] },
+        "channel": { "enum": ["host-subagent", "host-sampled", "host-inline", "systemone-relay", "host-classify"] },
         "harness": {
           "type": "object",
           "required": ["name", "version"],
@@ -215,7 +215,7 @@
           "items": { "$ref": "#/$defs/nonEmptyString" },
           "uniqueItems": true
         },
-        "confidenceSource": { "type": "string", "pattern": "^(execution|host-votes\\([1-9][0-9]*\\)|system-one:.+)$" },
+        "confidenceSource": { "type": "string", "pattern": "^(execution|host-votes\\([1-9][0-9]*\\)|host-classify\\([1-9][0-9]*,[a-z][a-z0-9]*\\):.+|system-one:.+)$" },
         "confidenceMapping": { "$ref": "#/$defs/nonEmptyString" },
         "rawConfidence": { "$ref": "#/$defs/confidence" },
         "calibratedConfidence": { "$ref": "#/$defs/confidence" },

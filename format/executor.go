@@ -16,6 +16,10 @@ const (
 	// ChannelSystemOneRelay is an answer served by a System One endpoint through
 	// the relay.
 	ChannelSystemOneRelay Channel = "systemone-relay"
+	// ChannelHostClassify is an answer made of the classifier calls a host mod
+	// makes with the model of its session: the module dictates each call's text,
+	// model and label order, and the host returns only the labels.
+	ChannelHostClassify Channel = "host-classify"
 )
 
 // Isolation is the level of isolation an executor ran with. The levels are
@@ -45,7 +49,7 @@ const (
 )
 
 var (
-	channels     = []Channel{ChannelHostSubagent, ChannelHostSampled, ChannelHostInline, ChannelSystemOneRelay}
+	channels     = []Channel{ChannelHostSubagent, ChannelHostSampled, ChannelHostInline, ChannelSystemOneRelay, ChannelHostClassify}
 	isolations   = []Isolation{IsolationRestrictedAttested, IsolationRestricted, IsolationRestrictedUnverified, IsolationUnrestricted, IsolationInline}
 	modelSources = []ModelSource{ModelSourceResolved, ModelSourceDeclared, ModelSourceUnknown}
 )

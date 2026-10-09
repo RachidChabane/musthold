@@ -1,0 +1,209 @@
+{
+  "scheme": "rot1",
+  "k": 5,
+  "closedSetDigest": "06b3e31a9bd61a81a83838e789ca7cfb1949fad62aa4d36ced131fa826d00542",
+  "questions": [
+    {
+      "question": "pick",
+      "type": "choice",
+      "seedInput": "host-classify|rot1|06b3e31a9bd61a81a83838e789ca7cfb1949fad62aa4d36ced131fa826d00542|pick",
+      "seed": "923c677823c6fceba0508f3994ae1910",
+      "calls": [
+        {
+          "i": 0,
+          "labels": [
+            "B",
+            "A",
+            "NONE"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nWhich one?\n\nOptions:\n- B: when the answer is B\n- A: when the answer is A\n- NONE: when the answer is NONE\n"
+        },
+        {
+          "i": 1,
+          "labels": [
+            "A",
+            "NONE",
+            "B"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nWhich one?\n\nOptions:\n- A: when the answer is A\n- NONE: when the answer is NONE\n- B: when the answer is B\n"
+        },
+        {
+          "i": 2,
+          "labels": [
+            "NONE",
+            "B",
+            "A"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nWhich one?\n\nOptions:\n- NONE: when the answer is NONE\n- B: when the answer is B\n- A: when the answer is A\n"
+        },
+        {
+          "i": 3,
+          "labels": [
+            "B",
+            "A",
+            "NONE"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nWhich one?\n\nOptions:\n- B: when the answer is B\n- A: when the answer is A\n- NONE: when the answer is NONE\n"
+        },
+        {
+          "i": 4,
+          "labels": [
+            "A",
+            "NONE",
+            "B"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nWhich one?\n\nOptions:\n- A: when the answer is A\n- NONE: when the answer is NONE\n- B: when the answer is B\n"
+        }
+      ]
+    },
+    {
+      "question": "claims",
+      "type": "noul",
+      "seedInput": "host-classify|rot1|06b3e31a9bd61a81a83838e789ca7cfb1949fad62aa4d36ced131fa826d00542|claims",
+      "seed": "49fe41a1a7cb723649b46e6da6bf6010",
+      "calls": [
+        {
+          "i": 0,
+          "labels": [
+            "false",
+            "true"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nDoes it claim it?\n\nOptions:\n- false: It does not.\n- true: It claims it.\n"
+        },
+        {
+          "i": 1,
+          "labels": [
+            "true",
+            "false"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nDoes it claim it?\n\nOptions:\n- true: It claims it.\n- false: It does not.\n"
+        },
+        {
+          "i": 2,
+          "labels": [
+            "false",
+            "true"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nDoes it claim it?\n\nOptions:\n- false: It does not.\n- true: It claims it.\n"
+        },
+        {
+          "i": 3,
+          "labels": [
+            "true",
+            "false"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nDoes it claim it?\n\nOptions:\n- true: It claims it.\n- false: It does not.\n"
+        },
+        {
+          "i": 4,
+          "labels": [
+            "false",
+            "true"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nDoes it claim it?\n\nOptions:\n- false: It does not.\n- true: It claims it.\n"
+        }
+      ]
+    },
+    {
+      "question": "coverage",
+      "type": "score",
+      "seedInput": "host-classify|rot1|06b3e31a9bd61a81a83838e789ca7cfb1949fad62aa4d36ced131fa826d00542|coverage",
+      "seed": "c1b6b2946c2cfc8e643a11d6443684bd",
+      "calls": [
+        {
+          "i": 0,
+          "labels": [
+            "LOW",
+            "MID",
+            "HIGH"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nHow much?\n\nLevels, lowest first:\n- LOW: when the answer is LOW\n- MID: when the answer is MID\n- HIGH: when the answer is HIGH\n"
+        },
+        {
+          "i": 1,
+          "labels": [
+            "HIGH",
+            "MID",
+            "LOW"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nHow much?\n\nLevels, highest first:\n- HIGH: when the answer is HIGH\n- MID: when the answer is MID\n- LOW: when the answer is LOW\n"
+        },
+        {
+          "i": 2,
+          "labels": [
+            "LOW",
+            "MID",
+            "HIGH"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nHow much?\n\nLevels, lowest first:\n- LOW: when the answer is LOW\n- MID: when the answer is MID\n- HIGH: when the answer is HIGH\n"
+        },
+        {
+          "i": 3,
+          "labels": [
+            "HIGH",
+            "MID",
+            "LOW"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nHow much?\n\nLevels, highest first:\n- HIGH: when the answer is HIGH\n- MID: when the answer is MID\n- LOW: when the answer is LOW\n"
+        },
+        {
+          "i": 4,
+          "labels": [
+            "LOW",
+            "MID",
+            "HIGH"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nHow much?\n\nLevels, lowest first:\n- LOW: when the answer is LOW\n- MID: when the answer is MID\n- HIGH: when the answer is HIGH\n"
+        }
+      ]
+    },
+    {
+      "question": "screen",
+      "type": "choice",
+      "seedInput": "host-classify|rot1|06b3e31a9bd61a81a83838e789ca7cfb1949fad62aa4d36ced131fa826d00542|screen",
+      "seed": "c076c910da043caf177bde8304013ec8",
+      "calls": [
+        {
+          "i": 0,
+          "labels": [
+            "CONSISTENT",
+            "VIOLATES"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nDoes the edit violate it?\n\nOptions:\n- CONSISTENT: when the answer is CONSISTENT\n- VIOLATES: when the answer is VIOLATES\n"
+        },
+        {
+          "i": 1,
+          "labels": [
+            "VIOLATES",
+            "CONSISTENT"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nDoes the edit violate it?\n\nOptions:\n- VIOLATES: when the answer is VIOLATES\n- CONSISTENT: when the answer is CONSISTENT\n"
+        },
+        {
+          "i": 2,
+          "labels": [
+            "CONSISTENT",
+            "VIOLATES"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nDoes the edit violate it?\n\nOptions:\n- CONSISTENT: when the answer is CONSISTENT\n- VIOLATES: when the answer is VIOLATES\n"
+        },
+        {
+          "i": 3,
+          "labels": [
+            "VIOLATES",
+            "CONSISTENT"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nDoes the edit violate it?\n\nOptions:\n- VIOLATES: when the answer is VIOLATES\n- CONSISTENT: when the answer is CONSISTENT\n"
+        },
+        {
+          "i": 4,
+          "labels": [
+            "CONSISTENT",
+            "VIOLATES"
+          ],
+          "text": "State:\nthe state\n\nQuestion:\nDoes the edit violate it?\n\nOptions:\n- CONSISTENT: when the answer is CONSISTENT\n- VIOLATES: when the answer is VIOLATES\n"
+        }
+      ]
+    }
+  ]
+}

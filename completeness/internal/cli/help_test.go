@@ -19,7 +19,7 @@ const (
 var commandLines = [][]string{
 	{"version"}, {"prove"}, {"doctor"}, {"init"}, {"enable"}, {"disable"}, {"mcp"}, {"hook"},
 	{"request", "list"}, {"request", "show"}, {"request", "submit"},
-	{"systemone", "export"}, {"systemone", "import"},
+	{"systemone", "export"}, {"systemone", "import"}, {"systemone", "classify-plan"},
 	{"host", "push"}, {"host", "pull"},
 }
 
@@ -76,6 +76,7 @@ func TestHelpListsOnlyTheFlagsOfTheCommand(t *testing.T) {
 		{[]string{"host", "pull"}, []string{"--ci-run", "--repo", "--artifact", "--root"}, []string{"--remote"}},
 		{[]string{"systemone", "export"}, []string{"--root"}, []string{"--nonce", "--source"}},
 		{[]string{"systemone", "import"}, []string{"--nonce", "--source", "--root"}, []string{"--cap"}},
+		{[]string{"systemone", "classify-plan"}, []string{"--model", "--voters", "--root"}, []string{"--nonce", "--source"}},
 		{[]string{"prove"}, []string{"--changed", "--all", "--resume", "--record", "--replay", "--ci", "--import-host", "--root"}, []string{"--dir"}},
 	}
 	for _, c := range cases {

@@ -19,9 +19,18 @@ const (
 	flagNonce  = "nonce"
 	flagCap    = "cap"
 	flagSource = "source"
+	flagModel  = "model"
+	flagVoters = "voters"
 	// Verbs of `systemone`.
-	verbExport = "export"
-	verbImport = "import"
+	verbExport       = "export"
+	verbImport       = "import"
+	verbClassifyPlan = "classify-plan"
+)
+
+// Usage of the flags of `systemone classify-plan`.
+const (
+	usageClassifyModel  = "the model that answers all five classifier calls"
+	usageClassifyVoters = "the models that answer the five calls, as <model>*<n>[+<model>*<n>]"
 )
 
 var errMissingTicket = refusal{errors.New("a ticket identifier is required")}
@@ -189,7 +198,7 @@ func asRefusal(err error) error {
 }
 
 // systemOneVerbs are the verbs of `systemone`.
-var systemOneVerbs = []string{verbExport, verbImport}
+var systemOneVerbs = []string{verbExport, verbImport, verbClassifyPlan}
 
 func (e Env) systemOne(args []string) outcome {
 	if len(args) == 0 {
@@ -203,6 +212,8 @@ func (e Env) systemOne(args []string) outcome {
 		return e.systemOneExport(rest)
 	case verb == verbImport:
 		return e.systemOneImport(rest)
+	case verb == verbClassifyPlan:
+		return e.systemOneClassifyPlan(rest)
 	}
 	return outcome{err: refusal{fmt.Errorf("unknown systemone verb %q", verb)}}
 }
@@ -287,4 +298,35 @@ func (e Env) importClosed(service requests.Service, positionals []string, nonce,
 	}
 	fmt.Fprintln(e.Stdout, receipt.Text)
 	return outcome{code: ExitClean}
+}
+
+func (e Env) systemOneClassifyPlan(args []string) outcome {
+	set := e.newFlags(commandSystemOne+" "+verbClassifyPlan, "")
+	model := set.String(flagModel, "", usageClassifyModel)
+	voters := set.String(flagVoters, "", usageClassifyVoters)
+	root := set.String(flagRoot, "", usageRoot)
+	rest, err := parseInterleaved(set, args)
+	switch {
+	case err != nil:
+		return outcome{err: err}
+	case len(rest) > 0:
+		return outcome{err: errUnexpectedParams}
+	}
+	source, err := hostproto.ClassifySourceOf(*model, *voters)
+	if err != nil {
+		return outcome{err: refusal{err}}
+	}
+	service, err := e.requestService(mustRoot(e, *root))
+	if err != nil {
+		return outcome{err: err}
+	}
+	listing, err := service.List()
+	if err != nil {
+		return outcome{err: err}
+	}
+	plans, err := hostproto.ClassifyPlans(listing, source)
+	if err != nil {
+		return outcome{err: err}
+	}
+	return outcome{err: json.NewEncoder(e.Stdout).Encode(plans)}
 }

@@ -34,7 +34,7 @@ const (
 
 // SourceKinds lists the kinds of confidence source in a stable order.
 func SourceKinds() []ConfidenceSource {
-	return []ConfidenceSource{SourceExecution, SourceHostVotes, SourceSystemOne}
+	return []ConfidenceSource{SourceExecution, SourceHostVotes, SourceHostClassify, SourceSystemOne}
 }
 
 // Kind returns the kind of a source: the source without its detail. A source the
@@ -94,6 +94,9 @@ func (s ConfidenceSource) IsKnown() bool {
 	case strings.HasPrefix(text, hostVotesKind+detailOpen) && strings.HasSuffix(text, detailClose):
 		votes, err := strconv.Atoi(strings.TrimSuffix(strings.TrimPrefix(text, hostVotesKind+detailOpen), detailClose))
 		return err == nil && votes >= 1
+	case strings.HasPrefix(text, hostClassifyKind+detailOpen):
+		_, err := ParseClassifySource(text)
+		return err == nil
 	case strings.HasPrefix(text, systemOneKind+detailColon):
 		return len(text) > len(systemOneKind+detailColon)
 	}
