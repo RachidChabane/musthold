@@ -450,6 +450,14 @@ what the answerers gave (`host-votes.modal-share`, `host-votes.weakest-stated`,
 `deciders` names only the signals that decided. A module installed without the
 relay runs the full chain from step 2.
 
+**Codex has no classification primitive (CLI 0.155.1).** A closed answer on Codex
+comes only from `codex exec --output-schema`, which gives a structured answer with
+no confidence. Such an answer is a host vote, not a source of its own. OpenAI's
+Decisions API (Luna, with a probability per option) would be a true System One
+endpoint, but it is a limited, paid preview behind the API. It is excluded while no
+free access exists; when it is reachable, it plugs in as a `systemone.endpoint`
+like any other.
+
 ### Trust model
 
 **Forgers.** Locally, the main agent and the developer can read the secret, queue
