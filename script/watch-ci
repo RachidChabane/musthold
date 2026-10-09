@@ -2,7 +2,9 @@
 # Waits for the CI workflow run of a commit on GitHub and reports its outcome, so a
 # red run is seen as soon as it ends.
 #
-#   script/watch-ci [COMMIT]   (default: HEAD)
+#   script/watch-ci [--notify] [COMMIT]   (default: HEAD)
+#
+# --notify also raises a desktop notification (terminal-notifier) when the run fails.
 #
 # Exit 0: the run succeeded, or no run exists for a commit CI ignores. 1: the run
 # failed. 2: gh is missing. 3: the run was cancelled, as when a newer push to the
@@ -21,7 +23,19 @@ command -v gh >/dev/null 2>&1 || {
   echo "watch-ci: gh is not on PATH" >&2
   exit "${EXIT_PRECONDITION}"
 }
+notify=0
+if [[ "${1:-}" == "--notify" ]]; then
+  notify=1
+  shift
+fi
 sha="$(git rev-parse "${1:-HEAD}")"
+
+# alert raises a desktop notification for a failed run when asked to.
+alert() {
+  if ((notify)) && command -v terminal-notifier >/dev/null 2>&1; then
+    terminal-notifier -title "spec-proof CI" -message "CI failed on ${sha:0:7} (run $1)" >/dev/null 2>&1 || true
+  fi
+}
 
 run_id=""
 for _ in $(seq "${START_ATTEMPTS}"); do
@@ -41,6 +55,7 @@ elif [[ "$(gh run view "${run_id}" --json conclusion --jq .conclusion)" == "${CO
   exit "${EXIT_CANCELLED}"
 else
   echo "watch-ci: run ${run_id} FAILED" >&2
+  alert "${run_id}"
   gh run view "${run_id}" --log-failed | grep -E 'error |##\[error\]' | head -20 >&2 || true
   exit 1
 fi

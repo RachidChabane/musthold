@@ -9,7 +9,10 @@
 # A change to the shared format module, to go.work or to the scripts that build and
 # gate every module selects every module. A change outside any module, other than
 # the notes and the ADRs, selects tools/e2e, which checks the documentation and the
-# chain of binaries. The gate runs under nice with GOMAXPROCS=2.
+# chain of binaries. A change to the benchmark core, to the product it drives or
+# records (every Go module), to the bench scripts or to the CI workflow also runs
+# the benchmark core's checks (bench/script/check), which include the check of the
+# recorded parcel answers. The gate runs under nice with GOMAXPROCS=2.
 #
 # Exit 0: every selected gate passed, or nothing to gate. 1: a gate failed.
 # 2: usage error.
@@ -24,6 +27,9 @@ readonly E2E_MODULE="tools/e2e"
 readonly SHARED_PATHS='^(format/|go\.work|script/(ci|lint|modules|shallnot-build|shallnot\.pin|test)$)'
 # Paths no gate reads.
 readonly UNGATED_PATHS='^(notes/|docs/adr/)'
+# Paths the benchmark core's checks read besides the Go modules.
+readonly BENCH_PATHS='^(bench/|\.github/workflows/|script/(product-build|regen-bench-recordings|mem-guard)$)'
+readonly BENCH_PSEUDO_MODULE="bench"
 
 list_only=0
 if [[ "${1:-}" == "--list" ]]; then
@@ -66,8 +72,10 @@ add() {
   selected+=("${module}")
 }
 
+bench_needed=0
 for path in "${changed[@]:-}"; do
   [[ -z "${path}" ]] && continue
+  [[ "${path}" =~ ${BENCH_PATHS} ]] && bench_needed=1
   if [[ "${path}" =~ ${SHARED_PATHS} ]]; then
     selected=("${all_modules[@]}")
     break
@@ -77,13 +85,29 @@ for path in "${changed[@]:-}"; do
   add "${module:-${E2E_MODULE}}"
 done
 
-if ((${#selected[@]} == 0)); then
+# Every Go module is driven or recorded by the benchmark core.
+if ((${#selected[@]} > 0)); then
+  bench_needed=1
+fi
+
+if ((${#selected[@]} == 0 && bench_needed == 0)); then
   echo "gate-changed: no module changed in ${base}..${head}"
   exit 0
 fi
 if ((list_only)); then
-  printf '%s\n' "${selected[@]}"
+  if ((${#selected[@]} > 0)); then
+    printf '%s\n' "${selected[@]}"
+  fi
+  if ((bench_needed)); then
+    echo "${BENCH_PSEUDO_MODULE}"
+  fi
   exit 0
 fi
-echo "gate-changed: gating ${selected[*]}"
-GOMAXPROCS="${GATE_PROCS}" nice -n "${NICE_LEVEL}" script/ci "${selected[@]/#/./}"
+if ((${#selected[@]} > 0)); then
+  echo "gate-changed: gating ${selected[*]}"
+  GOMAXPROCS="${GATE_PROCS}" nice -n "${NICE_LEVEL}" script/ci "${selected[@]/#/./}"
+fi
+if ((bench_needed)); then
+  echo "gate-changed: checking the benchmark core"
+  GOMAXPROCS="${GATE_PROCS}" nice -n "${NICE_LEVEL}" bench/script/check
+fi

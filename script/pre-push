@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # Git pre-push hook: before a push, runs the self-gate of every module the pushed
-# commits touch (script/gate-changed). Git passes "<local ref> <local sha> <remote
-# ref> <remote sha>" lines on standard input. A new remote branch is compared with
-# origin/main; a deleted ref is skipped. Install it with script/install-git-hooks.
+# commits touch and the benchmark core's checks when they are concerned
+# (script/gate-changed). Git passes "<local ref> <local sha> <remote ref> <remote
+# sha>" lines on standard input. A new remote branch is compared with origin/main;
+# a deleted ref is skipped. Once every gate passed, a push to main starts a
+# detached script/watch-ci for its head, which appends the outcome of the CI run
+# to $CI_WATCH_LOG (default ~/Library/Logs/spec-proof/ci-watch.log) and raises a
+# desktop notification when the run fails. Install it with script/install-git-hooks.
 #
 # Exit 0: the push may go on. 1: a gate failed, so the push is refused.
 set -euo pipefail
@@ -10,12 +14,25 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 readonly ZERO_SHA="0000000000000000000000000000000000000000"
 readonly DEFAULT_BASE="origin/main"
+readonly MAIN_REF="refs/heads/main"
+readonly CI_WATCH_LOG="${CI_WATCH_LOG:-${HOME}/Library/Logs/spec-proof/ci-watch.log}"
 
-while read -r _local_ref local_sha _remote_ref remote_sha; do
+# watch_ci follows the CI run of a commit in the background, past the end of the push.
+watch_ci() {
+  mkdir -p "$(dirname "${CI_WATCH_LOG}")"
+  nohup script/watch-ci --notify "$1" >>"${CI_WATCH_LOG}" 2>&1 </dev/null &
+}
+
+watched=""
+
+while read -r _local_ref local_sha remote_ref remote_sha; do
   [[ "${local_sha}" == "${ZERO_SHA}" ]] && continue
   base="${remote_sha}"
   if [[ "${remote_sha}" == "${ZERO_SHA}" ]] || ! git cat-file -e "${remote_sha}^{commit}" 2>/dev/null; then
     base="${DEFAULT_BASE}"
   fi
   script/gate-changed "${base}" "${local_sha}"
+  [[ "${remote_ref}" == "${MAIN_REF}" ]] && watched="${local_sha}"
 done
+[[ -n "${watched}" ]] && watch_ci "${watched}"
+exit 0
