@@ -82,9 +82,16 @@ func (p *passState) assemble(request closedRequest) (hostproto.Request, error) {
 	}, nil
 }
 
+// standsForTheVotes reports whether the first vote replaces the host votes: the
+// answer of a System One relay or the classification of the host's classifier.
+func standsForTheVotes(vote hostbridge.VoteState) bool {
+	return vote.Executor.Channel == format.ChannelSystemOneRelay || vote.Executor.Channel == format.ChannelHostClassify
+}
+
 // ask puts a closed request to the host and reads its answer. The first ticket is
-// the one a System One relay answers; only when a host decider answered it do the
-// other `decide_k` tickets follow, because a relay answer replaces the host votes.
+// the one a System One relay or a classification answers; only when a host decider
+// answered it do the other `decide_k` tickets follow, because a relay answer or a
+// classification replaces the host votes.
 func (p *passState) ask(request closedRequest) (*closedSignal, error) {
 	assembled, err := p.assemble(request)
 	if err != nil {
@@ -105,7 +112,7 @@ func (p *passState) ask(request closedRequest) (*closedSignal, error) {
 		signal.state = state
 		return signal, err
 	}
-	if answer.Votes[0].Executor.Channel != format.ChannelSystemOneRelay && p.settings.Policy.DecideK > 1 {
+	if !standsForTheVotes(answer.Votes[0]) && p.settings.Policy.DecideK > 1 {
 		want.Votes = p.settings.Policy.DecideK
 		if answer, state, err = p.want(want); err != nil || state != askAnswered {
 			signal.state = state
@@ -138,6 +145,7 @@ func readVotes(answer hostbridge.Answer) closedq.Reading {
 	for index, vote := range answer.Votes {
 		votes[index] = closedq.Vote{
 			Output: vote.Output, Relayed: vote.Executor.Channel == format.ChannelSystemOneRelay, Source: vote.Executor.Model.Name,
+			Classify: vote.Classify,
 		}
 	}
 	return closedq.Read(votes)

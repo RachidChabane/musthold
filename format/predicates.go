@@ -68,6 +68,10 @@ type Decision struct {
 	CalibratedConfidence *float64         `json:"calibratedConfidence,omitempty"`
 	Threshold            float64          `json:"threshold"`
 	EscalationReason     string           `json:"escalationReason,omitempty"`
+	// Classify records the classifications the confidence came from, one per
+	// closed request, by request id: every call, the seed input of its label
+	// order and the version of the host that made it.
+	Classify []ClassifyRecord `json:"classify,omitempty"`
 }
 
 // OperatorScreen counts operator mutants that were screened rather than listed
@@ -78,6 +82,9 @@ type OperatorScreen struct {
 	// FloorEntries counts the flagged survivors that only the isolation floor kept
 	// in the pool: their screen answers, counted without it, would have let them go.
 	FloorEntries int `json:"screenFloorEntries,omitempty"`
+	// Classify records the classifications the screen answers were read from, one
+	// per closed request, by request id.
+	Classify []ClassifyRecord `json:"classify,omitempty"`
 }
 
 // Extensions is the open part of a predicate. Readers ignore unknown members.

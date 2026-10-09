@@ -13,6 +13,7 @@ import (
 	"github.com/RachidChabane/spec-proof/completeness/internal/app/prove"
 	"github.com/RachidChabane/spec-proof/completeness/internal/version"
 	"github.com/RachidChabane/spec-proof/format/cliconv"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
 
 // Exit codes of the binary (ADR 0005).
@@ -58,6 +59,9 @@ type Env struct {
 	Now       func() time.Time
 	// Entropy is where nonces come from; it defaults to the system's source.
 	Entropy io.Reader
+	// ClassifyAdmission replaces the shipped admission table of classifications;
+	// nil keeps the shipped one.
+	ClassifyAdmission *hostproto.ClassifyAdmission
 }
 
 // Main runs the binary called binary with the given arguments in the process's

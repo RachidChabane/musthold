@@ -59,12 +59,15 @@ type ScreenAnswer struct {
 	Isolation format.Isolation
 	// Marked is set for a response journaled as leaked, exposed or conflicting.
 	Marked bool
+	// NoExactThreshold is set for a classification whose exact source has no
+	// threshold of its own: it may flag a survivor and never screen one out.
+	NoExactThreshold bool
 }
 
 // AtFloor reports whether the answer keeps exclusion power under the isolation
 // floor.
 func (a ScreenAnswer) AtFloor(floor format.Isolation) bool {
-	return !a.Marked && a.Isolation.AtLeast(floor)
+	return !a.Marked && !a.NoExactThreshold && a.Isolation.AtLeast(floor)
 }
 
 // ScreenVerdict is what the screen decided for one survivor.

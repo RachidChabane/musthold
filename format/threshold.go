@@ -48,6 +48,13 @@ func (t Threshold) For(source ConfidenceSource) float64 {
 	return t.Default
 }
 
+// HasExact reports whether the threshold has an entry for exactly this source,
+// which neither its kind nor the default can stand in for.
+func (t Threshold) HasExact(source ConfidenceSource) bool {
+	_, keyed := t.BySource[source]
+	return keyed
+}
+
 // Validate rejects a value outside [0,1] and a key that is neither a source kind
 // nor an exact source.
 func (t Threshold) Validate() error {

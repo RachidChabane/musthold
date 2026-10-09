@@ -592,6 +592,66 @@ Go tests of the module in CI.
 - **SP-1903~1**: WHEN an executor profile or a decision names the channel
   `host-classify` or a classification source THE SYSTEM SHALL accept them in the
   closed sets of the format and in the embedded schemas.
+- **SP-1904~1**: WHEN a share table or an admission table is read THE SYSTEM SHALL
+  require, for a share table, counts that increase from 1 to `k`, confidences in
+  [0,1] that never decrease and a known scheme, give a count the confidence of the
+  greatest point at or below it and none below the first point, identify the
+  table by the SHA-256 of its canonical form; and, for an admission table, require
+  for each entry a proof kind, a source of the grammar, a session model, the
+  outcome `MET`, a host version, a table of the source's `k` and scheme whose
+  digest the entry states, and no (kind, source, model) twice; and the shipped
+  admission table SHALL hold no entry.
+- **SP-1905~1**: WHEN the calls of a classification are read THE SYSTEM SHALL
+  count the labels of each question over all of its calls, take the share as the
+  modal count over `k` so that a call without a label counts against it, leave a
+  tie for the top count without a prediction, take the confidence of a question
+  from the table at its modal count, and open the gate only when every question
+  has a prediction whose confidence is at least 0.95, naming the first reason
+  otherwise: `no_votes`, `tie`, `uncalibrated` or `below_tau`.
+- **SP-1906~1**: WHEN a report of classifier calls is matched to the plan of the
+  set THE SYSTEM SHALL require every planned call exactly once, from the planned
+  model, with one or two attempts and a label of the call's own labels or none,
+  refuse an unknown member, a missing host version or session model, and record
+  every call with the order of its labels, the seed input and seed of every
+  question, the version of the host and the mapping named after the table.
+- **SP-1907~1**: WHEN the switch `systemone.classify` is read THE SYSTEM SHALL
+  take `auto`, `shadow` or `off`, or a mapping from `default` and the proof kinds
+  to those values, default to `auto` when it is absent, refuse another value and
+  another key, and read it from the `systemone` section without reading the
+  relay's own members, and WHEN `host.classify.witness_dir` is read THE SYSTEM
+  SHALL take it as the directory of the user's raw API log.
+- **SP-1908~1**: WHEN the classification of a closed request is imported THE
+  SYSTEM SHALL do nothing when the switch is `off`; journal the classification and
+  answer nothing in `shadow`; in `auto` answer only a classification whose
+  (decision kind, exact source, session model) the admission table holds and
+  whose gate is open, record that answer on the channel `host-classify` at the
+  isolation `restricted-unverified` with the classification as part of the
+  response, and otherwise leave the ticket untouched, journaling why, so that the
+  host votes can still answer it; SHALL classify a request once, planning no
+  ticket a classification was made for; and SHALL refuse a ticket that is not the
+  first vote, that was reissued, that was already fetched, or whose nonce differs.
+- **SP-1909~1**: WHEN the journal holds a witness for a response of the channel
+  `host-classify` that nothing marks THE SYSTEM SHALL credit it with the
+  isolation `restricted` and the model the witness resolved, and SHALL never
+  credit it with `restricted-attested`.
+- **SP-1913~1**: WHEN the raw API log of the user's host is checked against a
+  classification THE SYSTEM SHALL rebuild each dictated call as the host sends it
+  (the system prompt over the labels in the planned order, JSON-quoted; the text
+  with every line prefixed `> ` between the text tags), read only the log entries
+  of the classifier's query source inside the window from the emission of the
+  ticket to the import, and, for a version of the host it was established for,
+  raise the classification only when each dictated call is logged exactly once,
+  with the classifier's token limit, no tools, no history and no other system
+  prompt, no entry was used by an earlier witness, and the responses, read the way
+  the host reads an answer, are as a multiset the submitted labels; SHALL call a
+  logged call that carries the dictated text with history, tools or another system
+  prompt exposed, the dictated calls answered with other labels contradicted, and
+  settle nothing for a missing or extra entry, a version it was not established
+  for, an oversized log or a file outside the log; and SHALL read only the files
+  the index names inside the log's directory; and WHEN a classification was made in
+  shadow and answers nothing THE SYSTEM SHALL only observe it against the log, once,
+  journaling the verdict, the model and the query sources of the matching entries,
+  without raising, marking or consuming anything.
 
 ## Claude Code mod
 

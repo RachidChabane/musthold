@@ -239,7 +239,12 @@ func (r *critRun) screenGroup(ctx context.Context, representative *poolMutant) (
 	for index, ref := range window {
 		criteria[index] = ref.String()
 	}
-	answer, state, err := r.ask(hostbridge.Ask{Request: request, Votes: r.rules.DecideK, Criteria: criteria, Purpose: string(hostproto.KindDecideClosed)}, false)
+	question := prompt.QuestionID(indexOf(window, r.c.Ref))
+	ask := hostbridge.Ask{Request: request, Votes: r.rules.DecideK, Criteria: criteria, Purpose: string(hostproto.KindDecideClosed)}
+	answer, state, err := r.askScreen(ask)
+	if err == nil && state == askAnswered {
+		answer, state, err = r.deferClassification(ask, question, answer)
+	}
 	switch {
 	case err != nil:
 		return screenOutcome{}, err
@@ -252,18 +257,66 @@ func (r *critRun) screenGroup(ctx context.Context, representative *poolMutant) (
 		return screenOutcome{}, err
 	}
 	r.answers = append(r.answers, answer)
-	answers, source := closedAnswers(answer, prompt.QuestionID(indexOf(window, r.c.Ref)))
-	verdict := power.Screen(answers, r.rules.MinIsolation, r.rules.TauScreen.For(source))
+	verdict := r.screenVerdict(answer, question)
 	return screenOutcome{violation: verdict.Violation, flagged: verdict.Flagged, floorEntry: verdict.FloorEntry}, nil
+}
+
+// askScreen puts the screen request to the host. When the project leaves the first
+// vote to a classification, only that vote is asked at first, and the host votes
+// follow only when it was answered by a host executor.
+func (r *critRun) askScreen(ask hostbridge.Ask) (hostbridge.Answer, askState, error) {
+	if !r.p.settings.ClassifyFirst {
+		return r.ask(ask, false)
+	}
+	first := ask
+	first.Votes = 1
+	answer, state, err := r.ask(first, false)
+	if err != nil || state != askAnswered || standsForTheVotes(answer.Votes[0]) {
+		return answer, state, err
+	}
+	return r.ask(ask, false)
+}
+
+// standsForTheVotes reports whether the first vote replaces the host votes: the
+// answer of a System One relay, or a classification.
+func standsForTheVotes(vote hostbridge.VoteState) bool {
+	return vote.Executor.Channel == format.ChannelSystemOneRelay || vote.Executor.Channel == format.ChannelHostClassify
+}
+
+// deferClassification hands the request to the host's deciders when the first
+// vote is a classification that would let the survivor go but may not: it is not
+// credited, or its exact source has no threshold. A classification below the
+// floor can only flag a survivor into the pool.
+func (r *critRun) deferClassification(ask hostbridge.Ask, question string, answer hostbridge.Answer) (hostbridge.Answer, askState, error) {
+	first := answer.Votes[0]
+	if first.Executor.Channel != format.ChannelHostClassify || !r.screenVerdict(answer, question).FloorEntry {
+		return answer, askAnswered, nil
+	}
+	if err := r.bridge.Contradict(first, reasonClassificationDeferred); err != nil {
+		return answer, askAnswered, err
+	}
+	return r.ask(ask, false)
+}
+
+// reasonClassificationDeferred is why a classification is rejected for the host's
+// deciders to answer its request.
+const reasonClassificationDeferred = "classification_deferred"
+
+// screenVerdict decides the survivor from the answers to its question.
+func (r *critRun) screenVerdict(answer hostbridge.Answer, question string) power.ScreenVerdict {
+	answers, source := closedAnswers(answer, question, r.rules.TauScreen)
+	return power.Screen(answers, r.rules.MinIsolation, r.rules.TauScreen.For(source))
 }
 
 // closedAnswers collects the answers of the votes to one question and says where
 // their probabilities came from: the model of the relay for a System One answer,
-// which replaces the host votes when there is one and whose stated probability of
-// VIOLATES is kept, and the host votes otherwise, each of which counts by its
-// choice whatever probability it states. Each answer carries the isolation of its
-// executor and its mark, which decide whether it may screen a survivor out.
-func closedAnswers(answer hostbridge.Answer, question string) ([]power.ScreenAnswer, format.ConfidenceSource) {
+// or the source of a classification, which replaces the host votes when there is
+// one and whose stated probability of VIOLATES is kept, and the host votes
+// otherwise, each of which counts by its choice whatever probability it states.
+// Each answer carries the isolation of its executor and its mark, which decide
+// whether it may screen a survivor out, and a classification also needs a
+// threshold of its own source.
+func closedAnswers(answer hostbridge.Answer, question string, tauScreen format.Threshold) ([]power.ScreenAnswer, format.ConfidenceSource) {
 	var relayed, voted []power.ScreenAnswer
 	var relaySource format.ConfidenceSource
 	for _, vote := range answer.Votes {
@@ -276,11 +329,17 @@ func closedAnswers(answer hostbridge.Answer, question string) ([]power.ScreenAns
 			continue
 		}
 		provenance := power.ScreenAnswer{Isolation: vote.Executor.Isolation, Marked: vote.Marked}
-		if vote.Executor.Channel == format.ChannelSystemOneRelay {
+		switch {
+		case vote.Classify != nil:
+			provenance.ClosedAnswer = given
+			provenance.NoExactThreshold = !tauScreen.HasExact(vote.Classify.Source)
+			relayed = append(relayed, provenance)
+			relaySource = vote.Classify.Source
+		case vote.Executor.Channel == format.ChannelSystemOneRelay:
 			provenance.ClosedAnswer = given
 			relayed = append(relayed, provenance)
 			relaySource = format.ConfidenceSource(vote.Executor.Model.Name)
-		} else {
+		default:
 			provenance.ClosedAnswer = power.ClosedAnswer{Choice: given.Choice}
 			voted = append(voted, provenance)
 		}

@@ -9,6 +9,7 @@ import (
 	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/hostinstall"
 	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/process"
 	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/shallnot"
+	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
 
@@ -71,7 +72,24 @@ func (e Env) diagnose(rootFlag string) []check {
 	if err := hostproto.VerifyChain(records); err != nil {
 		return append(checks, check{name: "journal", detail: err.Error()})
 	}
-	return append(checks, check{name: "journal", passed: true, detail: fmt.Sprintf("%d records, chain verified", len(records))})
+	checks = append(checks, check{name: "journal", passed: true, detail: fmt.Sprintf("%d records, chain verified", len(records))})
+	return append(checks, e.classifyCheck(project.root, records))
+}
+
+// classifyCheck reports the classification switch, the admission entries of the
+// module and any version of the host that differs from the one an entry was
+// measured on.
+func (e Env) classifyCheck(root string, records []hostproto.Record) check {
+	settings, err := hostSettingsOf(root)
+	if err != nil {
+		return check{name: "classify", detail: err.Error()}
+	}
+	admission, err := e.classifyAdmission()
+	if err != nil {
+		return check{name: "classify", detail: err.Error()}
+	}
+	diagnosis := hostproto.DiagnoseClassification(settings.ClassifyModeFor(format.KindAlignment), admission, format.KindAlignment, records)
+	return check{name: "classify", passed: diagnosis.Passed, detail: diagnosis.Detail}
 }
 
 func lookPath(name, binary string) check {

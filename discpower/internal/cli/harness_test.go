@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
 )
 
 const (
@@ -37,6 +39,11 @@ type harness struct {
 	cache   string
 	now     time.Time
 	entropy io.Reader
+	// admission is the table of classifications the binary answers with; nil keeps
+	// the shipped, empty one.
+	admission *hostproto.ClassifyAdmission
+	// rawLog, when set, records the classifier calls the fake mod makes.
+	rawLog *hostprototest.RawAPILog
 	// waves bounds how many times drive lets the host answer; zero means the default.
 	waves int
 }
@@ -123,8 +130,9 @@ func (h *harness) env(stdin []byte) (cli.Env, *bytes.Buffer, *bytes.Buffer) {
 			}
 			return "", false
 		},
-		Now:     func() time.Time { return h.now },
-		Entropy: h.entropy,
+		Now:               func() time.Time { return h.now },
+		Entropy:           h.entropy,
+		ClassifyAdmission: h.admission,
 	}, &stdout, &stderr
 }
 

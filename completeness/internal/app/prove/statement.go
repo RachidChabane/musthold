@@ -129,7 +129,23 @@ func (s *specRun) decision() *format.Decision {
 		Basis: format.BasisSystemOne, Deciders: []string{closedSignalDecider},
 		ConfidenceSource: weakest, ConfidenceMapping: mapping,
 		RawConfidence: confidence, Threshold: s.pass.settings.Policy.TauAdv.For(weakest),
+		Classify: s.classifications(),
 	}
+}
+
+// classifications lists the classifications the answers used were read from, by
+// request id.
+func (s *specRun) classifications() []format.ClassifyRecord {
+	var records []format.ClassifyRecord
+	for _, signal := range s.used {
+		for _, vote := range signal.answer.Votes {
+			if vote.Classify != nil && !slices.ContainsFunc(records, func(r format.ClassifyRecord) bool { return r.RequestID == vote.Classify.RequestID }) {
+				records = append(records, *vote.Classify)
+			}
+		}
+	}
+	slices.SortFunc(records, func(a, b format.ClassifyRecord) int { return strings.Compare(a.RequestID, b.RequestID) })
+	return records
 }
 
 // writeStatement assembles, validates and stores the Statement of the spec, and

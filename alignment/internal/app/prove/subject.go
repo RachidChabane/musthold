@@ -357,6 +357,9 @@ type sourced struct {
 // `decide_k` host votes otherwise.
 func confidenceSource(answers []hostbridge.Answer, decideK int) sourced {
 	for _, answer := range answers {
+		if classified := answer.Votes[0].Classify; classified != nil {
+			return sourced{source: classified.Source, mapping: classified.Mapping}
+		}
 		if relayed := answer.Votes[0].Executor; relayed.Channel == format.ChannelSystemOneRelay {
 			return sourced{source: format.ConfidenceSource(relayed.Model.Name), mapping: hostproto.ClosedChoice.ConfidenceMapping()}
 		}

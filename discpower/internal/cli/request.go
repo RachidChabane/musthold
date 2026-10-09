@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/rawlog"
 	"io"
+	"strings"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/responsecheck"
 	"github.com/RachidChabane/spec-proof/format"
@@ -15,12 +17,13 @@ import (
 
 // Flags of `request` and `systemone`.
 const (
-	flagJSON   = "json"
-	flagNonce  = "nonce"
-	flagCap    = "cap"
-	flagSource = "source"
-	flagModel  = "model"
-	flagVoters = "voters"
+	flagJSON         = "json"
+	flagNonce        = "nonce"
+	flagCap          = "cap"
+	flagSource       = "source"
+	flagModel        = "model"
+	flagVoters       = "voters"
+	flagSessionModel = "session-model"
 	// Verbs of `systemone`.
 	verbExport       = "export"
 	verbImport       = "import"
@@ -29,8 +32,9 @@ const (
 
 // Usage of the flags of `systemone classify-plan`.
 const (
-	usageClassifyModel  = "the model that answers all five classifier calls"
-	usageClassifyVoters = "the models that answer the five calls, as <model>*<n>[+<model>*<n>]"
+	usageClassifyModel        = "the model that answers all five classifier calls"
+	usageClassifyVoters       = "the models that answer the five calls, as <model>*<n>[+<model>*<n>]"
+	usageClassifySessionModel = "the model of the session, which an admission entry names; defaults to --model"
 )
 
 var errMissingTicket = refusal{errors.New("a ticket identifier is required")}
@@ -248,7 +252,7 @@ func (e Env) systemOneImport(args []string) outcome {
 	if err != nil {
 		return outcome{err: err}
 	}
-	return e.importClosed(service, positionals, *nonce, *source)
+	return e.importClosed(service, mustRoot(e, *root), positionals, *nonce, *source)
 }
 
 func (e Env) exportClosed(service requests.Service) outcome {
@@ -259,7 +263,10 @@ func (e Env) exportClosed(service requests.Service) outcome {
 	return outcome{err: json.NewEncoder(e.Stdout).Encode(hostproto.ExportClosed(listing))}
 }
 
-func (e Env) importClosed(service requests.Service, positionals []string, nonce, source string) outcome {
+func (e Env) importClosed(service requests.Service, root string, positionals []string, nonce, source string) outcome {
+	if strings.HasPrefix(source, classifySourcePrefix) {
+		return e.importClassified(root, positionals, nonce, source)
+	}
 	ticket, err := parseTicket(positionals)
 	if err != nil {
 		return outcome{err: err}
@@ -296,6 +303,7 @@ func (e Env) systemOneClassifyPlan(args []string) outcome {
 	set := e.newFlags(commandSystemOne+" "+verbClassifyPlan, "")
 	model := set.String(flagModel, "", usageClassifyModel)
 	voters := set.String(flagVoters, "", usageClassifyVoters)
+	sessionModel := set.String(flagSessionModel, "", usageClassifySessionModel)
 	root := set.String(flagRoot, "", usageRoot)
 	rest, err := parseInterleaved(set, args)
 	switch {
@@ -304,21 +312,85 @@ func (e Env) systemOneClassifyPlan(args []string) outcome {
 	case len(rest) > 0:
 		return outcome{err: errUnexpectedParams}
 	}
-	source, err := hostproto.ClassifySourceOf(*model, *voters)
+	commands, err := e.classifyCommands(mustRoot(e, *root))
 	if err != nil {
+		return outcome{err: err}
+	}
+	return classifyOutcome(commands.Plan(*model, *voters, *sessionModel))
+}
+
+// classifyCommands wires the classification verbs over the host store, the
+// settings of the project and the admission table.
+func (e Env) classifyCommands(root string) (requests.ClassifyCommands, error) {
+	service, err := e.requestService(root)
+	if err != nil {
+		return requests.ClassifyCommands{}, err
+	}
+	settings, err := hostSettingsOf(root)
+	if err != nil {
+		return requests.ClassifyCommands{}, refusal{err}
+	}
+	admission, err := e.classifyAdmission()
+	if err != nil {
+		return requests.ClassifyCommands{}, err
+	}
+	return requests.ClassifyCommands{
+		Service: service, Kind: format.KindDiscriminatingPower, Settings: settings, Admission: admission, Stdin: e.Stdin, Stdout: e.Stdout,
+	}, nil
+}
+
+// classifyAdmission is the admission table the binary answers with: the shipped
+// one, unless the environment of a test brings its own.
+func (e Env) classifyAdmission() (hostproto.ClassifyAdmission, error) {
+	if e.ClassifyAdmission != nil {
+		return *e.ClassifyAdmission, nil
+	}
+	return hostproto.ShippedClassifyAdmission()
+}
+
+// classifyOutcome turns the error of a classification command into an outcome:
+// a refusal of the protocol is the caller's, anything else a tool failure.
+func classifyOutcome(err error) outcome {
+	switch {
+	case err == nil:
+		return outcome{code: ExitClean}
+	case requests.IsClassifyRefusal(err):
 		return outcome{err: refusal{err}}
 	}
-	service, err := e.requestService(mustRoot(e, *root))
+	return outcome{err: err}
+}
+
+// classifySourcePrefix starts the source of an import made of classifier calls.
+const classifySourcePrefix = string(format.SourceHostClassify) + "("
+
+func (e Env) importClassified(root string, positionals []string, nonce, source string) outcome {
+	ticket, err := parseTicket(positionals)
 	if err != nil {
 		return outcome{err: err}
 	}
-	listing, err := service.List()
+	commands, err := e.classifyCommands(root)
 	if err != nil {
 		return outcome{err: err}
 	}
-	plans, err := hostproto.ClassifyPlans(listing, source)
+	return classifyOutcome(commands.Import(ticket.String(), nonce, source))
+}
+
+// witnessClassifications checks the classifications that answered a request
+// against the raw API log of the user's host, when the project opted into the
+// check with `host.classify.witness_dir`.
+func (e Env) witnessClassifications(root string) error {
+	settings, err := hostSettingsOf(root)
 	if err != nil {
-		return outcome{err: err}
+		return refusal{err}
 	}
-	return outcome{err: json.NewEncoder(e.Stdout).Encode(plans)}
+	if settings.ClassifyWitnessDir == "" {
+		return nil
+	}
+	service, err := e.requestService(root)
+	if err != nil {
+		return err
+	}
+	dir := settings.ClassifyWitnessDir
+	_, err = service.WitnessClassifications(hostproto.FileLog{Files: rawlog.Directory{Root: dir}, Root: dir})
+	return err
 }

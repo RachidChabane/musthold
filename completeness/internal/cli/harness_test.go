@@ -49,6 +49,9 @@ type harness struct {
 	report  string
 	now     time.Time
 	entropy io.Reader
+	// admission is the table of classifications the binary answers with; nil keeps
+	// the shipped, empty one.
+	admission *hostproto.ClassifyAdmission
 	// waves bounds how many times drive lets the host answer; zero means the default.
 	waves int
 	// reverse makes the host meet the pending tickets in the opposite order.
@@ -99,9 +102,10 @@ func (h *harness) env(stdin []byte) (cli.Env, *bytes.Buffer, *bytes.Buffer) {
 	return cli.Env{
 		Binary: binaryName, Stdin: bytes.NewReader(stdin), Stdout: &stdout, Stderr: &stderr,
 		WorkDir: h.root, HomeDir: h.state,
-		LookupEnv: func(name string) (string, bool) { value, found := variables[name]; return value, found },
-		Now:       func() time.Time { return h.now },
-		Entropy:   h.entropy,
+		LookupEnv:         func(name string) (string, bool) { value, found := variables[name]; return value, found },
+		Now:               func() time.Time { return h.now },
+		Entropy:           h.entropy,
+		ClassifyAdmission: h.admission,
 	}, &stdout, &stderr
 }
 

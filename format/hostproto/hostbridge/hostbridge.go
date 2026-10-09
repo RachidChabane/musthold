@@ -47,6 +47,9 @@ type VoteState struct {
 	// Marked is set when the journal records the response as leaked, exposed or
 	// conflicting.
 	Marked bool
+	// Classify is the classification the vote was read from, set exactly for a
+	// vote of the channel host-classify.
+	Classify *format.ClassifyRecord
 }
 
 // Holds reports whether the vote holds an answer a proof may look at.
@@ -154,6 +157,7 @@ func (b *Bridge) settle(request hostproto.Request, id hostproto.RequestID, vote 
 		return VoteState{}, fmt.Errorf("read the response of %s: %w", entry.Ticket.TicketID, err)
 	}
 	state.Output, state.Executor = response.Output, executorrun.Effective(response.Executor, events)
+	state.Classify = response.Classify
 	return state, nil
 }
 
@@ -167,6 +171,7 @@ func (b *Bridge) emit(request hostproto.Request, id hostproto.RequestID, vote in
 		return hostproto.Entry{}, err
 	}
 	entry := hostproto.NewEntry(ticket, request.Role, schemaDigest, b.MaxEmissions)
+	entry.EmittedAt = b.Clock()
 	if err := b.Store.PutEntry(entry); err != nil {
 		return hostproto.Entry{}, fmt.Errorf("store the ticket: %w", err)
 	}

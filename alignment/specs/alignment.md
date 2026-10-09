@@ -499,6 +499,18 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   the options in the planned order, the labels in that order and the seed input
   of the order; and SHALL refuse a call that names neither or both of a model and
   voters, and voters that do not make a valid source.
+- **SP-1915~1**: WHEN a closed request is answered by a classification of the host
+  mod THE SYSTEM SHALL count it as the closed signal only when its response is
+  credited by the isolation floor and `tau_route` has a threshold for its exact
+  source, hold its confidence to that threshold, and record the source, the
+  mapping and every classification in `extensions.decision`; and WHEN it is not
+  credited THE SYSTEM SHALL reject it and let the host's deciders answer the
+  request, so that an unwitnessed classification has no power; WHEN the admission
+  table holds no entry THE SYSTEM SHALL never plan a classification.
+- **SP-1918~1**: WHEN a run resumes and the shared configuration names
+  `host.classify.witness_dir` THE SYSTEM SHALL check the classifications that
+  answered a request against the raw API log in that directory before it reads the
+  answers.
 - **SP-1931~1**: WHEN the committed Claude plugin of the module is read THE SYSTEM
   SHALL ship the hooks module that carries the classifier calls of the host,
   naming the binary of the module, and the validator of Claude Code SHALL accept

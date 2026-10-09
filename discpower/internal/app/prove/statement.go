@@ -206,7 +206,9 @@ func (r *critRun) predicate(inputs []format.Input, cacheKey string, correctCodeP
 	if err != nil {
 		return format.DiscriminatingPower{}, err
 	}
-	extensions := format.Extensions{OperatorScreen: &format.OperatorScreen{Flagged: r.flagged, ScreenedOut: r.screenedOut, FloorEntries: r.screenFloorEntries}}
+	extensions := format.Extensions{OperatorScreen: &format.OperatorScreen{
+		Flagged: r.flagged, ScreenedOut: r.screenedOut, FloorEntries: r.screenFloorEntries, Classify: r.classifications(),
+	}}
 	if exclusions > 0 {
 		extensions.HostExclusions = &exclusions
 	}
@@ -323,4 +325,19 @@ func (p *project) producedBy() format.ProducedBy {
 		return format.ProducedByLocal
 	}
 	return p.settings.ProducedBy
+}
+
+// classifications lists the classifications the screen answers were read from, by
+// request id.
+func (r *critRun) classifications() []format.ClassifyRecord {
+	var records []format.ClassifyRecord
+	for _, answer := range r.answers {
+		for _, vote := range answer.Votes {
+			if vote.Classify != nil && !slices.ContainsFunc(records, func(known format.ClassifyRecord) bool { return known.RequestID == vote.Classify.RequestID }) {
+				records = append(records, *vote.Classify)
+			}
+		}
+	}
+	slices.SortFunc(records, func(a, b format.ClassifyRecord) int { return strings.Compare(a.RequestID, b.RequestID) })
+	return records
 }

@@ -8,6 +8,9 @@ type HostSettings struct {
 	Sampling bool
 	// RequireAttestation is `host.require_attestation`; nil keeps the default.
 	RequireAttestation *bool
+	// ClassifyWitnessDir is `host.classify.witness_dir`: the directory of the
+	// user's own raw API log, empty when the check is not opted into.
+	ClassifyWitnessDir string
 }
 
 // DefaultRequireAttestation is the default of `host.require_attestation`: an
@@ -26,5 +29,5 @@ func (h HostSettings) AttestationRequired() bool {
 // IsDefault reports whether the settings equal the defaults, so that an encoder
 // can leave them out.
 func (h HostSettings) IsDefault() bool {
-	return !h.Sampling && h.RequireAttestation == nil
+	return !h.Sampling && h.RequireAttestation == nil && h.ClassifyWitnessDir == ""
 }

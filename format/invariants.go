@@ -221,6 +221,10 @@ func checkDecision(sink *collector, path string, decision *Decision) {
 		checkConfidence(sink, path+".calibratedConfidence", *decision.CalibratedConfidence)
 	}
 	checkConfidence(sink, path+".threshold", decision.Threshold)
+	checkAscending(sink, path+".classify", decision.Classify, func(a, b ClassifyRecord) int { return strings.Compare(a.RequestID, b.RequestID) })
+	for index, record := range decision.Classify {
+		record.check(sink, fmt.Sprintf("%s.classify[%d]", path, index))
+	}
 }
 
 func checkConfidence(sink *collector, path string, value float64) {

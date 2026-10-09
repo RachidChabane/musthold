@@ -83,13 +83,16 @@ var (
 // moves. Its methods return the next entry and never change the receiver, so an
 // illegal call leaves the stored record untouched.
 type Entry struct {
-	Ticket         Ticket    `json:"ticket"`
-	Role           string    `json:"role"`
-	SchemaDigest   string    `json:"schemaDigest"`
-	State          State     `json:"state"`
-	MaxEmissions   int       `json:"maxEmissions"`
-	Corrections    int       `json:"corrections"`
-	FetchedAt      time.Time `json:"fetchedAt"`
+	Ticket       Ticket    `json:"ticket"`
+	Role         string    `json:"role"`
+	SchemaDigest string    `json:"schemaDigest"`
+	State        State     `json:"state"`
+	MaxEmissions int       `json:"maxEmissions"`
+	Corrections  int       `json:"corrections"`
+	FetchedAt    time.Time `json:"fetchedAt"`
+	// EmittedAt is when the ticket was first emitted; the raw API log of a
+	// classification is read from this time on.
+	EmittedAt      time.Time `json:"emittedAt,omitzero"`
 	CapDigest      string    `json:"capDigest,omitempty"`
 	AcceptedOutput string    `json:"acceptedOutput,omitempty"`
 	Reason         string    `json:"reason,omitempty"`

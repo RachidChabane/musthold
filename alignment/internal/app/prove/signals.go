@@ -25,6 +25,10 @@ const (
 	askOverBudget
 )
 
+// reasonClassificationUncredited is why a classification is rejected for the
+// host's deciders to answer its request.
+const reasonClassificationUncredited = "classification_uncredited"
+
 // ask puts a request to the host and reports where it stands. A reasoning request,
 // one the judge answers, is billed against the budget of the test the first time
 // it is asked, in the order the pass asks, so the budget never depends on what
@@ -55,6 +59,20 @@ func (s *subjectRun) ask(ask hostbridge.Ask, cost int) (hostbridge.Answer, askSt
 // the isolation floor and the journal does not mark the response.
 func (s *subjectRun) credited(vote hostbridge.VoteState) bool {
 	return !vote.Marked && vote.Executor.Isolation.AtLeast(s.pass.settings.Policy.MinIsolation)
+}
+
+// standsForTheVotes reports whether the first vote of a closed request replaces
+// the host votes: the answer of a System One relay, or a classification.
+func standsForTheVotes(vote hostbridge.VoteState) bool {
+	return vote.Executor.Channel == format.ChannelSystemOneRelay || vote.Executor.Channel == format.ChannelHostClassify
+}
+
+// classificationCredited reports whether the classification the vote is may count
+// as the closed signal: it is credited like any vote, and its exact source has a
+// threshold of its own. Otherwise it has no power, and the host's deciders answer
+// the request.
+func (s *subjectRun) classificationCredited(vote hostbridge.VoteState) bool {
+	return s.credited(vote) && vote.Classify != nil && s.pass.settings.Policy.TauRoute.HasExact(vote.Classify.Source)
 }
 
 // remember keeps an answer the pass read, validated, so that its votes are
@@ -191,7 +209,18 @@ func (s *subjectRun) closedAnswer(group []string, final bool) (*closedSignal, er
 		signal.state = state
 		return signal, err
 	}
-	if answer.Votes[0].Executor.Channel != format.ChannelSystemOneRelay && decideK > 1 {
+	if first := answer.Votes[0]; first.Executor.Channel == format.ChannelHostClassify && !s.classificationCredited(first) {
+		if err := s.pass.bridge.Contradict(first, reasonClassificationUncredited); err != nil {
+			return signal, err
+		}
+		ask.Votes = max(decideK, 1)
+		answer, state, err = s.ask(ask, 0)
+		if err != nil || state != askAnswered {
+			signal.state = state
+			return signal, err
+		}
+	}
+	if !standsForTheVotes(answer.Votes[0]) && decideK > 1 {
 		ask.Votes = decideK
 		if answer, state, err = s.ask(ask, 0); err != nil || state != askAnswered {
 			signal.state = state
@@ -208,7 +237,7 @@ func (s *subjectRun) closedAnswer(group []string, final bool) (*closedSignal, er
 // each question with its share of the `decide_k` tickets as the confidence; a
 // vote without credit counts for no choice.
 func (s *subjectRun) readClosed(answer hostbridge.Answer, final bool) tournament.Answer {
-	if relayed := answer.Votes[0]; relayed.Executor.Channel == format.ChannelSystemOneRelay {
+	if relayed := answer.Votes[0]; standsForTheVotes(relayed) {
 		if s.credited(relayed) {
 			return relayedAnswer(relayed, final)
 		}

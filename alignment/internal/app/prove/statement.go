@@ -145,6 +145,24 @@ func proofExecutor(used []hostbridge.Answer, basis format.DecisionBasis) format.
 	return format.Executor{ExecutorProfile: profile, PromptDigest: prompt.TemplateDigests()[kind], Blind: true}
 }
 
+// classifications lists the classifications the closed answers of a System One
+// decision were read from, by request id.
+func classifications(used []hostbridge.Answer, basis format.DecisionBasis) []format.ClassifyRecord {
+	if basis != format.BasisSystemOne {
+		return nil
+	}
+	var records []format.ClassifyRecord
+	for _, answer := range used {
+		for _, vote := range answer.Votes {
+			if vote.Classify != nil && !slices.ContainsFunc(records, func(r format.ClassifyRecord) bool { return r.RequestID == vote.Classify.RequestID }) {
+				records = append(records, *vote.Classify)
+			}
+		}
+	}
+	slices.SortFunc(records, func(a, b format.ClassifyRecord) int { return strings.Compare(a.RequestID, b.RequestID) })
+	return records
+}
+
 // thresholdOf is the threshold a decision of the basis was held to, for the
 // source its confidence came from.
 func (s *subjectRun) thresholdOf(basis format.DecisionBasis, confidence sourced) float64 {
@@ -189,6 +207,7 @@ func (s *subjectRun) writeStatement(declared criterion.Criterion, evidence testE
 				Decision: &format.Decision{
 					Basis: decision.Basis, Deciders: deciders, ConfidenceSource: confidence.source, ConfidenceMapping: confidence.mapping,
 					RawConfidence: decision.Confidence, Threshold: s.thresholdOf(decision.Basis, confidence), EscalationReason: decision.Reason,
+					Classify: classifications(used, decision.Basis),
 				},
 				Matrix: matrixJSON,
 			},

@@ -93,6 +93,9 @@ type project struct {
 	store      *hoststore.Store
 	workspaces *workspace.Manager
 	deps       prove.Deps
+	// classifyFirst is set when the first vote of a closed request is left to a
+	// classification before the host votes are asked.
+	classifyFirst bool
 }
 
 func (p *project) close() {
@@ -137,7 +140,11 @@ func (e Env) openProject(rootFlag string) (*project, error) {
 		return nil, err
 	}
 	cacheDir := xdg.CacheDir(e.lookupEnv, e.HomeDir, root)
-	return &project{root: root, settings: settings, name: name, strategy: strategy, engines: engines, store: store, workspaces: workspaces, deps: prove.Deps{
+	classifyFirst, err := e.classifiesFirst(root)
+	if err != nil {
+		return nil, err
+	}
+	return &project{classifyFirst: classifyFirst, root: root, settings: settings, name: name, strategy: strategy, engines: engines, store: store, workspaces: workspaces, deps: prove.Deps{
 		Criteria:   &shallnot.Gateway{Process: runner, Binary: e.lookup(envShallnot), Root: root},
 		Strategy:   strategy,
 		Workspaces: workspaces,
@@ -219,5 +226,7 @@ func (p *project) proveSettings() prove.Settings {
 		Seed:       uint64(operator.LocalSeed),
 		Module:     format.Module{Name: moduleName, Version: version.Version},
 		Plugin:     pluginName,
+
+		ClassifyFirst: p.classifyFirst,
 	}
 }

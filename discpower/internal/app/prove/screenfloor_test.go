@@ -32,7 +32,7 @@ func TestScreenAnswersProvenance(t *testing.T) {
 			vote(format.ChannelHostInline, format.IsolationInline, false, "CONSISTENT"),
 			vote(format.ChannelHostSubagent, format.IsolationRestricted, true, "CONSISTENT"),
 		}}
-		answers, _ := closedAnswers(answer, question)
+		answers, _ := closedAnswers(answer, question, format.UniformThreshold(0.2))
 		if len(answers) != 2 || answers[0].Isolation != format.IsolationInline || answers[0].Marked || answers[1].Isolation != format.IsolationRestricted || !answers[1].Marked {
 			t.Fatalf("answers %+v", answers)
 		}
@@ -40,7 +40,7 @@ func TestScreenAnswersProvenance(t *testing.T) {
 
 	t.Run("a relayed answer carries the isolation the relay profile records [verifies SP-252~1]", func(t *testing.T) {
 		answer := hostbridge.Answer{Votes: []hostbridge.VoteState{vote(format.ChannelSystemOneRelay, format.IsolationRestricted, false, "CONSISTENT")}}
-		answers, _ := closedAnswers(answer, question)
+		answers, _ := closedAnswers(answer, question, format.UniformThreshold(0.2))
 		if len(answers) != 1 || !answers[0].AtFloor(format.IsolationRestricted) || answers[0].AtFloor(format.IsolationRestrictedAttested) {
 			t.Fatalf("answers %+v", answers)
 		}

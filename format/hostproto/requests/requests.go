@@ -47,6 +47,8 @@ const (
 	OriginExecutor Origin = "executor"
 	// OriginSampled: the client sampled a model for the module's MCP server.
 	OriginSampled Origin = "sampled"
+	// OriginClassify: an answer made of the classifier calls of a host mod.
+	OriginClassify Origin = "classify"
 )
 
 // Submission is one answer presented for a ticket.
@@ -59,6 +61,8 @@ type Submission struct {
 	// Executor is the profile a replayed answer had when it was recorded, or the
 	// description a relay gives of its model; it is ignored for a CLI submission.
 	Executor *format.ExecutorProfile
+	// Classify is the classification a host-classify answer was read from.
+	Classify *format.ClassifyRecord
 }
 
 // ExecutorContext describes the host an MCP server answers for: the harness it
@@ -244,6 +248,9 @@ func (s Service) accept(submission Submission, binding hostproto.Binding) (Recei
 	response := hostproto.Response{
 		RequestID: submission.Ticket.RequestID, Vote: submission.Ticket.Vote, Nonce: submission.Nonce,
 		Output: json.RawMessage(submission.Output), Executor: s.profile(submission, binding),
+	}
+	if submission.Origin == OriginClassify {
+		response.Classify = submission.Classify
 	}
 	if err := response.Validate(); err != nil {
 		return Receipt{}, err

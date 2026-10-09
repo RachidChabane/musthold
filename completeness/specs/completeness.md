@@ -504,6 +504,22 @@ traces them to the Go tests of the module in CI.
   the options in the planned order, the labels in that order and the seed input
   of the order; and SHALL refuse a call that names neither or both of a model and
   voters, and voters that do not make a valid source.
+- **SP-1914~1**: WHEN a closed request is answered by a classification of the host
+  mod, that is by `systemone import` under `host-classify(5,rot1):<voters>` in
+  `auto` for an admitted (decision kind, exact source, session model), THE SYSTEM
+  SHALL take it for the answer to the request as it takes a relayed one, ask no
+  host vote next to it, hold its confidence to the threshold of its source, and
+  record the source, the mapping named after the table and every classification
+  with its calls, seed inputs and host version in `extensions.decision`; WHEN the
+  switch is `shadow` THE SYSTEM SHALL journal the classification and let the host
+  votes answer, WHEN a question stays below 0.95 or ties THE SYSTEM SHALL leave the
+  request to the host votes, and WHEN `doctor` runs THE SYSTEM SHALL report the
+  switch, the admitted entries of the module and, as a failure, a version of the
+  host that differs from the one an entry was measured on.
+- **SP-1919~1**: WHEN a run resumes and the shared configuration names
+  `host.classify.witness_dir` THE SYSTEM SHALL check the classifications that
+  answered a request against the raw API log in that directory before it reads the
+  answers.
 - **SP-1932~1**: WHEN the committed Claude plugin of the module is read THE SYSTEM
   SHALL ship the hooks module that carries the classifier calls of the host,
   naming the binary of the module, and the validator of Claude Code SHALL accept

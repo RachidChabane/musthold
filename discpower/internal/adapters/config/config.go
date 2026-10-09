@@ -28,6 +28,8 @@ const (
 
 	keySampling           = "sampling"
 	keyRequireAttestation = "require_attestation"
+	keyClassify           = "classify"
+	keyWitnessDir         = "witness_dir"
 	samplingOn            = "on"
 )
 
@@ -50,8 +52,14 @@ type document struct {
 
 // hostDocument is the YAML shape of the host settings.
 type hostDocument struct {
-	Sampling           bool  `yaml:"sampling"`
-	RequireAttestation *bool `yaml:"require_attestation"`
+	Sampling           bool             `yaml:"sampling"`
+	RequireAttestation *bool            `yaml:"require_attestation"`
+	Classify           classifyDocument `yaml:"classify"`
+}
+
+// classifyDocument is the YAML shape of `host.classify`.
+type classifyDocument struct {
+	WitnessDir string `yaml:"witness_dir"`
 }
 
 // policyDocument is the YAML shape of the decision parameters; an absent member
@@ -109,7 +117,7 @@ func Decode(data []byte) (projectconfig.Settings, error) {
 	}
 	settings.Operations = doc.Operations
 	settings.PolicyOverrides = doc.Policy.overrides()
-	settings.Host = projectconfig.HostSettings{Sampling: doc.Host.Sampling, RequireAttestation: doc.Host.RequireAttestation}
+	settings.Host = projectconfig.HostSettings{Sampling: doc.Host.Sampling, RequireAttestation: doc.Host.RequireAttestation, ClassifyWitnessDir: doc.Host.Classify.WitnessDir}
 	if err := settings.Validate(); err != nil {
 		return projectconfig.Settings{}, err
 	}
@@ -171,6 +179,10 @@ func hostNode(host projectconfig.HostSettings) *yaml.Node {
 	}
 	if host.RequireAttestation != nil {
 		node.Content = append(node.Content, scalar(keyRequireAttestation), scalar(strconv.FormatBool(*host.RequireAttestation)))
+	}
+	if host.ClassifyWitnessDir != "" {
+		classify := &yaml.Node{Kind: yaml.MappingNode, Content: []*yaml.Node{scalar(keyWitnessDir), scalar(host.ClassifyWitnessDir)}}
+		node.Content = append(node.Content, scalar(keyClassify), classify)
 	}
 	return node
 }

@@ -834,6 +834,19 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   the options in the planned order, the labels in that order and the seed input
   of the order; and SHALL refuse a call that names neither or both of a model and
   voters, and voters that do not make a valid source.
+- **SP-1916~1**: WHEN the switch is `auto` and the admission table holds an entry
+  for the module THE SYSTEM SHALL ask the first vote of a screen request on its
+  own so that a classification can answer it; WHEN the classification flags a
+  survivor THE SYSTEM SHALL keep the survivor in the pool and record the
+  classification in the operator screen; WHEN it lets a survivor go but is not
+  credited by the isolation floor, or its exact source has no threshold in
+  `tau_screen`, THE SYSTEM SHALL reject it and let the host's deciders answer the
+  request; and WHEN the response is credited and its source has a threshold of its
+  own THE SYSTEM SHALL let it screen a survivor out.
+- **SP-1917~1**: WHEN the configuration names `host.classify.witness_dir` THE
+  SYSTEM SHALL read it, keep it when the configuration is written again, and check
+  the classifications that answered a request against the raw API log in that
+  directory when a run resumes.
 - **SP-1930~1**: WHEN the committed Claude plugin of the module is read THE SYSTEM
   SHALL ship the hooks module that carries the classifier calls of the host,
   naming the binary of the module, and the validator of Claude Code SHALL accept

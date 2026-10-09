@@ -53,6 +53,10 @@ type Vote struct {
 	Relayed bool
 	// Source names the model and endpoint of a relayed answer.
 	Source string
+	// Classify is the classification a vote of the channel host-classify was read
+	// from. Such a vote, like a relayed one, stands for the votes of the host and
+	// carries the confidence its table gave.
+	Classify *format.ClassifyRecord
 }
 
 // Decided is what the votes of a request settled for one question.
@@ -87,7 +91,7 @@ func Read(votes []Vote) Reading {
 	if len(votes) == 0 {
 		return Reading{Questions: map[string]Decided{}}
 	}
-	if votes[0].Relayed {
+	if votes[0].Relayed || votes[0].Classify != nil {
 		return readRelayed(votes[0])
 	}
 	counts := map[string]map[string]int{}
@@ -113,6 +117,9 @@ func Read(votes []Vote) Reading {
 
 func readRelayed(vote Vote) Reading {
 	reading := Reading{Questions: map[string]Decided{}, Source: format.ConfidenceSource(vote.Source), Mapping: hostproto.ClosedChoice.ConfidenceMapping()}
+	if vote.Classify != nil {
+		reading.Source, reading.Mapping = vote.Classify.Source, vote.Classify.Mapping
+	}
 	parsed, err := Parse(vote.Output)
 	if err != nil {
 		return reading

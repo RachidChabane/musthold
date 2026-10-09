@@ -13,6 +13,7 @@ func TestSystemOneClassifyPlan(t *testing.T) {
 	h := newHarness(t, testkit.PythonParcel)
 	h.withPowers(testkit.PythonPowers())
 	h.run(nil, proveCommand, allFlag)
+	h.write(".spec-proof/config.yaml", "systemone:\n  classify: shadow\n")
 
 	t.Run("classify-plan plans every closed request that waits for its first vote [verifies SP-1911~1]", func(t *testing.T) {
 		code, stdout, stderr := h.run(nil, "systemone", "classify-plan", "--model", model)

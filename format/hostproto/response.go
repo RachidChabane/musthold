@@ -13,6 +13,10 @@ type Response struct {
 	Nonce     string                 `json:"nonce"`
 	Output    json.RawMessage        `json:"output"`
 	Executor  format.ExecutorProfile `json:"executor"`
+	// Classify holds the classification a host-classify response was read from:
+	// every call, the seed input and the version of the host. It is set exactly
+	// when the channel is host-classify.
+	Classify *format.ClassifyRecord `json:"classify,omitempty"`
 }
 
 // Key returns the key of the response.
@@ -42,6 +46,9 @@ func (r Response) Validate() error {
 	}
 	if err := r.Executor.Validate(); err != nil {
 		sink.add("executor", "%v", err)
+	}
+	if classified := r.Executor.Channel == format.ChannelHostClassify; classified != (r.Classify != nil) {
+		sink.add("classify", "set exactly when the channel is %s", format.ChannelHostClassify)
 	}
 	return sink.err()
 }

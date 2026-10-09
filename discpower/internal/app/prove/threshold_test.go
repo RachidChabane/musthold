@@ -60,7 +60,7 @@ func TestRecordedThreshold(t *testing.T) {
 			Output:   json.RawMessage(`{"answers":[{"id":"q1","choice":"VIOLATES","probabilities":{"VIOLATES":0.8,"CONSISTENT":0.2}}]}`),
 			Executor: profile,
 		}}}
-		_, relayed := closedAnswers(answer, "q1")
+		_, relayed := closedAnswers(answer, "q1", format.UniformThreshold(0.2))
 		fixture.run.rules.TauJudge.BySource[source] = relayTau
 		decision := power.Undetermined(power.ReasonJudgesSplit)
 		decision.Source = relayed

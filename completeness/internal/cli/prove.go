@@ -97,6 +97,9 @@ func (e Env) runProve(rootFlag string, options prove.Options, record, replay str
 		return outcome{err: err}
 	}
 	if options.Resume {
+		if err := e.witnessClassifications(mustRoot(e, rootFlag)); err != nil {
+			return outcome{err: err}
+		}
 		items, err := project.store.Items()
 		if err != nil {
 			return outcome{err: err}

@@ -66,6 +66,10 @@ type Settings struct {
 	Plugin string
 	// ProducedBy tells where the Statements are produced; empty means locally.
 	ProducedBy format.ProducedBy
+	// ClassifyFirst leaves the first vote of a closed request to the classification
+	// of the host mod before the host votes are asked: set when the switch is
+	// `auto` and the admission table holds an entry for this module.
+	ClassifyFirst bool
 }
 
 // Deps are the ports a run works through.

@@ -37,6 +37,16 @@ type RunReport struct {
 // RunReportDetail encodes the detail of a `run_reported` event.
 func RunReportDetail(report RunReport) string { return encode(report) }
 
+// Witness is the detail of a `classify_witnessed` event: the model the raw API
+// log shows answered the calls, and the models of every call.
+type Witness struct {
+	Model  string   `json:"model"`
+	Models []string `json:"models"`
+}
+
+// WitnessDetail encodes the detail of a `classify_witnessed` event.
+func WitnessDetail(witness Witness) string { return encode(witness) }
+
 func encode(value any) string {
 	encoded, err := json.Marshal(value)
 	if err != nil {
@@ -64,6 +74,9 @@ func Effective(stored format.ExecutorProfile, events []hostproto.Event) format.E
 	if report, found := lastReport(events); found && report.Model != "" {
 		profile.Model = format.ExecutorModel{Name: report.Model, Source: format.ModelSourceResolved}
 	}
+	if raised, witnessed := witnessedProfile(profile, events); witnessed {
+		return raised
+	}
 	if profile.Isolation != format.IsolationRestricted || Marked(events) {
 		return profile
 	}
@@ -72,6 +85,25 @@ func Effective(stored format.ExecutorProfile, events []hostproto.Event) format.E
 		profile.Attestation.TranscriptDigest = digest
 	}
 	return profile
+}
+
+// witnessedProfile raises a classification from `restricted-unverified` to
+// `restricted`, with the model the raw API log resolved, when the check of that log
+// journaled a witness for it and nothing marks the run. It never reaches
+// `restricted-attested`: no hook issues a capability for a mod's model call.
+func witnessedProfile(profile format.ExecutorProfile, events []hostproto.Event) (format.ExecutorProfile, bool) {
+	if profile.Channel != format.ChannelHostClassify || profile.Isolation != format.IsolationRestrictedUnverified || Marked(events) {
+		return profile, false
+	}
+	for _, event := range slices.Backward(events) {
+		var witness Witness
+		if event.Kind == hostproto.EventClassifyWitnessed && json.Unmarshal([]byte(event.Detail), &witness) == nil && witness.Model != "" {
+			profile.Isolation = format.IsolationRestricted
+			profile.Model = format.ExecutorModel{Name: witness.Model, Source: format.ModelSourceResolved}
+			return profile, true
+		}
+	}
+	return profile, false
 }
 
 func attestedDigest(events []hostproto.Event, agentID string) (string, bool) {

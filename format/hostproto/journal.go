@@ -37,6 +37,29 @@ const (
 	// EventRunReported records what the harness reported about a finished
 	// executor run, the resolved model and the usage, as the event's detail.
 	EventRunReported EventKind = "run_reported"
+
+	// EventClassifyAnswered records a classification that answered its request:
+	// the detail is a ClassifyJournalDetail.
+	EventClassifyAnswered EventKind = "classify_answered"
+	// EventClassifyShadow records a classification made in shadow mode, which
+	// answers nothing.
+	EventClassifyShadow EventKind = "classify_shadow"
+	// EventClassifyFellThrough records a classification that left its request to
+	// the host votes, with the reason.
+	EventClassifyFellThrough EventKind = "classify_fell_through"
+	// EventClassifyWitnessed records that the raw API log matched the calls of a
+	// classification: its votes keep the isolation `restricted`.
+	EventClassifyWitnessed EventKind = "classify_witnessed"
+	// EventClassifyLabelContradicted records that the raw API log holds the dictated
+	// calls with other labels than the ones submitted.
+	EventClassifyLabelContradicted EventKind = "classify_label_contradicted"
+	// EventClassifyShadowWitnessed records what the raw API log shows of a
+	// classification made in shadow, which answers nothing: its detail is a
+	// ShadowWitness.
+	EventClassifyShadowWitnessed EventKind = "classify_shadow_witnessed"
+	// EventWitnessConsumed records the request ids of the raw API log a witness
+	// matched, so that no entry witnesses twice.
+	EventWitnessConsumed EventKind = "witness_consumed"
 )
 
 // Event is one journaled fact. Only the fields that apply are set.

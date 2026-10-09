@@ -1,0 +1,66 @@
+{
+  "ticket": "efc5ab79983abd60e1ed03894296c105fdf35fb6a42896b0c7300889f3acb580.0.1",
+  "nonce": "07070707070707070707070707070707",
+  "source": "host-classify(5,rot1):claude-sonnet-5-5*5",
+  "mode": "shadow",
+  "scheme": "rot1",
+  "k": 5,
+  "closedSetDigest": "dec2664343c64627e55269587b09678688b1f93cf99257b6976d4aba0426d5e1",
+  "calls": [
+    {
+      "question": "q1",
+      "i": 0,
+      "model": "claude-sonnet-5-5",
+      "text": "State:\nRequirement 1:\nthe fee is waived from 50\n\n\nQuestion:\nDoes the change break requirement 1?\n\nOptions:\n- VIOLATES: The change breaks the requirement.\n- CONSISTENT: The requirement is still met.\n",
+      "labels": [
+        "VIOLATES",
+        "CONSISTENT"
+      ],
+      "seedInput": "host-classify|rot1|dec2664343c64627e55269587b09678688b1f93cf99257b6976d4aba0426d5e1|q1"
+    },
+    {
+      "question": "q1",
+      "i": 1,
+      "model": "claude-sonnet-5-5",
+      "text": "State:\nRequirement 1:\nthe fee is waived from 50\n\n\nQuestion:\nDoes the change break requirement 1?\n\nOptions:\n- CONSISTENT: The requirement is still met.\n- VIOLATES: The change breaks the requirement.\n",
+      "labels": [
+        "CONSISTENT",
+        "VIOLATES"
+      ],
+      "seedInput": "host-classify|rot1|dec2664343c64627e55269587b09678688b1f93cf99257b6976d4aba0426d5e1|q1"
+    },
+    {
+      "question": "q1",
+      "i": 2,
+      "model": "claude-sonnet-5-5",
+      "text": "State:\nRequirement 1:\nthe fee is waived from 50\n\n\nQuestion:\nDoes the change break requirement 1?\n\nOptions:\n- VIOLATES: The change breaks the requirement.\n- CONSISTENT: The requirement is still met.\n",
+      "labels": [
+        "VIOLATES",
+        "CONSISTENT"
+      ],
+      "seedInput": "host-classify|rot1|dec2664343c64627e55269587b09678688b1f93cf99257b6976d4aba0426d5e1|q1"
+    },
+    {
+      "question": "q1",
+      "i": 3,
+      "model": "claude-sonnet-5-5",
+      "text": "State:\nRequirement 1:\nthe fee is waived from 50\n\n\nQuestion:\nDoes the change break requirement 1?\n\nOptions:\n- CONSISTENT: The requirement is still met.\n- VIOLATES: The change breaks the requirement.\n",
+      "labels": [
+        "CONSISTENT",
+        "VIOLATES"
+      ],
+      "seedInput": "host-classify|rot1|dec2664343c64627e55269587b09678688b1f93cf99257b6976d4aba0426d5e1|q1"
+    },
+    {
+      "question": "q1",
+      "i": 4,
+      "model": "claude-sonnet-5-5",
+      "text": "State:\nRequirement 1:\nthe fee is waived from 50\n\n\nQuestion:\nDoes the change break requirement 1?\n\nOptions:\n- VIOLATES: The change breaks the requirement.\n- CONSISTENT: The requirement is still met.\n",
+      "labels": [
+        "VIOLATES",
+        "CONSISTENT"
+      ],
+      "seedInput": "host-classify|rot1|dec2664343c64627e55269587b09678688b1f93cf99257b6976d4aba0426d5e1|q1"
+    }
+  ]
+}

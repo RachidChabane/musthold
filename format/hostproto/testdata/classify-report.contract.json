@@ -1,0 +1,41 @@
+{
+  "calls": [
+    {
+      "attempts": 1,
+      "i": 0,
+      "label": "VIOLATES",
+      "model": "claude-sonnet-5-5",
+      "question": "q1"
+    },
+    {
+      "attempts": 1,
+      "i": 1,
+      "label": "VIOLATES",
+      "model": "claude-sonnet-5-5",
+      "question": "q1"
+    },
+    {
+      "attempts": 1,
+      "i": 2,
+      "label": "VIOLATES",
+      "model": "claude-sonnet-5-5",
+      "question": "q1"
+    },
+    {
+      "attempts": 1,
+      "i": 3,
+      "label": "VIOLATES",
+      "model": "claude-sonnet-5-5",
+      "question": "q1"
+    },
+    {
+      "attempts": 1,
+      "i": 4,
+      "label": "VIOLATES",
+      "model": "claude-sonnet-5-5",
+      "question": "q1"
+    }
+  ],
+  "cliVersion": "2.1.293",
+  "sessionModel": "claude-sonnet-5-5"
+}

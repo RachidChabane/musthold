@@ -24,7 +24,7 @@ func TestScreenAnswersSource(t *testing.T) {
 		answer := hostbridge.Answer{Votes: []hostbridge.VoteState{
 			vote(format.ChannelHostInline, "m", "VIOLATES"), vote(format.ChannelHostInline, "m", "CONSISTENT"), vote(format.ChannelHostInline, "m", "CONSISTENT"),
 		}}
-		answers, source := closedAnswers(answer, question)
+		answers, source := closedAnswers(answer, question, format.UniformThreshold(0.2))
 		if len(answers) != 3 || source != format.HostVotesSource(3) {
 			t.Fatalf("answers %d, source %q", len(answers), source)
 		}
@@ -34,7 +34,7 @@ func TestScreenAnswersSource(t *testing.T) {
 		answer := hostbridge.Answer{Votes: []hostbridge.VoteState{
 			vote(format.ChannelHostInline, "m", "VIOLATES"), vote(format.ChannelHostInline, "m", "CONSISTENT"), vote(format.ChannelHostInline, "m", "CONSISTENT"),
 		}}
-		answers, _ := closedAnswers(answer, question)
+		answers, _ := closedAnswers(answer, question, format.UniformThreshold(0.2))
 		if probability := power.ViolationProbability(plain(answers)); math.Abs(probability-1.0/3.0) > 1e-9 {
 			t.Fatalf("P(VIOLATES) = %v", probability)
 		}
@@ -44,7 +44,7 @@ func TestScreenAnswersSource(t *testing.T) {
 		answer := hostbridge.Answer{Votes: []hostbridge.VoteState{
 			vote(format.ChannelSystemOneRelay, endpoint, "VIOLATES"), vote(format.ChannelHostInline, "m", "CONSISTENT"),
 		}}
-		answers, source := closedAnswers(answer, question)
+		answers, source := closedAnswers(answer, question, format.UniformThreshold(0.2))
 		if len(answers) != 1 || source != format.ConfidenceSource(endpoint) || string(source) != "system-one:nimble:9b@"+format.SHA256Hex([]byte("endpoint")) {
 			t.Fatalf("answers %d, source %q", len(answers), source)
 		}
