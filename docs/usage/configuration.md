@@ -46,6 +46,8 @@ systemone:
 | `host.require_attestation` | boolean | `true` | When `true`, an executor answer without a capability issued by the harness hooks is refused. `false` records such answers as `restricted`. |
 | `systemone.endpoint` | URL | none | Endpoint the relay posts closed questions to. |
 | `systemone.model` | string | none | Model named in each relayed request. |
+| `systemone.classify` | `auto`, `shadow`, `off`, or a mapping of `default` and proof kinds to those | `auto` | Classification by the host's mod: `auto` serves only the admitted entries, `shadow` journals and never answers, `off` does nothing. See [System One](system-one.md#classification-by-the-host). |
+| `host.classify.witness_dir` | path | none | The directory of the user's own raw API log (`OTEL_LOG_RAW_API_BODIES=file:<dir>`), against which classifications are checked at `--resume`. The product never sets the log. |
 
 The `alignment`, `completeness` and `systemone` sections of the file are
 tolerated by the modules that do not own them. `spec-proof-dp` refuses any other
@@ -107,9 +109,11 @@ policy:
     system-one: 0.90
 ```
 
-A source is a kind (`execution`, `host-votes`, `system-one`) or one exact source:
-`host-votes(<k>)` or `system-one:<model>@<endpoint digest>`. The exact source
-wins over its kind, and the kind over `default`.
+A source is a kind (`execution`, `host-votes`, `host-classify`, `system-one`) or
+one exact source: `host-votes(<k>)`, `host-classify(<k>,<scheme>):<voters>` or
+`system-one:<model>@<endpoint digest>`. The exact source wins over its kind, and
+the kind over `default`. A classification counts as the closed signal, or screens
+a survivor out, only when its exact source has an entry of its own.
 
 ## `.spec-proof/alignment.yaml`
 

@@ -97,6 +97,41 @@ reach no PASS, local or signed, unless the floor is lowered; requirements with
 examples pass on executed evidence everywhere. Judged answers there still block and
 escalate.
 
+## Classification by the host
+
+A classification (`host-classify`) is made of classifier calls that a mod of the
+host makes with the session's model; see [System One](system-one.md#classification-by-the-host).
+
+- The module dictates every call: its text, its model and its label order. The host
+  returns only labels.
+- It is recorded on the channel `host-classify` at the isolation
+  `restricted-unverified`: nothing the harness writes ties a label to the module's
+  call. It is never `restricted-attested`, because no hook issues a capability for a
+  mod's model call.
+- Unraised, a classification can only flag a survivor into the pool or escalate. A
+  classification that does not flag goes to the deciders: the module rejects it and
+  asks the request again.
+- It is raised to `restricted`, with the model the log resolved, only by the opt-in
+  check of the raw API log of the user's own host. `host.classify.witness_dir` names
+  the directory of `OTEL_LOG_RAW_API_BODIES=file:<dir>`. The product never sets the
+  log, because it holds the whole conversation.
+- At `--resume` the check raises a classification when, for the version of the host
+  it was established for, the log holds each dictated call exactly once, with the
+  dictated system prompt and text, the token limit of the classifier, no tools and
+  no history, inside the window from the emission of the ticket to the import; no
+  entry was used by an earlier witness; and the responses, read as the host reads an
+  answer, are as a multiset the labels that were submitted.
+- A logged call that carries the dictated text with history, tools or another system
+  prompt marks the classification `exposed`. Responses that read as other labels are
+  journaled as `classify_label_contradicted`. A missing or extra entry, another
+  version, an index over 32 MiB, a line or body over 4 MiB, or a file outside the log
+  settles nothing.
+- A screen-out needs a response at the floor and a threshold for the exact source of
+  the classification; otherwise it only flags. The closed signal of alignment needs
+  the same threshold in `tau_route`.
+- A raised response is forgeable like a transcript. It earns no pass credit without
+  executed corroboration.
+
 ## What a module checks
 
 A module accepts an executor answer only when:

@@ -43,9 +43,13 @@ A predicate carries:
   and prompt digest;
 - `corroboratedBy[]` for a judged `VALID` mutant: the executed evidence that backs
   it;
-- `extensions.decision` with `confidenceSource` (`execution`, `host-votes(<k>)` or
+- `extensions.decision` with `confidenceSource` (`execution`, `host-votes(<k>)`,
+  `host-classify(<k>,<scheme>):<model>*<n>[+<model>*<n>]` or
   `system-one:<model>@<endpoint digest>`), the id of the mapping that derived the
-  confidence, the deciders and the threshold applied.
+  confidence (`host-classify.share-isotonic@<table digest>` for a classification),
+  the deciders and the threshold applied. A classification also lists, in
+  `classify`, every call it was made of, the seed input of each question's label
+  order and the version of the host that made the calls.
 
 A completeness predicate has `advisory: true` and no verdict field.
 

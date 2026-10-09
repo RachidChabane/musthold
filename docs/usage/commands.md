@@ -135,13 +135,23 @@ harnesses with no executor support. A refused answer exits 1.
 ```
 spec-proof-dp systemone export [--root DIR]
 spec-proof-dp systemone import <ticket> --nonce NONCE --source SOURCE [--root DIR]
+spec-proof-dp systemone classify-plan (--model MODEL | --voters VOTERS) [--session-model MODEL] [--root DIR]
 ```
 
 `export` prints the closed requests that wait for their first vote, as JSON, with
 each ticket, nonce and question set. `import` reads the endpoint's answers from
-standard input and submits them under `SOURCE`, which must have the form
-`system-one:<model>@<endpoint digest>`. The relay `spec-proof-s1 drain` calls
-both; see [System One](system-one.md).
+standard input and submits them under `SOURCE`, which has the form
+`system-one:<model>@<endpoint digest>`, or reads the classifier calls of the host
+mod under a source of the form `host-classify(5,rot1):<voters>`. The relay
+`spec-proof-s1 drain` calls `export` and `import`; see [System One](system-one.md).
+
+`classify-plan` prints, as JSON, the classifier calls to make for each closed
+request that waits for its first vote: the model, the text, the labels in the
+planned order and the seed input of each of the five calls of each question. It
+prints an empty list when `systemone.classify` is `off`, and, in `auto`, when no
+admission entry covers the classification. `--voters` is
+`<model>*<n>[+<model>*<n>]` with five calls in all; `--model` gives all five calls
+to one model. See [System One](system-one.md#classification-by-the-host).
 
 ## doctor
 
@@ -152,7 +162,9 @@ spec-proof-dp doctor [--root DIR]
 Prints one `ok` or `fail` line per check: Shallnot found and its report schema
 (accepts 1.2 and refuses 1.1), then the checks that depend on the module (the
 ecosystem, the version control tool, the policy, the harness files the project
-holds), then the host store and its journal chain. Exits 2 when a check fails.
+holds), then the host store and its journal chain, then the classification: the
+switch, the admission entries of the module and any version of the host that
+differs from the one an entry was measured on. Exits 2 when a check fails.
 
 ## mcp and hook
 

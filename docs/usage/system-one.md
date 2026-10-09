@@ -17,15 +17,78 @@ For every closed request (a `decide.closed` ticket):
 1. If `systemone.endpoint` is configured and `spec-proof-s1` is on `PATH`, the
    module's fulfil skill runs `spec-proof-s1 drain --module <module>`. The relay
    answers what it can. A relay failure leaves the requests for step 2.
-2. Otherwise `decide_k` fresh `decider` executors vote, the confidence is the modal
+2. Otherwise, on Claude Code, the mod of the module's plugin may classify the
+   request ([below](#classification-by-the-host)). A classification that does not
+   answer leaves the request for step 3.
+3. Otherwise `decide_k` fresh `decider` executors vote, the confidence is the modal
    share, and the confidence source is `host-votes(k)`.
-3. A confidence below the threshold of its source leaves the answer UNDETERMINED.
+4. A confidence below the threshold of its source leaves the answer UNDETERMINED.
 
 The source of a confidence is recorded in the proof as `execution`,
-`host-votes(<k>)` or `system-one:<model>@<endpoint digest>`, where the digest is the
+`host-votes(<k>)`, `host-classify(<k>,<scheme>):<voters>` or
+`system-one:<model>@<endpoint digest>`, where the digest is the
 SHA-256 of the endpoint's scheme, host and path, so credentials and query strings
 never appear in a proof. Thresholds are keyed by source; see
 [configuration](configuration.md#thresholds-per-confidence-source).
+
+## Classification by the host
+
+On Claude Code, the plugin of each proof module ships a mod. The mod runs
+`systemone classify-plan`, makes the planned classifier calls with the model of the
+session, all of a request at once, and pipes the labels to `systemone import`. The
+module reads the labels. It opens no connection and calls no model.
+
+- **Plan.** Each question is asked in five calls. The seed of a question is the
+  first 16 bytes of `sha256("host-classify|rot1|" + closedSetDigest + "|" +
+  questionId)`. A Fisher-Yates shuffle of the canonical order of the options under
+  that seed gives a permutation; call `i` of a choice or true/false question lists
+  it rotated by `i` places. A score alternates ascending and descending levels,
+  the low bit of the seed setting the first. The order is the same for every model,
+  and the options in the text of a call are permuted with the labels.
+- **Calls.** A call that returns no label, or is rejected, is made once more with
+  the same labels in the same order. A call that still returns none is a missing
+  vote.
+- **Confidence.** The share `s` of a question is its modal count over all five
+  calls, so a missing vote counts against it. Two labels tied for the top count
+  give no prediction. The confidence is the value at `s` of the isotonic table of
+  the admission entry.
+- **Gate.** A classification answers a request only when every question has a
+  prediction of at least 0.95. Otherwise it records nothing as an answer, the
+  request goes to the host votes, and the journal records why.
+- **Names.** The source is
+  `host-classify(<k>,<scheme>):<model>*<n>[+<model>*<n>]`, with the counts summing
+  to `k` and the voters listed by descending count, then identifier. The mapping is
+  `host-classify.share-isotonic@<table digest>`. The decision records every call,
+  the seed input of every question and the version of the host.
+- **Provenance.** A classification is recorded on the channel `host-classify` at
+  the isolation `restricted-unverified`; see [trust model](trust-model.md#classification-by-the-host).
+  Below the floor it can only flag or escalate, and a non-flag goes to the
+  deciders.
+
+### The switch
+
+`systemone.classify` takes one of three values.
+
+| Value | Effect |
+|---|---|
+| `auto` (default) | Answers only the (decision kind, exact source, session model) entries of the admission table. The shipped table holds no entry. |
+| `shadow` | Plans, makes and journals the classifications and never answers. At `--resume` it also records what the raw API log shows of each one. |
+| `off` | Does nothing. |
+
+A mapping sets the switch per proof kind, with `default` for the others:
+
+```yaml
+systemone:
+  classify:
+    default: off
+    completeness: shadow
+```
+
+A request is classified once. A ticket a classification was made for, or that was
+reissued, is not planned again.
+
+An admission entry names the version of the host it was measured on. `doctor`
+reports a version of the host that differs from it.
 
 ## Configure
 

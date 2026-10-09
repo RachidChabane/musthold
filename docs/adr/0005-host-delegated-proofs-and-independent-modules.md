@@ -437,18 +437,77 @@ a closed-question protocol. The chain applies to every `decide.closed` request:
      binary opens a model connection, which an architecture test checks, so the
      rule "the binary never calls a model itself" holds without exception. A relay
      failure leaves the request for step 2.
-2. **Host votes.** Otherwise `decide_k` tickets go to fresh `decider` executors
+2. **Classification (Claude Code).** Otherwise the mod of the module's plugin may
+   classify the request, as described below. A classification that does not answer
+   leaves the request for step 3.
+3. **Host votes.** Otherwise `decide_k` tickets go to fresh `decider` executors
    (default 3). Confidence is the modal share, and the source is `host-votes(k)`.
-3. **Below threshold**, the answer is UNDETERMINED.
+4. **Below threshold**, the answer is UNDETERMINED.
 
 Thresholds and ADR 0003's admission test are keyed by `(kind, confidenceSource,
 model)`. `confidenceSource` is recorded in `extensions.decision` as `execution`
-(the module fixed the confidence), `host-votes(k)` or `system-one:<model>@<endpointDigest>`,
+(the module fixed the confidence), `host-votes(k)`, `host-classify(k,scheme):voters`
+or `system-one:<model>@<endpointDigest>`,
 with `confidenceMapping`, the id of the mapping that derived the confidence from
 what the answerers gave (`host-votes.modal-share`, `host-votes.weakest-stated`,
+`host-classify.share-isotonic@<tableDigest>`,
 `system-one.choice.confidence`, `system-one.noul.max-p`, `system-one.score.confidence`);
 `deciders` names only the signals that decided. A module installed without the
 relay runs the full chain from step 2.
+
+**Claude Code classification (`host-classify`).** The plugin of each module ships a
+mod. On a Bash call of `<binary> prove` and at the start of a turn, the mod runs
+`systemone classify-plan`, which dictates, per closed request, five classifier calls
+per question: the text, the model and the label order. The order is a seeded
+permutation of the canonical order, rotated by the call index (scheme `rot1`), the
+seed being the first 16 bytes of `sha256("host-classify|rot1|" + closedSetDigest +
+"|" + questionId)`; a score alternates ascending and descending levels. The mod makes
+the calls with `$.model.classify` and pipes the labels to `systemone import --source
+host-classify(5,rot1):<voters>`. The binary calls no model.
+
+- **Reading.** The share is the modal count over all calls, a missing vote counting
+  against it. A tie gives no prediction. The confidence is the value of the shipped
+  isotonic table at the count. A classification answers a request only when every
+  question has a confidence of at least 0.95; otherwise it records no answer and the
+  request goes to the host votes.
+- **Names.** The source is `host-classify(<k>,<scheme>):<model>*<n>[+<model>*<n>]`
+  and the mapping `host-classify.share-isotonic@<table digest>`. The decision records
+  every call, the seed input of every question and the version of the host.
+- **Switch.** `systemone.classify` takes `auto` (the default), `shadow` or `off`.
+  `auto` answers only the (decision kind, exact source, session model) entries of the
+  admission table, which ships empty; each entry names the version of the host it was
+  measured on, and `doctor` reports a mismatch. `shadow` journals and never answers.
+- **Provenance.** The binary dictates each call's text, model and label order, and the
+  host returns only labels. A classification is recorded on the channel
+  `host-classify` at the isolation `restricted-unverified`, with the requested model
+  as declared: no harness-written record ties a label to the mod. It is raised to
+  `restricted`, its model resolved, only by the opt-in check of the raw API log of the
+  user's own host (`host.classify.witness_dir`, equal to the directory of
+  `OTEL_LOG_RAW_API_BODIES=file:<dir>`; the product never sets it). The log must hold,
+  at `--resume`, for the pinned version of the host, each dictated call exactly once
+  inside the window from the emission of the ticket to the import, with the dictated
+  system prompt and text, `max_tokens` 20, no tools and no history; no log entry may
+  have been used by an earlier witness; and the responses, normalised by the rule of
+  the host, must be as a multiset the submitted labels. A logged call that carries the
+  dictated text with history, tools or another system prompt marks the classification
+  `exposed`; responses that read as other labels are journaled as
+  `classify_label_contradicted`; anything else raises and marks nothing. A
+  classification never reaches `restricted-attested`: no hook issues a capability for
+  a mod's model call.
+- **Power.** An unraised classification can only flag a survivor into the pool or
+  escalate; a classification that does not flag goes to the deciders, and it never
+  counts as a screen-out. A screen-out needs a response at the floor and a threshold
+  for the exact source; so does the closed signal of alignment (`tau_route`).
+
+| Fact (Claude Code 2.1.293) | Mark |
+|---|---|
+| Mods load under `-p`; `--bare`, `--safe-mode` and `disableAllHooks` stop them; `session.start` runs before the first prompt and after each reload; mods are not sandboxed | V |
+| Every mods API method is an event that earlier mods rewrite, refuse or answer; no hook payload or transcript records `$.model.*` | V |
+| `$.model.classify(text, labels, { model })` returns one of the labels or `undefined`, and rejects on an HTTP failure, an abort or an empty answer; its only option is the model, checked against the allowlist | V |
+| The classifier request is separate, with no tools and no history, `maxTokens` 20, `query_source` `hook_prompt`; its system prompt lists the labels JSON-quoted in the given order, and its user message is the text with every line prefixed `> ` between `<text>` tags | V |
+| The answer is trimmed and stripped of quotes and trailing dots; a case-insensitive exact match returns the label, else the longest label that appears in it as a whole word, else `undefined` | V |
+| `OTEL_LOG_RAW_API_BODIES=file:<dir>` writes untruncated request and response bodies, which hold the whole conversation, and `index.jsonl` (`timestamp`, `session_id`, `query_source`, `model`, `request_id`, `request_file`, `response_file`); it is ignored in project and local settings | V |
+| File mode needs `CLAUDE_CODE_ENABLE_TELEMETRY=1` and works with the logs exporter `none`; classifier requests are indexed under `-p` | D (canary) |
 
 **Codex has no classification primitive (CLI 0.155.1).** A closed answer on Codex
 comes only from `codex exec --output-schema`, which gives a structured answer with
