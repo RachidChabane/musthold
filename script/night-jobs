@@ -13,6 +13,10 @@
 # script/mem-guard. Output goes to $NIGHT_JOBS_LOG_DIR (default
 # ~/Library/Logs/spec-proof).
 #
+# The canaries and construction run the pinned Claude Code (script/claude-code.pin): the job installs it with
+# script/claude-code-install, puts its directory first on PATH and sets DISABLE_AUTOUPDATER=1, so the nightly canary
+# validates the binary the benchmark runs. The pilot keeps the PATH it was pre-registered with.
+#
 # Environment:
 #   NIGHT_JOBS_SLOTS=1           run each job under script/with-slot (pilot 2 slots, canaries 1,
 #                                construct 1), so at most two jobs run at once on the machine.
@@ -54,6 +58,9 @@ readonly CLAUDE_TOKEN_SERVICE="${NIGHT_JOBS_CLAUDE_TOKEN_SERVICE:-spec-proof-cla
 CLAUDE_TOKEN_ACCOUNT="${NIGHT_JOBS_CLAUDE_TOKEN_ACCOUNT:-$(id -un)}"
 readonly CLAUDE_TOKEN_ACCOUNT
 readonly SLOT_WAIT_SECONDS="${NIGHT_JOBS_SLOT_WAIT_SECONDS:-0}"
+readonly CLAUDE_CODE_PIN_FILE="${ROOT}/script/claude-code.pin"
+readonly CLAUDE_CODE_INSTALL="script/claude-code-install"
+readonly CLAUDE_CODE_TOOLS_DIR="${ROOT}/.tools/claude-code"
 
 mkdir -p "${LOG_DIR}" "${CANARY_STAMP_DIR}"
 
@@ -82,6 +89,22 @@ run_pilot() {
   fi
   log "pilot: resuming ${PILOT_RUN}"
   (cd "${PILOT_DIR}" && launch caffeinate -is ./script/run-pilot "${PILOT_RUN}")
+}
+
+# use_pinned_claude installs the pinned Claude Code and makes it the `claude` of this job: its directory leads PATH and
+# the updater is off. A job that cannot have it does not start.
+use_pinned_claude() {
+  local version bin_dir
+  version="$(tr -d '[:space:]' <"${CLAUDE_CODE_PIN_FILE}")"
+  bin_dir="${CLAUDE_CODE_TOOLS_DIR}/${version}/bin"
+  launch "${CLAUDE_CODE_INSTALL}" || return 1
+  export PATH="${bin_dir}:${PATH}"
+  export DISABLE_AUTOUPDATER=1
+  log "claude: pinned ${version}, ${bin_dir} leads PATH, DISABLE_AUTOUPDATER=1"
+  if [[ "${NIGHT_JOBS_DRY_RUN:-0}" != 1 && "$(command -v claude)" != "${bin_dir}/claude" ]]; then
+    log "claude: the pinned binary is not the claude on PATH"
+    return 1
+  fi
 }
 
 # run_canary runs one harness's canary and returns its exit status.
@@ -124,6 +147,7 @@ run_canaries() {
   export SHALLNOT_SRC="${SHALLNOT_SRC:-${SHALLNOT_SRC_DEFAULT}}"
   log "canaries: building"
   launch script/canary-build
+  use_pinned_claude || return 1
   local failed=0
   run_claude_canary || failed=1
   run_canary codex || failed=1
@@ -192,6 +216,7 @@ run_construct() {
     log "construct: the nightly cap of ${NIGHT_CLAUDE_CAP} Claude calls is spent; the next night resumes"
     return 0
   fi
+  use_pinned_claude || return 1
   log "construct: budget ${budget}"
   (cd bench && launch caffeinate -is script/construct --night --budget "${budget}")
 }

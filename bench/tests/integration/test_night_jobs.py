@@ -32,6 +32,9 @@ CLAUDE_CANARY_LINE = re.compile(r"dry-run: .*: script/canary-claude(?P<flags>.*)
 SHARED_HOME_FLAG = "--shared-home"
 NO_KEYCHAIN_TOKEN_LOG = "canary: claude shares the user's configuration (no keychain token)"
 DEFAULT_TOKEN_SERVICE = "spec-proof-claude-oauth"
+PIN_FILE = REPOSITORY / "script" / "claude-code.pin"
+INSTALL_LINE = "dry-run: {root}: script/claude-code-install"
+PINNED_LOG = "claude: pinned {version}, {root}/.tools/claude-code/{version}/bin leads PATH, DISABLE_AUTOUPDATER=1"
 
 
 @dataclass
@@ -212,3 +215,32 @@ def test_the_claude_canary_mode_is_decided_under_the_bash_that_macos_ships(
     night.set_keychain(item)
     result = night.run("canaries", shell=MACOS_BASH)
     assert result.code == 0 and result.claude_canary_flags() == flags
+
+
+def pinned_version() -> str:
+    return PIN_FILE.read_text(encoding="utf-8").strip()
+
+
+def test_the_canaries_install_the_pinned_claude_code_first_and_run_with_it_ahead_on_path(night: Night) -> None:
+    log = night.run("canaries").log
+    install = INSTALL_LINE.format(root=REPOSITORY)
+    pinned = PINNED_LOG.format(version=pinned_version(), root=REPOSITORY)
+    assert install in log and pinned in log
+    assert log.index(install) < log.index(pinned) < log.index("script/canary-claude")
+
+
+def test_construction_installs_the_pinned_claude_code_before_it_starts(night: Night) -> None:
+    log = night.run("construct").log
+    pinned = PINNED_LOG.format(version=pinned_version(), root=REPOSITORY)
+    assert INSTALL_LINE.format(root=REPOSITORY) in log and pinned in log
+    assert log.index(pinned) < log.index("script/construct --night")
+
+
+def test_construction_that_does_not_start_installs_nothing(night: Night) -> None:
+    night.pilot_spent(250)
+    assert "claude-code-install" not in night.run("construct").log
+
+
+def test_the_pilot_keeps_its_pre_registered_path(night: Night) -> None:
+    log = night.run("pilot").log
+    assert "claude-code-install" not in log and "pinned" not in log
