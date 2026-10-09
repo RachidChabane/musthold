@@ -35,6 +35,9 @@ readonly PILOT_RUN="run-02"
 readonly CANARY_STAMP_DIR="${LOG_DIR}/canary-nights"
 readonly SHALLNOT_SRC_DEFAULT="${ROOT}/../shallnot-proof-gate"
 readonly EXIT_PAUSED=3
+# The command that tells whether a job is already running on this machine.
+# Tests point it at one that finds nothing, so a real job never leaks into them.
+readonly RUNNING_PROBE="${NIGHT_JOBS_PGREP:-pgrep}"
 readonly CONSTRUCT_BUDGET="${NIGHT_JOBS_CONSTRUCT_BUDGET:-120}"
 # Claude calls all night jobs may make in one night, shared with the owner's own
 # quota; the canaries keep one call per harness session in reserve.
@@ -73,7 +76,7 @@ run_pilot() {
     log "pilot: ${PILOT_RUN} is finished"
     return 0
   fi
-  if pgrep -f "script/run-pilot ${PILOT_RUN}" >/dev/null; then
+  if "${RUNNING_PROBE}" -f "script/run-pilot ${PILOT_RUN}" >/dev/null; then
     log "pilot: ${PILOT_RUN} is already running"
     return 0
   fi
@@ -179,7 +182,7 @@ construct_budget() {
 }
 
 run_construct() {
-  if pgrep -f "bench/script/construct|specbench.*construct" >/dev/null; then
+  if "${RUNNING_PROBE}" -f "bench/script/construct|specbench.*construct" >/dev/null; then
     log "construct: already running"
     return 0
   fi

@@ -74,6 +74,7 @@ class Night:
             **os.environ,
             "PATH": f"{self.security}{os.pathsep}{os.environ['PATH']}",
             "NIGHT_JOBS_DRY_RUN": "1",
+            "NIGHT_JOBS_PGREP": "false",
             "NIGHT_JOBS_LOG_DIR": str(self.root / "logs"),
             "NIGHT_BUDGET_PILOT_LEDGER": str(self.pilot_ledger),
             "SPECBENCH_WORK": str(self.root / "work"),
