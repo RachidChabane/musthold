@@ -376,7 +376,25 @@ the `subagentStop` hook finds every condition of `allowlist_observed` and
 
 Copilot keeps `require_attestation: false` and never reaches
 `restricted-attested`, because no hook issues a capability. A collapsed or
-unresolved `tools` list is not exactly the two names, so its run gets no raise. In interactive
+unresolved `tools` list is not exactly the two names, so its run gets no raise.
+
+How the run is read:
+- **Messages.** The run needs exactly one system message and exactly one user
+  message. Its system message is the shipped agent body followed by the CLI's own
+  sections, so the rule compares the leading block, up to the first blank line,
+  with the executor instructions.
+- **The log at hook time** ends at the `subagentStop` hook's start. The decoder
+  therefore tolerates an incomplete last line, and drops the CLI's
+  `report_intent` bookkeeping call.
+- **Outcomes:**
+  - a selection beyond the two tools, a call other than fetch and submit, or a
+    call for another ticket marks the run `exposed`;
+  - a reply other than the receipt marks it `leaked`;
+  - any other failed condition leaves the answer `restricted-unverified`, with no
+    mark. These are: a wrong version, a short, missing or duplicate selection, a
+    missing stored response, an output that differs from it, or a launch that is
+    not bare.
+- **Size caps.** A transcript over 32 MB, or a line over 4 MB, earns no raise. In interactive
 sessions that declare `sampling`, `drain` is available, and each request then needs
 one human review; that is measured, not assumed.
 
