@@ -18,12 +18,14 @@ import (
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/adapters"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/app"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
 )
 
 // Modes in which the test binary stands in for another program.
 const (
 	helperVariable = "CANARY_TEST_HELPER"
 	helperShimMCP  = "shim-mcp"
+	helperShimEnv  = "shim-env"
 	helperRefuse   = "mcp-refuse"
 	helperServe    = "mcp-serve"
 	helperSilent   = "mcp-silent"
@@ -54,6 +56,9 @@ func TestMain(m *testing.M) {
 		os.Exit(0)
 	case helperShimMCP:
 		os.Exit(adapters.RunShim("/bin/echo", os.Getenv(recordVariable), []string{"mcp", "--role", "executor"}, os.Stdin, os.Stdout, os.Stderr))
+	case helperShimEnv:
+		script := `printf %s "${` + launch.OAuthTokenVariable + `-unset}"`
+		os.Exit(adapters.RunShim("/bin/sh", os.Getenv(recordVariable), []string{"-c", script}, os.Stdin, os.Stdout, os.Stderr))
 	case helperRefuse, helperServe, helperSilent, helperErrorRPC, helperOneTool:
 		serveFakeMCP(os.Getenv(helperVariable))
 		os.Exit(0)

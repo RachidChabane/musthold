@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -147,6 +148,15 @@ func TestEnvironmentCredential(t *testing.T) {
 }
 
 func TestShimDropsTheToken(t *testing.T) {
+	t.Run("a server the shim replaces by the real binary does not see the token either [verifies SP-1523~1]", func(t *testing.T) {
+		command := exec.Command(os.Args[0])
+		command.Env = append(os.Environ(), helperVariable+"="+helperShimEnv, recordVariable+"="+filepath.Join(t.TempDir(), "hooks.jsonl"), launch.OAuthTokenVariable+"="+keychainToken)
+		output, err := command.Output()
+		if err != nil || string(output) != "unset" {
+			t.Fatalf("output %q, %v", output, err)
+		}
+	})
+
 	t.Run("a hook the shim runs does not see the token of the session that called it [verifies SP-1523~1]", func(t *testing.T) {
 		t.Setenv(launch.OAuthTokenVariable, keychainToken)
 		real := fakeBinary(t, `cat >/dev/null; printf '%s' "${`+launch.OAuthTokenVariable+`-unset}"`)

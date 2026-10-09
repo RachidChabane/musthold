@@ -14,6 +14,7 @@ from specbench.adapters.claude_credentials import (
     EnvironmentCredentialSource,
     FirstCredentialSource,
     KeychainCredentialSource,
+    default_credential_source,
     login_name,
 )
 from specbench.adapters.claude_session import MISSING_TOKEN_MESSAGE
@@ -98,6 +99,15 @@ def test_the_environment_comes_before_the_keychain(tmp_path: Path, monkeypatch: 
 
     fallback = FirstCredentialSource([EnvironmentCredentialSource({}), KeychainCredentialSource(account=ACCOUNT)])
     assert fallback.token() == FAKE_TOKEN
+
+
+def test_the_default_source_reads_the_environment_then_the_keychain(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    put_on_path(monkeypatch, tmp_path, KeychainItem.PRESENT)
+
+    assert default_credential_source({OAUTH_TOKEN_VARIABLE: "from-the-environment"}).token() == "from-the-environment"
+    assert default_credential_source({}).token() == FAKE_TOKEN
 
 
 def test_an_empty_variable_is_no_token() -> None:
