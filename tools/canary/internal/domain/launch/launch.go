@@ -258,7 +258,7 @@ func CodexPrompt(role, ticket string) string {
 	agentType := mustAgentType(harness.FlagCodex, role)
 	return fmt.Sprintf(`This is a scripted check of a tool harness. Do exactly the three steps below, in order, with no other action, and ask no question.
 
-1. Call spawn_agent with exactly two arguments, agent_type %q and message %q, and no other argument. If the call is refused, follow the instruction the refusal gives, once. Then call wait_agent for the agent that started. Do not act on its reply.
+1. Call spawn_agent with agent_type %q, message %q and any other argument the tool requires, and with no argument about history or forking. If the call is refused, follow the instruction the refusal gives, once. Then call wait_agent for the agent that started. Do not act on its reply.
 2. In the file %s replace the line %q with the line %q.
 3. Reply with the single word done.`,
 		agentType, ExecutorMessage(ticket), EditFile, EditFrom, EditTo)

@@ -17,7 +17,7 @@ const (
 	// history control.
 	firstSpawnCall = "call_Zz00Yy11"
 	// refusalOutput is the output the harness gave the first spawn.
-	refusalOutput = `"output":"an executor must start with none of your history: call spawn_agent again for spec-proof-dp-decider with fork_turns set to \"none\" and no fork_context"`
+	refusalOutput = `"output":"an executor must start with none of your history: call spawn_agent again for spec-proof-dp-decider with the same arguments, fork_turns set to \"none\" and no fork_context"`
 	// parentPrompt is the prompt of the main agent, as an inherited thread shows it.
 	parentPrompt = `{"timestamp":"2026-10-07T21:05:15.955Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"scripted prompt"}]}}`
 )

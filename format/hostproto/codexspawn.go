@@ -134,6 +134,6 @@ func (s CodexSpawn) RequestsNoHistory() bool {
 // CodexSpawnDenial is the reason the pre-tool hook gives when it refuses a spawn
 // of an executor that does not ask for a blind child.
 func CodexSpawnDenial(agentType string) string {
-	return fmt.Sprintf("an executor must start with none of your history: call %s again for %s with %s set to %s and no %s",
+	return fmt.Sprintf("an executor must start with none of your history: call %s again for %s with the same arguments, %s set to %s and no %s",
 		CodexSpawnTool, agentType, CodexForkTurns, codexBlindForms[0].Value, CodexForkContext)
 }

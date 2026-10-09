@@ -201,7 +201,7 @@ func TestPrompts(t *testing.T) {
 		prompt := launch.CodexPrompt(role, ticket)
 		message := launch.ExecutorMessage(ticket)
 		for _, part := range []string{
-			"spawn_agent with exactly two arguments, agent_type \"spec-proof-dp-decider\" and message " + strconv.Quote(message) + ", and no other argument",
+			"spawn_agent with agent_type \"spec-proof-dp-decider\", message " + strconv.Quote(message) + " and any other argument the tool requires",
 			"call wait_agent", launch.EditFile,
 		} {
 			if !strings.Contains(prompt, part) {
@@ -217,7 +217,7 @@ func TestPrompts(t *testing.T) {
 				t.Errorf("the prompt names %s:\n%s", member, prompt)
 			}
 		}
-		for _, part := range []string{"exactly two arguments", "and no other argument", "If the call is refused, follow the instruction the refusal gives, once."} {
+		for _, part := range []string{"with no argument about history or forking", "If the call is refused, follow the instruction the refusal gives, once."} {
 			if !strings.Contains(prompt, part) {
 				t.Errorf("the prompt lacks %q:\n%s", part, prompt)
 			}

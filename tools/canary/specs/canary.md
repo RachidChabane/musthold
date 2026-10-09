@@ -117,8 +117,9 @@ which run the evaluators on recorded event streams and make no model call.
   threads started, and the members of the SubagentStart payload the hook
   received.
 - **SP-1942~1**: WHEN the Codex session is scripted THE SYSTEM SHALL have the main
-  agent spawn the executor first with exactly the agent type and the message and
-  no other argument, follow once the instruction of a refusal of that spawn, and
+  agent spawn the executor first with the agent type, the message and the other
+  arguments the tool requires and no argument about history, follow once the
+  instruction of a refusal of that spawn, and
   then wait for the agent that started, and SHALL leave the scenarios of Claude
   Code and Copilot without such a spawn.
 - **SP-1943~1**: WHEN the project of a session is prepared, for every harness, THE
