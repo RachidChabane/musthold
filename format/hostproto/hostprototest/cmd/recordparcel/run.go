@@ -83,17 +83,18 @@ func (p processRunner) Run(args []string, stdin []byte) ([]byte, error) {
 	return stdout, nil
 }
 
-// exitCode runs the module and returns its exit code; a failure to start it is an error.
-func (p processRunner) exitCode(args ...string) (int, error) {
+// exitCode runs the module and returns its exit code and, for a non-zero exit,
+// the module's own error output; a failure to start it is an error.
+func (p processRunner) exitCode(args ...string) (int, string, error) {
 	_, err := p.Run(args, nil)
 	var exit *exec.ExitError
 	switch {
 	case err == nil:
-		return exitOK, nil
+		return exitOK, "", nil
 	case errors.As(err, &exit):
-		return exit.ExitCode(), nil
+		return exit.ExitCode(), err.Error(), nil
 	}
-	return 0, err
+	return 0, "", err
 }
 
 func run(args []string, stdout, stderr io.Writer) int {
@@ -175,7 +176,7 @@ func playModule(runner processRunner, source hostprototest.AnswerSource, recordD
 		}
 	}
 	prove := []string{"prove", "--changed", "--root", tree, "--record", recordDir}
-	code, err := runner.exitCode(prove...)
+	code, detail, err := runner.exitCode(prove...)
 	for wave := 0; err == nil && code == exitAwaitsHost; wave++ {
 		if wave == maxWaves {
 			return fmt.Errorf("still waiting for the host after %d waves", maxWaves)
@@ -183,10 +184,10 @@ func playModule(runner processRunner, source hostprototest.AnswerSource, recordD
 		if err = answerWave(runner, source); err != nil {
 			return err
 		}
-		code, err = runner.exitCode(append(prove, "--resume")...)
+		code, detail, err = runner.exitCode(append(prove, "--resume")...)
 	}
 	if err == nil && code != exitOK && code != exitFailure {
-		err = fmt.Errorf("prove exited with %d", code)
+		err = fmt.Errorf("prove exited with %d (%s)", code, detail)
 	}
 	return err
 }
