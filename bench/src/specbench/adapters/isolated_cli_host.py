@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final, cast
 
+from specbench.adapters.claude_credentials import without_oauth_token
 from specbench.adapters.claude_gate_session import plugin_directories, session_argv, session_environment, session_prompt
 from specbench.adapters.claude_stream import check_claude_harness, parse_claude_stream
 from specbench.adapters.execution_counter import intact_stream
@@ -28,7 +29,14 @@ from specbench.adapters.host_store import HostStoreRequests
 from specbench.adapters.product_cli import EXIT_AWAITING_HOST, ProductCli, ProveRequest
 from specbench.adapters.proof_publication import ProofPublication, PublicationContext
 from specbench.adapters.shallnot_cli import ShallnotCli
-from specbench.application.ports import ExecutionCounter, GateSessionRunner, GateSessionSpec, TreeReader
+from specbench.application.ports import (
+    ClaudeCredentialSource,
+    CredentialSourceFailed,
+    ExecutionCounter,
+    GateSessionRunner,
+    GateSessionSpec,
+    TreeReader,
+)
 from specbench.domain.agent_events import HarnessOutcome
 from specbench.domain.arm_policy import ArmPolicy, policy_for
 from specbench.domain.arms import Arm, Host
@@ -69,7 +77,6 @@ class IsolatedHostConfig:
     binaries: Path
     umbrella_plugin: Path
     rooms_root: Path
-    oauth_token: str | None
     tool_path: tuple[Path, ...] = ()
     claude_executable: str = "claude"
 
@@ -139,6 +146,7 @@ class IsolatedCliHost:
         publication: ProofPublication,
         tree_reader: TreeReader,
         counter: ExecutionCounter,
+        credentials: ClaudeCredentialSource,
         base_environment: Mapping[str, str],
     ) -> None:
         self._config = config
@@ -149,7 +157,8 @@ class IsolatedCliHost:
         self._publication = publication
         self._reader = tree_reader
         self._counter = counter
-        self._base_environment = base_environment
+        self._credentials = credentials
+        self._base_environment = without_oauth_token(base_environment)
 
     def run_gate(self, tree: Path, arm: Arm, record_dir: Path, mode: GateMode) -> GateOutcome:
         policy = _served_policy(arm)
@@ -182,7 +191,8 @@ class IsolatedCliHost:
         area: RoomArea,
         record_dir: Path,
     ) -> _LiveRun:
-        if not self._config.oauth_token:
+        token = self._token()
+        if not token:
             return _LiveRun(GateStatus.HARNESS_MISCONFIGURED, None, ())
         self._prepare(tree, area, policy, modules)
         record_dir.mkdir(parents=True, exist_ok=True)
@@ -197,9 +207,7 @@ class IsolatedCliHost:
                 plugin_directories(self._config.repository, self._config.umbrella_plugin, modules),
                 self._config.claude_executable,
             ),
-            session_environment(
-                self._base_environment, self._area_environment(area), area.config_directory, self._config.oauth_token
-            ),
+            session_environment(self._base_environment, self._area_environment(area), area.config_directory, token),
             area.tree,
         )
         try:
@@ -213,6 +221,13 @@ class IsolatedCliHost:
         finished = end.exit_code == 0 and stream.result is not None and not stream.result.is_error
         status = GateStatus.COMPLETE if finished else GateStatus.PAUSED
         return _LiveRun(status, session_id, tuple(recorder.lines))
+
+    def _token(self) -> str | None:
+        """The token of the session, or `None` when no source holds one or a source cannot tell."""
+        try:
+            return self._credentials.token()
+        except CredentialSourceFailed:
+            return None
 
     def _settle(
         self,

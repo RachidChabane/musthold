@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from specbench.adapters.claude_credentials import OAUTH_TOKEN_VARIABLE
 from specbench.adapters.claude_gate_session import (
     CONFIG_DIRECTORY_ENV,
-    OAUTH_TOKEN_ENV,
     plugin_directories,
     session_argv,
     session_environment,
@@ -51,7 +51,7 @@ def test_the_environment_isolates_the_configuration_and_drops_the_nesting_variab
     base = {"PATH": "/usr/bin", "CLAUDECODE": "1", "CLAUDE_CODE_ENTRYPOINT": "cli", "HOME": "/home/o"}
     env = session_environment(base, {"XDG_STATE_HOME": "/s"}, Path("/room/claude-config"), "tok")
     assert env[CONFIG_DIRECTORY_ENV] == "/room/claude-config"
-    assert env[OAUTH_TOKEN_ENV] == "tok"
+    assert env[OAUTH_TOKEN_VARIABLE] == "tok"
     assert env["XDG_STATE_HOME"] == "/s"
     assert "CLAUDECODE" not in env
     assert "CLAUDE_CODE_ENTRYPOINT" not in env

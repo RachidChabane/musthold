@@ -1,7 +1,7 @@
 """The gate-host session on Claude Code: one `claude -p` that runs the umbrella `prove-all` skill in a clean room.
 
 Its command is built like the coder session's: the frozen model, an isolated configuration directory authenticated by
-`CLAUDE_CODE_OAUTH_TOKEN`, the plugins of the arm's modules loaded with `--plugin-dir`, user settings only, and the
+`CLAUDE_CODE_OAUTH_TOKEN` (supplied by a credential source and held by this process alone), the plugins of the arm's modules loaded with `--plugin-dir`, user settings only, and the
 streamed events with the hook events. `SubprocessGateSessionRunner` is the only place a process for it is started.
 """
 
@@ -14,12 +14,12 @@ from pathlib import Path
 from typing import Final
 
 from specbench.adapters.claude_cli import CLAUDE_EXECUTABLE, isolated_environment
+from specbench.adapters.claude_credentials import OAUTH_TOKEN_VARIABLE
 from specbench.adapters.process import MachineUnsafe, min_free_percent
 from specbench.application.ports import EventSink, GateSessionEnd, GateSessionSpec
 from specbench.domain.arms import FROZEN_MODEL, Harness
 from specbench.domain.product import UMBRELLA_PLUGIN_NAME, ProofModule
 
-OAUTH_TOKEN_ENV: Final = "CLAUDE_CODE_OAUTH_TOKEN"
 CONFIG_DIRECTORY_ENV: Final = "CLAUDE_CONFIG_DIR"
 SETTING_SOURCES: Final = "user"
 PERMISSION_MODE: Final = "acceptEdits"
@@ -70,7 +70,12 @@ def session_environment(
 ) -> dict[str, str]:
     """The whole environment of the session: `base` without the nesting variables, the area's variables, the config
     home and the token."""
-    return {**isolated_environment(base), **extra, CONFIG_DIRECTORY_ENV: str(config_directory), OAUTH_TOKEN_ENV: token}
+    return {
+        **isolated_environment(base),
+        **extra,
+        CONFIG_DIRECTORY_ENV: str(config_directory),
+        OAUTH_TOKEN_VARIABLE: token,
+    }
 
 
 class SubprocessGateSessionRunner:

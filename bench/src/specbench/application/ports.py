@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import AbstractContextManager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 from typing import Protocol
@@ -185,12 +185,27 @@ class GateHost(Protocol):
     def run_gate(self, tree: Path, arm: Arm, record_dir: Path, mode: GateMode) -> GateOutcome: ...
 
 
+class CredentialSourceFailed(RuntimeError):
+    """A credential source could not answer. The message never carries the credential or what a tool printed."""
+
+
+class ClaudeCredentialSource(Protocol):
+    """Where the long-lived Claude Code token comes from. It is given to the one session that needs it, never recorded."""
+
+    def token(self) -> str | None:
+        """The token, or `None` when the source holds none; `CredentialSourceFailed` when it cannot tell."""
+        ...
+
+
 @dataclass(frozen=True)
 class GateSessionSpec:
-    """One gate-host session to start: the command, its whole environment, and where it runs."""
+    """One gate-host session to start: the command, its whole environment, and where it runs.
+
+    The environment carries the credential, so it stays out of the representation of the spec.
+    """
 
     argv: tuple[str, ...]
-    env: Mapping[str, str]
+    env: Mapping[str, str] = field(repr=False)
     cwd: Path
 
 

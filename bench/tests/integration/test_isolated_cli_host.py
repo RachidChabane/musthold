@@ -27,6 +27,7 @@ from specbench.domain.gate import GateMode, GateOutcome, GateStatus
 from specbench.domain.jsonread import mapping, sequence, text
 from specbench.domain.manifest import CALL_EVENTS, RunLayout
 from specbench.domain.sessions import RequestKind, live_gate_call_id
+from support.credentials import StaticCredentialSource
 from support.product_world import (
     BINARIES,
     PARCEL_ANSWERS,
@@ -111,7 +112,7 @@ def build_rig(
     cli = ProductCli(runner, BINARIES)
     shallnot = ShallnotCli(runner, BINARIES / "shallnot", JsonSchemaChecker())
     played = session or FakeGateSession(fakehost, BINARIES, PARCEL_ANSWERS)
-    config = IsolatedHostConfig(REPOSITORY, BINARIES, UMBRELLA_PLUGIN, root / "rooms", BENCH_TOKEN)
+    config = IsolatedHostConfig(REPOSITORY, BINARIES, UMBRELLA_PLUGIN, root / "rooms")
     host = IsolatedCliHost(
         config,
         RunLayout(root / "run"),
@@ -121,6 +122,7 @@ def build_rig(
         publication or LocalPublication(cli),
         DiskTreeReader(),
         ClaudeExecutionCounter(),
+        StaticCredentialSource(BENCH_TOKEN),
         os.environ,
     )
     return Rig(root, host, played, tree or make_parcel_tree(root / "tree"))

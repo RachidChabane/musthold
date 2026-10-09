@@ -2,7 +2,8 @@
 
 Isolation (ADR 0011 decision 9):
 
-- every trunk runs with its own `CLAUDE_CONFIG_DIR` under the run, authenticated by `CLAUDE_CODE_OAUTH_TOKEN`; a
+- every trunk runs with its own `CLAUDE_CONFIG_DIR` under the run, authenticated by `CLAUDE_CODE_OAUTH_TOKEN`, which a
+  credential source (the environment, then the keychain) supplies and only this session's environment holds; a
   missing token ends the session as `harness_misconfigured` before anything starts, never as a fallback to the
   owner's home;
 - the bench's settings file lives in the run, outside the workspace, and is the only settings file besides the home's:
@@ -23,6 +24,7 @@ from pathlib import Path
 from typing import Final
 
 from specbench.adapters.claude_cli import NESTING_ENV_VARS
+from specbench.adapters.claude_credentials import KEYCHAIN_SERVICE, OAUTH_TOKEN_VARIABLE, without_oauth_token
 from specbench.adapters.claude_homes import ClaudeConfigHomes
 from specbench.adapters.claude_stream import ClaudeStream, check_claude_harness, parse_claude_stream
 from specbench.adapters.execution_counter import ClaudeExecutionCounter, intact_stream
@@ -30,6 +32,7 @@ from specbench.adapters.run_store import write_atomically
 from specbench.adapters.session_environment import bench_home, neutral_environment
 from specbench.adapters.session_events import SessionEventLog
 from specbench.adapters.streaming_process import StreamedProcess, StreamingRunner
+from specbench.application.ports import ClaudeCredentialSource, CredentialSourceFailed
 from specbench.domain.agent_events import HarnessOutcome
 from specbench.domain.arm_policy import ArmPolicy, policy_for
 from specbench.domain.arms import Arm, Harness
@@ -39,14 +42,14 @@ from specbench.domain.manifest import RunLayout
 from specbench.domain.sessions import SessionKind, SessionOutcome, SessionRequest, SessionResult
 
 CLAUDE_EXECUTABLE: Final = "claude"
-OAUTH_TOKEN_VARIABLE: Final = "CLAUDE_CODE_OAUTH_TOKEN"
 CONFIG_DIR_VARIABLE: Final = "CLAUDE_CONFIG_DIR"
 INHERITED_PREFIXES_DROPPED: Final = ("ANTHROPIC_", "CLAUDE_CODE_", "CLAUDE_CONFIG_DIR")
 """Variables that would reroute the model, the credential or the home of a session are never inherited."""
 NOT_STARTED_EXIT_CODE: Final = 78
 """`EX_CONFIG`: the session never started because the harness is not configured."""
 MISSING_TOKEN_MESSAGE: Final = (
-    f"{OAUTH_TOKEN_VARIABLE} is not set: create the long-lived credential with `claude setup-token` and export it; "
+    f"no Claude Code token: create the long-lived credential with `claude setup-token`, store it in the keychain as "
+    f"service {KEYCHAIN_SERVICE} or export {OAUTH_TOKEN_VARIABLE}; "
     "a coder session never falls back to the credentials of ~/.claude"
 )
 STDERR_EXCERPT_LENGTH: Final = 300
@@ -221,12 +224,14 @@ class ClaudeSessionHarness:
         self,
         setup: ClaudeSessionSetup,
         runner: StreamingRunner,
+        credentials: ClaudeCredentialSource,
         environ: Mapping[str, str],
         executable: str = CLAUDE_EXECUTABLE,
     ) -> None:
         self._setup = setup
         self._runner = runner
-        self._environ = environ
+        self._credentials = credentials
+        self._environ = without_oauth_token(environ)
         self._executable = executable
         self._homes = ClaudeConfigHomes(setup.layout)
 
@@ -236,7 +241,10 @@ class ClaudeSessionHarness:
 
     def run_session(self, request: SessionRequest) -> SessionResult:
         arm = _arm_of(request)
-        token = self._environ.get(OAUTH_TOKEN_VARIABLE, "")
+        try:
+            token = self._credentials.token()
+        except CredentialSourceFailed as error:
+            return _not_started(f"the Claude Code token could not be read: {error}")
         if not token:
             return _not_started(MISSING_TOKEN_MESSAGE)
         policy = policy_for(arm)

@@ -12,12 +12,19 @@ from specbench.adapters.product_cli import ProductCli
 from specbench.adapters.proof_publication import LocalPublication
 from specbench.adapters.shallnot_cli import ShallnotCli
 from specbench.adapters.workspace_repo import DiskTreeReader
-from specbench.application.ports import EventSink, GateSessionEnd, GateSessionSpec, ProcessResult
+from specbench.application.ports import (
+    ClaudeCredentialSource,
+    EventSink,
+    GateSessionEnd,
+    GateSessionSpec,
+    ProcessResult,
+)
 from specbench.domain.arms import Arm
 from specbench.domain.canonical import JsonValue
 from specbench.domain.gate import GateMode, GateStatus
 from specbench.domain.manifest import CALL_EVENTS, RunLayout
 from specbench.domain.sessions import live_gate_call_id
+from support.credentials import FAKE_TOKEN, FailingCredentialSource, StaticCredentialSource
 
 BINARIES = Path("/tools/bin")
 
@@ -71,10 +78,15 @@ def make_tree(tmp_path: Path) -> Path:
     return tree
 
 
-def make_host(tmp_path: Path, session: ScriptedSession, token: str | None = "token") -> IsolatedCliHost:
+def make_host(
+    tmp_path: Path,
+    session: ScriptedSession,
+    token: str | None = "token",
+    credentials: ClaudeCredentialSource | None = None,
+) -> IsolatedCliHost:
     runner = SilentRunner()
     cli = ProductCli(runner, BINARIES)
-    config = IsolatedHostConfig(Path("/repo"), BINARIES, Path("/tools/plugins/spec-proof"), tmp_path / "rooms", token)
+    config = IsolatedHostConfig(Path("/repo"), BINARIES, Path("/tools/plugins/spec-proof"), tmp_path / "rooms")
     return IsolatedCliHost(
         config,
         RunLayout(tmp_path / "run"),
@@ -84,6 +96,7 @@ def make_host(tmp_path: Path, session: ScriptedSession, token: str | None = "tok
         LocalPublication(cli),
         DiskTreeReader(),
         ClaudeExecutionCounter(),
+        credentials or StaticCredentialSource(token),
         {"PATH": "/usr/bin"},
     )
 
@@ -174,3 +187,23 @@ def test_the_session_runs_in_its_own_copy_of_the_tree_with_an_isolated_configura
     assert spec.env["CLAUDE_CONFIG_DIR"].startswith(str(tmp_path / "rooms"))
     assert spec.env["XDG_STATE_HOME"].startswith(str(tmp_path / "rooms"))
     assert spec.env["PATH"].startswith(str(BINARIES))
+
+
+def test_a_session_receives_the_token_of_its_source_in_its_environment_and_not_in_its_representation(
+    tmp_path: Path,
+) -> None:
+    session = ScriptedSession([init_line(["spec-proof"], [])])
+    make_host(tmp_path, session, token=FAKE_TOKEN).run_gate(
+        make_tree(tmp_path), Arm.AL, tmp_path / "rec", GateMode.LIVE
+    )
+    [spec] = session.specs
+    assert spec.env["CLAUDE_CODE_OAUTH_TOKEN"] == FAKE_TOKEN
+    assert FAKE_TOKEN not in repr(spec)
+    assert [path for path in tmp_path.rglob("*") if path.is_file() and FAKE_TOKEN.encode() in path.read_bytes()] == []
+
+
+def test_a_source_that_cannot_tell_keeps_the_session_from_starting(tmp_path: Path) -> None:
+    session = ScriptedSession([init_line(["spec-proof"], [])])
+    host = make_host(tmp_path, session, credentials=FailingCredentialSource())
+    outcome = host.run_gate(make_tree(tmp_path), Arm.AL, tmp_path / "rec", GateMode.LIVE)
+    assert outcome.status is GateStatus.HARNESS_MISCONFIGURED and session.specs == []

@@ -7,9 +7,11 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from specbench.adapters.claude_session import OAUTH_TOKEN_VARIABLE, ClaudeSessionHarness, ClaudeSessionSetup
+from specbench.adapters.claude_credentials import OAUTH_TOKEN_VARIABLE, EnvironmentCredentialSource
+from specbench.adapters.claude_session import ClaudeSessionHarness, ClaudeSessionSetup
 from specbench.adapters.codex_session import CodexSessionHarness, CodexSessionSetup
 from specbench.adapters.streaming_process import StreamingRunner
+from specbench.application.ports import ClaudeCredentialSource
 from specbench.domain.arms import FROZEN_MODEL, Arm, Harness
 from specbench.domain.canonical import JsonValue
 from specbench.domain.manifest import RunLayout
@@ -76,6 +78,7 @@ def make_claude_rig(
     responses: Sequence[Mapping[str, JsonValue]],
     *,
     environ: Mapping[str, str] | None = None,
+    credentials: ClaudeCredentialSource | None = None,
     plugin_dirs: tuple[Path, ...] = (),
     required_plugins: tuple[str, ...] = (),
     toolchain_roots: tuple[Path, ...] = (),
@@ -91,14 +94,15 @@ def make_claude_rig(
     fake_dir = root / "fake"
     fake_dir.mkdir()
     executable = install_fake_claude_sessions(fake_dir, responses)
-    default = {**base_environment(owner_home), OAUTH_TOKEN_VARIABLE: TEST_TOKEN}
+    session_environ = {**base_environment(owner_home), OAUTH_TOKEN_VARIABLE: TEST_TOKEN} if environ is None else environ
     setup = ClaudeSessionSetup(
         layout, plugin_dirs, required_plugins, toolchain_roots=toolchain_roots, tool_dirs=tool_dirs
     )
     harness = ClaudeSessionHarness(
         setup,
         free_runner(timeout_seconds),
-        default if environ is None else environ,
+        credentials or EnvironmentCredentialSource(session_environ),
+        session_environ,
         executable_name or str(executable),
     )
     return ClaudeRig(root, layout, workspace.resolve(), owner_home, fake_dir, harness)
