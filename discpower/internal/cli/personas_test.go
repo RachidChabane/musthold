@@ -500,7 +500,7 @@ func TestPersonasAgainstTheCommandLine(t *testing.T) {
 	}
 
 	for _, name := range hostprototest.CopilotPersonaNames() {
-		t.Run(name+" receives the asserted verdict from the module as it ships on the session log [verifies SP-1871~1]", func(t *testing.T) {
+		t.Run(name+" receives the asserted verdict from the module as it ships on the session log [verifies SP-1874~1]", func(t *testing.T) {
 			persona, err := hostprototest.NewPersona(name)
 			if err != nil {
 				t.Fatal(err)

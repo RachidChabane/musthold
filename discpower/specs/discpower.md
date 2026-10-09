@@ -693,6 +693,11 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   tickets of one project share one host directory.
 - **SP-240~1**: WHEN the fake-host personas drive the module through its command
   line THE SYSTEM SHALL give each the verdict ADR 0005 asserts for it.
+- **SP-1874~1**: WHEN the fake-host personas of Copilot CLI drive the module
+  through its hooks and its executor server THE SYSTEM SHALL credit the answer of
+  an executor whose session log shows the pinned CLI, exactly the two executor
+  tools, a bare launch and a bare receipt as `restricted`, and leave the answer of
+  an executor that fails one of those conditions `restricted-unverified`.
 - **SP-241~1**: WHEN the host files are generated THE SYSTEM SHALL produce them from
   one definition, the same bytes on every run, and the committed trees of the
   plugin and the harness scaffolds SHALL equal what the generator produces.
