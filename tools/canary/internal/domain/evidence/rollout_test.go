@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
 )
@@ -43,22 +45,42 @@ func assembleRollouts(t *testing.T) evidence.Rollouts {
 func TestRolloutDecoder(t *testing.T) {
 	rollouts := assembleRollouts(t)
 
-	t.Run("each spawn call is read with its agent type and the fork depth it wrote, or none when it wrote none [verifies SP-1510~1]", func(t *testing.T) {
+	t.Run("each spawn call is read with its agent type, the history members it wrote, whether they ask for a blind child and the thread it started [verifies SP-1510~1] [verifies SP-1511~2]", func(t *testing.T) {
 		if !rollouts.Recorded || len(rollouts.Spawns) != 4 {
 			t.Fatalf("rollouts = %+v", rollouts)
 		}
 		for index, want := range []evidence.RolloutSpawn{
-			{Line: 3, TaskName: "decide_a", AgentType: decider, ForkTurns: "none", ForkTurnsSet: true},
-			{Line: 5, TaskName: "decide_b", AgentType: decider},
-			{Line: 6, TaskName: "decide_c", AgentType: decider, ForkTurns: "all", ForkTurnsSet: true},
-			{Line: 7, TaskName: "decide_d", AgentType: "spec-proof-dp-judge", ForkTurns: "3", ForkTurnsSet: true},
+			{Line: 3, CallID: "call_a1", TaskName: "decide_a", AgentType: decider, History: map[string]string{"fork_turns": `"none"`}, Blind: true, ChildPath: "/root/decide_a"},
+			{Line: 5, CallID: "call_b2", TaskName: "decide_b", AgentType: decider, History: map[string]string{}},
+			{Line: 6, CallID: "call_c3", TaskName: "decide_c", AgentType: decider, History: map[string]string{"fork_turns": `"all"`}},
+			{Line: 7, CallID: "call_d4", TaskName: "decide_d", AgentType: "spec-proof-dp-judge", History: map[string]string{"fork_turns": "3"}},
 		} {
-			if rollouts.Spawns[index] != want {
-				t.Errorf("spawn %d = %+v, want %+v", index, rollouts.Spawns[index], want)
+			if got := rollouts.Spawns[index]; !reflect.DeepEqual(got, want) {
+				t.Errorf("spawn %d = %+v, want %+v", index, got, want)
 			}
 		}
 		if got := rollouts.SpawnsOf(decider); len(got) != 3 {
 			t.Errorf("spawns of %s = %+v", decider, got)
+		}
+	})
+
+	t.Run("a spawn that returned the id of its thread is tied to the rollout of that thread [verifies SP-1511~2]", func(t *testing.T) {
+		found, err := evidence.Assemble(evidence.Files{
+			RolloutMain:     fixture(t, "rollout-main-agent-id.jsonl"),
+			RolloutChildren: map[string][]byte{"rollout-child-agent-id.jsonl": fixture(t, "rollout-child-agent-id.jsonl")},
+		})
+		if err != nil || len(found.Rollouts.Spawns) != 1 || len(found.Rollouts.Children) != 1 {
+			t.Fatalf("rollouts = %+v, %v", found.Rollouts, err)
+		}
+		spawn, child := found.Rollouts.Spawns[0], found.Rollouts.Children[0]
+		if !spawn.Blind || spawn.History["fork_context"] != "false" || spawn.ChildThreadID != child.ThreadID {
+			t.Fatalf("spawn = %+v, child = %+v", spawn, child)
+		}
+		if tied, ok := found.Rollouts.SpawnOf(child); !ok || tied.CallID != spawn.CallID {
+			t.Fatalf("the child is tied to %+v, %v", tied, ok)
+		}
+		if child.History != hostproto.ChildBlind {
+			t.Fatalf("child history %s: %s", child.History, child.HistoryReason)
 		}
 	})
 
@@ -75,6 +97,21 @@ func TestRolloutDecoder(t *testing.T) {
 		}
 		if generic := rollouts.Children[1]; generic.AgentRole != "" || generic.ParentThreadID != mainID {
 			t.Errorf("generic child = %+v", generic)
+		}
+	})
+
+	t.Run("each spawned thread is judged by the rule of the host protocol: a task after the harness context is blind, a rollout with no task is unproven [verifies SP-1511~2]", func(t *testing.T) {
+		if child := rollouts.Children[0]; child.History != hostproto.ChildBlind || child.HistoryReason != "" {
+			t.Errorf("child history %s: %s", child.History, child.HistoryReason)
+		}
+		if generic := rollouts.Children[1]; generic.History != hostproto.ChildUnproven || generic.HistoryReason == "" {
+			t.Errorf("generic child history %s: %s", generic.History, generic.HistoryReason)
+		}
+		if spawn, ok := rollouts.SpawnOf(rollouts.Children[0]); !ok || spawn.CallID != "call_a1" {
+			t.Errorf("the child is tied to %+v, %v", spawn, ok)
+		}
+		if _, ok := rollouts.SpawnOf(rollouts.Children[1]); ok {
+			t.Error("a thread no recorded spawn returned is tied to one")
 		}
 	})
 
@@ -114,7 +151,7 @@ func TestRolloutDecoder(t *testing.T) {
 	t.Run("a spawn whose arguments are not JSON is kept with nothing read from them [verifies SP-1510~1]", func(t *testing.T) {
 		line := `{"type":"response_item","payload":{"type":"function_call","name":"spawn_agent","arguments":"not json","call_id":"c"}}`
 		found, err := evidence.Assemble(evidence.Files{RolloutMain: []byte(line + "\n")})
-		if err != nil || len(found.Rollouts.Spawns) != 1 || found.Rollouts.Spawns[0].AgentType != "" || found.Rollouts.Spawns[0].ForkTurnsSet {
+		if err != nil || len(found.Rollouts.Spawns) != 1 || found.Rollouts.Spawns[0].AgentType != "" || found.Rollouts.Spawns[0].Blind || len(found.Rollouts.Spawns[0].History) != 0 {
 			t.Fatalf("spawns = %+v, %v", found.Rollouts.Spawns, err)
 		}
 	})
@@ -151,7 +188,7 @@ func TestCodexThreadID(t *testing.T) {
 }
 
 func TestHookPayloadKeys(t *testing.T) {
-	t.Run("the members of a payload are listed sorted, and a payload that is not an object has none [verifies SP-1511~1]", func(t *testing.T) {
+	t.Run("the members of a payload are listed sorted, and a payload that is not an object has none [verifies SP-1511~2]", func(t *testing.T) {
 		call := evidence.HookCall{Stdin: json.RawMessage(`{"session_id":"s","agent_type":"a","agent_id":"i"}`)}
 		if got := strings.Join(call.PayloadKeys(), ","); got != "agent_id,agent_type,session_id" {
 			t.Errorf("keys = %s", got)

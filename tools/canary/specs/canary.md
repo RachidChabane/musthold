@@ -100,11 +100,16 @@ which run the evaluators on recorded event streams and make no model call.
   reports as failed whatever the rollouts hold, reject a rollout line that is not
   JSON naming its file and line, and ignore a last line that an interrupted write
   left incomplete.
-- **SP-1511~1**: WHEN the recorded session of Codex is evaluated THE SYSTEM SHALL
-  conclude PASS for the executor spawn when every spawn of the executor's agent
-  type sets `fork_turns` to `"none"`, FAIL when one omits it or sets `"all"` or a
-  number, and INCONCLUSIVE when no spawn of the executor is recorded, and SHALL
-  report the members of the SubagentStart payload the hook received.
+- **SP-1511~2**: WHEN the recorded session of Codex is evaluated THE SYSTEM SHALL
+  judge every recorded rollout of a thread of the executor's agent type by the
+  host protocol's rule of the history a spawned thread started with, and
+  conclude PASS for the executor spawn when every such thread is blind, FAIL when
+  one inherited history of the main agent, and INCONCLUSIVE when one cannot show
+  it or when no rollout of a thread of the executor is recorded; SHALL tie each
+  spawn call to the thread its output names, by id or by task path; and SHALL
+  report how many spawns of the executor set a blind form, how many that set none
+  the module's pre-tool hook denied and how many it did not, and the members of
+  the SubagentStart payload the hook received.
 - **SP-1512~1**: WHEN a Codex session wrote a table that names its project into the
   user's configuration file THE SYSTEM SHALL attribute the change to the session,
   remove exactly that table after the session keeping the mode of the file, record

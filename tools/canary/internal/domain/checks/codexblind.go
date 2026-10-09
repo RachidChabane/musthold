@@ -4,49 +4,107 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
 )
-
-// forkTurnsNone is the value of fork_turns that starts a child with none of the
-// parent's history.
-const forkTurnsNone = "none"
 
 // startPayloadMembersNaming are the fragments of a SubagentStart payload member
 // that would tell a hook how much of the parent's history the child inherited.
 var startPayloadMembersNaming = []string{"fork", "turn", "depth", "history"}
 
+// sessionMetaNote points at the first line of a child's rollout.
+const sessionMetaNote = "session_meta"
+
 func executorSpawnBlindCheck() Check {
 	return newCheck(checkCodexSpawnBlind,
-		"The executor is spawned with `fork_turns` set to `\"none\"`: a spawn that omits it, or sets `\"all\"` or a number, hands the child the main agent's history, which breaks the executor's blindness.",
+		"Every thread of the executor starts with none of the main agent's history: by the rule of the host protocol, its rollout holds only the harness context before the task message. "+
+			"The report also says which spawns of the executor set a blind form (`fork_turns: \"none\"` or `fork_context: false`) and whether the module's pre-tool hook denied those that set none.",
 		func(found evidence.Evidence) verdict.Verdict {
 			agentType := codexStrategy().AgentType(found.Session.Role)
-			calls := found.Rollouts.SpawnsOf(agentType)
-			hookNote := startPayloadNote(found)
-			if len(calls) == 0 {
-				return verdict.Undecided(noSpawnRecordNote(found, agentType)+hookNote, startPointers(found)...)
+			children := found.Rollouts.ChildrenOf(agentType)
+			notes := spawnGuardNote(found, agentType) + startPayloadNote(found)
+			if len(children) == 0 {
+				return verdict.Undecided(noChildNote(found, agentType)+notes, append(spawnPointers(found, agentType), startPointers(found)...)...)
 			}
-			for _, call := range calls {
-				pointer := evidence.At(evidence.RolloutMainFile, call.Line, evidence.RolloutSpawnTool)
-				if !call.ForkTurnsSet {
-					return verdict.Failed("the spawn of "+agentType+" omits fork_turns, so the child inherits the whole history of the main agent"+hookNote, pointer)
-				}
-				if call.ForkTurns != forkTurnsNone {
-					return verdict.Failed(fmt.Sprintf("the spawn of %s sets fork_turns to %q, so the child inherits history of the main agent%s", agentType, call.ForkTurns, hookNote), pointer)
-				}
+			if child, inherited := childWith(children, hostproto.ChildInherited); inherited {
+				return verdict.Failed(fmt.Sprintf("thread %s of %s started with history of the main agent (%s)%s", child.ThreadID, agentType, child.HistoryReason, notes), childPointer(child))
 			}
-			pointers := []verdict.Pointer{evidence.At(evidence.RolloutMainFile, calls[0].Line, evidence.RolloutSpawnTool)}
-			return verdict.Passed(fmt.Sprintf("%d spawn(s) of %s set fork_turns to %q%s", len(calls), agentType, forkTurnsNone, hookNote), append(pointers, startPointers(found)...)...)
+			if child, unproven := childWith(children, hostproto.ChildUnproven); unproven {
+				return verdict.Undecided(fmt.Sprintf("the rollout of thread %s of %s cannot show the history it started with (%s)%s", child.ThreadID, agentType, child.HistoryReason, notes), childPointer(child))
+			}
+			pointers := make([]verdict.Pointer, 0, len(children))
+			for _, child := range children {
+				pointers = append(pointers, childPointer(child))
+			}
+			summary := fmt.Sprintf("%d thread(s) of %s started with none of the main agent's history%s", len(children), agentType, notes)
+			return verdict.Passed(summary, append(pointers, startPointers(found)...)...)
 		})
 }
 
-// noSpawnRecordNote says why no spawn call of the executor could be read: the
-// session started none, or it started one whose arguments the main rollout does not hold.
-func noSpawnRecordNote(found evidence.Evidence, agentType string) string {
+func childWith(children []evidence.RolloutChild, history hostproto.ChildHistory) (evidence.RolloutChild, bool) {
+	for _, child := range children {
+		if child.History == history {
+			return child, true
+		}
+	}
+	return evidence.RolloutChild{}, false
+}
+
+func childPointer(child evidence.RolloutChild) verdict.Pointer {
+	return evidence.At(evidence.RolloutChildrenDir+"/"+child.File, 1, sessionMetaNote)
+}
+
+func spawnPointers(found evidence.Evidence, agentType string) []verdict.Pointer {
+	var pointers []verdict.Pointer
+	for _, spawn := range found.Rollouts.SpawnsOf(agentType) {
+		pointers = append(pointers, evidence.At(evidence.RolloutMainFile, spawn.Line, evidence.RolloutSpawnTool))
+	}
+	return pointers
+}
+
+// noChildNote says why no thread of the executor could be judged: the session
+// started none, or no rollout of the thread it started was recorded.
+func noChildNote(found evidence.Evidence, agentType string) string {
 	if spawns, _ := spawnedExecutor(found); len(spawns) > 0 {
-		return "a start of " + agentType + " is recorded, but no rollout recorded the arguments of its spawn"
+		return "a start of " + agentType + " is recorded, but no rollout of its thread was recorded"
 	}
 	return checkCodexNoSpawnNote
+}
+
+// spawnGuardNote reports the spawns of the executor the main rollout records: how
+// many set a blind form, and of those that set none, how many the module's
+// pre-tool hook denied.
+func spawnGuardNote(found evidence.Evidence, agentType string) string {
+	spawns := found.Rollouts.SpawnsOf(agentType)
+	if len(spawns) == 0 {
+		return ""
+	}
+	blind, denied, let := 0, 0, 0
+	for _, spawn := range spawns {
+		switch {
+		case spawn.Blind:
+			blind++
+		case spawnDenied(found, spawn):
+			denied++
+		default:
+			let++
+		}
+	}
+	return fmt.Sprintf("; of %d spawn(s) of %s, %d set a blind form, %d that set none were denied by the pre-tool hook and %d that set none were not denied",
+		len(spawns), agentType, blind, denied, let)
+}
+
+// spawnDenied reports whether the module's pre-tool hook denied the spawn: it
+// answered the payload of the same tool use with a denial.
+func spawnDenied(found evidence.Evidence, spawn evidence.RolloutSpawn) bool {
+	for _, call := range found.HookCalls(primaryModule().Binary, hookKindPreTool) {
+		payload := call.Payload()
+		if payload.ToolUseID == spawn.CallID && hostproto.IsCodexSpawnTool(payload.ToolName) && call.Decision().Permission == string(hostproto.PermissionDeny) {
+			return true
+		}
+	}
+	return false
 }
 
 func startPointers(found evidence.Evidence) []verdict.Pointer {

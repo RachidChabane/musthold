@@ -50,6 +50,7 @@ type HookPayload struct {
 	AgentType           string          `json:"agent_type"`
 	ToolName            string          `json:"tool_name"`
 	ToolInput           json.RawMessage `json:"tool_input"`
+	ToolUseID           string          `json:"tool_use_id"`
 	AgentTranscriptPath string          `json:"agent_transcript_path"`
 	PermissionMode      string          `json:"permission_mode"`
 }

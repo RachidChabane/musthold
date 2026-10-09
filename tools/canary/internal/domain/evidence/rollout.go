@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"path"
 	"slices"
-	"strconv"
+
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
 
 // A Codex session keeps a rollout file per thread: the main agent's and each
@@ -22,22 +23,29 @@ const (
 	// RolloutSpawnTool is the tool that starts an agent.
 	RolloutSpawnTool = "spawn_agent"
 
-	rolloutResponseItem = "response_item"
-	rolloutFunctionCall = "function_call"
-	rolloutSessionMeta  = "session_meta"
+	rolloutResponseItem       = "response_item"
+	rolloutFunctionCall       = "function_call"
+	rolloutFunctionCallOutput = "function_call_output"
+	rolloutSessionMeta        = "session_meta"
 )
 
 // RolloutSpawn is one call of the spawn tool in the main thread's rollout.
 type RolloutSpawn struct {
 	// Line is the 1-based line of the call in RolloutMainFile.
-	Line      int
+	Line int
+	// CallID ties the call to its output and to the hook payload of its tool use.
+	CallID    string
 	TaskName  string
 	AgentType string
-	// ForkTurns is how much of the main agent's history the child inherits, as
-	// the call wrote it: "none", "all" or a count. ForkTurnsSet is false when the
-	// call omitted the member, which forks the whole history.
-	ForkTurns    string
-	ForkTurnsSet bool
+	// History holds the members of the call that decide how much of the main
+	// agent's history the child receives, as compact JSON, by name; Blind is set
+	// when they ask for none of it in a recognised blind form.
+	History map[string]string
+	Blind   bool
+	// ChildThreadID and ChildPath name the thread the call started, as its output
+	// gives it; both are empty when the call started none.
+	ChildThreadID string
+	ChildPath     string
 }
 
 // RolloutChild is the identity a spawned thread's rollout gives itself.
@@ -51,6 +59,10 @@ type RolloutChild struct {
 	Depth          int
 	// Sandbox is the sandbox policy the thread ran under.
 	Sandbox SandboxPolicy
+	// History is what the rollout shows of the history the thread started with,
+	// and HistoryReason why it is not blind.
+	History       hostproto.ChildHistory
+	HistoryReason string
 }
 
 // Rollouts is what the rollout files of a Codex session hold. Recorded is false
@@ -70,6 +82,17 @@ func (r Rollouts) SpawnsOf(agentType string) []RolloutSpawn {
 		}
 	}
 	return found
+}
+
+// SpawnOf returns the spawn call that started a thread, and false when no
+// recorded call names it.
+func (r Rollouts) SpawnOf(child RolloutChild) (RolloutSpawn, bool) {
+	for _, spawn := range r.Spawns {
+		if (spawn.ChildThreadID != "" && spawn.ChildThreadID == child.ThreadID) || (spawn.ChildPath != "" && spawn.ChildPath == child.AgentPath) {
+			return spawn, true
+		}
+	}
+	return RolloutSpawn{}, false
 }
 
 // ChildrenOf returns the spawned threads whose role is the given one.
@@ -92,12 +115,20 @@ type rawFunctionCall struct {
 	Type      string `json:"type"`
 	Name      string `json:"name"`
 	Arguments string `json:"arguments"`
+	CallID    string `json:"call_id"`
+	Output    any    `json:"output"`
 }
 
 type rawSpawnArguments struct {
-	TaskName  string          `json:"task_name"`
-	AgentType string          `json:"agent_type"`
-	ForkTurns json.RawMessage `json:"fork_turns"`
+	TaskName  string `json:"task_name"`
+	AgentType string `json:"agent_type"`
+}
+
+// rawSpawnOutput is what a spawn call returns: the started thread, by id or by
+// task path depending on the toolset.
+type rawSpawnOutput struct {
+	AgentID  string `json:"agent_id"`
+	TaskName string `json:"task_name"`
 }
 
 type rawSessionMeta struct {
@@ -158,38 +189,48 @@ func decodeSpawns(data []byte) ([]RolloutSpawn, error) {
 		return nil, err
 	}
 	var spawns []RolloutSpawn
+	outputs := map[string]rawSpawnOutput{}
 	for _, line := range lines {
 		var item rawRolloutLine
 		var call rawFunctionCall
 		if json.Unmarshal(line.Raw, &item) != nil || item.Type != rolloutResponseItem || json.Unmarshal(item.Payload, &call) != nil {
 			continue
 		}
-		if call.Type != rolloutFunctionCall || call.Name != RolloutSpawnTool {
-			continue
+		switch {
+		case call.Type == rolloutFunctionCall && call.Name == RolloutSpawnTool:
+			spawns = append(spawns, decodeSpawn(line.Number, call))
+		case call.Type == rolloutFunctionCallOutput:
+			outputs[call.CallID] = decodeSpawnOutput(call.Output)
 		}
-		var arguments rawSpawnArguments
-		_ = json.Unmarshal([]byte(call.Arguments), &arguments)
-		forkTurns, set := forkTurnsOf(arguments.ForkTurns)
-		spawns = append(spawns, RolloutSpawn{Line: line.Number, TaskName: arguments.TaskName, AgentType: arguments.AgentType, ForkTurns: forkTurns, ForkTurnsSet: set})
+	}
+	for index, spawn := range spawns {
+		output := outputs[spawn.CallID]
+		spawns[index].ChildThreadID, spawns[index].ChildPath = output.AgentID, output.TaskName
 	}
 	return spawns, nil
 }
 
-// forkTurnsOf reads fork_turns as the call wrote it: a string as it is, a number
-// as its decimal text. A member that is absent or null is not set.
-func forkTurnsOf(raw json.RawMessage) (string, bool) {
-	if len(raw) == 0 || string(raw) == "null" {
-		return "", false
+// decodeSpawn reads a spawn call: its agent type and task, and the history it
+// asks for, judged by the blind forms of the host protocol.
+func decodeSpawn(number int, call rawFunctionCall) RolloutSpawn {
+	spawn := RolloutSpawn{Line: number, CallID: call.CallID}
+	var arguments rawSpawnArguments
+	_ = json.Unmarshal([]byte(call.Arguments), &arguments)
+	spawn.TaskName, spawn.AgentType = arguments.TaskName, arguments.AgentType
+	if input, err := hostproto.DecodeCodexSpawn(json.RawMessage(call.Arguments)); err == nil {
+		spawn.History, spawn.Blind = input.HistoryControls(), input.RequestsNoHistory()
 	}
-	var text string
-	if json.Unmarshal(raw, &text) == nil {
-		return text, true
+	return spawn
+}
+
+// decodeSpawnOutput reads the thread a spawn started out of its output, a string
+// that holds a JSON document; anything else names no thread.
+func decodeSpawnOutput(output any) rawSpawnOutput {
+	var started rawSpawnOutput
+	if text, ok := output.(string); ok {
+		_ = json.Unmarshal([]byte(text), &started)
 	}
-	var number json.Number
-	if json.Unmarshal(raw, &number) == nil {
-		return number.String(), true
-	}
-	return strconv.Quote(string(raw)), true
+	return started
 }
 
 func decodeChild(name string, data []byte) (RolloutChild, error) {
@@ -198,7 +239,8 @@ func decodeChild(name string, data []byte) (RolloutChild, error) {
 	if err != nil {
 		return RolloutChild{}, err
 	}
-	child := RolloutChild{File: name, Sandbox: decodeSandboxPolicy(lines)}
+	judged := hostproto.ReadCodexChildRollout(data)
+	child := RolloutChild{File: name, Sandbox: decodeSandboxPolicy(lines), History: judged.History, HistoryReason: judged.Reason}
 	for _, line := range lines {
 		var item rawRolloutLine
 		if json.Unmarshal(line.Raw, &item) != nil || item.Type != rolloutSessionMeta {
