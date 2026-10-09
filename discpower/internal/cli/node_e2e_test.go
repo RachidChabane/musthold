@@ -51,11 +51,11 @@ func TestProveATypeScriptProjectEndToEnd(t *testing.T) {
 		t.Skip("runs the fixture's tests against many mutants")
 	}
 	for _, name := range []ecosystem.Name{ecosystem.Jest, ecosystem.Vitest} {
-		t.Run(string(name)+": the honest persona blocks the weak test and passes the adequate ones [verifies SP-1041~1]", func(t *testing.T) {
+		t.Run(string(name)+": the honest persona blocks the weak test and escalates the others, whose survivors exposed answers cannot clear [verifies SP-1041~2]", func(t *testing.T) {
 			nodeinstall.RequireNode(t)
 			h := newNodeHarness(t, name)
 			code, output := h.drive(hostprototest.PersonaHonest, oracle{})
-			want := map[string]string{"PAR-1~1": provedPass, "PAR-2~1": provedPass, "PAR-3~1": provedBlock}
+			want := map[string]string{"PAR-1~1": provedEscalate, "PAR-2~1": provedEscalate, "PAR-3~1": provedBlock}
 			for ref, verdict := range want {
 				if got := verdicts(output)[ref]; got != verdict {
 					t.Errorf("%s: %q, want %q\n%s", ref, got, verdict, output)

@@ -75,6 +75,9 @@ type Decision struct {
 type OperatorScreen struct {
 	Flagged     int `json:"flagged"`
 	ScreenedOut int `json:"screenedOut"`
+	// FloorEntries counts the flagged survivors that only the isolation floor kept
+	// in the pool: their screen answers, counted without it, would have let them go.
+	FloorEntries int `json:"screenFloorEntries,omitempty"`
 }
 
 // Extensions is the open part of a predicate. Readers ignore unknown members.

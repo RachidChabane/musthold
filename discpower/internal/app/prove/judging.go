@@ -166,6 +166,9 @@ type screenOutcome struct {
 	violation float64
 	flagged   bool
 	pending   bool
+	// floorEntry is set when only the isolation floor kept the survivors in the
+	// pool.
+	floorEntry bool
 }
 
 // screen runs the decide.closed screen over the operator survivors: survivors
@@ -189,6 +192,9 @@ func (r *critRun) screen(ctx context.Context, survivors []*poolMutant) error {
 			}
 			m.flagged, m.violation = true, outcome.violation
 			r.flagged++
+			if outcome.floorEntry {
+				r.screenFloorEntries++
+			}
 			r.add(m)
 		}
 	}
@@ -247,17 +253,18 @@ func (r *critRun) screenGroup(ctx context.Context, representative *poolMutant) (
 	}
 	r.answers = append(r.answers, answer)
 	answers, source := closedAnswers(answer, prompt.QuestionID(indexOf(window, r.c.Ref)))
-	violation := power.ViolationProbability(answers)
-	return screenOutcome{violation: violation, flagged: power.FlagsSurvivor(violation, r.rules.TauScreen.For(source))}, nil
+	verdict := power.Screen(answers, r.rules.MinIsolation, r.rules.TauScreen.For(source))
+	return screenOutcome{violation: verdict.Violation, flagged: verdict.Flagged, floorEntry: verdict.FloorEntry}, nil
 }
 
 // closedAnswers collects the answers of the votes to one question and says where
 // their probabilities came from: the model of the relay for a System One answer,
 // which replaces the host votes when there is one and whose stated probability of
 // VIOLATES is kept, and the host votes otherwise, each of which counts by its
-// choice whatever probability it states.
-func closedAnswers(answer hostbridge.Answer, question string) ([]power.ClosedAnswer, format.ConfidenceSource) {
-	var relayed, voted []power.ClosedAnswer
+// choice whatever probability it states. Each answer carries the isolation of its
+// executor and its mark, which decide whether it may screen a survivor out.
+func closedAnswers(answer hostbridge.Answer, question string) ([]power.ScreenAnswer, format.ConfidenceSource) {
+	var relayed, voted []power.ScreenAnswer
 	var relaySource format.ConfidenceSource
 	for _, vote := range answer.Votes {
 		parsed, err := prompt.ParseScreen(vote.Output)
@@ -268,11 +275,14 @@ func closedAnswers(answer hostbridge.Answer, question string) ([]power.ClosedAns
 		if !answered {
 			continue
 		}
+		provenance := power.ScreenAnswer{Isolation: vote.Executor.Isolation, Marked: vote.Marked}
 		if vote.Executor.Channel == format.ChannelSystemOneRelay {
-			relayed = append(relayed, given)
+			provenance.ClosedAnswer = given
+			relayed = append(relayed, provenance)
 			relaySource = format.ConfidenceSource(vote.Executor.Model.Name)
 		} else {
-			voted = append(voted, power.ClosedAnswer{Choice: given.Choice})
+			provenance.ClosedAnswer = power.ClosedAnswer{Choice: given.Choice}
+			voted = append(voted, provenance)
 		}
 	}
 	if len(relayed) > 0 {

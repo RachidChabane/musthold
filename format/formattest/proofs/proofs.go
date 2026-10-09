@@ -185,7 +185,7 @@ func DiscriminatingPower(mutations ...func(*format.Statement[format.Discriminati
 			{Index: 1, Result: format.Executed(format.ExamplePassed)},
 		},
 	}
-	predicate.Extensions.OperatorScreen = &format.OperatorScreen{Flagged: 2, ScreenedOut: 37}
+	predicate.Extensions.OperatorScreen = &format.OperatorScreen{Flagged: 2, ScreenedOut: 37, FloorEntries: 1}
 	statement := format.NewStatement([]format.Subject{requirementSubject()}, predicate)
 	for _, mutate := range mutations {
 		mutate(&statement)

@@ -56,6 +56,9 @@ type critRun struct {
 	// kept.
 	screenedOut int
 	flagged     int
+	// screenFloorEntries counts the flagged survivors that only the isolation floor
+	// kept in the pool.
+	screenFloorEntries int
 }
 
 func (p *project) newCritRun(bridge *hostbridge.Bridge, criterion spec.Criterion, st *staticAnalysis) *critRun {

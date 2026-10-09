@@ -360,9 +360,10 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   meets and fail one a violating mutant breaks, find a witness where a mutant moves
   a boundary, and confirm that witness by running it on the reference and on the
   mutant.
-- **SP-957~1**: WHEN an honest host answers every request for a Go project THE
-  SYSTEM SHALL block the criterion whose weak test lets a validated mutant survive
-  and pass the criteria whose tests kill every validated mutant.
+- **SP-957~2**: WHEN a host whose responses are exposed, as those of a command-line
+  host are, answers every request for a Go project THE SYSTEM SHALL block the
+  criterion whose weak test lets a validated mutant survive and escalate the
+  criteria whose survivors only a response with exclusion power could clear.
 
 ## Jest and Vitest projects
 
@@ -437,9 +438,11 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   reference meets and fail one a violating mutant breaks, find a witness where a
   mutant moves a boundary, and confirm that witness by running it on the
   reference and on the mutant.
-- **SP-1041~1**: WHEN an honest host answers every request for a Jest or Vitest
-  project THE SYSTEM SHALL block the criterion whose weak test lets a validated
-  mutant survive and pass the criteria whose tests kill every validated mutant.
+- **SP-1041~2**: WHEN a host whose responses are exposed, as those of a command-line
+  host are, answers every request for a Jest or Vitest project THE SYSTEM SHALL
+  block the criterion whose weak test lets a validated mutant survive and
+  escalate the criteria whose survivors only a response with exclusion power
+  could clear.
 - **SP-1042~1**: WHEN a project is inspected THE SYSTEM SHALL recognize a Jest or
   Vitest project among the ecosystems it supports.
 
@@ -487,9 +490,10 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   identifier already so spelled as it is.
 - **SP-1121~1**: WHEN `init` inspects a Maven or Gradle project THE SYSTEM SHALL
   name the ecosystem in the configuration it writes.
-- **SP-1122~1**: WHEN an honest host answers every request for a Maven project
-  THE SYSTEM SHALL block the criterion whose weak test lets a validated mutant
-  survive and pass the criteria whose tests kill every validated mutant.
+- **SP-1122~2**: WHEN a host whose responses are exposed, as those of a command-line
+  host are, answers every request for a Maven project THE SYSTEM SHALL block the
+  criterion whose weak test lets a validated mutant survive and escalate the
+  criteria whose survivors only a response with exclusion power could clear.
 - **SP-1123~1**: WHEN the EcosystemContract runs on Maven with Java, Gradle with
   Java and Gradle with Kotlin THE SYSTEM SHALL pass its six cases on each.
 
@@ -546,6 +550,12 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   vote one for VIOLATES and zero for another whatever it states, so that host
   votes give their share of VIOLATES; and flag a survivor into the pool at or
   above `tau_screen`.
+- **SP-252~1**: WHEN a survivor is screened THE SYSTEM SHALL let only answers at or
+  above the isolation floor and not marked leaked, exposed or resubmission_conflict
+  screen it out, keep the power of any answer to flag it, flag a survivor into the
+  pool when no such answer remains, and count in `extensions.operatorScreen.screenFloorEntries`
+  the survivors that entered the pool only because the floor kept answers below it
+  or marked from screening them out.
 
 ## Differential search
 

@@ -78,10 +78,10 @@ func TestProveAGoProjectEndToEnd(t *testing.T) {
 		t.Skip("runs the Go fixture's tests against many mutants")
 	}
 
-	t.Run("the honest persona blocks the weak test and passes the adequate ones [verifies SP-957~1]", func(t *testing.T) {
+	t.Run("the honest persona blocks the weak test and escalates the others, whose survivors exposed answers cannot clear [verifies SP-957~2]", func(t *testing.T) {
 		h := newGoHarness(t)
 		code, output := h.drive(hostprototest.PersonaHonest, oracle{})
-		want := map[string]string{"PAR-1~1": provedPass, "PAR-2~1": provedPass, "PAR-3~1": provedBlock}
+		want := map[string]string{"PAR-1~1": provedEscalate, "PAR-2~1": provedEscalate, "PAR-3~1": provedBlock}
 		for ref, verdict := range want {
 			if got := verdicts(output)[ref]; got != verdict {
 				t.Errorf("%s: %q, want %q\n%s", ref, got, verdict, output)

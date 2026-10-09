@@ -206,7 +206,7 @@ func (r *critRun) predicate(inputs []format.Input, cacheKey string, correctCodeP
 	if err != nil {
 		return format.DiscriminatingPower{}, err
 	}
-	extensions := format.Extensions{OperatorScreen: &format.OperatorScreen{Flagged: r.flagged, ScreenedOut: r.screenedOut}}
+	extensions := format.Extensions{OperatorScreen: &format.OperatorScreen{Flagged: r.flagged, ScreenedOut: r.screenedOut, FloorEntries: r.screenFloorEntries}}
 	if exclusions > 0 {
 		extensions.HostExclusions = &exclusions
 	}

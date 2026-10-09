@@ -42,7 +42,7 @@ confidence source of the claim. `judge_k` is the number of blind judge tickets
 | judged valid mutant, killed | pass credit | a specific kill (a test of the requirement that killed no sentinel), the mutant builds, the other requirements' tests pass, a confirmed witness, the judge agrees | no credit |
 | equivalent survivor | excluded from the pool | a differential search that found no difference | escalate; a contradicting answer is rejected |
 | not-violating or off-target survivor | excluded | a failing example of another requirement and none of its own | escalate under `corroborated`; accepted with `judge_k` and counted in `hostExclusions` under `judged` |
-| closed screen of a survivor | pool membership | none; screen-outs are counted in `screenExclusions` | `executed-only` bypasses the screen |
+| closed screen of a survivor | pool membership | none; only answers at the isolation floor and not marked can screen a survivor out, and screen-outs are counted in `screenExclusions`; a survivor the screen would otherwise have let go, kept in the pool only by the floor, is counted in `screenFloorEntries` | `executed-only` bypasses the screen |
 | undetermined survivor, no valid mutant, test that killed a sentinel | escalate | none | none |
 | alignment ALIGNED | clears the test | judge plus a SPECIFIC or OVERBROAD matrix that is neither contaminated nor pinning off-spec behaviour | without the discriminating-power module: `uncorroborated`, which clears under `trust: local` and escalates under `trust: signed` unless the basis is `judged` |
 | alignment MISALIGNED, UNDETERMINED | escalate | none | none |

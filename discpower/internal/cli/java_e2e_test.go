@@ -42,10 +42,10 @@ func newJavaHarness(t *testing.T) *harness {
 }
 
 func TestProveAJavaProjectEndToEnd(t *testing.T) {
-	t.Run("the honest persona blocks the weak test and passes the adequate ones on Maven [verifies SP-1122~1]", func(t *testing.T) {
+	t.Run("the honest persona blocks the weak test and escalates the others, whose survivors exposed answers cannot clear on Maven [verifies SP-1122~2]", func(t *testing.T) {
 		h := newJavaHarness(t)
 		code, output := h.drive(hostprototest.PersonaHonest, javaOracle{})
-		want := map[string]string{"PAR-1~1": provedPass, "PAR-2~1": provedPass, "PAR-3~1": provedBlock}
+		want := map[string]string{"PAR-1~1": provedEscalate, "PAR-2~1": provedEscalate, "PAR-3~1": provedBlock}
 		for ref, verdict := range want {
 			if got := verdicts(output)[ref]; got != verdict {
 				t.Errorf("%s: %q, want %q\n%s", ref, got, verdict, output)

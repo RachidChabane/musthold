@@ -35,7 +35,7 @@ func TestScreenAnswersSource(t *testing.T) {
 			vote(format.ChannelHostInline, "m", "VIOLATES"), vote(format.ChannelHostInline, "m", "CONSISTENT"), vote(format.ChannelHostInline, "m", "CONSISTENT"),
 		}}
 		answers, _ := closedAnswers(answer, question)
-		if probability := power.ViolationProbability(answers); math.Abs(probability-1.0/3.0) > 1e-9 {
+		if probability := power.ViolationProbability(plain(answers)); math.Abs(probability-1.0/3.0) > 1e-9 {
 			t.Fatalf("P(VIOLATES) = %v", probability)
 		}
 	})
@@ -48,7 +48,7 @@ func TestScreenAnswersSource(t *testing.T) {
 		if len(answers) != 1 || source != format.ConfidenceSource(endpoint) || string(source) != "system-one:nimble:9b@"+format.SHA256Hex([]byte("endpoint")) {
 			t.Fatalf("answers %d, source %q", len(answers), source)
 		}
-		if probability := power.ViolationProbability(answers); probability != 0.55 {
+		if probability := power.ViolationProbability(plain(answers)); probability != 0.55 {
 			t.Fatalf("P(VIOLATES) = %v", probability)
 		}
 	})
