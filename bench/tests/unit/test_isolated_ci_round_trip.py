@@ -17,7 +17,13 @@ from specbench.adapters.isolated_host_config import IsolatedHostConfig
 from specbench.adapters.product_cli import ProductCli
 from specbench.adapters.session_state import SessionState, SessionStateFile
 from specbench.adapters.shallnot_cli import ShallnotCli
-from specbench.application.ports import EventSink, GateSessionEnd, GateSessionSpec, ProcessResult
+from specbench.application.ports import (
+    ClaudeCredentialSource,
+    EventSink,
+    GateSessionEnd,
+    GateSessionSpec,
+    ProcessResult,
+)
 from specbench.domain.arm_policy import policy_for
 from specbench.domain.arms import Arm
 from specbench.domain.canonical import JsonValue
@@ -27,7 +33,7 @@ from specbench.domain.gate import GateStatus
 from specbench.domain.manifest import CALL_EVENTS, RunLayout
 from specbench.domain.product import PROOF_MODULES
 from specbench.domain.sessions import ci_round_call_id
-from support.credentials import StaticCredentialSource
+from support.credentials import FAKE_TOKEN, FailingCredentialSource, StaticCredentialSource
 
 BINARIES = Path("/tools/bin")
 DP = PROOF_MODULES[0]
@@ -49,9 +55,11 @@ class ProductRunner:
         self.dirty = dirty
         self.push_publishes = push_publishes
         self.pulls: list[tuple[list[str], Mapping[str, str] | None]] = []
+        self.environments: list[Mapping[str, str]] = []
 
     def run(self, argv: Sequence[str], cwd: Path | None = None, env: Mapping[str, str] | None = None) -> ProcessResult:
         words = list(argv)
+        self.environments.append(dict(env or {}))
         if words[0] == "git":
             return self._git(words[3:])
         if words[1:3] == ["host", "pull"]:
@@ -104,7 +112,14 @@ class RecordingSession:
 
 
 class Rig:
-    def __init__(self, tmp_path: Path, runner: ProductRunner, session: RecordingSession, token: str | None) -> None:
+    def __init__(
+        self,
+        tmp_path: Path,
+        runner: ProductRunner,
+        session: RecordingSession,
+        token: str | None,
+        credentials: ClaudeCredentialSource | None = None,
+    ) -> None:
         self.runner = runner
         self.session = session
         self.config = IsolatedHostConfig(Path("/repo"), BINARIES, Path("/u"), tmp_path / "rooms")
@@ -129,7 +144,7 @@ class Rig:
             cli,
             repository,
             ClaudeExecutionCounter(),
-            StaticCredentialSource(token),
+            credentials or StaticCredentialSource(token),
             {"PATH": "/usr/bin"},
         )
 
@@ -148,8 +163,14 @@ class Rig:
         )
 
 
-def rig(tmp_path: Path, runner: ProductRunner | None = None, finishes: bool = True, token: str | None = "tok") -> Rig:
-    return Rig(tmp_path, runner or ProductRunner(), RecordingSession(finishes), token)
+def rig(
+    tmp_path: Path,
+    runner: ProductRunner | None = None,
+    finishes: bool = True,
+    token: str | None = "tok",
+    credentials: ClaudeCredentialSource | None = None,
+) -> Rig:
+    return Rig(tmp_path, runner or ProductRunner(), RecordingSession(finishes), token, credentials)
 
 
 def test_a_round_without_a_credential_never_pulls_nor_starts_a_session(tmp_path: Path) -> None:
@@ -208,3 +229,22 @@ def test_a_push_that_publishes_nothing_leaves_the_round_unarchived(tmp_path: Pat
     result = r.trip.run(r.request())
     assert result.status is GateStatus.PAUSED
     assert CiRoundArchive(r.record).rounds() == 0
+
+
+def test_the_token_reaches_the_round_session_alone_and_no_other_process_nor_file_holds_it(tmp_path: Path) -> None:
+    r = rig(tmp_path, token=FAKE_TOKEN)
+    result = r.trip.run(r.request())
+    assert result.status is GateStatus.COMPLETE
+    [spec] = r.session.specs
+    assert spec.env["CLAUDE_CODE_OAUTH_TOKEN"] == FAKE_TOKEN
+    assert FAKE_TOKEN not in repr(spec)
+    assert all(FAKE_TOKEN not in "".join(env.values()) for env in r.runner.environments)
+    holders = [p for p in tmp_path.rglob("*") if p.is_file() and FAKE_TOKEN.encode() in p.read_bytes()]
+    assert holders == []
+
+
+def test_a_source_that_fails_ends_the_round_as_misconfigured_before_anything_is_pulled(tmp_path: Path) -> None:
+    r = rig(tmp_path, credentials=FailingCredentialSource())
+    result = r.trip.run(r.request())
+    assert result.status is GateStatus.HARNESS_MISCONFIGURED
+    assert (r.runner.pulls, r.session.specs) == ([], [])
