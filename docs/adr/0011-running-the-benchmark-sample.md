@@ -188,6 +188,44 @@ against the code and the installed CLIs.
       0007, Host execution), instead of a reserved isolated-fallback live gate;
       only misses of its harvested local responses use isolated-fallback; the
       extra executions are reported in E5.`
+13. **Every Claude Code session of the sample runs one frozen, private copy of
+    the CLI.**
+    - **Why:** the owner's own `claude` is the native install, and it updates
+      itself from interactive sessions. A sample that used it could span two CLI
+      versions, and the version a session ran would not be knowable afterwards.
+      The owner's installation and configuration are never touched.
+    - **Pin:** `script/claude-code.pin` holds the one version. Everything that
+      names it follows the file: the CI install step, `ClaudeCodeVersion` in
+      `format/hostproto/harness/harness.go` and `ClassifyPinnedCLIVersions()` in
+      `format/hostproto/classifyprompt.go`. `script/check-claude-code-pin`, run
+      by `script/lint`, fails when either Go value differs.
+    - **Copy:** `script/claude-code-install` puts the binary at
+      `.tools/claude-code/<version>/bin/claude`, from the owner's native binary
+      of that version when it exists and otherwise from the npm package at that
+      exact version. It refuses a binary whose `--version` does not start with
+      the pinned version, and records the SHA-256 of what it installed in
+      `.tools/claude-code/<version>/SHA256`.
+    - **Resolution:** one port, `PinnedClaude`, gives every launch site its
+      binary and its version: coder sessions, gate-host sessions, CI round
+      trips, construction calls and the manifest's version probe. Without the
+      installed binary a session does not start, and the message names
+      `script/claude-code-install`.
+    - **Updater:** `DISABLE_AUTOUPDATER=1` is set in the process environment of
+      each session and of each probe of the pinned binary, and nowhere else: not
+      in the bench's own environment and not in any configuration file. The
+      night jobs that call Claude (canaries and construction) install the copy,
+      put its directory first on `PATH` and set the same variable, so the
+      nightly canary validates the binary the bench runs. The pilot job keeps
+      the `PATH` it was pre-registered with.
+    - **Record:** the `claude_code_version` of the `system/init` event is kept
+      on the session's result and in its call record (`meta.json`,
+      `cli_version`). The Codex session records the `cli_version` of its
+      rollout. The manifest's `cli_versions.claude` is the pin.
+    - **Mismatch:** a session whose init names another version than the pin, or
+      none, is `harness_misconfigured` with the reason in its problems. It is
+      not archived and it is charged the executions its events show, so the run
+      stops at that session and continues once the binary is right. A gate-host
+      session is stopped at its init event.
 
 ## Consequences
 
