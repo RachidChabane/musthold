@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Regenerates every committed fixture that derives from the proof statements, in
+# dependency order, so a change to a statement's shape reaches all of them:
+#
+#   1. format's golden vectors (go test ./format -update-golden), then the host
+#      protocol's golden vectors and transcripts;
+#   2. the golden discriminating-power statements alignment reads
+#      (alignment/internal/testkit, -update);
+#   3. the verifier's Sigstore bundles, signed over those statements by a
+#      virtual Sigstore (verify/.../sigstoreverifier, -update-fixtures), only
+#      when its tests show them stale: the virtual Sigstore draws new keys on
+#      every run, so re-signing current bundles would only churn them;
+#   4. the bench's recorded parcel answers (script/regen-bench-recordings),
+#      when the product is built.
+#
+#   script/regen-statement-fixtures
+#
+# Each step runs under script/mem-guard and nice. Exit 0: every fixture was
+# regenerated; non-zero: the failing step's exit code.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly NICE_LEVEL=10
+readonly TEST_PROCS=2
+readonly PRODUCT_BINARY=".tools/bin/spec-proof-dp"
+
+regenerate() {
+  local module="$1" package="$2" flag="$3"
+  echo "regen-statement-fixtures: ${module} ${package} ${flag}"
+  (cd "${module}" && GOMAXPROCS="${TEST_PROCS}" ../script/mem-guard run -- \
+    nice -n "${NICE_LEVEL}" go test -count=1 "${package}" -args "${flag}")
+}
+
+regenerate format . -update-golden
+regenerate format ./hostproto/ -update-golden
+regenerate format ./hostproto/mcpstdio/ -update-golden
+regenerate alignment ./internal/testkit/ -update
+readonly SIGSTORE_FIXTURES="./internal/adapters/signing/sigstoreverifier/"
+if (cd verify && GOMAXPROCS="${TEST_PROCS}" ../script/mem-guard run -- nice -n "${NICE_LEVEL}" \
+  go test -count=1 "${SIGSTORE_FIXTURES}" >/dev/null 2>&1); then
+  echo "regen-statement-fixtures: the Sigstore bundles of verify are current"
+else
+  regenerate verify "${SIGSTORE_FIXTURES}" -update-fixtures
+fi
+if [[ -x "${PRODUCT_BINARY}" ]]; then
+  script/regen-bench-recordings
+else
+  echo "regen-statement-fixtures: ${PRODUCT_BINARY} is not built; the bench recordings were not regenerated (script/product-build)" >&2
+fi

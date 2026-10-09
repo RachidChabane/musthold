@@ -56,6 +56,10 @@ install-git-hooks:  ## install the pre-push hook that gates the modules a push t
 watch-ci:  ## wait for the CI run of a commit and report its outcome (script/watch-ci; ARGS=COMMIT)
 	./script/watch-ci $(ARGS)
 
+.PHONY: regen-statement-fixtures
+regen-statement-fixtures:  ## regenerate every fixture derived from the proof statements, in dependency order (script/regen-statement-fixtures)
+	./script/regen-statement-fixtures
+
 .PHONY: secrets-scan
 secrets-scan:  ## scan the whole git history for secrets with gitleaks (script/secrets-scan)
 	./script/secrets-scan

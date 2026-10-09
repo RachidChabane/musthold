@@ -33,6 +33,7 @@ Every verb is a shebang script in `script/` and a `make` target that calls it, s
 | `make bench-recordings` | `script/regen-bench-recordings` | regenerate the parcel answers the benchmark's clean-room gate tests replay (`bench/tests/fixtures/parcel_answers`) from the product's honest parcel oracle; needs `script/product-build` |
 | `make bench-recordings-check` | `script/regen-bench-recordings --check` | fail when the committed parcel answers differ from what the generator writes; CI runs it after building the product |
 | `make plugin-gen` | `script/plugin-gen` | regenerate the committed plugin trees |
+| `make regen-statement-fixtures` | `script/regen-statement-fixtures` | after a change to a statement's shape, regenerate every fixture derived from the statements in dependency order: `format`'s golden vectors, the alignment golden statements, the verifier's Sigstore bundles when stale, the bench recordings |
 | `make shallnot-build` | `script/shallnot-build` | build the pinned Shallnot |
 | `make mem-check` | `script/mem-guard check` | refuse heavy work when memory is short |
 | `make release-dry-run TAG=<module>/vX.Y.Z` | `script/release <tag> --dry-run` | rehearse a release: report what a real release would refuse, build every target, verify `dist/` and install from it |
