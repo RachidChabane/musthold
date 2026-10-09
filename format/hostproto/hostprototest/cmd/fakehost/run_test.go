@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/RachidChabane/spec-proof/format/formattest/parcel"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
 )
@@ -80,6 +81,36 @@ func TestFakehostCommand(t *testing.T) {
 		code, _, stderr := invoke(t, runner, "-module-bin", "m", "-recordings", directory)
 		if code != exitOK || string(runner.stdin[len(runner.stdin)-1]) != recorded {
 			t.Fatalf("code %d, stderr %q, submitted %q", code, stderr, runner.stdin[len(runner.stdin)-1])
+		}
+	})
+
+	t.Run("a request without a recording is answered by the oracle when one is named [verifies SP-142~1]", func(t *testing.T) {
+		runner, request := newScripted()
+		view := request.ViewFor(hostprototest.Ticket(request, 0, 1))
+		directory := t.TempDir()
+		bare, err := answerSource(directory, "", "m")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := bare.Answer("honest", view); !errors.Is(err, hostprototest.ErrNoRecording) {
+			t.Fatalf("without an oracle: %v", err)
+		}
+		general, err := answerSource(directory, oracleParcel, "m")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, ok := general.(withFallback).fallback.(parcel.Oracle); !ok {
+			t.Fatalf("a module is answered by %T", general.(withFallback).fallback)
+		}
+		alignment, err := answerSource(directory, oracleParcel, alignmentBinary)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, ok := alignment.(withFallback).fallback.(parcel.AlignmentOracle); !ok {
+			t.Fatalf("alignment is answered by %T", alignment.(withFallback).fallback)
+		}
+		if code, _, _ := invoke(t, runner, "-module-bin", "m", "-oracle", "saboteur"); code != exitFailure {
+			t.Fatalf("an unknown oracle: code %d", code)
 		}
 	})
 

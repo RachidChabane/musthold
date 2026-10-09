@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/RachidChabane/spec-proof/format/formattest/parcel"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
 )
@@ -29,6 +30,9 @@ const (
 	flagPersona        = "persona"
 	flagModule         = "module-bin"
 	flagRecordings     = "recordings"
+	flagOracle         = "oracle"
+	oracleParcel       = "parcel"
+	alignmentBinary    = "spec-proof-alignment"
 	flagWait           = "wait"
 	flagList           = "list"
 )
@@ -60,6 +64,7 @@ func run(args []string, stdout, stderr io.Writer, newRunner runnerFactory, sleep
 	persona := flags.String(flagPersona, hostprototest.PersonaHonest, "persona to play: "+strings.Join(hostprototest.CLIPersonaNames(), ", "))
 	binary := flags.String(flagModule, "", "module binary to drive")
 	recordings := flags.String(flagRecordings, "", "directory of recorded answers named <requestId>.json; without it answers derive from the response schema")
+	oracle := flags.String(flagOracle, "", "answer the requests the recordings lack as this oracle does: "+oracleParcel)
 	wait := flags.Bool(flagWait, false, "really wait where the persona waits (the slow persona waits past the ticket time to live)")
 	list := flags.Bool(flagList, false, "list the personas and stop")
 	if err := flags.Parse(args); err != nil {
@@ -73,7 +78,7 @@ func run(args []string, stdout, stderr io.Writer, newRunner runnerFactory, sleep
 		fmt.Fprintf(stderr, "fakehost: -%s is required\n", flagModule)
 		return exitUsage
 	}
-	answers, err := answerSource(*recordings)
+	answers, err := answerSource(*recordings, *oracle, filepath.Base(*binary))
 	if err != nil {
 		fmt.Fprintf(stderr, "fakehost: %v\n", err)
 		return exitFailure
@@ -100,17 +105,68 @@ func run(args []string, stdout, stderr io.Writer, newRunner runnerFactory, sleep
 	return exitOK
 }
 
+// ErrUnknownOracle is returned for an oracle the command does not know.
+var ErrUnknownOracle = errors.New("unknown oracle")
+
 // answerSource reads the recordings of a directory, or derives answers from
-// schemas when none is given.
-func answerSource(directory string) (hostprototest.AnswerSource, error) {
+// schemas when none is given. With an oracle, a request the recordings lack is
+// answered by the oracle instead of failing.
+func answerSource(directory, oracle, moduleBinary string) (hostprototest.AnswerSource, error) {
+	switch oracle {
+	case "":
+		return recordedSource(directory)
+	case oracleParcel:
+		recorded, err := readRecordings(directory)
+		if err != nil {
+			return nil, err
+		}
+		return withFallback{primary: recorded, fallback: parcelOracleOf(moduleBinary)}, nil
+	}
+	return nil, fmt.Errorf("%w: %s", ErrUnknownOracle, oracle)
+}
+
+// parcelOracleOf is the honest host of the parcel project for a module: alignment
+// reads the tests, every other module is answered by the general oracle.
+func parcelOracleOf(moduleBinary string) hostprototest.AnswerSource {
+	if moduleBinary == alignmentBinary {
+		return parcel.HonestAlignment()
+	}
+	return parcel.Oracle{}
+}
+
+// withFallback answers from the primary source and, for a request it holds no
+// recording of, from the fallback.
+type withFallback struct {
+	primary  hostprototest.AnswerSource
+	fallback hostprototest.AnswerSource
+}
+
+// Answer implements hostprototest.AnswerSource.
+func (w withFallback) Answer(persona string, view hostproto.ExecutorView) (string, error) {
+	answer, err := w.primary.Answer(persona, view)
+	if errors.Is(err, hostprototest.ErrNoRecording) {
+		return w.fallback.Answer(persona, view)
+	}
+	return answer, err
+}
+
+func recordedSource(directory string) (hostprototest.AnswerSource, error) {
 	if directory == "" {
 		return hostprototest.SchemaAnswers{}, nil
+	}
+	return readRecordings(directory)
+}
+
+// readRecordings reads the recordings of a directory; none are held when it is empty.
+func readRecordings(directory string) (hostprototest.Recordings, error) {
+	recordings := hostprototest.Recordings{}
+	if directory == "" {
+		return recordings, nil
 	}
 	entries, err := os.ReadDir(directory)
 	if err != nil {
 		return nil, err
 	}
-	recordings := hostprototest.Recordings{}
 	for _, entry := range entries {
 		name := entry.Name()
 		if entry.IsDir() || !strings.HasSuffix(name, recordingExtension) {
