@@ -199,9 +199,11 @@ func tomlTable(t *testing.T, text string) map[string]map[string]any {
 	return tables
 }
 
-// snakeHooksFile is the hooks file of Claude Code and Codex.
+// snakeHooksFile is the hooks file of Claude Code and Codex; Modules is the list of
+// hooks modules a Claude plugin loads.
 type snakeHooksFile struct {
-	Hooks map[string][]struct {
+	Modules []string `json:"modules"`
+	Hooks   map[string][]struct {
 		Matcher string `json:"matcher"`
 		Hooks   []struct {
 			Type    string `json:"type"`

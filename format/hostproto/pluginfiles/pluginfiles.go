@@ -404,12 +404,16 @@ func (m Module) claudePlugin(h harness.Harness) ([]File, error) {
 	if err != nil {
 		return nil, err
 	}
-	hooks, err := encodeJSON(snakeHooks{Hooks: map[string][]matcherGroup{
+	hooks, err := encodeJSON(claudeHooks{snakeHooks: snakeHooks{Hooks: map[string][]matcherGroup{
 		eventPreToolUse:    m.group(m.claudeToolMatcher(), hostproto.HookPreTool, h),
 		eventSubagentStart: m.group(m.ExecutorRoleMatcher(h), hostproto.HookSubagentStart, h),
 		eventSubagentStop:  m.group(m.ExecutorRoleMatcher(h), hostproto.HookSubagentStop, h),
 		eventPostToolUse:   m.group(launchTool, hostproto.HookPostTool, h),
-	}})
+	}}, Modules: []string{claudeModEntry}})
+	if err != nil {
+		return nil, err
+	}
+	mod, err := m.claudeModFile()
 	if err != nil {
 		return nil, err
 	}
@@ -417,6 +421,7 @@ func (m Module) claudePlugin(h harness.Harness) ([]File, error) {
 		{Path: ".claude-plugin/plugin.json", Content: manifest},
 		{Path: ".mcp.json", Content: servers},
 		{Path: "hooks/hooks.json", Content: hooks},
+		mod,
 	}
 	for _, agent := range m.Identity.Agents {
 		content, err := render("claude-agent", claudeAgentTemplate, agentData{

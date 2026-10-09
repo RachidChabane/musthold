@@ -592,3 +592,23 @@ Go tests of the module in CI.
 - **SP-1903~1**: WHEN an executor profile or a decision names the channel
   `host-classify` or a classification source THE SYSTEM SHALL accept them in the
   closed sets of the format and in the embedded schemas.
+
+## Claude Code mod
+
+- **SP-1920~1**: WHEN the Claude plugin of a proof module is generated THE SYSTEM
+  SHALL ship, beside the command hooks of `hooks/hooks.json`, the hooks module
+  `hooks/register.ts` that the same file names under `modules`; render it from one
+  template shared by every module, with the binary of the module as the only
+  difference; produce the same bytes on every generation; import only
+  `claude-code`; write every event name as a string literal; never destructure the
+  engine interface; and use no Node API, so that `claude plugin validate` reads it
+  without error.
+- **SP-1921~1**: WHEN a Bash command that starts with `<binary> prove` ends, or a
+  turn starts, and no run is in flight THE SYSTEM SHALL ask the binary for the
+  classification plan of the session's model and root, do nothing when the plan
+  command fails, is unparsable or is empty, make all the calls of an item
+  concurrently with the planned model and labels, retry a rejected or undefined
+  call once with the same arguments and report it with a null label after the
+  second failure, pass `{cliVersion, sessionModel, calls}` of each item on the
+  standard input of the binary's import command, and never write, log or show the
+  nonce, a text, a label or the standard input anywhere else.

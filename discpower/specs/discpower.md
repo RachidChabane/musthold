@@ -834,3 +834,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   the options in the planned order, the labels in that order and the seed input
   of the order; and SHALL refuse a call that names neither or both of a model and
   voters, and voters that do not make a valid source.
+- **SP-1930~1**: WHEN the committed Claude plugin of the module is read THE SYSTEM
+  SHALL ship the hooks module that carries the classifier calls of the host,
+  naming the binary of the module, and the validator of Claude Code SHALL accept
+  the plugin.

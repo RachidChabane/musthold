@@ -40,7 +40,7 @@ func TestClaudePlugin(t *testing.T) {
 		files := generated(t, module, claude)
 
 		t.Run(s.name+": the plugin lists exactly the files of the documented layout"+verifiesShipped, func(t *testing.T) {
-			want := []string{".claude-plugin/plugin.json", ".mcp.json", "hooks/hooks.json", skillPath(claude.Flag, module)}
+			want := []string{".claude-plugin/plugin.json", ".mcp.json", "hooks/hooks.json", pluginfiles.ClaudeModPath, skillPath(claude.Flag, module)}
 			for _, agent := range module.Identity.Agents {
 				want = append(want, agentPath(claude.Flag, module, agent))
 			}

@@ -117,7 +117,7 @@ func TestTheModulesOwnFiles(t *testing.T) {
 			paths = append(paths, path)
 		}
 		slices.Sort(paths)
-		want := []string{".claude-plugin/plugin.json", ".mcp.json", "agents/decider.md", "agents/judge.md", "hooks/hooks.json", "skills/spec-proof-alignment-fulfil/SKILL.md"}
+		want := []string{".claude-plugin/plugin.json", ".mcp.json", "agents/decider.md", "agents/judge.md", "hooks/hooks.json", "hooks/register.ts", "skills/spec-proof-alignment-fulfil/SKILL.md"}
 		if !slices.Equal(paths, want) {
 			t.Fatalf("files = %v", paths)
 		}
