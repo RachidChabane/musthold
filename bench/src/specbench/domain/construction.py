@@ -23,8 +23,9 @@ SONNET: Final = "claude-sonnet-5-5"
 CONSTRUCTION_CALL_PREFIX: Final = "build-"
 CONSTRUCTION_CALL_DIGEST_LENGTH: Final = 20
 DATED_MODEL_SUFFIX: Final = re.compile(r"-\d{8}$")
-CHARS_PER_TOKEN: Final = 2.5
-"""Characters per token of the densest text sent, a code diff; the request's own text never costs more tokens than this."""
+CHARS_PER_TOKEN: Final = 2.0
+"""Characters per token below the densest text sent (code, diffs and specifications run at about 2.35); the request's own
+text never costs more tokens than this."""
 INPUT_TOKEN_SLACK: Final = 500
 """Input tokens beyond the baseline and the request's own text that tokenization may add; a larger overshoot means ambient context leaked."""
 BASELINE_INPUT_TOKEN_CEILING: Final = 3000

@@ -48,15 +48,19 @@ def result(model: str = OPUS, input_tokens: int = 2, creation: int = 0, read: in
 
 
 def test_the_bound_is_the_baseline_plus_the_densest_tokenization_of_the_text_plus_the_slack() -> None:
-    assert CHARS_PER_TOKEN == 2.5 and INPUT_TOKEN_SLACK == 500
+    assert CHARS_PER_TOKEN == 2.0 and INPUT_TOKEN_SLACK == 500
     assert input_token_bound(1100, 0) == 1600
-    assert input_token_bound(1100, 1000) == 1100 + 400 + 500
-    assert input_token_bound(1100, 1001) == 1100 + 401 + 500
-    assert input_token_bound(1100, 34_863) == 1100 + math.ceil(34_863 / 2.5) + 500
+    assert input_token_bound(1100, 1000) == 1100 + 500 + 500
+    assert input_token_bound(1100, 1001) == 1100 + 501 + 500
+    assert input_token_bound(1100, 34_863) == 1100 + math.ceil(34_863 / 2.0) + 500
 
 
 def test_the_request_that_stopped_the_first_run_fits_its_bound() -> None:
     assert input_token_bound(BASELINE, 34_863) >= 14_853
+
+
+def test_a_specification_draft_at_two_point_three_five_characters_per_token_fits_its_bound() -> None:
+    assert input_token_bound(1555, 30_165) >= 14_854
 
 
 def test_the_request_text_counts_the_system_prompt_the_prompt_and_the_schema() -> None:
