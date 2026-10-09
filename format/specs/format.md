@@ -490,6 +490,10 @@ Go tests of the module in CI.
   target under the language of its ecosystem, and SHALL add that example neither
   to a configuration that binds operations nor twice, so that a second run
   changes nothing.
+- **SP-1941~1**: WHEN the AGENTS.md of a project is rendered for several modules
+  THE SYSTEM SHALL give the file that enabling each of them in order leaves,
+  keeping the rest of the file, change nothing when rendered again over its own
+  result, and refuse a file whose block of a module is unbalanced.
 - **SP-719~1**: WHEN the host settings of the shared configuration file are read
   THE SYSTEM SHALL keep attestation required and sampling off when the section is
   absent, read `sampling` and `require_attestation`, refuse an unknown or

@@ -35,6 +35,24 @@ func (m Module) agentsBlock() markedBlock {
 // of it and leaving the rest of the file alone.
 func (m Module) setAgentsBlock(current []byte) ([]byte, error) { return m.agentsBlock().set(current) }
 
+// WithAgentsBlocks returns the AGENTS.md that enabling each of the modules, in
+// order, leaves in a project whose file held current: every module's block, with
+// the rest of the file kept.
+func WithAgentsBlocks(current []byte, modules ...Module) ([]byte, error) {
+	content := current
+	for _, module := range modules {
+		next, err := module.setAgentsBlock(content)
+		if err != nil {
+			return nil, err
+		}
+		content = next
+	}
+	return content, nil
+}
+
+// AgentsPath is the file that holds the agents' instructions of a project.
+const AgentsPath = agentsPath
+
 // removeAgentsBlock takes the module's block out of the file, with the blank line
 // that set it apart. A file that held nothing else comes out empty.
 func (m Module) removeAgentsBlock(current []byte) ([]byte, error) {
