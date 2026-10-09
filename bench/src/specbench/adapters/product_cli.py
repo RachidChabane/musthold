@@ -83,6 +83,10 @@ def host_push_argv(binary: Path, tree: Path) -> list[str]:
     return [str(binary), "host", "push", "--root", str(tree)]
 
 
+def host_pull_argv(binary: Path, tree: Path, run_id: str) -> list[str]:
+    return [str(binary), "host", "pull", "--ci-run", run_id, "--root", str(tree)]
+
+
 def sign_argv(ledger: Path, statements: Path, destination: Path, key_file: Path) -> list[str]:
     return [
         str(ledger),
@@ -151,6 +155,10 @@ class ProductCli:
         """Whether the module had answers to publish: `host push` exits 1 when nothing is answered."""
         result = self._run(host_push_argv(self.binary(module.binary), tree), tree, env, {EXIT_CLEAN, EXIT_REFUSED})
         return result.returncode == EXIT_CLEAN
+
+    def host_pull(self, module: ProofModule, tree: Path, env: Mapping[str, str], run_id: str) -> None:
+        """Imports the requests CI issued in `run_id` as tickets of the host store; `gh` downloads them."""
+        self._run(host_pull_argv(self.binary(module.binary), tree, run_id), tree, env, {EXIT_CLEAN})
 
     def sign(self, statements: Path, destination: Path, key_file: Path, tree: Path, env: Mapping[str, str]) -> None:
         self._run(sign_argv(self.binary(LEDGER_BINARY), statements, destination, key_file), tree, env, {EXIT_CLEAN})

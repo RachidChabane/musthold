@@ -11,10 +11,11 @@ from specbench.application.paced_calls import CallGate
 from specbench.application.paced_gate_host import PacedGateHost
 from specbench.domain.agent_events import TokenUsage
 from specbench.domain.arms import Arm, Harness, Module
-from specbench.domain.gate import GateMode, GateOutcome, GateStatus, TicketUsage
+from specbench.domain.ci_seed import CI_ROUND_TRIPS
+from specbench.domain.gate import GateMode, GateOutcome, GatePause, GateStatus, TicketUsage
 from specbench.domain.pacing import DEFAULT_RUN_WINDOW, PacingPolicy, PauseReason, RunPaused, RunWindow
-from specbench.domain.reservation import reservation_for, seed_executions
-from specbench.domain.sessions import RequestKind, live_gate_call_id
+from specbench.domain.reservation import reservation_for, seed_executions, seed_round_executions
+from specbench.domain.sessions import RequestKind, ci_round_call_id, live_gate_call_id
 from support.fakes import FakeGateHost, FixedClock, LineCounter, MemoryCalls, MemoryEvents, MemoryHistory, MemoryLedger
 
 NIGHT = date(2026, 10, 8)
@@ -201,3 +202,118 @@ def test_a_gate_that_starts_while_another_is_still_running_leaves_the_running_on
     assert r.ledger.ledger.pending(CLAUDE) == ()
     assert r.run() == first
     assert len(r.inner.received) == 2
+
+
+def waiting(executions: int, rounds: int) -> GateOutcome:
+    return GateOutcome(
+        None, GateStatus.PAUSED, "session-1", executions, (TICKET,), ci_rounds=rounds, pause=GatePause.CI_ROUND_PENDING
+    )
+
+
+def scripted(*outcomes: GateOutcome) -> Callable[[], GateOutcome]:
+    remaining = list(outcomes)
+    return lambda: remaining.pop(0)
+
+
+def test_each_ci_round_trip_reserves_on_its_own_and_the_gate_is_charged_the_sum_of_its_entries() -> None:
+    reserved: list[int] = []
+    script = scripted(
+        waiting(10, 0), waiting(4, 1), GateOutcome({"verdict": "pass"}, GateStatus.COMPLETE, "s", 5, (), ci_rounds=2)
+    )
+
+    def answer() -> GateOutcome:
+        reserved.append(r.ledger.ledger.reserved_on(NIGHT, CLAUDE))
+        return script()
+
+    r = rig(answer)
+    outcome = r.run()
+    assert outcome.status is GateStatus.COMPLETE
+    assert (outcome.executions, outcome.ci_rounds, len(outcome.tickets)) == (19, 2, 2)
+    assert reserved == [
+        reservation_for(seed_executions(Arm.ALL, CRITERIA)),
+        reservation_for(seed_round_executions(CRITERIA)),
+        reservation_for(4),
+    ]
+    assert r.ledger.ledger.calls_on(NIGHT, CLAUDE) == 19
+    assert r.ledger.ledger.reserved_on(NIGHT, CLAUDE) == 0
+    assert r.calls.read(live_gate_call_id(Arm.ALL, RECORD)) is not None
+    assert r.run() == outcome
+    assert len(r.inner.received) == 3
+
+
+def test_a_round_that_does_not_fit_the_remaining_share_pauses_before_it_starts_and_resumes_from_that_round() -> None:
+    script = scripted(waiting(95, 0), GateOutcome({"verdict": "pass"}, GateStatus.COMPLETE, "s", 3, (), ci_rounds=1))
+    r = rig(script, budget=110)
+    with pytest.raises(RunPaused) as paused:
+        r.run()
+    assert paused.value.reason is PauseReason.BUDGET_REACHED
+    assert len(r.inner.received) == 1
+    assert r.ledger.ledger.calls_on(NIGHT, CLAUDE) == 95
+
+    again = PacedGateHost(
+        r.inner,
+        CLAUDE,
+        CRITERIA,
+        CallGate(CLAUDE, PacingPolicy(RunWindow.parse(DEFAULT_RUN_WINDOW), 250), r.ledger, r.clock),
+        r.calls,
+        r.events,
+        LineCounter(),
+        r.history,
+    )
+    outcome = again.run_gate(TREE, Arm.ALL, RECORD, GateMode.LIVE)
+    assert outcome.executions == 98
+    assert len(r.inner.received) == 2
+    assert r.ledger.ledger.calls_on(NIGHT, CLAUDE) == 98
+
+
+def test_a_gate_killed_between_rounds_resumes_with_what_the_earlier_entries_spent_still_counted() -> None:
+    class Killed(BaseException):
+        pass
+
+    calls: list[int] = []
+
+    def answer() -> GateOutcome:
+        calls.append(len(calls))
+        if len(calls) == 1:
+            return waiting(10, 0)
+        if len(calls) == 2:
+            raise Killed
+        return GateOutcome({"verdict": "pass"}, GateStatus.COMPLETE, "s", 5, (TICKET,), ci_rounds=1)
+
+    r = rig(answer)
+    with pytest.raises(Killed):
+        r.run()
+    assert r.calls.exists(ci_round_call_id(Arm.ALL, RECORD, 0))
+    assert r.ledger.ledger.reserved_on(NIGHT, CLAUDE) > 0
+    r.events.streamed[ci_round_call_id(Arm.ALL, RECORD, 1)] = ("{}", "{}")
+    outcome = r.run()
+    assert outcome.status is GateStatus.COMPLETE
+    assert len(outcome.tickets) == 2
+    assert outcome.executions == 10 + 5
+    assert r.ledger.ledger.reserved_on(NIGHT, CLAUDE) == 0
+
+
+def test_a_gate_that_keeps_asking_for_round_trips_pauses_once_the_rounds_and_the_settle_after_them_are_spent() -> None:
+    r = rig(lambda: waiting(2, 0))
+    outcome = r.run()
+    assert outcome.pause is GatePause.CI_ROUND_PENDING
+    assert len(r.inner.received) == CI_ROUND_TRIPS + 2
+    assert outcome.executions == 2 * (CI_ROUND_TRIPS + 2)
+    assert r.calls.exists(live_gate_call_id(Arm.ALL, RECORD)) is False
+    assert r.ledger.ledger.calls_on(NIGHT, CLAUDE) == outcome.executions
+
+
+def test_the_session_and_the_rounds_of_a_key_are_remembered_apart_for_the_next_reservations() -> None:
+    script = scripted(waiting(2, 0), GateOutcome({"verdict": "pass"}, GateStatus.COMPLETE, "s", 1, (), ci_rounds=1))
+    r = rig(script)
+    r.run()
+    assert r.history.history.reservation(CLAUDE, Arm.ALL, CRITERIA) == reservation_for(2)
+    assert r.history.history.round_reservation(CLAUDE, Arm.ALL, CRITERIA) == reservation_for(1)
+
+
+def test_a_replay_that_waits_for_a_round_trip_passes_through_without_touching_the_ledger() -> None:
+    r = rig(lambda: waiting(0, 1))
+    outcome = r.run(GateMode.REPLAY)
+    assert outcome.pause is GatePause.CI_ROUND_PENDING
+    assert r.ledger.ledger.accounts == {}
+    assert r.calls.records == {}

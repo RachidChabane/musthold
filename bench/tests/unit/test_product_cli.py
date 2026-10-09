@@ -10,6 +10,7 @@ from specbench.adapters.product_cli import (
     ProductCommandFailed,
     ProveRequest,
     enable_argv,
+    host_pull_argv,
     host_push_argv,
     init_argv,
     ledger_append_argv,
@@ -109,6 +110,26 @@ def test_host_push_names_the_root() -> None:
         "--root",
         "/room/tree",
     ]
+
+
+def test_host_pull_names_the_ci_run_and_the_root_but_no_repository() -> None:
+    assert host_pull_argv(BIN / "spec-proof-dp", TREE, "bench-0123456789abcdef") == [
+        "/tools/bin/spec-proof-dp",
+        "host",
+        "pull",
+        "--ci-run",
+        "bench-0123456789abcdef",
+        "--root",
+        "/room/tree",
+    ]
+
+
+def test_a_pull_runs_in_the_tree_with_the_environment_it_is_given() -> None:
+    runner = ScriptedRunner(0)
+    ProductCli(runner, BIN).host_pull(DP, TREE, {"PATH": "/shim"}, "bench-x")
+    [(argv, cwd, env)] = runner.calls
+    assert argv[1:3] == ["host", "pull"]
+    assert (cwd, env) == (TREE, {"PATH": "/shim"})
 
 
 def test_prove_reports_the_exit_of_a_run_that_waits_for_the_host() -> None:

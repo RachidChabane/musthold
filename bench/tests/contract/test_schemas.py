@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+from typing import Any
 
 import jsonschema
 import pytest
@@ -122,3 +123,21 @@ def test_corpus_lock_conforms_and_round_trips() -> None:
     lock = CorpusLock((lock_entry_for(TASK_ID, Language.PYTHON, task_json(), make_bundle()),))
     assert schema_problems(SchemaName.CORPUS_LOCK, lock.to_record()) == []
     assert parse_lock(lock.to_canonical_json()) == lock
+
+
+def test_the_trunk_schema_accepts_a_local_verdict_beside_the_verdict_and_refuses_an_unknown_one() -> None:
+    body: dict[str, JsonValue] = {
+        "model": FROZEN_MODEL[Harness.CLAUDE_CODE],
+        "selection_pass": True,
+        "verdict": "escalate",
+        "local_verdict": "pass",
+        "escalated_during": False,
+        "final": None,
+        "model_calls": 3,
+        "seconds": 5,
+    }
+    arm_schema = {"$ref": "#/$defs/arm", "$defs": load_schema(SchemaName.TRUNK)["$defs"]}
+    validator: Any = jsonschema.Draft202012Validator(arm_schema)
+    assert list(validator.iter_errors(body)) == []
+    assert list(validator.iter_errors({**body, "local_verdict": None})) == []
+    assert list(validator.iter_errors({**body, "local_verdict": "maybe"})) != []

@@ -36,11 +36,15 @@ SEED_EXECUTIONS_AT_REFERENCE_CRITERIA: Final = {
     Arm.ALL_NATIVE: FULL_EVALUATION_EXECUTIONS,
 }
 """Executions of one gate per arm at four criteria; an arm that is not listed is seeded as a full evaluation."""
+CI_ROUND_EXECUTIONS_PER_CRITERION: Final = 3
+"""The planning estimate of one CI round trip, per criterion: the mutant generation CI asks for and the judgments it needs."""
+CI_ROUND_HISTORY_SUFFIX: Final = "ci-round"
 EXECUTION_HISTORY_FILE_NAME: Final = "execution_history.json"
 
 
-def history_key(harness: Harness, arm: Arm, criteria: int) -> str:
-    return f"{harness.value}/{arm.value}/{criteria}"
+def history_key(harness: Harness, arm: Arm, criteria: int, suffix: str | None = None) -> str:
+    key = f"{harness.value}/{arm.value}/{criteria}"
+    return key if suffix is None else f"{key}/{suffix}"
 
 
 def seed_executions(arm: Arm, criteria: int) -> int:
@@ -49,6 +53,13 @@ def seed_executions(arm: Arm, criteria: int) -> int:
         raise RecordError("a spec has at least one criterion")
     seed = SEED_EXECUTIONS_AT_REFERENCE_CRITERIA.get(arm, FULL_EVALUATION_EXECUTIONS)
     return math.ceil(seed * criteria / REFERENCE_CRITERIA)
+
+
+def seed_round_executions(criteria: int) -> int:
+    """The planning estimate of one CI round trip of a gate on a spec with `criteria` criteria."""
+    if criteria < 1:
+        raise RecordError("a spec has at least one criterion")
+    return CI_ROUND_EXECUTIONS_PER_CRITERION * criteria
 
 
 def reservation_for(expected: int) -> int:
@@ -73,6 +84,15 @@ class ExecutionHistory:
 
     def reservation(self, harness: Harness, arm: Arm, criteria: int) -> int:
         return reservation_for(self.expected(harness, arm, criteria))
+
+    def with_round_observation(self, harness: Harness, arm: Arm, criteria: int, executions: int) -> ExecutionHistory:
+        key = history_key(harness, arm, criteria, CI_ROUND_HISTORY_SUFFIX)
+        return ExecutionHistory({**self.observed, key: (*self.observed.get(key, ()), executions)})
+
+    def round_reservation(self, harness: Harness, arm: Arm, criteria: int) -> int:
+        """The reservation of one CI round trip: the median of the rounds this key spent, or the planning estimate."""
+        seen = self.observed.get(history_key(harness, arm, criteria, CI_ROUND_HISTORY_SUFFIX))
+        return reservation_for(statistics.median_high(seen) if seen else seed_round_executions(criteria))
 
     def to_json(self) -> str:
         record: dict[str, JsonValue] = {key: list(values) for key, values in sorted(self.observed.items())}

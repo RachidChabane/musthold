@@ -13,6 +13,7 @@ from specbench.domain.arms import Arm, Harness
 from specbench.domain.call_ledger import CallLedger
 from specbench.domain.candidates import Candidate
 from specbench.domain.canonical import JsonValue
+from specbench.domain.ci_round import CiRoundRequest, CiRoundResult
 from specbench.domain.construction import ModelRequest, ModelResponse
 from specbench.domain.gate import GateMode, GateOutcome
 from specbench.domain.languages import Language
@@ -195,6 +196,15 @@ class ClaudeCredentialSource(Protocol):
     def token(self) -> str | None:
         """The token, or `None` when the source holds none; `CredentialSourceFailed` when it cannot tell."""
         ...
+
+
+class CiRoundTrip(Protocol):
+    """Strategy: answers the requests CI issued to a gate and archives the pushed answers under its record directory.
+
+    The isolated host starts a gate-host session for it; a plugin host would return the tickets to the coder's own session.
+    """
+
+    def run(self, request: CiRoundRequest) -> CiRoundResult: ...
 
 
 @dataclass(frozen=True)

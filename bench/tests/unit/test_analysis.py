@@ -14,7 +14,7 @@ from specbench.analysis.selection_null import selection_null
 from specbench.domain.arms import FROZEN_MODEL, Arm, Harness, Module
 from specbench.domain.canonical import JsonValue
 from specbench.domain.jsonread import RecordError
-from specbench.domain.records import ConfidenceSource, MutantSource, TrunkRecord, Writer, trunk_from_record
+from specbench.domain.records import ConfidenceSource, MutantSource, TrunkRecord, Verdict, Writer, trunk_from_record
 
 CLAUDE = Harness.CLAUDE_CODE
 H = CLAUDE.value
@@ -161,6 +161,21 @@ def test_trunks_that_never_reached_s_t_count_only_for_n() -> None:
     trunks = tree(results)["harnesses"][H]["trunks"]
     assert trunks["total"] == 5 and trunks["reached_s_t"] == 4 and trunks["unreached"] == 1
     assert trunks["s_n_defective"]["successes"] == 3
+
+
+def test_an_arm_result_keeps_the_local_readout_apart_from_the_verdict_acceptance_reads() -> None:
+    record = trunk(1, "r1", True, {"AL": arm("escalate", True, truth(True)) | {"local_verdict": "pass"}})
+    result = record.arms[Arm.AL]
+    assert result.verdict is Verdict.ESCALATE
+    assert result.local_verdict is Verdict.PASS
+    assert result.accepted() is False
+    assert result.accepted(lenient=True) is True
+    assert trunk(1, "r1", True, {"AL": arm("pass", True, truth(True))}).arms[Arm.AL].local_verdict is None
+
+
+def test_a_local_verdict_outside_the_verdicts_is_refused() -> None:
+    with pytest.raises(RecordError):
+        trunk(1, "r1", True, {"AL": arm("escalate", True, truth(True)) | {"local_verdict": "maybe"}})
 
 
 def test_trunk_records_refuse_a_model_that_is_not_frozen() -> None:

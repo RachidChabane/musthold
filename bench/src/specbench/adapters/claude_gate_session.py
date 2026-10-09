@@ -36,13 +36,31 @@ def session_prompt(record_dir: Path) -> str:
     )
 
 
+def round_prompt(modules: Sequence[ProofModule]) -> str:
+    """What the session is told in a CI round trip: answer the pulled tickets with each module's fulfil skill, nothing else."""
+    skills = ", ".join(f"{module.plugin}-fulfil" for module in modules)
+    binaries = ", ".join(module.binary for module in modules)
+    return (
+        "Requests that CI issued were pulled into this project as pending tickets. "
+        f"Answer every pending ticket of {binaries} with its fulfil skill ({skills}): the relay when `spec-proof-s1` "
+        "is on PATH and an endpoint is configured, then one foreground blind executor per ticket. "
+        "Run no `prove` command, change no file of the project, and never answer a request yourself."
+    )
+
+
 def session_argv(
-    prompt: str, plugin_directories: Sequence[Path], executable: str = CLAUDE_EXECUTABLE, model: str = CLAUDE_MODEL
+    prompt: str,
+    plugin_directories: Sequence[Path],
+    executable: str = CLAUDE_EXECUTABLE,
+    model: str = CLAUDE_MODEL,
+    resume: str | None = None,
 ) -> tuple[str, ...]:
+    """The command of a session; with `resume`, it continues that session instead of starting a new one."""
     argv = [
         executable,
         "-p",
         prompt,
+        *(["--resume", resume] if resume else []),
         "--model",
         model,
         "--output-format",

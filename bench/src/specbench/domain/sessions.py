@@ -128,3 +128,8 @@ class CallRecord:
 def live_gate_call_id(arm: Arm, record_dir: Path) -> str:
     """The identity of a live gate: its arm and its record directory, which is deterministic per task, arm and tree digest."""
     return GATE_CALL_ID_PREFIX + sha256_hex(f"{arm.value}\n{record_dir.as_posix()}".encode())[:CALL_ID_DIGEST_LENGTH]
+
+
+def ci_round_call_id(arm: Arm, record_dir: Path, number: int) -> str:
+    """The identity of the `number`th CI round trip of a live gate: its own reservation, events file and record."""
+    return f"{live_gate_call_id(arm, record_dir)}-ci{number}"

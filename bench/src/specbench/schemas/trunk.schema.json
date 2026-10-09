@@ -110,6 +110,7 @@
         "model": {"type": "string"},
         "selection_pass": {"type": ["boolean", "null"]},
         "verdict": {"enum": ["pass", "let-go", "escalate", "blocked"]},
+        "local_verdict": {"enum": ["pass", "let-go", "escalate", "blocked", null]},
         "escalated_during": {"type": "boolean"},
         "final": {"oneOf": [{"$ref": "#/$defs/truth"}, {"type": "null"}]},
         "model_calls": {"type": "integer", "minimum": 0},

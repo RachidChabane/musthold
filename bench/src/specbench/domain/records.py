@@ -75,6 +75,8 @@ class ArmResult:
     final: Truth | None
     model_calls: int
     seconds: int
+    local_verdict: Verdict | None = None
+    """What the same proofs earn under local trust: a developer-loop counterfactual, never read by acceptance."""
 
     def accepted(self, lenient: bool = False, strict: bool = False) -> bool:
         """Accepted iff the final verdict is PASS; lenient also takes ESCALATE, strict refuses any ESCALATE during the trunk."""
@@ -164,6 +166,9 @@ def _arm_result(arm: Arm, value: object, where: str) -> ArmResult:
         final=None if final is None else _truth(final, f"{where}.final"),
         model_calls=integer(body.get("model_calls"), f"{where}.model_calls"),
         seconds=integer(body.get("seconds"), f"{where}.seconds"),
+        local_verdict=None
+        if body.get("local_verdict") is None
+        else enum_of(Verdict, body.get("local_verdict"), f"{where}.local_verdict"),
     )
 
 

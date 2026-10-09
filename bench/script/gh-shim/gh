@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Stands in for `gh` in the commands the bench itself runs (`host pull`), never in a session: it serves
+# `gh run download RUN --name NAME --dir DIR [--repo OWNER/NAME]` from the artifacts the bench staged as
+# ${SPECBENCH_CI_ARTIFACTS}/RUN/NAME/. Any other command is refused.
+set -euo pipefail
+
+readonly EXIT_REFUSED=2
+readonly EXIT_MISSING=1
+
+[[ "${1:-}" == "run" && "${2:-}" == "download" && -n "${3:-}" ]] ||
+  { echo "gh-shim: only 'run download RUN' is served" >&2; exit "${EXIT_REFUSED}"; }
+: "${SPECBENCH_CI_ARTIFACTS:?gh-shim: SPECBENCH_CI_ARTIFACTS names the directory of staged artifacts}"
+
+run="$3"
+shift 3
+name="" destination=""
+while (($# > 0)); do
+  case "$1" in
+    --name) name="${2:?}"; shift 2 ;;
+    --dir) destination="${2:?}"; shift 2 ;;
+    --repo) shift 2 ;;
+    *) { echo "gh-shim: unsupported argument $1" >&2; exit "${EXIT_REFUSED}"; } ;;
+  esac
+done
+[[ -n "${name}" && -n "${destination}" ]] ||
+  { echo "gh-shim: --name and --dir are required" >&2; exit "${EXIT_REFUSED}"; }
+
+artifact="${SPECBENCH_CI_ARTIFACTS}/${run}/${name}"
+[[ -d "${artifact}" ]] || { echo "gh-shim: no artifact ${name} for run ${run}" >&2; exit "${EXIT_MISSING}"; }
+mkdir -p "${destination}"
+cp -R "${artifact}/." "${destination}/"

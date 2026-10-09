@@ -7,10 +7,9 @@ from pathlib import Path
 import pytest
 
 from specbench.adapters.execution_counter import ClaudeExecutionCounter
-from specbench.adapters.isolated_cli_host import GateHostMisuse, IsolatedCliHost, IsolatedHostConfig
-from specbench.adapters.product_cli import ProductCli
-from specbench.adapters.proof_publication import LocalPublication
-from specbench.adapters.shallnot_cli import ShallnotCli
+from specbench.adapters.isolated_cli_host import GateHostMisuse, IsolatedCliHost
+from specbench.adapters.isolated_host_config import IsolatedHostConfig
+from specbench.adapters.isolated_host_factory import SigningMaterial, build_isolated_host
 from specbench.adapters.workspace_repo import DiskTreeReader
 from specbench.application.ports import (
     ClaudeCredentialSource,
@@ -84,16 +83,14 @@ def make_host(
     token: str | None = "token",
     credentials: ClaudeCredentialSource | None = None,
 ) -> IsolatedCliHost:
-    runner = SilentRunner()
-    cli = ProductCli(runner, BINARIES)
     config = IsolatedHostConfig(Path("/repo"), BINARIES, Path("/tools/plugins/spec-proof"), tmp_path / "rooms")
-    return IsolatedCliHost(
+    return build_isolated_host(
         config,
         RunLayout(tmp_path / "run"),
-        cli,
-        ShallnotCli(runner, BINARIES / "shallnot", NoChecks()),
+        SilentRunner(),
+        NoChecks(),
         session,
-        LocalPublication(cli),
+        SigningMaterial(Path("/signing/key.pem"), Path("/signing/trust-policy.yaml")),
         DiskTreeReader(),
         ClaudeExecutionCounter(),
         credentials or StaticCredentialSource(token),

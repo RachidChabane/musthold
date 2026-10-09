@@ -105,3 +105,11 @@ class FirstCredentialSource:
 def default_credential_source(environ: Mapping[str, str]) -> ClaudeCredentialSource:
     """The environment first, then the keychain."""
     return FirstCredentialSource([EnvironmentCredentialSource(environ), KeychainCredentialSource()])
+
+
+def token_or_none(source: ClaudeCredentialSource) -> str | None:
+    """The token of a source, or `None` when it holds none or cannot tell; the failure is never carried further."""
+    try:
+        return source.token()
+    except CredentialSourceFailed:
+        return None

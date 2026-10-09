@@ -6,6 +6,7 @@ from specbench.adapters.claude_credentials import OAUTH_TOKEN_VARIABLE
 from specbench.adapters.claude_gate_session import (
     CONFIG_DIRECTORY_ENV,
     plugin_directories,
+    round_prompt,
     session_argv,
     session_environment,
     session_prompt,
@@ -60,3 +61,20 @@ def test_the_environment_isolates_the_configuration_and_drops_the_nesting_variab
 def test_the_proof_modules_are_listed_in_generate_order() -> None:
     assert [m.binary for m in PROOF_MODULES] == ["spec-proof-dp", "spec-proof-alignment", "spec-proof-completeness"]
     assert PROOF_MODULES[0].server == "plugin:spec-proof-dp:exec"
+
+
+def test_a_resumed_session_continues_the_session_it_names() -> None:
+    fresh = session_argv("p", (Path("/u"),))
+    resumed = session_argv("p", (Path("/u"),), resume="5b0c2a64")
+    assert "--resume" not in fresh
+    assert flag_values(resumed, "--resume") == ["5b0c2a64"]
+    assert flag_values(resumed, "--model") == flag_values(fresh, "--model")
+
+
+def test_the_round_prompt_names_each_modules_fulfil_skill_and_forbids_proving_or_self_answering() -> None:
+    prompt = round_prompt(PROOF_MODULES[:2])
+    assert "spec-proof-dp-fulfil" in prompt
+    assert "spec-proof-alignment-fulfil" in prompt
+    assert "spec-proof-completeness" not in prompt
+    assert "Run no `prove` command" in prompt
+    assert "--record" not in prompt

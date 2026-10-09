@@ -26,6 +26,12 @@ class GateStatus(Enum):
     HARNESS_MISCONFIGURED = "harness_misconfigured"
 
 
+class GatePause(Enum):
+    """Why a gate paused when it is not simply unfinished: the signed gate waits for one more CI round trip."""
+
+    CI_ROUND_PENDING = "ci_round_pending"
+
+
 @dataclass(frozen=True)
 class TicketUsage:
     """What one ticket of the gate cost: joined to the session's Agent calls through the rewritten prompt `ticket <t>`."""
@@ -73,8 +79,11 @@ class TicketUsage:
 class GateOutcome:
     """The result of `GateHost.run_gate`.
 
-    `report` is the parsed Shallnot report and is present exactly when the gate is complete. `executions` counts the
-    model executions the session spent, the session itself included; a replay spends none.
+    `report` is the parsed Shallnot report of the signed gate and is present exactly when the gate is complete.
+    `executions` counts the model executions the call spent, its session included; a replay spends none.
+    `local_report` is the report of the same proofs read under local trust, a developer-loop counterfactual that no
+    acceptance reads; it is absent for an arm with no proof module. `ci_rounds` is the number of CI round trips the
+    report rests on. A paused gate has a `pause` reason when it waits for another round trip.
     """
 
     report: JsonValue | None
@@ -82,16 +91,28 @@ class GateOutcome:
     session_id: str | None
     executions: int
     tickets: tuple[TicketUsage, ...]
+    local_report: JsonValue | None = None
+    ci_rounds: int = 0
+    pause: GatePause | None = None
 
     def __post_init__(self) -> None:
         if self.executions < 0:
             raise RecordError("a gate cannot spend a negative number of executions")
+        if self.ci_rounds < 0:
+            raise RecordError("a gate cannot rest on a negative number of CI rounds")
         if (self.report is not None) != (self.status is GateStatus.COMPLETE):
             raise RecordError("a gate has a report exactly when it is complete")
+        if self.local_report is not None and self.report is None:
+            raise RecordError("a gate has a local report only when it is complete")
+        if self.pause is not None and self.status is not GateStatus.PAUSED:
+            raise RecordError("only a paused gate has a pause reason")
 
     def to_record(self) -> dict[str, JsonValue]:
         return {
+            "ci_rounds": self.ci_rounds,
             "executions": self.executions,
+            "local_report": self.local_report,
+            "pause": None if self.pause is None else self.pause.value,
             "report": self.report,
             "session_id": self.session_id,
             "status": self.status.value,
@@ -106,4 +127,7 @@ class GateOutcome:
             optional_text(body.get("session_id"), "gate session_id"),
             integer(body.get("executions"), "gate executions"),
             tuple(TicketUsage.from_record(mapping(t, "gate ticket")) for t in sequence(body.get("tickets"), "tickets")),
+            body.get("local_report"),
+            integer(body.get("ci_rounds", 0), "gate ci_rounds"),
+            None if body.get("pause") is None else enum_of(GatePause, body.get("pause"), "gate pause"),
         )

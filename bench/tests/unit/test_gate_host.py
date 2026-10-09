@@ -7,7 +7,7 @@ import pytest
 from specbench.application.ports import GateHost
 from specbench.domain.agent_events import TokenUsage
 from specbench.domain.arms import Arm, Module
-from specbench.domain.gate import GateMode, GateOutcome, GateStatus, TicketUsage
+from specbench.domain.gate import GateMode, GateOutcome, GatePause, GateStatus, TicketUsage
 from specbench.domain.jsonread import RecordError
 from specbench.domain.sessions import RequestKind
 from support.fakes import FakeGateHost
@@ -46,3 +46,42 @@ def test_the_fake_host_satisfies_the_port_and_records_what_it_was_asked() -> Non
     assert host.run_gate(tree, Arm.ALL, record, GateMode.LIVE).executions == 40
     assert host.run_gate(tree, Arm.ALL, record, GateMode.REPLAY).executions == 0
     assert [mode for *_, mode in fake.received] == [GateMode.LIVE, GateMode.REPLAY]
+
+
+def test_a_paused_gate_can_wait_for_a_ci_round_trip_and_a_complete_one_cannot() -> None:
+    waiting = GateOutcome(None, GateStatus.PAUSED, "session-1", 12, (), ci_rounds=1, pause=GatePause.CI_ROUND_PENDING)
+    assert waiting.pause is GatePause.CI_ROUND_PENDING
+    with pytest.raises(RecordError):
+        GateOutcome({"verdict": "pass"}, GateStatus.COMPLETE, None, 0, (), pause=GatePause.CI_ROUND_PENDING)
+
+
+def test_the_local_readout_belongs_to_a_complete_gate_only() -> None:
+    both = GateOutcome({"verdict": "pass"}, GateStatus.COMPLETE, None, 0, (), local_report={"verdict": "fail"})
+    assert both.local_report == {"verdict": "fail"}
+    with pytest.raises(RecordError):
+        GateOutcome(None, GateStatus.PAUSED, None, 0, (), local_report={"verdict": "fail"})
+
+
+def test_a_gate_cannot_rest_on_a_negative_number_of_ci_rounds() -> None:
+    with pytest.raises(RecordError):
+        GateOutcome(None, GateStatus.PAUSED, None, 0, (), ci_rounds=-1)
+
+
+def test_the_new_fields_survive_a_record_round_trip_and_an_older_record_reads_without_them() -> None:
+    outcome = GateOutcome(
+        {"verdict": "pass"},
+        GateStatus.COMPLETE,
+        "session-1",
+        40,
+        (TICKET,),
+        local_report={"verdict": "fail"},
+        ci_rounds=3,
+    )
+    assert GateOutcome.from_record(outcome.to_record()) == outcome
+    older = {
+        key: value for key, value in outcome.to_record().items() if key not in {"ci_rounds", "local_report", "pause"}
+    }
+    reread = GateOutcome.from_record(older)
+    assert (reread.local_report, reread.ci_rounds, reread.pause) == (None, 0, None)
+    waiting = GateOutcome(None, GateStatus.PAUSED, None, 3, (), ci_rounds=2, pause=GatePause.CI_ROUND_PENDING)
+    assert GateOutcome.from_record(waiting.to_record()) == waiting
