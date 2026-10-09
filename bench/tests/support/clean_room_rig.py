@@ -28,7 +28,7 @@ from specbench.domain.gate import GateMode, GateOutcome, GatePause
 from specbench.domain.jsonread import mapping, sequence, text
 from specbench.domain.manifest import CALL_EVENTS, RunLayout
 from specbench.domain.sessions import ci_round_call_id, live_gate_call_id
-from support.credentials import StaticCredentialSource
+from support.credentials import FAKE_TOKEN, StaticCredentialSource
 from support.product_world import (
     BINARIES,
     PARCEL_ANSWERS,
@@ -38,7 +38,7 @@ from support.product_world import (
     make_parcel_tree,
 )
 
-BENCH_TOKEN: Final = "test-token"
+BENCH_TOKEN: Final = FAKE_TOKEN
 
 
 def make_signing_material(directory: Path) -> SigningMaterial:

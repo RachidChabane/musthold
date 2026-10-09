@@ -27,6 +27,7 @@ from specbench.domain.gate import GateMode, GateOutcome, GatePause, GateStatus
 from specbench.domain.jsonread import mapping
 from specbench.domain.sessions import RequestKind
 from support.clean_room_rig import (
+    BENCH_TOKEN,
     Rig,
     build_rig,
     consumed,
@@ -202,6 +203,13 @@ def test_a_replay_that_misses_an_archived_round_pauses_for_it_and_calls_no_model
     assert len(rig.session.specs) == specs
 
 
+def test_no_file_of_the_gate_holds_the_token_not_even_the_archived_rounds(live_dp: LiveGate) -> None:
+    needle = BENCH_TOKEN.encode()
+    holders = [path for path in live_dp.rig.root.rglob("*") if path.is_file() and needle in path.read_bytes()]
+    assert holders == []
+    assert all(BENCH_TOKEN not in repr(spec) for spec in live_dp.rig.session.specs)
+
+
 def test_the_stored_report_names_no_machine_path(live_dp: LiveGate) -> None:
     for report in (live_dp.final.report, live_dp.final.local_report):
         serialized = stable_json(report)
@@ -275,7 +283,7 @@ def test_the_session_ran_in_a_copy_of_the_tree_with_the_plugins_of_every_module(
     assert spec.cwd != rig.tree
     plugins = [spec.argv[i + 1] for i, word in enumerate(spec.argv) if word == "--plugin-dir"]
     assert [Path(p).parts[-3] for p in plugins[1:]] == ["discpower", "alignment", "completeness"]
-    assert spec.env["CLAUDE_CODE_OAUTH_TOKEN"] == "test-token"
+    assert spec.env["CLAUDE_CODE_OAUTH_TOKEN"] == BENCH_TOKEN
     assert (rig.tree / "AGENTS.md").exists() is False
 
 
@@ -314,13 +322,13 @@ def test_an_aligned_project_clears_in_the_local_readout_and_escalates_as_uncorro
     assert all(UNCORROBORATED in message for message in messages)
 
 
-def test_with_the_discriminating_power_proof_beside_it_alignment_is_corroborated_where_the_matrix_backs_it(
+def test_with_the_discriminating_power_proof_beside_it_the_signed_and_local_readouts_rest_on_valid_statements(
     live_all: LiveGate,
 ) -> None:
-    signed = " ".join(finding_messages(live_all.final.report))
-    assert "judged UNDETERMINED" not in signed
     assert trust_of(live_all.final.report) == "signed"
     assert trust_of(live_all.final.local_report) == "local"
+    assert {item["state"] for item in consumed(live_all.final.report)} == {"valid"}
+    assert {item["state"] for item in consumed(live_all.final.local_report)} == {"valid"}
 
 
 # --- failures of the session, the room and the rounds ---------------------------------------------------------
