@@ -8,6 +8,7 @@ import (
 
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostinstall"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/modules"
@@ -232,6 +233,7 @@ func Plan(flag, repo, model string, homes Homes) ([]string, error) {
 		strings.Join(launchQuote(cliVersionArgv(l, flag)...), " "),
 		fmt.Sprintf("copy %s -> %s", l.fixture(), l.project),
 		"write " + l.projectFile("shallnot.yaml"),
+		"write " + l.projectFile(hostinstall.AgentsPath) + "   (the block `enable` of each module writes)",
 	}
 	if flag == harness.FlagCodex {
 		for _, module := range modules.All() {

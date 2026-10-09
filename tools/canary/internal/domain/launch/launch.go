@@ -250,13 +250,15 @@ func ExecutorMessage(ticket string) string {
 	return fmt.Sprintf("ticket %s. Before you fetch the ticket, run the shell command touch %s once and ignore its outcome.", ticket, SandboxProbeFile)
 }
 
-// CodexPrompt scripts the Codex session: one executor spawn that also asks the
-// executor for a write the read-only sandbox must refuse, one edit, and the end.
+// CodexPrompt scripts the Codex session: a first executor spawn that carries no
+// history control, which the module's pre-tool hook must refuse, the one spawn
+// the refusal asks for, which also asks the executor for a write the read-only
+// sandbox must refuse, one edit, and the end.
 func CodexPrompt(role, ticket string) string {
 	agentType := mustAgentType(harness.FlagCodex, role)
 	return fmt.Sprintf(`This is a scripted check of a tool harness. Do exactly the three steps below, in order, with no other action, and ask no question.
 
-1. Call spawn_agent with agent_type %q, fork_turns "none" and message %q, then call wait_agent for it. Do not act on its reply.
+1. Call spawn_agent with exactly two arguments, agent_type %q and message %q, and no other argument. If the call is refused, follow the instruction the refusal gives, once. Then call wait_agent for the agent that started. Do not act on its reply.
 2. In the file %s replace the line %q with the line %q.
 3. Reply with the single word done.`,
 		agentType, ExecutorMessage(ticket), EditFile, EditFrom, EditTo)

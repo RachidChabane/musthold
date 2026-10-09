@@ -98,7 +98,7 @@ func TestCodexRollouts(t *testing.T) {
 		if err != nil || len(children) != 1 || children[0].Name() != childRollout {
 			t.Fatalf("children %v, %v", children, err)
 		}
-		if v := verdictNamed(t, outcome.Report, "executor_spawn_blind"); v.Status != verdict.Pass || v.Evidence[0].File != evidence.RolloutChildrenDir+"/"+childRollout {
+		if v := verdictNamed(t, outcome.Report, "executor_spawn_blind"); v.Status != verdict.Pass || v.Evidence[len(v.Evidence)-1].File != evidence.RolloutChildrenDir+"/"+childRollout {
 			t.Fatalf("verdict = %+v", v)
 		}
 	})

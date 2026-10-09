@@ -201,11 +201,30 @@ func TestPrompts(t *testing.T) {
 		prompt := launch.CodexPrompt(role, ticket)
 		message := launch.ExecutorMessage(ticket)
 		for _, part := range []string{
-			"spawn_agent with agent_type \"spec-proof-dp-decider\", fork_turns \"none\" and message " + strconv.Quote(message),
+			"spawn_agent with exactly two arguments, agent_type \"spec-proof-dp-decider\" and message " + strconv.Quote(message) + ", and no other argument",
 			"call wait_agent", launch.EditFile,
 		} {
 			if !strings.Contains(prompt, part) {
 				t.Errorf("the prompt lacks %q:\n%s", part, prompt)
+			}
+		}
+	})
+
+	t.Run("the first Codex spawn carries no history control, and a refusal is to be followed once [verifies SP-1942~1]", func(t *testing.T) {
+		prompt := launch.CodexPrompt(role, ticket)
+		for _, member := range []string{"fork_turns", "fork_context"} {
+			if strings.Contains(prompt, member) {
+				t.Errorf("the prompt names %s:\n%s", member, prompt)
+			}
+		}
+		for _, part := range []string{"exactly two arguments", "and no other argument", "If the call is refused, follow the instruction the refusal gives, once."} {
+			if !strings.Contains(prompt, part) {
+				t.Errorf("the prompt lacks %q:\n%s", part, prompt)
+			}
+		}
+		for name, other := range map[string]string{"Claude Code": launch.ClaudePrompt(role, ticket), "Copilot": launch.CopilotPrompt(role, ticket)} {
+			if strings.Contains(other, "follow the instruction the refusal gives") {
+				t.Errorf("the %s scenario asks for a refused spawn", name)
 			}
 		}
 		if found, err := hostproto.FindTicketID(prompt); err != nil || found.String() != ticket {

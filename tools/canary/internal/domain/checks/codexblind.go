@@ -18,28 +18,82 @@ const sessionMetaNote = "session_meta"
 
 func executorSpawnBlindCheck() Check {
 	return newCheck(checkCodexSpawnBlind,
-		"Every thread of the executor starts with none of the main agent's history: by the rule of the host protocol, its rollout holds only the harness context before the task message. "+
-			"The report also says which spawns of the executor set a blind form (`fork_turns: \"none\"` or `fork_context: false`) and whether the module's pre-tool hook denied those that set none.",
+		"The scripted session first spawns the executor with no history control: the module's pre-tool hook must deny that spawn, and the spawn the denial asks for must start a thread that, by the rule of the host protocol, "+
+			"holds only the harness context before its task message. A spawn without a blind form (`fork_turns: \"none\"` or `fork_context: false`) that starts a thread fails.",
 		func(found evidence.Evidence) verdict.Verdict {
 			agentType := codexStrategy().AgentType(found.Session.Role)
+			spawns := found.Rollouts.SpawnsOf(agentType)
 			children := found.Rollouts.ChildrenOf(agentType)
-			notes := spawnGuardNote(found, agentType) + startPayloadNote(found)
-			if len(children) == 0 {
-				return verdict.Undecided(noChildNote(found, agentType)+notes, append(spawnPointers(found, agentType), startPointers(found)...)...)
+			notes := spawnGuardNote(found, agentType) + threadsNote(children, agentType) + startPayloadNote(found)
+			if len(spawns) == 0 && len(children) == 0 {
+				return verdict.Undecided(noChildNote(found, agentType)+notes, startPointers(found)...)
+			}
+			if spawn, child, reached := unblindSpawnThatStarted(found, spawns); reached {
+				return verdict.Failed(fmt.Sprintf("the spawn of %s at line %d sets no blind form and started thread %s%s", agentType, spawn.Line, child, notes),
+					evidence.At(evidence.RolloutMainFile, spawn.Line, evidence.RolloutSpawnTool))
 			}
 			if child, inherited := childWith(children, hostproto.ChildInherited); inherited {
 				return verdict.Failed(fmt.Sprintf("thread %s of %s started with history of the main agent (%s)%s", child.ThreadID, agentType, child.HistoryReason, notes), threadPointers(found, child)...)
 			}
+			if len(spawns) == 0 {
+				return verdict.Undecided("a thread of "+agentType+" is recorded, but no rollout recorded the spawns that started it"+notes, childPointers(children)...)
+			}
+			first := spawns[0]
+			firstPointer := evidence.At(evidence.RolloutMainFile, first.Line, evidence.RolloutSpawnTool)
+			denial, seen := spawnHookCall(found, first)
+			switch {
+			case first.Blind:
+				return verdict.Undecided("the first spawn of "+agentType+" already set a blind form, so the refusal of the pre-tool hook was not exercised"+notes, firstPointer)
+			case !seen || denial.Decision().Permission != string(hostproto.PermissionDeny):
+				return verdict.Undecided("the first spawn of "+agentType+" set no blind form, and no denial of it by the module's pre-tool hook is recorded"+notes, firstPointer)
+			case len(children) == 0:
+				return verdict.Undecided("the pre-tool hook denied the first spawn of "+agentType+", but no rollout of a thread started after it was recorded"+notes, firstPointer)
+			}
 			if child, unproven := childWith(children, hostproto.ChildUnproven); unproven {
 				return verdict.Undecided(fmt.Sprintf("the rollout of thread %s of %s cannot show the history it started with (%s)%s", child.ThreadID, agentType, child.HistoryReason, notes), childPointer(child))
 			}
-			pointers := make([]verdict.Pointer, 0, len(children))
-			for _, child := range children {
-				pointers = append(pointers, childPointer(child))
-			}
-			summary := fmt.Sprintf("%d thread(s) of %s started with none of the main agent's history%s", len(children), agentType, notes)
-			return verdict.Passed(summary, append(pointers, startPointers(found)...)...)
+			pointers := append([]verdict.Pointer{evidence.HooksAt(denial.Line, "pre-tool denial of the first spawn"), firstPointer}, childPointers(children)...)
+			summary := fmt.Sprintf("the module's pre-tool hook denied the first spawn of %s, which set no blind form, and the spawn that followed started blind%s", agentType, notes)
+			return verdict.Passed(summary, pointers...)
 		})
+}
+
+// unblindSpawnThatStarted returns a spawn that set no blind form and yet started
+// a thread, with the thread its output names.
+func unblindSpawnThatStarted(found evidence.Evidence, spawns []evidence.RolloutSpawn) (evidence.RolloutSpawn, string, bool) {
+	for _, spawn := range spawns {
+		if spawn.Blind {
+			continue
+		}
+		if spawn.ChildThreadID != "" {
+			return spawn, spawn.ChildThreadID, true
+		}
+		if spawn.ChildPath != "" {
+			return spawn, spawn.ChildPath, true
+		}
+	}
+	return evidence.RolloutSpawn{}, "", false
+}
+
+// threadsNote reports how the recorded threads of the executor started.
+func threadsNote(children []evidence.RolloutChild, agentType string) string {
+	if len(children) == 0 {
+		return ""
+	}
+	counts := map[hostproto.ChildHistory]int{}
+	for _, child := range children {
+		counts[child.History]++
+	}
+	return fmt.Sprintf("; of %d thread(s) of %s, %d started blind, %d inherited history and %d cannot show it",
+		len(children), agentType, counts[hostproto.ChildBlind], counts[hostproto.ChildInherited], counts[hostproto.ChildUnproven])
+}
+
+func childPointers(children []evidence.RolloutChild) []verdict.Pointer {
+	pointers := make([]verdict.Pointer, 0, len(children))
+	for _, child := range children {
+		pointers = append(pointers, childPointer(child))
+	}
+	return pointers
 }
 
 func childWith(children []evidence.RolloutChild, history hostproto.ChildHistory) (evidence.RolloutChild, bool) {
@@ -60,14 +114,6 @@ func childPointer(child evidence.RolloutChild) verdict.Pointer {
 func threadPointers(found evidence.Evidence, child evidence.RolloutChild) []verdict.Pointer {
 	pointers := []verdict.Pointer{childPointer(child)}
 	if spawn, recorded := found.Rollouts.SpawnOf(child); recorded {
-		pointers = append(pointers, evidence.At(evidence.RolloutMainFile, spawn.Line, evidence.RolloutSpawnTool))
-	}
-	return pointers
-}
-
-func spawnPointers(found evidence.Evidence, agentType string) []verdict.Pointer {
-	var pointers []verdict.Pointer
-	for _, spawn := range found.Rollouts.SpawnsOf(agentType) {
 		pointers = append(pointers, evidence.At(evidence.RolloutMainFile, spawn.Line, evidence.RolloutSpawnTool))
 	}
 	return pointers

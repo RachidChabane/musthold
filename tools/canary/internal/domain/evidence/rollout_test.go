@@ -45,7 +45,7 @@ func assembleRollouts(t *testing.T) evidence.Rollouts {
 func TestRolloutDecoder(t *testing.T) {
 	rollouts := assembleRollouts(t)
 
-	t.Run("each spawn call is read with its agent type, the history members it wrote, whether they ask for a blind child and the thread it started [verifies SP-1510~1] [verifies SP-1511~2]", func(t *testing.T) {
+	t.Run("each spawn call is read with its agent type, the history members it wrote, whether they ask for a blind child and the thread it started [verifies SP-1510~1] [verifies SP-1511~3]", func(t *testing.T) {
 		if !rollouts.Recorded || len(rollouts.Spawns) != 4 {
 			t.Fatalf("rollouts = %+v", rollouts)
 		}
@@ -64,7 +64,7 @@ func TestRolloutDecoder(t *testing.T) {
 		}
 	})
 
-	t.Run("a spawn that returned the id of its thread is tied to the rollout of that thread [verifies SP-1511~2]", func(t *testing.T) {
+	t.Run("a spawn that returned the id of its thread is tied to the rollout of that thread [verifies SP-1511~3]", func(t *testing.T) {
 		found, err := evidence.Assemble(evidence.Files{
 			RolloutMain:     fixture(t, "rollout-main-agent-id.jsonl"),
 			RolloutChildren: map[string][]byte{"rollout-child-agent-id.jsonl": fixture(t, "rollout-child-agent-id.jsonl")},
@@ -100,7 +100,7 @@ func TestRolloutDecoder(t *testing.T) {
 		}
 	})
 
-	t.Run("each spawned thread is judged by the rule of the host protocol: a task after the harness context is blind, a rollout with no task is unproven [verifies SP-1511~2]", func(t *testing.T) {
+	t.Run("each spawned thread is judged by the rule of the host protocol: a task after the harness context is blind, a rollout with no task is unproven [verifies SP-1511~3]", func(t *testing.T) {
 		if child := rollouts.Children[0]; child.History != hostproto.ChildBlind || child.HistoryReason != "" {
 			t.Errorf("child history %s: %s", child.History, child.HistoryReason)
 		}
@@ -188,7 +188,7 @@ func TestCodexThreadID(t *testing.T) {
 }
 
 func TestHookPayloadKeys(t *testing.T) {
-	t.Run("the members of a payload are listed sorted, and a payload that is not an object has none [verifies SP-1511~2]", func(t *testing.T) {
+	t.Run("the members of a payload are listed sorted, and a payload that is not an object has none [verifies SP-1511~3]", func(t *testing.T) {
 		call := evidence.HookCall{Stdin: json.RawMessage(`{"session_id":"s","agent_type":"a","agent_id":"i"}`)}
 		if got := strings.Join(call.PayloadKeys(), ","); got != "agent_id,agent_type,session_id" {
 			t.Errorf("keys = %s", got)

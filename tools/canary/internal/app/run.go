@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
+	"github.com/RachidChabane/spec-proof/format/hostproto/hostinstall"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/checks"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
@@ -328,6 +329,9 @@ func (r Runner) prepare(ctx context.Context, options Options, homes Homes) (prep
 	if err := r.Files.Write(l.projectFile("shallnot.yaml"), []byte(projectShallnotConfig), false); err != nil {
 		return prepared, err
 	}
+	if err := r.writeAgents(l); err != nil {
+		return prepared, err
+	}
 	if options.Harness == harness.FlagClaude {
 		if err := r.configureClassification(l); err != nil {
 			return prepared, err
@@ -368,6 +372,21 @@ func (r Runner) prepare(ctx context.Context, options Options, homes Homes) (prep
 	prepared.env = l.sessionEnvironment(r.Env, prepared.command.Env)
 	prepared.session = r.describe(options, prepared, configMode(options, homes))
 	return prepared, r.writeJSON(l.record(evidence.NoCallFile), prepared.noCall)
+}
+
+// writeAgents writes the project's AGENTS.md as enabling every module, in order,
+// writes it, so that the session and the executors read what a real project shows.
+func (r Runner) writeAgents(l layout) error {
+	path := l.projectFile(hostinstall.AgentsPath)
+	current, err := r.Files.Read(path)
+	if err != nil {
+		return err
+	}
+	content, err := hostinstall.WithAgentsBlocks(current, modules.Installs()...)
+	if err != nil {
+		return fmt.Errorf("%w: %s: %v", ErrPrepare, hostinstall.AgentsPath, err)
+	}
+	return r.Files.Write(path, content, false)
 }
 
 // classifyConfigFile is the shared configuration of the fixture project.

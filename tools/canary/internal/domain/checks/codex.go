@@ -146,7 +146,7 @@ func hooksFireCodexCheck() Check {
 			var pointers []verdict.Pointer
 			unexercised := false
 			for _, kind := range required {
-				calls := found.HookCalls(binary, kind)
+				calls := guardCalls(found.HookCalls(binary, kind))
 				if len(calls) == 0 && kind == hookKindPreTool && !executorToolCalled(found) {
 					unexercised = true
 					continue
@@ -259,4 +259,16 @@ func toolNamingCheck() Check {
 			}
 			return verdict.Undecided("no executor tool call was recorded")
 		})
+}
+
+// guardCalls leaves out the pre-tool calls on the spawn tool: the hooks check is
+// about the guard of the executor tools, and the spawn guard is judged apart.
+func guardCalls(calls []evidence.HookCall) []evidence.HookCall {
+	var kept []evidence.HookCall
+	for _, call := range calls {
+		if !hostproto.IsCodexSpawnTool(call.Payload().ToolName) {
+			kept = append(kept, call)
+		}
+	}
+	return kept
 }

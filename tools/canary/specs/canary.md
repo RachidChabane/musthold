@@ -100,17 +100,32 @@ which run the evaluators on recorded event streams and make no model call.
   reports as failed whatever the rollouts hold, reject a rollout line that is not
   JSON naming its file and line, and ignore a last line that an interrupted write
   left incomplete.
-- **SP-1511~2**: WHEN the recorded session of Codex is evaluated THE SYSTEM SHALL
+- **SP-1511~3**: WHEN the recorded session of Codex is evaluated THE SYSTEM SHALL
   judge every recorded rollout of a thread of the executor's agent type by the
-  host protocol's rule of the history a spawned thread started with, and
-  conclude PASS for the executor spawn when every such thread is blind, FAIL when
-  one inherited history of the main agent, and INCONCLUSIVE when one cannot show
-  it or when no rollout of a thread of the executor is recorded; SHALL tie each
-  spawn call to the thread its output names, by id or by task path, and
-  point a failing verdict at the spawn that started the thread; and SHALL report
-  how many spawns of the executor the module's pre-tool hook received, how many
-  set a blind form, how many that set none the hook denied and how many it did
-  not, and the members of the SubagentStart payload the hook received.
+  host protocol's rule of the history a spawned thread started with, tie each
+  spawn call to the thread its output names, by id or by task path, and conclude
+  for the executor spawn FAIL when a spawn that sets no blind form started a
+  thread or a thread inherited history of the main agent, pointing at the spawn
+  that started it; PASS only when the first spawn of the executor set no blind
+  form, the module's pre-tool hook denied that spawn, and every recorded thread
+  of the executor started blind; and INCONCLUSIVE when no spawn of the executor
+  was attempted, when the first spawn already set a blind form, when no denial of
+  it is recorded, when no thread was recorded after it, or when a thread cannot
+  show the history it started with; and SHALL report how many spawns of the
+  executor the module's pre-tool hook received, how many set a blind form, how
+  many that set none the hook denied and how many it did not, how the recorded
+  threads started, and the members of the SubagentStart payload the hook
+  received.
+- **SP-1942~1**: WHEN the Codex session is scripted THE SYSTEM SHALL have the main
+  agent spawn the executor first with exactly the agent type and the message and
+  no other argument, follow once the instruction of a refusal of that spawn, and
+  then wait for the agent that started, and SHALL leave the scenarios of Claude
+  Code and Copilot without such a spawn.
+- **SP-1943~1**: WHEN the project of a session is prepared, for every harness, THE
+  SYSTEM SHALL write into it the AGENTS.md that enabling every module, in order,
+  writes, keeping any text the fixture's file held, rendered by the shared
+  installer from module definitions whose generated Claude Code skill is the
+  committed one.
 - **SP-1512~1**: WHEN a Codex session wrote a table that names its project into the
   user's configuration file THE SYSTEM SHALL attribute the change to the session,
   remove exactly that table after the session keeping the mode of the file, record
