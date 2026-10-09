@@ -195,10 +195,9 @@ against the code and the installed CLIs.
       versions, and the version a session ran would not be knowable afterwards.
       The owner's installation and configuration are never touched.
     - **Pin:** `script/claude-code.pin` holds the one version. Everything that
-      names it follows the file: the CI install step, `ClaudeCodeVersion` in
-      `format/hostproto/harness/harness.go` and `ClassifyPinnedCLIVersions()` in
-      `format/hostproto/classifyprompt.go`. `script/check-claude-code-pin`, run
-      by `script/lint`, fails when either Go value differs.
+      runs or installs the CLI follows the file, and `script/check-claude-code-pin`,
+      run by `script/lint`, fails when `ClaudeCodeVersion` in
+      `format/hostproto/harness/harness.go` differs from it.
     - **Copy:** `script/claude-code-install` puts the binary at
       `.tools/claude-code/<version>/bin/claude`, from the owner's native binary
       of that version when it exists and otherwise from the npm package at that

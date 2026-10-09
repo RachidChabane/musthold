@@ -35,7 +35,6 @@ printf '#!/bin/sh\\n[ "${{DISABLE_AUTOUPDATER:-}}" = 1 ] || exit 64\\necho "{rep
 chmod 755 "$prefix/node_modules/.bin/claude"
 """
 HARNESS_SOURCE = 'const (\n\tClaudeCodeVersion = "{version}"\n)\n'
-CLASSIFY_SOURCE = "func ClassifyPinnedCLIVersions() []string {{ return []string{{{versions}}} }}\n"
 
 
 def executable(path: Path, content: str) -> Path:
@@ -155,20 +154,17 @@ def test_a_pin_that_is_not_a_version_is_refused(checkout: Checkout) -> None:
 
 
 class PinSources:
-    """The two Go files the pin check reads, written with the versions a test gives them."""
+    """The Go file the pin check reads, written with the version a test gives it."""
 
     def __init__(self, root: Path) -> None:
         self.harness = root / "harness.go"
-        self.classify = root / "classifyprompt.go"
-        self.write(PIN, [PIN])
+        self.write(PIN)
 
-    def write(self, harness_version: str, classify_versions: list[str]) -> None:
+    def write(self, harness_version: str) -> None:
         self.harness.write_text(HARNESS_SOURCE.format(version=harness_version), encoding="utf-8")
-        listed = ", ".join(f'"{version}"' for version in classify_versions)
-        self.classify.write_text(CLASSIFY_SOURCE.format(versions=listed), encoding="utf-8")
 
     def environment(self) -> dict[str, str]:
-        return {"CLAUDE_CODE_PIN_HARNESS_FILE": str(self.harness), "CLAUDE_CODE_PIN_CLASSIFY_FILE": str(self.classify)}
+        return {"CLAUDE_CODE_PIN_HARNESS_FILE": str(self.harness)}
 
 
 @pytest.fixture
@@ -176,24 +172,17 @@ def pin_sources(checkout: Checkout) -> PinSources:
     return PinSources(checkout.root)
 
 
-def test_the_pin_check_passes_when_both_go_values_hold_the_pin(checkout: Checkout, pin_sources: PinSources) -> None:
-    pin_sources.write(PIN, ["2.1.200", PIN])
+def test_the_pin_check_passes_when_the_harness_version_is_the_pin(checkout: Checkout, pin_sources: PinSources) -> None:
     assert checkout.run("check-claude-code-pin", **pin_sources.environment()).returncode == 0
 
 
-def test_the_pin_check_fails_when_the_harness_version_differs(checkout: Checkout, pin_sources: PinSources) -> None:
-    pin_sources.write("2.1.295", [PIN])
+@pytest.mark.parametrize("version", ["2.1.295", "2.1.29", ""])
+def test_the_pin_check_fails_when_the_harness_version_differs(
+    checkout: Checkout, pin_sources: PinSources, version: str
+) -> None:
+    pin_sources.write(version)
     done = checkout.run("check-claude-code-pin", **pin_sources.environment())
     assert done.returncode == 1 and "ClaudeCodeVersion" in done.stderr
-
-
-@pytest.mark.parametrize("versions", [[], ["2.1.295"], ["2.1.29"]])
-def test_the_pin_check_fails_when_the_classifier_versions_lack_the_pin(
-    checkout: Checkout, pin_sources: PinSources, versions: list[str]
-) -> None:
-    pin_sources.write(PIN, versions)
-    done = checkout.run("check-claude-code-pin", **pin_sources.environment())
-    assert done.returncode == 1 and "ClassifyPinnedCLIVersions" in done.stderr
 
 
 def test_the_pin_check_holds_on_the_repository_itself() -> None:
