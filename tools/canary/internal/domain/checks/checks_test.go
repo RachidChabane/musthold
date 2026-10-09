@@ -391,7 +391,7 @@ func TestSyntheticSessionWithAbsentEvidenceIsNeverAFailure(t *testing.T) {
 
 	t.Run("a CLI of another version leaves the version check inconclusive [verifies SP-1501~1]", func(t *testing.T) {
 		files := readFiles(t, claudeSession)
-		files.Session = replace(files.Session, `2.1.293`, `2.2.0`)
+		files.Session = replace(files.Session, `2.1.295`, `2.2.0`)
 		v := want(t, evaluate(t, "claude", files), "cli_version_pinned", verdict.Inconclusive)
 		if !strings.Contains(v.Summary, "2.2.0") {
 			t.Errorf("the summary does not say which version ran: %s", v.Summary)

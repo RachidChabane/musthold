@@ -65,7 +65,7 @@ examples rarely pass.
 
 ## Harness isolation
 
-The harness behaviour stated on this page holds as of Claude Code 2.1.293, Codex CLI
+The harness behaviour stated on this page holds as of Claude Code 2.1.295, Codex CLI
 0.155.1 and Copilot CLI 1.0.92, the versions pinned in
 `format/hostproto/harness/harness.go`.
 

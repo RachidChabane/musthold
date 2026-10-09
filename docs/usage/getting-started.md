@@ -202,7 +202,7 @@ finding names the command that resolves it.
 
 ## Other harnesses
 
-Statements about a harness below hold as of Claude Code 2.1.293, Codex CLI 0.155.1 and
+Statements about a harness below hold as of Claude Code 2.1.295, Codex CLI 0.155.1 and
 Copilot CLI 1.0.92 (`format/hostproto/harness/harness.go`).
 
 `spec-proof-dp init --hooks claude,codex,copilot` installs the files of several

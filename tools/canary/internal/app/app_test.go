@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/adapters"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/app"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
@@ -201,6 +202,9 @@ func (f fakeTokens) New() (string, error) { return f.token, f.err }
 
 const runToken = "0a1b2c3d4e5f60718293a4b5c6d7e8f9"
 
+// claudeVersionLine is what the pinned Claude Code CLI prints for --version.
+const claudeVersionLine = harness.ClaudeCodeVersion + " (Claude Code)"
+
 type fixedClock struct{ at time.Time }
 
 func (c fixedClock) Now() time.Time { return c.at }
@@ -250,7 +254,7 @@ func newWorld(t *testing.T, flag string, now time.Time) *world {
 		case strings.HasSuffix(joined, "mem-guard check"):
 			return app.Output{}
 		case slices.Contains(argv, "--version") && argv[0] == "claude":
-			return app.Output{Stdout: "2.1.293 (Claude Code)\n"}
+			return app.Output{Stdout: claudeVersionLine + "\n"}
 		case slices.Contains(argv, "--version") && argv[0] == "codex":
 			return app.Output{Stdout: "codex-cli 0.155.1\n"}
 		case slices.Contains(argv, "--version") && argv[0] == "copilot":
@@ -608,7 +612,7 @@ func TestSyntheticSessionOfClaudeCode(t *testing.T) {
 		if err := json.Unmarshal(raw, &recorded); err != nil {
 			t.Fatal(err)
 		}
-		if recorded.Versions["claude"] != "2.1.293 (Claude Code)" || recorded.Versions["spec-proof-dp"] == "" || recorded.Versions["shallnot"] != "831c5454a564b8cf4e1e010780f35543831efe7e" {
+		if recorded.Versions["claude"] != claudeVersionLine || recorded.Versions["spec-proof-dp"] == "" || recorded.Versions["shallnot"] != "831c5454a564b8cf4e1e010780f35543831efe7e" {
 			t.Errorf("versions = %v", recorded.Versions)
 		}
 		if recorded.Ticket != ticketA || recorded.Role != decider || recorded.Model != "claude-sonnet-5-5" || recorded.EventCap != launch.ClaudeEventCap {

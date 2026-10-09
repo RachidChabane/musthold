@@ -29,7 +29,7 @@ env:
   FIXTURE_PYTEST_VERSION: "9.1.1"
   # The Claude Code CLI whose offline plugin checks (`claude plugin validate`,
   # `claude plugin test`) the module tests run; the version ADR 0005 pins.
-  CLAUDE_CODE_VERSION: "2.1.293"
+  CLAUDE_CODE_VERSION: "2.1.295"
 
 permissions:
   contents: read

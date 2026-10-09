@@ -189,7 +189,7 @@ through the same checks as any answer. See [trust model](docs/usage/trust-model.
 
 ## Harnesses
 
-Every statement here about what a harness does holds as of Claude Code 2.1.293, Codex CLI 0.155.1 and Copilot CLI 1.0.92, the versions pinned in
+Every statement here about what a harness does holds as of Claude Code 2.1.295, Codex CLI 0.155.1 and Copilot CLI 1.0.92, the versions pinned in
 `format/hostproto/harness/harness.go` and recorded in [ADR 0005](docs/adr/0005-host-delegated-proofs-and-independent-modules.md).
 
 | Harness | Files | Executor isolation | Consequence for judged pass credit |

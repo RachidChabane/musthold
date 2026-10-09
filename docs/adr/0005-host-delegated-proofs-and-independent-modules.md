@@ -234,7 +234,8 @@ When `initialize` declares `sampling` and `host.sampling: on`, a third tool,
 
 Marks: **V** verified in official documentation or CLI help at the pinned harness
 version; **D** inferred from documentation, to be settled by a live canary before
-reliance; **U** unverified; **B** blocked externally.
+reliance; **C** settled by a live canary at the pinned harness version; **F**
+refuted by a live canary; **U** unverified; **B** blocked externally.
 
 The chosen executor is a *plugin* subagent whose `tools` allowlist names exactly
 `fetch_request` and `submit_response`, served by the plugin's own `.mcp.json`
@@ -246,7 +247,13 @@ the server requires. Two alternatives lost. A Bash-role executor with a stdin
 submit fails open (only a hook holds it back) and cannot submit (no stdin). An
 inline server in `.claude/agents/` is not used under `-p`.
 
-#### Claude Code (pinned 2.1.293)
+#### Claude Code (pinned 2.1.295)
+
+The pin moved from 2.1.293 to 2.1.295 on 2026-10-09, because the owner's CLI updated
+itself and the owner keeps the installed version. On 2.1.295 the isolated canary
+passed every check that passed on 2.1.293; the V marks below were read at 2.1.293
+and stand for 2.1.295 on that evidence. The benchmark runs a private copy of the
+pinned binary with automatic updates off (ADR 0011).
 
 **Plugin `spec-proof-dp`.** The alignment and completeness plugins mirror it.
 
@@ -298,6 +305,7 @@ Missing hooks mean no cap, so the server refuses and tickets stay pending
 | Skill `allowed-tools` is never gated by workspace trust | V |
 | A git-status snapshot reaches every custom subagent and cannot be disabled per agent | V; a residual leak of file names, recorded |
 | Plugin hooks and Stop fire under `-p`; `allow` with `updatedInput` on plugin MCP tools inside a subagent | D (canary) |
+| The `permissions.allow` entries of a project's `.claude/settings.json` apply only in a trusted workspace, the others being dropped with a warning on stderr; the trust is `projects["<resolved project path>"].hasTrustDialogAccepted` in `.claude.json` of the configuration directory | C |
 | Sampling | not declared (anthropics/claude-code#1785 open): B |
 
 #### Codex CLI (pinned 0.155.1)
@@ -499,15 +507,21 @@ host-classify(5,rot1):<voters>`. The binary calls no model.
   counts as a screen-out. A screen-out needs a response at the floor and a threshold
   for the exact source; so does the closed signal of alignment (`tau_route`).
 
-| Fact (Claude Code 2.1.293) | Mark |
+| Fact (Claude Code 2.1.295) | Mark |
 |---|---|
 | Mods load under `-p`; `--bare`, `--safe-mode` and `disableAllHooks` stop them; `session.start` runs before the first prompt and after each reload; mods are not sandboxed | V |
 | Every mods API method is an event that earlier mods rewrite, refuse or answer; no hook payload or transcript records `$.model.*` | V |
 | `$.model.classify(text, labels, { model })` returns one of the labels or `undefined`, and rejects on an HTTP failure, an abort or an empty answer; its only option is the model, checked against the allowlist | V |
-| The classifier request is separate, with no tools and no history, `maxTokens` 20, `query_source` `hook_prompt`; its system prompt lists the labels JSON-quoted in the given order, and its user message is the text with every line prefixed `> ` between `<text>` tags | D (canary) |
-| The answer is trimmed and stripped of quotes and trailing dots; a case-insensitive exact match returns the label, else the longest label that appears in it as a whole word, else `undefined` | D (canary) |
+| The classifier request is separate, with no tools and no history, `maxTokens` 20, `query_source` `hook_prompt`; its system prompt lists the labels JSON-quoted in the given order, and its user message is the text with every line prefixed `> ` between `<text>` tags | U: no record of the host exposes the classifier request |
+| The answer is trimmed and stripped of quotes and trailing dots; a case-insensitive exact match returns the label, else the longest label that appears in it as a whole word, else `undefined` | U: no record of the host exposes the classifier request |
 | `OTEL_LOG_RAW_API_BODIES=file:<dir>` writes untruncated request and response bodies, which hold the whole conversation, and `index.jsonl` (`timestamp`, `session_id`, `query_source`, `model`, `request_id`, `request_file`, `response_file`); it is ignored in project and local settings | V |
-| File mode needs `CLAUDE_CODE_ENABLE_TELEMETRY=1` and works with the logs exporter `none`; classifier requests are indexed under `-p` | D (canary) |
+| File mode needs `CLAUDE_CODE_ENABLE_TELEMETRY=1` and works with the logs exporter `none` | C |
+| Classifier requests of a mod are indexed and written under `-p` | F: on 2.1.293 and 2.1.295 the log holds the session's and the subagents' requests and none of the mod's classifier requests |
+
+With that fact refuted, the check of the raw API log finds none of the dictated calls
+and never raises a classification on the pinned version: every classification stays
+`restricted-unverified`, which can only flag or escalate. Whether the raise is
+withdrawn or rests on another record of the host is an open decision.
 
 **Codex has no classification primitive (CLI 0.155.1).** A closed answer on Codex
 comes only from `codex exec --output-schema`, which gives a structured answer with
