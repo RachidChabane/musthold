@@ -42,12 +42,16 @@ module reads the labels. It opens no connection and calls no model.
   first 16 bytes of `sha256("host-classify|rot1|" + closedSetDigest + "|" +
   questionId)`. A Fisher-Yates shuffle of the canonical order of the options under
   that seed gives a permutation; call `i` of a choice or true/false question lists
-  it rotated by `i` places. A score alternates ascending and descending levels,
-  the low bit of the seed setting the first. The order is the same for every model,
+  it rotated by `i` places. A score alternates ascending and descending levels:
+  the first call is descending when bit 0 of the seed's first big-endian 64-bit word
+  (bit 0 of seed byte 7) is set, and ascending otherwise. The two words, first and
+  second, seed a `math/rand/v2` PCG, and the shuffle is the loop `for i := n-1; i >
+  0; i--` swapping position `i` with position `Uint64N(i+1)`. The order is the same for every model,
   and the options in the text of a call are permuted with the labels.
 - **Calls.** A call that returns no label, or is rejected, is made once more with
-  the same labels in the same order. A call that still returns none is a missing
-  vote.
+  the same labels in the same order. A call whose last attempt returned no label is
+  a missing vote. A call whose last attempt was rejected is missing: its question
+  has no prediction.
 - **Confidence.** The share `s` of a question is its modal count over all five
   calls, so a missing vote counts against it. Two labels tied for the top count
   give no prediction. The confidence is the value at `s` of the isotonic table of
@@ -71,7 +75,7 @@ module reads the labels. It opens no connection and calls no model.
 
 | Value | Effect |
 |---|---|
-| `auto` (default) | Answers only the (decision kind, exact source, session model) entries of the admission table. The shipped table holds no entry. |
+| `auto` (default) | Answers only the (decision kind, exact source, session model) entries of the admission table; `doctor` lists the admitted entries. |
 | `shadow` | Plans, makes and journals the classifications and never answers. At `--resume` it also records what the raw API log shows of each one. |
 | `off` | Does nothing. |
 

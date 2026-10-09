@@ -475,7 +475,7 @@ host-classify(5,rot1):<voters>`. The binary calls no model.
   every call, the seed input of every question and the version of the host.
 - **Switch.** `systemone.classify` takes `auto` (the default), `shadow` or `off`.
   `auto` answers only the (decision kind, exact source, session model) entries of the
-  admission table, which ships empty; each entry names the version of the host it was
+  admission table; each entry names the version of the host it was
   measured on, and `doctor` reports a mismatch. `shadow` journals and never answers.
 - **Provenance.** The binary dictates each call's text, model and label order, and the
   host returns only labels. A classification is recorded on the channel
@@ -504,8 +504,8 @@ host-classify(5,rot1):<voters>`. The binary calls no model.
 | Mods load under `-p`; `--bare`, `--safe-mode` and `disableAllHooks` stop them; `session.start` runs before the first prompt and after each reload; mods are not sandboxed | V |
 | Every mods API method is an event that earlier mods rewrite, refuse or answer; no hook payload or transcript records `$.model.*` | V |
 | `$.model.classify(text, labels, { model })` returns one of the labels or `undefined`, and rejects on an HTTP failure, an abort or an empty answer; its only option is the model, checked against the allowlist | V |
-| The classifier request is separate, with no tools and no history, `maxTokens` 20, `query_source` `hook_prompt`; its system prompt lists the labels JSON-quoted in the given order, and its user message is the text with every line prefixed `> ` between `<text>` tags | V |
-| The answer is trimmed and stripped of quotes and trailing dots; a case-insensitive exact match returns the label, else the longest label that appears in it as a whole word, else `undefined` | V |
+| The classifier request is separate, with no tools and no history, `maxTokens` 20, `query_source` `hook_prompt`; its system prompt lists the labels JSON-quoted in the given order, and its user message is the text with every line prefixed `> ` between `<text>` tags | D (canary) |
+| The answer is trimmed and stripped of quotes and trailing dots; a case-insensitive exact match returns the label, else the longest label that appears in it as a whole word, else `undefined` | D (canary) |
 | `OTEL_LOG_RAW_API_BODIES=file:<dir>` writes untruncated request and response bodies, which hold the whole conversation, and `index.jsonl` (`timestamp`, `session_id`, `query_source`, `model`, `request_id`, `request_file`, `response_file`); it is ignored in project and local settings | V |
 | File mode needs `CLAUDE_CODE_ENABLE_TELEMETRY=1` and works with the logs exporter `none`; classifier requests are indexed under `-p` | D (canary) |
 
