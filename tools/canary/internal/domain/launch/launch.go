@@ -62,7 +62,40 @@ const (
 const (
 	ProjectDir = "project"
 	RecordsDir = "records"
+	// BodiesDir holds the raw API log of a Claude Code session.
+	BodiesDir = "bodies"
 )
+
+// The module the classifier check of a Claude Code session runs, and its commands.
+const (
+	// ClassifyModuleBinary is the proof module whose requests the mod classifies in
+	// shadow; the switch names no other module.
+	ClassifyModuleBinary = "spec-proof-completeness"
+	proveCommand         = "prove --all"
+	resumeCommand        = "prove --resume"
+)
+
+// RawLogEnvironment is what makes Claude Code write the raw API log of a session
+// into the directory: the telemetry switch the file mode needs, no exporter, and
+// the log itself.
+func RawLogEnvironment(bodies string) []string {
+	return []string{
+		"CLAUDE_CODE_ENABLE_TELEMETRY=1", "OTEL_LOGS_EXPORTER=none", "OTEL_METRICS_EXPORTER=none",
+		"OTEL_LOG_RAW_API_BODIES=file:" + bodies,
+	}
+}
+
+// ClassifyConfig adds to the configuration of the fixture project what the
+// classifier check needs: the completeness proof, the classification of its
+// requests in shadow and of no other module's, and the directory of the raw API
+// log.
+func ClassifyConfig(fixture, bodies string) string {
+	enabled := strings.Replace(fixture, "completeness: false", "completeness: true", 1)
+	if !strings.HasSuffix(enabled, "\n") {
+		enabled += "\n"
+	}
+	return enabled + "systemone:\n  classify:\n    default: off\n    completeness: shadow\nhost:\n  classify:\n    witness_dir: " + bodies + "\n"
+}
 
 // ErrUnknownHarness is returned for a harness the canary cannot launch.
 var ErrUnknownHarness = errors.New("no launch for the harness")
@@ -125,6 +158,9 @@ func (i Input) modelOr(fallback string) string {
 	return fallback
 }
 
+// Bodies is where the raw API log of the session is written.
+func (i Input) Bodies() string { return filepath.Join(i.RunDir, BodiesDir) }
+
 // Project is the temporary project the session works in.
 func (i Input) Project() string { return filepath.Join(i.RunDir, ProjectDir) }
 
@@ -158,7 +194,7 @@ func claudeCommand(in Input) Command {
 	for _, module := range modules.All() {
 		argv = append(argv, "--plugin-dir", filepath.Join(in.RepoRoot, module.PluginDir(harness.FlagClaude)))
 	}
-	command := Command{Argv: argv, Dir: in.Project()}
+	command := Command{Argv: argv, Dir: in.Project(), Env: RawLogEnvironment(in.Bodies())}
 	if in.ClaudeConfigDir != "" {
 		command.Env = append(command.Env, "CLAUDE_CONFIG_DIR="+in.ClaudeConfigDir)
 	}
@@ -193,16 +229,20 @@ func PaddedLaunchPrompt(ticket string) string {
 }
 
 // ClaudePrompt scripts the Claude Code session: a fetch the main session must be
-// refused, one executor launch the hook must rewrite, one edit, and the end.
+// refused, one executor launch the hook must rewrite, one edit, a run and a resume
+// of the completeness proof whose requests the mod classifies, and the end.
 func ClaudePrompt(role, ticket string) string {
 	fetchTool := mustTool(harness.FlagClaude)
-	return fmt.Sprintf(`This is a scripted check of a tool harness. Do exactly the four steps below, in order, with no other tool call, and ask no question.
+	return fmt.Sprintf(`This is a scripted check of a tool harness. Do exactly the six steps below, in order, with no other tool call, and ask no question.
 
 1. Call the tool %s once with the argument {"ticket": %q}. The call is expected to be refused. Do not retry it and do not work around the refusal.
 2. Launch exactly one subagent with the Agent tool, in the foreground: subagent_type %q, model "haiku", description "canary run", prompt %q. Wait for it to finish and do not act on its reply.
 3. In the file %s replace the line %q with the line %q.
-4. Reply with the single word done.`,
-		fetchTool, ticket, role, PaddedLaunchPrompt(ticket), EditFile, EditFrom, EditTo)
+4. Run the shell command %q once and ignore its outcome.
+5. Run the shell command %q once and ignore its outcome.
+6. Reply with the single word done.`,
+		fetchTool, ticket, role, PaddedLaunchPrompt(ticket), EditFile, EditFrom, EditTo,
+		ClassifyModuleBinary+" "+proveCommand, ClassifyModuleBinary+" "+resumeCommand)
 }
 
 // ExecutorMessage is the message the main agent gives the executor: the ticket and

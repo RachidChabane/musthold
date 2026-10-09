@@ -103,6 +103,7 @@ func (l layout) binary(name string) string   { return filepath.Join(l.bin, name)
 func (l layout) shallnot() string            { return l.binary(shallnotBinary) }
 func (l layout) fixture() string             { return filepath.Join(l.repo, fixtureRelative) }
 func (l layout) record(name string) string   { return filepath.Join(l.records, name) }
+func (l layout) bodies() string              { return filepath.Join(l.run, launch.BodiesDir) }
 func (l layout) primary() string             { return l.binary(modules.Primary().Binary) }
 func (l layout) projectFile(n string) string { return filepath.Join(l.project, n) }
 

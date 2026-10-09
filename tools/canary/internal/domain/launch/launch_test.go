@@ -73,14 +73,42 @@ func TestClaudeCommand(t *testing.T) {
 		if got := flagValue(command.Argv, "--max-budget-usd"); len(got) != 1 || got[0] != launch.ClaudeBudgetUSD {
 			t.Errorf("budget = %v", got)
 		}
-		if len(command.Env) != 0 {
+		if !slices.Equal(command.Env, launch.RawLogEnvironment("/run/bodies")) {
 			t.Errorf("env = %v", command.Env)
 		}
 		isolated := input()
 		isolated.ClaudeConfigDir = "/run/claude-config"
 		withConfig, _ := launch.Build("claude", isolated)
-		if !slices.Equal(withConfig.Env, []string{"CLAUDE_CONFIG_DIR=/run/claude-config"}) {
+		if !slices.Equal(withConfig.Env, append(launch.RawLogEnvironment("/run/bodies"), "CLAUDE_CONFIG_DIR=/run/claude-config")) {
 			t.Errorf("env = %v", withConfig.Env)
+		}
+	})
+
+	t.Run("the session writes its raw API log into the run directory and nowhere else [verifies SP-1925~1]", func(t *testing.T) {
+		want := []string{"CLAUDE_CODE_ENABLE_TELEMETRY=1", "OTEL_LOGS_EXPORTER=none", "OTEL_METRICS_EXPORTER=none", "OTEL_LOG_RAW_API_BODIES=file:/run/bodies"}
+		if got := launch.RawLogEnvironment(input().Bodies()); !slices.Equal(got, want) {
+			t.Errorf("environment = %v", got)
+		}
+	})
+
+	t.Run("the project classifies the completeness requests in shadow, no other module's, and names the raw API log [verifies SP-1925~1]", func(t *testing.T) {
+		fixture := "proofs:\n  alignment: false\n  discriminating-power: true\n  completeness: false\n"
+		got := launch.ClassifyConfig(fixture, "/run/bodies")
+		for _, wanted := range []string{"completeness: true", "default: off", "completeness: shadow", "witness_dir: /run/bodies"} {
+			if !strings.Contains(got, wanted) {
+				t.Errorf("the configuration lacks %q:\n%s", wanted, got)
+			}
+		}
+		if strings.Contains(got, "completeness: false") {
+			t.Errorf("the completeness proof stays off:\n%s", got)
+		}
+	})
+
+	t.Run("the prompt runs and resumes the completeness proof after the edit [verifies SP-1925~1]", func(t *testing.T) {
+		prompt := launch.ClaudePrompt("spec-proof-dp:decider", "ticket")
+		run, resume := strings.Index(prompt, "spec-proof-completeness prove --all"), strings.Index(prompt, "spec-proof-completeness prove --resume")
+		if run < 0 || resume < run || run < strings.Index(prompt, launch.EditFile) {
+			t.Errorf("the steps are out of order:\n%s", prompt)
 		}
 	})
 }

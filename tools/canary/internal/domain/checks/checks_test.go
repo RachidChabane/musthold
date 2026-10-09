@@ -350,7 +350,7 @@ func TestSyntheticSessionWithAbsentEvidenceIsNeverAFailure(t *testing.T) {
 	probes := []string{
 		"plugin_and_server_listed", "main_session_fetch_denied", "rewrite_drops_model", "hooks_fire_under_print",
 		"hook_allow_issues_cap", "executor_without_bash", "stop_fires", "edit_applied", "session_within_caps",
-		"cap_without_hooks", "plugin_manifests_valid", "cli_version_pinned", "executor_servers_start", "user_config_untouched",
+		"cap_without_hooks", "plugin_manifests_valid", "cli_version_pinned", "executor_servers_start", "user_config_untouched", "classify_witness_recorded",
 	}
 	t.Run("a session that left nothing leaves every check inconclusive [verifies SP-1501~1]", func(t *testing.T) {
 		got := evaluate(t, "claude", evidence.Files{})

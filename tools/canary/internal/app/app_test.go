@@ -222,9 +222,10 @@ func newWorld(t *testing.T, flag string, now time.Time) *world {
 	repo := t.TempDir()
 	files := adapters.OSFiles{}
 	for path, content := range map[string]string{
-		"discpower/fixtures/prove/parcel/parcel/rates.py":    "FREE_SHIPPING_FROM = 50\nSHIPPING_FEE = 4.5\nMAX_PERCENT = 100\n",
-		"discpower/fixtures/prove/parcel/.spec-proof/c.yaml": "proofs: {}\n",
-		"script/shallnot.pin":                                "831c5454a564b8cf4e1e010780f35543831efe7e\n",
+		"discpower/fixtures/prove/parcel/parcel/rates.py":         "FREE_SHIPPING_FROM = 50\nSHIPPING_FEE = 4.5\nMAX_PERCENT = 100\n",
+		"discpower/fixtures/prove/parcel/.spec-proof/c.yaml":      "proofs: {}\n",
+		"discpower/fixtures/prove/parcel/.spec-proof/config.yaml": "proofs:\n  alignment: false\n  discriminating-power: true\n  completeness: false\n",
+		"script/shallnot.pin": "831c5454a564b8cf4e1e010780f35543831efe7e\n",
 	} {
 		if err := files.Write(filepath.Join(repo, path), []byte(content), false); err != nil {
 			t.Fatal(err)

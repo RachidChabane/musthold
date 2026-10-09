@@ -323,6 +323,11 @@ func (r Runner) prepare(ctx context.Context, options Options, homes Homes) (prep
 	if err := r.Files.Write(l.projectFile("shallnot.yaml"), []byte(projectShallnotConfig), false); err != nil {
 		return prepared, err
 	}
+	if options.Harness == harness.FlagClaude {
+		if err := r.configureClassification(l); err != nil {
+			return prepared, err
+		}
+	}
 	support := l.supportEnvironment(r.Env)
 	if err := r.installHarnessFiles(ctx, options, l, support); err != nil {
 		return prepared, err
@@ -358,6 +363,23 @@ func (r Runner) prepare(ctx context.Context, options Options, homes Homes) (prep
 	prepared.env = l.sessionEnvironment(r.Env, prepared.command.Env)
 	prepared.session = r.describe(options, prepared, configMode(options, homes))
 	return prepared, r.writeJSON(l.record(evidence.NoCallFile), prepared.noCall)
+}
+
+// classifyConfigFile is the shared configuration of the fixture project.
+const classifyConfigFile = ".spec-proof/config.yaml"
+
+// configureClassification lays the raw API log directory and turns on, in the
+// project, the shadow classification of the completeness proof and the check of
+// the log.
+func (r Runner) configureClassification(l layout) error {
+	if err := r.Files.MkdirAll(l.bodies()); err != nil {
+		return err
+	}
+	fixture, err := r.Files.Read(l.projectFile(classifyConfigFile))
+	if err != nil {
+		return err
+	}
+	return r.Files.Write(l.projectFile(classifyConfigFile), []byte(launch.ClassifyConfig(string(fixture), l.bodies())), false)
 }
 
 // configMode says where the harness CLI keeps its credentials and state.

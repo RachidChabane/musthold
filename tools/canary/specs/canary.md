@@ -206,3 +206,13 @@ which run the evaluators on recorded event streams and make no model call.
   which source holds the token (environment, keychain or absent), check the
   keychain item without asking for its password, and print the variable with a
   placeholder in place of its value.
+- **SP-1925~1**: WHEN a Claude Code canary session is prepared THE SYSTEM SHALL
+  write the raw API log of the session into a directory of the run, with the
+  telemetry switch and the exporters the file mode needs; configure the project to
+  classify the requests of the completeness proof in shadow and those of no other
+  module, and to check the log; script a run and a resume of the completeness proof
+  after the edit; and WHEN the check `classify_witness_recorded` reads the journal
+  THE SYSTEM SHALL pass when the module recognised the classifier calls in the log,
+  recording the query source observed, fail when the log holds the calls otherwise
+  than dictated, and conclude INCONCLUSIVE, touching no other check, when the mod
+  classified nothing, no check of the log followed or the index is empty.

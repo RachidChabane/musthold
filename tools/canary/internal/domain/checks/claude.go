@@ -49,6 +49,7 @@ func claudeChecks() []Check {
 		executorWithoutBashCheck(),
 		stopProbeCheck(stopSources{finished: claudeFinished, streamStops: claudeStopEvents, controls: claudeControls}),
 		editAppliedCheck(),
+		classifyWitnessCheck(),
 		withinCapsCheck(claudeSummary),
 		configUntouchedCheck(),
 	}

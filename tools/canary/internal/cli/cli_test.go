@@ -15,7 +15,7 @@ import (
 const (
 	recordedSession = "../domain/checks/testdata/claude-session"
 	// claudeChecks is the number of checks of Claude Code.
-	claudeChecks = 14
+	claudeChecks = 15
 
 	recordedCopilotSession = "../domain/checks/testdata/copilot-session"
 	// copilotChecks is the number of checks of Copilot CLI.
