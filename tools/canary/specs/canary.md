@@ -189,3 +189,20 @@ which run the evaluators on recorded event streams and make no model call.
   of the session, record the bait file and its token with the probe after the
   session, refuse to start when no token can be drawn, and WHEN a dry run is
   requested SHALL show the step that writes the bait and the message that offers it.
+
+## Claude Code credential
+
+- **SP-1523~1**: WHEN an isolated Claude Code session is started THE SYSTEM SHALL
+  take its long-lived token from the environment variable CLAUDE_CODE_OAUTH_TOKEN
+  when it is set and otherwise from the macOS keychain item of the service
+  `spec-proof-claude-oauth` under the account of the login, treat an item that
+  does not exist as absent, fail on any other keychain failure without naming
+  what the keychain tool printed, refuse to start when no source holds a token
+  unless the shared home is chosen, put the token in the environment of the Claude
+  Code session only, drop it from the environment of every other process the run
+  starts (support commands, product binaries, shims, hooks and server probes), and
+  keep its value out of every record, plan and log.
+- **SP-1524~1**: WHEN a dry run of Claude Code is requested THE SYSTEM SHALL report
+  which source holds the token (environment, keychain or absent), check the
+  keychain item without asking for its password, and print the variable with a
+  placeholder in place of its value.

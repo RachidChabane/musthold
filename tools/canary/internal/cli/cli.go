@@ -151,7 +151,8 @@ func (e Env) runner() app.Runner {
 		Clock: systemClock{e.Now}, Window: window.Nightly(),
 		Processes: adapters.Exec{}, Sessions: adapters.Sessions{}, Prober: adapters.McpProber{},
 		Locker: adapters.FileLocker{}, Files: adapters.OSFiles{}, Tokens: adapters.RandomTokens{},
-		Env: e.Environ, Stdout: e.Stdout, Stderr: e.Stderr,
+		Credentials: []app.ClaudeCredential{adapters.EnvironmentCredential{Environ: e.Environ}, adapters.NewKeychainCredential()},
+		Env:         e.Environ, Stdout: e.Stdout, Stderr: e.Stderr,
 	}
 }
 

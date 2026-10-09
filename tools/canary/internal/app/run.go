@@ -67,7 +67,10 @@ type Runner struct {
 	Locker    Locker
 	Files     Files
 	Tokens    Tokens
-	// Env is the environment of the canary process.
+	// Credentials are the sources of the Claude Code token, in order of preference.
+	Credentials []ClaudeCredential
+	// Env is the environment of the canary process. The Claude Code token is
+	// dropped from it: only the Claude Code session receives the token.
 	Env    []string
 	Stdout io.Writer
 	Stderr io.Writer
@@ -86,9 +89,10 @@ func (r Runner) Run(ctx context.Context, options Options) (Outcome, error) {
 		return Outcome{}, err
 	}
 	r = r.forHarness(options.Harness)
+	r.Env = launch.WithoutOAuthToken(r.Env)
 	now := r.Clock.Now()
 	inWindow := r.Window.Allows(now)
-	homes, authErr := r.homes(options)
+	homes, authErr := r.homes(ctx, options)
 	if options.DryRun {
 		return Outcome{}, r.printPlan(options, now, inWindow, homes, authErr)
 	}
@@ -113,7 +117,11 @@ func (r Runner) Run(ctx context.Context, options Options) (Outcome, error) {
 	if options.PrepareOnly {
 		return Outcome{RunDir: session.layout.run}, r.reportPrepared(session)
 	}
-	return r.conduct(ctx, options, session)
+	token, err := r.claudeToken(ctx, homes)
+	if err != nil {
+		return Outcome{RunDir: session.layout.run}, err
+	}
+	return r.conduct(ctx, options, session, token)
 }
 
 // forHarness returns the runner with the environment a harness's session may
@@ -135,28 +143,48 @@ func (r Runner) forHarness(flag string) Runner {
 
 // homes says where each harness CLI keeps its credentials and state, and refuses
 // a Claude Code run that has no credential to keep out of the user's directory.
-func (r Runner) homes(options Options) (Homes, error) {
-	isolated, err := r.isolatedClaude(options)
-	return Homes{
-		IsolatedClaude: isolated, CodexHome: options.CodexHome,
-		IsolatedCopilot: options.Harness == harness.FlagCopilot && !options.SharedHome,
-	}, err
+func (r Runner) homes(ctx context.Context, options Options) (Homes, error) {
+	homes := Homes{CodexHome: options.CodexHome, IsolatedCopilot: options.Harness == harness.FlagCopilot && !options.SharedHome}
+	credential, err := r.isolatedClaude(ctx, options)
+	if credential != nil {
+		homes.IsolatedClaude, homes.ClaudeSource, homes.credential = true, credential.Source(), credential
+	}
+	return homes, err
 }
 
 // isolatedClaude decides where Claude Code keeps its credentials and state: an
-// isolated directory inside the run when a credential is given in the environment,
-// the user's own directory only on request, and otherwise a refusal. It reports
-// whether the session is isolated.
-func (r Runner) isolatedClaude(options Options) (bool, error) {
+// isolated directory inside the run when a source holds a credential, the user's
+// own directory only on request, and otherwise a refusal. It returns the source
+// of the credential of an isolated session, or nil. It never reads the token.
+func (r Runner) isolatedClaude(ctx context.Context, options Options) (ClaudeCredential, error) {
 	if options.Harness != harness.FlagClaude || options.SharedHome {
-		return false, nil
+		return nil, nil
 	}
-	for _, pair := range r.Env {
-		if strings.HasPrefix(pair, oauthTokenVariable+"=") {
-			return true, nil
-		}
+	credential, err := firstCredential(ctx, r.Credentials)
+	if err != nil {
+		return nil, err
 	}
-	return false, fmt.Errorf("%w: set %s (from `claude setup-token`) for a run that touches nothing of ~/.claude, or pass --shared-home to use the credentials of ~/.claude", ErrNoClaudeAuth, oauthTokenVariable)
+	if credential == nil {
+		return nil, fmt.Errorf("%w: store a token (from `claude setup-token`) in the keychain as service %s, set %s, or pass --shared-home to use the credentials of ~/.claude", ErrNoClaudeAuth, KeychainService, launch.OAuthTokenVariable)
+	}
+	return credential, nil
+}
+
+// claudeToken reads the token of an isolated Claude Code session, once, when the
+// session is about to start. It is empty for every other session.
+func (r Runner) claudeToken(ctx context.Context, homes Homes) (string, error) {
+	if !homes.IsolatedClaude {
+		return "", nil
+	}
+	token, err := homes.credential.Token(ctx)
+	switch {
+	case errors.Is(err, ErrCredentialAbsent):
+		return "", fmt.Errorf("%w: the %s source no longer holds a token", ErrNoClaudeAuth, homes.ClaudeSource)
+	case err != nil:
+		return "", fmt.Errorf("the %s credential could not be read: %w", homes.ClaudeSource, err)
+	default:
+		return token, nil
+	}
 }
 
 func (r Runner) printPlan(options Options, now time.Time, inWindow bool, homes Homes, authErr error) error {
@@ -169,9 +197,7 @@ func (r Runner) printPlan(options Options, now time.Time, inWindow bool, homes H
 		state = "closed (--force-window needed)"
 	}
 	fmt.Fprintf(r.Stdout, "harness: %s\nnow: %s, window %s: %s\n", options.Harness, now.Format("15:04"), r.Window.Describe(), state)
-	if authErr != nil {
-		fmt.Fprintf(r.Stdout, "credentials: %v\n", authErr)
-	}
+	r.printClaudeCredentials(options, homes, authErr)
 	if options.Harness == harness.FlagCopilot {
 		fmt.Fprintf(r.Stdout, "credentials: %s\n", r.copilotCredentialSource())
 	}
@@ -184,6 +210,21 @@ func (r Runner) printPlan(options Options, now time.Time, inWindow bool, homes H
 		fmt.Fprintf(r.Stdout, "  - %s\n", line)
 	}
 	return nil
+}
+
+// printClaudeCredentials says which source the token of a Claude Code session
+// would come from, without reading it, or why the run would be refused.
+func (r Runner) printClaudeCredentials(options Options, homes Homes, authErr error) {
+	switch {
+	case options.Harness != harness.FlagClaude:
+		return
+	case options.SharedHome:
+		fmt.Fprintf(r.Stdout, "credentials: none, the session shares the credentials of ~/.claude\n")
+	case authErr != nil:
+		fmt.Fprintf(r.Stdout, "credentials: source %s: %v\n", SourceAbsent, authErr)
+	default:
+		fmt.Fprintf(r.Stdout, "credentials: source %s (%s=%s)\n", homes.ClaudeSource, launch.OAuthTokenVariable, tokenPlaceholder(homes.ClaudeSource))
+	}
 }
 
 // touches says what a run writes outside its own directory, which is what the
@@ -476,13 +517,22 @@ func (r Runner) reportPrepared(prepared preparedSession) error {
 	return nil
 }
 
+// sessionEnvironmentWithToken adds the Claude Code token to the environment of the
+// session: the one process that receives it.
+func sessionEnvironmentWithToken(env []string, token string) []string {
+	if token == "" {
+		return env
+	}
+	return environment(env, launch.OAuthTokenVariable+"="+token)
+}
+
 // conduct runs the session, collects what it left, and evaluates it.
-func (r Runner) conduct(ctx context.Context, options Options, prepared preparedSession) (Outcome, error) {
+func (r Runner) conduct(ctx context.Context, options Options, prepared preparedSession, token string) (Outcome, error) {
 	l := prepared.layout
 	session := prepared.session
 	session.StartedAt = r.Clock.Now()
 	outcome, err := r.Sessions.Run(SessionSpec{
-		Argv: prepared.command.Argv, Dir: prepared.command.Dir, Env: prepared.env,
+		Argv: prepared.command.Argv, Dir: prepared.command.Dir, Env: sessionEnvironmentWithToken(prepared.env, token),
 		StdoutPath: l.record(evidence.StreamFile), StderrPath: l.record(evidence.StderrFile),
 		Counts: func(line []byte) bool { return launch.CountsAsEvent(options.Harness, line) },
 		Cap:    launch.EventCap(options.Harness), Timeout: time.Duration(launch.TimeoutSeconds) * time.Second,

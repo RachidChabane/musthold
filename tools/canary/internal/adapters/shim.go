@@ -15,6 +15,7 @@ import (
 	"syscall"
 
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
 )
 
 const (
@@ -75,12 +76,13 @@ func RunShim(real, record string, args []string, stdin io.Reader, stdout, stderr
 	call := evidence.HookCall{Module: filepath.Base(real), Args: args}
 	if len(args) == 0 || args[0] != hookSubcommand {
 		_ = AppendRecord(record, call)
-		err := syscall.Exec(real, append([]string{real}, args...), os.Environ())
+		err := syscall.Exec(real, append([]string{real}, args...), launch.WithoutOAuthToken(os.Environ()))
 		fmt.Fprintln(stderr, err)
 		return exitShimFailure
 	}
 	payload, _ := io.ReadAll(io.LimitReader(stdin, maxCapturedBytes))
 	command := exec.Command(real, args...)
+	command.Env = launch.WithoutOAuthToken(os.Environ())
 	command.Stdin = bytes.NewReader(payload)
 	var captured bytes.Buffer
 	command.Stdout = &captured

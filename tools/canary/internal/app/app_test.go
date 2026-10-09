@@ -78,11 +78,13 @@ func TestSelectTickets(t *testing.T) {
 // recordingProcesses answers commands from a script and remembers them.
 type recordingProcesses struct {
 	calls  [][]string
+	envs   [][]string
 	answer func(argv []string) app.Output
 }
 
 func (p *recordingProcesses) Run(_ context.Context, spec app.CommandSpec) (app.Output, error) {
 	p.calls = append(p.calls, spec.Argv)
+	p.envs = append(p.envs, spec.Env)
 	return p.answer(spec.Argv), nil
 }
 
@@ -270,7 +272,7 @@ func newWorld(t *testing.T, flag string, now time.Time) *world {
 	w.locker = &fakeLocker{}
 	w.runner = app.Runner{
 		Clock: fixedClock{now}, Window: window.Nightly(), Processes: w.processes, Sessions: w.session, Prober: w.prober,
-		Locker: w.locker, Files: files, Tokens: fakeTokens{token: runToken}, Env: []string{"HOME=/home/u", "PATH=/usr/bin", "CLAUDE_CODE_OAUTH_TOKEN=secret"},
+		Locker: w.locker, Files: files, Tokens: fakeTokens{token: runToken}, Credentials: []app.ClaudeCredential{&fakeCredential{source: app.SourceEnvironment, token: "secret"}}, Env: []string{"HOME=/home/u", "PATH=/usr/bin", "CLAUDE_CODE_OAUTH_TOKEN=secret"},
 		Stdout: w.stdout, Stderr: &bytes.Buffer{},
 	}
 	w.options = app.Options{Harness: flag, RepoRoot: repo, Canary: "/bin/canary", OutDir: w.out}
@@ -328,6 +330,7 @@ func TestRefusals(t *testing.T) {
 	t.Run("Claude Code with no isolated credential is refused unless the shared home is chosen [verifies SP-1504~2]", func(t *testing.T) {
 		w := newWorld(t, "claude", night)
 		w.runner.Env = []string{"HOME=/home/u", "PATH=/usr/bin"}
+		w.runner.Credentials = []app.ClaudeCredential{&fakeCredential{source: app.SourceEnvironment}, &fakeCredential{source: app.SourceKeychain}}
 		_, err := w.runner.Run(context.Background(), w.options)
 		if !errors.Is(err, app.ErrNoClaudeAuth) || !strings.Contains(err.Error(), "--shared-home") || len(w.processes.calls) != 0 {
 			t.Fatalf("error %v, calls %v", err, w.processes.calls)

@@ -22,8 +22,26 @@ const (
 	copilotChecks = 15
 )
 
+// securityNotFound is the exit code of `security` for an item that does not exist.
+const securityNotFound = 44
+
+// useSecurity puts a fake `security` first on the PATH for the test, so that no
+// test queries the keychain of the machine. It logs the arguments of each call.
+func useSecurity(t *testing.T, exit int) (log string) {
+	t.Helper()
+	dir := t.TempDir()
+	log = filepath.Join(dir, "calls.log")
+	script := fmt.Sprintf("#!/bin/sh\nprintf '%%s\\n' \"$*\" >> %s\nexit %d\n", log, exit)
+	if err := os.WriteFile(filepath.Join(dir, "security"), []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	return log
+}
+
 func run(t *testing.T, stdin string, args ...string) (code int, stdout, stderr string) {
 	t.Helper()
+	useSecurity(t, securityNotFound)
 	var out, errOut bytes.Buffer
 	code = cli.Run(cli.Env{
 		Args: args, Stdin: strings.NewReader(stdin), Stdout: &out, Stderr: &errOut,
@@ -110,6 +128,44 @@ func TestCommandLine(t *testing.T) {
 		code, _, stderr := run(t, "", "run", "--harness", "claude", "--force-window", "--repo", t.TempDir())
 		if code != cli.ExitRefused || !strings.Contains(stderr, "--shared-home") {
 			t.Fatalf("exit %d, stderr %q", code, stderr)
+		}
+	})
+
+	t.Run("a dry run of Claude Code names the keychain as the source of the token without asking for its password [verifies SP-1524~1]", func(t *testing.T) {
+		log := useSecurity(t, 0)
+		var out, errOut bytes.Buffer
+		code := cli.Run(cli.Env{
+			Args: []string{"run", "--harness", "claude", "--dry-run", "--repo", t.TempDir()}, Stdin: strings.NewReader(""), Stdout: &out, Stderr: &errOut,
+			Environ: []string{"PATH=/usr/bin"}, Now: time.Now, Executable: "/bin/canary",
+		})
+		if code != 0 || !strings.Contains(out.String(), "credentials: source keychain (CLAUDE_CODE_OAUTH_TOKEN=<from keychain>)") {
+			t.Fatalf("exit %d, stdout %q, stderr %q", code, out.String(), errOut.String())
+		}
+		calls, _ := os.ReadFile(log)
+		if strings.Contains(string(calls), "-w") || !strings.Contains(string(calls), "-s spec-proof-claude-oauth -a ") {
+			t.Errorf("security calls:\n%s", calls)
+		}
+	})
+
+	t.Run("a dry run of Claude Code names the environment before the keychain [verifies SP-1524~1]", func(t *testing.T) {
+		log := useSecurity(t, 0)
+		var out, errOut bytes.Buffer
+		code := cli.Run(cli.Env{
+			Args: []string{"run", "--harness", "claude", "--dry-run", "--repo", t.TempDir()}, Stdin: strings.NewReader(""), Stdout: &out, Stderr: &errOut,
+			Environ: []string{"PATH=/usr/bin", "CLAUDE_CODE_OAUTH_TOKEN=sk-fake-value"}, Now: time.Now, Executable: "/bin/canary",
+		})
+		if code != 0 || !strings.Contains(out.String(), "credentials: source environment (CLAUDE_CODE_OAUTH_TOKEN=<set>)") || strings.Contains(out.String(), "sk-fake-value") {
+			t.Fatalf("exit %d, stdout %q, stderr %q", code, out.String(), errOut.String())
+		}
+		if calls, _ := os.ReadFile(log); len(calls) != 0 {
+			t.Errorf("the keychain was queried:\n%s", calls)
+		}
+	})
+
+	t.Run("a dry run of Claude Code with no source says absent and still exits 0 [verifies SP-1524~1]", func(t *testing.T) {
+		code, stdout, stderr := run(t, "", "run", "--harness", "claude", "--dry-run", "--repo", t.TempDir())
+		if code != 0 || !strings.Contains(stdout, "credentials: source absent") {
+			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
 		}
 	})
 

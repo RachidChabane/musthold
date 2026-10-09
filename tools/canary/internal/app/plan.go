@@ -35,8 +35,6 @@ const (
 	runDirPrefix   = "spec-proof-canary-"
 	placeholderRun = "<run-dir>"
 
-	oauthTokenVariable = "CLAUDE_CODE_OAUTH_TOKEN"
-
 	proveTimeout   = 10 * time.Minute
 	supportTimeout = 2 * time.Minute
 	probeVersion   = "--version"
@@ -82,6 +80,11 @@ type Homes struct {
 	CodexHome string
 	// IsolatedCopilot puts COPILOT_HOME in the run.
 	IsolatedCopilot bool
+	// ClaudeSource names where the isolated Claude Code credential comes from
+	// (SourceEnvironment or SourceKeychain), or is empty.
+	ClaudeSource string
+	// credential is that source, read only when the session starts.
+	credential ClaudeCredential
 }
 
 func newLayout(repo, run string) layout {
@@ -256,8 +259,12 @@ func Plan(flag, repo, model string, homes Homes) ([]string, error) {
 	if flag == harness.FlagCopilot {
 		lines = append(lines, baitPlanLine(l))
 	}
+	words := sessionEnvironmentWords(l)
+	if flag == harness.FlagClaude && homes.IsolatedClaude {
+		words = append(words, launch.OAuthTokenVariable+"="+tokenPlaceholder(homes.ClaudeSource))
+	}
 	lines = append(lines,
-		"session environment: "+strings.Join(sessionEnvironmentWords(l), " "),
+		"session environment: "+strings.Join(words, " "),
 		session.Line()+"   (in "+session.Dir+")",
 	)
 	return lines, nil
