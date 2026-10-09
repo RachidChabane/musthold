@@ -47,7 +47,7 @@ func TestExecutorSpawnIsBlind(t *testing.T) {
 		}
 		for _, part := range []string{
 			"1 thread(s) of spec-proof-dp-decider started with none of the main agent's history",
-			"of 1 spawn(s) of spec-proof-dp-decider, 1 set a blind form, 0 that set none were denied by the pre-tool hook and 0 that set none were not denied",
+			"of 1 spawn(s) of spec-proof-dp-decider, the module's pre-tool hook received 0, 1 set a blind form, 0 that set none were denied by the pre-tool hook and 0 that set none were not denied",
 			"agent_id, agent_type, hook_event_name, session_id", "none of them says how much history the child inherited",
 		} {
 			if !strings.Contains(v.Summary, part) {
@@ -68,7 +68,7 @@ func TestExecutorSpawnIsBlind(t *testing.T) {
 
 	t.Run("a spawn that sets no blind form, denied by the hook and followed by a blind spawn, passes and the report shows the denial [verifies SP-1511~2]", func(t *testing.T) {
 		v := want(t, evaluate(t, "codex", withSpawnDeniedFirst(t, readFiles(t, codexSession))), spawnDecider, verdict.Pass)
-		if !strings.Contains(v.Summary, "of 2 spawn(s) of spec-proof-dp-decider, 1 set a blind form, 1 that set none were denied by the pre-tool hook and 0 that set none were not denied") {
+		if !strings.Contains(v.Summary, "of 2 spawn(s) of spec-proof-dp-decider, the module's pre-tool hook received 1, 1 set a blind form, 1 that set none were denied by the pre-tool hook and 0 that set none were not denied") {
 			t.Errorf("summary = %s", v.Summary)
 		}
 	})
@@ -90,6 +90,9 @@ func TestExecutorSpawnIsBlind(t *testing.T) {
 		v := want(t, evaluate(t, "codex", files), spawnDecider, verdict.Fail)
 		if !strings.Contains(v.Summary, "started with history of the main agent") || !strings.Contains(v.Summary, "precedes the task message") || v.Evidence[0].File != evidence.RolloutChildrenDir+"/"+childOfSession {
 			t.Errorf("verdict = %+v", v)
+		}
+		if len(v.Evidence) != 2 || v.Evidence[1].File != evidence.RolloutMainFile || v.Evidence[1].Line != 3 {
+			t.Errorf("the verdict does not point at the spawn that started the thread: %+v", v.Evidence)
 		}
 	})
 

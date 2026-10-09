@@ -28,7 +28,7 @@ func executorSpawnBlindCheck() Check {
 				return verdict.Undecided(noChildNote(found, agentType)+notes, append(spawnPointers(found, agentType), startPointers(found)...)...)
 			}
 			if child, inherited := childWith(children, hostproto.ChildInherited); inherited {
-				return verdict.Failed(fmt.Sprintf("thread %s of %s started with history of the main agent (%s)%s", child.ThreadID, agentType, child.HistoryReason, notes), childPointer(child))
+				return verdict.Failed(fmt.Sprintf("thread %s of %s started with history of the main agent (%s)%s", child.ThreadID, agentType, child.HistoryReason, notes), threadPointers(found, child)...)
 			}
 			if child, unproven := childWith(children, hostproto.ChildUnproven); unproven {
 				return verdict.Undecided(fmt.Sprintf("the rollout of thread %s of %s cannot show the history it started with (%s)%s", child.ThreadID, agentType, child.HistoryReason, notes), childPointer(child))
@@ -55,6 +55,16 @@ func childPointer(child evidence.RolloutChild) verdict.Pointer {
 	return evidence.At(evidence.RolloutChildrenDir+"/"+child.File, 1, sessionMetaNote)
 }
 
+// threadPointers point at the rollout of a thread and at the spawn call that
+// started it, when the main rollout records one.
+func threadPointers(found evidence.Evidence, child evidence.RolloutChild) []verdict.Pointer {
+	pointers := []verdict.Pointer{childPointer(child)}
+	if spawn, recorded := found.Rollouts.SpawnOf(child); recorded {
+		pointers = append(pointers, evidence.At(evidence.RolloutMainFile, spawn.Line, evidence.RolloutSpawnTool))
+	}
+	return pointers
+}
+
 func spawnPointers(found evidence.Evidence, agentType string) []verdict.Pointer {
 	var pointers []verdict.Pointer
 	for _, spawn := range found.Rollouts.SpawnsOf(agentType) {
@@ -73,15 +83,18 @@ func noChildNote(found evidence.Evidence, agentType string) string {
 }
 
 // spawnGuardNote reports the spawns of the executor the main rollout records: how
-// many set a blind form, and of those that set none, how many the module's
-// pre-tool hook denied.
+// many the module's pre-tool hook received, how many set a blind form, and of
+// those that set none, how many the hook denied.
 func spawnGuardNote(found evidence.Evidence, agentType string) string {
 	spawns := found.Rollouts.SpawnsOf(agentType)
 	if len(spawns) == 0 {
 		return ""
 	}
-	blind, denied, let := 0, 0, 0
+	received, blind, denied, let := 0, 0, 0, 0
 	for _, spawn := range spawns {
+		if _, seen := spawnHookCall(found, spawn); seen {
+			received++
+		}
 		switch {
 		case spawn.Blind:
 			blind++
@@ -91,20 +104,27 @@ func spawnGuardNote(found evidence.Evidence, agentType string) string {
 			let++
 		}
 	}
-	return fmt.Sprintf("; of %d spawn(s) of %s, %d set a blind form, %d that set none were denied by the pre-tool hook and %d that set none were not denied",
-		len(spawns), agentType, blind, denied, let)
+	return fmt.Sprintf("; of %d spawn(s) of %s, the module's pre-tool hook received %d, %d set a blind form, %d that set none were denied by the pre-tool hook and %d that set none were not denied",
+		len(spawns), agentType, received, blind, denied, let)
 }
 
-// spawnDenied reports whether the module's pre-tool hook denied the spawn: it
-// answered the payload of the same tool use with a denial.
-func spawnDenied(found evidence.Evidence, spawn evidence.RolloutSpawn) bool {
+// spawnHookCall is the module's pre-tool hook call on the same tool use as the
+// spawn.
+func spawnHookCall(found evidence.Evidence, spawn evidence.RolloutSpawn) (evidence.HookCall, bool) {
 	for _, call := range found.HookCalls(primaryModule().Binary, hookKindPreTool) {
 		payload := call.Payload()
-		if payload.ToolUseID == spawn.CallID && hostproto.IsCodexSpawnTool(payload.ToolName) && call.Decision().Permission == string(hostproto.PermissionDeny) {
-			return true
+		if payload.ToolUseID == spawn.CallID && hostproto.IsCodexSpawnTool(payload.ToolName) {
+			return call, true
 		}
 	}
-	return false
+	return evidence.HookCall{}, false
+}
+
+// spawnDenied reports whether the module's pre-tool hook answered the spawn with
+// a denial.
+func spawnDenied(found evidence.Evidence, spawn evidence.RolloutSpawn) bool {
+	call, seen := spawnHookCall(found, spawn)
+	return seen && call.Decision().Permission == string(hostproto.PermissionDeny)
 }
 
 func startPointers(found evidence.Evidence) []verdict.Pointer {

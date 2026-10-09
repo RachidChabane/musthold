@@ -106,10 +106,11 @@ which run the evaluators on recorded event streams and make no model call.
   conclude PASS for the executor spawn when every such thread is blind, FAIL when
   one inherited history of the main agent, and INCONCLUSIVE when one cannot show
   it or when no rollout of a thread of the executor is recorded; SHALL tie each
-  spawn call to the thread its output names, by id or by task path; and SHALL
-  report how many spawns of the executor set a blind form, how many that set none
-  the module's pre-tool hook denied and how many it did not, and the members of
-  the SubagentStart payload the hook received.
+  spawn call to the thread its output names, by id or by task path, and
+  point a failing verdict at the spawn that started the thread; and SHALL report
+  how many spawns of the executor the module's pre-tool hook received, how many
+  set a blind form, how many that set none the hook denied and how many it did
+  not, and the members of the SubagentStart payload the hook received.
 - **SP-1512~1**: WHEN a Codex session wrote a table that names its project into the
   user's configuration file THE SYSTEM SHALL attribute the change to the session,
   remove exactly that table after the session keeping the mode of the file, record
