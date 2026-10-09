@@ -21,6 +21,10 @@
 #   NIGHT_JOBS_SLOT_WAIT_SECONDS how long a job waits for its slots before it pauses (default 0)
 #   NIGHT_JOBS_DRY_RUN=1         print the commands the jobs would launch instead of launching them
 #   NIGHT_JOBS_BUDGET_DELEGATE=0 compute construction's budget here instead of in bench/script/night-budget
+#   NIGHT_JOBS_CLAUDE_TOKEN_SERVICE / NIGHT_JOBS_CLAUDE_TOKEN_ACCOUNT
+#                                the keychain item that holds the Claude Code token (default service
+#                                spec-proof-claude-oauth, account the macOS login); its presence, never its
+#                                value, decides whether the Claude canary runs isolated
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
@@ -43,6 +47,9 @@ readonly EXIT_NO_SLOT=75
 readonly PILOT_SLOTS=2
 readonly CANARY_SLOTS=1
 readonly CONSTRUCT_SLOTS=1
+readonly CLAUDE_TOKEN_SERVICE="${NIGHT_JOBS_CLAUDE_TOKEN_SERVICE:-spec-proof-claude-oauth}"
+CLAUDE_TOKEN_ACCOUNT="${NIGHT_JOBS_CLAUDE_TOKEN_ACCOUNT:-$(id -un)}"
+readonly CLAUDE_TOKEN_ACCOUNT
 readonly SLOT_WAIT_SECONDS="${NIGHT_JOBS_SLOT_WAIT_SECONDS:-0}"
 
 mkdir -p "${LOG_DIR}" "${CANARY_STAMP_DIR}"
@@ -85,6 +92,24 @@ run_canary() {
   return "${status}"
 }
 
+# claude_token_in_keychain succeeds when the keychain holds the Claude Code token. It asks for the item without its
+# password (no -w), so the value is never read here.
+claude_token_in_keychain() {
+  security find-generic-password -s "${CLAUDE_TOKEN_SERVICE}" -a "${CLAUDE_TOKEN_ACCOUNT}" >/dev/null 2>&1
+}
+
+# run_claude_canary runs the Claude canary isolated when the keychain holds the token, and otherwise on the user's
+# own configuration.
+run_claude_canary() {
+  if claude_token_in_keychain; then
+    log "canary: claude runs isolated (keychain token)"
+    run_canary claude
+  else
+    log "canary: claude shares the user's configuration (no keychain token)"
+    run_canary claude --shared-home
+  fi
+}
+
 run_canaries() {
   local night stamp
   night="$(night_date)"
@@ -97,7 +122,7 @@ run_canaries() {
   log "canaries: building"
   launch script/canary-build
   local failed=0
-  run_canary claude --shared-home || failed=1
+  run_claude_canary || failed=1
   run_canary codex || failed=1
   run_canary copilot || failed=1
   if [[ ${failed} -eq 0 ]]; then

@@ -14,6 +14,7 @@ from pathlib import Path
 import pytest
 
 from specbench.adapters.machine_slots import MachineSlots
+from support.credentials import KeychainItem, install_fake_security, security_calls
 
 pytestmark = [
     pytest.mark.integration,
@@ -27,6 +28,10 @@ MACOS_BASH = "/bin/bash"
 NIGHT_SHIFT = timedelta(hours=12)
 BUDGET_LINE = re.compile(r"construct: budget (\d+)")
 LAUNCH_BUDGET = re.compile(r"script/construct --night --budget (\d+)")
+CLAUDE_CANARY_LINE = re.compile(r"dry-run: .*: script/canary-claude(?P<flags>.*)")
+SHARED_HOME_FLAG = "--shared-home"
+NO_KEYCHAIN_TOKEN_LOG = "canary: claude shares the user's configuration (no keychain token)"
+DEFAULT_TOKEN_SERVICE = "spec-proof-claude-oauth"
 
 
 @dataclass
@@ -38,6 +43,10 @@ class Result:
         launched = LAUNCH_BUDGET.search(self.log)
         return int(launched.group(1)) if launched else None
 
+    def claude_canary_flags(self) -> str | None:
+        launched = CLAUDE_CANARY_LINE.search(self.log)
+        return launched.group("flags").strip() if launched else None
+
 
 class Night:
     """The sandbox one run of the night jobs sees; nothing in it is the owner's real state."""
@@ -47,6 +56,15 @@ class Night:
         self.slots = root / "slots"
         self.pilot_ledger = root / "pilot-call-budget.json"
         self.night = (datetime.now() - NIGHT_SHIFT).date().isoformat()
+        self.security = root / "security-bin"
+        self.set_keychain(KeychainItem.ABSENT)
+
+    def set_keychain(self, item: KeychainItem) -> None:
+        """The `security` tool the jobs find on the PATH: never the machine's own keychain."""
+        install_fake_security(self.security, item)
+
+    def keychain_calls(self) -> list[str]:
+        return security_calls(self.security)
 
     def pilot_spent(self, calls: int) -> None:
         self.pilot_ledger.write_text(json.dumps({self.night: {"claude": calls}}))
@@ -54,6 +72,7 @@ class Night:
     def run(self, job: str, shell: str | None = None, **extra: str) -> Result:
         environment = {
             **os.environ,
+            "PATH": f"{self.security}{os.pathsep}{os.environ['PATH']}",
             "NIGHT_JOBS_DRY_RUN": "1",
             "NIGHT_JOBS_LOG_DIR": str(self.root / "logs"),
             "NIGHT_BUDGET_PILOT_LEDGER": str(self.pilot_ledger),
@@ -154,3 +173,41 @@ def test_the_jobs_and_the_budget_script_run_under_the_bash_that_macos_ships(nigh
         constructed.code == 0 and constructed.construct_budget() == 120 and "night-budget failed" not in constructed.log
     )
     assert night.run("canaries", shell=MACOS_BASH, NIGHT_JOBS_SLOTS="1").code == 0
+
+
+def test_a_keychain_token_makes_the_claude_canary_isolated_and_its_value_is_never_asked_for(night: Night) -> None:
+    night.set_keychain(KeychainItem.PRESENT)
+    result = night.run("canaries")
+    assert result.code == 0 and result.claude_canary_flags() == ""
+    assert NO_KEYCHAIN_TOKEN_LOG not in result.log
+    [query, *_] = [call for call in night.keychain_calls() if call.startswith("find-generic-password")]
+    assert query.startswith(f"find-generic-password -s {DEFAULT_TOKEN_SERVICE} -a ")
+    assert not [call for call in night.keychain_calls() if "-w" in call.split()]
+
+
+@pytest.mark.parametrize("item", [KeychainItem.ABSENT, KeychainItem.FAILING])
+def test_without_a_readable_keychain_item_the_claude_canary_shares_the_users_configuration(
+    night: Night, item: KeychainItem
+) -> None:
+    night.set_keychain(item)
+    result = night.run("canaries")
+    assert result.code == 0 and result.claude_canary_flags() == SHARED_HOME_FLAG
+    assert NO_KEYCHAIN_TOKEN_LOG in result.log
+
+
+def test_the_keychain_service_and_account_can_be_chosen(night: Night) -> None:
+    night.set_keychain(KeychainItem.PRESENT)
+    night.run(
+        "canaries", NIGHT_JOBS_CLAUDE_TOKEN_SERVICE="canary-test-service", NIGHT_JOBS_CLAUDE_TOKEN_ACCOUNT="tester"
+    )
+    assert night.keychain_calls()[0] == "find-generic-password -s canary-test-service -a tester"
+
+
+@pytest.mark.skipif(not Path(MACOS_BASH).exists(), reason="the system bash 3.2 is part of macOS")
+@pytest.mark.parametrize(("item", "flags"), [(KeychainItem.PRESENT, ""), (KeychainItem.ABSENT, SHARED_HOME_FLAG)])
+def test_the_claude_canary_mode_is_decided_under_the_bash_that_macos_ships(
+    night: Night, item: KeychainItem, flags: str
+) -> None:
+    night.set_keychain(item)
+    result = night.run("canaries", shell=MACOS_BASH)
+    assert result.code == 0 and result.claude_canary_flags() == flags
