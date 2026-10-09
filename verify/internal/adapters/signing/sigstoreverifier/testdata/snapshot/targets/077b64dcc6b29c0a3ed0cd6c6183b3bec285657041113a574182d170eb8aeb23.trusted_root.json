@@ -1,0 +1,43 @@
+{
+  "mediaType": "application/vnd.dev.sigstore.trustedroot+json;version=0.1",
+  "tlogs": [
+    {
+      "baseUrl": "https://rekor.localhost",
+      "hashAlgorithm": "SHA2_256",
+      "publicKey": {
+        "rawBytes": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqj9pPV/M8ZIk5YZB4yBks4vA6MzvyIpmXi/q4TTU/aM/ZO9Jcl7UL3iGJQBs1eedVOMHE9maK6FtdyGyzD3Ccg==",
+        "keyDetails": "PKIX_ECDSA_P256_SHA_256",
+        "validFor": {
+          "start": "2026-10-09T11:53:30.787630Z",
+          "end": "2026-10-09T13:53:30.787630Z"
+        }
+      },
+      "logId": {
+        "keyId": "ks05vDjPQ8AnPTBTRW4nT7m4W+d5k+jj3plhX8+w4RI="
+      }
+    }
+  ],
+  "certificateAuthorities": [
+    {
+      "subject": {
+        "organization": "spec-proof fixtures",
+        "commonName": "fulcio"
+      },
+      "uri": "https://fulcio.fixtures.invalid",
+      "certChain": {
+        "certificates": [
+          {
+            "rawBytes": "MIIByDCCAW6gAwIBAgIBATAKBggqhkjOPQQDAjAqMRUwEwYDVQQKEwxzaWdzdG9yZS5kZXYxETAPBgNVBAMTCHNpZ3N0b3JlMB4XDTI2MTAwOTEyNTEzMFoXDTI2MTAwOTE0NTMzMFowNzEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MR4wHAYDVQQDExVzaWdzdG9yZS1pbnRlcm1lZGlhdGUwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQCy3K1E5j4tzd12yZY+pexd3HbXpTlwRsXPD2upJIvj3ClA54dcY33uXVKiYsGwcOzYX/mzRJbf9b66NdybX7Wo3gwdjAOBgNVHQ8BAf8EBAMCAQYwEwYDVR0lBAwwCgYIKwYBBQUHAwMwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUtiurOyonFJJ+v4xspHxIY91kt8YwHwYDVR0jBBgwFoAUB8PSDSSePFE7pSJukLuo/oTOzI0wCgYIKoZIzj0EAwIDSAAwRQIgdzDGXinPb6Oa0HU5QHJb1n/Hu87456dgW5mGsL6MvggCIQDck+hdUR2+yNxYJoEAT5KTAD2rwOUJS7D2eQpzbRCQnw=="
+          },
+          {
+            "rawBytes": "MIIBhjCCASugAwIBAgIBATAKBggqhkjOPQQDAjAqMRUwEwYDVQQKEwxzaWdzdG9yZS5kZXYxETAPBgNVBAMTCHNpZ3N0b3JlMB4XDTI2MTAwOTA3NTMzMFoXDTI2MTAwOTE3NTMzMFowKjEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MREwDwYDVQQDEwhzaWdzdG9yZTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABNii+GENoXHk2mOHj2qquMuqTFR+ANgKPsvxQQp25a/vbAs6dCUZr1Q1TYEl1lcXQOlh1bww/2mtqpI/z7P5h4ijQjBAMA4GA1UdDwEB/wQEAwIBBjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBQHw9INJJ48UTulIm6Qu6j+hM7MjTAKBggqhkjOPQQDAgNJADBGAiEAzyWofPbckGLSyoz6vTpZxoASnNzPyTjwLg3xWeh68YoCIQCMq9WAYldgAG7h2JlXvcWpsDr7qrBM9KZaL9nXhAzbRw=="
+          }
+        ]
+      },
+      "validFor": {
+        "start": "2026-10-09T11:53:30.787634Z",
+        "end": "2126-09-15T12:53:30.787634Z"
+      }
+    }
+  ]
+}
