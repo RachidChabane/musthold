@@ -3,8 +3,10 @@
 Measurement of limit 4 of the proof chain for each confidence source of the System
 One chain of ADR 0005: (1) a `/v1/systemone` endpoint, (2) k blind votes of the host
 model, whose confidence is the share of agreement, and (3) UNDETERMINED below the
-threshold. A closed answer carries a confidence whose relation to correctness is
-unknown. Per decision kind, per source and per model, the experiment asks:
+threshold. Source (4), `host-classify`, answers a closed question set from the
+host's own classify call, and a decider comparator answers the same sets by blind
+votes. A closed answer carries a confidence whose relation to correctness is unknown.
+Per decision kind, per source and per model, the experiment asks:
 
 - whether a confidence of 0.9 is right about 9 times out of 10;
 - how much of the decision stream a source answers at 5 % error or less;
@@ -18,7 +20,9 @@ Source (1) is measured by offline replay of closed-question requests through loc
 models of at most 9B parameters. The requests are produced by the product's own
 builders and rendering and archived before any model call. Source (2) is measured on
 host votes that the amended limits 1–3 pilot recorded in its run `run-02`, and no
-host model is called. Source (3) is derived from both. No remote model is called.
+host model is called. Source (3) is derived from them. Source (4), `host-classify`,
+and the decider subagents are measured by remote calls under §17. Sources (1) to (3)
+call no remote model.
 
 Items are decisions on the pilot's artefacts: one author-built fixture, `parkfee`,
 with 10 criteria, 38 tests and one Python domain. Each item is paired with truth that
@@ -96,6 +100,7 @@ experiment uses from it:
 `git archive prereg-calibration -- . ':(exclude)experiments'`, into
 `.cache/product-<commit>/`. It records the SHA-256 of every exported file. No
 exported file is edited. The builders are added beside the module code (§4.1).
+§17's plans and tickets come from the tree tagged `prereg-calibration-a1`.
 
 ### 2.2 Pilot freeze and pilot run
 
@@ -148,6 +153,8 @@ their own `pilot.domain` imports: `normalization`, `definitions`, `ids`, `edits`
 | JH3 | (2) host votes | `host-votes(3)` | the same repetitions 1 to 3 | none |
 | VH2 | (2) host votes | `host-votes(2)` | the pilot's V-H1 and V-H2 votes (`validity.jsonl`) | none |
 | S3 | (3) UNDETERMINED | derived per source and threshold (§7.3) | the above | none |
+| HC-H, HC-S, HC-P | (1b) host classify, source (4) | `host-classify(5,rot1):<voters>` | §17 | remote |
+| HV-S, HV-O | (2) host votes | `host-votes(3)` | §17.3 | remote |
 
 A source-(1) string is the one the product records for a relayed answer:
 `system-one:<model>@<endpointDigest>`, built by `format.SystemOneEndpointSource`
@@ -165,10 +172,10 @@ The host votes of JH5, JH3 and VH2 were cast by the pilot's host model,
 
 | Id | Decision | Product question | Unit | Truth | Sources |
 |---|---|---|---|---|---|
-| K1 | which criterion a test's assertions verify | alignment `decide.closed`, question `criterion`: `choice` over the ten criterion tokens in tokenized order, then `NONE` | test | author labels | S1, JH5, JH3 |
-| K2 | whether the coverage of that criterion is adequate | alignment `decide.closed`, question `coverage`: `score` over NONE, WEAK, PARTIAL, FULL, lowest first | test | author labels | S1, JH5, JH3 |
-| K3 | ALIGNED to the declared criterion | derived from the K1 and K2 answers by the alignment module's rule (§7) | test | author labels | S1, JH5, JH3 |
-| K4 | mutant m breaks criterion c | discpower `decide.closed` screen, question `q<i>` for the criterion at window position i: `choice` VIOLATES, CONSISTENT | (m, c) pair | oracle classes | S1, VH2 |
+| K1 | which criterion a test's assertions verify | alignment `decide.closed`, question `criterion`: `choice` over the ten criterion tokens in tokenized order, then `NONE` | test | author labels | S1, JH5, JH3, HC-*, HV-* |
+| K2 | whether the coverage of that criterion is adequate | alignment `decide.closed`, question `coverage`: `score` over NONE, WEAK, PARTIAL, FULL, lowest first | test | author labels | S1, JH5, JH3, HC-*, HV-* |
+| K3 | ALIGNED to the declared criterion | derived from the K1 and K2 answers by the alignment module's rule (§7) | test | author labels | S1, JH5, JH3, HC-*, HV-* |
+| K4 | mutant m breaks criterion c | discpower `decide.closed` screen, question `q<i>` for the criterion at window position i: `choice` VIOLATES, CONSISTENT | (m, c) pair | oracle classes | S1, VH2, HC-*, HV-* |
 
 K3 and K4 are the primary kinds, because `tauRoute` and `tauScreen` act on them. K1
 and K2 are secondary.
@@ -555,8 +562,8 @@ the rule.
   A failed check during the block stops it cleanly with a `pause` entry. This keeps
   the machine at no more than 2 heavy workers and never runs two local-model jobs at
   once.
-- **No remote models.** No call is made to Claude, Codex or any other remote model,
-  so the Claude quota and its nightly window are untouched.
+- **Remote models.** Model blocks call no remote model. §17's calls are not heavy work
+  and are not bound by §6.5.
 
 ### 6.2 Ollama server
 
@@ -766,8 +773,9 @@ regression failure logs.
 ## 8. Metrics
 
 Every metric is computed per (kind, source, model) on pass-1 answers. K1–K3 use the
-PRIMARY truth set unless a table names CONSENSUS. For a source-(2) cell, "model"
-means the pilot's host model.
+PRIMARY truth set unless a table names CONSENSUS. For JH and VH cells, the model is
+the pilot's host model. For HV-d it is d, and for HC it is the voter set. HC and HV
+cells are keyed by their §3.1 Id.
 
 ### 8.1 Calibration
 
@@ -1089,6 +1097,8 @@ All of these are reported, and none feeds a band or a rule:
 
   Otherwise, no run.
 - **PC4.** Every canary passes (§5.4). Otherwise, that model does not run.
+- **PC5.** The a1 tree holds `ClassifyPlan`, the source grammar and `classify-plan`.
+  The a1 genTime precedes the pilot analysis commit. Otherwise HC and HV are BLOCKED.
 
 The machine-safety rules of §6 are not preconditions. They wait, pause or block as §6
 states.
@@ -1101,8 +1111,8 @@ entry per line:
 `- <kind> | scope: <scope> | <text>`
 
 `<scope>` is `none`, `all`, or identifiers separated by commas, drawn from K1–K4,
-M1–M6, JH5, JH3, VH2 and CS1–CS3. An output for (kind k, source s, model m), or a
-rule, is in scope when its identifier, k, s or m is named, or when the scope is
+M1–M6, JH5, JH3, VH2, CS1–CS3, HC-H, HC-S, HC-P, HV-S, HV-O and CL1. An output for
+(kind k, source s, model m), or a rule, is in scope when its identifier, k, s or m is named, or when the scope is
 `all`.
 
 | Kind | Logged when | Writer | Effect |
@@ -1123,7 +1133,7 @@ rule, is in scope when its identifier, k, s or m is named, or when the scope is
 
 | File | Content |
 |---|---|
-| `manifest.json` | run id; the `prereg-calibration` commit; the harness commit; the builder source and binary digests; the pilot tag commit and the pilot analysis commit; the snapshot and product-export digests; the template digests per module; the source-(2) prompt digests (`prereg/prompts/alignment.md`, `prereg/prompts/validity.md` and their schemas); server versions |
+| `manifest.json` | run id; the `prereg-calibration` commit; the harness commit; the builder source and binary digests; the pilot tag commit and the pilot analysis commit; the snapshot and product-export digests; the template digests per module; the source-(2) prompt digests (`prereg/prompts/alignment.md`, `prereg/prompts/validity.md` and their schemas); server versions; the `prereg-calibration-a1` commit; the plan and ticket digests; the voter ids; the CLI versions; the plugin versions |
 | `pilot_inputs.json` | every run-02 file read, with its SHA-256 (§2.3) |
 | `snapshot.json` | the digest of every snapshot file |
 | `models.lock.json` | §5.3 |
@@ -1181,7 +1191,8 @@ is reported in the same tables and with the same prominence as any other.
 - a table holding source-(2) figures lacks the fixed note "Source-(2) votes
   answered the pilot's prompts, not the product's closed question sets.";
 - a figure from the vendor table appears outside it;
-- a kind × source × model cell is missing from the band table.
+- a kind × source × model cell is missing from the band table;
+- an HC figure does not name its voter set.
 
 Limits paragraph, verbatim in the report:
 
@@ -1236,3 +1247,108 @@ pre-registration, and the first complete run under the old one is still reported
 rerun of a model block is allowed only after an infrastructure failure of the whole
 block (server or machine) and before any `analyze` output exists. It is logged as a
 `protocol` entry with that model as its scope.
+
+`prereg-calibration-a1` is frozen as in step 1, in `freeze/a1-commit.{txt,tsq,tsr}`.
+The first complete run under `prereg-calibration` is still reported.
+
+## 17. Source (4): host classify, and the decider comparator
+
+### 17.1 Arms
+
+- HC-H: `host-classify(5,rot1):claude-haiku-4-5-20251001*5`
+- HC-S: `host-classify(5,rot1):claude-sonnet-5-5*5`
+- HC-P: `host-classify(5,rot1):claude-sonnet-5-5*3+claude-haiku-4-5-20251001*2`, made
+  of calls S0–S2 and H0–H1.
+
+The template digest of an HC cell is `sha256(decide.closed digest + "|rot1|" + CLI
+version)`.
+
+### 17.2 Calls
+
+- **Archive.** `build-items` archives each question's `ClassifyPlan`, with i = 0–4.
+- **Execution.**
+  - Each planned call runs once under Haiku and once under Sonnet, after the archive
+    is complete.
+  - `claude -p --plugin-dir harness/classify-mod` loads a mod that reads the plan
+    with `$.fs`, calls `$.model.classify`, and writes one raw record per call:
+    `{request_id, question, i, model, order, label|null, attempt, started, finished}`.
+    The harness records `claude --version` per session.
+  - At most 4 calls are in flight, and the run is resumable.
+- **Canary.** A canary call per model runs first. A model the allowlist refuses makes
+  its arms BLOCKED.
+- **Failures.** An `undefined` label or a rejection is retried once with the same
+  order. A second `undefined` is a missing vote, and a second rejection is MISSING. A
+  question with no prediction is a fall-through (§4.6).
+- **Recording.** The product records a host-classify answer on the channel
+  `host-classify` at isolation `restricted-unverified`. The experiment measures
+  correctness, not isolation, and §12's claim-power statement is unchanged.
+
+### 17.3 Comparator HV-d
+
+The decider model d is `claude-sonnet-5-5` for HV-S and `claude-opus-5-5` for HV-O.
+
+- **Tickets.** A builder mode `tickets` writes each archived closed set as a pending
+  `decide.closed` request, through the module's own store package. The store is a
+  fresh project at `runs/<run-id>/hv/<d>/<request>/`.
+- **Votes.** The module's fulfil skill runs there under `claude -p --model d`, with
+  `decide_k` = 3 and attestation on.
+- **Readings.** K4 uses the modal answer and `power.ViolationProbability`, and K1–K3
+  use `aggregate.Aggregate`.
+
+### 17.4 Confidence and chain
+
+- **Share and ties.** s and ties are as in §7.2.
+- **Maps.** A PAV map from s to correctness is fitted on the fit half (§10 steps 1–2),
+  giving c.
+- **K1–K3.** K2 is ADEQUATE when the modal coverage is FULL or PARTIAL. K3 is ALIGNED
+  when K1 is D(t) and K2 is ADEQUATE, with confidence min(c_K1, c_K2).
+- **Answered request.** HC-a answers a request when every one of its questions has
+  c ≥ 0.95.
+- **Chain(a, d).** HC-a answers the requests it answers, and HV-d answers the rest.
+- **Attestation.** HV-d votes run with attestation on (§17.3). The product's record of
+  a host-classify answer is as §17.2 states.
+
+### 17.5 Arm selection (fit half, per kind)
+
+- **Choice.** The arm with the largest share of decisions in answered requests is
+  selected.
+- **Ties.** Arms within 0.02 of it are ranked HC-H, then HC-P, then HC-S.
+- **No arm.** When no arm answers any request, CL1 is NOT_MET (`no-arm`).
+
+### 17.6 Rule CL1 (held-out, paired cluster bootstrap as in §8.5)
+
+CL1 is MET for (K4, the selected arm a, d) when all of these hold:
+
+1. §10 gives MET, with the decisions of answered requests as the decisions at or above
+   the threshold.
+2. Among those decisions, the ones predicting CONSISTENT have an error point ≤ 0.05
+   and a Wilson upper bound ≤ 0.10.
+3. On answered requests, error(HC-a) − error(HV-d) has an upper bound ≤ +0.02.
+4. On the screen stratum at τ = 0.20, the chain against HV-d has a miss-rate
+   difference whose upper bound is ≤ +0.02, and a flag-rate difference whose point is
+   ≤ +0.05. With fewer than 10 VIOLATES-truth pairs, this condition is INCONCLUSIVE.
+5. Brier(chain) − Brier(HV-d) has an upper bound ≤ +0.01.
+6. §8.4 holds for HC-a and for HV-d.
+7. No `protocol` entry is in scope.
+
+**Admission file.** `derive` writes `results/classify-admission.json`, one entry per
+(kind, source, d): the outcome, the tested fit-half PAV table with its digest, and the
+CLI version.
+
+A MET entry grants no power (§12).
+
+### 17.7 Stated in advance
+
+- **K1–K3:** UNREACHABLE (§10). They are reported, and no alignment entry is written.
+- **K4:** UNREACHABLE when the fit half holds fewer than 200 decisions or fewer than
+  10 clusters.
+- **A MET covers** one fixture, model-written and planted mutants; arm O is
+  unmeasured.
+
+### 17.8 Reported
+
+- every arm's held-out figures (descriptive when unselected);
+- the request-level skip rate;
+- the distribution of s, and the share of calls that pick the first-listed label;
+- P(Haiku wrong given Sonnet wrong), and both-wrong counts;
+- HC against VH2 and JH5, under §15.2's note.
