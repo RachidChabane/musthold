@@ -561,6 +561,28 @@ func TestSyntheticSessionOfClaudeCode(t *testing.T) {
 		}
 	})
 
+	t.Run("the isolated configuration trusts the project under its resolved path, so the session applies the project's permission rules [verifies SP-1925~1]", func(t *testing.T) {
+		raw, err := os.ReadFile(filepath.Join(outcome.RunDir, "claude-config", ".claude.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var state struct {
+			Projects map[string]struct {
+				HasTrustDialogAccepted bool `json:"hasTrustDialogAccepted"`
+			} `json:"projects"`
+		}
+		if err := json.Unmarshal(raw, &state); err != nil {
+			t.Fatal(err)
+		}
+		project, err := filepath.EvalSymlinks(filepath.Join(outcome.RunDir, "project"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(state.Projects) != 1 || !state.Projects[project].HasTrustDialogAccepted {
+			t.Errorf("state = %s, want only %s trusted", raw, project)
+		}
+	})
+
 	t.Run("the preparation commands run before the session and without the shims, so the hook log holds the session only [verifies SP-1506~1]", func(t *testing.T) {
 		proveAt := slices.IndexFunc(w.processes.calls, func(argv []string) bool { return slices.Contains(argv, "prove") })
 		if proveAt < 0 || !w.processes.ran("request list --json") || !w.processes.ran("plugin validate") {

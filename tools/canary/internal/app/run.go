@@ -309,6 +309,11 @@ func (r Runner) prepare(ctx context.Context, options Options, homes Homes) (prep
 			return prepared, err
 		}
 	}
+	if input.ClaudeConfigDir != "" {
+		if err := r.trustClaudeProject(l, input.ClaudeConfigDir); err != nil {
+			return prepared, err
+		}
+	}
 	for _, module := range modules.All() {
 		if !r.Files.Exists(l.binary(module.Binary)) {
 			return prepared, fmt.Errorf("%w: %s (run script/canary-build)", ErrMissingBinary, l.binary(module.Binary))
@@ -380,6 +385,17 @@ func (r Runner) configureClassification(l layout) error {
 		return err
 	}
 	return r.Files.Write(l.projectFile(classifyConfigFile), []byte(launch.ClassifyConfig(string(fixture), l.bodies())), false)
+}
+
+// trustClaudeProject marks the project trusted in the isolated configuration of
+// Claude Code, so that the session applies the permission rules of the project's
+// settings. The run directory's path is already resolved, as the trust key needs.
+func (r Runner) trustClaudeProject(l layout, configDir string) error {
+	state, err := launch.ClaudeTrustedProject(l.project)
+	if err != nil {
+		return err
+	}
+	return r.Files.Write(filepath.Join(configDir, launch.ClaudeGlobalConfigFile), state, false)
 }
 
 // configMode says where the harness CLI keeps its credentials and state.

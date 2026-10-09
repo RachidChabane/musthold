@@ -17,6 +17,9 @@ const (
 	FlagReal   = "--real"
 	// ClaudeSettingsPath is the project-local settings file of Claude Code.
 	ClaudeSettingsPath = ".claude/settings.json"
+	// ClaudeGlobalConfigFile is the file of Claude Code's own state inside its
+	// configuration directory, which holds the trust of each project.
+	ClaudeGlobalConfigFile = ".claude.json"
 	// CodexHooksPath is the project-local hooks file of Codex.
 	CodexHooksPath = ".codex/hooks.json"
 
@@ -66,6 +69,18 @@ func ClaudeSettings(canary, hooksLog string) ([]byte, error) {
 		"permissions": map[string][]string{"allow": ScriptedShellRules()},
 	}
 	return json.MarshalIndent(settings, "", "  ")
+}
+
+// ClaudeTrustedProject is the state file of an isolated Claude Code configuration
+// that marks the project trusted. Claude Code applies the permission rules of a
+// project's settings only in a trusted project, and it keys the trust by the
+// project's path with every symbolic link resolved, which the caller passes.
+func ClaudeTrustedProject(resolvedProject string) ([]byte, error) {
+	type projectState struct {
+		HasTrustDialogAccepted bool `json:"hasTrustDialogAccepted"`
+	}
+	state := map[string]map[string]projectState{"projects": {resolvedProject: {HasTrustDialogAccepted: true}}}
+	return json.MarshalIndent(state, "", "  ")
 }
 
 // ScriptedShellRules are the permission rules of exactly the shell commands the
