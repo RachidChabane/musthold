@@ -382,7 +382,7 @@ func stopPayloadOf(t *testing.T, agentType, reply string) []byte {
 func TestSubagentStop(t *testing.T) {
 	claude := harness.Claude(identity)
 
-	t.Run("a run of fetch and submit that replies with the receipt is attested with its transcript digest [verifies SP-707~1]", func(t *testing.T) {
+	t.Run("a run of fetch and submit that replies with the receipt is attested with its transcript digest [verifies SP-707~2]", func(t *testing.T) {
 		f := newFixture(t)
 		transcript := executorTranscript(t, claude,
 			call(t, claude, hostproto.ToolFetchRequest, f.ticketText()), call(t, claude, hostproto.ToolSubmitResponse, f.ticketText()))
@@ -397,7 +397,7 @@ func TestSubagentStop(t *testing.T) {
 		}
 	})
 
-	t.Run("one corrective submit is still attested [verifies SP-707~1]", func(t *testing.T) {
+	t.Run("one corrective submit is still attested [verifies SP-707~2]", func(t *testing.T) {
 		f := newFixture(t)
 		f.transcripts[transcriptPath] = executorTranscript(t, claude,
 			call(t, claude, hostproto.ToolFetchRequest, f.ticketText()),
@@ -410,7 +410,7 @@ func TestSubagentStop(t *testing.T) {
 		}
 	})
 
-	t.Run("a run that did anything else is journaled as an exposure and not attested [verifies SP-707~1]", func(t *testing.T) {
+	t.Run("a run that did anything else is journaled as an exposure and not attested [verifies SP-707~2]", func(t *testing.T) {
 		other := hostproto.TicketID{RequestID: f0(t).ticket.RequestID, Vote: 1, Emission: 1}.String()
 		for name, calls := range map[string]func(*fixture) []hostproto.ToolCall{
 			"a shell command": func(f *fixture) []hostproto.ToolCall {
@@ -438,7 +438,7 @@ func TestSubagentStop(t *testing.T) {
 		}
 	})
 
-	t.Run("a run that never fetched a ticket is journaled as an exposure without a ticket [verifies SP-707~1]", func(t *testing.T) {
+	t.Run("a run that never fetched a ticket is journaled as an exposure without a ticket [verifies SP-707~2]", func(t *testing.T) {
 		f := newFixture(t)
 		f.transcripts[transcriptPath] = executorTranscript(t, claude, hostproto.ToolCall{Name: "Read", Input: json.RawMessage(`{}`)})
 		if _, err := f.handler(claude).Handle(hostproto.HookSubagentStop, stopPayload(t, "done")); err != nil {
@@ -449,7 +449,7 @@ func TestSubagentStop(t *testing.T) {
 		}
 	})
 
-	t.Run("a reply that is more than the receipt is journaled as a leak and not attested [verifies SP-707~1]", func(t *testing.T) {
+	t.Run("a reply that is more than the receipt is journaled as a leak and not attested [verifies SP-707~2]", func(t *testing.T) {
 		f := newFixture(t)
 		f.transcripts[transcriptPath] = executorTranscript(t, claude,
 			call(t, claude, hostproto.ToolFetchRequest, f.ticketText()), call(t, claude, hostproto.ToolSubmitResponse, f.ticketText()))
@@ -461,7 +461,7 @@ func TestSubagentStop(t *testing.T) {
 		}
 	})
 
-	t.Run("a transcript that cannot be read leaves the run unattested with a trace [verifies SP-707~1]", func(t *testing.T) {
+	t.Run("a transcript that cannot be read leaves the run unattested with a trace [verifies SP-707~2]", func(t *testing.T) {
 		f := newFixture(t)
 		if _, err := f.handler(claude).Handle(hostproto.HookSubagentStop, stopPayload(t, "x")); err != nil {
 			t.Fatal(err)
@@ -475,7 +475,7 @@ func TestSubagentStop(t *testing.T) {
 		}
 	})
 
-	t.Run("the stop of any other agent is not checked [verifies SP-707~1]", func(t *testing.T) {
+	t.Run("the stop of any other agent is not checked [verifies SP-707~2]", func(t *testing.T) {
 		f := newFixture(t)
 		payload := marshal(t, map[string]any{"hook_event_name": "SubagentStop", "agent_id": agentID, "agent_type": "general-purpose", "agent_transcript_path": transcriptPath})
 		if _, err := f.handler(claude).Handle(hostproto.HookSubagentStop, []byte(payload)); err != nil || len(f.events()) != 0 {
@@ -483,7 +483,7 @@ func TestSubagentStop(t *testing.T) {
 		}
 	})
 
-	t.Run("a stop hook never blocks the subagent [verifies SP-707~1]", func(t *testing.T) {
+	t.Run("a stop hook never blocks the subagent [verifies SP-707~2]", func(t *testing.T) {
 		f := newFixture(t)
 		f.transcripts[transcriptPath] = executorTranscript(t, claude, hostproto.ToolCall{Name: "Read", Input: json.RawMessage(`{}`)})
 		output, err := f.handler(claude).Handle(hostproto.HookSubagentStop, stopPayload(t, "x"))
@@ -609,15 +609,28 @@ func TestHarnessVariants(t *testing.T) {
 		}
 	})
 
-	t.Run("on Codex the stop of an executor is attested like on Claude Code [verifies SP-709~1]", func(t *testing.T) {
+	t.Run("on Codex the stop of an executor reads its rollout for the history it started with, and attests nothing [verifies SP-709~1] [verifies SP-1935~1]", func(t *testing.T) {
 		f := newFixture(t)
+		rollout, err := hostprototest.CodexBlindRollout(agentID, codex.AgentType(judgeRole), f.ticket.TicketID,
+			[]hostproto.ToolCall{call(t, codex, hostproto.ToolFetchRequest, f.ticketText()), call(t, codex, hostproto.ToolSubmitResponse, f.ticketText())},
+			executorrun.Receipt(f.ticket.TicketID))
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.transcripts[transcriptPath] = rollout
+		if _, err := f.handler(codex).Handle(hostproto.HookSubagentStop, stopPayloadOf(t, codex.AgentType(judgeRole), executorrun.Receipt(f.ticket.TicketID))); err != nil {
+			t.Fatal(err)
+		}
+		if len(f.kinds()) != 0 {
+			t.Fatalf("events = %v", f.kinds())
+		}
 		f.transcripts[transcriptPath] = executorTranscript(t, codex,
 			call(t, codex, hostproto.ToolFetchRequest, f.ticketText()), call(t, codex, hostproto.ToolSubmitResponse, f.ticketText()))
 		if _, err := f.handler(codex).Handle(hostproto.HookSubagentStop, stopPayloadOf(t, codex.AgentType(judgeRole), executorrun.Receipt(f.ticket.TicketID))); err != nil {
 			t.Fatal(err)
 		}
-		if !slices.Contains(f.kinds(), hostproto.EventAttested) {
-			t.Fatalf("events = %v", f.kinds())
+		if !slices.Equal(f.kinds(), []hostproto.EventKind{hostproto.EventBlindnessUnproven}) {
+			t.Fatalf("a transcript that is no rollout gave the events %v", f.kinds())
 		}
 	})
 

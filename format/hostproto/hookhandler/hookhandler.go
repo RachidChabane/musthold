@@ -31,6 +31,12 @@ const (
 	reasonNotBareReceipt    = "the reply is not the bare receipt"
 )
 
+// Details the stop hook journals about a transcript it could not use.
+const (
+	reasonTranscriptUnreadable = "transcript unreadable: "
+	reasonForeignRollout       = "the rollout belongs to thread %q, not to the stopped agent"
+)
+
 // Store is what the hooks read and write of the host directory.
 type Store interface {
 	hostproto.Tickets
@@ -149,6 +155,9 @@ func (h Handler) roleOfAgent(event hostproto.HookEvent) (string, error) {
 }
 
 func (h Handler) preTool(event hostproto.HookEvent) ([]byte, error) {
+	if h.Harness.Behaviours.GuardsSpawn && hostproto.IsCodexSpawnTool(event.ToolName) {
+		return h.guardSpawn(event)
+	}
 	if hostproto.IsAgentTool(event.ToolName) && h.Harness.Behaviours.RewritesLaunch {
 		input, err := hostproto.DecodeAgentInput(event.ToolInput)
 		if err != nil {
@@ -177,6 +186,20 @@ func (h Handler) preTool(event hostproto.HookEvent) ([]byte, error) {
 		return h.deny(reasonInternal + ": " + err.Error())
 	}
 	return decision, nil
+}
+
+// guardSpawn refuses a spawn of an executor of the module that does not ask for
+// a child with none of the spawning agent's history, and has no opinion on any
+// other spawn. It opens no state: the input alone decides.
+func (h Handler) guardSpawn(event hostproto.HookEvent) ([]byte, error) {
+	spawn, err := hostproto.DecodeCodexSpawn(event.ToolInput)
+	if err != nil {
+		return nil, nil
+	}
+	if _, ours := h.Harness.RoleOf(spawn.AgentType); !ours || spawn.RequestsNoHistory() {
+		return nil, nil
+	}
+	return h.deny(hostproto.CodexSpawnDenial(spawn.AgentType))
 }
 
 // rewriteLaunch rebuilds the launch of an executor to the bare ticket, in the
@@ -285,16 +308,34 @@ func (h Handler) subagentStart(event hostproto.HookEvent) error {
 	return bound.journal(hostproto.EventAgentStarted, "", event.AgentID, role, "")
 }
 
+// runCheck reads the transcript of a stopped executor of a role and journals
+// what it shows.
+type runCheck func(h Handler, event hostproto.HookEvent, role string) error
+
+// runChecks are the checks of a stopped executor, one per transcript format.
+var runChecks = map[hostproto.TranscriptFormat]runCheck{
+	hostproto.TranscriptAgentJSONL:   Handler.checkRun,
+	hostproto.TranscriptCodexRollout: Handler.checkBlindness,
+}
+
+// ErrUnsupportedTranscript is returned for a harness whose transcript format no
+// stop check reads.
+var ErrUnsupportedTranscript = errors.New("unsupported transcript format")
+
 func (h Handler) subagentStop(event hostproto.HookEvent) error {
 	role, ours := h.Harness.RoleOf(event.AgentType)
 	if !h.Harness.Behaviours.ChecksStop || !ours {
 		return nil
 	}
+	check, known := runChecks[h.Harness.Transcript]
+	if !known {
+		return fmt.Errorf("%w: %q", ErrUnsupportedTranscript, h.Harness.Transcript)
+	}
 	bound, err := h.bound()
 	if err != nil {
 		return err
 	}
-	return bound.checkRun(event, role)
+	return check(bound, event, role)
 }
 
 // checkRun reads the transcript of a stopped executor: its calls must be exactly
@@ -302,7 +343,7 @@ func (h Handler) subagentStop(event hostproto.HookEvent) error {
 func (h Handler) checkRun(event hostproto.HookEvent, role string) error {
 	transcript, err := h.Transcripts.Read(event.TranscriptPath)
 	if err != nil {
-		return h.journal(hostproto.EventRestricted, "", event.AgentID, role, "transcript unreadable: "+err.Error())
+		return h.journal(hostproto.EventRestricted, "", event.AgentID, role, reasonTranscriptUnreadable+err.Error())
 	}
 	calls, err := hostproto.DecodeTranscript(bytes.NewReader(transcript))
 	if err != nil {
@@ -320,6 +361,54 @@ func (h Handler) checkRun(event hostproto.HookEvent, role string) error {
 	}
 	detail := executorrun.AttestationDetail(hostproto.TranscriptDigest(transcript))
 	return h.journal(hostproto.EventAttested, ticket.String(), event.AgentID, role, detail)
+}
+
+// blindnessEvents are the events that record a run not shown to be blind, by
+// what its rollout shows.
+var blindnessEvents = map[hostproto.ChildHistory]hostproto.EventKind{
+	hostproto.ChildInherited: hostproto.EventHistoryInherited,
+	hostproto.ChildUnproven:  hostproto.EventBlindnessUnproven,
+}
+
+// checkBlindness reads the rollout of a stopped executor: a run that started with
+// history of the agent that spawned it, or whose rollout cannot show that it did
+// not, is journaled against its ticket, so that its answer is credited at the
+// isolation `inline`; a reply other than the bare receipt is journaled as a leak.
+// The ticket comes from the rollout, or else from the receipt the run replied
+// with; without either, the event names the agent alone.
+func (h Handler) checkBlindness(event hostproto.HookEvent, role string) error {
+	run := h.readChildRun(event)
+	ticket, found := run.Ticket, run.TicketFound
+	if !found {
+		ticket, found = executorrun.ReceiptTicket(event.LastMessage)
+	}
+	ticketText := ""
+	if found {
+		ticketText = ticket.String()
+	}
+	if kind, lost := blindnessEvents[run.History]; lost {
+		if err := h.journal(kind, ticketText, event.AgentID, role, run.Reason); err != nil {
+			return err
+		}
+	}
+	if found && !isReceipt(event.LastMessage, ticket) {
+		return h.journal(hostproto.EventLeaked, ticketText, event.AgentID, role, reasonNotBareReceipt)
+	}
+	return nil
+}
+
+// readChildRun reads the rollout of the stopped agent. A rollout that cannot be
+// read, or that belongs to another thread than the agent, proves nothing.
+func (h Handler) readChildRun(event hostproto.HookEvent) hostproto.CodexChildRun {
+	transcript, err := h.Transcripts.Read(event.TranscriptPath)
+	if err != nil {
+		return hostproto.CodexChildRun{History: hostproto.ChildUnproven, Reason: reasonTranscriptUnreadable + err.Error()}
+	}
+	run := hostproto.ReadCodexChildRollout(transcript)
+	if run.History == hostproto.ChildBlind && run.ThreadID != event.AgentID {
+		run.History, run.Reason = hostproto.ChildUnproven, fmt.Sprintf(reasonForeignRollout, run.ThreadID)
+	}
+	return run
 }
 
 // fetchedTicket is the ticket of the first fetch an executor made.

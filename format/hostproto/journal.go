@@ -37,6 +37,14 @@ const (
 	// EventRunReported records what the harness reported about a finished
 	// executor run, the resolved model and the usage, as the event's detail.
 	EventRunReported EventKind = "run_reported"
+	// EventHistoryInherited records an executor run whose transcript shows that it
+	// started with history of the agent that spawned it; the detail says where.
+	// Its answer is credited at the isolation `inline`.
+	EventHistoryInherited EventKind = "history_inherited"
+	// EventBlindnessUnproven records an executor run whose transcript cannot show
+	// that it started with none of the spawning agent's history; the detail says
+	// why. Its answer is credited at the isolation `inline`.
+	EventBlindnessUnproven EventKind = "blindness_unproven"
 
 	// EventClassifyAnswered records a classification that answered its request:
 	// the detail is a ClassifyJournalDetail.

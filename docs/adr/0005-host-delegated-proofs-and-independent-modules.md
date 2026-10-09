@@ -337,13 +337,54 @@ hook at all. A role file's `sandbox_mode` is not applied to an agent spawned und
 the `unrestricted` isolation already assumes. The `codex exec --json` stream omits `spawn_agent`; the session's
 rollout files record it.
 
+**D (live canaries, 2026-10-08 and 2026-10-09):** two inputs of `spawn_agent` give
+a blind child: `fork_turns: "none"` and `fork_context: false`. The 2026-10-09 child
+rollout held only the base instructions, the role's developer message, the harness
+context (`<recommended_plugins>`, `<environment_context>`) and the task message, and
+no item of the parent. Under 0.155.1 the task reaches the child either as a user
+message `ticket <t>` (tools under the namespace `multi_agent_v1`) or as an
+`agent_message` with encrypted content (namespace `collaboration`), and hook payloads
+name the tool `spawn_agent` or `collaborationspawn_agent`. PreToolUse hooks fire for
+`spawn_agent` from the main agent, with its arguments as `tool_input` and no
+`agent_id`. SubagentStart carries `agent_id`, `agent_type`, `cwd`, `model`,
+`permission_mode`, `session_id`, `transcript_path` (the parent's rollout) and
+`turn_id`, none of which tells the history the child received. SubagentStop carries
+`agent_transcript_path`, the child's rollout: a first `session_meta` line whose
+`source.subagent.thread_spawn.parent_thread_id` names the parent, then the
+`response_item`s.
+
+**Blindness of the executor, in two layers.** The skill tells the main agent to
+spawn with `fork_turns: "none"`, but isolation does not rest on that text.
+1. **Gate at spawn.** The pre-tool hook matches the spawn tool under each name it
+   goes by. A spawn whose `agent_type` is an executor of the module is denied unless
+   it sets a recognised blind form (`fork_turns: "none"` or `fork_context: false`)
+   and no other value of either member; the reason tells the agent to spawn again
+   with `fork_turns: "none"`. Every other spawn gets no decision, and the hook opens
+   no state to decide. The hook denies rather than rewrites: `updatedInput` is
+   verified for MCP tools only, not for a built-in tool such as `spawn_agent`.
+2. **Verify at stop.** The stop hook reads the child's rollout. The task message is
+   the first `agent_message`, or the first user message that starts with
+   `ticket ` and holds exactly one ticket. The child is blind only when the first
+   line names a spawning thread and every `response_item` before the task message is
+   a developer or system message or a user message made of harness-context blocks.
+   An assistant message, a tool call or output, reasoning or other user text before
+   the task message, or a second task message, means the child inherited history
+   (`history_inherited`). No task message, an unknown item or context tag before it,
+   an undecodable line, an unreadable rollout or the rollout of another thread leave
+   the blindness unproven (`blindness_unproven`). The event names the ticket of the
+   task message, of the first fetch or of the receipt, or else the agent alone,
+   whose answer the capability identifies. Either event credits the answer at
+   `inline` and marks it: it keeps its block power and no judged pass credit under
+   any floor. The stop hook attests nothing on Codex.
+
 **Not documented:** a per-agent allowlist of built-in tools, so the executor keeps
 the shell and isolation is `unrestricted`. Because the executor server sits in the
 project configuration, the main agent sees the executor tools too; the pre-tool
 hook refuses them to any caller that is not an executor of the module.
 
 **Consequence:** block power only, no local judged pass credit,
-`require_attestation: false`.
+`require_attestation: false`; an answer whose rollout does not show a blind start
+is `inline` and marked.
 
 **B:** none since the owner's ChatGPT Plus plan serves the live canary, in the
 nightly window, on pre-listed calls and no spending.
@@ -691,7 +732,8 @@ the optional local System One endpoint) and the bench's local work alike.
 (uncapped, VALID everywhere, EQUIVALENT and NOT_VIOLATING on every survivor,
 screen-outs); `omitter`; `stale` (old nonces); `breaker` (schema); `leaker`;
 `padder`; `model-swapper`; `hookless`; `unrestricted` (reads tests); `selector`
-(trivially killed mutants); `churner` (`MaxHostWaits`); `slow`.
+(trivially killed mutants); `churner` (`MaxHostWaits`); `slow`; `inheritor` (a Codex
+executor that started with the main agent's history: `inline`, marked).
 
 ### Measurement: limits 5 and 8
 
@@ -776,7 +818,9 @@ of the benchmark's arms.
   holds.
 - Any Copilot selection other than exactly the two tools, and any launch other than
   the bare ticket, leaves the answer `restricted-unverified`.
-- Codex has no executor blindness, so its contribution is limited to block power.
+- On Codex the executor's blindness is gated at its spawn and checked on its
+  rollout, but the executor keeps the shell, so its contribution is limited to
+  block power; an answer whose rollout does not show a blind start is `inline`.
 - The git-status snapshot and the environment details leak file names to every
   executor. This is unavoidable per subagent.
 - The screen is a forgeable pass-enabling surface under the default basis. Its size

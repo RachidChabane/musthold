@@ -7,6 +7,7 @@ package executorrun
 import (
 	"encoding/json"
 	"slices"
+	"strings"
 
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
@@ -17,6 +18,17 @@ const receiptPrefix = "receipt "
 
 // Receipt is the whole reply of an executor that did its job.
 func Receipt(ticket hostproto.TicketID) string { return receiptPrefix + ticket.String() }
+
+// ReceiptTicket reads the ticket of a reply that is a bare receipt, whatever
+// whitespace surrounds it.
+func ReceiptTicket(reply string) (hostproto.TicketID, bool) {
+	text, found := strings.CutPrefix(strings.TrimSpace(reply), receiptPrefix)
+	if !found {
+		return hostproto.TicketID{}, false
+	}
+	ticket, err := hostproto.ParseTicketID(text)
+	return ticket, err == nil
+}
 
 // attestation is the detail of an `attested` event.
 type attestation struct {
@@ -55,24 +67,40 @@ func encode(value any) string {
 	return string(encoded)
 }
 
+// blindnessKinds are the events that say an executor run was not shown to be
+// blind: they put its answer at the isolation `inline`.
+var blindnessKinds = []hostproto.EventKind{hostproto.EventHistoryInherited, hostproto.EventBlindnessUnproven}
+
 // markKinds are the events that cost a response its attestation and its judged
 // pass credit.
-var markKinds = []hostproto.EventKind{hostproto.EventLeaked, hostproto.EventExposed, hostproto.EventResubmissionConflict}
+var markKinds = append([]hostproto.EventKind{hostproto.EventLeaked, hostproto.EventExposed, hostproto.EventResubmissionConflict}, blindnessKinds...)
 
 // Marked reports whether the events of a ticket mark its response as leaked,
-// exposed or conflicting.
-func Marked(events []hostproto.Event) bool {
-	return slices.ContainsFunc(events, func(event hostproto.Event) bool { return slices.Contains(markKinds, event.Kind) })
+// exposed, conflicting, or not shown to be blind.
+func Marked(events []hostproto.Event) bool { return containsKind(events, markKinds) }
+
+// BlindnessLost reports whether the events of a response say that the run that
+// gave it was not shown to be blind.
+func BlindnessLost(events []hostproto.Event) bool { return containsKind(events, blindnessKinds) }
+
+func containsKind(events []hostproto.Event, kinds []hostproto.EventKind) bool {
+	return slices.ContainsFunc(events, func(event hostproto.Event) bool { return slices.Contains(kinds, event.Kind) })
 }
 
 // Effective returns the profile a response is credited with: the profile stored at
-// acceptance, raised to `restricted-attested` when the stop hook attested the very
+// acceptance, lowered to `inline` when the run that gave it was not shown to be
+// blind, raised to `restricted-attested` when the stop hook attested the very
 // agent that answered and nothing marks the run, and carrying the model the
-// harness resolved. The events are those journaled for the response's ticket.
+// harness resolved. The events are those JournalIndex.Response gives for the
+// response.
 func Effective(stored format.ExecutorProfile, events []hostproto.Event) format.ExecutorProfile {
 	profile := stored
 	if report, found := lastReport(events); found && report.Model != "" {
 		profile.Model = format.ExecutorModel{Name: report.Model, Source: format.ModelSourceResolved}
+	}
+	if BlindnessLost(events) {
+		profile.Isolation = format.IsolationInline
+		return profile
 	}
 	if raised, witnessed := witnessedProfile(profile, events); witnessed {
 		return raised

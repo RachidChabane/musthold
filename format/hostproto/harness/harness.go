@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
@@ -86,6 +87,9 @@ type Behaviours struct {
 	ReportsRun bool
 	// IdentifiesCaller: a tool hook says which agent called the tool.
 	IdentifiesCaller bool
+	// GuardsSpawn: PreToolUse on the tool that spawns an agent refuses a spawn of
+	// an executor that does not ask for a child with none of the parent's history.
+	GuardsSpawn bool
 }
 
 // Harness is one host harness, as one module serves it.
@@ -108,6 +112,8 @@ type Harness struct {
 	// Channel is how an answer taken through the harness's server reaches the
 	// module; the zero value is the subagent channel.
 	Channel format.Channel
+	// Transcript is the layout of the transcript the stop hook reads.
+	Transcript hostproto.TranscriptFormat
 	// server is the executor server's name as the harness shows it in tool names.
 	server string
 	// toolName renders the name the harness gives a tool of the server.
@@ -149,6 +155,7 @@ func Claude(identity Identity) Harness {
 		Identity: identity, Flag: FlagClaude, Name: hostproto.HarnessClaudeCode, Version: ClaudeCodeVersion,
 		Allowlist:  hostproto.AllowlistEnforced,
 		Behaviours: Behaviours{RewritesLaunch: true, JournalsStart: true, IssuesCap: true, ChecksStop: true, ReportsRun: true, IdentifiesCaller: true},
+		Transcript: hostproto.TranscriptAgentJSONL,
 		server:     pluginScopedServer(identity.Plugin),
 		toolName:   mcpDoubleUnderscore,
 		agentType:  hostproto.RoleFor,
@@ -156,12 +163,15 @@ func Claude(identity Identity) Harness {
 }
 
 // Codex is the Codex CLI, whose agents keep the shell: isolation is
-// unrestricted and no capability is required.
+// unrestricted and no capability is required. Its hooks refuse a spawn of an
+// executor that would inherit the main agent's history, and its stop hook reads
+// the child's rollout for history it inherited all the same.
 func Codex(identity Identity) Harness {
 	return Harness{
 		Identity: identity, Flag: FlagCodex, Name: hostproto.HarnessCodex, Version: CodexVersion,
 		Allowlist: hostproto.AllowlistAbsent, AttestationOptOut: true,
-		Behaviours:    Behaviours{JournalsStart: true, IssuesCap: true, ChecksStop: true, IdentifiesCaller: true},
+		Behaviours:    Behaviours{JournalsStart: true, IssuesCap: true, ChecksStop: true, IdentifiesCaller: true, GuardsSpawn: true},
+		Transcript:    hostproto.TranscriptCodexRollout,
 		server:        identity.StandaloneExecutorServer(),
 		toolName:      sanitizedMCP,
 		agentType:     standaloneAgentName,
@@ -176,6 +186,7 @@ func Copilot(identity Identity) Harness {
 		Identity: identity, Flag: FlagCopilot, Name: hostproto.HarnessCopilot, Version: CopilotVersion,
 		Allowlist: hostproto.AllowlistUnverified, AttestationOptOut: true,
 		Behaviours:    Behaviours{ChecksStop: true},
+		Transcript:    hostproto.TranscriptAgentJSONL,
 		server:        identity.StandaloneExecutorServer(),
 		toolName:      slashed,
 		agentType:     standaloneAgentName,
@@ -230,6 +241,21 @@ func (h Harness) ToolName(tool string) string { return h.toolName(h.server, tool
 // ToolMatcher is the pattern of a hook matcher that selects every tool of the
 // server in the form the harness names them.
 func (h Harness) ToolMatcher() string { return h.ToolName("") + ".*" }
+
+// PreToolMatcher is the pattern of the PreToolUse hook matcher: every tool of the
+// server, and the spawn tool under each name it goes by where the harness guards
+// spawns.
+func (h Harness) PreToolMatcher() string {
+	if !h.Behaviours.GuardsSpawn {
+		return h.ToolMatcher()
+	}
+	spawnTools := hostproto.CodexSpawnToolNames()
+	quoted := make([]string, len(spawnTools))
+	for index, name := range spawnTools {
+		quoted[index] = regexp.QuoteMeta(name)
+	}
+	return "^(" + strings.Join(quoted, "|") + ")$|" + h.ToolMatcher()
+}
 
 // ToolNames lists the names of the two executor tools, fetch first.
 func (h Harness) ToolNames() []string {

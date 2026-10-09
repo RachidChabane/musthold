@@ -324,10 +324,11 @@ Go tests of the module in CI.
 
 ## Host protocol: test support
 
-- **SP-140~1**: WHEN a fake host plays one of the personas honest, forger,
+- **SP-140~2**: WHEN a fake host plays one of the personas honest, forger,
   omitter, stale, breaker, leaker, padder, model-swapper, hookless, unrestricted,
-  selector, churner or slow against a host THE SYSTEM SHALL give the verdict
-  asserted for that persona, and SHALL report an outcome that does not match it.
+  selector, churner, slow or inheritor against a host THE SYSTEM SHALL give the
+  verdict asserted for that persona, and SHALL report an outcome that does not
+  match it.
 - **SP-141~1**: WHEN the golden JSON-RPC transcripts are replayed against the
   fake executor service THE SYSTEM SHALL write the server lines the transcripts
   commit, and the committed transcripts SHALL be those the scripts record.
@@ -382,12 +383,13 @@ Go tests of the module in CI.
   agent.
 - **SP-706~1**: WHEN the SubagentStart hook sees an executor THE SYSTEM SHALL
   journal its agent and role, and journal no other agent.
-- **SP-707~1**: WHEN the SubagentStop hook sees an executor stop THE SYSTEM SHALL
-  attest the run with the digest of its transcript when its calls are exactly the
-  fetch and the submit of one ticket and its reply is the bare receipt, journal
-  an exposure for any other call and a leak for any other reply, journal a
-  restricted run when the transcript cannot be read, and never block the
-  subagent.
+- **SP-707~2**: WHEN the SubagentStop hook sees an executor stop on a harness
+  whose transcript is one JSON line per message (Claude Code, Copilot) THE SYSTEM
+  SHALL attest the run with the digest of its transcript when its calls are
+  exactly the fetch and the submit of one ticket and its reply is the bare
+  receipt, journal an exposure for any other call and a leak for any other reply,
+  journal a restricted run when the transcript cannot be read, and never block
+  the subagent.
 - **SP-708~1**: WHEN the PostToolUse hook sees an executor launch finish THE
   SYSTEM SHALL record the resolved model and the usage against its ticket and
   journal a leak for a reply other than the bare receipt, and record nothing for
@@ -505,6 +507,49 @@ Go tests of the module in CI.
   hook, keep the unsanitized and the slashed spellings accepted there, and
   recognize on Copilot the server and the tool joined by a hyphen besides the
   slashed spelling the agent allowlist uses.
+- **SP-1933~1**: WHEN the input of a Codex spawn is read THE SYSTEM SHALL
+  recognize the spawn tool as `spawn_agent` bare or prefixed by the namespace
+  `collaboration` or `multi_agent_v1`, read the agent type, the message and the
+  members that decide the child's history, refuse an input that is not an
+  object, and judge that the spawn asks for a child with none of the spawning
+  agent's history only when it sets `fork_turns` to `"none"` or `fork_context` to
+  `false` and every one of the two members it sets holds that value.
+- **SP-1934~1**: WHEN the rollout of a spawned Codex thread is read THE SYSTEM
+  SHALL take as its task message the first `agent_message` item, or the first
+  user message whose text starts with `ticket ` and holds exactly one ticket;
+  judge the thread blind only when the first line is a `session_meta` that names
+  the thread that spawned it and every response item before the task message is
+  a developer or system message or a user message whose every block is a text
+  opened by the tag `recommended_plugins` or `environment_context`; judge that it
+  inherited history when an assistant message, a tool call or output, reasoning
+  or other user text precedes the task message, or a second task message follows
+  it; judge its blindness unproven when the rollout holds no task message, an
+  item of another kind or a user message opened by another tag precedes the task
+  message, a line other than an unterminated last one is not JSON, or the first
+  line names no spawning thread; and read the ticket of the task message, or else
+  of the first fetch, the tool calls after the task message and the last reply.
+- **SP-1935~1**: WHEN the SubagentStop hook sees an executor of the module stop
+  on Codex THE SYSTEM SHALL judge the child's rollout by the rule of SP-1934,
+  take a rollout it cannot read or that belongs to another thread than the
+  stopped agent as unproven, journal `history_inherited` or `blindness_unproven`
+  with the reason against the ticket of the rollout, else of the receipt the
+  agent replied with, else against the agent alone, journal a leak for a reply
+  other than the bare receipt of a known ticket, attest nothing, refuse a harness
+  whose transcript format no check reads, and never block the subagent.
+- **SP-1936~1**: WHEN a response is read for a proof or collected for a push THE
+  SYSTEM SHALL credit it with the isolation `inline` and count it as marked when
+  the journal holds `history_inherited` or `blindness_unproven` against its
+  ticket, or without a ticket against the agent whose capability backed it,
+  whatever isolation it was stored with, so that it keeps no judged pass credit
+  under any floor.
+- **SP-1937~1**: WHEN the PreToolUse hook sees a Codex spawn of an executor agent
+  of the module that does not ask for a child with none of the spawning agent's
+  history THE SYSTEM SHALL deny it with a reason that names the agent type and
+  tells the agent to spawn it again with `fork_turns` set to `"none"`, give no
+  decision for a blind spawn, a spawn of another agent type or an unreadable
+  input, open no state to decide, leave a tool of that name alone on a harness
+  that does not guard spawns, and the hook entries generated for Codex SHALL
+  select the spawn tool under each of its names beside the executor tools.
 - **SP-720~1**: WHEN recorded answers are replayed THE SYSTEM SHALL answer each
   pending ticket from the recording of its vote, falling back on the first vote's
   recording, keep the recorded executor and give the inline profile when there is

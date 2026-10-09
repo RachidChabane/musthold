@@ -703,6 +703,13 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   tickets of one project share one host directory.
 - **SP-240~1**: WHEN the fake-host personas drive the module through its command
   line THE SYSTEM SHALL give each the verdict ADR 0005 asserts for it.
+- **SP-1938~1**: WHEN `hook pre-tool --harness codex` is run on a spawn of one of the
+  module's executor agents THE SYSTEM SHALL deny the spawn unless it asks for a child
+  with none of the main agent's history, with a reason that tells the agent to spawn
+  it again with `fork_turns` set to `"none"`, journal nothing for it, give no
+  decision for a blind spawn or a spawn of another agent, and the committed Codex
+  hook entries SHALL select the spawn tool under each of its names beside the
+  executor tools.
 - **SP-241~1**: WHEN the host files are generated THE SYSTEM SHALL produce them from
   one definition, the same bytes on every run, and the committed trees of the
   plugin and the harness scaffolds SHALL equal what the generator produces.

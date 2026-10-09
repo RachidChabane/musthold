@@ -119,22 +119,16 @@ func (b *Bridge) Want(ask Ask) (Answer, error) {
 // answer.
 func (b *Bridge) Waiting() bool { return b.waiting }
 
-// journaledEvents groups the journal's events by the ticket they concern.
-func (b *Bridge) journaledEvents() (map[string][]hostproto.Event, error) {
+// journaledEvents indexes the journal's events by the response they bear on.
+func (b *Bridge) journaledEvents() (executorrun.JournalIndex, error) {
 	records, err := b.Store.Records()
 	if err != nil {
-		return nil, fmt.Errorf("read the journal: %w", err)
+		return executorrun.JournalIndex{}, fmt.Errorf("read the journal: %w", err)
 	}
-	byTicket := map[string][]hostproto.Event{}
-	for _, record := range records {
-		if record.Event.Ticket != "" {
-			byTicket[record.Event.Ticket] = append(byTicket[record.Event.Ticket], record.Event)
-		}
-	}
-	return byTicket, nil
+	return executorrun.IndexJournal(records), nil
 }
 
-func (b *Bridge) settle(request hostproto.Request, id hostproto.RequestID, vote int, journaled map[string][]hostproto.Event) (VoteState, error) {
+func (b *Bridge) settle(request hostproto.Request, id hostproto.RequestID, vote int, journaled executorrun.JournalIndex) (VoteState, error) {
 	key := hostproto.Key{RequestID: id, Vote: vote}
 	entry, err := b.Store.GetEntry(key)
 	if errors.Is(err, hostproto.ErrNotFound) {
@@ -147,8 +141,8 @@ func (b *Bridge) settle(request hostproto.Request, id hostproto.RequestID, vote 
 	if err != nil {
 		return VoteState{}, err
 	}
-	events := journaled[entry.Ticket.TicketID.String()]
-	state := VoteState{Ticket: entry.Ticket.TicketID, State: entry.State, Marked: executorrun.Marked(events)}
+	ticket := entry.Ticket.TicketID.String()
+	state := VoteState{Ticket: entry.Ticket.TicketID, State: entry.State, Marked: executorrun.Marked(journaled.Ticket(ticket))}
 	if !state.Holds() {
 		return state, nil
 	}
@@ -156,6 +150,8 @@ func (b *Bridge) settle(request hostproto.Request, id hostproto.RequestID, vote 
 	if err != nil {
 		return VoteState{}, fmt.Errorf("read the response of %s: %w", entry.Ticket.TicketID, err)
 	}
+	events := journaled.Response(ticket, response.Executor)
+	state.Marked = executorrun.Marked(events)
 	state.Output, state.Executor = response.Output, executorrun.Effective(response.Executor, events)
 	state.Classify = response.Classify
 	return state, nil

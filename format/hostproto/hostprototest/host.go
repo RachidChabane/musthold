@@ -10,6 +10,7 @@ import (
 
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/spec-proof/format/hostproto/executorrun"
 )
 
 // Errors a Host returns for the situations the personas provoke.
@@ -79,6 +80,9 @@ type Run struct {
 	Transcript    []hostproto.ToolCall
 	Reply         string
 	ResolvedModel string
+	// InheritedHistory is set for a run that started with history of the agent
+	// that spawned it, which the rollout of a Codex thread shows.
+	InheritedHistory bool
 }
 
 // ReferenceHost implements Host in memory over the pure protocol, the way a
@@ -314,6 +318,9 @@ func (h *ReferenceHost) profile(binding hostproto.Binding) format.ExecutorProfil
 // AfterRun implements Host.
 func (h *ReferenceHost) AfterRun(run Run) error {
 	ticket := run.Ticket.String()
+	if run.InheritedHistory {
+		h.journal(hostproto.Event{Kind: hostproto.EventHistoryInherited, Ticket: ticket, AgentID: run.AgentID})
+	}
 	if err := hostproto.CheckExecutorTranscript(run.Transcript, run.Ticket); err != nil {
 		h.journal(hostproto.Event{Kind: hostproto.EventExposed, Ticket: ticket, AgentID: run.AgentID, Detail: err.Error()})
 		return err
@@ -374,7 +381,8 @@ func (h *ReferenceHost) Entry(key hostproto.Key) (hostproto.Entry, error) {
 }
 
 // Profile implements Host: the stored profile, upgraded to attested when the stop
-// hook journaled the attestation and downgraded by no mark.
+// hook journaled the attestation, lowered to inline when the journal says the run
+// was not shown to be blind, and downgraded by no other mark.
 func (h *ReferenceHost) Profile(key hostproto.Key) (format.ExecutorProfile, error) {
 	response, err := h.store.GetResponse(key)
 	if err != nil {
@@ -394,7 +402,20 @@ func (h *ReferenceHost) Profile(key hostproto.Key) (format.ExecutorProfile, erro
 			profile.Model = format.ExecutorModel{Name: event.Detail, Source: format.ModelSourceResolved}
 		}
 	}
+	if executorrun.BlindnessLost(h.responseEvents(key, response.Executor)) {
+		profile.Isolation = format.IsolationInline
+	}
 	return profile, nil
+}
+
+// responseEvents are the journaled events that bear on the response of a key.
+func (h *ReferenceHost) responseEvents(key hostproto.Key, stored format.ExecutorProfile) []hostproto.Event {
+	entry, err := h.store.GetEntry(key)
+	if err != nil {
+		return nil
+	}
+	records, _ := h.store.Records()
+	return executorrun.IndexJournal(records).Response(entry.Ticket.TicketID.String(), stored)
 }
 
 // Journal implements Host.

@@ -537,7 +537,7 @@ func (m Module) codexFiles(h harness.Harness) ([]File, error) {
 		return nil, err
 	}
 	hooks, err := encodeJSON(snakeHooks{Hooks: map[string][]matcherGroup{
-		eventPreToolUse:    m.group(h.ToolMatcher(), hostproto.HookPreTool, h),
+		eventPreToolUse:    m.group(h.PreToolMatcher(), hostproto.HookPreTool, h),
 		eventSubagentStart: m.group(m.ExecutorRoleMatcher(h), hostproto.HookSubagentStart, h),
 		eventSubagentStop:  m.group(m.ExecutorRoleMatcher(h), hostproto.HookSubagentStop, h),
 	}})

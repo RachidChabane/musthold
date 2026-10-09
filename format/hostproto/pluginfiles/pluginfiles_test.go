@@ -272,8 +272,8 @@ func TestCodexFiles(t *testing.T) {
 				}
 			}
 			matcher := regexp.MustCompile(parsed.Hooks["PreToolUse"][0].Matcher)
-			if want := "mcp__" + strings.NewReplacer("-", "_").Replace(module.Plugin()) + "_exec__.*"; parsed.Hooks["PreToolUse"][0].Matcher != want {
-				t.Errorf("matcher = %q, want %q", parsed.Hooks["PreToolUse"][0].Matcher, want)
+			if want := "|mcp__" + strings.NewReplacer("-", "_").Replace(module.Plugin()) + "_exec__.*"; !strings.HasSuffix(parsed.Hooks["PreToolUse"][0].Matcher, want) {
+				t.Errorf("matcher = %q, want the suffix %q", parsed.Hooks["PreToolUse"][0].Matcher, want)
 			}
 			for _, name := range codex.ToolNames() {
 				if !matcher.MatchString(name) {
@@ -283,6 +283,22 @@ func TestCodexFiles(t *testing.T) {
 			otherTools := harness.Codex(harness.Identity{Plugin: otherPlugin, Agents: module.Identity.Agents}).ToolNames()
 			if matcher.MatchString("Bash") || matcher.MatchString(otherTools[0]) {
 				t.Error("the matcher selects a tool that is not the module's")
+			}
+		})
+
+		t.Run(s.name+": the pre-tool hook entry selects the spawn tool under each of its names, so that the hook sees every spawn [verifies SP-1937~1]", func(t *testing.T) {
+			var parsed snakeHooksFile
+			decodeJSON(t, files[pluginfiles.CodexHooksPath], &parsed)
+			matcher := regexp.MustCompile(parsed.Hooks["PreToolUse"][0].Matcher)
+			for _, name := range hostproto.CodexSpawnToolNames() {
+				if !matcher.MatchString(name) {
+					t.Errorf("the matcher does not select %s", name)
+				}
+			}
+			for _, name := range []string{"wait_agent", "multi_agent_v1wait_agent", "spawn_agents"} {
+				if matcher.MatchString(name) {
+					t.Errorf("the matcher selects %s", name)
+				}
 			}
 		})
 

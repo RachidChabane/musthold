@@ -72,6 +72,13 @@ installed and enabled (`.claude/settings.json` lists it), that `spec-proof-dp` i
 `$XDG_STATE_HOME/spec-proof/<module>/<repo-digest>/host/journal.jsonl` records
 `exposure_attempt` and related events.
 
+**On Codex, a spawn of an executor is denied, or its answers count as `inline`.** An
+executor must start with none of the main agent's history: spawn it with
+`fork_turns: "none"`, as the module's skill says. The journal records
+`history_inherited` when the executor's rollout shows items of the main agent before
+its ticket, and `blindness_unproven` when the rollout cannot be read or does not show
+the message that carried the ticket.
+
 **`prove --resume` says "nothing to resume: no request was ever emitted".** Run
 `prove` first.
 

@@ -2,7 +2,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "mcp__spec_proof_dp_exec__.*",
+        "matcher": "^(spawn_agent|collaborationspawn_agent|multi_agent_v1spawn_agent)$|mcp__spec_proof_dp_exec__.*",
         "hooks": [
           {
             "type": "command",

@@ -27,7 +27,7 @@ func TestCodexHooksMatcherUpgrade(t *testing.T) {
 			t.Fatal(err)
 		}
 		groups := parsed.Hooks["PreToolUse"]
-		if len(groups) != 2 || groups[0].Matcher != "Bash" || groups[1].Matcher != s.harness(harness.FlagCodex).ToolMatcher() {
+		if len(groups) != 2 || groups[0].Matcher != "Bash" || groups[1].Matcher != s.harness(harness.FlagCodex).PreToolMatcher() {
 			t.Fatalf("PreToolUse groups = %+v", groups)
 		}
 		if !strings.Contains(files.text(codexHooks), "other-tool hook pre") {

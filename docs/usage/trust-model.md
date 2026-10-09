@@ -82,13 +82,14 @@ strongest to weakest:
 
 `min_isolation` (default `restricted`) sets the floor. Below it, a judged answer
 loses all pass credit and exclusion power but keeps its power to block and
-escalate. So does an answer marked `leaked`, `exposed` or `resubmission_conflict`,
-whatever its level. A floor weaker than `restricted` is flagged in the report.
+escalate. So does an answer marked `leaked`, `exposed`, `resubmission_conflict`,
+`history_inherited` or `blindness_unproven`, whatever its level. A floor weaker than
+`restricted` is flagged in the report.
 
 | Harness | Isolation | Why |
 |---|---|---|
 | Claude Code | `restricted`, `restricted-attested` when attested | the executor is a plugin subagent whose `tools` list names exactly `fetch_request` and `submit_response`; it holds no shell and no file tool |
-| Codex CLI | `unrestricted` | Codex has no per-agent allowlist of built-in tools; the executor keeps the shell, and attestation is waived |
+| Codex CLI | `unrestricted`, `inline` when the executor's rollout does not show a blind start | Codex has no per-agent allowlist of built-in tools; the executor keeps the shell, and attestation is waived. The hooks deny a spawn of an executor that does not set `fork_turns: "none"` or `fork_context: false`, and the stop hook reads the executor's rollout: an answer whose executor started with the main agent's history (`history_inherited`), or whose rollout cannot show it did not (`blindness_unproven`), is credited `inline` and marked |
 | Copilot CLI | `restricted-unverified` | the allowlist is written, but its enforcement is not verified |
 | any other harness | `inline` | the main agent answers through `request show` and `request submit` |
 

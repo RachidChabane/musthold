@@ -28,6 +28,20 @@ var (
 	ErrTranscriptDeviation = errors.New("the transcript deviates from fetch and submit")
 )
 
+// TranscriptFormat is the layout of the transcript a harness leaves for a stopped
+// subagent.
+type TranscriptFormat string
+
+// Transcript formats.
+const (
+	// TranscriptAgentJSONL is one JSON line per message, the tool calls being the
+	// `tool_use` blocks of the assistant messages; DecodeTranscript reads it.
+	TranscriptAgentJSONL TranscriptFormat = "agent-jsonl"
+	// TranscriptCodexRollout is the rollout of a spawned Codex thread;
+	// ReadCodexChildRollout reads it.
+	TranscriptCodexRollout TranscriptFormat = "codex-rollout"
+)
+
 // ToolCall is one tool call of a subagent transcript.
 type ToolCall struct {
 	Name  string          `json:"name"`

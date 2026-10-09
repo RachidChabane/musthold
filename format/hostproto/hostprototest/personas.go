@@ -26,6 +26,7 @@ const (
 	PersonaSelector      = "selector"
 	PersonaChurner       = "churner"
 	PersonaSlow          = "slow"
+	PersonaInheritor     = "inheritor"
 	invalidAnswer        = `{"validity":"MAYBE"}`
 	swappedModel         = "claude-haiku-4-5"
 	resolvedModel        = "claude-sonnet-5-5"
@@ -93,6 +94,7 @@ func PersonaNames() []string {
 	return []string{
 		PersonaHonest, PersonaForger, PersonaOmitter, PersonaStale, PersonaBreaker, PersonaLeaker, PersonaPadder,
 		PersonaModelSwapper, PersonaHookless, PersonaUnrestricted, PersonaSelector, PersonaChurner, PersonaSlow,
+		PersonaInheritor,
 	}
 }
 
@@ -115,6 +117,7 @@ func NewPersona(name string) (Persona, error) {
 		PersonaSelector:     func() Persona { return selector{} },
 		PersonaChurner:      func() Persona { return churner{} },
 		PersonaSlow:         func() Persona { return slow{} },
+		PersonaInheritor:    func() Persona { return inheritor{} },
 	}
 	construct, known := constructors[name]
 	if !known {
@@ -211,7 +214,11 @@ func (e *executor) submit(nonce string, output string) (Receipt, error) {
 }
 
 func (e *executor) finish(receipt Receipt, submits int, reply string, model string) error {
-	return e.host.AfterRun(Run{Ticket: e.ticket.TicketID, AgentID: e.agentID, Transcript: transcript(e.ticket.TicketID, submits), Reply: reply, ResolvedModel: model})
+	return e.host.AfterRun(e.run(submits, reply, model))
+}
+
+func (e *executor) run(submits int, reply string, model string) Run {
+	return Run{Ticket: e.ticket.TicketID, AgentID: e.agentID, Transcript: transcript(e.ticket.TicketID, submits), Reply: reply, ResolvedModel: model}
 }
 
 func transcript(ticket hostproto.TicketID, submits int) []hostproto.ToolCall {
@@ -551,6 +558,45 @@ func (unrestricted) Verdict() Verdict {
 		Extra: func(o Outcome) error {
 			if o.Profile == nil || o.Profile.Isolation != format.IsolationUnrestricted {
 				return fmt.Errorf("profile %+v is not unrestricted", o.Profile)
+			}
+			return nil
+		},
+	}
+}
+
+// inheritor is an executor spawned on a harness with no allowlist of built-in
+// tools that started with the history of the agent that spawned it, and
+// otherwise answers honestly.
+type inheritor struct{}
+
+func (inheritor) Name() string { return PersonaInheritor }
+func (inheritor) Configure() (hostproto.Observed, hostproto.Policy) {
+	return unrestricted{}.Configure()
+}
+func (inheritor) Play(env Env) []error {
+	run := startExecutor(env)
+	view, err := run.fetch()
+	if err != nil {
+		return []error{err}
+	}
+	receipt, err := run.submit(view.Nonce, string(env.Answer))
+	if err != nil {
+		return []error{err}
+	}
+	finished := run.run(1, bareReceipt(receipt), resolvedModel)
+	finished.InheritedHistory = true
+	if err := env.Host.AfterRun(finished); err != nil {
+		return []error{err}
+	}
+	return nil
+}
+func (inheritor) Verdict() Verdict {
+	return Verdict{
+		Final:   hostproto.StateAccepted,
+		Present: []hostproto.EventKind{hostproto.EventAccepted, hostproto.EventHistoryInherited},
+		Extra: func(o Outcome) error {
+			if o.Profile == nil || o.Profile.Isolation != format.IsolationInline {
+				return fmt.Errorf("profile %+v is not inline", o.Profile)
 			}
 			return nil
 		},

@@ -14,9 +14,9 @@ func newReferenceHost(observed hostproto.Observed, policy hostproto.Policy) host
 }
 
 func TestPersonas(t *testing.T) {
-	t.Run("the thirteen personas of ADR 0005 are all defined [verifies SP-140~1]", func(t *testing.T) {
+	t.Run("the fourteen personas of ADR 0005 are all defined [verifies SP-140~2]", func(t *testing.T) {
 		names := hostprototest.PersonaNames()
-		if len(names) != 13 || len(slices.Compact(slices.Sorted(slices.Values(names)))) != 13 {
+		if len(names) != 14 || len(slices.Compact(slices.Sorted(slices.Values(names)))) != 14 {
 			t.Fatalf("names = %v", names)
 		}
 		for _, name := range names {
@@ -31,7 +31,7 @@ func TestPersonas(t *testing.T) {
 	})
 
 	for _, name := range hostprototest.PersonaNames() {
-		t.Run(name+" receives the asserted verdict from the reference host [verifies SP-140~1]", func(t *testing.T) {
+		t.Run(name+" receives the asserted verdict from the reference host [verifies SP-140~2]", func(t *testing.T) {
 			persona, err := hostprototest.NewPersona(name)
 			if err != nil {
 				t.Fatal(err)
@@ -46,7 +46,7 @@ func TestPersonas(t *testing.T) {
 		})
 	}
 
-	t.Run("a hookless executor is recorded as restricted when attestation is waived [verifies SP-140~1]", func(t *testing.T) {
+	t.Run("a hookless executor is recorded as restricted when attestation is waived [verifies SP-140~2]", func(t *testing.T) {
 		persona := hostprototest.Hookless{OptOut: true}
 		outcome, err := hostprototest.Drive(persona, newReferenceHost)
 		if err != nil {
@@ -57,7 +57,7 @@ func TestPersonas(t *testing.T) {
 		}
 	})
 
-	t.Run("a verdict that does not match the outcome is reported [verifies SP-140~1]", func(t *testing.T) {
+	t.Run("a verdict that does not match the outcome is reported [verifies SP-140~2]", func(t *testing.T) {
 		honest, _ := hostprototest.NewPersona(hostprototest.PersonaHonest)
 		forger, _ := hostprototest.NewPersona(hostprototest.PersonaForger)
 		outcome, err := hostprototest.Drive(forger, newReferenceHost)

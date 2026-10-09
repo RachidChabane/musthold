@@ -347,7 +347,11 @@ func (h *commandHost) AfterRun(run hostprototest.Run) error {
 		return nil
 	}
 	path := filepath.Join(h.scratch, fmt.Sprintf("%s-%s", run.AgentID, transcriptFileName))
-	if err := os.WriteFile(path, transcriptJSONL(h.t, run.Transcript), 0o644); err != nil {
+	transcript, err := hostprototest.RunTranscript(h.harness, h.roles[run.AgentID], run, run.Transcript)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	if err := os.WriteFile(path, transcript, 0o644); err != nil {
 		h.t.Fatal(err)
 	}
 	role := h.roles[run.AgentID]
@@ -374,23 +378,6 @@ func (h *commandHost) AfterRun(run hostprototest.Run) error {
 		}
 	}
 	return nil
-}
-
-func transcriptJSONL(t *testing.T, calls []hostproto.ToolCall) []byte {
-	t.Helper()
-	var out bytes.Buffer
-	for _, call := range calls {
-		line, err := json.Marshal(map[string]any{
-			"type":    "assistant",
-			"message": map[string]any{"content": []map[string]any{{"type": "tool_use", "name": call.Name, "input": call.Input}}},
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-		out.Write(line)
-		out.WriteByte('\n')
-	}
-	return out.Bytes()
 }
 
 // Advance implements hostprototest.Host.

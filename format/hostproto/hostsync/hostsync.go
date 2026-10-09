@@ -23,16 +23,6 @@ const (
 	markedOnHost = "marked on the host that pushed the response"
 )
 
-func eventsByTicket(records []hostproto.Record) map[string][]hostproto.Event {
-	byTicket := map[string][]hostproto.Event{}
-	for _, record := range records {
-		if record.Event.Ticket != "" {
-			byTicket[record.Event.Ticket] = append(byTicket[record.Event.Ticket], record.Event)
-		}
-	}
-	return byTicket
-}
-
 func holdsAnswer(state hostproto.State) bool {
 	return state == hostproto.StateAccepted || state == hostproto.StateValidated || state == hostproto.StateConsumed
 }
@@ -52,7 +42,7 @@ func Collect(store hostproto.HostStore, module format.Module, headSHA string) (h
 	if err := hostproto.VerifyChain(records); err != nil {
 		return hostbundle.Bundle{}, err
 	}
-	journaled := eventsByTicket(records)
+	journaled := executorrun.IndexJournal(records)
 	var responses []hostproto.Response
 	marked := map[hostproto.Key]bool{}
 	for _, entry := range entries {
@@ -63,7 +53,7 @@ func Collect(store hostproto.HostStore, module format.Module, headSHA string) (h
 		if err != nil {
 			return hostbundle.Bundle{}, fmt.Errorf("read the response of %s: %w", entry.Ticket.TicketID, err)
 		}
-		events := journaled[entry.Ticket.TicketID.String()]
+		events := journaled.Response(entry.Ticket.TicketID.String(), response.Executor)
 		response.Executor = executorrun.Effective(response.Executor, events)
 		marked[response.Key()] = executorrun.Marked(events)
 		responses = append(responses, response)
