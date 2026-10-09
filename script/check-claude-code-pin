@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Fail unless every place that names the Claude Code version agrees with script/claude-code.pin: the version the
+# host protocol records (format/hostproto/harness/harness.go ClaudeCodeVersion) and the versions the classifier prompt
+# was established for (format/hostproto/classifyprompt.go ClassifyPinnedCLIVersions).
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly PIN_FILE="script/claude-code.pin"
+readonly HARNESS_FILE="${CLAUDE_CODE_PIN_HARNESS_FILE:-format/hostproto/harness/harness.go}"
+readonly CLASSIFY_FILE="${CLAUDE_CODE_PIN_CLASSIFY_FILE:-format/hostproto/classifyprompt.go}"
+
+PIN="$(tr -d '[:space:]' <"${PIN_FILE}")"
+readonly PIN
+status=0
+
+harness_version="$(sed -nE 's/^[[:space:]]*ClaudeCodeVersion[[:space:]]*=[[:space:]]*"([^"]*)".*/\1/p' "${HARNESS_FILE}")"
+if [[ "${harness_version}" != "${PIN}" ]]; then
+  echo "check-claude-code-pin: ${HARNESS_FILE} ClaudeCodeVersion is '${harness_version}', ${PIN_FILE} pins ${PIN}" >&2
+  status=1
+fi
+
+classify_versions="$(sed -nE 's/^func ClassifyPinnedCLIVersions\(\) \[\]string \{ return \[\]string\{([^}]*)\} \}.*/\1/p' "${CLASSIFY_FILE}")"
+if ! grep -qF "\"${PIN}\"" <<<"${classify_versions}"; then
+  echo "check-claude-code-pin: ${CLASSIFY_FILE} ClassifyPinnedCLIVersions() lists [${classify_versions}], without ${PIN} of ${PIN_FILE}" >&2
+  status=1
+fi
+
+exit "${status}"

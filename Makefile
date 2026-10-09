@@ -86,7 +86,13 @@ release-dry-run:  ## rehearse the release of TAG: report what a real release wou
 # The live canaries (ADR 0005, "Live canary"): one short model session per harness,
 # recorded and evaluated. They spend model quota and run only in the nightly window;
 # pass flags with ARGS="--dry-run" (see script/canary).
-.PHONY: canary-build canary-claude canary-codex canary-copilot
+.PHONY: canary-build canary-claude canary-codex canary-copilot claude-code-install check-claude-code-pin
+
+claude-code-install:  ## install the pinned Claude Code CLI into .tools/claude-code/<version> (script/claude-code-install; the version is script/claude-code.pin)
+	script/claude-code-install
+
+check-claude-code-pin:  ## fail when the Go constants that name the Claude Code version differ from script/claude-code.pin (script/check-claude-code-pin)
+	script/check-claude-code-pin
 
 canary-build:  ## build what the canaries need, a front door of script/product-build (script/canary-build)
 	script/canary-build

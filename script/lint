@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Check formatting and run go vet in each Go module. Arguments name the modules to
-# check; with none, every module of the workspace is checked.
+# check; with none, every module of the workspace is checked. The Claude Code pin is checked every time
+# (script/check-claude-code-pin).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+script/check-claude-code-pin
 
 modules="${*:-$(script/modules)}"
 for module in $modules; do

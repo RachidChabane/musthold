@@ -27,9 +27,6 @@ concurrency:
 env:
   # The pytest the Python fixtures of the proof modules and the bench recordings run.
   FIXTURE_PYTEST_VERSION: "9.1.1"
-  # The Claude Code CLI whose offline plugin checks (`claude plugin validate`,
-  # `claude plugin test`) the module tests run; the version ADR 0005 pins.
-  CLAUDE_CODE_VERSION: "2.1.295"
 
 permissions:
   contents: read
@@ -97,7 +94,9 @@ jobs:
           cache-dependency-path: spec-proof/discpower/fixtures/ecosystems/*/package-lock.json
 
       - name: Install the pinned Claude Code CLI for the offline plugin checks
-        run: npm install --global --no-fund --no-audit "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
+        run: |
+          claude_code_version="$(tr -d '[:space:]' < spec-proof/script/claude-code.pin)"
+          npm install --global --no-fund --no-audit "@anthropic-ai/claude-code@${claude_code_version}"
 
       - name: Lint and self-gate the modules
         working-directory: spec-proof

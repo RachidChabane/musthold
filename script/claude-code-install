@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# Install the pinned Claude Code CLI into .tools/claude-code/<version>/bin/claude, a private copy that the
+# benchmark and the night jobs run instead of the owner's own CLI, which updates itself. The version is the one line of
+# script/claude-code.pin. The source is the native binary the owner runs, copied from
+# $CLAUDE_CODE_NATIVE_VERSIONS (default ~/.local/share/claude/versions) when <version> exists there, and otherwise
+# the npm package @anthropic-ai/claude-code at that exact version, installed under the version's own directory.
+# The installed binary must report the pinned version as the first word of `--version`, or nothing is kept.
+# .tools/claude-code/<version>/SHA256 holds the SHA-256 of the installed binary; a re-run that finds the binary
+# matching it is a no-op. The last line printed is the binary path.
+#
+# Environment:
+#   CLAUDE_CODE_NATIVE_VERSIONS  directory of native version binaries (default ~/.local/share/claude/versions)
+#   CLAUDE_CODE_NPM              the npm command (default npm)
+#
+# Exit 0: installed or already current. 2: precondition (bad pin, no source). 3: the installed CLI reports another
+# version than the pin.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly EXIT_PRECONDITION=2
+readonly EXIT_VERSION_MISMATCH=3
+readonly PIN_FILE="script/claude-code.pin"
+readonly TOOLS_DIR=".tools/claude-code"
+readonly NPM_PACKAGE="@anthropic-ai/claude-code"
+readonly NPM_BIN="node_modules/.bin/claude"
+readonly NPM_PREFIX_DIR="npm"
+readonly CHECKSUM_FILE="SHA256"
+readonly NATIVE_VERSIONS="${CLAUDE_CODE_NATIVE_VERSIONS:-${HOME}/.local/share/claude/versions}"
+readonly NPM="${CLAUDE_CODE_NPM:-npm}"
+readonly VERSION_PATTERN='^[0-9]+\.[0-9]+\.[0-9]+$'
+
+fail() {
+  local status="$1"
+  shift
+  echo "claude-code-install: $*" >&2
+  exit "${status}"
+}
+
+sha256_of() {
+  shasum -a 256 "$1" | awk '{print $1}'
+}
+
+# reported_version prints the first word of `<binary> --version`, run with the updater off.
+reported_version() {
+  DISABLE_AUTOUPDATER=1 "$1" --version 2>/dev/null | awk 'NR == 1 {print $1}' || true
+}
+
+install_from_native() {
+  mkdir -p "${BIN_DIR}"
+  cp "${NATIVE_VERSIONS}/${PIN}" "${BIN}"
+  chmod 755 "${BIN}"
+}
+
+install_from_npm() {
+  command -v "${NPM}" >/dev/null 2>&1 \
+    || fail "${EXIT_PRECONDITION}" "neither ${NATIVE_VERSIONS}/${PIN} nor the ${NPM} command is available"
+  local prefix="${VERSION_DIR}/${NPM_PREFIX_DIR}"
+  mkdir -p "${prefix}" "${BIN_DIR}"
+  "${NPM}" install --prefix "${prefix}" --no-fund --no-audit "${NPM_PACKAGE}@${PIN}" >&2
+  ln -sf "$(cd "${prefix}" && pwd)/${NPM_BIN}" "${BIN}"
+}
+
+PIN="$(tr -d '[:space:]' <"${PIN_FILE}")"
+[[ "${PIN}" =~ ${VERSION_PATTERN} ]] || fail "${EXIT_PRECONDITION}" "${PIN_FILE} must hold one version such as 2.1.293"
+readonly PIN
+readonly VERSION_DIR="${TOOLS_DIR}/${PIN}"
+readonly BIN_DIR="${VERSION_DIR}/bin"
+readonly BIN="${BIN_DIR}/claude"
+readonly CHECKSUM="${VERSION_DIR}/${CHECKSUM_FILE}"
+
+if [[ -x "${BIN}" && -f "${CHECKSUM}" && "$(sha256_of "${BIN}")" == "$(cat "${CHECKSUM}")" \
+  && "$(reported_version "${BIN}")" == "${PIN}" ]]; then
+  echo "claude-code-install: ${BIN} is up to date at ${PIN}" >&2
+  echo "${PWD}/${BIN}"
+  exit 0
+fi
+
+rm -rf "${BIN_DIR}" "${VERSION_DIR:?}/${NPM_PREFIX_DIR}" "${CHECKSUM}"
+if [[ -f "${NATIVE_VERSIONS}/${PIN}" ]]; then
+  install_from_native
+else
+  install_from_npm
+fi
+
+reported="$(reported_version "${BIN}")"
+if [[ "${reported}" != "${PIN}" ]]; then
+  rm -rf "${BIN_DIR}" "${VERSION_DIR:?}/${NPM_PREFIX_DIR}"
+  fail "${EXIT_VERSION_MISMATCH}" "the installed CLI reports version '${reported}', not the pinned ${PIN}; nothing was kept"
+fi
+
+sha256_of "${BIN}" >"${CHECKSUM}"
+echo "claude-code-install: installed ${BIN} at ${PIN}" >&2
+echo "${PWD}/${BIN}"
