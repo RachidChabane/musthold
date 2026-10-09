@@ -37,6 +37,9 @@ type ReportedCall struct {
 	Model    string  `json:"model"`
 	Label    *string `json:"label"`
 	Attempts int     `json:"attempts"`
+	// Rejected is set when the host rejected the last attempt of the call, which
+	// is a missing call and not a missing vote.
+	Rejected bool `json:"rejected,omitempty"`
 }
 
 // ClassifyReport is what the host mod hands `systemone import`: the calls it
@@ -73,6 +76,9 @@ type QuestionReading struct {
 	Share float64
 	// Tied is set when two labels share the top count: there is no prediction.
 	Tied bool
+	// Rejected counts the calls the host rejected: the question is missing a call
+	// and has no prediction.
+	Rejected int
 	// Calibrated is set when the table has a confidence for the count.
 	Calibrated bool
 	// Confidence is the table's value at the count, zero without a prediction.
@@ -91,6 +97,8 @@ const (
 	GateOpen ClassifyGate = ""
 	// GateTie: a question has no prediction because two labels tied.
 	GateTie ClassifyGate = "tie"
+	// GateRejected: the host rejected a call of a question, which is then missing.
+	GateRejected ClassifyGate = "rejected_call"
 	// GateNoVotes: a question got no label from any call.
 	GateNoVotes ClassifyGate = "no_votes"
 	// GateUncalibrated: the table has no confidence for the count of a question.
@@ -160,6 +168,8 @@ func firstGate(current, next ClassifyGate) ClassifyGate {
 
 func gateOf(read QuestionReading) ClassifyGate {
 	switch {
+	case read.Rejected > 0:
+		return GateRejected
 	case read.Tied:
 		return GateTie
 	case read.Modal == "":
@@ -200,12 +210,14 @@ func matchReportedCalls(planned []ClassifiedCall, reported []ReportedCall) ([]fo
 			return nil, fmt.Errorf("%w: call %d of %q was made by %q, planned for %q", ErrClassifyReport, call.Index, call.Question, got.Model, call.Model)
 		case got.Attempts < 1 || got.Attempts > MaxClassifyAttempts:
 			return nil, fmt.Errorf("%w: call %d of %q made %d attempts, want 1 to %d", ErrClassifyReport, call.Index, call.Question, got.Attempts, MaxClassifyAttempts)
+		case got.Rejected && got.Label != nil:
+			return nil, fmt.Errorf("%w: call %d of %q is rejected and returns the label %q", ErrClassifyReport, call.Index, call.Question, *got.Label)
 		case got.Label != nil && !slices.Contains(call.Labels, *got.Label):
 			return nil, fmt.Errorf("%w: call %d of %q returned %q, which is none of %v", ErrClassifyReport, call.Index, call.Question, *got.Label, call.Labels)
 		}
 		records[position] = format.ClassifyCallRecord{
 			Question: call.Question, Index: call.Index, Model: call.Model, Order: slices.Clone(call.Labels),
-			Label: got.Label, Attempts: got.Attempts,
+			Label: got.Label, Attempts: got.Attempts, Rejected: got.Rejected,
 		}
 	}
 	return records, nil
@@ -214,14 +226,20 @@ func matchReportedCalls(planned []ClassifiedCall, reported []ReportedCall) ([]fo
 // readQuestion counts the labels the calls of a question returned.
 func readQuestion(question ClassifyQuestionPlan, calls []format.ClassifyCallRecord, k int, table ShareTable) QuestionReading {
 	counts := map[string]int{}
+	read := QuestionReading{Question: question.ID}
 	for _, call := range calls {
-		if call.Question == question.ID && call.Label != nil {
+		if call.Question != question.ID {
+			continue
+		}
+		if call.Rejected {
+			read.Rejected++
+		}
+		if call.Label != nil {
 			counts[*call.Label]++
 		}
 	}
-	read := QuestionReading{Question: question.ID}
-	if len(counts) == 0 {
-		return read
+	if len(counts) == 0 || read.Rejected > 0 {
+		return withVotesOnly(read, counts, k)
 	}
 	labels := make([]string, 0, len(counts))
 	for label := range counts {
@@ -272,4 +290,14 @@ func modalProbabilities(question ClosedQuestion, read QuestionReading) map[strin
 	}
 	probabilities[read.Modal] = read.Confidence
 	return probabilities
+}
+
+// withVotesOnly keeps the counts of a question that has no prediction, so that the
+// record shows them.
+func withVotesOnly(read QuestionReading, counts map[string]int, k int) QuestionReading {
+	for _, count := range counts {
+		read.Votes = max(read.Votes, count)
+	}
+	read.Share = float64(read.Votes) / float64(k)
+	return read
 }

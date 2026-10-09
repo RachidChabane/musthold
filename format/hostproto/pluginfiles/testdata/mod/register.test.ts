@@ -178,6 +178,26 @@ test("an undefined label twice is a null label after two attempts", { timeoutMs:
   expect(body.calls[0].attempts).toBe(MAX_ATTEMPTS)
 })
 
+test("a call rejected on its last attempt is reported as rejected, and one that returned no label is not", { timeoutMs: TEST_TIMEOUT_MS }, async ($, on) => {
+  const rejectedWorld = stage(on, { plan: [item([call("q1", 0, "refused")])], classify: () => new Error("rejected") })
+  await proveCommand($)
+  const rejected = JSON.parse(importRuns(rejectedWorld)[0].stdin as string)
+  expect(rejected.calls[0].label).toBe(null)
+  expect(rejected.calls[0].attempts).toBe(MAX_ATTEMPTS)
+  expect(rejected.calls[0].rejected).toBe(true)
+})
+
+test("a rejection followed by an undefined label is a missing vote, not a rejected call", { timeoutMs: TEST_TIMEOUT_MS }, async ($, on) => {
+  const world = stage(on, {
+    plan: [item([call("q1", 0, "mixed")])],
+    classify: (_text, attempt) => (attempt === 1 ? new Error("rejected") : undefined),
+  })
+  await proveCommand($)
+  const body = JSON.parse(importRuns(world)[0].stdin as string)
+  expect(body.calls[0].label).toBe(null)
+  expect(body.calls[0].rejected).toBe(undefined)
+})
+
 test("an empty plan makes no classify call and no import", { timeoutMs: TEST_TIMEOUT_MS }, async ($, on) => {
   const world = stage(on, { plan: [] })
   await proveCommand($)

@@ -265,7 +265,8 @@
               "model": { "$ref": "#/$defs/nonEmptyString" },
               "order": { "type": "array", "items": { "$ref": "#/$defs/nonEmptyString" }, "minItems": 2 },
               "label": { "type": ["string", "null"] },
-              "attempts": { "type": "integer", "minimum": 1 }
+              "attempts": { "type": "integer", "minimum": 1 },
+              "rejected": { "type": "boolean" }
             }
           }
         }

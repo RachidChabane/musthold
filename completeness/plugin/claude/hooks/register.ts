@@ -31,6 +31,7 @@ type CallResult = {
   model: string
   label: string | null
   attempts: number
+  rejected?: boolean
 }
 
 // At most one run is in flight; a trigger that arrives meanwhile does nothing.
@@ -77,22 +78,26 @@ function parsePlan(stdout: string): PlannedItem[] {
   }
 }
 
-function resultOf(call: PlannedCall, label: string | null, attempts: number): CallResult {
-  return { question: call.question, i: call.i, model: call.model, label, attempts }
+function resultOf(call: PlannedCall, label: string | null, attempts: number, rejected: boolean): CallResult {
+  const result: CallResult = { question: call.question, i: call.i, model: call.model, label, attempts }
+  return rejected ? { ...result, rejected: true } : result
 }
 
 // A rejection and an undefined label each earn one more attempt with the same
-// arguments; a call that fails every attempt answers null.
+// arguments. A call whose last attempt returned no label answers null, and one
+// whose last attempt was rejected answers null and says so.
 async function classifyWithRetry($: EngineInterface, call: PlannedCall): Promise<CallResult> {
+  let rejected = false
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     try {
       const label = await $.model.classify(call.text, call.labels, { model: call.model })
-      if (label !== undefined) return resultOf(call, label, attempt)
+      if (label !== undefined) return resultOf(call, label, attempt, false)
+      rejected = false
     } catch {
-      // The next attempt, or the null answer, follows.
+      rejected = true
     }
   }
-  return resultOf(call, null, MAX_ATTEMPTS)
+  return resultOf(call, null, MAX_ATTEMPTS, rejected)
 }
 
 async function answerItem(

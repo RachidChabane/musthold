@@ -17,6 +17,9 @@ type ClassifyCallRecord struct {
 	Order    []string `json:"order"`
 	Label    *string  `json:"label"`
 	Attempts int      `json:"attempts"`
+	// Rejected is set for a call whose last attempt the host rejected, as opposed
+	// to one that returned no label.
+	Rejected bool `json:"rejected,omitempty"`
 }
 
 // ClassifyQuestionRecord is what the calls of one question settled: the seed
@@ -88,5 +91,8 @@ func (c ClassifyCallRecord) check(sink *collector, path string) {
 	checkNotEmpty(sink, path+".model", c.Model)
 	if c.Label != nil && !slices.Contains(c.Order, *c.Label) {
 		sink.add(CodeUnknownValue, path+".label", "%q is not one of the labels %v of the call", *c.Label, c.Order)
+	}
+	if c.Rejected && c.Label != nil {
+		sink.add(CodeUnknownValue, path+".rejected", "a rejected call returned the label %q", *c.Label)
 	}
 }

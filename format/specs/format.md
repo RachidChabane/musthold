@@ -604,10 +604,10 @@ Go tests of the module in CI.
 - **SP-1905~1**: WHEN the calls of a classification are read THE SYSTEM SHALL
   count the labels of each question over all of its calls, take the share as the
   modal count over `k` so that a call without a label counts against it, leave a
-  tie for the top count without a prediction, take the confidence of a question
+  tie for the top count, or a question with a rejected call, without a prediction, take the confidence of a question
   from the table at its modal count, and open the gate only when every question
   has a prediction whose confidence is at least 0.95, naming the first reason
-  otherwise: `no_votes`, `tie`, `uncalibrated` or `below_tau`.
+  otherwise: `rejected_call`, `no_votes`, `tie`, `uncalibrated` or `below_tau`.
 - **SP-1906~1**: WHEN a report of classifier calls is matched to the plan of the
   set THE SYSTEM SHALL require every planned call exactly once, from the planned
   model, with one or two attempts and a label of the call's own labels or none,
@@ -669,6 +669,6 @@ Go tests of the module in CI.
   command fails, is unparsable or is empty, make all the calls of an item
   concurrently with the planned model and labels, retry a rejected or undefined
   call once with the same arguments and report it with a null label after the
-  second failure, pass `{cliVersion, sessionModel, calls}` of each item on the
+  second failure, flagging a final attempt the host rejected, pass `{cliVersion, sessionModel, calls}` of each item on the
   standard input of the binary's import command, and never write, log or show the
   nonce, a text, a label or the standard input anywhere else.
