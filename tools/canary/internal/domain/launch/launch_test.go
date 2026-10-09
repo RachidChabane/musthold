@@ -252,26 +252,52 @@ func TestCommandLine(t *testing.T) {
 	})
 }
 
+type decodedClaudeSettings struct {
+	Hooks map[string][]struct {
+		Hooks []struct{ Command string } `json:"hooks"`
+	} `json:"hooks"`
+	Permissions struct {
+		Allow []string `json:"allow"`
+	} `json:"permissions"`
+}
+
+// claudeSettings decodes the settings the canary writes and fails on a key it does
+// not expect.
+func claudeSettings(t *testing.T) decodedClaudeSettings {
+	t.Helper()
+	settings, err := launch.ClaudeSettings("/bin/canary", "/run/records/hooks.jsonl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var keys map[string]json.RawMessage
+	if err := json.Unmarshal(settings, &keys); err != nil || len(keys) != 2 {
+		t.Fatalf("settings = %s", settings)
+	}
+	var decoded decodedClaudeSettings
+	if err := json.Unmarshal(settings, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	return decoded
+}
+
 func TestProjectFiles(t *testing.T) {
 	t.Run("the Claude settings hold the Stop probe and the control probes of the events before the first tool call, and nothing else [verifies SP-1504~2]", func(t *testing.T) {
-		settings, err := launch.ClaudeSettings("/bin/canary", "/run/records/hooks.jsonl")
-		if err != nil {
-			t.Fatal(err)
+		decoded := claudeSettings(t)
+		if len(decoded.Hooks) != 3 || len(decoded.Hooks["Stop"]) != 1 || len(decoded.Hooks["SessionStart"]) != 1 || len(decoded.Hooks["UserPromptSubmit"]) != 1 {
+			t.Fatalf("hooks = %v", decoded.Hooks)
 		}
-		var decoded map[string]map[string][]struct {
-			Hooks []struct{ Command string } `json:"hooks"`
-		}
-		if err := json.Unmarshal(settings, &decoded); err != nil {
-			t.Fatal(err)
-		}
-		if len(decoded) != 1 || len(decoded["hooks"]) != 3 || len(decoded["hooks"]["Stop"]) != 1 || len(decoded["hooks"]["SessionStart"]) != 1 || len(decoded["hooks"]["UserPromptSubmit"]) != 1 {
-			t.Fatalf("settings = %s", settings)
-		}
-		command := decoded["hooks"]["Stop"][0].Hooks[0].Command
+		command := decoded.Hooks["Stop"][0].Hooks[0].Command
 		for _, part := range []string{"/bin/canary", "probe", "--record", "/run/records/hooks.jsonl", "Stop-probe"} {
 			if !strings.Contains(command, part) {
 				t.Errorf("the probe command %q lacks %q", command, part)
 			}
+		}
+	})
+
+	t.Run("the Claude settings allow the run and the resume of the completeness proof and no other command [verifies SP-1925~1]", func(t *testing.T) {
+		want := []string{"Bash(spec-proof-completeness prove --all)", "Bash(spec-proof-completeness prove --resume)"}
+		if got := claudeSettings(t).Permissions.Allow; !slices.Equal(got, want) {
+			t.Errorf("permissions.allow = %v, want %v", got, want)
 		}
 	})
 
