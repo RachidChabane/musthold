@@ -21,21 +21,21 @@ const classifyWitnessProves = "After a model-free `prove --resume`, the raw API 
 	"and its request and response bodies have the shape the check rebuilds. It records the query source observed. " +
 	"It does not show that a forged label would be refused."
 
-// classifyWitnessCheck reads what the module journaled about the classifications
+// classifyWitnessCheck reads what the classifying module journaled about the classifications
 // the mod made in shadow during the session. A classification the raw API log
 // holds as dictated passes; one it does not hold, though the log is not empty,
 // fails; no classification, no check of the log, or an empty index is
 // inconclusive and touches no other check.
 func classifyWitnessCheck() Check {
 	return newCheck(checkClaudeClassifyWitness, classifyWitnessProves, func(found evidence.Evidence) verdict.Verdict {
-		shadows := found.Events(hostproto.EventClassifyShadow)
+		shadows := found.ClassifyEvents(hostproto.EventClassifyShadow)
 		if len(shadows) == 0 {
 			return verdict.Undecided("the mod made no classification in shadow, so there is nothing to check against the raw API log")
 		}
-		observations := found.Events(hostproto.EventClassifyShadowWitnessed)
+		observations := found.ClassifyEvents(hostproto.EventClassifyShadowWitnessed)
 		if len(observations) == 0 {
 			return verdict.Undecided("a classification was made in shadow, but the module journaled no check of the raw API log",
-				evidence.JournalAt(shadows[0].Line, string(hostproto.EventClassifyShadow)))
+				evidence.ClassifyJournalAt(shadows[0].Line, string(hostproto.EventClassifyShadow)))
 		}
 		return judgeObservations(observations)
 	})
@@ -48,7 +48,7 @@ func judgeObservations(observations []evidence.JournalEntry) verdict.Verdict {
 	sources := map[string]bool{}
 	for _, entry := range observations {
 		witness, parsed := hostproto.ParseShadowWitness(entry.Event.Detail)
-		pointer := evidence.JournalAt(entry.Line, string(hostproto.EventClassifyShadowWitnessed))
+		pointer := evidence.ClassifyJournalAt(entry.Line, string(hostproto.EventClassifyShadowWitnessed))
 		switch {
 		case !parsed:
 			failed = append(failed, "an observation the check cannot read")

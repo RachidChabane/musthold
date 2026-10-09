@@ -601,16 +601,11 @@ func (r Runner) collect(options Options, prepared preparedSession, session evide
 	if err := r.writeJSON(l.record(evidence.TouchedFile), touched); err != nil {
 		return err
 	}
-	journals, err := r.Files.Glob(filepath.Join(l.state, "spec-proof", modules.Primary().Dir, "*", "host", evidence.JournalFile))
-	if err != nil {
+	if err := r.collectJournal(l, modules.Primary(), evidence.JournalFile); err != nil {
 		return err
 	}
-	if len(journals) > 0 {
-		journal, err := r.Files.Read(journals[0])
-		if err != nil {
-			return err
-		}
-		if err := r.Files.Write(l.record(evidence.JournalFile), journal, false); err != nil {
+	if options.Harness == harness.FlagClaude {
+		if err := r.collectJournal(l, modules.Classified(), evidence.ClassifyJournalFile); err != nil {
 			return err
 		}
 	}
@@ -628,6 +623,20 @@ func (r Runner) collect(options Options, prepared preparedSession, session evide
 		}
 	}
 	return r.collectRollouts(options, l, session)
+}
+
+// collectJournal copies the journal a module kept in the state directory into
+// the records under the given name; a module that journaled nothing leaves no file.
+func (r Runner) collectJournal(l layout, module modules.Module, recordName string) error {
+	journals, err := r.Files.Glob(filepath.Join(l.state, "spec-proof", module.Dir, "*", "host", evidence.JournalFile))
+	if err != nil || len(journals) == 0 {
+		return err
+	}
+	journal, err := r.Files.Read(journals[0])
+	if err != nil {
+		return err
+	}
+	return r.Files.Write(l.record(recordName), journal, false)
 }
 
 // requireATurn refuses a session whose stream shows no model turn: the harness

@@ -137,7 +137,10 @@ func (s *fakeSession) Run(spec app.SessionSpec) (app.SessionOutcome, error) {
 			state = value
 		}
 	}
-	copyFile(evidence.JournalFile, filepath.Join(state, "spec-proof", "discpower", "digest", "host", evidence.JournalFile))
+	copyFile(evidence.JournalFile, filepath.Join(state, "spec-proof", modules.Primary().Dir, "digest", "host", evidence.JournalFile))
+	if _, err := os.Stat(filepath.Join(fixturesRoot, s.fixture, evidence.ClassifyJournalFile)); err == nil {
+		copyFile(evidence.ClassifyJournalFile, filepath.Join(state, "spec-proof", modules.Classified().Dir, "digest", "host", evidence.JournalFile))
+	}
 	edit := filepath.Join(spec.Dir, launch.EditFile)
 	content, err := os.ReadFile(edit)
 	if err != nil {

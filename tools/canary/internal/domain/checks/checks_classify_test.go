@@ -16,11 +16,11 @@ const classifyWitnessCheck = "classify_witness_recorded"
 func withoutClassification(t *testing.T) evidence.Files {
 	t.Helper()
 	files := readFiles(t, claudeSession)
-	files.Journal = dropLines(files.Journal, "classify_")
+	files.ClassifyJournal = nil
 	return files
 }
 
-// journalWith appends events to the journal of the recorded Claude Code session.
+// journalWith appends events to the journal of the classifying module of the recorded Claude Code session.
 func journalWith(t *testing.T, files evidence.Files, events ...hostproto.Event) evidence.Files {
 	t.Helper()
 	var lines []string
@@ -31,7 +31,7 @@ func journalWith(t *testing.T, files evidence.Files, events ...hostproto.Event) 
 		}
 		lines = append(lines, string(encoded))
 	}
-	files.Journal = append(append([]byte{}, files.Journal...), []byte("\n"+strings.Join(lines, "\n")+"\n")...)
+	files.ClassifyJournal = append(append([]byte{}, files.ClassifyJournal...), []byte("\n"+strings.Join(lines, "\n")+"\n")...)
 	return files
 }
 

@@ -30,7 +30,7 @@ func readFiles(t *testing.T, name string) evidence.Files {
 	}
 	return evidence.Files{
 		Session: read(evidence.SessionFile), Stream: read(evidence.StreamFile), Hooks: read(evidence.HooksFile),
-		Journal: read(evidence.JournalFile), NoCall: read(evidence.NoCallFile), Edited: read(evidence.EditedFile),
+		Journal: read(evidence.JournalFile), ClassifyJournal: read(evidence.ClassifyJournalFile), NoCall: read(evidence.NoCallFile), Edited: read(evidence.EditedFile),
 		SandboxProbe: read(evidence.SandboxProbeFile), Touched: read(evidence.TouchedFile),
 		RolloutMain: read(evidence.RolloutMainFile), RolloutChildren: readChildren(t, name),
 	}

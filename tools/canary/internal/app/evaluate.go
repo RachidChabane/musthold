@@ -23,7 +23,8 @@ func (r Runner) Load(recordsDir string) (evidence.Evidence, error) {
 		into *[]byte
 	}{
 		{evidence.SessionFile, &files.Session}, {evidence.StreamFile, &files.Stream}, {evidence.HooksFile, &files.Hooks},
-		{evidence.JournalFile, &files.Journal}, {evidence.NoCallFile, &files.NoCall}, {evidence.EditedFile, &files.Edited},
+		{evidence.JournalFile, &files.Journal}, {evidence.ClassifyJournalFile, &files.ClassifyJournal},
+		{evidence.NoCallFile, &files.NoCall}, {evidence.EditedFile, &files.Edited},
 		{evidence.SandboxProbeFile, &files.SandboxProbe}, {evidence.TouchedFile, &files.Touched},
 		{evidence.RolloutMainFile, &files.RolloutMain},
 	}

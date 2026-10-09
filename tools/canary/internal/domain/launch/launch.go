@@ -66,13 +66,11 @@ const (
 	BodiesDir = "bodies"
 )
 
-// The module the classifier check of a Claude Code session runs, and its commands.
+// The commands the classifier check of a Claude Code session runs on the module
+// modules.Classified names; the switch names no other module.
 const (
-	// ClassifyModuleBinary is the proof module whose requests the mod classifies in
-	// shadow; the switch names no other module.
-	ClassifyModuleBinary = "spec-proof-completeness"
-	proveCommand         = "prove --all"
-	resumeCommand        = "prove --resume"
+	proveCommand  = "prove --all"
+	resumeCommand = "prove --resume"
 )
 
 // RawLogEnvironment is what makes Claude Code write the raw API log of a session
@@ -233,6 +231,7 @@ func PaddedLaunchPrompt(ticket string) string {
 // of the completeness proof whose requests the mod classifies, and the end.
 func ClaudePrompt(role, ticket string) string {
 	fetchTool := mustTool(harness.FlagClaude)
+	classified := modules.Classified().Binary
 	return fmt.Sprintf(`This is a scripted check of a tool harness. Do exactly the six steps below, in order, with no other tool call, and ask no question.
 
 1. Call the tool %s once with the argument {"ticket": %q}. The call is expected to be refused. Do not retry it and do not work around the refusal.
@@ -242,7 +241,7 @@ func ClaudePrompt(role, ticket string) string {
 5. Run the shell command %q once and ignore its outcome.
 6. Reply with the single word done.`,
 		fetchTool, ticket, role, PaddedLaunchPrompt(ticket), EditFile, EditFrom, EditTo,
-		ClassifyModuleBinary+" "+proveCommand, ClassifyModuleBinary+" "+resumeCommand)
+		classified+" "+proveCommand, classified+" "+resumeCommand)
 }
 
 // ExecutorMessage is the message the main agent gives the executor: the ticket and

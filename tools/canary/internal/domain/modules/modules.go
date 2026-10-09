@@ -45,6 +45,11 @@ func All() []Module {
 	}
 }
 
+// Classified is the module whose requests the mod classifies in shadow during a
+// Claude Code session: the completeness module. Its journal is recorded apart
+// from the primary one.
+func Classified() Module { return All()[2] }
+
 // Primary is the module whose executor the session launches and whose journal
 // the checks read: the discriminating-power module.
 func Primary() Module { return All()[0] }

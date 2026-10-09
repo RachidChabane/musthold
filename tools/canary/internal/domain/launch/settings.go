@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/modules"
 )
 
 // Subcommands of the canary binary that the hooks and shims it installs call.
@@ -87,8 +88,8 @@ func ClaudeTrustedProject(resolvedProject string) ([]byte, error) {
 // Claude Code prompt scripts: the run and the resume of the completeness proof.
 func ScriptedShellRules() []string {
 	return []string{
-		fmt.Sprintf(bashRuleFormat, ClassifyModuleBinary+" "+proveCommand),
-		fmt.Sprintf(bashRuleFormat, ClassifyModuleBinary+" "+resumeCommand),
+		fmt.Sprintf(bashRuleFormat, modules.Classified().Binary+" "+proveCommand),
+		fmt.Sprintf(bashRuleFormat, modules.Classified().Binary+" "+resumeCommand),
 	}
 }
 

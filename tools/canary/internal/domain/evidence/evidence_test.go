@@ -2,6 +2,8 @@ package evidence_test
 
 import (
 	"encoding/json"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"strings"
 	"testing"
 
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
@@ -147,6 +149,34 @@ func TestHookRecords(t *testing.T) {
 			if got := (evidence.HookCall{Stdout: stdout}).Decision(); got.Permission != "" {
 				t.Errorf("%q decoded to %+v", stdout, got)
 			}
+		}
+	})
+}
+
+func TestClassifyJournal(t *testing.T) {
+	const shadow = `{"event":{"kind":"classify_shadow","ticket":"t.0.1"}}` + "\n"
+
+	t.Run("the journal of the classifying module is decoded apart from the primary journal [verifies SP-1925~1]", func(t *testing.T) {
+		found, err := evidence.Assemble(evidence.Files{ClassifyJournal: []byte("\n" + shadow)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		events := found.ClassifyEvents(hostproto.EventClassifyShadow)
+		if len(events) != 1 || events[0].Line != 2 || len(found.Events(hostproto.EventClassifyShadow)) != 0 {
+			t.Fatalf("classify events %+v, primary events %+v", events, found.Events(hostproto.EventClassifyShadow))
+		}
+		if pointer := evidence.ClassifyJournalAt(2, "note"); pointer.File != evidence.ClassifyJournalFile || pointer.Line != 2 {
+			t.Errorf("pointer %+v", pointer)
+		}
+	})
+
+	t.Run("an absent file reads as an empty journal and a corrupt line names the file [verifies SP-1925~1]", func(t *testing.T) {
+		found, err := evidence.Assemble(evidence.Files{})
+		if err != nil || len(found.ClassifyJournal) != 0 {
+			t.Fatalf("journal %+v, error %v", found.ClassifyJournal, err)
+		}
+		if _, err := evidence.Assemble(evidence.Files{ClassifyJournal: []byte("{not json\n")}); err == nil || !strings.Contains(err.Error(), evidence.ClassifyJournalFile) {
+			t.Errorf("error %v", err)
 		}
 	})
 }

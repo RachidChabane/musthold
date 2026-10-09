@@ -213,8 +213,10 @@ which run the evaluators on recorded event streams and make no model call.
   module, and to check the log; script a run and a resume of the completeness proof
   after the edit, and allow the session, in its project settings, those two shell
   commands and no other, with the project trusted, under its resolved path, in the
-  isolated configuration of the session; and WHEN the check `classify_witness_recorded` reads the journal
-  THE SYSTEM SHALL pass when the module recognised the classifier calls in the log,
+  isolated configuration of the session; record the journal of the completeness
+  module apart from the journal of the primary module; and WHEN the check
+  `classify_witness_recorded` reads the journal of the completeness module THE
+  SYSTEM SHALL pass when the module recognised the classifier calls in the log,
   recording the query source observed, fail when the log holds the calls otherwise
   than dictated, and conclude INCONCLUSIVE, touching no other check, when the mod
   classified nothing, no check of the log followed or the index is empty.
