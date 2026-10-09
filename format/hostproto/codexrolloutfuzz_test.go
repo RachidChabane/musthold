@@ -64,7 +64,7 @@ func FuzzCodexChildRollout(f *testing.F) {
 }
 
 func TestCodexChildRolloutSeedCorpus(t *testing.T) {
-	t.Run("the rollout rule holds its invariants on the seed corpus, and a parent item before the task never leaves a thread blind [verifies SP-1934~1]", func(t *testing.T) {
+	t.Run("the rollout rule holds its invariants on the seed corpus, and a parent item before the task never leaves a thread blind [verifies SP-1934~2]", func(t *testing.T) {
 		for _, seed := range childRolloutSeeds(t) {
 			childRolloutBody(t, seed)
 		}

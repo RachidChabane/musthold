@@ -518,13 +518,16 @@ Go tests of the module in CI.
   object, and judge that the spawn asks for a child with none of the spawning
   agent's history only when it sets `fork_turns` to `"none"` or `fork_context` to
   `false` and every one of the two members it sets holds that value.
-- **SP-1934~1**: WHEN the rollout of a spawned Codex thread is read THE SYSTEM
+- **SP-1934~2**: WHEN the rollout of a spawned Codex thread is read THE SYSTEM
   SHALL take as its task message the first `agent_message` item, or the first
   user message whose text starts with `ticket ` and holds exactly one ticket;
   judge the thread blind only when the first line is a `session_meta` that names
   the thread that spawned it and every response item before the task message is
   a developer or system message or a user message whose every block is a text
-  opened by the tag `recommended_plugins` or `environment_context`; judge that it
+  opened by the tag `recommended_plugins` or `environment_context`, or the
+  instructions of an AGENTS.md: the heading `# AGENTS.md instructions for `
+  and a directory on one line, then one `<INSTRUCTIONS>` element that ends the
+  text; judge that it
   inherited history when an assistant message, a tool call or output, reasoning
   or other user text precedes the task message, or a second task message follows
   it; judge its blindness unproven when the rollout holds no task message, an

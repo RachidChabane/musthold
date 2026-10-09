@@ -60,7 +60,7 @@ func executorStart() *hostprototest.CodexRollout {
 }
 
 func TestCodexChildRolloutBlind(t *testing.T) {
-	t.Run("a recorded executor rollout with a plain task message is blind, with its ticket, its calls and its reply [verifies SP-1934~1]", func(t *testing.T) {
+	t.Run("a recorded executor rollout with a plain task message is blind, with its ticket, its calls and its reply [verifies SP-1934~2]", func(t *testing.T) {
 		run := hostproto.ReadCodexChildRollout(readRollout(t, "codex-child-rollout.jsonl"))
 		if run.History != hostproto.ChildBlind || run.Reason != "" {
 			t.Fatalf("history %s: %s", run.History, run.Reason)
@@ -79,7 +79,7 @@ func TestCodexChildRolloutBlind(t *testing.T) {
 		}
 	})
 
-	t.Run("a recorded executor rollout whose task came as an encrypted agent message is blind, with its reply and no ticket [verifies SP-1934~1]", func(t *testing.T) {
+	t.Run("a recorded executor rollout whose task came as an encrypted agent message is blind, with its reply and no ticket [verifies SP-1934~2]", func(t *testing.T) {
 		run := hostproto.ReadCodexChildRollout(readRollout(t, "codex-child-rollout-agent-message.jsonl"))
 		if run.History != hostproto.ChildBlind || run.TicketFound {
 			t.Fatalf("run = %+v", run)
@@ -89,7 +89,7 @@ func TestCodexChildRolloutBlind(t *testing.T) {
 		}
 	})
 
-	t.Run("an agent message task takes the ticket of the first fetch [verifies SP-1934~1]", func(t *testing.T) {
+	t.Run("an agent message task takes the ticket of the first fetch [verifies SP-1934~2]", func(t *testing.T) {
 		ticket := fixtureTicket(t)
 		run := hostproto.ReadCodexChildRollout(rolloutBytes(t, executorStart().AgentMessage().Call(toolCall(t, fetchTool, ticket)).Call(toolCall(t, submitTool, ticket))))
 		if run.History != hostproto.ChildBlind || !run.TicketFound || run.Ticket != ticket {
@@ -97,7 +97,7 @@ func TestCodexChildRolloutBlind(t *testing.T) {
 		}
 	})
 
-	t.Run("the rollout written for a blind executor is blind [verifies SP-1934~1]", func(t *testing.T) {
+	t.Run("the rollout written for a blind executor is blind [verifies SP-1934~2]", func(t *testing.T) {
 		ticket := fixtureTicket(t)
 		content, err := hostprototest.CodexBlindRollout(childThread, childRole, ticket, []hostproto.ToolCall{toolCall(t, fetchTool, ticket)}, executorrun.Receipt(ticket))
 		if err != nil {
@@ -108,7 +108,15 @@ func TestCodexChildRolloutBlind(t *testing.T) {
 		}
 	})
 
-	t.Run("a last line the harness is still writing is ignored [verifies SP-1934~1]", func(t *testing.T) {
+	t.Run("a thread handed the project's AGENTS.md in its harness context is blind [verifies SP-1934~2]", func(t *testing.T) {
+		agents := "<!-- spec-proof-dp:begin -->\n## spec-proof-dp: discriminating power\n<!-- spec-proof-dp:end -->"
+		rollout := hostprototest.NewCodexRollout(childThread, childRole).Bookkeeping().Developer("Fetch the ticket in your task.").ContextWithAgents("/work/parcel", agents).AgentMessage()
+		if run := hostproto.ReadCodexChildRollout(rolloutBytes(t, rollout)); run.History != hostproto.ChildBlind {
+			t.Fatalf("history %s: %s", run.History, run.Reason)
+		}
+	})
+
+	t.Run("a last line the harness is still writing is ignored [verifies SP-1934~2]", func(t *testing.T) {
 		content := append(readRollout(t, "codex-child-rollout.jsonl"), []byte(`{"timestamp":"2026-10-09T21:18:07.6Z","type":"event_msg","payl`)...)
 		if run := hostproto.ReadCodexChildRollout(content); run.History != hostproto.ChildBlind {
 			t.Fatalf("history %s: %s", run.History, run.Reason)
@@ -120,18 +128,21 @@ func TestCodexChildRolloutInherited(t *testing.T) {
 	ticket := fixtureTicket(t)
 	fetch := toolCall(t, fetchTool, ticket)
 	for name, rollout := range map[string]*hostprototest.CodexRollout{
-		"the parent's prompt before the task":     executorStart().User(parentPrompt).Task(ticket).Call(fetch),
-		"a call of the parent before the task":    executorStart().Call(hostproto.ToolCall{Name: "exec_command", Input: json.RawMessage(`{"cmd":"ls"}`)}).Task(ticket),
-		"an assistant message before the task":    executorStart().Assistant("I will spawn a decider.").Task(ticket),
-		"reasoning before the task":               executorStart().Item("reasoning").Task(ticket),
-		"a custom tool call before the task":      executorStart().Item("custom_tool_call").AgentMessage(),
-		"a second task message":                   executorStart().Task(ticket).Call(fetch).Task(ticket),
-		"a parent prompt that reads as a task":    executorStart().Task(ticket).Call(fetch).AgentMessage(),
-		"user text after the harness context":     executorStart().User("<environment_context>\n</environment_context>").User(parentPrompt).Task(ticket),
-		"user text that names no ticket":          executorStart().User("ticket please"),
-		"a task-like message holding two tickets": executorStart().User("ticket " + ticket.String() + " and " + recordedTicket),
+		"the parent's prompt before the task":       executorStart().User(parentPrompt).Task(ticket).Call(fetch),
+		"a call of the parent before the task":      executorStart().Call(hostproto.ToolCall{Name: "exec_command", Input: json.RawMessage(`{"cmd":"ls"}`)}).Task(ticket),
+		"an assistant message before the task":      executorStart().Assistant("I will spawn a decider.").Task(ticket),
+		"reasoning before the task":                 executorStart().Item("reasoning").Task(ticket),
+		"a custom tool call before the task":        executorStart().Item("custom_tool_call").AgentMessage(),
+		"a second task message":                     executorStart().Task(ticket).Call(fetch).Task(ticket),
+		"a parent prompt that reads as a task":      executorStart().Task(ticket).Call(fetch).AgentMessage(),
+		"user text after the harness context":       executorStart().User("<environment_context>\n</environment_context>").User(parentPrompt).Task(ticket),
+		"text after the AGENTS.md instructions":     executorStart().User(hostprototest.CodexAgentsInstructions("/work/parcel", "Run the tests.") + "\n" + parentPrompt).Task(ticket),
+		"an AGENTS.md heading with no instructions": executorStart().User("# AGENTS.md instructions for /work/parcel\n\n" + parentPrompt).Task(ticket),
+		"an AGENTS.md heading over two lines":       executorStart().User(hostprototest.CodexAgentsInstructions("/work/parcel\n"+parentPrompt, "Run the tests.")).Task(ticket),
+		"user text that names no ticket":            executorStart().User("ticket please"),
+		"a task-like message holding two tickets":   executorStart().User("ticket " + ticket.String() + " and " + recordedTicket),
 	} {
-		t.Run(name+" means the thread inherited history [verifies SP-1934~1]", func(t *testing.T) {
+		t.Run(name+" means the thread inherited history [verifies SP-1934~2]", func(t *testing.T) {
 			run := hostproto.ReadCodexChildRollout(rolloutBytes(t, rollout))
 			if run.History != hostproto.ChildInherited || !strings.Contains(run.Reason, "line ") {
 				t.Fatalf("history %s: %s", run.History, run.Reason)
@@ -139,7 +150,7 @@ func TestCodexChildRolloutInherited(t *testing.T) {
 		})
 	}
 
-	t.Run("an inherited thread still yields the ticket of its task [verifies SP-1934~1]", func(t *testing.T) {
+	t.Run("an inherited thread still yields the ticket of its task [verifies SP-1934~2]", func(t *testing.T) {
 		run := hostproto.ReadCodexChildRollout(rolloutBytes(t, executorStart().User(parentPrompt).Task(ticket)))
 		if run.History != hostproto.ChildInherited || !run.TicketFound || run.Ticket != ticket {
 			t.Fatalf("run = %+v", run)
@@ -163,7 +174,7 @@ func TestCodexChildRolloutUnproven(t *testing.T) {
 		"a session line that cannot be read": []byte(`{"type":"session_meta","payload":"x"}` + "\n" + strings.Join(lines[1:], "")),
 		"a message of an unknown role":       rolloutBytes(t, executorStart().Item("message").Task(ticket)),
 	} {
-		t.Run(name+" leaves the blindness unproven [verifies SP-1934~1]", func(t *testing.T) {
+		t.Run(name+" leaves the blindness unproven [verifies SP-1934~2]", func(t *testing.T) {
 			run := hostproto.ReadCodexChildRollout(content)
 			if run.History != hostproto.ChildUnproven || run.Reason == "" {
 				t.Fatalf("history %s: %s", run.History, run.Reason)
@@ -171,7 +182,7 @@ func TestCodexChildRolloutUnproven(t *testing.T) {
 		})
 	}
 
-	t.Run("a mid-file line that is not JSON keeps the ticket of the task [verifies SP-1934~1]", func(t *testing.T) {
+	t.Run("a mid-file line that is not JSON keeps the ticket of the task [verifies SP-1934~2]", func(t *testing.T) {
 		content := []byte(strings.Join(lines[:len(lines)-2], "") + "not json\n" + lines[len(lines)-2])
 		run := hostproto.ReadCodexChildRollout(content)
 		if run.History != hostproto.ChildUnproven || !run.TicketFound || run.Ticket.String() != recordedTicket {

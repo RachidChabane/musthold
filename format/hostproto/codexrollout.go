@@ -63,6 +63,14 @@ const (
 // harness writes into every thread: the plugins it recommends and the environment.
 var codexContextTags = []string{"recommended_plugins", "environment_context"}
 
+// The block of harness context that carries a project's AGENTS.md: a heading
+// naming the directory, then the file's text inside an instructions element.
+const (
+	codexAgentsHeading      = "# AGENTS.md instructions for "
+	codexAgentsInstructions = "\n\n<INSTRUCTIONS>\n"
+	codexAgentsClose        = "</INSTRUCTIONS>"
+)
+
 // codexParentActivity are the item types that record what an agent did; before a
 // thread's task message they can only be the spawning agent's.
 var codexParentActivity = []string{
@@ -276,6 +284,9 @@ func classifyUserMessage(item rolloutItem) itemRole {
 		if block.Type != blockInputText {
 			return itemUnknown
 		}
+		if isAgentsInstructions(block.Text) {
+			continue
+		}
 		tag, opened := openingTag(block.Text)
 		if !opened {
 			tagged = false
@@ -300,6 +311,22 @@ func isTaskText(text string) bool {
 	}
 	_, err := FindTicketID(trimmed)
 	return err == nil
+}
+
+// isAgentsInstructions reports whether a text is the block of harness context that
+// carries a project's AGENTS.md: the heading and a directory on its first line,
+// then one instructions element that closes the text.
+func isAgentsInstructions(text string) bool {
+	rest, found := strings.CutPrefix(strings.TrimSpace(text), codexAgentsHeading)
+	if !found {
+		return false
+	}
+	directory, body, found := strings.Cut(rest, codexAgentsInstructions)
+	if !found || directory == "" || strings.Contains(directory, "\n") {
+		return false
+	}
+	inner, closed := strings.CutSuffix(body, codexAgentsClose)
+	return closed && !strings.Contains(inner, codexAgentsClose)
 }
 
 // openingTag returns the tag that opens a text, as in `<environment_context>`.

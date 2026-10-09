@@ -84,6 +84,19 @@ func (r *CodexRollout) Context() *CodexRollout {
 	return r.message("user", codexContextText, codexEnvironment)
 }
 
+// ContextWithAgents adds the user message of harness context a thread receives in
+// a project with an AGENTS.md: the plugins, the file's instructions and the
+// environment.
+func (r *CodexRollout) ContextWithAgents(directory, agents string) *CodexRollout {
+	return r.message("user", codexContextText, CodexAgentsInstructions(directory, agents), codexEnvironment)
+}
+
+// CodexAgentsInstructions is the block in which Codex hands a thread the AGENTS.md
+// of a directory.
+func CodexAgentsInstructions(directory, agents string) string {
+	return "# AGENTS.md instructions for " + directory + "\n\n<INSTRUCTIONS>\n" + agents + "\n\n</INSTRUCTIONS>"
+}
+
 // User adds a user message.
 func (r *CodexRollout) User(text string) *CodexRollout { return r.message("user", text) }
 
