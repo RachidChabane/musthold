@@ -20,20 +20,32 @@ from pathlib import Path
 from typing import TypedDict, cast
 
 from specbench.domain.canonical import JsonValue
+from specbench.domain.construction import BASELINE_PROMPT
+
+FAKE_BASELINE_INPUT_TOKENS = 1100
+"""What an empty isolated call reported when measured on the real CLI: input 2 plus cache creation 1098."""
 
 FAKE_SOURCE = """#!{python}
 import json, os, sys
 from pathlib import Path
 
 state = Path({state!r})
-calls = state / "calls"
+argv = sys.argv[1:]
+stdin = sys.stdin.read()
+is_baseline = stdin == {baseline_prompt!r}
+calls = state / ("baseline_calls" if is_baseline else "calls")
 calls.mkdir(parents=True, exist_ok=True)
 index = len(list(calls.iterdir()))
-responses = json.loads((state / "responses.json").read_text())
-argv = sys.argv[1:]
+if is_baseline:
+    settings = state / "baseline.json"
+    responses = [json.loads(settings.read_text()) if settings.is_file() else {{}}]
+    responses[0].setdefault("payload", {{"ok": True}})
+    responses[0].setdefault("input_tokens", {baseline_tokens})
+else:
+    responses = json.loads((state / "responses.json").read_text())
 (calls / f"{{index}}.json").write_text(json.dumps({{
     "argv": argv,
-    "stdin": sys.stdin.read(),
+    "stdin": stdin,
     "cwd_entries": sorted(os.listdir(".")),
     "env_has_nesting": any(k in os.environ for k in ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT")),
 }}))
@@ -57,13 +69,31 @@ print(json.dumps(result))
 """
 
 
-def install_fake_claude(directory: Path, responses: Sequence[Mapping[str, JsonValue]]) -> Path:
-    """The executable's path; `directory/state` holds the scripted responses and the recorded calls."""
+def install_fake_claude(
+    directory: Path,
+    responses: Sequence[Mapping[str, JsonValue]],
+    baseline: Mapping[str, JsonValue] | None = None,
+) -> Path:
+    """The executable's path; `directory/state` holds the scripted responses and the recorded calls.
+
+    The baseline call (the trivial call that measures an empty isolated call) is answered apart from `responses`, by
+    default with `FAKE_BASELINE_INPUT_TOKENS` input tokens, and is recorded apart from the other calls; `baseline`
+    scripts it like a response.
+    """
     state = directory / "state"
     state.mkdir(parents=True, exist_ok=True)
     (state / "responses.json").write_text(json.dumps(list(responses)))
+    if baseline is not None:
+        (state / "baseline.json").write_text(json.dumps(dict(baseline)))
     executable = directory / "claude"
-    executable.write_text(FAKE_SOURCE.format(python=sys.executable, state=str(state)))
+    executable.write_text(
+        FAKE_SOURCE.format(
+            python=sys.executable,
+            state=str(state),
+            baseline_prompt=BASELINE_PROMPT,
+            baseline_tokens=FAKE_BASELINE_INPUT_TOKENS,
+        )
+    )
     executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
     return executable
 
@@ -77,6 +107,11 @@ class RecordedCall(TypedDict):
 
 def recorded_calls(directory: Path) -> list[RecordedCall]:
     calls = sorted((directory / "state" / "calls").glob("*.json"), key=lambda p: int(p.stem))
+    return [cast(RecordedCall, json.loads(path.read_text())) for path in calls]
+
+
+def recorded_baseline_calls(directory: Path) -> list[RecordedCall]:
+    calls = sorted((directory / "state" / "baseline_calls").glob("*.json"), key=lambda p: int(p.stem))
     return [cast(RecordedCall, json.loads(path.read_text())) for path in calls]
 
 

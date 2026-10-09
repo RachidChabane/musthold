@@ -7,7 +7,8 @@ Isolation, as the pilot's adapter established it:
 - the nesting variables of an enclosing Claude Code session are removed from the environment;
 - the `$schema` meta-schema key, which the CLI rejects, is stripped from the schema argument only;
 - the response must be a result whose `modelUsage` names exactly the pinned model, and whose input tokens stay
-  within the request's own size plus a fixed slack, so ambient context cannot enter unnoticed.
+  within the baseline of an empty call at that model and effort plus the request's own size plus a fixed slack, and the
+  baseline itself stays under a ceiling, so ambient context cannot enter unnoticed.
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ from specbench.domain.construction import (
     ModelRequest,
     ModelResponse,
     QuotaExhausted,
+    baseline_from_stdout,
     response_from_stdout,
 )
 from specbench.domain.pacing import looks_like_quota_exhausted
@@ -78,7 +80,14 @@ class ClaudeCliModel:
         self._runner = runner
         self._executable = executable
 
-    def call(self, request: ModelRequest) -> ModelResponse:
+    def call(self, request: ModelRequest, baseline_input_tokens: int) -> ModelResponse:
+        return response_from_stdout(request, self._run(request), baseline_input_tokens)
+
+    def measure_baseline(self, request: ModelRequest) -> ModelResponse:
+        return baseline_from_stdout(request, self._run(request))
+
+    def _run(self, request: ModelRequest) -> str:
+        """The stdout of one isolated run, once the process and the call directory are known to be clean."""
         argv = claude_argv(request)
         argv[0] = self._executable
         call_dir = Path(tempfile.mkdtemp(prefix=CALL_DIRECTORY_PREFIX))
@@ -92,7 +101,6 @@ class ClaudeCliModel:
             if looks_like_quota_exhausted(result.stderr, result.stdout):
                 raise QuotaExhausted(message)
             raise ModelCallFailed(message)
-        response = response_from_stdout(request, result.stdout)
         if leftovers:
             raise IsolationViolation(f"the call directory was not empty afterwards: {leftovers}")
-        return response
+        return result.stdout

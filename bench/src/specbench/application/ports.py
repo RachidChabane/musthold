@@ -222,6 +222,15 @@ class ConstructionModel(Protocol):
     def call(self, request: ModelRequest) -> ModelResponse: ...
 
 
+class IsolatedModelRunner(Protocol):
+    """The live runs behind a `ConstructionModel`: a call is held to a token bound built on the baseline of its model
+    and effort, and the baseline is itself one trivial call that must stay under a ceiling."""
+
+    def call(self, request: ModelRequest, baseline_input_tokens: int) -> ModelResponse: ...
+
+    def measure_baseline(self, request: ModelRequest) -> ModelResponse: ...
+
+
 class FailureLog(Protocol):
     """Where a call that produced no usable result is noted, so a rerun and an audit can see it."""
 

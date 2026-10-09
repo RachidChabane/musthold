@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date
 from typing import Final
 
@@ -9,17 +10,20 @@ from specbench.application.ports import (
     AgentHarness,
     CallStore,
     Clock,
-    ConstructionModel,
     FailureLog,
+    IsolatedModelRunner,
     LedgerStore,
 )
 from specbench.domain.arms import FROZEN_MODEL, Harness
 from specbench.domain.call_ledger import Admission
 from specbench.domain.construction import (
+    BaselineKey,
     ModelCallFailed,
     ModelRequest,
     ModelResponse,
     QuotaExhausted,
+    baseline_from_stdout,
+    baseline_request,
     response_from_stdout,
 )
 from specbench.domain.pacing import PacingPolicy, PauseReason, RunPaused, looks_like_quota_exhausted
@@ -141,25 +145,51 @@ class PacedAgentHarness:
 
 
 class PacedConstructionModel:
-    """Decorator over a `ConstructionModel`: a recorded call is replayed for free, a new one is admitted, run and archived.
+    """Decorator over an `IsolatedModelRunner` that is a `ConstructionModel`: a recorded call is replayed for free, a
+    new one is admitted, run and archived.
 
     A construction call counts against the same per-night, per-CLI Claude budget as every arm's call. A failed call is
     charged, noted in the failure log and never archived as a result, so a rerun makes it again.
+
+    Every call is held to the baseline of its model and effort: one trivial call, made once per run and archived like
+    any other, so a rerun and a replay reuse it. Its archive is the only place the baseline is kept.
     """
 
-    def __init__(self, inner: ConstructionModel, gate: CallGate, calls: CallStore, failures: FailureLog) -> None:
+    def __init__(self, inner: IsolatedModelRunner, gate: CallGate, calls: CallStore, failures: FailureLog) -> None:
         self._inner = inner
         self._gate = gate
         self._calls = calls
         self._failures = failures
+        self._baselines: dict[BaselineKey, int] = {}
 
     def call(self, request: ModelRequest) -> ModelResponse:
+        baseline = self._baseline(request.baseline_key)
+        return self._archived(
+            request,
+            lambda: self._inner.call(request, baseline),
+            lambda stdout: response_from_stdout(request, stdout, baseline),
+        )
+
+    def _baseline(self, key: BaselineKey) -> int:
+        if key not in self._baselines:
+            probe = baseline_request(key)
+            response = self._archived(
+                probe,
+                lambda: self._inner.measure_baseline(probe),
+                lambda stdout: baseline_from_stdout(probe, stdout),
+            )
+            self._baselines[key] = response.input_tokens
+        return self._baselines[key]
+
+    def _archived(
+        self, request: ModelRequest, live: Callable[[], ModelResponse], replay: Callable[[str], ModelResponse]
+    ) -> ModelResponse:
         call_id = request.call_id
         if self._calls.exists(call_id):
-            return response_from_stdout(request, self._calls.read(call_id).stdout)
+            return replay(self._calls.read(call_id).stdout)
         admission = self._gate.admit()
         try:
-            response = self._inner.call(request)
+            response = live()
         except QuotaExhausted as error:
             raise RunPaused(PauseReason.QUOTA_EXHAUSTED, request.role.value) from error
         except ModelCallFailed as error:

@@ -41,7 +41,7 @@ from specbench.domain.oracle import oracle_from_bundle
 from specbench.domain.pacing import PacingPolicy, RunPaused, RunWindow
 from specbench.domain.sealing import CURRENT_BUNDLE_VERSION
 from specbench.domain.selection import ProbedTask, Selection
-from support.fake_claude import install_fake_claude, recorded_calls
+from support.fake_claude import install_fake_claude, recorded_baseline_calls, recorded_calls
 from support.fakes import FixedClock
 from support.tiny_upstream import FakeBuilder, candidate, denied_runner, make_upstream, probe_for
 
@@ -130,6 +130,8 @@ RESPONSES: list[dict[str, JsonValue]] = [
     {"payload": VIOLATIONS},
     {"payload": REFACTORS},
 ]
+BASELINES_MEASURED = 4
+"""One per (model, effort) the run uses: Opus high, Haiku, Sonnet medium and Opus medium."""
 EXPECTED_MODELS = [OPUS, HAIKU, SONNET, SONNET, OPUS, OPUS, HAIKU, OPUS, OPUS]
 
 
@@ -269,6 +271,7 @@ def test_a_rerun_replays_every_call_from_the_archive(world: World) -> None:
     again = world.run().run(selection(world.task), 1)
     assert again.sealed == (TASK_ID,)
     assert len(recorded_calls(world.root / "fake")) == 9
+    assert len(recorded_baseline_calls(world.root / "fake")) == BASELINES_MEASURED
 
 
 def test_a_closed_window_pauses_before_any_call_and_leaves_no_status(world: World) -> None:
