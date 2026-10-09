@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# The results site, built by a deterministic generator and checked before it is written.
+# Usage: bench/script/site --fixtures [--check] [--out DIR]
+#        bench/script/site --run DIR [--check] [--out DIR]
+# --fixtures builds from the synthetic fixtures and badges every page; --run builds from a sealed run directory
+# and refuses one whose results.json is not what the analysis writes from its trunk records. --check builds and
+# validates without writing. The default output directory, bench/build/site, is ignored by git.
+set -euo pipefail
+# shellcheck source=bench/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+commit="$(git -C "${REPO_ROOT}" rev-parse HEAD)"
+if [[ -n "$(git -C "${REPO_ROOT}" status --porcelain)" ]]; then
+  echo "site: the working tree has uncommitted changes; the site names commit ${commit}" >&2
+fi
+args=("$@")
+if [[ " ${args[*]} " != *" --out "* ]]; then
+  args+=(--out "${BENCH_DIR}/build/site")
+fi
+specbench_light site --root "${REPO_ROOT}" --commit "${commit}" "${args[@]}"

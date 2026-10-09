@@ -1,0 +1,11 @@
+--- a/tests/test_rates.py
++++ b/tests/test_rates.py
+@@ -35,3 +35,8 @@ def test_large_orders_ship_free():
+ @pytest.mark.verifies("PAR-3~1")
+ def test_small_orders_pay_the_fee():
+     assert shipping_fee(10) == 4.5
++
++
++@pytest.mark.verifies("PAR-3~1")
++def test_orders_of_exactly_fifty_ship_free():
++    assert shipping_fee(50) == 0

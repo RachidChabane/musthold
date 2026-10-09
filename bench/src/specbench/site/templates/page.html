@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="${robots}">
+<meta name="description" content="${description}">
+<title>${title}</title>
+<link rel="stylesheet" href="${root}assets/site.css">
+</head>
+<body data-build="${build}">
+<a class="skip" href="#main">Skip to content</a>
+${badge}
+<header class="site-header">
+<div class="wrap">
+<a class="brand" href="${root}index.html">${site_title}</a>
+<nav aria-label="Sections">${nav}</nav>
+</div>
+</header>
+<main id="main" class="wrap">
+${body}
+</main>
+<footer class="site-footer">
+<div class="wrap">
+${provenance}
+</div>
+</footer>
+</body>
+</html>

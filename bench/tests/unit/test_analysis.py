@@ -172,6 +172,38 @@ def test_trunk_records_refuse_a_model_that_is_not_frozen() -> None:
         trunk_from_record({**_raw(), "reached_s_t": False})
 
 
+def test_each_arm_reports_its_cost_per_trunk_and_the_denominators_of_its_rates() -> None:
+    trunks = [
+        trunk(
+            1,
+            "r1",
+            True,
+            {
+                "T": arm("pass", True, truth(True), calls=0, seconds=60),
+                "ALL": arm("blocked", False, truth(False), calls=30, seconds=900),
+            },
+        ),
+        trunk(
+            2,
+            "r2",
+            False,
+            {
+                "T": arm("pass", True, truth(False), calls=0, seconds=120),
+                "ALL": arm("pass", True, truth(False), calls=10, seconds=300),
+            },
+        ),
+    ]
+    results = tree(analyze(trunks, CONFIG, permutations=50))
+    section = results["harnesses"][H]
+    all_arm = section["arms"]["ALL"]
+    assert all_arm["calls_per_trunk"]["estimate"] == pytest.approx(20.0)
+    assert all_arm["seconds_per_trunk"]["estimate"] == pytest.approx(600.0)
+    assert (all_arm["clean_trunks"], all_arm["defective_trunks"]) == (1, 1)
+    assert section["repositories"] == 2
+    assert results["method"]["permutations"] == 50
+    assert results["method"]["level"] == pytest.approx(0.95)
+
+
 def _raw() -> dict[str, JsonValue]:
     return {
         "arms": {},

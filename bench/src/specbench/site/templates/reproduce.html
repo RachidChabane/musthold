@@ -1,0 +1,10 @@
+<h1>How to reproduce</h1>
+<p class="lead">Every figure on this site is computed from the sealed outputs of one run. The commands below rebuild them from the repository at the commit shown, without any model call.</p>
+<h2>Provenance</h2>
+${provenance_facts}
+<h2>Product under test</h2>
+${product_digests}
+<h2>Commands</h2>
+<p>From a clone of the repository at the source commit, with the run directory in place:</p>
+${commands}
+<p>Analysis re-reads the trunk records and must write byte-identical results; the site build then reads those results and the case records, and digests every evidence file it cites. The same inputs give byte-identical pages.</p>

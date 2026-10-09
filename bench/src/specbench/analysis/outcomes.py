@@ -183,6 +183,16 @@ def difference(first: Statistic, second: Statistic) -> Statistic:
     return statistic
 
 
+def cost_per_trunk(h: str, arm: Arm, quantity: str) -> Statistic:
+    """Model calls (or seconds) an arm spent per trunk at S_T, repair work included, whatever its verdict."""
+    a = arm.value
+
+    def statistic(columns: Columns) -> Floats:
+        return rate(columns[column(h, a, quantity)], columns[column(h, a, "base_n")])
+
+    return statistic
+
+
 def cost_per_accepted(h: str, arm: Arm, mode: Mode, quantity: str) -> Statistic:
     """Model calls (or seconds) spent per accepted change, repair work included."""
     a, m = arm.value, mode.value

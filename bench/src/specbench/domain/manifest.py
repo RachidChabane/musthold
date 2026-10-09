@@ -24,6 +24,7 @@ RESULTS_FILE_NAME: Final = "results.json"
 REPORT_FILE_NAME: Final = "REPORT.md"
 TOOLCHAIN_PATHS_FILE_NAME: Final = "toolchain-paths.json"
 TRUNKS_DIRECTORY: Final = "trunks"
+CASES_DIRECTORY: Final = "cases"
 CALLS_DIRECTORY: Final = "calls"
 HOMES_DIRECTORY: Final = "homes"
 SETTINGS_DIRECTORY: Final = "settings"
@@ -86,6 +87,11 @@ class RunLayout:
     @property
     def trunks(self) -> Path:
         return self.root / TRUNKS_DIRECTORY
+
+    @property
+    def cases(self) -> Path:
+        """The case records of the run: blocked stops, each pointing at its archived evidence."""
+        return self.root / CASES_DIRECTORY
 
     def call(self, call_id: str) -> Path:
         return self.root / CALLS_DIRECTORY / call_id

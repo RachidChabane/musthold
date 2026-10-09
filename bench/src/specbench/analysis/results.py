@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from typing import Final
 
 from specbench.analysis import blind_spot, calibration, composition, judge, outcomes
-from specbench.analysis.bootstrap import ClusterTable, Statistic, wilson
+from specbench.analysis.bootstrap import CONFIDENCE_LEVEL, ClusterTable, Statistic, wilson
 from specbench.analysis.estimate import AnalysisConfig, Estimator, total
 from specbench.analysis.outcomes import MODES, Mode
 from specbench.analysis.selection_null import DEFAULT_PERMUTATIONS, selection_null
@@ -77,11 +77,15 @@ def _arm_section(ctx: Context, arm: Arm) -> Record:
     return {
         "accepted": ctx.count(arm.value, standard.value, "accepted"),
         "accepted_defective": ctx.count(arm.value, standard.value, "accepted_defective"),
+        "calls_per_trunk": ctx.est(outcomes.cost_per_trunk(h, arm, "calls")),
+        "clean_trunks": ctx.count(arm.value, "base_clean"),
         "defect_rate_accepted": ctx.est(outcomes.defect_rate_at(h, arm, standard)),
+        "defective_trunks": ctx.count(arm.value, "base_defective"),
         "escaped_defects": ctx.est(outcomes.escaped_defects(h, arm, standard)),
         "false_rejection": ctx.est(outcomes.false_rejection(h, arm, standard)),
         "model_truth_inflation": ctx.est(outcomes.difference(full, primary)),
         "o_defect_rate_accepted": ctx.est(outcomes.accepted_o_rate(h, arm, standard)),
+        "seconds_per_trunk": ctx.est(outcomes.cost_per_trunk(h, arm, "seconds")),
         "selection": {
             "sensitivity": ctx.est(outcomes.sensitivity(h, arm)),
             "specificity": ctx.est(outcomes.specificity(h, arm)),
@@ -238,6 +242,7 @@ def _harness_section(
         "judge_replay": _judge(ctx),
         "model": FROZEN_MODEL[harness],
         "placebo": _placebo(ctx),
+        "repositories": len({t.repository for t in own}),
         "selection_null": _selection_nulls(trunks, harness, config, permutations),
         "tasks": sorted({t.task_id for t in own}),
         "trunks": {
@@ -280,7 +285,13 @@ def analyze(
         "harnesses": {h.value: _harness_section(trunks, estimator, h, permutations) for h in harnesses},
         "interaction": _interaction(estimator, harnesses),
         "label": DESCRIPTIVE_LABEL,
-        "method": {"interval": INTERVAL_METHOD, "resamples": config.resamples, "seed": config.seed},
+        "method": {
+            "interval": INTERVAL_METHOD,
+            "level": CONFIDENCE_LEVEL,
+            "permutations": permutations,
+            "resamples": config.resamples,
+            "seed": config.seed,
+        },
         "sample": {
             "languages": sorted({t.language.value for t in trunks}),
             "repositories": len({t.repository for t in trunks}),

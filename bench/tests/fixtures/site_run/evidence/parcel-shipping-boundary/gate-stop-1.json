@@ -1,0 +1,271 @@
+{
+  "schema_version": "1.2",
+  "tool": {
+    "name": "shallnot",
+    "version": "v0.5.0"
+  },
+  "run": {
+    "advisory": false,
+    "fail_on": "error",
+    "id_pattern": "PAR-[0-9]+",
+    "statement_canonicalization": "c1",
+    "focus": {
+      "everything": true,
+      "files": [],
+      "ids": []
+    },
+    "spec_files": [
+      "specs/parcel.md"
+    ],
+    "test_roots": [
+      "tests"
+    ],
+    "results_files": [
+      "junit.xml"
+    ]
+  },
+  "summary": {
+    "requirements": {
+      "known": 3,
+      "in_focus": 3,
+      "covered": 3,
+      "failed": 0,
+      "skipped": 0,
+      "not_run": 0,
+      "uncovered": 0,
+      "non_testable": 0
+    },
+    "tests": {
+      "total": 8,
+      "bound": 8,
+      "untagged": 0
+    },
+    "findings": {
+      "error": 1,
+      "warning": 0,
+      "info": 0,
+      "blocking": 1
+    }
+  },
+  "requirements": [
+    {
+      "id": "PAR-1",
+      "revision": 1,
+      "ref": "PAR-1~1",
+      "statement": "WHEN an order has line items THE SYSTEM SHALL total each line as its unit price times its quantity.",
+      "status": "active",
+      "statement_digest": "d0c5c9363af1e3b1ca3335d338595f878df6190aaf315552303604dd3867bf20",
+      "tests": [
+        {
+          "name": "test_line_total_multiplies_price_by_quantity",
+          "classname": "tests.test_rates",
+          "suite": "pytest",
+          "outcome": "passed",
+          "source": {
+            "file": "tests/test_rates.py",
+            "line": 7
+          },
+          "results_file": "junit.xml"
+        }
+      ],
+      "examples": [
+        {
+          "index": 1,
+          "operation": "line_total",
+          "args": {
+            "unit_price": {
+              "type": "integer",
+              "value": "4"
+            },
+            "quantity": {
+              "type": "integer",
+              "value": "3"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "12"
+          }
+        }
+      ],
+      "location": {
+        "file": "specs/parcel.md",
+        "line": 7
+      },
+      "in_focus": true,
+      "coverage": "covered",
+      "extensions": {}
+    },
+    {
+      "id": "PAR-2",
+      "revision": 1,
+      "ref": "PAR-2~1",
+      "statement": "WHEN a discount percentage is applied THE SYSTEM SHALL reduce the total by that percentage, limited to the range 0 to 100.",
+      "status": "active",
+      "statement_digest": "04fa9f4b8238a4b7fa626572b7e5aeb31d5fd34dfac8834e9508b90f8d9cc9c9",
+      "tests": [
+        {
+          "name": "test_discount_reduces_total[0-19.99-19.99]",
+          "classname": "tests.test_rates",
+          "suite": "pytest",
+          "outcome": "passed",
+          "source": {
+            "file": "tests/test_rates.py",
+            "line": 17
+          },
+          "results_file": "junit.xml"
+        },
+        {
+          "name": "test_discount_reduces_total[10-200-180.0]",
+          "classname": "tests.test_rates",
+          "suite": "pytest",
+          "outcome": "passed",
+          "source": {
+            "file": "tests/test_rates.py",
+            "line": 17
+          },
+          "results_file": "junit.xml"
+        },
+        {
+          "name": "test_discount_reduces_total[50-80-40.0]",
+          "classname": "tests.test_rates",
+          "suite": "pytest",
+          "outcome": "passed",
+          "source": {
+            "file": "tests/test_rates.py",
+            "line": 17
+          },
+          "results_file": "junit.xml"
+        },
+        {
+          "name": "test_negative_percent_is_ignored",
+          "classname": "tests.test_rates.TestDiscountLimits",
+          "suite": "pytest",
+          "outcome": "passed",
+          "source": {
+            "file": "tests/test_rates.py",
+            "line": 26
+          },
+          "results_file": "junit.xml"
+        },
+        {
+          "name": "test_percent_above_one_hundred_is_clamped",
+          "classname": "tests.test_rates.TestDiscountLimits",
+          "suite": "pytest",
+          "outcome": "passed",
+          "source": {
+            "file": "tests/test_rates.py",
+            "line": 23
+          },
+          "results_file": "junit.xml"
+        }
+      ],
+      "examples": [
+        {
+          "index": 1,
+          "operation": "discounted",
+          "args": {
+            "total": {
+              "type": "integer",
+              "value": "200"
+            },
+            "percent": {
+              "type": "integer",
+              "value": "10"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "180"
+          }
+        },
+        {
+          "index": 2,
+          "operation": "discounted",
+          "args": {
+            "total": {
+              "type": "integer",
+              "value": "80"
+            },
+            "percent": {
+              "type": "integer",
+              "value": "150"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "0"
+          }
+        }
+      ],
+      "location": {
+        "file": "specs/parcel.md",
+        "line": 10
+      },
+      "in_focus": true,
+      "coverage": "covered",
+      "extensions": {}
+    },
+    {
+      "id": "PAR-3",
+      "revision": 1,
+      "ref": "PAR-3~1",
+      "statement": "WHEN an order total reaches 50 THE SYSTEM SHALL waive the shipping fee.",
+      "status": "active",
+      "statement_digest": "89e6c3fc82e77e6f357693a81b2be675692858c08cb1834394252c1367ada67a",
+      "tests": [
+        {
+          "name": "test_large_orders_ship_free",
+          "classname": "tests.test_rates",
+          "suite": "pytest",
+          "outcome": "passed",
+          "source": {
+            "file": "tests/test_rates.py",
+            "line": 31
+          },
+          "results_file": "junit.xml"
+        },
+        {
+          "name": "test_small_orders_pay_the_fee",
+          "classname": "tests.test_rates",
+          "suite": "pytest",
+          "outcome": "passed",
+          "source": {
+            "file": "tests/test_rates.py",
+            "line": 36
+          },
+          "results_file": "junit.xml"
+        }
+      ],
+      "examples": [],
+      "location": {
+        "file": "specs/parcel.md",
+        "line": 17
+      },
+      "in_focus": true,
+      "coverage": "covered",
+      "extensions": {}
+    }
+  ],
+  "out_of_scope": [],
+  "findings": [
+    {
+      "category": "surviving_valid_mutant",
+      "severity": "error",
+      "blocking": true,
+      "message": "PAR-3~1: a valid mutant of shipping_fee survives every test that verifies the requirement (replace >= by >); the witness shipping_fee(total=50) returns 0 on the code and 4.5 on the mutant",
+      "requirement_id": "PAR-3",
+      "module": "discriminating-power",
+      "location": {
+        "file": "specs/parcel.md",
+        "line": 17
+      }
+    }
+  ],
+  "extensions": {},
+  "verdict": "fail",
+  "exit_code": 1
+}

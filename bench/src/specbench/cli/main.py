@@ -19,12 +19,14 @@ from specbench.adapters.network_sandbox import NetworkDenialUnavailable
 from specbench.adapters.patch_builder import PatchBuildError
 from specbench.adapters.process import MachineUnsafe
 from specbench.adapters.sealed_store import InsideRepositoryError
+from specbench.adapters.site_output import NotASiteDirectory
 from specbench.analysis.bootstrap import BOOTSTRAP_RESAMPLES
 from specbench.analysis.selection_null import DEFAULT_PERMUTATIONS
 from specbench.application.paced_calls import ModelNotFrozen
 from specbench.cli import commands
 from specbench.cli.commands import Console
 from specbench.cli.night_commands import NightBudgetRequest, run_night_budget
+from specbench.cli.site_command import SiteRequest, run_site
 from specbench.domain.arms import Harness
 from specbench.domain.canonical import CanonicalError
 from specbench.domain.construction import ModelCallFailed
@@ -59,6 +61,7 @@ EXPECTED_FAILURES: Final = (
     PatchBuildError,
     InsideRepositoryError,
     InvalidRunWindow,
+    NotASiteDirectory,
     NetworkDenialUnavailable,
     ModelNotFrozen,
     RecordError,
@@ -172,6 +175,15 @@ def _add_run_verbs(add: AddVerb) -> None:
     analyze.add_argument("--resamples", type=int, default=BOOTSTRAP_RESAMPLES)
     analyze.add_argument("--permutations", type=int, default=DEFAULT_PERMUTATIONS)
 
+    site = add("site", help="build and check the results site of a sealed run, or of the synthetic fixtures")
+    source = site.add_mutually_exclusive_group(required=True)
+    source.add_argument("--run", type=_path, help="a sealed run directory")
+    source.add_argument("--fixtures", action="store_true", help="the synthetic fixtures, badged on every page")
+    site.add_argument("--root", type=_path, required=True, help="the repository root")
+    site.add_argument("--out", type=_path, required=True)
+    site.add_argument("--commit", required=True, help="the commit of the repository the site is built at")
+    site.add_argument("--check", action="store_true", help="build and check without writing")
+
     lint = add("report-lint", help="lint a rendered report")
     lint.add_argument("--report", type=_path, required=True)
 
@@ -256,6 +268,7 @@ def _handlers() -> dict[str, Handler]:
         ),
         "analyze": lambda a, c: commands.run_analyze(a.run, a.resamples, a.permutations, c),
         "report-lint": lambda a, c: commands.run_report_lint(a.report, c),
+        "site": lambda a, c: run_site(SiteRequest(a.run, a.root, a.out, a.commit, a.check), c),
         "window-status": lambda a, c: commands.run_window_status(a.window, a.now, c),
         "night-budget": _night_budget,
     }

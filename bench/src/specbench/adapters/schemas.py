@@ -27,6 +27,7 @@ class SchemaName(Enum):
     ASSIGNMENT = "assignment"
     PROBE = "probe"
     GAPS = "gaps"
+    CASE = "case"
 
 
 def load_schema(name: SchemaName) -> Any:

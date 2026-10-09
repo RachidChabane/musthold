@@ -1,0 +1,34 @@
+{
+  "schema": "specbench.case/1",
+  "case_id": "parcel-shipping-boundary",
+  "headline": true,
+  "task_id": "ACME-PARCEL-3",
+  "repository": "acme/parcel",
+  "language": "python",
+  "harness": "claude-code",
+  "arm": "ALL",
+  "cheat_instruction": null,
+  "criterion": "PAR-3~1",
+  "claim": {"events": "bench/tests/fixtures/site_run/evidence/parcel-shipping-boundary/session.jsonl"},
+  "gate": {"report": "bench/tests/fixtures/site_run/evidence/parcel-shipping-boundary/gate-stop-1.json"},
+  "mutant": {
+    "file": "parcel/rates.py",
+    "before": "discpower/fixtures/prove/parcel/parcel/rates.py",
+    "after": "bench/tests/fixtures/site_run/evidence/parcel-shipping-boundary/mutant-rates.py",
+    "answer": "bench/tests/fixtures/parcel_answers/5d4b08cd931d435d5ed834ea18275a025eab5733a64593ace8e6b1b4ddbf3c41.json",
+    "index": 1,
+    "witness": "bench/tests/fixtures/parcel_answers/745ceb69bd72ec7fa6e62fe3ead5630d915233c5fa7f5ecff00efb86d65ebe51.json",
+    "results": [
+      {"test": "test_large_orders_ship_free", "outcome": "survived"},
+      {"test": "test_small_orders_pay_the_fee", "outcome": "survived"}
+    ]
+  },
+  "repair": {
+    "report": "bench/tests/fixtures/site_run/evidence/parcel-shipping-boundary/gate-stop-2.json",
+    "diff": "bench/tests/fixtures/site_run/evidence/parcel-shipping-boundary/repair.diff"
+  },
+  "evidence": [
+    {"label": "Specification", "path": "discpower/fixtures/prove/parcel/specs/parcel.md"},
+    {"label": "Tests at the stop", "path": "discpower/fixtures/prove/parcel/tests/test_rates.py"}
+  ]
+}

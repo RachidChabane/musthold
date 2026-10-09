@@ -1,0 +1,14 @@
+<h1>Do proofs catch what green tests miss?</h1>
+<p class="lead">A coding agent says it is done and its tests pass. spec-proof checks that those tests verify what the specification requires: it runs them against mutants that violate a criterion, judges whether each test checks its criterion, and blocks the change when they do not. This site reports what that gate did on the tasks of one run, beside the same changes accepted by tests alone.</p>
+<div class="sample-strip" aria-label="Sample">
+${sample_strip}
+</div>
+<p class="muted small">Every figure on this site is ${label}: it describes this sample and comes with its interval and the number of units it rests on. ${method_sentence}</p>
+<h2>Cases</h2>
+<p>Each case is one stop where the agent declared the work done with passing tests and the gate refused it. The case page shows the criterion, the agent's claim, the test run, the gate's finding, the mutant that survived the tests when there is one, and what happened next.</p>
+${headline_cases}
+<p><a href="${root}cases/index.html">All cases</a></p>
+<h2>Arms compared</h2>
+<p>Residual defects are the share of accepted changes that the projects' own tests still find defective. The tests-only arm T is the reference; every other arm gates the same changes.</p>
+${arm_comparison}
+<p><a href="${root}arms.html">Every figure per arm</a> &middot; <a href="${root}modules.html">Per module</a> &middot; <a href="${root}methodology.html">How they are measured</a></p>

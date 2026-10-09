@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Everything CI runs: static checks, the tests, then the check of the recorded parcel answers.
+# Everything CI runs: static checks, the tests, the check of the fixture results site, then the check of the
+# recorded parcel answers.
 # The recordings check needs the product built into .tools/bin (script/product-build) and is
 # announced as skipped where it is not, as the integration tests that need it are.
 set -euo pipefail
@@ -7,6 +8,7 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib"
 "$(dirname "${BASH_SOURCE[0]}")/lint"
 "$(dirname "${BASH_SOURCE[0]}")/test" "$@"
+"$(dirname "${BASH_SOURCE[0]}")/site" --fixtures --check
 if [[ -x "${REPO_ROOT}/.tools/bin/spec-proof-completeness" && -x "${REPO_ROOT}/.tools/bin/shallnot" ]]; then
   "${REPO_ROOT}/script/regen-bench-recordings" --check
 else

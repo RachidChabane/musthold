@@ -1,0 +1,21 @@
+<h1>Methodology</h1>
+<p class="lead">The benchmark gives real pull requests to a coding agent, stops it when it declares the work done, and gates the same change under each arm. A separate oracle, never shown to the agent or the gate, decides whether the change is defective.</p>
+<h2>Tasks and ground truth</h2>
+<p>Each task is a merged pull request of an open-source repository that adds a feature or changes a behaviour. A specification of observable criteria is written from the issue, the pull request description, the non-test diff and the public interface, never from a test. Specification, oracle and construction records stay sealed until the run.</p>
+<ul>
+<li><strong>U</strong>: the pull request's own added or modified tests; <strong>R</strong>: the pre-existing tests that pass before and after it. ${defect_rule} This human-written truth is the primary one.</li>
+<li><strong>H</strong>: per-criterion property and example tests written by an isolated session from the specification alone; X on U, H and R is a secondary figure.</li>
+<li><strong>O</strong>: upstream assertions about behaviour no criterion states. Their failures are reported as out-of-spec defects, never in X.</li>
+</ul>
+<h2>Trunks, stops and arms</h2>
+<p>One trunk is one task run by one harness. The trunk stops on tests alone. S_N is its first stop and S_T its first stop with passing tests; every arm is evaluated on the same S_T snapshot. Where an arm blocks, the session is branched from S_T and resumed with the gate's message, so each arm measures the gate in the loop, repairs included. The gate always runs in a clean room the agent cannot reach.</p>
+${arm_table}
+<p>${acceptance_rule}</p>
+<h2>Figures</h2>
+${metric_list}
+<h2>Intervals</h2>
+<p>${interval_sentence}</p>
+<p>Harnesses are never pooled: each harness is one stratum with its own frozen model, and the difference between harnesses is reported as an interaction.</p>
+<h2>Records</h2>
+<p>The design and its amendments are recorded in the repository:</p>
+${adr_links}

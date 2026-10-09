@@ -44,6 +44,7 @@ markers = ["integration: runs real subprocesses (git, uv, go, python)"]
 
 [tool.pyright]
 include = ["src", "tests"]
+exclude = ["tests/fixtures"]
 typeCheckingMode = "strict"
 pythonVersion = "3.13"
 venvPath = "."
@@ -69,25 +70,31 @@ include_external_packages = true
 name = "domain imports nothing from other layers"
 type = "forbidden"
 source_modules = ["specbench.domain"]
-forbidden_modules = ["specbench.application", "specbench.adapters", "specbench.analysis", "specbench.cli"]
+forbidden_modules = ["specbench.application", "specbench.adapters", "specbench.analysis", "specbench.cli", "specbench.site"]
 
 [[tool.importlinter.contracts]]
 name = "application imports only domain"
 type = "forbidden"
 source_modules = ["specbench.application"]
-forbidden_modules = ["specbench.adapters", "specbench.analysis", "specbench.cli"]
+forbidden_modules = ["specbench.adapters", "specbench.analysis", "specbench.cli", "specbench.site"]
 
 [[tool.importlinter.contracts]]
 name = "analysis imports only domain"
 type = "forbidden"
 source_modules = ["specbench.analysis"]
-forbidden_modules = ["specbench.application", "specbench.adapters", "specbench.cli"]
+forbidden_modules = ["specbench.application", "specbench.adapters", "specbench.cli", "specbench.site"]
 
 [[tool.importlinter.contracts]]
 name = "adapters import neither analysis nor cli"
 type = "forbidden"
 source_modules = ["specbench.adapters"]
 forbidden_modules = ["specbench.analysis", "specbench.cli"]
+
+[[tool.importlinter.contracts]]
+name = "the results site imports only the domain; the adapters read what it renders"
+type = "forbidden"
+source_modules = ["specbench.site"]
+forbidden_modules = ["specbench.application", "specbench.adapters", "specbench.analysis", "specbench.cli", "subprocess", "jsonschema", "numpy"]
 
 [[tool.importlinter.contracts]]
 name = "domain and application are free of I/O frameworks"

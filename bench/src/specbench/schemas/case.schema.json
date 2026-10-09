@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "specbench.case/1",
+  "title": "One archived case of a run: a stop the gate blocked, with pointers to its evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "case_id", "headline", "task_id", "repository", "language", "harness", "arm",
+    "cheat_instruction", "criterion", "claim", "gate", "mutant", "repair", "evidence"
+  ],
+  "properties": {
+    "schema": {"const": "specbench.case/1"},
+    "case_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$"},
+    "headline": {"type": "boolean"},
+    "task_id": {"type": "string", "minLength": 1},
+    "repository": {"type": "string", "minLength": 1},
+    "language": {"enum": ["python", "go"]},
+    "harness": {"enum": ["claude-code", "codex"]},
+    "arm": {"enum": ["TR", "AL", "DP", "CO", "ALL", "PL", "ALL-native", "cheat"]},
+    "cheat_instruction": {"oneOf": [{"type": "null"}, {"enum": ["a", "b"]}]},
+    "criterion": {"type": "string", "pattern": "^\\S+~[0-9]+$"},
+    "claim": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["events"],
+          "properties": {"events": {"$ref": "#/$defs/path"}}
+        }
+      ]
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["report"],
+      "properties": {"report": {"$ref": "#/$defs/path"}}
+    },
+    "mutant": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["file", "before", "after", "answer", "index", "witness", "results"],
+          "properties": {
+            "file": {"type": "string", "minLength": 1},
+            "before": {"$ref": "#/$defs/path"},
+            "after": {"$ref": "#/$defs/path"},
+            "answer": {"$ref": "#/$defs/path"},
+            "index": {"type": "integer", "minimum": 0},
+            "witness": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/path"}]},
+            "results": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["test", "outcome"],
+                "properties": {
+                  "test": {"type": "string", "minLength": 1},
+                  "outcome": {"enum": ["killed", "survived"]}
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "repair": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["report", "diff"],
+          "properties": {
+            "report": {"$ref": "#/$defs/path"},
+            "diff": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/path"}]}
+          }
+        }
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "path"],
+        "properties": {
+          "label": {"type": "string", "minLength": 1},
+          "path": {"$ref": "#/$defs/path"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$)).+$",
+      "description": "A path relative to the evidence root, never absolute and never climbing out of it."
+    }
+  }
+}

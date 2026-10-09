@@ -98,7 +98,7 @@ canary-copilot:  ## live canary of GitHub Copilot CLI under -p (ARGS="--dry-run 
 
 # The benchmark core (bench/): every target calls bench/script/<verb> from the repository root, so paths in ARGS are
 # relative to the root. bench/Makefile offers the same verbs from inside bench/.
-.PHONY: bench-setup bench-test bench-lint bench-check bench-recordings bench-recordings-check bench-verify-corpus bench-analyze bench-report-lint
+.PHONY: bench-setup bench-test bench-lint bench-check bench-recordings bench-recordings-check bench-verify-corpus bench-analyze bench-report-lint bench-site
 
 bench-setup:  ## install the benchmark core's locked dependencies (bench/script/setup)
 	bench/script/setup
@@ -126,3 +126,6 @@ bench-analyze:  ## R0: results.json and REPORT.md of a run (ARGS="--run bench/ru
 
 bench-report-lint:  ## R0: lint a rendered report (ARGS="--report bench/runs/<id>/REPORT.md")
 	bench/script/report-lint $(ARGS)
+
+bench-site:  ## the results site into bench/build/site (ARGS="--fixtures" or ARGS="--run bench/runs/<id>"; --check writes nothing)
+	bench/script/site $(ARGS)

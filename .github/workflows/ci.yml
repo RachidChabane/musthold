@@ -203,6 +203,11 @@ jobs:
           NO_PROXY: "127.0.0.1,localhost,::1"
         run: bench/script/test
 
+      - name: Build and check the results site from the synthetic fixtures
+        env:
+          UV_OFFLINE: "1"
+        run: bench/script/site --fixtures --check
+
   calibration:
     if: inputs.modules == ''
     name: calibration harness
