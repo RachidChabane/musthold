@@ -379,7 +379,8 @@ class TaskConstruction:
         kept: tuple[HFile, ...] = ()
         writing = HWriting(numbers, POOL_ROUND)
         while True:
-            written = self._write_h(inputs, layout, writing, spec_text, kept)
+            earlier = tuple(f for files in writings for f in files)
+            written = self._write_h(inputs, layout, writing, spec_text, earlier)
             execution = execution.merged(self._execute(task, inputs, kept, written))
             writings.append(written.files)
             tests += written.tests
@@ -395,9 +396,13 @@ class TaskConstruction:
         return SelectedH(kept, _kept_tests(selection), record, candidate_files(writings))
 
     def _write_h(
-        self, inputs: ConstructionInputs, layout: HLayout, writing: HWriting, spec_text: str, kept: Sequence[HFile]
+        self, inputs: ConstructionInputs, layout: HLayout, writing: HWriting, spec_text: str, earlier: Sequence[HFile]
     ) -> HWritten:
-        """One writing, structurally repaired at most `FIX_ATTEMPTS` times; the repair names only its own problems."""
+        """One writing, structurally repaired at most `FIX_ATTEMPTS` times; the repair names only its own problems.
+
+        The checks compare the writing with every earlier writing's files as written, never with what selection kept,
+        so no repair depends on an execution outcome.
+        """
         repair = NO_REPAIR
         problems: list[str] = []
         call_ids: list[str] = []
@@ -405,7 +410,7 @@ class TaskConstruction:
             request = self._h_request(inputs, writing, spec_text, repair, attempt)
             call_ids.append(request.call_id)
             files = self._structured(request, DropStage.H_TESTS, h_files_from_record)
-            problems, tests = h_problems(layout, writing, files, kept)
+            problems, tests = h_problems(layout, writing, files, earlier)
             if not problems:
                 return HWritten(files, tuple(tests), tuple(call_ids))
             repair = _repair_text(problems)

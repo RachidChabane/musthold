@@ -331,7 +331,8 @@ def h_problems(
 ) -> tuple[list[str], list[HTest]]:
     """Problems with the files of one writing, and the candidate tests they define.
 
-    `existing` holds the H files already kept from earlier writings: a Go file's identifiers must not repeat theirs.
+    `existing` holds the files of the earlier writings as they were written: neither a test id nor, in Go, a top-level
+    identifier may repeat one of theirs.
     """
     problems: list[str] = []
     tests: list[HTest] = []
@@ -346,6 +347,8 @@ def h_problems(
     problems += _pool_problems(writing, tests)
     if len({t.test_id for t in tests}) != len(tests):
         problems.append("H test ids repeat")
+    earlier = {test_id for file in existing for test_id in test_ids(layout.language, file.path, file.content)}
+    problems += [f"{t.test_id}: repeats the id of a test of an earlier writing" for t in tests if t.test_id in earlier]
     return problems, tests
 
 

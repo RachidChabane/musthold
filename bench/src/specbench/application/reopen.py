@@ -8,6 +8,7 @@ from the archive, so only the calls of the stages that changed are made anew. A 
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Protocol
 
 from specbench.application.construct_run import Outcome, TaskStatus
@@ -25,11 +26,22 @@ class ReopenableStatuses(Protocol):
         ...
 
 
-def reopen(task_id: str, statuses: ReopenableStatuses) -> str:
-    """Set a dropped task's last attempt aside; the place it went to."""
+def _require_reopenable(task_id: str, statuses: ReopenableStatuses) -> None:
     status = statuses.read(task_id)
     if status is None:
         raise NotReopenable(f"{task_id} has no status: construction has not finished it, so it is open already")
     if status.outcome is Outcome.SEALED:
         raise NotReopenable(f"{task_id} is sealed, and a sealed task is final")
+
+
+def reopen(task_id: str, statuses: ReopenableStatuses) -> str:
+    """Set a dropped task's last attempt aside; the place it went to."""
+    _require_reopenable(task_id, statuses)
     return statuses.set_aside(task_id)
+
+
+def reopen_all(task_ids: Sequence[str], statuses: ReopenableStatuses) -> dict[str, str]:
+    """Reopen every task, or none: each one is checked before any is set aside."""
+    for task_id in task_ids:
+        _require_reopenable(task_id, statuses)
+    return {task_id: statuses.set_aside(task_id) for task_id in dict.fromkeys(task_ids)}

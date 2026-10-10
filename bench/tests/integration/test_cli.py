@@ -202,6 +202,9 @@ def test_reopen_sets_a_dropped_task_aside_through_the_cli_and_refuses_a_sealed_o
     ).is_dir()
     code, output = cli("reopen", "--work", str(work), "--task-id", "ACME-B-2")
     assert code == 1 and "sealed" in output and (sealed / "status.json").is_file()
+    (dropped / "status.json").write_text((dropped / "superseded" / "1" / "status.json").read_text())
+    code, output = cli("reopen", "--work", str(work), "--task-id", "ACME-A-1", "--task-id", "ACME-B-2")
+    assert code == 1 and (dropped / "status.json").is_file() and not (dropped / "superseded" / "2").exists()
 
 
 def test_analyze_and_report_lint_through_the_cli(tmp_path: Path) -> None:

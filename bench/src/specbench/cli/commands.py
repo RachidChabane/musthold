@@ -73,7 +73,7 @@ from specbench.application.h_execution import PerTaskHExecutor, PythonIsolation,
 from specbench.application.mine import mine
 from specbench.application.paced_calls import CallGate, PacedConstructionModel
 from specbench.application.ports import EnvRequest, OracleRunner, ProcessRunner
-from specbench.application.reopen import reopen
+from specbench.application.reopen import reopen_all
 from specbench.application.reverify import reverify
 from specbench.application.select_tasks import select_feasible
 from specbench.application.stabilised_runs import StabilisedRuns
@@ -338,10 +338,10 @@ def run_reverify(
 
 
 def run_reopen(work_dir: Path, task_ids: list[str], console: Console) -> int:
-    """Return dropped tasks to construction; their last attempt is set aside, never deleted."""
+    """Return dropped tasks to construction, all or none; their last attempt is set aside, never deleted."""
     statuses = FileStatusStore(work_dir / CONSTRUCTION_DIRECTORY)
-    for task_id in task_ids:
-        console.say(f"reopened {task_id}: its last attempt is in {reopen(task_id, statuses)}")
+    for task_id, aside in reopen_all(task_ids, statuses).items():
+        console.say(f"reopened {task_id}: its last attempt is in {aside}")
     return EXIT_OK
 
 

@@ -506,6 +506,19 @@ def test_a_criterion_left_short_is_refilled_by_a_fresh_blind_writing() -> None:
     assert len(record["divergences"]) == 3
 
 
+def test_a_refills_requests_and_repair_never_depend_on_which_tests_were_kept() -> None:
+    misnamed = {"files": [{**h_file(2), "path": "tests/spec_h/test_spec_h_c2_again.py"}]}
+    answers = {"h-r1-0": [misnamed], "h-r1-1": [h_pool(2, round_prefix="r1_")]}
+    prompts: list[list[str]] = []
+    for failing in (("example_2", "example_3"), ("example_1", "example_3")):
+        names = ("test_c2_property", *(f"test_c2_{name}" for name in failing))
+        built, model = build(happy() | answers, executor=ScriptedHExecutor(failing_at_merge(*names)))
+        assert isinstance(built, Constructed)
+        prompts.append([r.system_prompt + r.prompt for r in model.requests if "h-r1" in r.key])
+    assert prompts[0] == prompts[1] and len(prompts[0]) == 2
+    assert "test_spec_h_r1_c<n>_<name>.py" in prompts[0][1]
+
+
 def test_a_criterion_still_short_after_two_refills_drops_the_task_before_any_later_call() -> None:
     c2 = ("test_c2_property", "test_c2_example_1", "test_c2_example_2", "test_c2_example_3")
     executor = ScriptedHExecutor(failing_at_merge(*c2, every_round=True))

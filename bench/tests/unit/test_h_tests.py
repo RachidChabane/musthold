@@ -161,6 +161,16 @@ def test_a_go_identifier_declared_twice_in_a_package_is_a_problem_also_against_k
     assert go_collision_problems([go_file(2, "func r1c2newClient() int { return 1 }\n\n", prefix="r1_")], kept) == []
 
 
+def test_a_refill_never_repeats_a_test_name_or_identifier_of_any_earlier_writing() -> None:
+    pool = [go_file(1), go_file(2)]
+    reused = go_file(2, prefix="r1_")
+    renamed = HFile(reused.path, reused.content.replace("TestH2_R1_", "TestH2_"))
+    problems, _ = h_problems(GO, HWriting((2,), 1), [renamed], pool)
+    assert any("fee::TestH2_Free: repeats the id of a test of an earlier writing" in p for p in problems)
+    assert any("top-level identifier TestH2_Free is declared by another H file" in p for p in problems)
+    assert h_problems(GO, HWriting((2,), 1), [reused], pool)[0] == []
+
+
 def test_pruning_keeps_the_decorators_of_kept_tests_and_removes_those_of_pruned_ones() -> None:
     file = python_file(1)
     keep = frozenset({f"{file.path}::test_c1_free_minutes", f"{file.path}::test_c1_example_3"})
