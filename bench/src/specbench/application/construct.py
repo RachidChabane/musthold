@@ -55,6 +55,7 @@ from specbench.domain.edits import (
     violations_from_record,
 )
 from specbench.domain.gaps import GAP_FILE_NAME, draw_gap_criteria, gaps_record
+from specbench.domain.go_target import go_target_of
 from specbench.domain.h_selection import (
     H_SELECTION_PATH,
     MAX_REFILL_ROUNDS,
@@ -142,6 +143,7 @@ class ConstructionInputs:
     reference_texts: tuple[str, ...]
     merge_files: Mapping[str, str]
     human: HumanTests
+    go_mod: str = ""
 
     @property
     def language(self) -> Language:
@@ -369,7 +371,14 @@ class TaskConstruction:
     def _select_h(self, inputs: ConstructionInputs, task: Task, draft: SpecDraft, spec_text: str) -> SelectedH:
         """The pool, its execution and selection, then at most `MAX_REFILL_ROUNDS` blind refills of short criteria."""
         language = inputs.language
-        layout = h_layout_of(language, inputs.module, (e.import_path for e in draft.interface))
+        target = go_target_of(
+            language,
+            inputs.module,
+            [(e.import_path, e.signature) for e in draft.interface],
+            inputs.merge_files,
+            inputs.go_mod,
+        )
+        layout = h_layout_of(language, inputs.module, (e.import_path for e in draft.interface), target)
         numbers = tuple(c.number for c in draft.criteria)
         judged = frozenset(c.number for c in draft.criteria if c.status in CHANGING_STATUSES)
         writings: list[tuple[HFile, ...]] = []
@@ -407,7 +416,7 @@ class TaskConstruction:
         problems: list[str] = []
         call_ids: list[str] = []
         for attempt in range(FIX_ATTEMPTS + 1):
-            request = self._h_request(inputs, writing, spec_text, repair, attempt)
+            request = self._h_request(inputs, layout, writing, spec_text, repair, attempt)
             call_ids.append(request.call_id)
             files = self._structured(request, DropStage.H_TESTS, h_files_from_record)
             problems, tests = h_problems(layout, writing, files, earlier)
@@ -417,15 +426,25 @@ class TaskConstruction:
         raise ConstructionFailure(DropStage.H_TESTS, "; ".join(problems[:3]))
 
     def _h_request(
-        self, inputs: ConstructionInputs, writing: HWriting, spec_text: str, repair: str, attempt: int
+        self, inputs: ConstructionInputs, layout: HLayout, writing: HWriting, spec_text: str, repair: str, attempt: int
     ) -> ModelRequest:
         task_id = inputs.task.task_id
         if writing.round == POOL_ROUND:
             key = f"{task_id}:h-{attempt}"
-            return h_writer_request(self._prompts, self._schemas, inputs.language, spec_text, repair, key)
+            return h_writer_request(
+                self._prompts, self._schemas, inputs.language, spec_text, repair, key, layout.go_target
+            )
         key = f"{task_id}:h-r{writing.round}-{attempt}"
         return h_refill_request(
-            self._prompts, self._schemas, inputs.language, spec_text, writing.criteria, writing.round, repair, key
+            self._prompts,
+            self._schemas,
+            inputs.language,
+            spec_text,
+            writing.criteria,
+            writing.round,
+            repair,
+            key,
+            layout.go_target,
         )
 
     def _execute(

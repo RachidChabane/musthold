@@ -47,6 +47,17 @@ Selection is adopted, with a seal guard and an exposure-sensitivity report.
      test in it names the same one;
    - in Go, that no top-level identifier repeats among the H files of a
      package, the H files already kept included;
+   - in Go, that imports are read from the import declarations only (single
+     and grouped, aliased, dot and blank), never from string literals in a
+     body, and stay within the standard library, the module and the
+     third-party modules the Interface's signatures use (a direct `go.mod`
+     requirement named by import path or by the qualifier a merge source
+     imports it under);
+   - in Go, that each file declares `package <name>_test` and imports each
+     module package under its declared name, `<name>` being the package
+     clause of that directory's merge sources. The writer is told these names
+     and nothing else of the code, and a directory whose sources disagree on
+     the name is not checked;
    - in Python, that imports stay within `sys.stdlib_module_names`, pytest,
      Hypothesis and the top-level packages of the Interface.
 

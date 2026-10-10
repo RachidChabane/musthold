@@ -16,11 +16,13 @@ import posixpath
 import re
 import sys
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Final
 
 from specbench.domain.changed_tests import go_test_spans, python_test_spans, test_ids
+from specbench.domain.go_source import BLANK_ALIAS, DOT_ALIAS, GoImport, go_imports, go_package_name
+from specbench.domain.go_target import ROOT_DIRECTORY, GoTarget, go_directory_of
 from specbench.domain.jsonread import mapping, sequence, text
 from specbench.domain.languages import Language
 
@@ -29,7 +31,7 @@ PYTHON_H_FILE: Final = re.compile(r"^test_spec_h_(?:r(?P<round>[1-9][0-9]*)_)?c(
 GO_H_FILE: Final = re.compile(r"^h_(?:r(?P<round>[1-9][0-9]*)_)?c(?P<number>[1-9][0-9]*)_[a-z0-9_]+_test\.go$")
 PYTHON_TEST_NAME: Final = re.compile(r"(?:^|::)test_c(?P<number>[1-9][0-9]*)_[A-Za-z0-9_]+$")
 GO_TEST_NAME: Final = re.compile(r"::TestH(?P<number>[1-9][0-9]*)_[A-Za-z0-9_]+$")
-GO_IMPORT: Final = re.compile(r'^\s*(?:import\s+)?(?:[A-Za-z_.]+\s+)?"([^"]+)"\s*$', re.MULTILINE)
+GO_EXTERNAL_TEST_SUFFIX: Final = "_test"
 MAX_FILES: Final = 12
 POOL_ROUND: Final = 0
 POOL_SIZE: Final = 4
@@ -94,6 +96,7 @@ class HLayout:
     module: str
     go_directories: frozenset[str]
     python_packages: frozenset[str]
+    go_target: GoTarget = field(default_factory=GoTarget)
 
 
 def h_files_from_record(record: object) -> tuple[HFile, ...]:
@@ -104,19 +107,14 @@ def h_files_from_record(record: object) -> tuple[HFile, ...]:
     )
 
 
-def go_directory_of(import_path: str, module: str) -> str | None:
-    """The module-relative directory of a package import path, or None when it lies outside the module."""
-    if import_path == module:
-        return "."
-    return import_path.removeprefix(module + "/") if import_path.startswith(module + "/") else None
-
-
-def h_layout_of(language: Language, module: str, import_paths: Iterable[str]) -> HLayout:
-    """The layout facts of a task from the import paths its Interface names."""
+def h_layout_of(
+    language: Language, module: str, import_paths: Iterable[str], go_target: GoTarget | None = None
+) -> HLayout:
+    """The layout facts of a task from the import paths its Interface names and, in Go, the target's packages."""
     paths = [p.strip() for p in import_paths if p.strip()]
     directories = frozenset(d for p in paths if (d := go_directory_of(p, module)) is not None)
     packages = frozenset(p.split(".")[0] for p in paths)
-    return HLayout(language, module, directories, packages)
+    return HLayout(language, module, directories, packages, go_target or GoTarget())
 
 
 def file_name_rule(language: Language, writing_round: int) -> str:
@@ -150,12 +148,44 @@ def file_criterion(language: Language, path: str) -> int | None:
     return int(match.group("number")) if match is not None else None
 
 
-def _go_import_problems(file: HFile, module: str) -> list[str]:
+def _go_import_problems(layout: HLayout, file: HFile) -> list[str]:
+    imports = go_imports(file.content)
+    problems = [
+        f"{file.path}: Go H tests import the standard library, the module and the third-party modules named in the "
+        f"Interface only, not {imported.path}"
+        for imported in imports
+        if _is_foreign_go_import(layout, imported.path)
+    ]
+    return problems + _go_package_problems(layout, file, imports)
+
+
+def _is_foreign_go_import(layout: HLayout, import_path: str) -> bool:
+    outside_standard_library = "." in import_path.split("/", maxsplit=1)[0]
+    return (
+        outside_standard_library
+        and go_directory_of(import_path, layout.module) is None
+        and not layout.go_target.allows_third_party(import_path)
+    )
+
+
+def _go_package_problems(layout: HLayout, file: HFile, imports: Sequence[GoImport]) -> list[str]:
+    """The external test package line and the qualifier of each module package match the declared package names."""
+    target = layout.go_target
     problems: list[str] = []
-    for imported in GO_IMPORT.findall(file.content):
-        first = imported.split("/")[0]
-        if "." in first and not imported.startswith(module):
-            problems.append(f"{file.path}: Go H tests import the standard library and the module only, not {imported}")
+    package = target.package_of(posixpath.dirname(file.path) or ROOT_DIRECTORY)
+    if package is not None and (declared := go_package_name(file.content)) != package + GO_EXTERNAL_TEST_SUFFIX:
+        problems.append(
+            f"{file.path}: declare `package {package}{GO_EXTERNAL_TEST_SUFFIX}`, the external test package of the "
+            f"Interface's package {package}, not `package {declared}`"
+        )
+    for imported in imports:
+        directory = go_directory_of(imported.path, layout.module)
+        name = target.package_of(directory) if directory is not None else None
+        if name is not None and imported.alias not in (DOT_ALIAS, BLANK_ALIAS) and imported.qualifier != name:
+            problems.append(
+                f'{file.path}: {imported.path} declares package {name}; import it as `{name} "{imported.path}"` '
+                f"and refer to it as {name}"
+            )
     return problems
 
 
@@ -295,7 +325,7 @@ def _file_problems(layout: HLayout, writing: HWriting, file: HFile) -> tuple[lis
     if layout.language is Language.PYTHON:
         problems += python_import_problems(file, layout.python_packages)
     else:
-        problems += _go_import_problems(file, layout.module)
+        problems += _go_import_problems(layout, file)
     owner = file_criterion(layout.language, file.path)
     tests = candidate_tests(layout.language, file)
     for test in tests:

@@ -4,6 +4,7 @@ import ast
 
 import pytest
 
+from specbench.domain.go_target import GoTarget
 from specbench.domain.h_tests import (
     POOL_SIZE,
     HFile,
@@ -134,7 +135,7 @@ def test_go_files_stay_in_interface_packages_import_the_module_only_and_detect_p
     assert {t.kind for t in tests[1:]} == {TestKind.EXAMPLE}
     outside = HFile("fee/h_c1_free_test.go", go_file(1).content.replace(f"{MODULE}/fee", "github.com/other/lib"))
     problems, _ = h_problems(GO, HWriting((1,)), [outside])
-    assert any("standard library and the module only" in p for p in problems)
+    assert any("the third-party modules named in the Interface only" in p for p in problems)
     elsewhere = HFile("elsewhere/h_c1_free_test.go", go_file(1).content)
     problems, _ = h_problems(GO, HWriting((1,)), [elsewhere])
     assert any("package directory of the Interface" in p for p in problems)
@@ -198,3 +199,58 @@ def test_pruning_a_class_of_pruned_tests_removes_the_class_and_keeps_the_file_pa
 def test_candidate_tests_of_a_file_without_a_layout_name_still_carry_their_path() -> None:
     (test,) = candidate_tests(Language.PYTHON, HFile("tests/x.py", "def test_c3_a():\n    pass\n"))
     assert (test.number, test.path, test.round) == (3, "tests/x.py", 0)
+
+
+def test_a_path_like_string_literal_in_a_go_test_is_not_an_import() -> None:
+    source = go_file(1)
+    with_literal = HFile(source.path, source.content + 'func c1dot() string {\n\treturn "."\n}\n')
+    problems, _ = h_problems(GO, HWriting((1,)), [with_literal])
+    assert problems == []
+
+
+def test_aliased_dot_blank_and_single_foreign_imports_are_still_refused() -> None:
+    source = go_file(1)
+    for spec in ('\tother "example.org/lib"\n', '\t. "example.org/lib"\n', '\t_ "example.org/lib"\n'):
+        grouped = HFile(source.path, source.content.replace(f'\t"{MODULE}/fee"\n', f'\t"{MODULE}/fee"\n{spec}'))
+        problems, _ = h_problems(GO, HWriting((1,)), [grouped])
+        assert any("example.org/lib" in p for p in problems), spec
+    single = HFile(source.path, source.content.replace("import (", 'import "example.org/lib"\nimport (', 1))
+    problems, _ = h_problems(GO, HWriting((1,)), [single])
+    assert any("example.org/lib" in p for p in problems)
+
+
+ROUTE_MODULE = "example.com/acme/routedns"
+ROUTE_TARGET = GoTarget(ROUTE_MODULE, {".": "rdns"}, frozenset({"example.com/miekg/dns"}))
+ROUTE_LAYOUT = h_layout_of(Language.GO, ROUTE_MODULE, [ROUTE_MODULE], ROUTE_TARGET)
+
+
+def route_file(package: str, import_line: str, extra_import: str = "") -> HFile:
+    tests = go_file(1).content.split(f'\t"{MODULE}/fee"\n)\n\n', 1)[1].replace("fee.Fee", "rdns.Fee")
+    imports = f'\t"math/rand"\n\t"testing"\n\t"testing/quick"\n\n{import_line}{extra_import}'
+    return HFile("h_c1_free_test.go", f"package {package}\n\nimport (\n{imports})\n\n{tests}")
+
+
+def test_the_external_test_package_and_the_import_qualifier_must_follow_the_declared_package_name() -> None:
+    good = route_file("rdns_test", f'\trdns "{ROUTE_MODULE}"\n')
+    assert h_problems(ROUTE_LAYOUT, HWriting((1,)), [good])[0] == []
+    wrong_package = route_file("routedns_test", f'\trdns "{ROUTE_MODULE}"\n')
+    problems, _ = h_problems(ROUTE_LAYOUT, HWriting((1,)), [wrong_package])
+    assert any("declare `package rdns_test`" in p and "not `package routedns_test`" in p for p in problems)
+    unaliased = route_file("rdns_test", f'\t"{ROUTE_MODULE}"\n')
+    problems, _ = h_problems(ROUTE_LAYOUT, HWriting((1,)), [unaliased])
+    assert any(f'import it as `rdns "{ROUTE_MODULE}"`' in p for p in problems)
+    misnamed = route_file("rdns_test", f'\troutedns "{ROUTE_MODULE}"\n')
+    problems, _ = h_problems(ROUTE_LAYOUT, HWriting((1,)), [misnamed])
+    assert any("declares package rdns" in p for p in problems)
+
+
+def test_a_directory_without_a_declared_package_name_is_not_checked_for_one() -> None:
+    assert h_problems(GO, HWriting((1,)), [go_file(1)])[0] == []
+
+
+def test_third_party_modules_named_by_the_interface_may_be_imported_and_others_may_not() -> None:
+    dns = route_file("rdns_test", f'\trdns "{ROUTE_MODULE}"\n', '\t"example.com/miekg/dns"\n')
+    assert h_problems(ROUTE_LAYOUT, HWriting((1,)), [dns])[0] == []
+    other = route_file("rdns_test", f'\trdns "{ROUTE_MODULE}"\n', '\t"example.com/stretchr/testify"\n')
+    problems, _ = h_problems(ROUTE_LAYOUT, HWriting((1,)), [other])
+    assert any("testify" in p for p in problems)

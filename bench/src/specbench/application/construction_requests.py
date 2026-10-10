@@ -1,7 +1,7 @@
 """The prompt of each construction role, built from exactly the inputs ADR 0004 gives that role.
 
 Blindness is structural: every builder takes a value object that carries only what its role may see. `AuthorView`
-has no field for a test; `h_writer_request` takes the rendered spec and nothing else of the task, and
+has no field for a test; `h_writer_request` takes the rendered spec and the package names of the Interface and nothing else of the task, and
 `h_refill_request` adds only criterion numbers and a round, never an outcome of an earlier writing.
 """
 
@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from specbench.domain.canonical import JsonValue
 from specbench.domain.construction import ModelRequest, Role
+from specbench.domain.go_target import GoTarget
 from specbench.domain.h_tests import MIN_EXAMPLE_TESTS, MIN_PROPERTY_TESTS, POOL_SIZE
 from specbench.domain.languages import Language
 from specbench.domain.prompts import Prompt, PromptLibrary, fill
@@ -96,8 +97,14 @@ def reviewer_request(
     return ModelRequest(Role.REVIEWER, key, prompts[Prompt.REVIEWER_SYSTEM], prompt, schemas["review"])
 
 
-def _h_writer_system(prompts: PromptLibrary, language: Language) -> str:
-    layout = prompts[Prompt.H_LAYOUT_PYTHON if language is Language.PYTHON else Prompt.H_LAYOUT_GO]
+def _h_layout_rules(prompts: PromptLibrary, language: Language, target: GoTarget) -> str:
+    if language is Language.PYTHON:
+        return prompts[Prompt.H_LAYOUT_PYTHON]
+    return fill(prompts[Prompt.H_LAYOUT_GO], target_packages=target.statement())
+
+
+def _h_writer_system(prompts: PromptLibrary, language: Language, target: GoTarget) -> str:
+    layout = _h_layout_rules(prompts, language, target)
     return fill(
         prompts[Prompt.H_WRITER_SYSTEM],
         layout_rules=layout.rstrip(),
@@ -108,13 +115,20 @@ def _h_writer_system(prompts: PromptLibrary, language: Language) -> str:
 
 
 def h_writer_request(
-    prompts: PromptLibrary, schemas: SchemaLibrary, language: Language, spec_text: str, repair: str, key: str
+    prompts: PromptLibrary,
+    schemas: SchemaLibrary,
+    language: Language,
+    spec_text: str,
+    repair: str,
+    key: str,
+    target: GoTarget,
 ) -> ModelRequest:
-    """The H writer sees the rendered spec, which holds the Interface, and the layout rules of its language."""
+    """The H writer sees the rendered spec, which holds the Interface, the layout rules of its language and, in Go,
+    the names of the Interface's packages: package clauses read from the merge sources, never a test or a body."""
     prompt = fill(
         prompts[Prompt.H_WRITER_USER], language=language.value, spec=spec_text, pool_size=str(POOL_SIZE), repair=repair
     )
-    return ModelRequest(Role.H_WRITER, key, _h_writer_system(prompts, language), prompt, schemas["h-tests"])
+    return ModelRequest(Role.H_WRITER, key, _h_writer_system(prompts, language, target), prompt, schemas["h-tests"])
 
 
 def h_refill_request(
@@ -126,6 +140,7 @@ def h_refill_request(
     writing_round: int,
     repair: str,
     key: str,
+    target: GoTarget,
 ) -> ModelRequest:
     """A fresh, independent H writing for some criteria: the rendered spec, their numbers, the pool size and the round.
 
@@ -140,7 +155,7 @@ def h_refill_request(
         round=str(writing_round),
         repair=repair,
     )
-    return ModelRequest(Role.H_WRITER, key, _h_writer_system(prompts, language), prompt, schemas["h-tests"])
+    return ModelRequest(Role.H_WRITER, key, _h_writer_system(prompts, language, target), prompt, schemas["h-tests"])
 
 
 def _sources_block(files: Mapping[str, str]) -> str:

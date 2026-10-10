@@ -85,7 +85,8 @@ class MirrorConstructionSources:
         non_test = sorted(p for p in changed if not is_test_path(language, p))
         source_paths = [p for p in non_test if is_non_test_source_path(language, p)]
         merge_files = {p: text_ for p in source_paths if (text_ := history.file_at(candidate.merge_sha, p)) is not None}
-        module = go_module_of(history.file_at(candidate.merge_sha, GO_MODULE_FILE)) if language is Language.GO else ""
+        go_mod = (history.file_at(candidate.merge_sha, GO_MODULE_FILE) or "") if language is Language.GO else ""
+        module = go_module_of(go_mod)
         title, body = self._pull(candidate.repository, candidate.pull_number)
         issues = self._issues(candidate.repository, title, body)
         diff = history.unified_diff(task.base_sha, candidate.merge_sha, non_test, DIFF_CONTEXT_LINES)
@@ -102,6 +103,7 @@ class MirrorConstructionSources:
             reference_texts=self._references(history, candidate.merge_sha, non_test, issues, body),
             merge_files=merge_files,
             human=self._human(task, history, sorted(changed)),
+            go_mod=go_mod,
         )
 
     def _pull(self, repository: str, number: int) -> tuple[str, str]:
