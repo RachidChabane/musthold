@@ -4,7 +4,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -16,10 +15,6 @@ const (
 )
 
 func TestNightJobsPassTheRegistry(t *testing.T) {
-	if runtime.GOOS != "darwin" {
-		t.Skip("the night jobs use BSD date")
-	}
-
 	t.Run("a dry run of the canaries passes the registry to each of them and names the known inconclusive checks [verifies SP-1528~1]", func(t *testing.T) {
 		useSecurity(t, securityNotFound)
 		logs := t.TempDir()

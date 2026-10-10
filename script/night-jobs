@@ -174,7 +174,7 @@ run_canaries() {
 
 # night_date names a night by the date it started on, also after midnight.
 night_date() {
-  date -v-12H +%Y-%m-%d
+  date -v-12H +%Y-%m-%d 2>/dev/null || date -d '12 hours ago' +%Y-%m-%d
 }
 
 # pilot_claude_calls prints the Claude calls the pilot made in the given night.
