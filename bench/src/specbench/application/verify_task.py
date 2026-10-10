@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
-from pathlib import Path
 
 from specbench.application.ports import OperatorMutantEngine, OracleRunner, RunJournal, TreeFactory, TreeSpec
+from specbench.application.stabilised_runs import SilentJournal, StabilisedRuns
 from specbench.domain.oracle import OVERLAID_PARTS, Oracle, OracleTest, Outcome, Part
 from specbench.domain.sealing import SealedBundle
 from specbench.domain.task import Task
@@ -20,7 +20,6 @@ from specbench.domain.verification import (
     check_merge_passes,
     check_planted_pass,
     check_violations_diagonal,
-    stabilise,
     survivors_check,
 )
 
@@ -38,13 +37,6 @@ class Step(StrEnum):
 
     def of(self, item_id: str) -> str:
         return f"{self.value} {item_id}"
-
-
-class SilentJournal:
-    """A `RunJournal` that keeps nothing."""
-
-    def record(self, step: str, run: int, outcomes: Mapping[str, Outcome]) -> None:
-        return None
 
 
 @dataclass(frozen=True)
@@ -95,15 +87,13 @@ class TaskVerifier:
         )
         return VerificationReport(task.task_id, self.runs, checks, survivors, self.operators.limitation)
 
-    def _stable(self, step: str, spec: TreeSpec, tests: Sequence[OracleTest]) -> dict[str, Outcome]:
-        with self.trees.materialize(spec) as tree:
-            runs = [self._run(step, run, tree, tests) for run in range(1, self.runs + 1)]
-        return stabilise(runs, [t.test_id for t in tests])
+    @property
+    def stabilised(self) -> StabilisedRuns:
+        """The multi-run every step goes through; the selection of H shares it."""
+        return StabilisedRuns(self.trees, self.runner, self.runs, self.journal)
 
-    def _run(self, step: str, run: int, tree: Path, tests: Sequence[OracleTest]) -> Mapping[str, Outcome]:
-        outcomes = self.runner.run(tree, tests)
-        self.journal.record(step, run, outcomes)
-        return outcomes
+    def _stable(self, step: str, spec: TreeSpec, tests: Sequence[OracleTest]) -> dict[str, Outcome]:
+        return self.stabilised.series(step, spec, tests).stable
 
     def _operator_survivors(
         self, task: Task, tests: Sequence[OracleTest], overlay: Mapping[str, bytes]
