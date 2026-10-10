@@ -3,8 +3,9 @@
 `TranscriptRecorder` decorates the `ProcessRunner` an oracle runner uses and keeps every invocation; `FileRunJournal`
 takes the invocations of each run when the verifier records the run's outcomes, and rewrites the journal file after
 every run, so a verification that stops midway still leaves what it saw. The file is bounded and deterministic: only
-the tests that did not pass are listed, process output is kept as a short tail and only for runs where a test did not
-pass, and the materialized tree and other scratch paths are replaced by placeholders.
+the tests that did not pass are listed, process output is kept as a short tail and only for the processes that exited
+non-zero in runs where a test did not pass, and the materialized tree and other scratch paths are replaced by
+placeholders.
 """
 
 from __future__ import annotations
@@ -93,7 +94,9 @@ def run_record(step: str, run: int, outcomes: Mapping[str, Outcome], invocations
     not_passed = sorted((test_id, o.value) for test_id, o in outcomes.items() if o is not Outcome.PASSED)
     listed: dict[str, JsonValue] = dict(not_passed[:LISTED_OUTCOMES])
     return {
-        "invocations": [_invocation_record(i, with_output=bool(not_passed)) for i in invocations],
+        "invocations": [
+            _invocation_record(i, with_output=bool(not_passed) and i.result.returncode != 0) for i in invocations
+        ],
         "not_passed": listed,
         "not_passed_total": len(not_passed),
         "run": run,

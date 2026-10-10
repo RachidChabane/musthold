@@ -5,6 +5,7 @@ import sys
 import tempfile
 from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -15,10 +16,12 @@ from specbench.adapters.run_journal import (
     SCRATCH_PLACEHOLDER,
     TREE_PLACEHOLDER,
     FileRunJournal,
+    Invocation,
     TranscriptRecorder,
     run_record,
 )
 from specbench.application.ports import ProcessResult
+from specbench.domain.canonical import JsonValue
 from specbench.domain.oracle import OracleTest, Outcome, Part
 
 pytestmark = pytest.mark.integration
@@ -81,6 +84,16 @@ def test_the_materialized_tree_is_named_by_a_placeholder(tmp_path: Path) -> None
     FileRunJournal(path, transcripts).record("merge", 1, {"queuev2::TestReaderStartStop": Outcome.MISSING})
     (run,) = json.loads(path.read_text(encoding="utf-8"))["runs"]
     assert f"\t{TREE_PLACEHOLDER}/queuev2/reader.go:157 +0x4c" in run["invocations"][0]["stdout_tail"]
+
+
+def test_only_the_processes_that_failed_keep_their_output() -> None:
+    passing = Invocation(("go", "test", "./pkg/uploader/block"), None, ProcessResult(0, "ok\n", ""))
+    failing = Invocation(("go", "test", "./pkg/repository/kopialib"), None, ProcessResult(1, "[build failed]\n", ""))
+    outcomes = {"pkg/repository/kopialib::TestGetSnapshot": Outcome.MISSING}
+    record = run_record("merge", 1, outcomes, [passing, failing])
+    assert isinstance(record, dict)
+    first, second = cast(list[dict[str, JsonValue]], record["invocations"])
+    assert "stdout_tail" not in first and second["stdout_tail"] == ["[build failed]"]
 
 
 def test_a_run_lists_a_bounded_number_of_tests() -> None:
