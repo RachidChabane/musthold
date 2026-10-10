@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Waits for a background job by its process, never by its output file alone, and gives
+# up after a bounded time with a report.
+#
+#   script/wait-job --pid PID [--timeout SECONDS] [--log FILE] [--done-marker TEXT]
+#
+# Exit 0: the process ended (and, with --done-marker, the log holds the marker).
+# Exit 1: the process ended but the log lacks the marker.
+# Exit 2: bad arguments, or no such process when the wait starts.
+# Exit 124: the timeout passed while the process was still alive; the job is left
+# running and its state is reported.
+set -euo pipefail
+
+readonly POLL_SECONDS=10
+readonly DEFAULT_TIMEOUT_SECONDS=3600
+readonly TAIL_LINES=20
+readonly EXIT_USAGE=2
+readonly EXIT_TIMEOUT=124
+
+pid="" timeout="${DEFAULT_TIMEOUT_SECONDS}" log="" marker=""
+while (($#)); do
+  case "$1" in
+    --pid) pid="${2:?}"; shift 2 ;;
+    --timeout) timeout="${2:?}"; shift 2 ;;
+    --log) log="${2:?}"; shift 2 ;;
+    --done-marker) marker="${2:?}"; shift 2 ;;
+    *) echo "wait-job: unknown argument $1" >&2; exit "${EXIT_USAGE}" ;;
+  esac
+done
+[[ "${pid}" =~ ^[0-9]+$ ]] || { echo "wait-job: --pid PID is required" >&2; exit "${EXIT_USAGE}"; }
+
+alive() { kill -0 "${pid}" 2>/dev/null; }
+
+report() {
+  echo "wait-job: $1"
+  if [[ -n "${log}" && -f "${log}" ]]; then
+    echo "wait-job: last ${TAIL_LINES} lines of ${log}:"
+    tail -n "${TAIL_LINES}" "${log}"
+  fi
+}
+
+alive || { report "no process ${pid} when the wait starts"; exit "${EXIT_USAGE}"; }
+deadline=$((SECONDS + timeout))
+while alive; do
+  if ((SECONDS >= deadline)); then
+    report "process ${pid} still alive after ${timeout}s ($(ps -o etime=,%cpu=,command= -p "${pid}" 2>/dev/null | cut -c1-160)); giving up the wait"
+    exit "${EXIT_TIMEOUT}"
+  fi
+  sleep "${POLL_SECONDS}"
+done
+if [[ -n "${marker}" ]] && ! grep -qF -- "${marker}" "${log}" 2>/dev/null; then
+  report "process ${pid} ended without '${marker}' in its log"
+  exit 1
+fi
+report "process ${pid} ended"

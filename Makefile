@@ -46,7 +46,7 @@ product-build:  ## build every product binary and the umbrella plugin tree into 
 mem-check:  ## refuse heavy local work unless memory is free enough (script/mem-guard)
 	./script/mem-guard check
 
-.PHONY: gate-changed install-git-hooks watch-ci
+.PHONY: gate-changed install-git-hooks watch-ci wait-job
 gate-changed:  ## self-gate the modules changed since the upstream (script/gate-changed; ARGS="BASE HEAD")
 	./script/gate-changed $(ARGS)
 
@@ -55,6 +55,9 @@ install-git-hooks:  ## install the pre-push hook that gates the modules a push t
 
 watch-ci:  ## wait for the CI run of a commit and report its outcome (script/watch-ci; ARGS=COMMIT)
 	./script/watch-ci $(ARGS)
+
+wait-job:  ## wait for a background job by its PID with a bounded timeout, never by its output file alone (script/wait-job; ARGS="--pid PID --timeout S --log FILE")
+	./script/wait-job $(ARGS)
 
 .PHONY: regen-statement-fixtures
 regen-statement-fixtures:  ## regenerate every fixture derived from the proof statements, in dependency order (script/regen-statement-fixtures)
