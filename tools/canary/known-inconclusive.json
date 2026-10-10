@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "harness": "claude",
+      "cli_version": "2.1.295",
+      "check": "classify_witness_recorded",
+      "reason": "cli_version_not_pinned",
+      "declared": "2026-10-11",
+      "reference": "ADR 0005, fact F: classifier requests not logged"
+    }
+  ]
+}

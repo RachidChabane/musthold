@@ -16,6 +16,7 @@ import (
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostinstall"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/checks"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/known"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/modules"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
@@ -68,6 +69,9 @@ type Runner struct {
 	Locker    Locker
 	Files     Files
 	Tokens    Tokens
+	// Known declares the INCONCLUSIVE checks a report marks as known; the zero value
+	// declares none.
+	Known known.Registry
 	// Credentials are the sources of the Claude Code token, in order of preference.
 	Credentials []ClaudeCredential
 	// Env is the environment of the canary process. The Claude Code token is

@@ -562,7 +562,10 @@ host-classify(5,rot1):<voters>`. The binary calls no model.
 With that fact refuted, the check of the raw API log finds none of the dictated calls
 and never raises a classification on the pinned version: every classification stays
 `restricted-unverified`, which can only flag or escalate. Whether the raise is
-withdrawn or rests on another record of the host is an open decision.
+withdrawn or rests on another record of the host is an open decision. The canary's
+night rule treats the check `classify_witness_recorded` on the pinned version as a
+declared known INCONCLUSIVE through the registry
+`tools/canary/known-inconclusive.json`, re-declared at each pin change.
 
 **Codex has no classification primitive (CLI 0.155.1).** A closed answer on Codex
 comes only from `codex exec --output-schema`, which gives a structured answer with

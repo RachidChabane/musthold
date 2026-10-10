@@ -61,6 +61,8 @@ readonly SLOT_WAIT_SECONDS="${NIGHT_JOBS_SLOT_WAIT_SECONDS:-0}"
 readonly CLAUDE_CODE_PIN_FILE="${ROOT}/script/claude-code.pin"
 readonly CLAUDE_CODE_INSTALL="script/claude-code-install"
 readonly CLAUDE_CODE_TOOLS_DIR="${ROOT}/.tools/claude-code"
+# The checks a canary may leave INCONCLUSIVE on a given CLI version without keeping the night open.
+readonly KNOWN_INCONCLUSIVE_FILE="tools/canary/known-inconclusive.json"
 
 mkdir -p "${LOG_DIR}" "${CANARY_STAMP_DIR}"
 
@@ -107,13 +109,24 @@ use_pinned_claude() {
   fi
 }
 
-# run_canary runs one harness's canary and returns its exit status.
+# known_inconclusive_checks prints the checks the registry declares known INCONCLUSIVE for a harness, each with the CLI
+# version it is declared for, or nothing.
+known_inconclusive_checks() {
+  jq -r --arg harness "$1" '[.entries[] | select(.harness == $harness) | "\(.check) (\(.cli_version))"] | join(", ")' \
+    "${KNOWN_INCONCLUSIVE_FILE}"
+}
+
+# run_canary runs one harness's canary and returns its exit status. Every canary receives the registry of known
+# INCONCLUSIVE checks, so that only an undeclared open check keeps the night open.
 run_canary() {
   local harness="$1"
   shift
   log "canary: ${harness}"
+  local known
+  known="$(known_inconclusive_checks "${harness}")"
+  [[ -z "${known}" ]] || log "canary: ${harness} known inconclusive: ${known}"
   local status=0
-  launch "script/canary-${harness}" "$@" || status=$?
+  launch "script/canary-${harness}" "$@" --known-inconclusive "${KNOWN_INCONCLUSIVE_FILE}" || status=$?
   log "canary: ${harness} exit ${status}"
   return "${status}"
 }

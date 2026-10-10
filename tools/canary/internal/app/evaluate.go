@@ -72,6 +72,7 @@ func (r Runner) Evaluate(recordsDir, harnessFlag string) (verdict.Report, error)
 	if err != nil {
 		return verdict.Report{}, err
 	}
+	report = r.Known.Annotate(report, found.Session.Versions[harnessFlag])
 	encoded, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 		return verdict.Report{}, err
@@ -88,7 +89,17 @@ func WriteReport(report verdict.Report, stdout, stderr io.Writer) error {
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(stderr, "%s: %d PASS, %d FAIL, %d INCONCLUSIVE\n", report.Harness,
-		report.Count(verdict.Pass), report.Count(verdict.Fail), report.Count(verdict.Inconclusive))
-	return err
+	if _, err := fmt.Fprintf(stderr, "%s: %d PASS, %d FAIL, %d INCONCLUSIVE\n", report.Harness,
+		report.Count(verdict.Pass), report.Count(verdict.Fail), report.Count(verdict.Inconclusive)); err != nil {
+		return err
+	}
+	for _, v := range report.Verdicts {
+		if v.Known == "" {
+			continue
+		}
+		if _, err := fmt.Fprintf(stderr, "  %s: %s %s\n", v.Check, v.Status, v.Known); err != nil {
+			return err
+		}
+	}
+	return nil
 }

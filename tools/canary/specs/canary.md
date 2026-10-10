@@ -217,6 +217,22 @@ which run the evaluators on recorded event streams and make no model call.
   however it ended, and SHALL count only the other tool calls of the main agent
   that name the bait file as a possible read of the bait.
 
+## Known inconclusive checks
+
+- **SP-1527~1**: WHEN a run is concluded or evaluated with a registry of known
+  inconclusive checks THE SYSTEM SHALL validate the registry against its schema and
+  refuse a malformed or unreadable one; keep reporting each check at its own
+  status, adding to every INCONCLUSIVE check that matches an entry of the registry
+  the line `known:` followed by the declaration date and the reference of the
+  entry, in the report and in its JSON; match an entry only on the harness, the
+  exact version of the CLI the run recorded, the check name and a reason that is a
+  substring of the verdict summary; end with the success exit code only when every
+  check that is not PASS is an INCONCLUSIVE that matches an entry; and otherwise,
+  and when no registry is given, end as it does without a registry.
+- **SP-1528~1**: WHEN the nightly jobs run a canary THE SYSTEM SHALL pass the
+  committed registry of known inconclusive checks to it and SHALL name in the log
+  the known inconclusive checks the registry declares for that harness.
+
 ## Claude Code credential
 
 - **SP-1523~1**: WHEN an isolated Claude Code session is started THE SYSTEM SHALL

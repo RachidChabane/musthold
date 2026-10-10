@@ -45,6 +45,9 @@ type Verdict struct {
 	Status   Status    `json:"status"`
 	Summary  string    `json:"summary"`
 	Evidence []Pointer `json:"evidence"`
+	// Known is the line that says a declared registry entry covers an INCONCLUSIVE
+	// verdict; empty when none does.
+	Known string `json:"known,omitempty"`
 }
 
 // Passed is the verdict of a check that found what it looks for.
@@ -88,13 +91,28 @@ func (r Report) Count(status Status) int {
 	return count
 }
 
+// Settled reports whether a verdict needs no further attention: it passed, or it
+// is INCONCLUSIVE and a declared registry entry covers it.
+func (v Verdict) Settled() bool {
+	return v.Status == Pass || (v.Status == Inconclusive && v.Known != "")
+}
+
+func (r Report) allSettled() bool {
+	for _, v := range r.Verdicts {
+		if !v.Settled() {
+			return false
+		}
+	}
+	return true
+}
+
 // ExitCode is 1 when any check failed, 3 when none failed but some are
-// inconclusive, and 0 when every check passed.
+// inconclusive, and 0 when every check passed or is a known INCONCLUSIVE.
 func (r Report) ExitCode() int {
 	switch {
 	case r.Count(Fail) > 0:
 		return ExitSomeFailed
-	case r.Count(Inconclusive) > 0 || len(r.Verdicts) == 0:
+	case len(r.Verdicts) == 0 || !r.allSettled():
 		return ExitInconclusive
 	default:
 		return ExitAllPass

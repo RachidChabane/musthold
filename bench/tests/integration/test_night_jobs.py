@@ -30,6 +30,9 @@ BUDGET_LINE = re.compile(r"construct: budget (\d+)")
 LAUNCH_BUDGET = re.compile(r"script/construct --night --budget (\d+)")
 CLAUDE_CANARY_LINE = re.compile(r"dry-run: .*: script/canary-claude(?P<flags>.*)")
 SHARED_HOME_FLAG = "--shared-home"
+KNOWN_INCONCLUSIVE_FLAG = re.compile(r"\s*--known-inconclusive \S+")
+KNOWN_INCONCLUSIVE_REGISTRY = "tools/canary/known-inconclusive.json"
+CANARY_HARNESSES = ("claude", "codex", "copilot")
 NO_KEYCHAIN_TOKEN_LOG = "canary: claude shares the user's configuration (no keychain token)"
 DEFAULT_TOKEN_SERVICE = "spec-proof-claude-oauth"
 PIN_FILE = REPOSITORY / "script" / "claude-code.pin"
@@ -47,8 +50,9 @@ class Result:
         return int(launched.group(1)) if launched else None
 
     def claude_canary_flags(self) -> str | None:
+        """The flags of the Claude canary other than the registry flag every canary receives."""
         launched = CLAUDE_CANARY_LINE.search(self.log)
-        return launched.group("flags").strip() if launched else None
+        return KNOWN_INCONCLUSIVE_FLAG.sub("", launched.group("flags")).strip() if launched else None
 
 
 class Night:
@@ -140,6 +144,19 @@ def test_the_pilot_and_the_canaries_are_only_printed_not_run(night: Night) -> No
     assert pilot.code == 0 and any(word in pilot.log for word in ("dry-run:", "already running", "is finished"))
     canaries = night.run("canaries")
     assert canaries.code == 0 and "script/canary-claude" in canaries.log and "script/canary-build" in canaries.log
+
+
+@pytest.mark.parametrize("harness", CANARY_HARNESSES)
+def test_every_canary_receives_the_registry_of_known_inconclusive_checks(night: Night, harness: str) -> None:
+    log = night.run("canaries").log
+    assert re.search(rf"dry-run: .*: script/canary-{harness}.* --known-inconclusive {KNOWN_INCONCLUSIVE_REGISTRY}$", log, re.M)
+    assert (REPOSITORY / KNOWN_INCONCLUSIVE_REGISTRY).is_file()
+
+
+def test_the_log_names_the_known_inconclusive_checks_of_the_harnesses_that_declare_some(night: Night) -> None:
+    log = night.run("canaries").log
+    assert "canary: claude known inconclusive: classify_witness_recorded (2.1.295)" in log
+    assert "canary: codex known inconclusive" not in log and "canary: copilot known inconclusive" not in log
 
 
 def test_a_job_runs_inside_its_slots_when_slots_are_on(night: Night) -> None:

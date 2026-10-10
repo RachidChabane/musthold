@@ -15,6 +15,7 @@ import (
 
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/adapters"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/app"
+	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/known"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/modules"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/window"
@@ -110,8 +111,14 @@ func (e Env) run(args []string) int {
 	set.BoolVar(&options.SharedHome, "shared-home", false, "let Claude Code use the credentials of ~/.claude, and Copilot CLI the COPILOT_HOME of the user, instead of an isolated configuration directory")
 	set.StringVar(&options.CodexHome, "codex-home", "", "a dedicated CODEX_HOME; empty uses the user's")
 	set.StringVar(&options.Model, "model", "", "the model the session runs on; empty uses the default of the harness")
+	knownFile := knownInconclusiveFlag(set)
 	if err := set.Parse(args); err != nil || set.NArg() > 0 {
 		return ExitUsage
+	}
+	registry, err := loadKnownInconclusive(*knownFile)
+	if err != nil {
+		fmt.Fprintln(e.Stderr, "spec-proof-canary:", err)
+		return ExitRefused
 	}
 	root, err := filepath.Abs(options.RepoRoot)
 	if err != nil {
@@ -127,7 +134,7 @@ func (e Env) run(args []string) int {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	outcome, err := e.runner().Run(ctx, options)
+	outcome, err := e.runner(registry).Run(ctx, options)
 	if err != nil {
 		fmt.Fprintln(e.Stderr, "spec-proof-canary:", err)
 		if outcome.RunDir != "" {
@@ -146,8 +153,31 @@ func (e Env) run(args []string) int {
 	return outcome.Report.ExitCode()
 }
 
-func (e Env) runner() app.Runner {
+// knownInconclusiveFlag declares the flag that names the registry of known
+// INCONCLUSIVE checks.
+func knownInconclusiveFlag(set *flag.FlagSet) *string {
+	return set.String("known-inconclusive", "", "a registry file of the INCONCLUSIVE checks declared known; a run whose only open checks are declared there exits with the success code")
+}
+
+// loadKnownInconclusive reads the registry a flag names; no flag is an empty registry.
+func loadKnownInconclusive(path string) (known.Registry, error) {
+	if path == "" {
+		return known.Registry{}, nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return known.Registry{}, err
+	}
+	registry, err := known.Parse(data)
+	if err != nil {
+		return known.Registry{}, fmt.Errorf("%s: %w", path, err)
+	}
+	return registry, nil
+}
+
+func (e Env) runner(registry known.Registry) app.Runner {
 	return app.Runner{
+		Known: registry,
 		Clock: systemClock{e.Now}, Window: window.Nightly(),
 		Processes: adapters.Exec{}, Sessions: adapters.Sessions{}, Prober: adapters.McpProber{},
 		Locker: adapters.FileLocker{}, Files: adapters.OSFiles{}, Tokens: adapters.RandomTokens{},
@@ -161,10 +191,16 @@ func (e Env) evaluate(args []string) int {
 	var harnessFlag, records string
 	set.StringVar(&harnessFlag, "harness", "", "harness the records come from: claude, codex or copilot")
 	set.StringVar(&records, "records", "", "the records directory of a run")
+	knownFile := knownInconclusiveFlag(set)
 	if err := set.Parse(args); err != nil || set.NArg() > 0 || harnessFlag == "" || records == "" {
 		return ExitUsage
 	}
-	report, err := e.runner().Evaluate(records, harnessFlag)
+	registry, err := loadKnownInconclusive(*knownFile)
+	if err != nil {
+		fmt.Fprintln(e.Stderr, "spec-proof-canary:", err)
+		return ExitRefused
+	}
+	report, err := e.runner(registry).Evaluate(records, harnessFlag)
 	if err != nil {
 		fmt.Fprintln(e.Stderr, "spec-proof-canary:", err)
 		return ExitRefused
