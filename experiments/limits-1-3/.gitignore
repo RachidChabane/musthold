@@ -1,0 +1,6 @@
+# Raw records of run-02 stay out of version control; their digests are in
+# runs/run-02/SHA256SUMS and the archive is kept outside the repository.
+runs/run-02/*
+!runs/run-02/SHA256SUMS
+!runs/run-02/DEVIATIONS.md
+!runs/run-02/deviation-timestamps/
