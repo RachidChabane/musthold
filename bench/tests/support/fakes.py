@@ -50,6 +50,16 @@ class ScriptedRunner:
         return {t.test_id: self._behaviour(spec, t, index) for t in tests}
 
 
+class ListJournal:
+    """A `RunJournal` that keeps every recorded run in order."""
+
+    def __init__(self) -> None:
+        self.runs: list[tuple[str, int, dict[str, Outcome]]] = []
+
+    def record(self, step: str, run: int, outcomes: Mapping[str, Outcome]) -> None:
+        self.runs.append((step, run, dict(outcomes)))
+
+
 class FixedOperatorEngine:
     def __init__(self, mutants: OperatorMutants | None, limitation: str | None = None) -> None:
         self._mutants = mutants

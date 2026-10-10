@@ -47,6 +47,7 @@ from specbench.adapters.process import (
     system_free_percent,
 )
 from specbench.adapters.prompt_files import construction_schema, load_prompts
+from specbench.adapters.run_journal import FileRunJournal, TranscriptRecorder
 from specbench.adapters.run_store import FileCallStore, FileFailureLog, FileLedgerStore, RunStore
 from specbench.adapters.schemas import JsonSchemaChecker, SchemaName
 from specbench.adapters.sealed_store import (
@@ -240,15 +241,18 @@ def run_construct(
     )
     corpus = FileCorpus(corpus_dir)
     corpus.read_recipients()
+    statuses = FileStatusStore(layout.root)
 
     def verifier_for(task: ProbedTask) -> TaskVerifier:
         env_dir = environment_directory(work_dir, task.task_id)
-        runner = _oracle_runner(task.candidate.language, env_dir, None, denied)
+        transcripts = TranscriptRecorder(denied)
         return TaskVerifier(
-            GitTreeFactory(mirrors.path_of(task.candidate.repository)), runner, UnavailableOperatorEngine()
+            GitTreeFactory(mirrors.path_of(task.candidate.repository)),
+            _oracle_runner(task.candidate.language, env_dir, None, transcripts),
+            UnavailableOperatorEngine(),
+            journal=FileRunJournal(statuses.verification_runs_path(task.task_id), transcripts),
         )
 
-    statuses = FileStatusStore(layout.root)
     run = ConstructionRun(
         sources, construction, verifier_for, corpus, AgeSealStore(), statuses, gate.require_open, VERIFICATION_ABORTS
     )

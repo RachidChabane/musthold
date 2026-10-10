@@ -147,6 +147,12 @@ class OracleRunner(Protocol):
     def run(self, tree: Path, tests: Sequence[OracleTest]) -> Mapping[str, Outcome]: ...
 
 
+class RunJournal(Protocol):
+    """Keeps what each verification run reported, so a verdict stays diagnosable once its trees are gone."""
+
+    def record(self, step: str, run: int, outcomes: Mapping[str, Outcome]) -> None: ...
+
+
 class SuiteRunner(Protocol):
     """Runs every test of a tree and reports one outcome per test that ran."""
 

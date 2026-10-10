@@ -9,7 +9,7 @@ from specbench.application.verify_task import TaskVerifier
 from specbench.domain.oracle import OracleTest, Outcome, Part, oracle_from_bundle
 from specbench.domain.verification import CheckName, CheckStatus, VerificationReport
 from support.builders import BASE, MERGE, TASK_ID, make_bundle, make_task
-from support.fakes import Behaviour, FixedOperatorEngine, RecordingTrees, ScriptedRunner
+from support.fakes import Behaviour, FixedOperatorEngine, ListJournal, RecordingTrees, ScriptedRunner
 
 TOTAL_RUNS = 3
 
@@ -29,11 +29,19 @@ def correct(spec: TreeSpec, test: OracleTest, run: int) -> Outcome:
     return Outcome.PASSED
 
 
-def verify(tmp_path: Path, behaviour: Behaviour, operators: FixedOperatorEngine | None = None) -> VerificationReport:
+def verify(
+    tmp_path: Path,
+    behaviour: Behaviour,
+    operators: FixedOperatorEngine | None = None,
+    journal: ListJournal | None = None,
+) -> VerificationReport:
     trees = RecordingTrees(tmp_path)
     bundle = make_bundle()
     verifier = TaskVerifier(
-        trees, ScriptedRunner(trees, behaviour), operators or FixedOperatorEngine(None, "no engine")
+        trees,
+        ScriptedRunner(trees, behaviour),
+        operators or FixedOperatorEngine(None, "no engine"),
+        journal=journal or ListJournal(),
     )
     return verifier.verify(make_task(), oracle_from_bundle(bundle), bundle)
 
@@ -64,6 +72,31 @@ def test_each_step_runs_three_times_on_one_tree(tmp_path: Path) -> None:
     verify(tmp_path, spy)
     assert all(runs == set(range(TOTAL_RUNS)) for runs in seen.values())
     assert len(seen) == 1 + 1 + 4 + 2
+
+
+def test_every_run_of_every_step_is_journaled_with_its_own_outcomes(tmp_path: Path) -> None:
+    def behaviour(spec: TreeSpec, test: OracleTest, run: int) -> Outcome:
+        if patch_name(spec) == "violations/V3" and test.part is Part.H and run == 2:
+            return Outcome.MISSING
+        return correct(spec, test, run)
+
+    journal = ListJournal()
+    verify(tmp_path, behaviour, journal=journal)
+    steps = [
+        "merge",
+        "base",
+        "violation V1",
+        "violation V2",
+        "violation V3",
+        "violation V4",
+        "planted P1",
+        "planted P2",
+    ]
+    assert [(step, run) for step, run, _ in journal.runs] == [
+        (step, run) for step in steps for run in range(1, TOTAL_RUNS + 1)
+    ]
+    third_violation = [outcomes for step, _, outcomes in journal.runs if step == "violation V3"]
+    assert [Outcome.MISSING in outcomes.values() for outcomes in third_violation] == [False, False, True]
 
 
 def test_merge_failure_drops_the_task(tmp_path: Path) -> None:

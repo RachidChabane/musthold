@@ -1,4 +1,5 @@
-"""The construction directory on disk, outside the repository: per-task status, plain task files and verification reports."""
+"""The construction directory on disk, outside the repository: per-task status, plain task files, verification
+reports and the journal of their runs."""
 
 from __future__ import annotations
 
@@ -16,6 +17,7 @@ from specbench.domain.verification import VerificationReport
 STATUS_FILE: Final = "status.json"
 PLAIN_DIRECTORY: Final = "plain"
 VERIFICATION_FILE: Final = "verification.json"
+VERIFICATION_RUNS_FILE: Final = "verification-runs.json"
 ENCODING: Final = "utf-8"
 
 
@@ -65,3 +67,7 @@ class FileStatusStore:
         directory = self._directory(task_id)
         directory.mkdir(parents=True, exist_ok=True)
         (directory / VERIFICATION_FILE).write_text(stable_json(report.to_record()), encoding=ENCODING)
+
+    def verification_runs_path(self, task_id: str) -> Path:
+        """Where the journal of the task's verification runs is kept, beside its verification report."""
+        return self._directory(task_id) / VERIFICATION_RUNS_FILE
