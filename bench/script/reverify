@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Verify again, with no model call, tasks that construct dropped at verification, and settle each one the way construct
+# does: sealed into the corpus when verified, dropped with the new reason otherwise. Guarded by mem-guard; one task at a
+# time, each step on network-denied runs.
+#
+#   bench/script/reverify --task-id ID [--task-id ID ...] [--selection DIR] [--corpus DIR] [--mirrors DIR] [--work DIR]
+#
+# Defaults are construct's: selection bench/selection/<seed>, corpus bench/corpus, mirrors bench/corpus/mirrors,
+# work $SPECBENCH_WORK. Each task's report and run journal are rewritten under <work>/construction/<task id>/.
+# Exit 0: every task was sealed. 1: a task stayed dropped or was refused (not dropped at verification).
+set -euo pipefail
+# shellcheck source=bench/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+args=("$@")
+has_option() {
+  local option
+  for option in "${args[@]}"; do [[ "${option}" == "$1" ]] && return 0; done
+  return 1
+}
+SEED="${SPECBENCH_SEED:-20261007}"
+has_option --selection || args+=(--selection "${BENCH_DIR}/selection/${SEED}")
+has_option --corpus || args+=(--corpus "${BENCH_DIR}/corpus")
+has_option --mirrors || args+=(--mirrors "${BENCH_DIR}/corpus/mirrors")
+has_option --work || args+=(--work "${SPECBENCH_WORK}")
+specbench_heavy reverify "${args[@]}"

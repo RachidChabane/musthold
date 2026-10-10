@@ -27,10 +27,11 @@ from specbench.adapters.prompt_files import construction_schema, load_prompts
 from specbench.adapters.run_store import FileCallStore, FileFailureLog, FileLedgerStore
 from specbench.adapters.schemas import JsonSchemaChecker, SchemaName
 from specbench.adapters.sealed_store import AgeSealStore, generate_identity
-from specbench.application.construct import TaskConstruction
-from specbench.application.construct_run import ConstructionRun, Outcome
+from specbench.application.construct import DropStage, TaskConstruction
+from specbench.application.construct_run import ConstructionRun, Outcome, TaskSettlement, TaskStatus
 from specbench.application.corpus import unseal_task
 from specbench.application.paced_calls import CallGate, PacedConstructionModel
+from specbench.application.reverify import reverify
 from specbench.application.verify_task import TaskVerifier
 from specbench.domain.arms import Harness
 from specbench.domain.canonical import JsonValue
@@ -41,6 +42,7 @@ from specbench.domain.oracle import oracle_from_bundle
 from specbench.domain.pacing import PacingPolicy, RunPaused, RunWindow
 from specbench.domain.sealing import CURRENT_BUNDLE_VERSION
 from specbench.domain.selection import ProbedTask, Selection
+from specbench.domain.task import Task
 from support.fake_claude import install_fake_claude, recorded_baseline_calls, recorded_calls
 from support.fakes import FixedClock
 from support.tiny_upstream import FakeBuilder, candidate, denied_runner, make_upstream, probe_for
@@ -76,11 +78,14 @@ SPEC = {
     ],
 }
 H_TESTS = (
+    "import pytest\n"
     "from hypothesis import given, settings, strategies as st\n"
     "from pkg.fee import fee\n\n\n"
     "@settings(derandomize=True, max_examples=30, deadline=None)\n"
     "@given(st.integers(min_value=1, max_value=9))\n"
     "def test_c1_short_stays_are_free(minutes):\n    assert fee(minutes) == 0\n\n\n"
+    '@pytest.mark.parametrize("minutes", [1, 9])\n'
+    "def test_c1_the_first_and_last_free_minutes(minutes):\n    assert fee(minutes) == 0\n\n\n"
     "def test_c2_a_zero_minute_stay_is_free():\n    assert fee(0) == 0\n"
 )
 CLASSIFICATION = {
@@ -174,7 +179,6 @@ class World:
             FileFailureLog(layout),
         )
         plain = SubprocessRunner()
-        denied = denied_runner()
         mirrors = GitMirrors(self.root / "mirrors", plain)
         sources = MirrorConstructionSources(
             mirrors, lambda clone: GitHistory(clone, plain), FakeGitHub(), self.work, lambda _task, u, r: (u, r)
@@ -196,23 +200,22 @@ class World:
             GitDiffPatchBuilder(plain),
             GAP_SEED,
         )
+        return ConstructionRun(sources, construction, self.settlement(), self.statuses(), gate.require_open)
 
-        def verifier_for(task: ProbedTask) -> TaskVerifier:
+    def statuses(self) -> FileStatusStore:
+        return FileStatusStore(self.work / "construction")
+
+    def settlement(self) -> TaskSettlement:
+        mirrors = GitMirrors(self.root / "mirrors", SubprocessRunner())
+
+        def verifier_for(task: Task) -> TaskVerifier:
             return TaskVerifier(
-                GitTreeFactory(mirrors.path_of(task.candidate.repository)),
-                PytestOracleRunner(Path(sys.executable), denied),
+                GitTreeFactory(mirrors.path_of(task.repository)),
+                PytestOracleRunner(Path(sys.executable), denied_runner()),
                 UnavailableOperatorEngine(),
             )
 
-        return ConstructionRun(
-            sources,
-            construction,
-            verifier_for,
-            self.corpus,
-            AgeSealStore(),
-            FileStatusStore(layout.root),
-            gate.require_open,
-        )
+        return TaskSettlement(verifier_for, self.corpus, AgeSealStore(), self.statuses())
 
 
 @pytest.fixture
@@ -272,6 +275,19 @@ def test_a_rerun_replays_every_call_from_the_archive(world: World) -> None:
     assert again.sealed == (TASK_ID,)
     assert len(recorded_calls(world.root / "fake")) == 9
     assert len(recorded_baseline_calls(world.root / "fake")) == BASELINES_MEASURED
+
+
+def test_a_task_dropped_at_verification_is_settled_again_without_a_model_call(world: World) -> None:
+    world.run().run(selection(world.task), 1)
+    stale = "merge-passes-all: tests/spec_h/test_spec_h_fee.py::test_c1_the_first_and_last_free_minutes (H) is missing"
+    world.statuses().write(TaskStatus(TASK_ID, Outcome.DROPPED, DropStage.VERIFICATION.value, stale, None))
+    calls = len(recorded_calls(world.root / "fake"))
+
+    settled = reverify(TASK_ID, world.statuses(), world.settlement())
+
+    assert settled.status.outcome is Outcome.SEALED and world.statuses().read(TASK_ID) == settled.status
+    assert len(recorded_calls(world.root / "fake")) == calls
+    assert unseal_task(world.corpus, AgeSealStore(), world.identity, TASK_ID).task == settled.task
 
 
 def test_a_closed_window_pauses_before_any_call_and_leaves_no_status(world: World) -> None:

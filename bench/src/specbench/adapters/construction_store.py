@@ -7,11 +7,13 @@ import json
 from pathlib import Path
 from typing import Final
 
+from specbench.adapters.file_corpus import read_plain_task
 from specbench.application.construct import Constructed
 from specbench.application.construct_run import Outcome, TaskStatus
 from specbench.domain.canonical import canonical_json, stable_json
 from specbench.domain.jsonread import enum_of, mapping, optional_text
-from specbench.domain.task import TASK_FILE_NAME
+from specbench.domain.sealing import SealedBundle
+from specbench.domain.task import TASK_FILE_NAME, parse_task
 from specbench.domain.verification import VerificationReport
 
 STATUS_FILE: Final = "status.json"
@@ -62,6 +64,13 @@ class FileStatusStore:
             target = plain / path
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(content)
+
+    def read_plain(self, task_id: str) -> Constructed | None:
+        plain = self._directory(task_id) / PLAIN_DIRECTORY
+        if not (plain / TASK_FILE_NAME).is_file():
+            return None
+        task_json, files = read_plain_task(plain)
+        return Constructed(parse_task(task_json), SealedBundle(files))
 
     def write_verification(self, task_id: str, report: VerificationReport) -> None:
         directory = self._directory(task_id)

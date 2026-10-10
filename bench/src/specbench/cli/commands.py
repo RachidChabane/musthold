@@ -65,11 +65,13 @@ from specbench.analysis.report import render_report
 from specbench.analysis.results import analyze
 from specbench.application.build_workspace import build_agent_workspace
 from specbench.application.construct import TaskConstruction
-from specbench.application.construct_run import ConstructionRun
+from specbench.application.construct_run import ConstructionRun, TaskSettlement
+from specbench.application.construct_run import Outcome as TaskOutcome
 from specbench.application.corpus import seal_task, unseal_task, verify_corpus
 from specbench.application.mine import mine
 from specbench.application.paced_calls import CallGate, PacedConstructionModel
 from specbench.application.ports import EnvRequest, OracleRunner, ProcessRunner
+from specbench.application.reverify import reverify
 from specbench.application.select_tasks import select_feasible
 from specbench.application.verify_task import TaskVerifier
 from specbench.domain.arms import Harness
@@ -81,8 +83,8 @@ from specbench.domain.mining import MiningConfig
 from specbench.domain.oracle import oracle_from_bundle
 from specbench.domain.pacing import EXIT_PAUSED, PacingPolicy, RunWindow
 from specbench.domain.sealing import SealedBundle
-from specbench.domain.selection import ProbedTask, Selection
-from specbench.domain.task import TASK_FILE_NAME
+from specbench.domain.selection import Selection
+from specbench.domain.task import TASK_FILE_NAME, Task
 
 EXIT_OK: Final = 0
 EXIT_FAILED: Final = 1
@@ -242,20 +244,8 @@ def run_construct(
     corpus = FileCorpus(corpus_dir)
     corpus.read_recipients()
     statuses = FileStatusStore(layout.root)
-
-    def verifier_for(task: ProbedTask) -> TaskVerifier:
-        env_dir = environment_directory(work_dir, task.task_id)
-        transcripts = TranscriptRecorder(denied)
-        return TaskVerifier(
-            GitTreeFactory(mirrors.path_of(task.candidate.repository)),
-            _oracle_runner(task.candidate.language, env_dir, None, transcripts),
-            UnavailableOperatorEngine(),
-            journal=FileRunJournal(statuses.verification_runs_path(task.task_id), transcripts),
-        )
-
-    run = ConstructionRun(
-        sources, construction, verifier_for, corpus, AgeSealStore(), statuses, gate.require_open, VERIFICATION_ABORTS
-    )
+    settlement = _settlement(work_dir, mirrors, denied, corpus, statuses)
+    run = ConstructionRun(sources, construction, settlement, statuses, gate.require_open)
     selection = read_selection(selection_dir, read_candidates(mining_dir / CANDIDATES_FILE), work_dir)
     summary = run.run(selection, tasks_per_language)
     _copy_notices(selection_dir, corpus, summary.sealed, selection)
@@ -267,15 +257,59 @@ def run_construct(
     return EXIT_OK if summary.complete else EXIT_FAILED
 
 
+def _settlement(
+    work_dir: Path, mirrors: GitMirrors, denied: ProcessRunner, corpus: FileCorpus, statuses: FileStatusStore
+) -> TaskSettlement:
+    """Verification on network-denied runs, journaled beside each task's report, then sealing or a drop."""
+
+    def verifier_for(task: Task) -> TaskVerifier:
+        transcripts = TranscriptRecorder(denied)
+        return TaskVerifier(
+            GitTreeFactory(mirrors.path_of(task.repository)),
+            _oracle_runner(task.language, environment_directory(work_dir, task.task_id), None, transcripts),
+            UnavailableOperatorEngine(),
+            journal=FileRunJournal(statuses.verification_runs_path(task.task_id), transcripts),
+        )
+
+    return TaskSettlement(verifier_for, corpus, AgeSealStore(), statuses, VERIFICATION_ABORTS)
+
+
 def _copy_notices(selection_dir: Path, corpus: FileCorpus, sealed: tuple[str, ...], selection: Selection) -> None:
-    """Keep each sealed task's upstream licence and notice beside its `task.json` and `sealed.age`."""
     by_id = {t.task_id: t for t in (*selection.tasks, *selection.reserves)}
     for task_id in sealed:
-        source = selection_dir / "tasks" / task_id
-        language = by_id[task_id].candidate.language
-        for notice in sorted(source.iterdir()):
-            if notice.name != TASK_FILE_NAME:
-                corpus.write_notice(language, task_id, notice.name, notice.read_text(encoding=ENCODING))
+        _copy_task_notices(selection_dir, corpus, task_id, by_id[task_id].candidate.language)
+
+
+def _copy_task_notices(selection_dir: Path, corpus: FileCorpus, task_id: str, language: Language) -> None:
+    """Keep a sealed task's upstream licence and notice beside its `task.json` and `sealed.age`."""
+    for notice in sorted((selection_dir / "tasks" / task_id).iterdir()):
+        if notice.name != TASK_FILE_NAME:
+            corpus.write_notice(language, task_id, notice.name, notice.read_text(encoding=ENCODING))
+
+
+def run_reverify(
+    selection_dir: Path, corpus_dir: Path, mirrors_dir: Path, work_dir: Path, task_ids: list[str], console: Console
+) -> int:
+    """Verify again, without any model call, tasks construction dropped at verification, and settle each anew."""
+    refuse_inside_repository(work_dir, find_repository_root(selection_dir), "work directory")
+    denied = NetworkDeniedRunner(MemoryFloorRunner(SubprocessRunner(SUITE_TIMEOUT_SECONDS), system_free_percent))
+    denied.assert_denied()
+    mirrors = GitMirrors(mirrors_dir, MemoryFloorRunner(SubprocessRunner(MIRROR_TIMEOUT_SECONDS), system_free_percent))
+    corpus = FileCorpus(corpus_dir)
+    corpus.read_recipients()
+    statuses = FileStatusStore(work_dir / CONSTRUCTION_DIRECTORY)
+    settlement = _settlement(work_dir, mirrors, denied, corpus, statuses)
+    all_sealed = True
+    for task_id in task_ids:
+        settled = reverify(task_id, statuses, settlement)
+        status = settled.status
+        if status.outcome is TaskOutcome.SEALED:
+            _copy_task_notices(selection_dir, corpus, task_id, settled.task.language)
+            console.say(f"sealed {task_id}: bundle {status.bundle_sha256}")
+        else:
+            all_sealed = False
+            console.say(f"dropped {task_id}: {status.stage}: {status.reason}")
+    return EXIT_OK if all_sealed else EXIT_FAILED
 
 
 def run_compact(archive: Path, console: Console) -> int:

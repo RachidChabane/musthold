@@ -11,7 +11,7 @@
 #   6. script/verify-corpus --corpus corpus --identity ~/.specbench/identity.txt
 # construct --night shares the per-night Claude cap with any other job on the same night: lower --budget accordingly.
 # Construction files that hold sealed material live under $SPECBENCH_WORK (default ~/.specbench-work), never in the repository.
-.PHONY: help setup test lint check mine select construct keygen seal unseal verify-corpus build-env verify-task build-workspace analyze report-lint site window-status night-budget
+.PHONY: help setup test lint check mine select construct reverify keygen seal unseal verify-corpus build-env verify-task build-workspace analyze report-lint site window-status night-budget
 
 help:  ## list verbs
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n",$$1,$$2}'
@@ -36,6 +36,9 @@ select:  ## probe mined candidates offline in seeded order (ARGS="--mining DIR -
 
 construct:  ## build, verify and seal the selected tasks, paced and resumable (ARGS="--night")
 	script/construct $(ARGS)
+
+reverify:  ## verify again, no model call, tasks construct dropped at verification (ARGS="--task-id ID")
+	script/reverify $(ARGS)
 
 keygen:  ## create the sealing identity outside the repository
 	script/keygen $(ARGS)

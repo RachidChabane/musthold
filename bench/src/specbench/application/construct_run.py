@@ -1,9 +1,10 @@
 """`construct`: build, verify and seal the selected tasks, a language at a time, replacing a dropped task by a reserve.
 
 Nothing here is a model call or a heavy job itself: a task is built by `TaskConstruction` (paced, archived model
-calls), verified by `TaskVerifier` (one heavy job at a time, under mem-guard in the composition root) and sealed. A
-pause (closed window, spent budget, quota) or an unsafe machine propagates as an exception; every call already made is
-archived and every finished task has a status, so a rerun continues where this one stopped.
+calls), then settled by `TaskSettlement`: verified by `TaskVerifier` (one heavy job at a time, under mem-guard in the
+composition root) and sealed, or dropped. A pause (closed window, spent budget, quota) or an unsafe machine propagates
+as an exception; every call already made is archived and every finished task has a status, so a rerun continues where
+this one stopped.
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ from specbench.domain.construction import IsolationViolation, ModelCallFailed
 from specbench.domain.languages import Language
 from specbench.domain.oracle import oracle_from_bundle
 from specbench.domain.selection import ProbedTask, Selection
+from specbench.domain.task import Task
 from specbench.domain.verification import CheckStatus, VerificationReport
 
 MAX_REASON_PROBLEMS = 3
@@ -59,6 +61,8 @@ class StatusStore(Protocol):
 
     def write_plain(self, constructed: Constructed) -> None: ...
 
+    def read_plain(self, task_id: str) -> Constructed | None: ...
+
     def write_verification(self, task_id: str, report: VerificationReport) -> None: ...
 
 
@@ -83,26 +87,58 @@ def _failing(report: VerificationReport) -> str:
     return "; ".join(problems[:MAX_REASON_PROBLEMS]) or "a verification check failed"
 
 
+def drop(statuses: StatusStore, task_id: str, stage: str, reason: str) -> TaskStatus:
+    status = TaskStatus(task_id, Outcome.DROPPED, stage, reason, None)
+    statuses.write(status)
+    return status
+
+
+class TaskSettlement:
+    """Verifies a constructed task and settles it: sealed into the corpus when verified, dropped with its reason otherwise."""
+
+    def __init__(
+        self,
+        verifier_for: Callable[[Task], TaskVerifier],
+        corpus: CorpusRepository,
+        seals: SealStore,
+        statuses: StatusStore,
+        recoverable: tuple[type[Exception], ...] = (),
+    ) -> None:
+        self._verifier_for = verifier_for
+        self._corpus = corpus
+        self._seals = seals
+        self._statuses = statuses
+        self._recoverable = recoverable
+
+    def settle(self, built: Constructed) -> TaskStatus:
+        task_id = built.task.task_id
+        try:
+            report = self._verifier_for(built.task).verify(built.task, oracle_from_bundle(built.bundle), built.bundle)
+        except self._recoverable as error:
+            return drop(self._statuses, task_id, DropStage.VERIFICATION.value, f"verification aborted: {error}")
+        self._statuses.write_verification(task_id, report)
+        if not report.verified:
+            return drop(self._statuses, task_id, DropStage.VERIFICATION.value, _failing(report))
+        entry = seal_task(self._corpus, self._seals, built.task.to_canonical_json(), built.bundle)
+        status = TaskStatus(task_id, Outcome.SEALED, None, None, entry.bundle_sha256)
+        self._statuses.write(status)
+        return status
+
+
 class ConstructionRun:
     def __init__(
         self,
         sources: ConstructionSources,
         construction: TaskConstruction,
-        verifier_for: Callable[[ProbedTask], TaskVerifier],
-        corpus: CorpusRepository,
-        seals: SealStore,
+        settlement: TaskSettlement,
         statuses: StatusStore,
         checkpoint: Callable[[], None],
-        recoverable: tuple[type[Exception], ...] = (),
     ) -> None:
         self._sources = sources
         self._construction = construction
-        self._verifier_for = verifier_for
-        self._corpus = corpus
-        self._seals = seals
+        self._settlement = settlement
         self._statuses = statuses
         self._checkpoint = checkpoint
-        self._recoverable = recoverable
 
     def run(self, selection: Selection, tasks_per_language: int) -> RunSummary:
         sealed: list[str] = []
@@ -137,22 +173,7 @@ class ConstructionRun:
         except ModelCallFailed:
             return None
         if isinstance(built, Dropped):
-            return self._drop(task.task_id, built.stage.value, built.reason)
+            return drop(self._statuses, task.task_id, built.stage.value, built.reason)
         self._statuses.write_plain(built)
         self._checkpoint()
-        try:
-            report = self._verifier_for(task).verify(built.task, oracle_from_bundle(built.bundle), built.bundle)
-        except self._recoverable as error:
-            return self._drop(task.task_id, DropStage.VERIFICATION.value, f"verification aborted: {error}")
-        self._statuses.write_verification(task.task_id, report)
-        if not report.verified:
-            return self._drop(task.task_id, DropStage.VERIFICATION.value, _failing(report))
-        entry = seal_task(self._corpus, self._seals, built.task.to_canonical_json(), built.bundle)
-        status = TaskStatus(task.task_id, Outcome.SEALED, None, None, entry.bundle_sha256)
-        self._statuses.write(status)
-        return status
-
-    def _drop(self, task_id: str, stage: str, reason: str) -> TaskStatus:
-        status = TaskStatus(task_id, Outcome.DROPPED, stage, reason, None)
-        self._statuses.write(status)
-        return status
+        return self._settlement.settle(built)
