@@ -149,7 +149,9 @@ def test_the_pilot_and_the_canaries_are_only_printed_not_run(night: Night) -> No
 @pytest.mark.parametrize("harness", CANARY_HARNESSES)
 def test_every_canary_receives_the_registry_of_known_inconclusive_checks(night: Night, harness: str) -> None:
     log = night.run("canaries").log
-    assert re.search(rf"dry-run: .*: script/canary-{harness}.* --known-inconclusive {KNOWN_INCONCLUSIVE_REGISTRY}$", log, re.M)
+    assert re.search(
+        rf"dry-run: .*: script/canary-{harness}.* --known-inconclusive {KNOWN_INCONCLUSIVE_REGISTRY}$", log, re.M
+    )
     assert (REPOSITORY / KNOWN_INCONCLUSIVE_REGISTRY).is_file()
 
 
