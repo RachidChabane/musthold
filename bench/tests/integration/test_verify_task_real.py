@@ -136,3 +136,26 @@ def test_go_runner_reports_passes_failures_and_build_errors(tmp_path: Path) -> N
         "sub::TestNever": Outcome.MISSING,
         ".::TestAbsent": Outcome.MISSING,
     }
+
+
+@pytest.mark.skipif(shutil.which("go") is None, reason="go is not installed")
+def test_go_runner_reports_each_test_after_one_that_panics_on_its_own(tmp_path: Path) -> None:
+    (tmp_path / "go.mod").write_text("module example.com/blocklist\n\ngo 1.21\n")
+    (tmp_path / "db.go").write_text(
+        "package blocklist\n\ntype DB struct{ index map[string]bool }\n\n"
+        "func New(names ...string) *DB {\n\tif len(names) == 0 {\n\t\treturn nil\n\t}\n"
+        "\tdb := &DB{index: map[string]bool{}}\n\tfor _, n := range names {\n\t\tdb.index[n] = true\n\t}\n\treturn db\n}\n\n"
+        "func (d *DB) Match(name string) bool { return d.index[name] }\n"
+    )
+    (tmp_path / "db_test.go").write_text(
+        'package blocklist\n\nimport "testing"\n\n'
+        'func TestH6_EmptyListMatchesNothing(t *testing.T) {\n\tif New().Match("example.com") {\n\t\tt.Fatal("matched")\n\t}\n}\n\n'
+        'func TestH7_ListedNameMatches(t *testing.T) {\n\tif !New("example.com").Match("example.com") {\n\t\tt.Fatal("no match")\n\t}\n}\n\n'
+        'func TestH8_OtherNameDoesNotMatch(t *testing.T) {\n\tif New("example.com").Match("example.org") {\n\t\tt.Fatal("matched")\n\t}\n}\n'
+    )
+    ids = (".::TestH6_EmptyListMatchesNothing", ".::TestH7_ListedNameMatches", ".::TestH8_OtherNameDoesNotMatch")
+    environment = {"GOFLAGS": "-mod=mod", "GOPROXY": "off", "GOTOOLCHAIN": "local", "GOMODCACHE": str(tmp_path / "mc")}
+    outcomes = GoTestOracleRunner(MemoryFloorRunner(SubprocessRunner(), system_free_percent), environment).run(
+        tmp_path, [OracleTest(i, Part.H, None) for i in ids]
+    )
+    assert outcomes == {ids[0]: Outcome.FAILED, ids[1]: Outcome.PASSED, ids[2]: Outcome.PASSED}

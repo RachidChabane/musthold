@@ -131,7 +131,12 @@ def parse_go_events(module: str, output: str) -> dict[str, Outcome]:
 
 
 class GoTestOracleRunner:
-    """Runs the requested top-level tests of each package with `-p 1`, so one build is in flight at a time."""
+    """Runs the requested top-level tests of each package with `-p 1`, so one build is in flight at a time.
+
+    A test that panics or exits ends its package's test binary, so the tests after it are never reported. Those are run
+    again on their own, until a run reports none of them: each test's outcome is then its own, never the outcome of a
+    test that ran before it. A package that does not build reports nothing, and its tests stay MISSING.
+    """
 
     def __init__(self, runner: ProcessRunner, environment: Mapping[str, str]) -> None:
         self._runner = runner
@@ -145,13 +150,26 @@ class GoTestOracleRunner:
             by_directory.setdefault(directory, []).append(name)
         reported: dict[str, Outcome] = {}
         for directory, names in sorted(by_directory.items()):
-            pattern = "^(" + "|".join(names) + ")$"
-            target = "./" + directory if directory != "." else "."
+            reported.update(self._run_package(tree, module, directory, names))
+        return {t.test_id: reported.get(t.test_id, Outcome.MISSING) for t in tests}
+
+    def _run_package(self, tree: Path, module: str, directory: str, names: Sequence[str]) -> dict[str, Outcome]:
+        target = "./" + directory if directory != "." else "."
+        reported: dict[str, Outcome] = {}
+        pending: list[str] = list(names)
+        while pending:
+            pattern = "^(" + "|".join(pending) + ")$"
             result = self._runner.run(
                 ["go", "test", "-json", "-count=1", "-p", "1", "-run", pattern, target], cwd=tree, env=self._environment
             )
-            reported.update(parse_go_events(module, result.stdout))
-        return {t.test_id: reported.get(t.test_id, Outcome.MISSING) for t in tests}
+            found = parse_go_events(module, result.stdout)
+            pending_ids = {name: f"{directory}{GO_PACKAGE_SEPARATOR}{name}" for name in pending}
+            ran = {test_id: found[test_id] for test_id in pending_ids.values() if test_id in found}
+            if not ran:
+                break
+            reported.update(ran)
+            pending = [name for name, test_id in pending_ids.items() if test_id not in ran]
+        return reported
 
 
 class GoSuiteRunner:
