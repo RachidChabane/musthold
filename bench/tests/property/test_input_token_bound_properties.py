@@ -28,10 +28,11 @@ sizes = st.integers(min_value=0, max_value=2_000_000)
 SCHEMA = {"type": "object"}
 
 
-def stdout_of(input_tokens: int) -> str:
+def stdout_of(input_tokens: int, turns: int = 1) -> str:
     return json.dumps(
         {
             "is_error": False,
+            "num_turns": turns,
             "structured_output": {},
             "modelUsage": {OPUS: {}},
             "usage": {"input_tokens": input_tokens, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0},
@@ -83,3 +84,21 @@ def test_a_baseline_over_the_ceiling_is_always_refused(tokens: int) -> None:
 def test_a_baseline_up_to_the_ceiling_is_always_accepted(tokens: int) -> None:
     probe = baseline_request(BaselineKey(OPUS, "high"))
     assert baseline_from_stdout(probe, stdout_of(tokens)).input_tokens == tokens
+
+
+turn_counts = st.integers(min_value=1, max_value=4)
+
+
+@given(baselines, st.integers(min_value=500, max_value=1_000_000), turn_counts)
+def test_a_request_read_again_on_every_turn_is_never_flagged(baseline: int, chars: int, turns: int) -> None:
+    request = request_of_size(chars)
+    honest = baseline + turns * math.ceil(request.request_chars / CHARS_PER_TOKEN)
+    assert response_from_stdout(request, stdout_of(honest, turns), baseline).input_tokens == honest
+
+
+@given(baselines, st.integers(min_value=500, max_value=1_000_000), turn_counts)
+def test_an_ambient_context_read_on_every_turn_is_always_caught(baseline: int, chars: int, turns: int) -> None:
+    request = request_of_size(chars)
+    honest = baseline + turns * math.ceil(request.request_chars / CHARS_PER_TOKEN)
+    with pytest.raises(IsolationViolation, match="exceed the bound"):
+        response_from_stdout(request, stdout_of(honest + turns * LEAK_TOKENS, turns), baseline)

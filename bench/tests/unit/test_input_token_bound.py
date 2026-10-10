@@ -63,6 +63,16 @@ def test_a_specification_draft_at_two_point_three_five_characters_per_token_fits
     assert input_token_bound(1555, 30_165) >= 14_854
 
 
+def test_the_text_counts_once_per_turn() -> None:
+    assert input_token_bound(1100, 1000, 2) == 1100 + 2 * 500 + 500
+    assert input_token_bound(1100, 1000, 0) == input_token_bound(1100, 1000, 1)
+
+
+def test_a_planted_change_request_whose_second_turn_missed_the_cache_fits_its_bound() -> None:
+    assert input_token_bound(1555, 98_412) < 88_305
+    assert input_token_bound(1555, 98_412, 2) >= 88_305
+
+
 def test_the_request_text_counts_the_system_prompt_the_prompt_and_the_schema() -> None:
     request = ModelRequest(Role.SPEC_AUTHOR, "k", "abc", "defgh", {"a": 1})
     assert request.request_chars == 3 + 5 + len(canonical_json({"a": 1}))

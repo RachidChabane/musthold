@@ -28,6 +28,7 @@ CHARS_PER_TOKEN: Final = 2.0
 text never costs more tokens than this."""
 INPUT_TOKEN_SLACK: Final = 500
 """Input tokens beyond the baseline and the request's own text that tokenization may add; a larger overshoot means ambient context leaked."""
+RESULT_TURNS_KEY: Final = "num_turns"
 BASELINE_INPUT_TOKEN_CEILING: Final = 3000
 """What a trivial isolated call may cost in input tokens; more means CLAUDE.md, memory or tool definitions loaded."""
 BASELINE_KEY_PREFIX: Final = "baseline"
@@ -102,9 +103,14 @@ def pin_violation(reported_models: tuple[str, ...], pinned: str) -> str | None:
     return None
 
 
-def input_token_bound(baseline_input_tokens: int, request_chars: int) -> int:
-    """The most input tokens a call may report: what an empty isolated call costs, its own text, and the slack."""
-    return baseline_input_tokens + math.ceil(request_chars / CHARS_PER_TOKEN) + INPUT_TOKEN_SLACK
+def input_token_bound(baseline_input_tokens: int, request_chars: int, turns: int = 1) -> int:
+    """The most input tokens a call may report: what an empty isolated call costs, its own text once per turn, and the
+    slack.
+
+    The reported usage sums the requests of every turn, and a turn whose prompt cache missed bills the whole text again,
+    so the text counts once per turn the result reports.
+    """
+    return baseline_input_tokens + max(1, turns) * math.ceil(request_chars / CHARS_PER_TOKEN) + INPUT_TOKEN_SLACK
 
 
 @dataclass(frozen=True, order=True)
@@ -167,6 +173,8 @@ class ModelResponse:
     stdout: str
     input_tokens: int
     output_tokens: int
+    turns: int = 1
+    """The model turns the result reports (`num_turns`); a structured answer takes two."""
 
 
 def baseline_role(key: BaselineKey) -> Role:
@@ -196,6 +204,7 @@ def _read_result(request: ModelRequest, stdout: str) -> tuple[ModelResponse, str
         stdout=stdout,
         input_tokens=sum(int(str(usage.get(key, 0))) for key in USAGE_INPUT_KEYS),
         output_tokens=int(str(usage.get("output_tokens", 0))),
+        turns=max(1, int(str(data.get(RESULT_TURNS_KEY, 1)))),
     )
     return response, pin_violation(models, request.model)
 
@@ -207,9 +216,12 @@ def response_from_stdout(request: ModelRequest, stdout: str, baseline_input_toke
     same pin and token bound as a fresh one.
     """
     response, violation = _read_result(request, stdout)
-    bound = input_token_bound(baseline_input_tokens, request.request_chars)
+    bound = input_token_bound(baseline_input_tokens, request.request_chars, response.turns)
     if violation is None and response.input_tokens > bound:
-        violation = f"input tokens {response.input_tokens} exceed the bound {bound}"
+        violation = (
+            f"input tokens {response.input_tokens} exceed the bound {bound} "
+            f"({request.request_chars} request characters over {response.turns} turn(s))"
+        )
     if violation is not None:
         raise IsolationViolation(violation)
     return response
