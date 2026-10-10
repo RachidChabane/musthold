@@ -58,11 +58,16 @@ class ConfidenceSource(Enum):
 
 @dataclass(frozen=True)
 class Truth:
-    """Defect truth of one tree: primary (U or R fails), full (U, H or R fails), and O failures."""
+    """Defect truth of one tree: primary (U or R fails), full (U, H or R fails), and O failures.
+
+    `defective_full_unexposed` is the full truth without the H tests of criteria whose H the merge shaped during
+    selection (ADR 0012); None where the trunk was scored without that distinction.
+    """
 
     defective: bool
     defective_full: bool
     o_failed: bool
+    defective_full_unexposed: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -151,6 +156,7 @@ def _truth(value: object, where: str) -> Truth:
         boolean(body.get("defective"), f"{where}.defective"),
         boolean(body.get("defective_full"), f"{where}.defective_full"),
         boolean(body.get("o_failed"), f"{where}.o_failed"),
+        optional_boolean(body.get("defective_full_unexposed"), f"{where}.defective_full_unexposed"),
     )
 
 

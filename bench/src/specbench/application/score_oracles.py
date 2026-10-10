@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from specbench.application.ports import FileTreeFactory, OracleRunner, TreeFactory, TreeReader, TreeSpec
+from specbench.domain.h_selection import exposed_criteria
 from specbench.domain.languages import Language, is_test_path
 from specbench.domain.oracle import OVERLAID_PARTS, Oracle
 from specbench.domain.records import Truth
@@ -22,6 +23,8 @@ class ScoringBasis:
     oracle: Oracle
     upstream_tests: Mapping[str, bytes]
     sealed_overlay: Mapping[str, bytes]
+    exposed: frozenset[str] = frozenset()
+    """Criteria whose H the merge shaped during selection, read from the bundle's selection record."""
 
 
 def scoring_basis(
@@ -34,7 +37,7 @@ def scoring_basis(
         destination: bundle.files[source]
         for destination, source in oracle.overlay_paths(bundle, *OVERLAID_PARTS).items()
     }
-    return ScoringBasis(task.language, oracle, upstream, overlay)
+    return ScoringBasis(task.language, oracle, upstream, overlay, exposed_criteria(bundle))
 
 
 class OracleScorer:
@@ -66,4 +69,4 @@ class OracleScorer:
         tests = self._basis.oracle.tests
         with self._trees.materialize_files(files) as tree:
             runs = [self._runner.run(tree, tests) for _ in range(self._runs)]
-        return truth_of(self._basis.oracle, settle(runs, [t.test_id for t in tests]))
+        return truth_of(self._basis.oracle, settle(runs, [t.test_id for t in tests]), self._basis.exposed)

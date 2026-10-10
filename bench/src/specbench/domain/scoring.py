@@ -9,11 +9,11 @@ agent's tree.
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Final
 
 from specbench.domain.languages import Language, is_test_path
-from specbench.domain.oracle import Oracle, Outcome, Part
+from specbench.domain.oracle import Oracle, OracleTest, Outcome, Part
 from specbench.domain.records import Truth
 
 SCORING_RUNS: Final = 3
@@ -68,10 +68,19 @@ def settle(runs: Sequence[Mapping[str, Outcome]], expected: Sequence[str]) -> di
     return {test_id: settled_outcome([run.get(test_id, Outcome.MISSING) for run in runs]) for test_id in expected}
 
 
-def truth_of(oracle: Oracle, settled: Mapping[str, Outcome]) -> Truth:
-    """Primary truth (U or R fails), full truth (U, H or R fails) and O failures; a FLAKY test counts clean."""
+def truth_of(oracle: Oracle, settled: Mapping[str, Outcome], exposed: frozenset[str] = frozenset()) -> Truth:
+    """Primary truth (U or R fails), full truth (U, H or R fails) and O failures; a FLAKY test counts clean.
 
-    def failed(parts: tuple[Part, ...]) -> bool:
-        return any(settled[t.test_id].is_failure for t in oracle.tests_of(*parts))
+    The full truth is also given without the H tests of the `exposed` criteria, those whose H the merge shaped.
+    """
 
-    return Truth(failed(PRIMARY_PARTS), failed(FULL_PARTS), failed(OUT_OF_SPEC_PARTS))
+    def failed(tests: Iterable[OracleTest]) -> bool:
+        return any(settled[t.test_id].is_failure for t in tests)
+
+    unexposed = (t for t in oracle.tests_of(*FULL_PARTS) if t.part is not Part.H or t.criterion not in exposed)
+    return Truth(
+        failed(oracle.tests_of(*PRIMARY_PARTS)),
+        failed(oracle.tests_of(*FULL_PARTS)),
+        failed(oracle.tests_of(*OUT_OF_SPEC_PARTS)),
+        failed(unexposed),
+    )

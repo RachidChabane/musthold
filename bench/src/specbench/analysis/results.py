@@ -94,6 +94,7 @@ def _arm_section(ctx: Context, arm: Arm) -> Record:
         "trunks": ctx.count(arm.value, "base_n"),
         "x_loop": modes,
         "x_loop_full_truth": ctx.est(full),
+        "x_loop_full_truth_unexposed": ctx.est(outcomes.x_loop_unexposed(h, arm, standard)),
         "yield": ctx.est(outcomes.yield_rate(h, arm, standard)),
     }
 

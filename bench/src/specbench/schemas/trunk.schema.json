@@ -99,6 +99,7 @@
       "properties": {
         "defective": {"type": "boolean"},
         "defective_full": {"type": "boolean"},
+        "defective_full_unexposed": {"type": "boolean"},
         "o_failed": {"type": "boolean"}
       }
     },

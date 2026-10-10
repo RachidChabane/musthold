@@ -157,22 +157,29 @@ def test_a_test_a_run_does_not_report_is_missing_in_that_run() -> None:
 
 
 def test_a_clean_change_has_no_defect_of_any_kind() -> None:
-    assert truth_of(ORACLE, outcomes_with({})) == Truth(False, False, False)
+    assert truth_of(ORACLE, outcomes_with({})) == Truth(False, False, False, False)
 
 
 @pytest.mark.parametrize(
     ("changes", "truth"),
     [
-        ({Part.U: FAILED}, Truth(True, True, False)),
-        ({Part.R: ERROR}, Truth(True, True, False)),
-        ({Part.H: FAILED}, Truth(False, True, False)),
-        ({Part.O: FAILED}, Truth(False, False, True)),
-        ({Part.U: FLAKY, Part.R: FLAKY, Part.H: FLAKY, Part.O: FLAKY}, Truth(False, False, False)),
-        ({Part.U: MISSING}, Truth(True, True, False)),
+        ({Part.U: FAILED}, Truth(True, True, False, True)),
+        ({Part.R: ERROR}, Truth(True, True, False, True)),
+        ({Part.H: FAILED}, Truth(False, True, False, True)),
+        ({Part.O: FAILED}, Truth(False, False, True, False)),
+        ({Part.U: FLAKY, Part.R: FLAKY, Part.H: FLAKY, Part.O: FLAKY}, Truth(False, False, False, False)),
+        ({Part.U: MISSING}, Truth(True, True, False, True)),
     ],
 )
 def test_each_part_feeds_its_own_truth(changes: dict[Part, Outcome], truth: Truth) -> None:
     assert truth_of(ORACLE, outcomes_with(changes)) == truth
+
+
+def test_an_h_failure_of_an_exposed_criterion_counts_in_the_full_truth_only() -> None:
+    h_criteria = frozenset(t.criterion for t in ORACLE.tests_of(Part.H) if t.criterion is not None)
+    exposed = truth_of(ORACLE, outcomes_with({Part.H: FAILED}), h_criteria)
+    assert exposed == Truth(False, True, False, False)
+    assert truth_of(ORACLE, outcomes_with({Part.U: FAILED}), h_criteria).defective_full_unexposed is True
 
 
 class MemoryFileTrees:

@@ -24,7 +24,13 @@ GATING = {"TR": 0.3, "AL": 0.5, "DP": 0.6, "CO": 0.3, "ALL": 0.75, "PL": 0.4, "A
 
 
 def _truth(rng: random.Random, defective: bool) -> dict[str, JsonValue]:
-    return {"defective": defective, "defective_full": defective or rng.random() < 0.15, "o_failed": rng.random() < 0.2}
+    """A tree's truth; every H failure the full truth adds comes from criteria the merge shaped during selection."""
+    return {
+        "defective": defective,
+        "defective_full": defective or rng.random() < 0.15,
+        "defective_full_unexposed": defective,
+        "o_failed": rng.random() < 0.2,
+    }
 
 
 def _arm(rng: random.Random, harness: Harness, defective: bool, block_rate: float | None) -> dict[str, JsonValue]:

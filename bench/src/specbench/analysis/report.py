@@ -120,6 +120,20 @@ def _arms_table(harness: Json) -> list[str]:
     return ["### Arms", "", *_table(header, rows)]
 
 
+def _truth_table(harness: Json) -> list[str]:
+    """X on the full verified truth, with and without the H of criteria whose H the merge shaped (ADR 0012)."""
+    rows = [
+        [
+            arm,
+            interval(_section(raw, arm)["x_loop_full_truth"]),
+            interval(_section(raw, arm)["x_loop_full_truth_unexposed"]),
+        ]
+        for arm, raw in _section(harness["arms"], "arms").items()
+    ]
+    header = ["Arm", "X on U, H and R", "X on U, H and R without exposed criteria"]
+    return ["### H-inclusive truth", "", *_table(header, rows)] if rows else []
+
+
 def _ladder_table(harness: Json) -> list[str]:
     arms = _section(harness["arms"], "arms")
     rows = [
@@ -245,6 +259,7 @@ def render_report(results: Json) -> str:
             _template_sentence(results, name, harness),
             "",
             *_arms_table(harness),
+            *_truth_table(harness),
             *_ladder_table(harness),
             *_composition_table(harness),
             *_blind_spot_table(harness),

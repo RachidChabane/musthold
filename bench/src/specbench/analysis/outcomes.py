@@ -76,6 +76,9 @@ def _arm_counts(counts: dict[str, float], h: str, arm: Arm, result: ArmResult, s
             add(counts, column(h, a, m, "accepted_defective"), final.defective)
             add(counts, column(h, a, m, "accepted_defective_full"), final.defective_full)
             add(counts, column(h, a, m, "accepted_o_failed"), final.o_failed)
+            if final.defective_full_unexposed is not None:
+                add(counts, column(h, a, m, "accepted_unexposed_scored"))
+                add(counts, column(h, a, m, "accepted_defective_full_unexposed"), final.defective_full_unexposed)
 
 
 def x_loop(h: str, arm: Arm, mode: Mode, full_truth: bool = False) -> Statistic:
@@ -85,6 +88,24 @@ def x_loop(h: str, arm: Arm, mode: Mode, full_truth: bool = False) -> Statistic:
 
     def statistic(columns: Columns) -> Floats:
         p_arm = rate(columns[column(h, a, m, defect)], columns[column(h, a, m, "accepted")])
+        p_base = rate(columns[column(h, a, "base_defective")], columns[column(h, a, "base_n")])
+        return one_minus_ratio(p_arm, p_base)
+
+    return statistic
+
+
+def x_loop_unexposed(h: str, arm: Arm, mode: Mode) -> Statistic:
+    """Statistic: X of an arm in the loop on U+H+R without the H of criteria the merge shaped during selection.
+
+    Only accepted trunks scored with that distinction count in the arm's defect rate.
+    """
+    a, m = arm.value, mode.value
+
+    def statistic(columns: Columns) -> Floats:
+        p_arm = rate(
+            columns[column(h, a, m, "accepted_defective_full_unexposed")],
+            columns[column(h, a, m, "accepted_unexposed_scored")],
+        )
         p_base = rate(columns[column(h, a, "base_defective")], columns[column(h, a, "base_n")])
         return one_minus_ratio(p_arm, p_base)
 
