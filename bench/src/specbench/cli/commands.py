@@ -32,6 +32,7 @@ from specbench.adapters.gh_miner import (
 )
 from specbench.adapters.git_history import GitError, GitHistory, GitMirrors
 from specbench.adapters.git_trees import GitTreeFactory, TreeBuildError
+from specbench.adapters.go_file_bisection import BISECTION_RUNS, GoFileIsolation
 from specbench.adapters.ground_stability import StableGround
 from specbench.adapters.mining_store import ATTRITION_FILE, CANDIDATES_FILE, MINING_FILE, write_mining
 from specbench.adapters.network_sandbox import NetworkDeniedRunner
@@ -68,11 +69,14 @@ from specbench.application.construct import TaskConstruction
 from specbench.application.construct_run import ConstructionRun, TaskSettlement
 from specbench.application.construct_run import Outcome as TaskOutcome
 from specbench.application.corpus import seal_task, unseal_task, verify_corpus
+from specbench.application.h_execution import PerTaskHExecutor, PythonIsolation, TreeHCandidateExecutor
 from specbench.application.mine import mine
 from specbench.application.paced_calls import CallGate, PacedConstructionModel
 from specbench.application.ports import EnvRequest, OracleRunner, ProcessRunner
+from specbench.application.reopen import reopen
 from specbench.application.reverify import reverify
 from specbench.application.select_tasks import select_feasible
+from specbench.application.stabilised_runs import StabilisedRuns
 from specbench.application.verify_task import TaskVerifier
 from specbench.domain.arms import Harness
 from specbench.domain.candidates import ranking_by_language
@@ -85,6 +89,7 @@ from specbench.domain.pacing import EXIT_PAUSED, PacingPolicy, RunWindow
 from specbench.domain.sealing import SealedBundle
 from specbench.domain.selection import Selection
 from specbench.domain.task import TASK_FILE_NAME, Task
+from specbench.domain.verification import VERIFICATION_RUNS
 
 EXIT_OK: Final = 0
 EXIT_FAILED: Final = 1
@@ -233,6 +238,7 @@ def run_construct(
         lambda task: suite_runner_for(task.candidate.language, environment_directory(work_dir, task.task_id), denied),
     )
     sources = MirrorConstructionSources(mirrors, lambda clone: GitHistory(clone, plain), gh, work_dir, stable.stabilise)
+    statuses = FileStatusStore(layout.root)
     construction = TaskConstruction(
         model,
         load_prompts(),
@@ -240,10 +246,11 @@ def run_construct(
         JsonSchemaChecker(),
         GitDiffPatchBuilder(plain),
         _mining_seed(mining_dir),
+        _h_executor(work_dir, mirrors, denied, statuses),
+        VERIFICATION_ABORTS,
     )
     corpus = FileCorpus(corpus_dir)
     corpus.read_recipients()
-    statuses = FileStatusStore(layout.root)
     settlement = _settlement(work_dir, mirrors, denied, corpus, statuses)
     run = ConstructionRun(sources, construction, settlement, statuses, gate.require_open)
     selection = read_selection(selection_dir, read_candidates(mining_dir / CANDIDATES_FILE), work_dir)
@@ -255,6 +262,24 @@ def run_construct(
     for line in summary.unfinished:
         console.say(f"unfinished: {line}")
     return EXIT_OK if summary.complete else EXIT_FAILED
+
+
+def _h_executor(
+    work_dir: Path, mirrors: GitMirrors, denied: ProcessRunner, statuses: FileStatusStore
+) -> PerTaskHExecutor:
+    """H candidates run as verification runs them: the task's trees and runner, network-denied, journaled per task."""
+
+    def executor_for(task: Task) -> TreeHCandidateExecutor:
+        transcripts = TranscriptRecorder(denied)
+        trees = GitTreeFactory(mirrors.path_of(task.repository))
+        runner = _oracle_runner(task.language, environment_directory(work_dir, task.task_id), None, transcripts)
+        journal = FileRunJournal(statuses.h_selection_runs_path(task.task_id), transcripts)
+        runs = StabilisedRuns(trees, runner, VERIFICATION_RUNS, journal)
+        if task.language is Language.PYTHON:
+            return TreeHCandidateExecutor(runs, PythonIsolation())
+        return TreeHCandidateExecutor(runs, GoFileIsolation(StabilisedRuns(trees, runner, BISECTION_RUNS, journal)))
+
+    return PerTaskHExecutor(executor_for)
 
 
 def _settlement(
@@ -310,6 +335,14 @@ def run_reverify(
             all_sealed = False
             console.say(f"dropped {task_id}: {status.stage}: {status.reason}")
     return EXIT_OK if all_sealed else EXIT_FAILED
+
+
+def run_reopen(work_dir: Path, task_ids: list[str], console: Console) -> int:
+    """Return dropped tasks to construction; their last attempt is set aside, never deleted."""
+    statuses = FileStatusStore(work_dir / CONSTRUCTION_DIRECTORY)
+    for task_id in task_ids:
+        console.say(f"reopened {task_id}: its last attempt is in {reopen(task_id, statuses)}")
+    return EXIT_OK
 
 
 def run_compact(archive: Path, console: Console) -> int:

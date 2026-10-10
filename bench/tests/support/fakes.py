@@ -5,16 +5,20 @@ from __future__ import annotations
 from collections.abc import Callable, Generator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
 
-from specbench.application.ports import OperatorMutants, TreeSpec
+from specbench.application.ports import HExecutionRequest, OperatorMutants, TreeSpec
 from specbench.domain.arms import Arm, Harness, Host
 from specbench.domain.call_ledger import CallLedger
 from specbench.domain.canonical import JsonValue
 from specbench.domain.gate import GateMode, GateOutcome
+from specbench.domain.h_selection import CandidateRuns, HExecution
+from specbench.domain.h_tests import HTest
 from specbench.domain.oracle import OracleTest, Outcome
 from specbench.domain.reservation import ExecutionHistory
 from specbench.domain.sessions import CallRecord, HostRequest, HostResponse, SessionRequest, SessionResult
+from specbench.domain.verification import VERIFICATION_RUNS
 
 
 class RecordingTrees:
@@ -177,3 +181,38 @@ class MemoryHistory:
 
     def save(self, history: ExecutionHistory) -> None:
         self.history = history
+
+
+class Tree(Enum):
+    MERGE = "merge"
+    BASE = "base"
+
+
+HBehaviour = Callable[[HTest, Tree, int], Outcome]
+
+
+def discriminating(test: HTest, tree: Tree, run: int) -> Outcome:
+    """A candidate that passes at merge and fails at base, in every run."""
+    return Outcome.PASSED if tree is Tree.MERGE else Outcome.FAILED
+
+
+class ScriptedHExecutor:
+    """An `HCandidateExecutor` whose outcome for (candidate, tree, run index) is computed by the test."""
+
+    def __init__(self, behaviour: HBehaviour = discriminating, unbuildable: frozenset[str] = frozenset()) -> None:
+        self._behaviour = behaviour
+        self._unbuildable = unbuildable
+        self.requests: list[HExecutionRequest] = []
+
+    def execute(self, request: HExecutionRequest) -> HExecution:
+        self.requests.append(request)
+        runs = {
+            t.test_id: CandidateRuns(
+                tuple(self._behaviour(t, Tree.MERGE, run) for run in range(VERIFICATION_RUNS)),
+                ()
+                if t.path in self._unbuildable
+                else tuple(self._behaviour(t, Tree.BASE, run) for run in range(VERIFICATION_RUNS)),
+            )
+            for t in request.tests
+        }
+        return HExecution(runs, frozenset(f.path for f in request.candidates) & self._unbuildable)

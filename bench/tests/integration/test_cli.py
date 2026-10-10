@@ -186,6 +186,24 @@ def test_verify_task_through_the_cli(tmp_path: Path) -> None:
     assert report.read_text() == canonical_json(document)
 
 
+def test_reopen_sets_a_dropped_task_aside_through_the_cli_and_refuses_a_sealed_one(tmp_path: Path) -> None:
+    work = tmp_path / "work"
+    dropped, sealed = work / "construction" / "ACME-A-1", work / "construction" / "ACME-B-2"
+    for directory, status in ((dropped, "dropped"), (sealed, "sealed")):
+        (directory / "plain").mkdir(parents=True)
+        record = {"bundle_sha256": None, "outcome": status, "reason": None, "stage": None}
+        (directory / "status.json").write_text(canonical_json(record))
+
+    code, output = cli("reopen", "--work", str(work), "--task-id", "ACME-A-1")
+    assert code == 0 and "reopened ACME-A-1" in output
+    assert not (dropped / "status.json").exists()
+    assert (dropped / "superseded" / "1" / "status.json").is_file() and (
+        dropped / "superseded" / "1" / "plain"
+    ).is_dir()
+    code, output = cli("reopen", "--work", str(work), "--task-id", "ACME-B-2")
+    assert code == 1 and "sealed" in output and (sealed / "status.json").is_file()
+
+
 def test_analyze_and_report_lint_through_the_cli(tmp_path: Path) -> None:
     manifest = Manifest(
         run_id="sample-synthetic-01",

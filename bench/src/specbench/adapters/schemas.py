@@ -27,6 +27,7 @@ class SchemaName(Enum):
     ASSIGNMENT = "assignment"
     PROBE = "probe"
     GAPS = "gaps"
+    H_SELECTION = "h-selection"
     CASE = "case"
 
 

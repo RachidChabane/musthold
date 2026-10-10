@@ -16,6 +16,7 @@ from specbench.adapters.sealed_store import (
 from specbench.application.corpus import seal_task, unseal_task, verify_corpus
 from specbench.domain.canonical import sha256_hex
 from specbench.domain.gaps import GAP_FILE_NAME
+from specbench.domain.h_selection import H_SELECTION_PATH
 from specbench.domain.languages import Language
 from specbench.domain.sealing import BUNDLE_VERSION_PATH, CURRENT_BUNDLE_VERSION, SealedBundle, SealingError
 from support.builders import TASK_ID, make_bundle, task_json
@@ -116,11 +117,19 @@ def test_sealing_refuses_a_version_one_bundle_and_writes_nothing(corpus: tuple[F
     repository, _ = corpus
     legacy = make_bundle(version=1)
     assert legacy.schema_version == 1
-    with pytest.raises(SealingError, match="below 2"):
+    with pytest.raises(SealingError, match="below 3"):
         AgeSealStore().seal(legacy, repository.read_recipients())
-    with pytest.raises(SealingError, match="below 2"):
+    with pytest.raises(SealingError, match="below 3"):
         seal_task(repository, AgeSealStore(), task_json(), legacy)
     assert repository.task_ids() == [] and repository.read_lock().entries == ()
+
+
+def test_sealing_refuses_a_bundle_whose_h_was_not_selected_by_execution(corpus: tuple[FileCorpus, str]) -> None:
+    repository, _ = corpus
+    unselected = make_bundle(without=(H_SELECTION_PATH,))
+    with pytest.raises(SealingError, match="not selected by execution"):
+        AgeSealStore().seal(unselected, repository.read_recipients())
+    assert repository.task_ids() == []
 
 
 def test_a_version_two_bundle_round_trips_through_age_with_its_spec_gap_data(corpus: tuple[FileCorpus, str]) -> None:

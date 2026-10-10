@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Protocol, cast
 
+from specbench.domain.h_selection import require_selected_h
 from specbench.domain.sealing import SealedBundle, SealingError, pack_bundle, require_current_version, unpack_bundle
 
 IDENTITY_PREFIX = "AGE-SECRET-KEY-"
@@ -71,6 +72,7 @@ class AgeSealStore:
 
     def seal(self, bundle: SealedBundle, recipients: Sequence[str]) -> bytes:
         require_current_version(bundle)
+        require_selected_h(bundle)
         if not recipients:
             raise SealingError("sealing needs at least one recipient")
         parsed = [_x25519().Recipient.from_str(r) for r in recipients]

@@ -16,6 +16,8 @@ from specbench.domain.canonical import JsonValue
 from specbench.domain.ci_round import CiRoundRequest, CiRoundResult
 from specbench.domain.construction import ModelRequest, ModelResponse
 from specbench.domain.gate import GateMode, GateOutcome
+from specbench.domain.h_selection import HExecution
+from specbench.domain.h_tests import HFile, HTest
 from specbench.domain.languages import Language
 from specbench.domain.manifest import Provenance
 from specbench.domain.mining import BaseSnapshot, PullRequest, PullSummary, Rejection, Repository
@@ -25,6 +27,7 @@ from specbench.domain.reservation import ExecutionHistory
 from specbench.domain.sealing import CorpusLock, SealedBundle
 from specbench.domain.selection import ProbedTask
 from specbench.domain.sessions import CallRecord, SessionRequest, SessionResult
+from specbench.domain.task import Task
 
 
 class GhClient(Protocol):
@@ -145,6 +148,28 @@ class OracleRunner(Protocol):
     """Runs oracle tests in a tree and reports one outcome per requested test."""
 
     def run(self, tree: Path, tests: Sequence[OracleTest]) -> Mapping[str, Outcome]: ...
+
+
+@dataclass(frozen=True)
+class HExecutionRequest:
+    """The candidates of one H writing to run on a task's merge and base trees.
+
+    `human_overlay` holds the human test files every oracle tree carries, at their tree paths; `kept` the H files kept
+    from earlier writings, which share the merge tree so that the sealed set builds together. `candidates` are the
+    writing's own files and `tests` the candidate tests they define.
+    """
+
+    task: Task
+    human_overlay: Mapping[str, bytes]
+    kept: tuple[HFile, ...]
+    candidates: tuple[HFile, ...]
+    tests: tuple[HTest, ...]
+
+
+class HCandidateExecutor(Protocol):
+    """Runs H candidates at merge and at base on the verifier's own trees, runner and stabiliser; never a model."""
+
+    def execute(self, request: HExecutionRequest) -> HExecution: ...
 
 
 class RunJournal(Protocol):

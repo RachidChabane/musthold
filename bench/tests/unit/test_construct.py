@@ -19,16 +19,21 @@ from specbench.application.construct import (
     HumanTests,
     TaskConstruction,
 )
+from specbench.application.ports import HExecutionRequest
 from specbench.domain.candidates import Candidate
 from specbench.domain.canonical import JsonValue
 from specbench.domain.construction import ModelRequest, ModelResponse, Role
 from specbench.domain.gaps import GAP_FILE_NAME
+from specbench.domain.h_selection import H_SELECTION_PATH, MAX_KEPT_PER_CRITERION, HExecution
+from specbench.domain.h_tests import POOL_ROUND, HTest
 from specbench.domain.hunks import changed_regions
 from specbench.domain.languages import Language
+from specbench.domain.oracle import Outcome
 from specbench.domain.prompts import Prompt, fill
 from specbench.domain.sealing import CURRENT_BUNDLE_VERSION
 from specbench.domain.selection import ProbedTask
 from specbench.domain.task import Toolchain
+from support.fakes import HBehaviour, ScriptedHExecutor, Tree, discriminating
 
 Answers = dict[str, list[Any]]
 SCHEMAS = {
@@ -75,10 +80,21 @@ def spec(first_example: str = "fee(minutes=7) => 0") -> dict[str, Any]:
     }
 
 
-H_FILE = (
-    "from pkg.fee import fee\n\n\ndef test_c1_short():\n    assert fee(1) == 0\n\n\n"
-    "def test_c2_long():\n    assert fee(60) == 5\n"
-)
+def h_file(number: int, round_prefix: str = "") -> dict[str, str]:
+    """One criterion's pool file: a Hypothesis property test and three example tests."""
+    content = (
+        "from hypothesis import given, settings, strategies as st\n"
+        "from pkg.fee import fee\n\n\n"
+        "@settings(derandomize=True, max_examples=10, deadline=None)\n"
+        "@given(st.integers(min_value=1, max_value=9))\n"
+        f"def test_c{number}_property(m):\n    assert fee(m) >= 0\n\n\n"
+        + "".join(f"def test_c{number}_example_{k}():\n    assert fee({k}) >= 0\n\n\n" for k in range(1, 4))
+    )
+    return {"path": f"tests/spec_h/test_spec_h_{round_prefix}c{number}_fee.py", "content": content}
+
+
+def h_pool(*numbers: int, round_prefix: str = "") -> dict[str, Any]:
+    return {"files": [h_file(n, round_prefix) for n in numbers]}
 
 
 def edit(search: str, replace: str) -> dict[str, str]:
@@ -177,14 +193,14 @@ def happy() -> Answers:
         "review": [{"findings": []}],
         "probe-issue": [{"predictions": [{"operation": "fee", "arguments": ["3"]}]}],
         "probe-spec-0": [{"predictions": [{"operation": "fee", "arguments": ["3"]}]}],
-        "h-0": [{"files": [{"path": "tests/spec_h/test_spec_h_fee.py", "content": H_FILE}]}],
+        "h-0": [h_pool(1, 2)],
         "assign-0": [classification()],
         "violations-0": [VIOLATIONS],
         "planted-0": [REFACTORS],
     }
 
 
-def construction(answers: Answers) -> tuple[TaskConstruction, ScriptedModel]:
+def construction(answers: Answers, executor: ScriptedHExecutor | None = None) -> tuple[TaskConstruction, ScriptedModel]:
     model = ScriptedModel(answers)
     return (
         TaskConstruction(
@@ -194,13 +210,17 @@ def construction(answers: Answers) -> tuple[TaskConstruction, ScriptedModel]:
             JsonSchemaChecker(),
             FakePatches(),
             GAP_SEED,
+            executor or ScriptedHExecutor(),
+            (TimeoutError,),
         ),
         model,
     )
 
 
-def build(answers: Answers, given: ConstructionInputs | None = None) -> tuple[Constructed | Dropped, ScriptedModel]:
-    pipeline, model = construction(answers)
+def build(
+    answers: Answers, given: ConstructionInputs | None = None, executor: ScriptedHExecutor | None = None
+) -> tuple[Constructed | Dropped, ScriptedModel]:
+    pipeline, model = construction(answers, executor)
     return pipeline.build(given or inputs()), model
 
 
@@ -303,9 +323,10 @@ def test_a_probe_that_predicts_more_oracle_inputs_with_the_spec_than_without_it_
 
 
 def test_h_tests_that_break_the_layout_are_rewritten_once_then_the_task_is_dropped() -> None:
-    wrong = {"files": [{"path": "tests/elsewhere/test_fee.py", "content": H_FILE}]}
+    wrong = {"files": [{**h_file(1), "path": "tests/elsewhere/test_fee.py"}, h_file(2)]}
     repaired, model = build(happy() | {"h-0": [wrong], "h-1": [happy()["h-0"][0]]})
-    assert isinstance(repaired, Constructed) and "live at tests/spec_h" in model.requests[5].prompt
+    assert isinstance(repaired, Constructed)
+    assert "H files are named tests/spec_h/test_spec_h_c<n>_<name>.py" in model.requests[5].prompt
     dropped, _ = build(happy() | {"h-0": [wrong], "h-1": [wrong]})
     assert isinstance(dropped, Dropped) and dropped.stage is DropStage.H_TESTS
 
@@ -408,3 +429,132 @@ def test_a_spec_with_fewer_than_two_gap_eligible_criteria_is_dropped_at_the_spec
     one["criteria"][1]["implementingHunks"] = []
     dropped, _ = build(happy() | {"spec-draft": [one], "spec-repair": [one]})
     assert isinstance(dropped, Dropped) and dropped.stage is DropStage.SPEC and "at least 2 criteria" in dropped.reason
+
+
+def failing_at_merge(*names: str, every_round: bool = False) -> HBehaviour:
+    """Pool candidates (any candidate with `every_round`) whose name ends with one of `names` fail at merge in every
+    run; every other candidate discriminates."""
+
+    def behaviour(test: HTest, tree: Tree, run: int) -> Outcome:
+        in_round = every_round or test.round == POOL_ROUND
+        if tree is Tree.MERGE and in_round and test.test_id.endswith(names):
+            return Outcome.FAILED
+        return discriminating(test, tree, run)
+
+    return behaviour
+
+
+def selection_record(built: Constructed | Dropped) -> dict[str, Any]:
+    assert isinstance(built, Constructed)
+    return json.loads(built.bundle.files[H_SELECTION_PATH])
+
+
+def test_h_is_selected_from_the_pool_by_execution_and_sealed_exactly_as_selected() -> None:
+    built, _ = build(happy())
+    assert isinstance(built, Constructed)
+    files = built.bundle.files
+    record = selection_record(built)
+    assert schema_problems(SchemaName.H_SELECTION, record) == []
+    verdicts = {c["id"].split("::")[1]: c["verdict"] for c in record["candidates"]}
+    assert list(verdicts.values()).count("kept") == 6 and list(verdicts.values()).count("surplus") == 2
+    assert verdicts["test_c1_property"] == verdicts["test_c2_property"] == "kept"
+    manifest = json.loads(files["oracle/manifest.json"])
+    sealed_h = {m["id"] for m in manifest if m["part"] == "H"}
+    assert sealed_h == {c["id"] for c in record["candidates"] if c["verdict"] == "kept"}
+    surplus = next(name for name, verdict in verdicts.items() if verdict == "surplus" and name.startswith("test_c1"))
+    sealed_file = files["oracle/H/tests/spec_h/test_spec_h_c1_fee.py"].decode()
+    assert f"def {surplus}(" not in sealed_file
+    assert "@settings(derandomize=True" in sealed_file and "@given(" in sealed_file
+    candidate = files["construction/h-candidates/tests/spec_h/test_spec_h_c1_fee.py"].decode()
+    assert candidate == h_file(1)["content"]
+    assert record["criteria"][0] == {
+        "criterion": "ACME-PARKFEE-12-1",
+        "exposed": False,
+        "kept": 3,
+        "merge_rejects": 0,
+        "refilled": False,
+    }
+
+
+def test_a_criterion_left_short_is_refilled_by_a_fresh_blind_writing() -> None:
+    executor = ScriptedHExecutor(failing_at_merge("test_c2_property", "test_c2_example_2", "test_c2_example_3"))
+    built, model = build(happy() | {"h-r1-0": [h_pool(2, round_prefix="r1_")]}, executor=executor)
+    assert isinstance(built, Constructed)
+    assert model.keys[model.keys.index("h-0") :][:3] == ["h-0", "h-r1-0", "assign-0"]
+    refill = next(r for r in model.requests if r.key.endswith("h-r1-0"))
+    assert "for each of the criteria 2 of the specification" in refill.prompt
+    assert "round prefix is `r1`" in refill.prompt and "ACME-PARKFEE-12-2~1" in refill.prompt
+    for leaked in ("test_c2_", "test_c1_", "rejected", "surplus", "failed", "merge"):
+        assert leaked not in refill.system_prompt + refill.prompt, leaked
+    second = executor.requests[1]
+    assert {f.path for f in second.candidates} == {"tests/spec_h/test_spec_h_r1_c2_fee.py"}
+    assert {f.path for f in second.kept} == {
+        "tests/spec_h/test_spec_h_c1_fee.py",
+        "tests/spec_h/test_spec_h_c2_fee.py",
+    }
+    record = selection_record(built)
+    assert [r["round"] for r in record["rounds"]] == [0, 1]
+    by_criterion = {c["criterion"]: c for c in record["criteria"]}
+    assert by_criterion["ACME-PARKFEE-12-2"] == {
+        "criterion": "ACME-PARKFEE-12-2",
+        "exposed": True,
+        "kept": MAX_KEPT_PER_CRITERION,
+        "merge_rejects": 3,
+        "refilled": True,
+    }
+    assert not by_criterion["ACME-PARKFEE-12-1"]["exposed"]
+    assert len(record["divergences"]) == 3
+
+
+def test_a_criterion_still_short_after_two_refills_drops_the_task_before_any_later_call() -> None:
+    c2 = ("test_c2_property", "test_c2_example_1", "test_c2_example_2", "test_c2_example_3")
+    executor = ScriptedHExecutor(failing_at_merge(*c2, every_round=True))
+    answers = happy() | {"h-r1-0": [h_pool(2, round_prefix="r1_")], "h-r2-0": [h_pool(2, round_prefix="r2_")]}
+    dropped, model = build(answers, executor=executor)
+    assert isinstance(dropped, Dropped) and dropped.stage is DropStage.H_TESTS
+    assert dropped.reason == "criterion 2 keeps 0 H tests, 2 required (rejected-merge 12)"
+    assert model.keys[-3:] == ["h-0", "h-r1-0", "h-r2-0"] and "assign-0" not in model.keys
+
+
+def test_base_passing_and_flaky_candidates_are_rejected_and_never_kept() -> None:
+    def behaviour(test: HTest, tree: Tree, run: int) -> Outcome:
+        if test.test_id.endswith("test_c1_example_1") and tree is Tree.BASE:
+            return Outcome.PASSED
+        if test.test_id.endswith("test_c1_example_2") and tree is Tree.MERGE and run == 1:
+            return Outcome.FAILED
+        return discriminating(test, tree, run)
+
+    built, _ = build(happy(), executor=ScriptedHExecutor(behaviour))
+    verdicts = {c["id"].split("::")[1]: c["verdict"] for c in selection_record(built)["candidates"]}
+    assert verdicts["test_c1_example_1"] == "rejected-base-pass"
+    assert verdicts["test_c1_example_2"] == "rejected-flaky"
+    assert verdicts["test_c1_property"] == verdicts["test_c1_example_3"] == "kept"
+
+
+def test_a_file_that_does_not_collect_takes_its_tests_and_is_never_sealed() -> None:
+    executor = ScriptedHExecutor(unbuildable=frozenset({"tests/spec_h/test_spec_h_c1_fee.py"}))
+    built, _ = build(happy() | {"h-r1-0": [h_pool(1, round_prefix="r1_")]}, executor=executor)
+    assert isinstance(built, Constructed)
+    assert "oracle/H/tests/spec_h/test_spec_h_c1_fee.py" not in built.bundle.files
+    assert "oracle/H/tests/spec_h/test_spec_h_r1_c1_fee.py" in built.bundle.files
+    verdicts = {c["id"]: c["verdict"] for c in selection_record(built)["candidates"]}
+    assert {v for i, v in verdicts.items() if "test_spec_h_c1_fee.py" in i} == {"rejected-file"}
+
+
+def test_an_execution_that_aborts_drops_the_task_at_the_h_stage() -> None:
+    class Aborting(ScriptedHExecutor):
+        def execute(self, request: HExecutionRequest) -> HExecution:
+            raise TimeoutError("go test timed out")
+
+    dropped, model = build(happy(), executor=Aborting())
+    assert isinstance(dropped, Dropped) and dropped.stage is DropStage.H_TESTS
+    assert dropped.reason == "H execution aborted: go test timed out" and "assign-0" not in model.keys
+
+
+def test_execution_sees_the_human_test_files_and_no_violation_or_planted_change() -> None:
+    executor = ScriptedHExecutor()
+    _, model = build(happy(), executor=executor)
+    (request,) = executor.requests
+    assert dict(request.human_overlay) == {"tests/test_fee.py": U_SOURCE.encode()}
+    assert request.kept == () and request.task.base_sha == "c" * 40 and request.task.merge_sha == "b" * 40
+    assert model.keys.index("h-0") < model.keys.index("violations-0")

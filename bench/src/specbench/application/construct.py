@@ -8,7 +8,8 @@ Order, with the reason for it:
 
 1. the spec is drafted, checked (writing rules and cited hunks against the diff), reviewed and revised once;
 2. the leak controls run on the final spec, and a spec that leaks is fixed once or the task is dropped;
-3. H tests are written from that final spec and its Interface only;
+3. H candidates are written blind from that final spec and its Interface, run at merge and base, and selected by
+   verification's own rules (ADR 0012); a criterion left short is refilled by fresh blind writings, or the task drops;
 4. U assertions are classified against the same spec;
 5. violations and planted refactors are written against the merge code;
 6. two spec-gap criteria are drawn by seed and the bundle is stamped with the current schema version.
@@ -25,6 +26,7 @@ from specbench.application.construction_requests import (
     AuthorView,
     SchemaLibrary,
     assignment_request,
+    h_refill_request,
     h_writer_request,
     planted_request,
     probe_request,
@@ -33,7 +35,13 @@ from specbench.application.construction_requests import (
     spec_revision_request,
     violation_request,
 )
-from specbench.application.ports import ConstructionModel, PatchBuilder, SchemaChecker
+from specbench.application.ports import (
+    ConstructionModel,
+    HCandidateExecutor,
+    HExecutionRequest,
+    PatchBuilder,
+    SchemaChecker,
+)
 from specbench.domain.assignment import Assignment, Classification, assign, classifications_from_record
 from specbench.domain.canonical import JsonValue, canonical_json
 from specbench.domain.changed_tests import without_parameters
@@ -47,7 +55,28 @@ from specbench.domain.edits import (
     violations_from_record,
 )
 from specbench.domain.gaps import GAP_FILE_NAME, draw_gap_criteria, gaps_record
-from specbench.domain.h_tests import HFile, HTest, go_directory_of, h_files_from_record, h_problems
+from specbench.domain.h_selection import (
+    H_SELECTION_PATH,
+    MAX_REFILL_ROUNDS,
+    HExecution,
+    HRound,
+    HSelection,
+    HSelectionRecord,
+    candidate_files,
+    sealed_h_files,
+    select_h,
+    shortfall,
+)
+from specbench.domain.h_tests import (
+    POOL_ROUND,
+    HFile,
+    HLayout,
+    HTest,
+    HWriting,
+    h_files_from_record,
+    h_layout_of,
+    h_problems,
+)
 from specbench.domain.hunks import ChangedRegions
 from specbench.domain.jsonread import mapping, optional_text, sequence, text
 from specbench.domain.languages import Language
@@ -61,6 +90,7 @@ from specbench.domain.prompts import PromptLibrary
 from specbench.domain.sealing import SealedBundle, versioned_bundle
 from specbench.domain.selection import ProbedTask
 from specbench.domain.spec import (
+    CHANGING_STATUSES,
     SPEC_FILE_NAME,
     SpecDraft,
     criteria_of,
@@ -141,6 +171,28 @@ class Constructed:
     bundle: SealedBundle
 
 
+@dataclass(frozen=True)
+class SelectedH:
+    """H as it is sealed: the files holding only the kept tests, the kept tests, and the record of the selection."""
+
+    files: tuple[HFile, ...]
+    tests: tuple[HTest, ...]
+    record: HSelectionRecord
+    candidates: Mapping[str, bytes]
+
+    def bundle_files(self) -> dict[str, bytes]:
+        return {H_SELECTION_PATH: canonical_json(self.record.to_record()).encode(), **self.candidates}
+
+
+@dataclass(frozen=True)
+class HWritten:
+    """One writing's structurally valid files, their candidate tests, and the ids of the calls that wrote them."""
+
+    files: tuple[HFile, ...]
+    tests: tuple[HTest, ...]
+    call_ids: tuple[str, ...]
+
+
 class ConstructionFailure(Exception):
     """A stage that cannot produce a valid artifact; the task is dropped at that stage."""
 
@@ -154,6 +206,12 @@ class ModelOutputInvalid(ConstructionFailure):
 
 
 class TaskConstruction:
+    """Builds one task; `seed` draws the spec-gap criteria and ranks the H candidates.
+
+    `recoverable` names the errors of executing H candidates (a tree that cannot be built, a run that times out) that
+    drop the task at the H stage instead of ending the whole construction run.
+    """
+
     def __init__(
         self,
         model: ConstructionModel,
@@ -161,14 +219,18 @@ class TaskConstruction:
         schemas: SchemaLibrary,
         checker: SchemaChecker,
         patches: PatchBuilder,
-        gap_seed: int,
+        seed: int,
+        executor: HCandidateExecutor,
+        recoverable: tuple[type[Exception], ...] = (),
     ) -> None:
-        self._gap_seed = gap_seed
+        self._seed = seed
         self._model = model
         self._prompts = prompts
         self._schemas = schemas
         self._checker = checker
         self._patches = patches
+        self._executor = executor
+        self._recoverable = recoverable
 
     def build(self, inputs: ConstructionInputs) -> Constructed | Dropped:
         try:
@@ -182,24 +244,25 @@ class TaskConstruction:
             raise ConstructionFailure(DropStage.GROUND, "no fail-to-pass test passes stably at merge")
         draft = self._final_spec(inputs)
         spec_text = render_spec(task_id, draft)
-        h_files, h_tests = self._write_h_tests(inputs, draft, spec_text)
+        task = replace_criteria(inputs.task.to_task(), criteria_of(task_id, draft))
+        selected = self._select_h(inputs, task, draft, spec_text)
         assignment, first, second = self._assign(inputs, spec_text, len(draft.criteria))
         violations = self._violations(inputs, spec_text, len(draft.criteria))
         planted = self._planted(inputs, spec_text)
-        task = replace_criteria(inputs.task.to_task(), criteria_of(task_id, draft))
         files = assemble_files(
             task_id,
             spec_text,
             draft,
             inputs,
-            h_files,
-            h_tests,
+            selected.files,
+            selected.tests,
             assignment,
             (first, second),
             self._patch_files(inputs, violations, planted),
         )
-        gaps = draw_gap_criteria(self._gap_seed, task_id, draft)
-        files[GAP_FILE_NAME] = canonical_json(gaps_record(self._gap_seed, task_id, gaps)).encode()
+        files |= selected.bundle_files()
+        gaps = draw_gap_criteria(self._seed, task_id, draft)
+        files[GAP_FILE_NAME] = canonical_json(gaps_record(self._seed, task_id, gaps)).encode()
         return Constructed(task, versioned_bundle(files))
 
     # -- model calls ---------------------------------------------------------------------------------------------
@@ -303,25 +366,71 @@ class TaskConstruction:
 
     # -- H tests -------------------------------------------------------------------------------------------------
 
-    def _write_h_tests(
-        self, inputs: ConstructionInputs, draft: SpecDraft, spec_text: str
-    ) -> tuple[tuple[HFile, ...], list[HTest]]:
-        task_id = inputs.task.task_id
-        directories = frozenset(
-            d for e in draft.interface if (d := go_directory_of(e.import_path.strip(), inputs.module)) is not None
-        )
+    def _select_h(self, inputs: ConstructionInputs, task: Task, draft: SpecDraft, spec_text: str) -> SelectedH:
+        """The pool, its execution and selection, then at most `MAX_REFILL_ROUNDS` blind refills of short criteria."""
+        language = inputs.language
+        layout = h_layout_of(language, inputs.module, (e.import_path for e in draft.interface))
+        numbers = tuple(c.number for c in draft.criteria)
+        judged = frozenset(c.number for c in draft.criteria if c.status in CHANGING_STATUSES)
+        writings: list[tuple[HFile, ...]] = []
+        tests: list[HTest] = []
+        rounds: list[HRound] = []
+        execution = HExecution()
+        kept: tuple[HFile, ...] = ()
+        writing = HWriting(numbers, POOL_ROUND)
+        while True:
+            written = self._write_h(inputs, layout, writing, spec_text, kept)
+            execution = execution.merged(self._execute(task, inputs, kept, written))
+            writings.append(written.files)
+            tests += written.tests
+            rounds.append(HRound(writing.round, writing.criteria, written.call_ids))
+            selection = select_h(tests, execution, numbers, judged, self._seed, task.task_id)
+            kept = sealed_h_files(language, [f for files in writings for f in files], selection.kept)
+            if not selection.deficient or writing.round == MAX_REFILL_ROUNDS:
+                break
+            writing = HWriting(selection.deficient, writing.round + 1)
+        if selection.deficient:
+            raise ConstructionFailure(DropStage.H_TESTS, shortfall(selection))
+        record = HSelectionRecord(task.task_id, self._seed, tuple(rounds), selection, execution)
+        return SelectedH(kept, _kept_tests(selection), record, candidate_files(writings))
+
+    def _write_h(
+        self, inputs: ConstructionInputs, layout: HLayout, writing: HWriting, spec_text: str, kept: Sequence[HFile]
+    ) -> HWritten:
+        """One writing, structurally repaired at most `FIX_ATTEMPTS` times; the repair names only its own problems."""
         repair = NO_REPAIR
         problems: list[str] = []
+        call_ids: list[str] = []
         for attempt in range(FIX_ATTEMPTS + 1):
-            request = h_writer_request(
-                self._prompts, self._schemas, inputs.language, spec_text, repair, f"{task_id}:h-{attempt}"
-            )
+            request = self._h_request(inputs, writing, spec_text, repair, attempt)
+            call_ids.append(request.call_id)
             files = self._structured(request, DropStage.H_TESTS, h_files_from_record)
-            problems, tests = h_problems(inputs.language, files, len(draft.criteria), directories, inputs.module)
+            problems, tests = h_problems(layout, writing, files, kept)
             if not problems:
-                return files, tests
-            repair = "\n## Problems with the previous attempt\n\n" + "\n".join(f"- {p}" for p in problems)
+                return HWritten(files, tuple(tests), tuple(call_ids))
+            repair = _repair_text(problems)
         raise ConstructionFailure(DropStage.H_TESTS, "; ".join(problems[:3]))
+
+    def _h_request(
+        self, inputs: ConstructionInputs, writing: HWriting, spec_text: str, repair: str, attempt: int
+    ) -> ModelRequest:
+        task_id = inputs.task.task_id
+        if writing.round == POOL_ROUND:
+            key = f"{task_id}:h-{attempt}"
+            return h_writer_request(self._prompts, self._schemas, inputs.language, spec_text, repair, key)
+        key = f"{task_id}:h-r{writing.round}-{attempt}"
+        return h_refill_request(
+            self._prompts, self._schemas, inputs.language, spec_text, writing.criteria, writing.round, repair, key
+        )
+
+    def _execute(
+        self, task: Task, inputs: ConstructionInputs, kept: tuple[HFile, ...], written: HWritten
+    ) -> HExecution:
+        request = HExecutionRequest(task, inputs.human.overlay, kept, written.files, written.tests)
+        try:
+            return self._executor.execute(request)
+        except self._recoverable as error:
+            raise ConstructionFailure(DropStage.H_TESTS, f"H execution aborted: {error}") from error
 
     # -- U to O --------------------------------------------------------------------------------------------------
 
@@ -446,6 +555,10 @@ def probe_finding(outcome: ProbeOutcome) -> str:
 
 def _repair_text(problems: Sequence[str]) -> str:
     return "\n## Problems with the previous attempt\n\n" + "\n".join(f"- {p}" for p in problems[:10])
+
+
+def _kept_tests(selection: HSelection) -> tuple[HTest, ...]:
+    return tuple(t for t in selection.tests if t.test_id in selection.kept)
 
 
 def replace_criteria(task: Task, criteria: tuple[Criterion, ...]) -> Task:

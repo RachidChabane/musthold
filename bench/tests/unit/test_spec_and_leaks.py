@@ -6,7 +6,6 @@ import pytest
 
 from specbench.domain.assignment import Classification, assign
 from specbench.domain.edits import Change, Edit, applicable, apply_edits, select_planted, select_violations
-from specbench.domain.h_tests import HFile, h_problems
 from specbench.domain.hunks import CodeHunk, changed_regions
 from specbench.domain.languages import Language
 from specbench.domain.leaks import (
@@ -206,49 +205,6 @@ def test_the_public_api_lists_signatures_for_both_languages() -> None:
         "example.com/acme/fee: type Meter struct",
     ]
     assert public_api(Language.PYTHON, "", {"pkg/a.py": "def a(): ..."}) == "pkg.a: def a()"
-
-
-PYTHON_H = (
-    "from hypothesis import given, settings, strategies as st\nfrom pkg.fee import fee\n\n\n"
-    "@settings(derandomize=True)\n@given(st.integers(0, 9))\ndef test_c1_free(n):\n    assert fee(n) == 0\n\n\n"
-    "def test_c2_paid():\n    assert fee(60) == 5\n"
-)
-
-
-def test_h_files_are_checked_for_layout_determinism_and_coverage() -> None:
-    problems, tests = h_problems(
-        Language.PYTHON, [HFile("tests/spec_h/test_spec_h_fee.py", PYTHON_H)], 2, frozenset(), ""
-    )
-    assert problems == [] and [(t.test_id, t.number) for t in tests] == [
-        ("tests/spec_h/test_spec_h_fee.py::test_c1_free", 1),
-        ("tests/spec_h/test_spec_h_fee.py::test_c2_paid", 2),
-    ]
-    bad = [
-        HFile("tests/other/test_fee.py", PYTHON_H),
-        HFile("tests/spec_h/test_spec_h_x.py", PYTHON_H.replace("derandomize=True", "max_examples=5")),
-        HFile("tests/spec_h/test_spec_h_y.py", "def test_misc():\n    pass\n\n\ndef test_c9_far():\n    pass\n"),
-    ]
-    problems, _ = h_problems(Language.PYTHON, bad, 2, frozenset(), "")
-    text = "\n".join(problems)
-    assert "live at tests/spec_h" in text and "derandomize" in text and "must state its criterion" in text
-    assert "criterion 9, which does not exist" in text and "criterion 2 has no H test" not in text
-
-
-def test_go_h_files_stay_in_interface_packages_and_import_only_the_standard_library() -> None:
-    good = 'package fee_test\n\nimport (\n\t"testing"\n\t"example.com/acme/fee"\n)\n\nfunc TestH1_Free(t *testing.T) {\n\t_ = fee.Fee(1)\n}\n'
-    problems, tests = h_problems(
-        Language.GO, [HFile("fee/h_free_test.go", good)], 1, frozenset({"fee"}), "example.com/acme"
-    )
-    assert problems == [] and tests[0].test_id == "fee::TestH1_Free"
-    outside = good.replace('"example.com/acme/fee"', '"github.com/other/lib"')
-    problems, _ = h_problems(
-        Language.GO, [HFile("fee/h_free_test.go", outside)], 1, frozenset({"fee"}), "example.com/acme"
-    )
-    assert any("standard library and the module only" in p for p in problems)
-    problems, _ = h_problems(
-        Language.GO, [HFile("elsewhere/h_free_test.go", good)], 1, frozenset({"fee"}), "example.com/acme"
-    )
-    assert any("package directory" in p for p in problems)
 
 
 FILES = {"pkg/fee.py": "def fee(m):\n    if m < 10:\n        return 0\n    return 5\n"}

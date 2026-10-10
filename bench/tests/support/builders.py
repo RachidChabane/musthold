@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import date
 
-from specbench.domain.canonical import canonical_json
+from specbench.domain.canonical import JsonValue, canonical_json
+from specbench.domain.h_selection import H_SELECTION_PATH, H_SELECTION_SCHEMA
 from specbench.domain.languages import Language
 from specbench.domain.manifest import CODING_AGENT_CLIS, PRODUCT_ARTIFACTS, Provenance
 from specbench.domain.sealing import CURRENT_BUNDLE_VERSION, SealedBundle, versioned_bundle
@@ -48,12 +49,44 @@ def task_json(**changes: object) -> str:
     return make_task(**changes).to_canonical_json()
 
 
+H_TEST_ID = "tests/test_h.py::test_h1"
+FAKE_CALL_ID = "build-" + "0" * 20
+
+
+def selection_record_for(kept: Sequence[str], task_id: str = TASK_ID) -> dict[str, JsonValue]:
+    """A selection record that kept exactly `kept`, each a test of criterion 2 that passed at merge and failed at base."""
+    criterion = f"{task_id}-2"
+    return {
+        "candidates": [
+            {
+                "base": ["failed"] * 3,
+                "criterion": criterion,
+                "file": test_id.split("::")[0],
+                "id": test_id,
+                "kind": "example",
+                "merge": ["passed"] * 3,
+                "round": 0,
+                "verdict": "kept",
+            }
+            for test_id in kept
+        ],
+        "criteria": [
+            {"criterion": criterion, "exposed": False, "kept": len(kept), "merge_rejects": 0, "refilled": False}
+        ],
+        "divergences": [],
+        "rounds": [{"calls": [FAKE_CALL_ID], "criteria": [criterion], "round": 0}],
+        "schema": H_SELECTION_SCHEMA,
+        "seed": 20261007,
+        "task_id": task_id,
+    }
+
+
 def oracle_files(task_id: str = TASK_ID) -> dict[str, bytes]:
     """A sealed bundle's files: spec, oracle manifest, U/H/O tests, violations and planted refactors."""
     manifest = [
         {"id": "tests/test_a.py::test_u1", "part": "U", "criterion": f"{task_id}-1"},
         {"id": "tests/test_a.py::test_r1", "part": "R", "criterion": None},
-        {"id": "tests/test_h.py::test_h1", "part": "H", "criterion": f"{task_id}-2"},
+        {"id": H_TEST_ID, "part": "H", "criterion": f"{task_id}-2"},
         {"id": "tests/test_o.py::test_o1", "part": "O", "criterion": None},
     ]
     violations = [
@@ -71,6 +104,7 @@ def oracle_files(task_id: str = TASK_ID) -> dict[str, bytes]:
         "oracle/O/tests/test_o.py": b"def test_o1():\n    assert True\n",
         "violations/index.json": canonical_json(violations).encode(),  # type: ignore[arg-type]
         "planted/index.json": canonical_json(planted).encode(),  # type: ignore[arg-type]
+        H_SELECTION_PATH: canonical_json(selection_record_for([H_TEST_ID], task_id)).encode(),
         "construction/gaps.json": canonical_json(
             {"seed": 20261007, "criteria": [f"{task_id}-1", f"{task_id}-2"]}
         ).encode(),  # type: ignore[arg-type]
@@ -80,7 +114,9 @@ def oracle_files(task_id: str = TASK_ID) -> dict[str, bytes]:
     return files
 
 
-def make_bundle(extra: Mapping[str, bytes] | None = None, version: int = CURRENT_BUNDLE_VERSION) -> SealedBundle:
+def make_bundle(
+    extra: Mapping[str, bytes] | None = None, version: int = CURRENT_BUNDLE_VERSION, without: Sequence[str] = ()
+) -> SealedBundle:
     """A bundle of the given schema version; version 1 carries no version record, as bundles built before 2 did."""
-    files = {**oracle_files(), **(extra or {})}
+    files = {path: content for path, content in {**oracle_files(), **(extra or {})}.items() if path not in without}
     return SealedBundle(files) if version == 1 else versioned_bundle(files, version)

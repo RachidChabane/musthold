@@ -20,6 +20,16 @@ STATUS_FILE: Final = "status.json"
 PLAIN_DIRECTORY: Final = "plain"
 VERIFICATION_FILE: Final = "verification.json"
 VERIFICATION_RUNS_FILE: Final = "verification-runs.json"
+H_SELECTION_RUNS_FILE: Final = "h-selection-runs.json"
+SUPERSEDED_DIRECTORY: Final = "superseded"
+ATTEMPT_ENTRIES: Final = (
+    STATUS_FILE,
+    PLAIN_DIRECTORY,
+    VERIFICATION_FILE,
+    VERIFICATION_RUNS_FILE,
+    H_SELECTION_RUNS_FILE,
+)
+"""What one construction attempt leaves in a task's directory; reopening the task sets all of it aside."""
 ENCODING: Final = "utf-8"
 
 
@@ -80,3 +90,19 @@ class FileStatusStore:
     def verification_runs_path(self, task_id: str) -> Path:
         """Where the journal of the task's verification runs is kept, beside its verification report."""
         return self._directory(task_id) / VERIFICATION_RUNS_FILE
+
+    def h_selection_runs_path(self, task_id: str) -> Path:
+        """Where the journal of the runs that selected the task's H tests is kept."""
+        return self._directory(task_id) / H_SELECTION_RUNS_FILE
+
+    def set_aside(self, task_id: str) -> str:
+        """Moves the last attempt's status, plain files, reports and journals to `superseded/<n>/`, n counting from 1."""
+        directory = self._directory(task_id)
+        superseded = directory / SUPERSEDED_DIRECTORY
+        earlier = [int(p.name) for p in superseded.iterdir() if p.name.isdigit()] if superseded.is_dir() else []
+        target = superseded / str(max(earlier, default=0) + 1)
+        target.mkdir(parents=True)
+        for name in ATTEMPT_ENTRIES:
+            if (directory / name).exists():
+                (directory / name).rename(target / name)
+        return str(target)

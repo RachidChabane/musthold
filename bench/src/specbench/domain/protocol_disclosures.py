@@ -1,4 +1,5 @@
-"""The protocol deviation entries of the clean-room CI simulation, logged at the start of a run (ADR 0011, decision 12)."""
+"""The protocol entries logged at the start of a run: the clean-room CI simulation (ADR 0011, decision 12) and the
+selection of H by execution (ADR 0012)."""
 
 from __future__ import annotations
 
@@ -23,4 +24,12 @@ ALL_NATIVE_REGATE: Final = DeviationEntry.create(
     "harvested local responses use isolated-fallback; the extra executions are reported in E5.",
 )
 
-RUN_START_DISCLOSURES: Final = (CI_SIMULATION, ALL_NATIVE_REGATE)
+H_SELECTION: Final = DeviationEntry.create(
+    DeviationKind.PROTOCOL,
+    (),
+    "H is selected deterministically from blind pools by execution at merge and base (ADR 0012): the writer sees "
+    "no outcome; a candidate is kept only if it passes at merge, fails at base for a new or revised criterion and "
+    "is stable on both trees; H-inclusive X is also reported without the criteria that had a merge reject or a refill.",
+)
+
+RUN_START_DISCLOSURES: Final = (CI_SIMULATION, ALL_NATIVE_REGATE, H_SELECTION)

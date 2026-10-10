@@ -7,6 +7,7 @@ import pytest
 
 from specbench.application.construct import Constructed, ConstructionInputs, Dropped, DropStage, TaskConstruction
 from specbench.application.construct_run import ConstructionRun, Outcome, TaskSettlement, TaskStatus
+from specbench.application.reopen import NotReopenable, reopen
 from specbench.application.reverify import NotReverifiable, reverify
 from specbench.application.verify_task import TaskVerifier
 from specbench.domain.construction import ModelCallFailed
@@ -148,3 +149,34 @@ def test_reverify_refuses_a_task_without_plain_files() -> None:
     statuses.write(TaskStatus(SELECTED_ID, Outcome.DROPPED, DropStage.VERIFICATION.value, "flaky", None))
     with pytest.raises(NotReverifiable):
         reverify(SELECTED_ID, statuses, settlement(RuntimeError("unused"), statuses))
+
+
+def test_reverify_refuses_a_bundle_built_before_h_was_selected_by_execution_and_names_the_rebuild() -> None:
+    statuses = Statuses()
+    statuses.write_plain(Constructed(make_task(task_id=SELECTED_ID), make_bundle(version=2)))
+    statuses.write(TaskStatus(SELECTED_ID, Outcome.DROPPED, DropStage.VERIFICATION.value, "flaky", None))
+    with pytest.raises(NotReverifiable, match=f"reopen --task-id {SELECTED_ID}"):
+        reverify(SELECTED_ID, statuses, settlement(RuntimeError("unused"), statuses))
+
+
+class AsideStatuses(Statuses):
+    def __init__(self) -> None:
+        super().__init__()
+        self.aside: list[str] = []
+
+    def set_aside(self, task_id: str) -> str:
+        self.aside.append(task_id)
+        del self.statuses[task_id]
+        return f"superseded/{len(self.aside)}"
+
+
+def test_reopen_sets_a_dropped_task_aside_and_refuses_a_sealed_or_unfinished_one() -> None:
+    statuses = AsideStatuses()
+    statuses.write(TaskStatus(SELECTED_ID, Outcome.DROPPED, DropStage.VERIFICATION.value, "flaky", None))
+    assert reopen(SELECTED_ID, statuses) == "superseded/1" and statuses.read(SELECTED_ID) is None
+    with pytest.raises(NotReopenable, match="open already"):
+        reopen(SELECTED_ID, statuses)
+    statuses.write(TaskStatus(SELECTED_ID, Outcome.SEALED, None, None, "ab" * 32))
+    with pytest.raises(NotReopenable, match="sealed"):
+        reopen(SELECTED_ID, statuses)
+    assert statuses.aside == [SELECTED_ID]

@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from specbench.application.construct import DropStage
 from specbench.application.construct_run import Outcome, StatusStore, TaskSettlement, TaskStatus
+from specbench.domain.sealing import CURRENT_BUNDLE_VERSION
 from specbench.domain.task import Task
 
 
@@ -32,4 +33,9 @@ def reverify(task_id: str, statuses: StatusStore, settlement: TaskSettlement) ->
     built = statuses.read_plain(task_id)
     if built is None:
         raise NotReverifiable(f"{task_id} has no plain task files")
+    if built.bundle.schema_version < CURRENT_BUNDLE_VERSION:
+        raise NotReverifiable(
+            f"{task_id} was built at bundle schema version {built.bundle.schema_version}, which sealing refuses: "
+            f"reopen it (bench/script/reopen --task-id {task_id}) and construct it again"
+        )
     return Reverified(built.task, settlement.settle(built))

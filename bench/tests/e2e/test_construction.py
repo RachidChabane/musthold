@@ -30,13 +30,17 @@ from specbench.adapters.sealed_store import AgeSealStore, generate_identity
 from specbench.application.construct import DropStage, TaskConstruction
 from specbench.application.construct_run import ConstructionRun, Outcome, TaskSettlement, TaskStatus
 from specbench.application.corpus import unseal_task
+from specbench.application.h_execution import PerTaskHExecutor, PythonIsolation, TreeHCandidateExecutor
 from specbench.application.paced_calls import CallGate, PacedConstructionModel
+from specbench.application.reopen import reopen
 from specbench.application.reverify import reverify
+from specbench.application.stabilised_runs import StabilisedRuns
 from specbench.application.verify_task import TaskVerifier
 from specbench.domain.arms import Harness
 from specbench.domain.canonical import JsonValue
 from specbench.domain.construction import HAIKU, OPUS, SONNET
 from specbench.domain.gaps import GAP_FILE_NAME
+from specbench.domain.h_selection import H_SELECTION_PATH
 from specbench.domain.manifest import RunLayout
 from specbench.domain.oracle import oracle_from_bundle
 from specbench.domain.pacing import PacingPolicy, RunPaused, RunWindow
@@ -77,17 +81,28 @@ SPEC = {
         },
     ],
 }
-H_TESTS = (
-    "import pytest\n"
-    "from hypothesis import given, settings, strategies as st\n"
-    "from pkg.fee import fee\n\n\n"
+H_HEADER = "import pytest\nfrom hypothesis import given, settings, strategies as st\nfrom pkg.fee import fee\n\n\n"
+H_SHORT_STAYS = H_HEADER + (
     "@settings(derandomize=True, max_examples=30, deadline=None)\n"
     "@given(st.integers(min_value=1, max_value=9))\n"
     "def test_c1_short_stays_are_free(minutes):\n    assert fee(minutes) == 0\n\n\n"
     '@pytest.mark.parametrize("minutes", [1, 9])\n'
     "def test_c1_the_first_and_last_free_minutes(minutes):\n    assert fee(minutes) == 0\n\n\n"
-    "def test_c2_a_zero_minute_stay_is_free():\n    assert fee(0) == 0\n"
+    "def test_c1_five_minutes_are_free():\n    assert fee(5) == 0\n\n\n"
+    "def test_c1_ten_minutes_are_free():\n    assert fee(10) == 0\n"
 )
+H_ZERO = H_HEADER + (
+    "@settings(derandomize=True, max_examples=5, deadline=None)\n"
+    "@given(st.integers(min_value=0, max_value=0))\n"
+    "def test_c2_no_stay_is_ever_charged(minutes):\n    assert fee(minutes) == 0\n\n\n"
+    "def test_c2_a_zero_minute_stay_is_free():\n    assert fee(0) == 0\n\n\n"
+    "def test_c2_a_zero_minute_stay_costs_no_more_than_one():\n    assert fee(0) <= fee(1)\n\n\n"
+    "def test_c2_an_hour_still_costs_five():\n    assert fee(60) == 5\n"
+)
+H_FILES = [
+    {"path": "tests/spec_h/test_spec_h_c1_short_stays.py", "content": H_SHORT_STAYS},
+    {"path": "tests/spec_h/test_spec_h_c2_zero.py", "content": H_ZERO},
+]
 CLASSIFICATION = {
     "classifications": [
         {"test_id": "tests/test_fee.py::test_free", "implied": True, "criterion": 1, "reason": "stated by criterion 1"}
@@ -129,7 +144,7 @@ RESPONSES: list[dict[str, JsonValue]] = [
     {"payload": {"findings": []}},
     {"payload": {"predictions": [{"operation": "fee", "arguments": ["3"]}]}},
     {"payload": {"predictions": [{"operation": "fee", "arguments": ["5"]}]}},
-    {"payload": {"files": [{"path": "tests/spec_h/test_spec_h_fee.py", "content": H_TESTS}]}},
+    {"payload": {"files": H_FILES}},
     {"payload": CLASSIFICATION},
     {"payload": CLASSIFICATION},
     {"payload": VIOLATIONS},
@@ -199,8 +214,20 @@ class World:
             JsonSchemaChecker(),
             GitDiffPatchBuilder(plain),
             GAP_SEED,
+            self.h_executor(),
         )
         return ConstructionRun(sources, construction, self.settlement(), self.statuses(), gate.require_open)
+
+    def h_executor(self) -> PerTaskHExecutor:
+        """H candidates run as construction runs them: the task's git trees, real pytest, network denied."""
+        mirrors = GitMirrors(self.root / "mirrors", SubprocessRunner())
+
+        def executor_for(task: Task) -> TreeHCandidateExecutor:
+            trees = GitTreeFactory(mirrors.path_of(task.repository))
+            runs = StabilisedRuns(trees, PytestOracleRunner(Path(sys.executable), denied_runner()))
+            return TreeHCandidateExecutor(runs, PythonIsolation())
+
+        return PerTaskHExecutor(executor_for)
 
     def statuses(self) -> FileStatusStore:
         return FileStatusStore(self.work / "construction")
@@ -246,7 +273,7 @@ def test_one_task_is_constructed_verified_and_sealed(world: World) -> None:
     oracle = oracle_from_bundle(unsealed.bundle)
     assert {t.part.value for t in oracle.tests} == {"U", "R", "H"}
     assert len(oracle.violations) == 4 and len(oracle.planted) == 2
-    assert "oracle/U/tests/test_fee.py" in files and "oracle/H/tests/spec_h/test_spec_h_fee.py" in files
+    assert "oracle/U/tests/test_fee.py" in files and "oracle/H/tests/spec_h/test_spec_h_c1_short_stays.py" in files
     assert "oracle/O/tests/test_fee.py" not in files
     assignment = json.loads(files["construction/assignment.json"])
     assert assignment["u"] == {"tests/test_fee.py::test_free": 1} and assignment["o"] == []
@@ -255,6 +282,36 @@ def test_one_task_is_constructed_verified_and_sealed(world: World) -> None:
     assert json.loads(files["construction/spec.json"])["criteria"][1]["implementingHunks"] == [
         {"endLine": 2, "path": "pkg/fee.py", "startLine": 2}
     ]
+
+
+def test_h_is_selected_by_real_runs_at_merge_and_base_and_sealed_exactly_as_selected(world: World) -> None:
+    world.run().run(selection(world.task), 1)
+    files = unseal_task(world.corpus, AgeSealStore(), world.identity, TASK_ID).bundle.files
+    record = json.loads(files[H_SELECTION_PATH])
+    verdicts = {c["id"].split("::")[1]: c["verdict"] for c in record["candidates"]}
+    assert verdicts["test_c1_ten_minutes_are_free"] == "rejected-merge"
+    assert verdicts["test_c2_an_hour_still_costs_five"] == "rejected-base-pass"
+    assert verdicts["test_c1_short_stays_are_free"] == verdicts["test_c2_no_stay_is_ever_charged"] == "kept"
+    assert [c["exposed"] for c in record["criteria"]] == [True, False]
+    assert record["divergences"] == ["tests/spec_h/test_spec_h_c1_short_stays.py::test_c1_ten_minutes_are_free"]
+    manifest = json.loads(files["oracle/manifest.json"])
+    assert {m["id"] for m in manifest if m["part"] == "H"} == {
+        c["id"] for c in record["candidates"] if c["verdict"] == "kept"
+    }
+    sealed = files["oracle/H/tests/spec_h/test_spec_h_c1_short_stays.py"].decode()
+    assert "test_c1_ten_minutes_are_free" not in sealed and "@settings(derandomize=True" in sealed
+    assert files["construction/h-candidates/tests/spec_h/test_spec_h_c1_short_stays.py"].decode() == H_SHORT_STAYS
+
+
+def test_a_reopened_task_is_built_again_from_the_archive_and_its_last_attempt_is_kept(world: World) -> None:
+    world.run().run(selection(world.task), 1)
+    world.statuses().write(TaskStatus(TASK_ID, Outcome.DROPPED, DropStage.VERIFICATION.value, "stale", None))
+    aside = Path(reopen(TASK_ID, world.statuses()))
+    assert (aside / "status.json").is_file() and (aside / "plain").is_dir()
+    assert world.statuses().read(TASK_ID) is None
+    again = world.run().run(selection(world.task), 1)
+    assert again.sealed == (TASK_ID,)
+    assert len(recorded_calls(world.root / "fake")) == len(RESPONSES)
 
 
 def test_each_role_sees_only_what_the_design_gives_it(world: World) -> None:
@@ -279,7 +336,7 @@ def test_a_rerun_replays_every_call_from_the_archive(world: World) -> None:
 
 def test_a_task_dropped_at_verification_is_settled_again_without_a_model_call(world: World) -> None:
     world.run().run(selection(world.task), 1)
-    stale = "merge-passes-all: tests/spec_h/test_spec_h_fee.py::test_c1_the_first_and_last_free_minutes (H) is missing"
+    stale = "merge-passes-all: tests/spec_h/test_spec_h_c1_short_stays.py::test_c1_five_minutes_are_free (H) is missing"
     world.statuses().write(TaskStatus(TASK_ID, Outcome.DROPPED, DropStage.VERIFICATION.value, stale, None))
     calls = len(recorded_calls(world.root / "fake"))
 

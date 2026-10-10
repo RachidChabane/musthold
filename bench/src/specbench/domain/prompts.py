@@ -17,6 +17,7 @@ class Prompt(Enum):
     REVIEWER_USER = "reviewer.user"
     H_WRITER_SYSTEM = "h-writer.system"
     H_WRITER_USER = "h-writer.user"
+    H_REFILL_USER = "h-refill.user"
     H_LAYOUT_PYTHON = "h-layout-python"
     H_LAYOUT_GO = "h-layout-go"
     VIOLATION_AUTHOR_SYSTEM = "violation-author.system"

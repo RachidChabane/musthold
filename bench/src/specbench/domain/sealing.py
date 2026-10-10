@@ -21,8 +21,9 @@ MAX_BUNDLE_FILES: Final = 10_000
 BUNDLE_VERSION_PATH: Final = "bundle.json"
 LEGACY_BUNDLE_VERSION: Final = 1
 """The version of a bundle that carries no version record."""
-CURRENT_BUNDLE_VERSION: Final = 2
-"""Version 2 adds the spec-gap data: a dimension and implementing hunks per criterion, and the two drawn criteria."""
+CURRENT_BUNDLE_VERSION: Final = 3
+"""Version 2 holds the spec-gap data: a dimension and implementing hunks per criterion, and the two drawn criteria.
+Version 3 holds the record of H selected by execution from blind pools (ADR 0012)."""
 
 
 class SealingError(ValueError):
@@ -93,7 +94,7 @@ def versioned_bundle(files: Mapping[str, bytes], version: int = CURRENT_BUNDLE_V
 
 
 def require_current_version(bundle: SealedBundle) -> None:
-    """Sealing refuses a bundle built before the current schema: its spec-gap data would be missing."""
+    """Sealing refuses a bundle built before the current schema: its spec-gap data or its H selection would be missing."""
     if bundle.schema_version < CURRENT_BUNDLE_VERSION:
         raise SealingError(
             f"bundle schema version {bundle.schema_version} is below {CURRENT_BUNDLE_VERSION}: rebuild the task"

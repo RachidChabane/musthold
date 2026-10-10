@@ -46,7 +46,7 @@ SIX = spec(
 
 def test_a_bundle_without_a_version_record_is_version_one_and_a_versioned_one_carries_its_version() -> None:
     assert SealedBundle({"SPEC.md": b"x"}).schema_version == LEGACY_BUNDLE_VERSION == 1
-    assert versioned_bundle({"SPEC.md": b"x"}).schema_version == CURRENT_BUNDLE_VERSION == 2
+    assert versioned_bundle({"SPEC.md": b"x"}).schema_version == CURRENT_BUNDLE_VERSION == 3
     assert versioned_bundle({"SPEC.md": b"x"}, 7).schema_version == 7
 
 
@@ -69,10 +69,10 @@ def test_a_malformed_version_record_is_refused_when_the_bundle_is_built(content:
 
 def test_the_version_record_is_canonical_and_a_bundle_file_so_the_lock_covers_it() -> None:
     bundle = make_bundle()
-    assert bundle.files[BUNDLE_VERSION_PATH] == version_record(CURRENT_BUNDLE_VERSION) == b'{"schema_version":2}\n'
+    assert bundle.files[BUNDLE_VERSION_PATH] == version_record(CURRENT_BUNDLE_VERSION) == b'{"schema_version":3}\n'
     entry = lock_entry_for(TASK_ID, Language.PYTHON, task_json(), bundle)
     assert BUNDLE_VERSION_PATH in entry.files
-    assert bundle.bundle_digest != make_bundle(version=3).bundle_digest
+    assert bundle.bundle_digest != make_bundle(version=2).bundle_digest
 
 
 def test_the_version_survives_the_archive() -> None:
@@ -83,7 +83,9 @@ def test_the_version_survives_the_archive() -> None:
 def test_only_the_current_version_or_a_newer_one_may_be_sealed() -> None:
     require_current_version(make_bundle())
     require_current_version(make_bundle(version=CURRENT_BUNDLE_VERSION + 1))
-    with pytest.raises(SealingError, match="below 2"):
+    with pytest.raises(SealingError, match="below 3"):
+        require_current_version(make_bundle(version=2))
+    with pytest.raises(SealingError, match="below 3"):
         require_current_version(make_bundle(version=1))
     with pytest.raises(SealingError, match="version 1"):
         require_current_version(SealedBundle({"SPEC.md": b"x"}))

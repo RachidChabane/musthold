@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Return dropped tasks to construction: each task's last attempt (status, plain files, reports, run journals) is moved
+# to <work>/construction/<task id>/superseded/<n>/, never deleted, and the next `construct` builds the task again.
+# Model calls whose request is unchanged replay from the archive; a sealed task is refused. No model call, no run.
+#
+#   bench/script/reopen --task-id ID [--task-id ID ...] [--work DIR]
+#
+# Default work: $SPECBENCH_WORK.
+set -euo pipefail
+# shellcheck source=bench/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+args=("$@")
+has_option() {
+  local option
+  for option in "${args[@]}"; do [[ "${option}" == "$1" ]] && return 0; done
+  return 1
+}
+has_option --work || args+=(--work "${SPECBENCH_WORK}")
+specbench_light reopen "${args[@]}"

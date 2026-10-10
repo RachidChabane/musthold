@@ -9,9 +9,11 @@ from datetime import date
 from pathlib import Path
 
 from specbench.domain.canonical import canonical_json
+from specbench.domain.h_selection import H_SELECTION_PATH
 from specbench.domain.languages import Language
 from specbench.domain.sealing import SealedBundle, versioned_bundle
 from specbench.domain.task import Criterion, CriterionStatus, Task, Toolchain
+from support.builders import selection_record_for
 
 TASK = "ACME-PARKFEE-12"
 BASE_FEE = "def fee(minutes):\n    return 5\n"
@@ -82,6 +84,7 @@ def bundle(violation_one: str, h_test: bytes = PLAIN_H) -> SealedBundle:
     for name, content in planted.items():
         files[f"planted/{name}.patch"] = patch("pkg/fee.py", MERGE_FEE, content)
     files["planted/index.json"] = canonical_json([{"id": n, "patch": f"planted/{n}.patch"} for n in planted]).encode()  # type: ignore[arg-type]
+    files[H_SELECTION_PATH] = canonical_json(selection_record_for(["tests/test_h.py::test_h1"], TASK)).encode()
     return versioned_bundle(files)
 
 

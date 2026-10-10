@@ -23,6 +23,7 @@ from specbench.analysis.bootstrap import BOOTSTRAP_RESAMPLES
 from specbench.analysis.selection_null import DEFAULT_PERMUTATIONS
 from specbench.application.paced_calls import ModelNotFrozen
 from specbench.application.ports import PinnedClaudeUnavailable
+from specbench.application.reopen import NotReopenable
 from specbench.application.reverify import NotReverifiable
 from specbench.cli import commands
 from specbench.cli.commands import Console
@@ -54,6 +55,7 @@ USAGE_ERROR: Final = 2
 EXPECTED_FAILURES: Final = (
     CanonicalError,
     NotReverifiable,
+    NotReopenable,
     EnvironmentBuildError,
     FileNotFoundError,
     GhError,
@@ -129,6 +131,10 @@ def _add_mining_verbs(add: AddVerb) -> None:
     reverify.add_argument("--mirrors", type=_path, required=True)
     reverify.add_argument("--work", type=_path, required=True, help="the work directory `construct` used")
     reverify.add_argument("--task-id", action="append", required=True, help="repeat for several tasks")
+
+    reopen = add("reopen", help="return dropped tasks to construction; their last attempt is set aside, never deleted")
+    reopen.add_argument("--work", type=_path, required=True, help="the work directory `construct` used")
+    reopen.add_argument("--task-id", action="append", required=True, help="repeat for several tasks")
 
     keygen = add("keygen", help="create an age identity outside the repository and add its recipient")
     keygen.add_argument("--identity", type=_path, required=True)
@@ -263,6 +269,7 @@ def _handlers() -> dict[str, Handler]:
             c,
         ),
         "reverify": lambda a, c: commands.run_reverify(a.selection, a.corpus, a.mirrors, a.work, a.task_id, c),
+        "reopen": lambda a, c: commands.run_reopen(a.work, a.task_id, c),
         "keygen": lambda a, c: commands.run_keygen(a.identity, a.recipients, c),
         "seal": lambda a, c: commands.run_seal(a.corpus, a.plain, c),
         "unseal": lambda a, c: commands.run_unseal(a.corpus, a.identity, a.task_id, a.out, c),
