@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -26,6 +27,7 @@ from specbench.domain.h_selection import (
 from specbench.domain.h_tests import HFile, HTest, TestKind
 from specbench.domain.languages import Language
 from specbench.domain.oracle import Outcome
+from specbench.domain.protocol_disclosures import H_SELECTION, RUN_START_DISCLOSURES
 from specbench.domain.sealing import SealingError
 from support.builders import make_bundle, selection_record_for
 
@@ -151,6 +153,12 @@ def test_sealing_refuses_a_bundle_without_a_selection_record_or_whose_h_differs_
     other = selection_record_for(["tests/test_h.py::test_other"])
     with pytest.raises(SealingError, match="not the tests selected by execution"):
         require_selected_h(make_bundle({H_SELECTION_PATH: canonical_json(other).encode()}))
+
+
+def test_the_run_start_disclosure_is_the_line_adr_0012_states() -> None:
+    adr = (Path(__file__).resolve().parents[3] / "docs" / "adr" / "0012-selecting-h-by-execution.md").read_text()
+    assert H_SELECTION in RUN_START_DISCLOSURES
+    assert H_SELECTION.render().removeprefix("- ") in " ".join(adr.split())
 
 
 def test_the_exposed_criteria_are_read_back_from_the_sealed_record() -> None:

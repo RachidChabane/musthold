@@ -1,7 +1,8 @@
 # ADR 0011: Running the benchmark sample
 
 Status: accepted. Implements ADR 0007 ("Benchmark by samples") on top of ADR 0004,
-with the two deviations listed under Decisions 3 and 4.
+with the two deviations listed under Decisions 3 and 4. ADR 0012 sets the bundle
+schema version of decision 6 to 3.
 
 ## Context
 

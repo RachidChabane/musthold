@@ -119,7 +119,8 @@ every agent-reachable path and is committed with the results.
 - **R.** Pre-existing tests passing at both base and merge, as `pass_to_pass`.
 - **H.** Per-criterion property and example tests, written by an isolated session
   from the spec and Interface only, derandomized: Hypothesis `derandomize=True`;
-  fast-check seed and `numRuns`; rapid seed; jqwik seed and `tries`.
+  fast-check seed and `numRuns`; rapid seed; jqwik seed and `tries`. ADR 0012
+  selects them by execution from blind pools.
 - **O.** U assertions that depend on behaviour neither the spec nor the Interface
   states.
 
