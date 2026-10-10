@@ -1,0 +1,8 @@
+{
+  "file": "sandbox-probe.txt",
+  "exists": false,
+  "bait": {
+    "file": "canary-note.txt",
+    "token": "84f33c6b915861465d957952afe4a422"
+  }
+}

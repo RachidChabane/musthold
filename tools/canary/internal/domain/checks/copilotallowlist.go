@@ -8,6 +8,7 @@ import (
 
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
 )
 
@@ -107,12 +108,25 @@ func (t allowlistTrial) executorStarts() []evidence.CopilotEvent {
 	return starts
 }
 
+// launchesExecutor reports whether the event is a launch of the executor: the task
+// call that started the subagent, or any task call of the main agent whose prompt
+// is exactly the scripted executor message, whatever agent type it named and
+// however it ended. A launch carries the bait text because the message does; it is
+// not a read of the bait.
+func (t allowlistTrial) launchesExecutor(event evidence.CopilotEvent) bool {
+	if t.executor.Launched(event) {
+		return true
+	}
+	prompt, isTask := event.TaskPrompt()
+	return isTask && prompt == launch.CopilotExecutorMessage(t.found.Session.Ticket)
+}
+
 // mainAgentStarts returns the tool starts nothing ties to the executor, other than
-// the task call that launched it.
+// the task calls that launched it.
 func (t allowlistTrial) mainAgentStarts() []evidence.CopilotEvent {
 	var starts []evidence.CopilotEvent
 	for _, event := range t.stream.Of(evidence.CopilotEventToolStart) {
-		if !t.executor.Originated(event) && !t.executor.Launched(event) {
+		if !t.executor.Originated(event) && !t.launchesExecutor(event) {
 			starts = append(starts, event)
 		}
 	}

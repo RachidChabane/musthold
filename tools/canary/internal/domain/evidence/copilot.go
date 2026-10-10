@@ -165,6 +165,19 @@ func (e CopilotEvent) TaskAgentType() (string, bool) {
 	return arguments.AgentType, true
 }
 
+// TaskPrompt returns the prompt argument of a tool.execution_start of the task
+// tool, and whether the event is such a call.
+func (e CopilotEvent) TaskPrompt() (string, bool) {
+	if e.Type != CopilotEventToolStart || e.ToolName != CopilotTaskTool {
+		return "", false
+	}
+	var arguments struct {
+		Prompt string `json:"prompt"`
+	}
+	_ = json.Unmarshal(e.Arguments, &arguments)
+	return arguments.Prompt, true
+}
+
 // CompletionOf returns the tool.execution_complete that closes a tool call.
 func (s CopilotStream) CompletionOf(toolCallID string) (CopilotEvent, bool) {
 	for _, event := range s.Events {
