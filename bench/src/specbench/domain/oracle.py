@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from typing import Final, cast
 
+from specbench.domain.changed_tests import without_parameters
 from specbench.domain.sealing import SealedBundle, SealingError
 
 SPEC_PATH: Final = "SPEC.md"
@@ -40,6 +41,35 @@ class Outcome(Enum):
     @property
     def is_failure(self) -> bool:
         return self in (Outcome.FAILED, Outcome.ERROR, Outcome.MISSING)
+
+
+CASE_SEVERITY: Final = (Outcome.FAILED, Outcome.ERROR, Outcome.MISSING)
+"""The outcome of a test reported as several cases is its most severe case outcome, in this order."""
+
+
+def folded_outcome(cases: Collection[Outcome]) -> Outcome:
+    """One outcome for the cases of one test: PASSED only when a case ran and every case passed."""
+    for outcome in CASE_SEVERITY:
+        if outcome in cases:
+            return outcome
+    return Outcome.PASSED if cases else Outcome.MISSING
+
+
+def requested_outcomes(requested: Sequence[str], reported: Mapping[str, Outcome]) -> dict[str, Outcome]:
+    """The outcome of each requested test id from a runner's per-case report.
+
+    An id the runner reports verbatim takes that outcome; a parameter-free id (`file::test`, as the oracle names a
+    test from its source) takes the folded outcome of every parametrized case the runner reports for it (`file::test[...]`).
+    """
+    cases: dict[str, list[Outcome]] = {}
+    for case_id, outcome in reported.items():
+        base = without_parameters(case_id)
+        if base != case_id:
+            cases.setdefault(base, []).append(outcome)
+    return {
+        test_id: reported[test_id] if test_id in reported else folded_outcome(cases.get(test_id, ()))
+        for test_id in requested
+    }
 
 
 @dataclass(frozen=True)

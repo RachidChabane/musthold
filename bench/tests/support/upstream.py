@@ -16,6 +16,12 @@ from specbench.domain.task import Criterion, CriterionStatus, Task, Toolchain
 TASK = "ACME-PARKFEE-12"
 BASE_FEE = "def fee(minutes):\n    return 5\n"
 MERGE_FEE = "def fee(minutes):\n    if minutes < 10:\n        return 0\n    return 5\n"
+PLAIN_H = b"from pkg.fee import fee\n\n\ndef test_h1():\n    assert fee(9) == 0 and fee(10) == 5\n"
+PARAMETRIZED_H = (
+    b"import pytest\n\nfrom pkg.fee import fee\n\n\n"
+    b'@pytest.mark.parametrize("minutes, expected", [(9, 0), (10, 5)])\n'
+    b"def test_h1(minutes, expected):\n    assert fee(minutes) == expected\n"
+)
 GIT_ENV = {
     "GIT_AUTHOR_NAME": "t",
     "GIT_AUTHOR_EMAIL": "t@example.com",
@@ -43,7 +49,7 @@ def commit_all(repo: Path, message: str) -> str:
     return git(repo, "rev-parse", "HEAD")
 
 
-def bundle(violation_one: str) -> SealedBundle:
+def bundle(violation_one: str, h_test: bytes = PLAIN_H) -> SealedBundle:
     tests = [
         {"id": "tests/test_u.py::test_u1", "part": "U", "criterion": f"{TASK}-1"},
         {"id": "tests/test_r.py::test_r1", "part": "R", "criterion": None},
@@ -61,7 +67,7 @@ def bundle(violation_one: str) -> SealedBundle:
         "SPEC.md": b"# Spec\n",
         "oracle/manifest.json": canonical_json(tests).encode(),  # type: ignore[arg-type]
         "oracle/U/tests/test_u.py": b"from pkg.fee import fee\n\n\ndef test_u1():\n    assert fee(5) == 0\n",
-        "oracle/H/tests/test_h.py": b"from pkg.fee import fee\n\n\ndef test_h1():\n    assert fee(9) == 0 and fee(10) == 5\n",
+        "oracle/H/tests/test_h.py": h_test,
         "oracle/O/tests/test_o.py": b"from pkg.fee import fee\n\n\ndef test_o1():\n    assert isinstance(fee(1), int)\n",
     }
     index: list[dict[str, str]] = []

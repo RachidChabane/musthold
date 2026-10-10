@@ -1,7 +1,8 @@
 """`OracleRunner` strategies: pytest through JUnit XML for Python, `go test -json` for Go.
 
 A requested test that the run does not report (collection error, import error, build
-failure) is MISSING, which counts as a failure, as ADR 0004's defect definition states.
+failure) is MISSING, which counts as a failure, as ADR 0004's defect definition states. A parameter-free pytest id
+stands for every parametrized case of that test, as a Go top-level test stands for its sub-tests.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ from typing import Final
 from xml.etree import ElementTree
 
 from specbench.application.ports import ProcessRunner
-from specbench.domain.oracle import OracleTest, Outcome
+from specbench.domain.oracle import OracleTest, Outcome, requested_outcomes
 
 NODE_SEPARATOR: Final = "::"
 JUNIT_FILE: Final = "report.xml"
@@ -87,7 +88,7 @@ class PytestOracleRunner:
                 [str(self._python), *PYTEST_ARGUMENTS, f"--junitxml={report}", *files], tree, python_path_for(tree)
             )
             reported = parse_junit(tree, report.read_text(encoding="utf-8")) if report.is_file() else {}
-        return {t.test_id: reported.get(t.test_id, Outcome.MISSING) for t in tests}
+        return requested_outcomes([t.test_id for t in tests], reported)
 
 
 class PytestSuiteRunner:

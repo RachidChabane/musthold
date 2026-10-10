@@ -14,7 +14,7 @@ from specbench.application.ports import TreeSpec
 from specbench.application.verify_task import TaskVerifier
 from specbench.domain.oracle import OracleTest, Outcome, Part, oracle_from_bundle
 from specbench.domain.verification import CheckName, CheckStatus
-from support.upstream import GOOD_V1, STRAY_V1, bundle, make_upstream, patch, task
+from support.upstream import GOOD_V1, PARAMETRIZED_H, STRAY_V1, bundle, make_upstream, patch, task
 
 pytestmark = pytest.mark.integration
 
@@ -40,6 +40,15 @@ def test_a_real_task_is_verified_end_to_end(upstream: tuple[Path, str, str]) -> 
     survivors = next(c for c in report.checks if c.name is CheckName.OPERATOR_SURVIVORS)
     assert survivors.status is CheckStatus.NOT_EVALUATED
     assert report.limitation is not None and "spec-proof-dp" in report.limitation
+
+
+def test_a_parametrized_h_test_named_without_parameters_is_verified_end_to_end(
+    upstream: tuple[Path, str, str],
+) -> None:
+    repo, base, merge = upstream
+    sealed = bundle(GOOD_V1, PARAMETRIZED_H)
+    report = verifier(repo).verify(task(base, merge), oracle_from_bundle(sealed), sealed)
+    assert report.verified, report.to_record()
 
 
 def test_a_violation_that_also_breaks_another_criterion_drops_the_task(upstream: tuple[Path, str, str]) -> None:
@@ -68,7 +77,8 @@ def test_pytest_runner_reports_failures_errors_and_collection_errors(tmp_path: P
     (tmp_path / "tests" / "test_x.py").write_text(
         "import pytest\n\n\nclass TestK:\n    def test_inside(self):\n        assert True\n\n\n"
         "def test_ok():\n    assert True\n\n\ndef test_bad():\n    assert False\n\n\n"
-        "@pytest.mark.parametrize('n', [1, 2])\ndef test_param(n):\n    assert n == 1\n"
+        "@pytest.mark.parametrize('n', [1, 2])\ndef test_param(n):\n    assert n == 1\n\n\n"
+        "@pytest.mark.parametrize('n', [1, 2])\ndef test_all_cases_pass(n):\n    assert n > 0\n"
     )
     (tmp_path / "tests" / "test_broken.py").write_text(
         "import module_that_does_not_exist\n\n\ndef test_never():\n    pass\n"
@@ -81,6 +91,8 @@ def test_pytest_runner_reports_failures_errors_and_collection_errors(tmp_path: P
         "tests/test_x.py::test_param[2]",
         "tests/test_broken.py::test_never",
         "tests/test_x.py::test_absent",
+        "tests/test_x.py::test_param",
+        "tests/test_x.py::test_all_cases_pass",
     ]
     tests = [OracleTest(i, Part.R, None) for i in ids]
     outcomes = PytestOracleRunner(Path(sys.executable), SubprocessRunner()).run(tmp_path, tests)
@@ -92,6 +104,8 @@ def test_pytest_runner_reports_failures_errors_and_collection_errors(tmp_path: P
         ids[4]: Outcome.FAILED,
         ids[5]: Outcome.MISSING,
         ids[6]: Outcome.MISSING,
+        ids[7]: Outcome.FAILED,
+        ids[8]: Outcome.PASSED,
     }
 
 
