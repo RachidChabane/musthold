@@ -59,14 +59,16 @@ def with_fee(files: Mapping[str, bytes], source: str) -> dict[str, bytes]:
 
 def test_the_upstream_change_is_clean(merge_tree: tuple[OracleScorer, CountingRunner, dict[str, bytes]]) -> None:
     scorer, _, merge_files = merge_tree
-    assert scorer.score(merge_files) == Truth(defective=False, defective_full=False, o_failed=False)
+    assert scorer.score(merge_files) == Truth(
+        defective=False, defective_full=False, o_failed=False, defective_full_unexposed=False
+    )
 
 
 def test_a_change_that_breaks_a_u_test_is_defective(
     merge_tree: tuple[OracleScorer, CountingRunner, dict[str, bytes]],
 ) -> None:
     scorer, _, merge_files = merge_tree
-    assert scorer.score(with_fee(merge_files, FEE_NEVER_FREE)) == Truth(True, True, False)
+    assert scorer.score(with_fee(merge_files, FEE_NEVER_FREE)) == Truth(True, True, False, True)
 
 
 def test_a_change_that_breaks_a_pre_existing_test_is_defective(
@@ -80,7 +82,7 @@ def test_a_failure_of_an_out_of_spec_test_alone_is_not_a_defect(
     merge_tree: tuple[OracleScorer, CountingRunner, dict[str, bytes]],
 ) -> None:
     scorer, _, merge_files = merge_tree
-    assert scorer.score(with_fee(merge_files, FEE_RETURNING_FLOAT)) == Truth(False, False, True)
+    assert scorer.score(with_fee(merge_files, FEE_RETURNING_FLOAT)) == Truth(False, False, True, False)
 
 
 def test_the_agents_own_tests_and_edits_to_upstream_tests_change_nothing(
@@ -90,7 +92,7 @@ def test_the_agents_own_tests_and_edits_to_upstream_tests_change_nothing(
     weakened = with_fee(merge_files, FEE_NEVER_FREE)
     weakened["tests/test_r.py"] = b"def test_r1():\n    assert True\n"
     weakened[AGENT_TEST_PATH] = ALWAYS_PASSING_TEST
-    assert scorer.score(weakened) == Truth(True, True, False)
-    assert scorer.score(with_fee(merge_files, FEE_NEVER_FREE)) == Truth(True, True, False)
+    assert scorer.score(weakened) == Truth(True, True, False, True)
+    assert scorer.score(with_fee(merge_files, FEE_NEVER_FREE)) == Truth(True, True, False, True)
     assert runner.calls == SCORING_RUNS
     assert scorer.scored_tree_count == 1
