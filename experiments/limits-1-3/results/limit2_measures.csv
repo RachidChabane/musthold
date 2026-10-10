@@ -1,0 +1,3 @@
+measure,count,total,share
+VALID mutants with an executed witness for the target,57,57,1.000
+oracle-valid mutants not VALID (false discard),2,53,0.038

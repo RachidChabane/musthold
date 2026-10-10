@@ -1,0 +1,4 @@
+judge,arm,stable,tests,share,fleiss kappa,ci lo,ci hi,complete tests
+J-H,NAME-MASKED,36,38,0.947,0.962,0.904,1.000,38
+J-H,NAME-SHOWN,37,38,0.974,0.958,0.905,1.000,37
+J-X,NAME-MASKED,38,38,1.000,0.988,0.960,1.000,38

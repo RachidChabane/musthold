@@ -1,0 +1,11 @@
+criterion,VALID_w,VALID_x,vetoed by another binding,in C_D8,exposure
+PARK-1~1,4,4,0,yes,
+PARK-2~1,4,4,0,yes,
+PARK-3~1,7,3,4,no,predicted
+PARK-4~1,6,6,0,yes,
+PARK-5~1,7,3,4,yes,predicted
+PARK-6~1,6,6,0,yes,
+PARK-7~1,4,4,0,yes,
+PARK-8~1,5,2,3,yes,predicted
+PARK-9~1,8,5,3,yes,
+PARK-10~1,6,5,1,yes,

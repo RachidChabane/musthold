@@ -1,0 +1,5 @@
+pair,n,raw agreement,kappa,ci lo,ci hi
+A-OPUS vs pipeline,66,0.985,0.951,0.880,1.000
+A-OPUS vs oracle,66,0.924,0.791,0.618,0.952
+pipeline vs oracle,66,0.909,0.744,0.611,0.891
+"Fleiss, three raters",66,0.909,0.822,0.713,0.926

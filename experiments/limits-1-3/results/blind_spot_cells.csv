@@ -1,0 +1,7 @@
+writer,source,escaped,caught,excluded,"e(W,M) criterion-weighted"
+S,S,6,45,0,0.106
+S,O,2,41,0,0.044
+S,op,3,32,0,0.127
+O,S,9,42,0,0.159
+O,O,4,39,0,0.089
+O,op,2,33,0,0.111

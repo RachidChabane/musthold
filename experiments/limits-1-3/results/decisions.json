@@ -1,0 +1,709 @@
+{
+  "blind_spot": {
+    "SB": -0.004232804232804234,
+    "SB_O": 0.06031746031746031,
+    "SB_S": -0.06878306878306878,
+    "c_star": [
+      "PARK-2~1",
+      "PARK-3~1",
+      "PARK-4~1",
+      "PARK-5~1",
+      "PARK-6~1",
+      "PARK-7~1",
+      "PARK-8~1",
+      "PARK-9~1",
+      "PARK-10~1"
+    ],
+    "delta_O": -0.022222222222222213,
+    "delta_S": -0.021164021164021163,
+    "e": {
+      "O|O": 0.08888888888888889,
+      "O|S": 0.15873015873015872,
+      "O|op": 0.1111111111111111,
+      "S|O": 0.044444444444444446,
+      "S|S": 0.10582010582010581,
+      "S|op": 0.12698412698412698
+    },
+    "exclusions": {
+      "PARK-1~1": [
+        "U(op) is empty"
+      ]
+    },
+    "indicated_below_materiality": false,
+    "interval": [
+      -0.023809523809523808,
+      0.011111111111111113
+    ],
+    "pooled_counts": {
+      "O|O": [
+        4,
+        39,
+        0
+      ],
+      "O|S": [
+        9,
+        42,
+        0
+      ],
+      "O|op": [
+        2,
+        33,
+        0
+      ],
+      "S|O": [
+        2,
+        41,
+        0
+      ],
+      "S|S": [
+        6,
+        45,
+        0
+      ],
+      "S|op": [
+        3,
+        32,
+        0
+      ]
+    },
+    "reading": "no material shared blind spot"
+  },
+  "composite": {
+    "components": [
+      "mutant validity"
+    ],
+    "endpoints": [
+      "D2"
+    ],
+    "n_needed": {},
+    "text": "REDESIGN(mutant validity)",
+    "verdict": "REDESIGN"
+  },
+  "endpoints": [
+    {
+      "attribution": {
+        "component": "gate",
+        "errors": 0,
+        "per_error": {},
+        "removed_by": {
+          "alignment": 0,
+          "all": 0,
+          "isolation": 0,
+          "validity": 0
+        }
+      },
+      "band_go": "0/3",
+      "band_nogo": ">= 1/3",
+      "capped_by": [],
+      "components": [],
+      "details": {
+        "criteria": [
+          6,
+          7,
+          10
+        ],
+        "passes": 0
+      },
+      "hi": 0.5614970317550454,
+      "id": "D1",
+      "limit": 1,
+      "lo": 5.551115123125783e-17,
+      "measure": "full-set PASS on an uncovered criterion {6, 7, 10} (policy G3, primary (oracle-adjudicated) truth)",
+      "n": 3,
+      "outcome": "GO",
+      "outcome_before_caps": "GO",
+      "point": 0.0
+    },
+    {
+      "attribution": {
+        "component": "mutant validity",
+        "errors": 1,
+        "per_error": {
+          "PARK-1:tests/test_intervals.py::test_breakdown_rejects_exit_before_entry+tests/test_intervals.py::test_exit_before_entry_raises_even_when_ticket_is_lost+tests/test_intervals.py::test_exit_before_entry_reports_reversed_times+tests/test_intervals.py::test_exit_earlier_than_entry_is_rejected": [
+            "validity",
+            "all"
+          ]
+        },
+        "removed_by": {
+          "alignment": 0,
+          "all": 1,
+          "isolation": 0,
+          "validity": 1
+        }
+      },
+      "band_go": "<= floor(0.15 n_A)",
+      "band_nogo": ">= ceil(0.5 n_A)",
+      "capped_by": [],
+      "components": [],
+      "details": {
+        "false_blocks": 1,
+        "n_adequate": 2
+      },
+      "hi": 0.9054687942657693,
+      "id": "D2",
+      "limit": 1,
+      "lo": 0.09453120573423074,
+      "measure": "full-set false block over ADEQUATE full sets (policy G3, primary (oracle-adjudicated) truth)",
+      "n": 2,
+      "outcome": "NO-GO",
+      "outcome_before_caps": "NO-GO",
+      "point": 0.5
+    },
+    {
+      "attribution": {
+        "component": "gate",
+        "errors": 0,
+        "per_error": {},
+        "removed_by": {
+          "alignment": 0,
+          "all": 0,
+          "isolation": 0,
+          "validity": 0
+        }
+      },
+      "band_go": "point <= 0.05 and upper <= 0.20",
+      "band_nogo": "lower > 0.20",
+      "capped_by": [],
+      "components": [],
+      "details": {
+        "events": 0,
+        "units": 118
+      },
+      "hi": 0.03152833902249433,
+      "id": "D3",
+      "limit": 1,
+      "lo": 0.0,
+      "measure": "scenario false-pass rate over INADEQUATE scenarios (policy G3, primary (oracle-adjudicated) truth)",
+      "n": 118,
+      "outcome": "GO",
+      "outcome_before_caps": "GO",
+      "point": 0.0
+    },
+    {
+      "attribution": {
+        "component": "mutant validity",
+        "errors": 8,
+        "per_error": {
+          "PARK-1:tests/test_intervals.py::test_breakdown_rejects_exit_before_entry+tests/test_intervals.py::test_exit_before_entry_raises_even_when_ticket_is_lost": [
+            "validity",
+            "all"
+          ],
+          "PARK-1:tests/test_intervals.py::test_breakdown_rejects_exit_before_entry+tests/test_intervals.py::test_exit_before_entry_raises_even_when_ticket_is_lost+tests/test_intervals.py::test_exit_before_entry_reports_reversed_times": [
+            "validity",
+            "all"
+          ],
+          "PARK-1:tests/test_intervals.py::test_breakdown_rejects_exit_before_entry+tests/test_intervals.py::test_exit_before_entry_raises_even_when_ticket_is_lost+tests/test_intervals.py::test_exit_before_entry_reports_reversed_times+tests/test_intervals.py::test_exit_earlier_than_entry_is_rejected": [
+            "validity",
+            "all"
+          ],
+          "PARK-1:tests/test_intervals.py::test_breakdown_rejects_exit_before_entry+tests/test_intervals.py::test_exit_before_entry_raises_even_when_ticket_is_lost+tests/test_intervals.py::test_exit_earlier_than_entry_is_rejected": [
+            "validity",
+            "all"
+          ],
+          "PARK-1:tests/test_intervals.py::test_exit_before_entry_raises_even_when_ticket_is_lost": [
+            "validity",
+            "all"
+          ],
+          "PARK-1:tests/test_intervals.py::test_exit_before_entry_raises_even_when_ticket_is_lost+tests/test_intervals.py::test_exit_before_entry_reports_reversed_times": [
+            "validity",
+            "all"
+          ],
+          "PARK-1:tests/test_intervals.py::test_exit_before_entry_raises_even_when_ticket_is_lost+tests/test_intervals.py::test_exit_before_entry_reports_reversed_times+tests/test_intervals.py::test_exit_earlier_than_entry_is_rejected": [
+            "validity",
+            "all"
+          ],
+          "PARK-1:tests/test_intervals.py::test_exit_before_entry_raises_even_when_ticket_is_lost+tests/test_intervals.py::test_exit_earlier_than_entry_is_rejected": [
+            "validity",
+            "all"
+          ]
+        },
+        "removed_by": {
+          "alignment": 0,
+          "all": 8,
+          "isolation": 0,
+          "validity": 8
+        }
+      },
+      "band_go": "point <= 0.10 and upper <= 0.25",
+      "band_nogo": "lower > 0.25",
+      "capped_by": [],
+      "components": [],
+      "details": {
+        "events": 8,
+        "units": 16
+      },
+      "hi": 1.0,
+      "id": "D4",
+      "limit": 1,
+      "lo": 0.0,
+      "measure": "scenario false-block rate over ADEQUATE scenarios (policy G3, primary (oracle-adjudicated) truth)",
+      "n": 16,
+      "outcome": "INCONCLUSIVE",
+      "outcome_before_caps": "INCONCLUSIVE",
+      "point": 0.5
+    },
+    {
+      "attribution": {
+        "component": "alignment judge",
+        "errors": 8,
+        "per_error": {
+          "PARK-2:tests/test_intervals.py::test_grace_period_ends_after_fifteen_minutes+tests/test_intervals.py::test_quarter_hour_over_midnight_is_free": [],
+          "PARK-2:tests/test_intervals.py::test_grace_period_ends_after_fifteen_minutes+tests/test_intervals.py::test_quarter_hour_over_midnight_is_free+tests/test_intervals.py::test_short_stay_within_grace_period_is_free": [],
+          "PARK-2:tests/test_intervals.py::test_grace_period_ends_after_fifteen_minutes+tests/test_intervals.py::test_quarter_hour_over_midnight_is_free+tests/test_intervals.py::test_short_stay_within_grace_period_is_free+tests/test_intervals.py::test_stay_of_fifteen_minutes_is_free": [],
+          "PARK-2:tests/test_intervals.py::test_grace_period_ends_after_fifteen_minutes+tests/test_intervals.py::test_quarter_hour_over_midnight_is_free+tests/test_intervals.py::test_stay_of_fifteen_minutes_is_free": [],
+          "PARK-2:tests/test_intervals.py::test_quarter_hour_over_midnight_is_free": [
+            "alignment",
+            "all"
+          ],
+          "PARK-2:tests/test_intervals.py::test_quarter_hour_over_midnight_is_free+tests/test_intervals.py::test_short_stay_within_grace_period_is_free": [],
+          "PARK-2:tests/test_intervals.py::test_quarter_hour_over_midnight_is_free+tests/test_intervals.py::test_short_stay_within_grace_period_is_free+tests/test_intervals.py::test_stay_of_fifteen_minutes_is_free": [],
+          "PARK-2:tests/test_intervals.py::test_quarter_hour_over_midnight_is_free+tests/test_intervals.py::test_stay_of_fifteen_minutes_is_free": [
+            "alignment",
+            "all"
+          ]
+        },
+        "removed_by": {
+          "alignment": 2,
+          "all": 2,
+          "isolation": 0,
+          "validity": 0
+        }
+      },
+      "band_go": "point <= 0.30 and upper <= 0.45",
+      "band_nogo": "lower > 0.50",
+      "capped_by": [],
+      "components": [],
+      "details": {
+        "events": 8,
+        "units": 134
+      },
+      "hi": 0.1791044776119403,
+      "id": "D5",
+      "limit": 1,
+      "lo": 0.0,
+      "measure": "escalation rate over all scenarios (policy G3, primary (oracle-adjudicated) truth)",
+      "n": 134,
+      "outcome": "GO",
+      "outcome_before_caps": "GO",
+      "point": 0.05970149253731343
+    },
+    {
+      "attribution": null,
+      "band_go": "point >= 0.80, lower >= 0.70, precision - N7 >= 0.10 (waived if N7 >= 0.90)",
+      "band_nogo": "upper < 0.70",
+      "capped_by": [],
+      "components": [],
+      "details": {
+        "n7": 0.8688524590163934,
+        "n7_counts": [
+          53,
+          61
+        ],
+        "oracle_valid": 38,
+        "valid_w_precision": {
+          "oracle_valid": 51,
+          "point": 0.8947368421052632,
+          "valid_w": 57
+        },
+        "valid_x": 42
+      },
+      "hi": 0.9623377511944261,
+      "id": "D6",
+      "limit": 2,
+      "lo": 0.7793489419142897,
+      "measure": "VALID_x precision against oracle-valid-for-target, arm T (primary-matrix VALID_x mutants)",
+      "n": 42,
+      "outcome": "INCONCLUSIVE",
+      "outcome_before_caps": "INCONCLUSIVE",
+      "point": 0.9047619047619048
+    },
+    {
+      "attribution": null,
+      "band_go": ">= 16/20 r-items and <= 1/10 n1-items",
+      "band_nogo": "<= 10/20 r-items, or >= 3/10 n1-items",
+      "capped_by": [],
+      "components": [
+        {
+          "count": 20,
+          "hi": 1.0,
+          "lo": 0.8388748419471806,
+          "name": "r-items VALID_w for their criterion",
+          "point": 1.0,
+          "total": 20
+        },
+        {
+          "count": 0,
+          "hi": 0.2775327998628892,
+          "lo": 0.0,
+          "name": "n1-items VALID_w for any criterion",
+          "point": 0.0,
+          "total": 10
+        }
+      ],
+      "details": {
+        "isolation_survivors": {
+          "r_total": 16,
+          "r_valid": 16
+        },
+        "n1_total": 10,
+        "n1_valid": 0,
+        "r_total": 20,
+        "r_valid": 20
+      },
+      "hi": 1.0,
+      "id": "D7",
+      "limit": 2,
+      "lo": 0.8388748419471806,
+      "measure": "planted controls: r-items VALID_w for their criterion, n1-items VALID_w for any",
+      "n": 30,
+      "outcome": "GO",
+      "outcome_before_caps": "GO",
+      "point": 1.0
+    },
+    {
+      "attribution": null,
+      "band_go": "9/9",
+      "band_nogo": "<= 6/9",
+      "capped_by": [],
+      "components": [],
+      "details": {
+        "c_d8": [
+          "PARK-1~1",
+          "PARK-2~1",
+          "PARK-4~1",
+          "PARK-5~1",
+          "PARK-6~1",
+          "PARK-7~1",
+          "PARK-8~1",
+          "PARK-9~1",
+          "PARK-10~1"
+        ],
+        "d8_all": {
+          "criteria": 10,
+          "criteria_with_two_valid_w": 10,
+          "outcome": "GO",
+          "valid_w_by_criterion": {
+            "PARK-10~1": 6,
+            "PARK-1~1": 4,
+            "PARK-2~1": 4,
+            "PARK-3~1": 7,
+            "PARK-4~1": 6,
+            "PARK-5~1": 7,
+            "PARK-6~1": 6,
+            "PARK-7~1": 4,
+            "PARK-8~1": 5,
+            "PARK-9~1": 8
+          }
+        },
+        "exposed": {
+          "PARK-5~1": 3,
+          "PARK-8~1": 2
+        },
+        "outside_c_d8": {
+          "PARK-3~1": 3
+        },
+        "valid_x_by_criterion": {
+          "PARK-10~1": 5,
+          "PARK-1~1": 4,
+          "PARK-2~1": 4,
+          "PARK-3~1": 3,
+          "PARK-4~1": 6,
+          "PARK-5~1": 3,
+          "PARK-6~1": 6,
+          "PARK-7~1": 4,
+          "PARK-8~1": 2,
+          "PARK-9~1": 5
+        }
+      },
+      "hi": 1.0,
+      "id": "D8",
+      "limit": 2,
+      "lo": 0.7008549515804559,
+      "measure": "criteria of C_D8 with >= 2 VALID_x arm-T mutants (C_D8 = ['PARK-1~1', 'PARK-2~1', 'PARK-4~1', 'PARK-5~1', 'PARK-6~1', 'PARK-7~1', 'PARK-8~1', 'PARK-9~1', 'PARK-10~1'])",
+      "n": 9,
+      "outcome": "GO",
+      "outcome_before_caps": "GO",
+      "point": 1.0
+    },
+    {
+      "attribution": null,
+      "band_go": "recall and precision point >= 0.80, lower >= 0.60, precision - N2 >= 0.10",
+      "band_nogo": "either upper < 0.70",
+      "capped_by": [],
+      "components": [
+        {
+          "count": 20,
+          "hi": 0.9332132367136705,
+          "lo": 0.6414692935030095,
+          "name": "recall",
+          "point": 0.8333333333333334,
+          "total": 24
+        },
+        {
+          "count": 20,
+          "hi": 0.9747045710090046,
+          "lo": 0.7218505315839417,
+          "name": "precision",
+          "point": 0.9090909090909091,
+          "total": 22
+        }
+      ],
+      "details": {
+        "gold_bad": 24,
+        "n2_precision": 0.631578947368421,
+        "precision_point": 0.9090909090909091,
+        "predicted_bad": 22,
+        "recall_point": 0.8333333333333334,
+        "true_positive": 20
+      },
+      "hi": 0.9332132367136705,
+      "id": "D9",
+      "limit": 3,
+      "lo": 0.6414692935030095,
+      "measure": "J-H NAME-MASKED bad-test detection (predicted bad = MISALIGNED or UNDETERMINED; gold bad n = 24)",
+      "n": 38,
+      "outcome": "GO",
+      "outcome_before_caps": "GO",
+      "point": 0.8333333333333334
+    },
+    {
+      "attribution": null,
+      "band_go": "point >= 0.80, lower >= 0.65, lower - N6 mean > 0, mean DC above the N3 95th percentile",
+      "band_nogo": "upper < 0.70, or mean DC not above the N3 mean",
+      "capped_by": [],
+      "components": [],
+      "details": {
+        "mean_dc": 0.23491367307156782,
+        "n3_mean": 9.243003341687568e-05,
+        "n3_p95": 0.0328768100807574,
+        "n6_mean": 0.5239116071428571,
+        "n6_p95": 0.5714285714285714,
+        "sensitivity": 0.9583333333333334,
+        "specificity": 0.5714285714285714
+      },
+      "hi": 0.9226419413919411,
+      "id": "D10",
+      "limit": 3,
+      "lo": 0.587962962962963,
+      "measure": "matrix binary verdict, balanced accuracy over the tests (UNDETERMINED counts as predicted bad)",
+      "n": 38,
+      "outcome": "INCONCLUSIVE",
+      "outcome_before_caps": "INCONCLUSIVE",
+      "point": 0.7648809523809523
+    },
+    {
+      "attribution": null,
+      "band_go": "point >= 0.60, lower >= 0.30",
+      "band_nogo": "upper < 0.40",
+      "capped_by": [],
+      "components": [],
+      "details": {
+        "determinate_items": 36,
+        "table": [
+          6.0,
+          10.0,
+          2.0,
+          18.0
+        ]
+      },
+      "hi": 0.5254237288135594,
+      "id": "D11",
+      "limit": 3,
+      "lo": 0.07395498392282968,
+      "measure": "Cohen's kappa, J-H binary verdict vs matrix binary verdict (determinate items)",
+      "n": 36,
+      "outcome": "INCONCLUSIVE",
+      "outcome_before_caps": "INCONCLUSIVE",
+      "point": 0.2894736842105262
+    }
+  ],
+  "feasibility": {
+    "items": [
+      {
+        "description": "valid outputs",
+        "id": "F1",
+        "status": "green",
+        "value": "99.9% of 1047 calls"
+      },
+      {
+        "description": "isolation violations",
+        "id": "F2",
+        "status": "red",
+        "value": "4"
+      },
+      {
+        "description": "judge missing rate (worst judge)",
+        "id": "F3",
+        "status": "green",
+        "value": "0.5%"
+      },
+      {
+        "description": "arm-T stillborn share",
+        "id": "F4",
+        "status": "green",
+        "value": "1.6%"
+      },
+      {
+        "description": "criteria with >= 2 VALID_w arm-T mutants (all ten criteria)",
+        "id": "F5",
+        "status": "green",
+        "value": "10"
+      },
+      {
+        "description": "runner cross-check exact",
+        "id": "F6",
+        "status": "green",
+        "value": "True"
+      },
+      {
+        "description": "Claude cost per criterion, production path (mean; max in the cost table)",
+        "id": "F7",
+        "status": "green",
+        "value": "0.47 USD mean, 0.55 USD max"
+      },
+      {
+        "description": "wall clock",
+        "id": "F8",
+        "status": "green",
+        "value": "1.18 h"
+      }
+    ],
+    "verdict": "STOP_AND_REDESIGN_PROTOCOL"
+  },
+  "preconditions": [
+    {
+      "affects": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5",
+        "D6",
+        "D7",
+        "D8",
+        "D9",
+        "D10",
+        "D11"
+      ],
+      "description": "label verification passes and the runner cross-check is exact",
+      "detail": "label verification passed and the runner cross-check is exact",
+      "forces_inconclusive": true,
+      "id": "P1",
+      "status": "pass"
+    },
+    {
+      "affects": [
+        "D9",
+        "D11"
+      ],
+      "description": "Fleiss kappa on binary alignment truth (point >= 0.60, lower >= 0.40)",
+      "detail": "kappa 0.854, lower 0.726",
+      "forces_inconclusive": false,
+      "id": "P2",
+      "status": "pass"
+    },
+    {
+      "affects": [
+        "D9",
+        "D11"
+      ],
+      "description": "leakage probe not significant for J-H (one-sided exact binomial against 0.5, alpha 0.05)",
+      "detail": "14/28 separated, p = 0.5747",
+      "forces_inconclusive": false,
+      "id": "P3",
+      "status": "pass"
+    },
+    {
+      "affects": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5",
+        "D6",
+        "D7",
+        "D8",
+        "D9",
+        "D10",
+        "D11"
+      ],
+      "description": "canaries pass and every pin matches",
+      "detail": "all pins have canaries",
+      "forces_inconclusive": true,
+      "id": "P4",
+      "status": "pass"
+    },
+    {
+      "affects": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5",
+        "D6",
+        "D7",
+        "D8",
+        "D10",
+        "D11"
+      ],
+      "description": "judge missing rate <= 10% (V-H1)",
+      "detail": "0/85 missing (0.0%)",
+      "forces_inconclusive": false,
+      "id": "P5",
+      "status": "pass"
+    },
+    {
+      "affects": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5",
+        "D6",
+        "D7",
+        "D8",
+        "D10",
+        "D11"
+      ],
+      "description": "judge missing rate <= 10% (V-H2)",
+      "detail": "0/85 missing (0.0%)",
+      "forces_inconclusive": false,
+      "id": "P5",
+      "status": "pass"
+    },
+    {
+      "affects": [
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5",
+        "D9",
+        "D11"
+      ],
+      "description": "judge missing rate <= 10% (J-H NAME-MASKED)",
+      "detail": "0/190 missing (0.0%)",
+      "forces_inconclusive": false,
+      "id": "P5",
+      "status": "pass"
+    },
+    {
+      "affects": [],
+      "description": "no logged protocol deviation touches a decisional endpoint's inputs",
+      "detail": "0 protocol entries; 2 provenance entries logged; see DEVIATIONS.md in the run directory",
+      "forces_inconclusive": false,
+      "id": "P6",
+      "status": "pass"
+    },
+    {
+      "affects": [],
+      "description": "no stage blocked by quota exhaustion",
+      "detail": "0 quota-blocked entries, 6 quota-pause entries logged; see DEVIATIONS.md in the run directory",
+      "forces_inconclusive": true,
+      "id": "P7",
+      "status": "pass"
+    }
+  ],
+  "preregistration_commit": "3ba0b8d1f08d479b5e88823a416dd5cf43a9b54c",
+  "run_id": "run-02"
+}

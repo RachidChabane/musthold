@@ -1,0 +1,10 @@
+judge verdict / measure,ALIGNED,MISALIGNED,UNDETERMINED
+ALIGNED,6,10,0
+MISALIGNED,2,18,0
+UNDETERMINED,1,1,0
+Cohen kappa (determinate),0.289,36,
+raw agreement (determinate),24,36,
+P(matrix correct | judge wrong),7,7,
+P(judge correct | matrix wrong),7,7,
+both wrong,0,38,
+matrix silent (UNDETERMINED),0,38,

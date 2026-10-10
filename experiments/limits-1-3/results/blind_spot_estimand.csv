@@ -1,0 +1,11 @@
+measure,value
+Delta_S,-0.021
+Delta_O,-0.022
+SB_S,-0.069
+SB_O,0.060
+SB,-0.004
+SB interval lo,-0.024
+SB interval hi,0.011
+reading,no material shared blind spot
+indicated with the upper bound below materiality,False
+criteria in C*,9

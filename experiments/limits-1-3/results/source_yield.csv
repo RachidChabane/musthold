@@ -1,0 +1,6 @@
+source,candidates,non-stillborn,oracle-valid,share,wilson lo,wilson hi
+S,62,61,54,0.885,0.782,0.943
+O,52,52,46,0.885,0.770,0.946
+op,99,99,35,0.354,0.266,0.452
+terra,10,10,7,0.700,0.397,0.892
+luna,30,30,26,0.867,0.703,0.947

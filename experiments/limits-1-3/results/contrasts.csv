@@ -1,0 +1,8 @@
+contrast,count,total,rate,wilson lo,wilson hi
+"G3 false-block rate, poisoned {3, 5, 8}",0,0,,0.000,1.000
+"G3 false-block rate, clean {1, 2, 4, 9}",8,16,0.500,0.280,0.720
+G3 false-pass rate,0,118,0.000,0.000,0.032
+G3-prereg false-pass rate,0,118,0.000,0.000,0.032
+G3-noiso false-pass rate,0,118,0.000,0.000,0.032
+GOOD signatures,"PARTIAL=5, SPECIFIC=7",,,,
+GOOD_BROAD signatures,"OVERBROAD=1, PARTIAL=1",,,,

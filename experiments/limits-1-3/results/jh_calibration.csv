@@ -1,0 +1,9 @@
+measure,modal_share,n or coverage,"accuracy, ECE or risk"
+reliability,0.200,0,
+reliability,0.400,0,
+reliability,0.600,0,
+reliability,0.800,0,
+reliability,1.000,36,0.861
+ECE,,36,0.139
+risk-coverage,1.000,1.000,0.139
+UNDETERMINED rate,,2,0.053

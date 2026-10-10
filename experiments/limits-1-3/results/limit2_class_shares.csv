@@ -1,0 +1,23 @@
+arm,class,count,share
+T,COLLATERAL,2,0.033
+T,UNDETERMINED,2,0.033
+T,VALID,57,0.934
+P,EQUIVALENT,8,0.333
+P,UNATTRIBUTED,2,0.083
+P,UNDETERMINED,14,0.583
+T (oracle),oracle-collateral,1,0.016
+T (oracle),oracle-valid,54,0.885
+T (oracle),silent-equivalent-probable,6,0.098
+P (oracle),oracle-valid,14,0.583
+P (oracle),silent-different,1,0.042
+P (oracle),silent-equivalent-probable,9,0.375
+O (oracle),oracle-collateral,60,0.638
+O (oracle),oracle-valid,31,0.330
+O (oracle),silent-untested,3,0.032
+X (oracle),oracle-valid,25,0.926
+X (oracle),silent-untested,2,0.074
+R (oracle),oracle-collateral,1,0.200
+R (oracle),oracle-valid,3,0.600
+R (oracle),silent-untested,1,0.200
+L (oracle),oracle-valid,13,0.867
+L (oracle),silent-untested,2,0.133

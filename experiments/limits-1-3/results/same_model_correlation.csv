@@ -1,0 +1,6 @@
+measure,count,of,rate
+mutants with both votes,61,,
+V-H1 wrong,6,61,0.098
+V-H2 wrong,6,61,0.098
+both wrong,6,61,0.098
+P(V-H2 wrong | V-H1 wrong),6,6,1.000

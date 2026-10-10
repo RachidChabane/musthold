@@ -1,0 +1,12 @@
+group,criterion,calls,Claude USD,Claude tokens,codex tokens
+overhead,,700,15.472,2580417,337244
+production,PARK-1,35,0.485,125159,53044
+production,PARK-2,30,0.389,98858,35153
+production,PARK-3,39,0.549,142799,60967
+production,PARK-4,35,0.507,127618,53464
+production,PARK-5,38,0.504,135518,60113
+production,PARK-6,36,0.513,130454,53175
+production,PARK-7,30,0.401,108585,53092
+production,PARK-8,33,0.470,117628,43937
+production,PARK-9,40,0.497,137446,62631
+production,PARK-10,31,0.422,110471,47083
