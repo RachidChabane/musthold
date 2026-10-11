@@ -35,11 +35,15 @@ type drawn struct {
 	candidates []Candidate
 	// sources holds the reference content of every file a mutant edits.
 	sources map[string][]byte
+	// perTest counts, for each sampled test with an operator mutant among its
+	// lines, the drawn operator mutants with a mutated line among them.
+	perTest map[ecosystem.TestID]int
 }
 
 // draw generates the operator mutants and sentinels of the files the targets
-// lie in, keeps those whose mutated lines are targets and call no sink, and
-// samples the operator mutants by site and family.
+// lie in, keeps those whose mutated lines are targets and call no sink,
+// allocates the operator mutants over the lines of the sampled tests and keeps
+// SentinelCap sentinels, stratified by file.
 func (s *Service) draw(ref reference, plan plan, request Request) (drawn, error) {
 	files, err := s.mutableFiles(ref.layout, plan.targets.Files())
 	if err != nil {
@@ -49,19 +53,22 @@ func (s *Service) draw(ref reference, plan plan, request Request) (drawn, error)
 	for _, file := range files {
 		sources[file.Path] = file.Content
 	}
+	lines := sampledLines(ref, plan)
 	generated, err := operatorgen.NewGenerator(s.deps.Engines).Generate(operatorgen.Request{
 		Files:  files,
-		Config: operator.Config{KOp: request.Mutants, Seed: scanscope.DrawSeed(request.Seed)},
+		Config: operator.Config{Seed: scanscope.DrawSeed(request.Seed)},
 		Admit: func(file mutation.SourceFile, site operator.Site) bool {
 			return admits(plan.targets, file, site)
 		},
+		Selector: allocationSelector{sources: sources, lines: lines, budget: request.Mutants, seed: request.Seed},
 	})
 	if err != nil {
 		return drawn{}, fmt.Errorf("draw the mutants: %w", err)
 	}
 	result := drawn{sources: sources}
+	sentinels := scanscope.KeepSentinels(generated.Sentinels, scanscope.SentinelCap, request.Seed)
 	seen := map[string]bool{}
-	for _, mutant := range slices.Concat(generated.Operator, generated.Sentinels) {
+	for _, mutant := range slices.Concat(generated.Operator, sentinels) {
 		candidate, err := candidateOf(mutant, sources[mutant.Site.File])
 		if err != nil {
 			return drawn{}, err
@@ -72,7 +79,62 @@ func (s *Service) draw(ref reference, plan plan, request Request) (drawn, error)
 		}
 	}
 	slices.SortFunc(result.candidates, func(a, b Candidate) int { return strings.Compare(a.ID, b.ID) })
+	result.perTest = operatorMutantsPerTest(result.candidates, lines)
 	return result, nil
+}
+
+// operatorMutantsPerTest counts, for each test, the operator mutants with a
+// mutated line among its lines; a test with none is left out.
+func operatorMutantsPerTest(candidates []Candidate, lines map[ecosystem.TestID]scanscope.LineSet) map[ecosystem.TestID]int {
+	counts := map[ecosystem.TestID]int{}
+	for test, set := range lines {
+		for _, candidate := range candidates {
+			if !candidate.Sentinel && set.Intersects(candidate.Lines) {
+				counts[test]++
+			}
+		}
+	}
+	return counts
+}
+
+// sampledLines are the lines each sampled test ran that a draw may mutate.
+func sampledLines(ref reference, plan plan) map[ecosystem.TestID]scanscope.LineSet {
+	lines := make(map[ecosystem.TestID]scanscope.LineSet, len(plan.sampled))
+	for _, test := range plan.sampled {
+		set := scanscope.LineSet{}
+		for _, line := range ref.coverage[test] {
+			if plan.targets[line] {
+				set[line] = true
+			}
+		}
+		lines[test] = set
+	}
+	return lines
+}
+
+// allocationSelector is the selector of a scan: it allocates the operator
+// mutants over the lines of the sampled tests (scanscope.Allocate).
+type allocationSelector struct {
+	sources map[string][]byte
+	lines   map[ecosystem.TestID]scanscope.LineSet
+	budget  int
+	seed    uint64
+}
+
+// Select keeps the screened mutants the allocation draws.
+func (a allocationSelector) Select(screened []operator.Mutant) []operator.Mutant {
+	candidates := make([]scanscope.Candidate, 0, len(screened))
+	for _, mutant := range screened {
+		candidates = append(candidates, scanscope.Candidate{
+			ID: mutant.ID, Family: string(mutant.Family),
+			Lines: scanscope.SpanLines(mutant.Site.File, a.sources[mutant.Site.File], mutant.Site.Span),
+		})
+	}
+	allocation := scanscope.Allocate(candidates, a.lines, a.budget, a.seed)
+	return slices.DeleteFunc(slices.Clone(screened), func(mutant operator.Mutant) bool {
+		_, found := slices.BinarySearch(allocation.Drawn, mutant.ID)
+		return !found
+	})
 }
 
 // mutableFiles reads the files of the targets a scan may mutate and a mutation

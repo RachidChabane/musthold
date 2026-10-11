@@ -77,7 +77,7 @@ func TestHelpListsOnlyTheFlagsOfTheCommand(t *testing.T) {
 		{[]string{"systemone", "export"}, []string{"--root"}, []string{"--nonce", "--source"}},
 		{[]string{"systemone", "import"}, []string{"--nonce", "--source", "--root"}, []string{"--cap"}},
 		{[]string{"systemone", "classify-plan"}, []string{"--model", "--voters", "--root"}, []string{"--nonce", "--source"}},
-		{[]string{"scan"}, []string{"--base", "--seed", "--sample", "--mutants", "--budget", "--workers", "--format", "--root"}, []string{"--changed", "--nonce"}},
+		{[]string{"scan"}, []string{"--base", "--seed", "--sample", "--mutants", "--budget", "--workers", "--coverage-timeout", "--format", "--root"}, []string{"--changed", "--nonce"}},
 		{[]string{"scan", "replay"}, []string{"<dir>", "--root"}, []string{"--base", "--format"}},
 		{[]string{"prove"}, []string{"--changed", "--all", "--resume", "--record", "--replay", "--ci", "--import-host", "--root"}, []string{"--dir"}},
 	}

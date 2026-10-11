@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"io/fs"
+	"maps"
 	"os"
 	"slices"
 	"strings"
@@ -14,8 +15,10 @@ import (
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
+	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/scanscope"
 	"github.com/RachidChabane/spec-proof/format"
 )
 
@@ -25,12 +28,15 @@ const (
 	goldenStatement   = "testdata/scan-repository.golden.json"
 	verifiesReference = " [verifies SP-2108~1]"
 	verifiesPlan      = " [verifies SP-2109~1]"
-	verifiesDraw      = " [verifies SP-2110~1]"
+	verifiesDraw      = " [verifies SP-2110~2]"
 	verifiesExecute   = " [verifies SP-2111~1]"
 	verifiesSearch    = " [verifies SP-2112~1]"
 	verifiesRecord    = " [verifies SP-2113~1]"
 	verifiesReplay    = " [verifies SP-2114~1]"
 	verifiesContract  = " [verifies SP-2123~1]"
+	verifiesAllocated = " [verifies SP-2125~1]"
+	verifiesSentinels = " [verifies SP-2126~1]"
+	verifiesCoverage  = " [verifies SP-2127~1]"
 )
 
 func run(t *testing.T, f *fixture, req scan.Request) scan.Report {
@@ -111,6 +117,42 @@ func TestRepositoryScan(t *testing.T) {
 		}
 		if sentinels == 0 {
 			t.Fatal("no sentinel ran")
+		}
+	})
+	t.Run("every sampled test ran a mutated line of every operator mutant drawn among its lines"+verifiesAllocated, func(t *testing.T) {
+		operators := 0
+		for _, mutant := range statement.Mutants {
+			if !mutant.Sentinel {
+				operators++
+			}
+		}
+		want := map[ecosystem.TestID]int{vacuousTest: 0, exactTest: 0, feeTest: 0}
+		lines := map[ecosystem.TestID][]int{vacuousTest: {2, 3}, exactTest: {2, 4}, feeTest: {8, 9, 10}}
+		for _, mutant := range statement.Mutants {
+			for test, ran := range lines {
+				if !mutant.Sentinel && slices.ContainsFunc(mutant.Lines, func(line format.ScanLine) bool { return slices.Contains(ran, line.Line) }) {
+					want[test]++
+				}
+			}
+		}
+		if operators == 0 || !maps.Equal(report.Candidates, want) {
+			t.Fatalf("candidates %v, want %v", report.Candidates, want)
+		}
+	})
+	t.Run("a scan runs at most the sentinel cap of sentinels"+verifiesSentinels, func(t *testing.T) {
+		sentinels := 0
+		for _, mutant := range statement.Mutants {
+			if mutant.Sentinel {
+				sentinels++
+			}
+		}
+		if sentinels == 0 || sentinels > scanscope.SentinelCap {
+			t.Fatalf("%d sentinels", sentinels)
+		}
+	})
+	t.Run("the coverage of the reference is recorded within the bound derived from the reference runs"+verifiesCoverage, func(t *testing.T) {
+		if f.suite.coverageTimeout != scan.MinCoverageTimeout {
+			t.Fatalf("coverage bound %s", f.suite.coverageTimeout)
 		}
 	})
 	t.Run("a mutant runs only against green tests that ran one of its mutated lines"+verifiesExecute, func(t *testing.T) {
@@ -278,6 +320,26 @@ func TestScanRefusals(t *testing.T) {
 		f := newFixture()
 		f.suite.tests = map[ecosystem.TestID]fakeTest{}
 		if _, err := f.service(t).Run(context.Background(), request()); !errors.Is(err, scan.ErrNoTests) {
+			t.Fatalf("error %v", err)
+		}
+	})
+}
+
+func TestCoverageTimeout(t *testing.T) {
+	t.Run("a requested coverage bound replaces the derived one"+verifiesCoverage, func(t *testing.T) {
+		f := newFixture()
+		req := request()
+		req.CoverageTimeout = 7 * time.Minute
+		run(t, f, req)
+		if f.suite.coverageTimeout != req.CoverageTimeout {
+			t.Fatalf("coverage bound %s", f.suite.coverageTimeout)
+		}
+	})
+	t.Run("a coverage run past its bound fails the scan with the timeout and the bound"+verifiesCoverage, func(t *testing.T) {
+		f := newFixture()
+		f.suite.coverageOverruns = true
+		_, err := f.service(t).Run(context.Background(), request())
+		if !errors.Is(err, ports.ErrCoverageTimedOut) || !strings.Contains(err.Error(), scan.MinCoverageTimeout.String()) {
 			t.Fatalf("error %v", err)
 		}
 	})

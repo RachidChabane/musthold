@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
@@ -28,6 +29,18 @@ type ScanRunRequest struct {
 	Timeout time.Duration
 }
 
+// ErrCoverageTimedOut is returned when a run of tests under coverage outlives
+// the timeout of its recording.
+var ErrCoverageTimedOut = errors.New("a run of tests under coverage outlived its timeout")
+
+// ScanCoverageRequest is one recording of the line coverage of tests.
+type ScanCoverageRequest struct {
+	Tests []ScanCase
+	// Timeout bounds each run of tests under coverage; a run it stops fails the
+	// recording with ErrCoverageTimedOut.
+	Timeout time.Duration
+}
+
 // ScanRuns is what a batch of runs did: the tests the runner collected and,
 // per test, the result of each run, in order. A test that was asked for and
 // never reported has no entry.
@@ -42,9 +55,9 @@ type ScanRuns struct {
 type ScanSuite interface {
 	// Run runs the selection the requested number of times.
 	Run(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ScanRunRequest) (ScanRuns, error)
-	// LineCoverage records, per test, the lines of the project's source files
-	// the test itself ran. Test files are never reported.
-	LineCoverage(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, tests []ScanCase) (map[ecosystem.TestID][]vacuity.Line, error)
+	// LineCoverage records, per requested test, the lines of the project's
+	// source files the test itself ran. Test files are never reported.
+	LineCoverage(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ScanCoverageRequest) (map[ecosystem.TestID][]vacuity.Line, error)
 	// Operation binds a definition of the workspace to the probe target that
 	// calls it without a spec, when the ecosystem can call it as a function.
 	Operation(workspace ecosystem.Workspace, file, qualname string) (string, bool)

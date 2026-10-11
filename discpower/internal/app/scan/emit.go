@@ -66,10 +66,11 @@ func (s *Service) emit(ctx context.Context, e emission) (Report, error) {
 		Statement: statement, Encoded: encoded,
 		Repository: s.deps.Source.Name(ctx), Commit: e.commit, Runner: s.deps.Ecosystem.Name(),
 		Mode: e.plan.mode, Base: e.base, Seed: e.request.Seed,
-		Suite:    SuiteCounts{Tests: len(e.reference.cases), Green: len(e.reference.green), Sampled: len(e.plan.sampled)},
-		Mutants:  e.mutantCounts(result),
-		Findings: findings,
-		Partial:  predicate.Partial,
+		Suite:      SuiteCounts{Tests: len(e.reference.cases), Green: len(e.reference.green), Sampled: len(e.plan.sampled)},
+		Mutants:    e.mutantCounts(result),
+		Candidates: e.drawn.perTest,
+		Findings:   findings,
+		Partial:    predicate.Partial,
 	}, nil
 }
 

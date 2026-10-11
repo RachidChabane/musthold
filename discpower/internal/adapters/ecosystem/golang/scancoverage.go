@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/suiterun"
@@ -44,17 +45,17 @@ const (
 )
 
 // LineCoverage builds the test binary of each package once, with coverage of
-// every package of the module, then runs each test alone and reads the lines of
-// the blocks it ran. Only the workspace's build cache and results receive the
-// instrumented binaries.
-func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, tests []ports.ScanCase) (map[ecosystem.TestID][]vacuity.Line, error) {
+// every package of the module, then runs each test alone, within the timeout
+// of the request, and reads the lines of the blocks it ran. Only the
+// workspace's build cache and results receive the instrumented binaries.
+func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanCoverageRequest) (map[ecosystem.TestID][]vacuity.Line, error) {
 	module, err := modulePath(os.DirFS(workspace.Dir))
 	if err != nil {
 		return nil, err
 	}
 	binaries := map[string]string{}
 	covered := map[ecosystem.TestID][]vacuity.Line{}
-	for _, test := range tests {
+	for _, test := range request.Tests {
 		file, testPath, found := strings.Cut(string(test.ID), testCaseSeparator)
 		if !found {
 			continue
@@ -67,7 +68,7 @@ func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspa
 			}
 			binaries[dir] = binary
 		}
-		lines, err := s.runCovered(ctx, workspace, binary, dir, testPath, module)
+		lines, err := s.runCovered(ctx, workspace, binary, dir, testPath, module, request.Timeout)
 		if err != nil {
 			return nil, err
 		}
@@ -91,13 +92,17 @@ func (s scanSuite) buildCoverageBinary(ctx context.Context, workspace ecosystem.
 }
 
 // runCovered runs one test of a built binary from its package directory, as
-// `go test` does, and reads the lines its profile marks as run. A test that
-// fails still reports what it ran.
-func (s scanSuite) runCovered(ctx context.Context, workspace ecosystem.Workspace, binary, dir, testPath, module string) ([]vacuity.Line, error) {
+// `go test` does, within the timeout, and reads the lines its profile marks as
+// run. A test that fails still reports what it ran.
+func (s scanSuite) runCovered(ctx context.Context, workspace ecosystem.Workspace, binary, dir, testPath, module string, timeout time.Duration) ([]vacuity.Line, error) {
 	profile := suiterun.ResultsFile(workspace, profileExtension)
 	argv := []string{binary, binaryRunFlag, expression([][]string{strings.Split(testPath, subtestSeparator)}), binaryCountFlag, binaryProfileFlag + profile}
-	if _, err := s.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: filepath.Join(workspace.Dir, filepath.FromSlash(dir)), Timeout: s.deps.Timeout}); err != nil {
+	executed, err := s.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: filepath.Join(workspace.Dir, filepath.FromSlash(dir)), Timeout: timeout})
+	if err != nil {
 		return nil, fmt.Errorf("run %s with coverage: %w", testPath, err)
+	}
+	if executed.TimedOut {
+		return nil, fmt.Errorf("%w: %s ran past %s", ports.ErrCoverageTimedOut, testPath, timeout)
 	}
 	content, err := os.ReadFile(profile)
 	if err != nil {

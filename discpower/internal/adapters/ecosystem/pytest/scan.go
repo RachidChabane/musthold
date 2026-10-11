@@ -145,15 +145,16 @@ func outcomesOf(report scanReport) map[ecosystem.TestID]ecosystem.TestOutcome {
 	return outcomes
 }
 
-// LineCoverage runs the suite once under the coverage plugin and keeps the
-// lines of the requested tests, by node id.
-func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, tests []ports.ScanCase) (map[ecosystem.TestID][]vacuity.Line, error) {
-	report, err := runCoverage(ctx, s.deps, workspace, toolchain)
+// LineCoverage runs the suite once under the coverage plugin, within the
+// timeout of the request, and keeps the lines of the requested tests, by node
+// id.
+func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanCoverageRequest) (map[ecosystem.TestID][]vacuity.Line, error) {
+	report, err := runCoverage(ctx, s.deps, workspace, toolchain, request.Timeout)
 	if err != nil {
 		return nil, err
 	}
 	covered := map[ecosystem.TestID][]vacuity.Line{}
-	for _, test := range tests {
+	for _, test := range request.Tests {
 		if recorded, found := report[string(test.ID)]; found {
 			covered[test.ID] = linesOf(recorded)
 		}

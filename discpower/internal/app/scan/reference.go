@@ -22,6 +22,16 @@ const (
 	// RunTimeoutFactor is how many times longer than one reference run of the
 	// whole suite one run of a mutant's tests may take.
 	RunTimeoutFactor = 3
+	// CoverageTimeoutFactor is how many times longer than one reference run of
+	// the whole suite one run of tests under coverage may take: recording every
+	// line a test runs slows it several times.
+	CoverageTimeoutFactor = 10
+	// MinCoverageTimeout is the least time one run of tests under coverage
+	// gets.
+	MinCoverageTimeout = 2 * time.Minute
+	// MaxCoverageTimeout is the most time one run of tests under coverage gets
+	// unless the request sets its own.
+	MaxCoverageTimeout = 30 * time.Minute
 )
 
 // outputDirectory is where scans write their reports in the work tree; it is
@@ -55,9 +65,10 @@ func (r reference) referenceOf() mutantrun.Reference {
 
 // prepareReference copies the work tree into a workspace outside it, builds it,
 // runs the whole suite three times and records the line coverage of every
-// green test.
-func (s *Service) prepareReference(ctx context.Context, root string) (reference, error) {
-	ref, err := s.buildReference(ctx, root)
+// green test, each run under coverage bounded by the request's timeout or by
+// one derived from the reference runs.
+func (s *Service) prepareReference(ctx context.Context, request Request) (reference, error) {
+	ref, err := s.buildReference(ctx, request.Root)
 	if err != nil {
 		return reference{}, err
 	}
@@ -69,7 +80,8 @@ func (s *Service) prepareReference(ctx context.Context, root string) (reference,
 	if len(ran.Cases) == 0 {
 		return reference{}, ErrNoTests
 	}
-	ref.runTimeout = runTimeout(s.deps.Clock().Sub(started))
+	referenceRuns := s.deps.Clock().Sub(started)
+	ref.runTimeout = runTimeout(referenceRuns)
 	ref.cases, ref.runs = ran.Cases, ran.Runs
 	var greenCases []ports.ScanCase
 	for _, scanCase := range ran.Cases {
@@ -78,9 +90,10 @@ func (s *Service) prepareReference(ctx context.Context, root string) (reference,
 			greenCases = append(greenCases, scanCase)
 		}
 	}
-	ref.coverage, err = s.deps.Suite.LineCoverage(ctx, ref.workspace, ref.toolchain, greenCases)
+	limit := coverageTimeout(referenceRuns, request.CoverageTimeout)
+	ref.coverage, err = s.deps.Suite.LineCoverage(ctx, ref.workspace, ref.toolchain, ports.ScanCoverageRequest{Tests: greenCases, Timeout: limit})
 	if err != nil {
-		return reference{}, fmt.Errorf("record the line coverage: %w", err)
+		return reference{}, fmt.Errorf("record the line coverage, each run bounded by %s: %w", limit, err)
 	}
 	return ref, nil
 }
@@ -115,6 +128,18 @@ func (s *Service) buildReference(ctx context.Context, root string) (reference, e
 func runTimeout(referenceRuns time.Duration) time.Duration {
 	perRun := referenceRuns / vacuity.RunsPerOutcome
 	return max(MinRunTimeout, perRun*RunTimeoutFactor)
+}
+
+// coverageTimeout bounds one run of tests under coverage: the requested time
+// when set, otherwise the time one reference run of the whole suite took,
+// CoverageTimeoutFactor times over, between MinCoverageTimeout and
+// MaxCoverageTimeout.
+func coverageTimeout(referenceRuns, requested time.Duration) time.Duration {
+	if requested > 0 {
+		return requested
+	}
+	perRun := referenceRuns / vacuity.RunsPerOutcome
+	return min(MaxCoverageTimeout, max(MinCoverageTimeout, perRun*CoverageTimeoutFactor))
 }
 
 // layoutOverride is the ecosystem strategy with the layout of a scan, which

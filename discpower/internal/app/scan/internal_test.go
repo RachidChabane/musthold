@@ -30,6 +30,26 @@ func TestRunTimeout(t *testing.T) {
 	}
 }
 
+func TestCoverageTimeoutBound(t *testing.T) {
+	cases := []struct {
+		reference, requested, want time.Duration
+	}{
+		{0, 0, MinCoverageTimeout},
+		{30 * time.Second, 0, MinCoverageTimeout},
+		{3 * time.Minute, 0, 10 * time.Minute},
+		{30 * time.Minute, 0, MaxCoverageTimeout},
+		{30 * time.Minute, time.Hour, time.Hour},
+		{3 * time.Minute, time.Second, time.Second},
+	}
+	for _, c := range cases {
+		t.Run("three reference runs of "+c.reference.String()+" and a requested "+c.requested.String()+" bound a coverage run by "+c.want.String()+" [verifies SP-2127~1]", func(t *testing.T) {
+			if got := coverageTimeout(c.reference, c.requested); got != c.want {
+				t.Fatalf("bound = %s", got)
+			}
+		})
+	}
+}
+
 func integer(value string) spec.Literal { return spec.Literal{Type: spec.TypeInteger, Value: value} }
 
 func returns(value string) spec.Observation {

@@ -152,7 +152,7 @@ and no configuration, which tests still pass when the code they run is broken
 (ADR 0014). `spec-proof scan` runs it through the [umbrella](umbrella.md).
 
 ```
-spec-proof-dp scan [--base REV] [--seed N] [--sample N] [--mutants N] [--budget DURATION] [--workers N] [--format text|md|json] [--root DIR]
+spec-proof-dp scan [--base REV] [--seed N] [--sample N] [--mutants N] [--budget DURATION] [--workers N] [--coverage-timeout DURATION] [--format text|md|json] [--root DIR]
 ```
 
 The work tree must have no uncommitted change to a tracked file: a scan names
@@ -160,10 +160,11 @@ the commit it ran on. It copies the tree into a workspace outside it, runs the
 whole suite three times and records, per test, the lines that test itself ran.
 Without `--base` it samples 40 green tests, stratified by file; with `--base` it
 takes the green tests that run a function changed since that revision. It draws
-up to 150 operator mutants, plus sentinels, on the lines the judged tests ran,
-never in a test, vendored, generated or migration file nor on a line that logs,
-prints or records a metric, and runs each against every test that ran one of its
-lines, three times.
+up to 150 operator mutants on the lines the judged tests ran, round-robin over
+those tests so that each gets the mutants of its own lines its verdict needs,
+plus up to 12 sentinels, one file at a time. It never mutates a test, vendored,
+generated or migration file nor a line that logs, prints or records a metric,
+and runs each mutant against every test that ran one of its lines, three times.
 
 A mutant counts only when executed evidence proves it changes behaviour: another
 green test kills it three runs out of three, or a differential run of the
@@ -187,7 +188,10 @@ acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled ·
 ```
 
 The scan exits 0 whatever it finds. `--budget` stops starting mutants after that
-long and marks the counts partial. `--format md` prints the report as a
+long and marks the counts partial. Each run of tests under coverage is bounded
+by ten times one reference run of the suite, between 2 and 30 minutes;
+`--coverage-timeout` sets another bound, and a run past its bound fails the scan
+with an error that names it. `--format md` prints the report as a
 pull-request comment and `--format json` the scan statement, which no reader of
 proofs admits.
 

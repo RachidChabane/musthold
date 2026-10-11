@@ -25,6 +25,36 @@ type Request struct {
 	// Admit, when set, keeps only the operator and sentinel candidates whose
 	// site it admits, before screening and sampling.
 	Admit func(file mutation.SourceFile, site operator.Site) bool
+	// Selector, when set, chooses the operator mutants kept among the screened
+	// ones in place of the stratified sample of Config.
+	Selector Selector
+}
+
+// Selector is the Strategy that chooses the operator mutants a run keeps among
+// the screened ones.
+type Selector interface {
+	Select(screened []operator.Mutant) []operator.Mutant
+}
+
+// StratifiedSelector keeps at most KOp mutants, stratified by site and family
+// with the seed (operator.Sample).
+type StratifiedSelector struct {
+	KOp  int
+	Seed operator.Seed
+}
+
+// Select samples the screened mutants.
+func (s StratifiedSelector) Select(screened []operator.Mutant) []operator.Mutant {
+	return operator.Sample(screened, s.KOp, s.Seed)
+}
+
+// selector is the strategy of the request: its own, or the stratified sample
+// of its configuration.
+func (r Request) selector() Selector {
+	if r.Selector != nil {
+		return r.Selector
+	}
+	return StratifiedSelector{KOp: r.Config.KOp, Seed: r.Config.Seed}
 }
 
 // Stats counts the stages of a run.
@@ -50,7 +80,7 @@ type Result struct {
 }
 
 // Generator runs the pipeline: footprint closure, enumeration, F0 and F1,
-// stratified sampling, sentinels.
+// selection, by default the stratified sample, and sentinels.
 type Generator struct {
 	registry *Registry
 }
@@ -96,7 +126,7 @@ func (g *Generator) Generate(request Request) (Result, error) {
 		screened = append(screened, kept...)
 	}
 
-	sampled := operator.Sample(screened, request.Config.KOp, request.Config.Seed)
+	sampled := request.selector().Select(screened)
 	stats.Screened = len(screened)
 	stats.Sampled = len(sampled)
 	stats.Strata = countStrata(screened)

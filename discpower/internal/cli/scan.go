@@ -38,6 +38,8 @@ const (
 	flagBudget  = "budget"
 	flagWorkers = "workers"
 	flagFormat  = "format"
+	// flagCoverageTimeout bounds each run of tests under coverage.
+	flagCoverageTimeout = "coverage-timeout"
 )
 
 // Output formats of `scan`.
@@ -46,6 +48,10 @@ const (
 	formatMarkdown = "md"
 	formatJSON     = "json"
 )
+
+// coverageTimeoutUsage describes --coverage-timeout and the bound it replaces.
+var coverageTimeoutUsage = fmt.Sprintf("bound each run of tests under coverage (0: %d times one reference run of the suite, between %s and %s)",
+	scan.CoverageTimeoutFactor, scan.MinCoverageTimeout, scan.MaxCoverageTimeout)
 
 // scanNiceness is the niceness a scan and the test runs it starts take.
 const scanNiceness = 10
@@ -69,6 +75,7 @@ func (e Env) scan(args []string) outcome {
 	mutants := set.Int(flagMutants, scanscope.DefaultMutants, "how many operator mutants to draw")
 	budget := set.Duration(flagBudget, 0, "stop running mutants once this long has passed, with partial counts (0: no limit)")
 	workers := set.Int(flagWorkers, scan.DefaultWorkers, "how many mutants run at once")
+	coverageTimeout := set.Duration(flagCoverageTimeout, 0, coverageTimeoutUsage)
 	outputFormat := set.String(flagFormat, formatText, "output: text, md (a pull-request comment) or json (the scan statement)")
 	root := set.String(flagRoot, "", usageRoot)
 	rest, err := set.ParseArguments(args)
@@ -88,10 +95,10 @@ func (e Env) scan(args []string) outcome {
 	niceness.Lower(scanNiceness)
 	report, err := wired.service.Run(context.Background(), scan.Request{
 		Root: wired.root, Base: *base, Seed: *seed, SampleSize: *sample, Mutants: *mutants,
-		Budget: *budget, Workers: *workers, Module: format.Module{Name: moduleName, Version: version.Version},
+		Budget: *budget, Workers: *workers, CoverageTimeout: *coverageTimeout, Module: format.Module{Name: moduleName, Version: version.Version},
 	})
 	if err != nil {
-		return outcome{err: err}
+		return outcome{err: scanFailure(err)}
 	}
 	files, err := scanreport.Files(report)
 	if err != nil {
@@ -109,6 +116,15 @@ func (e Env) scan(args []string) outcome {
 		fmt.Fprint(e.Stdout, scanreport.Text(report))
 	}
 	return outcome{code: ExitClean}
+}
+
+// scanFailure is the error a failed scan reports: a coverage run past its
+// bound names the flag that raises it.
+func scanFailure(err error) error {
+	if errors.Is(err, ports.ErrCoverageTimedOut) {
+		return fmt.Errorf("%w; raise the bound with --%s", err, flagCoverageTimeout)
+	}
+	return err
 }
 
 func (e Env) scanReplay(args []string) outcome {

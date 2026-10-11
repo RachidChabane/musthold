@@ -2,6 +2,7 @@ package golang_test
 
 import (
 	"context"
+	"errors"
 	"os/exec"
 	"path/filepath"
 	"slices"
@@ -27,6 +28,9 @@ const (
 	verifiesScanRuns  = " [verifies SP-2102~1]"
 	verifiesLines     = " [verifies SP-2101~1]"
 	verifiesBinding   = " [verifies SP-2103~1]"
+	verifiesBound     = " [verifies SP-2127~1]"
+	// overrunBound is a coverage bound no run can keep.
+	overrunBound = time.Nanosecond
 )
 
 type scanProject struct {
@@ -113,10 +117,26 @@ func TestScanRuns(t *testing.T) {
 	})
 }
 
+func TestScanLineCoverageBound(t *testing.T) {
+	t.Run("a test run under coverage past its bound is a coverage timeout"+verifiesBound, func(t *testing.T) {
+		project := openScanProject(t)
+		_, err := project.suite.LineCoverage(context.Background(), project.workspace, project.toolchain, ports.ScanCoverageRequest{
+			Tests:   []ports.ScanCase{{ID: acceptsAnyPercent, File: "discount_test.go"}},
+			Timeout: overrunBound,
+		})
+		if !errors.Is(err, ports.ErrCoverageTimedOut) {
+			t.Fatalf("error %v", err)
+		}
+	})
+}
+
 func TestScanLineCoverage(t *testing.T) {
 	project := openScanProject(t)
-	covered, err := project.suite.LineCoverage(context.Background(), project.workspace, project.toolchain, []ports.ScanCase{
-		{ID: acceptsAnyPercent, File: "discount_test.go"}, {ID: takesPercentOff, File: "discount_test.go"}, {ID: chargedBelowFifty, File: "tally_test.go"},
+	covered, err := project.suite.LineCoverage(context.Background(), project.workspace, project.toolchain, ports.ScanCoverageRequest{
+		Tests: []ports.ScanCase{
+			{ID: acceptsAnyPercent, File: "discount_test.go"}, {ID: takesPercentOff, File: "discount_test.go"}, {ID: chargedBelowFifty, File: "tally_test.go"},
+		},
+		Timeout: scanRunTimeout,
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -2,6 +2,7 @@ package pytest_test
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"slices"
 	"testing"
@@ -30,6 +31,9 @@ const (
 	verifiesScanRuns = " [verifies SP-2102~1]"
 	verifiesLines    = " [verifies SP-2100~1]"
 	verifiesBinding  = " [verifies SP-2103~1]"
+	verifiesBound    = " [verifies SP-2127~1]"
+	// overrunBound is a coverage bound no run can keep.
+	overrunBound = time.Nanosecond
 )
 
 type scanProject struct {
@@ -137,6 +141,19 @@ func TestScanRuns(t *testing.T) {
 	})
 }
 
+func TestScanLineCoverageBound(t *testing.T) {
+	t.Run("a coverage run past its bound is a coverage timeout"+verifiesBound, func(t *testing.T) {
+		project := openScanProject(t)
+		_, err := project.suite.LineCoverage(context.Background(), project.workspace, project.toolchain, ports.ScanCoverageRequest{
+			Tests:   []ports.ScanCase{{ID: acceptsAnyPrice, File: discountTests}},
+			Timeout: overrunBound,
+		})
+		if !errors.Is(err, ports.ErrCoverageTimedOut) {
+			t.Fatalf("error %v", err)
+		}
+	})
+}
+
 func TestScanLineCoverage(t *testing.T) {
 	for _, tracer := range []string{"", settraceTracer} {
 		name := "sys.monitoring"
@@ -146,8 +163,9 @@ func TestScanLineCoverage(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			project := openScanProject(t)
-			covered, err := project.suite.LineCoverage(context.Background(), project.workspace, project.toolchain, []ports.ScanCase{
-				{ID: acceptsAnyPrice, File: discountTests}, {ID: takesPercentOff, File: discountTests},
+			covered, err := project.suite.LineCoverage(context.Background(), project.workspace, project.toolchain, ports.ScanCoverageRequest{
+				Tests:   []ports.ScanCase{{ID: acceptsAnyPrice, File: discountTests}, {ID: takesPercentOff, File: discountTests}},
+				Timeout: scanRunTimeout,
 			})
 			if err != nil {
 				t.Fatal(err)

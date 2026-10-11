@@ -1147,13 +1147,13 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   sampled tests ran; and, with a base, take the green tests that ran a line of a
   function whose lines differ from the base, sample them, and admit only the
   lines of those functions the sampled tests ran.
-- **SP-2110~1**: WHEN a scan draws mutants THE SYSTEM SHALL keep only the operator
+- **SP-2110~2**: WHEN a scan draws mutants THE SYSTEM SHALL keep only the operator
   and sentinel candidates whose mutated lines include an admitted line, before
-  screening and sampling; sample at most the requested number of operator
-  mutants, by default 150, by site and family, plus the sentinels; give each
-  mutant the digest of its edits as its id and the lines of its mutated span;
-  and run the sentinels against the same tests as the mutants, never proving
-  one.
+  screening and selection; draw at most the requested number of operator
+  mutants, by default 150, by the allocation of SP-2125, and keep the sentinels
+  by the rule of SP-2126; give each mutant the digest of its edits as its id and
+  the lines of its mutated span; and run the sentinels against the same tests as
+  the mutants, never proving one.
 - **SP-2111~1**: WHEN a scan runs a mutant THE SYSTEM SHALL run it, on at most
   the requested number of workers, by default 2, against every green test whose
   coverage holds one of its mutated lines, three times, each run bounded by
@@ -1235,3 +1235,30 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-2123~1**: WHEN a scan of the same project is recorded THE SYSTEM SHALL
   produce the same canonical statement whatever the number of workers, accepted
   by the scan schema and refused by every reader of proofs.
+- **SP-2125~1**: WHEN a scan allocates its operator mutants THE SYSTEM SHALL draw
+  them in rounds over the sampled tests, each round giving a turn, in an order
+  shuffled by the seed, to every test that has a mutant left among the admitted
+  lines it ran and no more drawn mutants among them than the fewest such a test
+  had when the round began, first among the tests with fewer than six, then
+  among all; on its turn a test SHALL draw, among the mutants of its lines not
+  drawn yet, the one that gives it a second site while it has fewer than two,
+  then the one run by the most tests with fewer than six, then one on a site it
+  has not, then one of a family it has not, ties broken by an order shuffled by
+  the seed, a site being the first mutated line of a mutant; a drawn mutant SHALL
+  count for every sampled test that ran one of its lines; and THE SYSTEM SHALL
+  draw no mutant that no sampled test ran, give every sampled test at least the
+  fewer of the mutants of its lines and the budget divided by the number of
+  sampled tests with a mutant, draw every mutant a sampled test ran when the
+  budget allows, and make the same draw for the same seed whatever the order of
+  the mutants.
+- **SP-2126~1**: WHEN a scan keeps its sentinels THE SYSTEM SHALL keep at most
+  twelve, stratified by file: the files and the sentinels of each file shuffled
+  by the seed, one sentinel of each file in turn, so that no file gives a second
+  sentinel before every file gave one; every sentinel when there are fewer; and
+  the same sentinels, sorted by id, for the same seed whatever their order.
+- **SP-2127~1**: WHEN a scan records the line coverage of the reference THE SYSTEM
+  SHALL bound each run of tests under coverage, the whole pytest suite or one Go
+  test, by the time `--coverage-timeout` gives, or else by ten times the
+  duration of one reference run of the whole suite, at least 2 minutes and at
+  most 30 minutes; and SHALL fail on a run past its bound with an error that
+  names the bound and `--coverage-timeout`.

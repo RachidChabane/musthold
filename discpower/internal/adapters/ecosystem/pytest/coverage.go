@@ -9,6 +9,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/suiterun"
@@ -48,7 +49,7 @@ type coverageRecorder struct {
 // entries of the requested tests. A non-zero pytest exit is not an error as
 // long as the plugin wrote its report.
 func (c coverageRecorder) Record(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, tests []ecosystem.BoundTest) (coverage.Map, error) {
-	report, err := runCoverage(ctx, c.deps, workspace, toolchain)
+	report, err := runCoverage(ctx, c.deps, workspace, toolchain, c.deps.Timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -66,8 +67,8 @@ type nodeCoverage struct {
 }
 
 // runCoverage runs the whole suite once under the coverage plugin, which the
-// workspace alone receives, and reads its report.
-func runCoverage(ctx context.Context, deps Dependencies, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain) (coverageReport, error) {
+// workspace alone receives, within the timeout, and reads its report.
+func runCoverage(ctx context.Context, deps Dependencies, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, timeout time.Duration) (coverageReport, error) {
 	pluginDir, err := installPlugin(workspace, coveragePluginFile, coveragePlugin)
 	if err != nil {
 		return nil, err
@@ -76,13 +77,17 @@ func runCoverage(ctx context.Context, deps Dependencies, workspace ecosystem.Wor
 	argv := append(append([]string{}, toolchain.Command...), moduleFlag, pytestModule,
 		pluginFlag, coveragePluginModule, noCacheProvider, noCacheProviderID, rootDirFlag, continueFlag)
 	pythonPath := pluginPath(pluginDir, workspace)
-	if _, err := deps.Process.Run(ctx, ports.Command{
+	executed, err := deps.Process.Run(ctx, ports.Command{
 		Argv:    argv,
 		Dir:     workspace.Dir,
 		Env:     []string{noBytecodeVariable, pythonPathVariable + pythonPath, coverageOutputVariable + environmentAssignment + report},
-		Timeout: deps.Timeout,
-	}); err != nil {
+		Timeout: timeout,
+	})
+	if err != nil {
 		return nil, fmt.Errorf("run the coverage suite: %w", err)
+	}
+	if executed.TimedOut {
+		return nil, fmt.Errorf("%w: the suite ran past %s", ports.ErrCoverageTimedOut, timeout)
 	}
 	return readCoverage(report)
 }

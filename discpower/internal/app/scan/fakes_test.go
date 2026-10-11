@@ -176,6 +176,10 @@ type fakeSuite struct {
 	tests      map[ecosystem.TestID]fakeTest
 	mutex      sync.Mutex
 	selections [][]ecosystem.TestID
+	// coverageTimeout is the bound the coverage recording was given, and
+	// coverageOverruns makes the recording outlive it.
+	coverageTimeout  time.Duration
+	coverageOverruns bool
 }
 
 func (s *fakeSuite) Run(_ context.Context, workspace ecosystem.Workspace, _ ecosystem.Toolchain, request ports.ScanRunRequest) (ports.ScanRuns, error) {
@@ -206,9 +210,13 @@ func (s *fakeSuite) Run(_ context.Context, workspace ecosystem.Workspace, _ ecos
 	return result, nil
 }
 
-func (s *fakeSuite) LineCoverage(_ context.Context, _ ecosystem.Workspace, _ ecosystem.Toolchain, tests []ports.ScanCase) (map[ecosystem.TestID][]vacuity.Line, error) {
+func (s *fakeSuite) LineCoverage(_ context.Context, _ ecosystem.Workspace, _ ecosystem.Toolchain, request ports.ScanCoverageRequest) (map[ecosystem.TestID][]vacuity.Line, error) {
+	s.coverageTimeout = request.Timeout
+	if s.coverageOverruns {
+		return nil, ports.ErrCoverageTimedOut
+	}
 	covered := map[ecosystem.TestID][]vacuity.Line{}
-	for _, test := range tests {
+	for _, test := range request.Tests {
 		for _, line := range s.tests[test.ID].lines {
 			covered[test.ID] = append(covered[test.ID], vacuity.Line{File: totals, Line: line})
 		}

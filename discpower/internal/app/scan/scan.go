@@ -69,7 +69,10 @@ type Request struct {
 	Budget time.Duration
 	// Workers is how many mutants run at once.
 	Workers int
-	Module  format.Module
+	// CoverageTimeout, when positive, bounds each run of tests under coverage
+	// in place of the bound derived from the reference runs.
+	CoverageTimeout time.Duration
+	Module          format.Module
 }
 
 // Report is what a scan established and what its renderers show.
@@ -88,6 +91,10 @@ type Report struct {
 	Suite SuiteCounts
 	// Mutants counts the mutants of the draw.
 	Mutants MutantCounts
+	// Candidates counts, for each sampled test with an operator mutant among
+	// the lines it ran, the operator mutants drawn with a mutated line among
+	// them; the scan statement does not record it.
+	Candidates map[ecosystem.TestID]int
 	// Findings are the tests that verify nothing, ranked, each with one change.
 	Findings []Finding
 	Partial  bool
@@ -167,7 +174,7 @@ func (s *Service) Run(ctx context.Context, request Request) (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
-	reference, err := s.prepareReference(ctx, request.Root)
+	reference, err := s.prepareReference(ctx, request)
 	if err != nil {
 		return Report{}, err
 	}
