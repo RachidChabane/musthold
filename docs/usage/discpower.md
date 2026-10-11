@@ -157,10 +157,13 @@ spec-proof-dp scan [--full] [--base REV] [--seed N] [--sample N] [--mutants N] [
 
 The work tree must have no uncommitted change to a tracked file: a scan names
 the commit it ran on. It copies the tree into a workspace outside it, runs the
-whole suite three times and records, per test, the lines that test itself ran.
+whole suite three times and records, per test, the lines its run executed and,
+among them, the lines the test owns: for Go, the blocks it ran more often than
+its test binary's start-up does; for pytest, every line it recorded, since
+collection is never recorded.
 Without `--base` it samples green tests, stratified by file; with `--base` it
 takes the green tests that run a function changed since that revision. It draws
-operator mutants on the lines the judged tests ran, round-robin over those
+operator mutants on the lines the judged tests own, round-robin over those
 tests so that each gets the mutants of its own lines its verdict needs, plus up
 to 12 sentinels, one file at a time.
 
@@ -186,8 +189,18 @@ green test kills it three runs out of three, or a differential run of the
 function it edits, called on inputs drawn from the literals of the code and the
 tests, gives another result than the reference, reproduced, on an input where the
 reference agrees with itself. A test **verifies nothing** when it passes all of at
-least 5 proven changes, on at least 2 lines, in the lines it ran. The headline
-gives each class over its denominator and never reads as a pass:
+least 5 proven changes, on at least 2 lines, in the lines it ran. A pass counts
+only on a line the test owns: a line its process ran only at start-up records a
+kill or an inconclusive outcome, never a survival.
+
+A mutant can stop a test's process before any test starts: a Go test binary
+that panics in a package variable or `init`, or a pytest module, `conftest.py`
+or `__init__.py` that raises on import. When every run of a test on a mutant
+stopped so, the change counts neither for nor against the test: the statement
+lists it apart from the test's changes, under `notStarted`. A Go process that
+exits early with tests left unrun counts as one run, and the package runs again
+in fresh processes until each test has three. The headline gives each class
+over its denominator and never reads as a pass:
 
 ```
 acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled · seed 7
@@ -196,8 +209,9 @@ acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled ·
   unproven: 9 with < 5 proven changes or < 2 sites, 3 with an inconclusive outcome
   they lack: 2 ran no drawn mutant · 31 unproven mutants on their lines: 18 searched without a difference, 9 with no function to call, 4 identical when compiled · no witness without a host
   Not a pass: unproven and unsampled tests are unjudged.
+  tests/test_rates.py::test_rate_table: 2 proven changes in lines it ran stopped it from starting; they count neither way
 
-#1 tests/test_parse.py::test_parse_ok passes on all 9 proven changes in lines it ran
+#1 tests/test_parse.py::test_parse_ok passes on all 9 proven changes in lines it ran; 1 more stopped it from starting
    src/invoicing/parse.py:41  >= → >   input line="a,": reference "a", mutant ""
    proven by: a differential run of invoicing.parse:split_fields, reproduced, on a reference that agrees with itself
    repro: .spec-proof/scan/3f2a9c1/1/repro.sh
@@ -209,8 +223,10 @@ acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled ·
 mutant, and, for the mutants on their lines that no route proves, whether the
 differential search found no difference, had no function to call or could not
 call it, whether the only killing test fails a sentinel, or whether the mutant
-compiled to the reference's form, did not build or did not run within the
-budget. The Markdown report lists each unproven test on its own row.
+compiled to the reference's form, did not build or start, or did not run within
+the budget. The Markdown report lists each unproven test on its own row. The
+mutant count names the sentinels that stopped a test binary: a sentinel keeps
+behaviour, so such a stop is a fault of the harness, never of a test.
 
 When a sampled test verifies nothing, the last line says what its green
 leaves unshown, over the sampled tests; a scan in which none does ends on the
