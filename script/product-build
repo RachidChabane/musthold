@@ -2,9 +2,10 @@
 # Build every product artifact the live canaries and the benchmark need into .tools/:
 # the canary, the pinned Shallnot, the binary of each proof module (the list comes
 # from the canary: `spec-proof-canary modules`), the verification, ledger and System
-# One binaries, and the umbrella plugin tree (.tools/plugins/spec-proof; the plugin
-# ships no binary). With --canary-only only the canary is built, which is all a dry
-# run needs. Every compile runs under nice, one job at a time.
+# One binaries, the umbrella's dispatcher and the umbrella plugin tree
+# (.tools/plugins/spec-proof; the plugin ships no binary). With --canary-only only
+# the canary is built, which is all a dry run needs. Every compile runs under nice,
+# one job at a time.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
@@ -21,6 +22,7 @@ readonly EXTRA_BINARIES=(
   "verify spec-proof-verify"
   "ledger spec-proof-ledger"
   "s1relay spec-proof-s1"
+  "umbrella spec-proof"
 )
 
 build() { # <module dir> <binary> <tags>

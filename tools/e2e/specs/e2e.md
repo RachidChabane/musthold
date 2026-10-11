@@ -112,3 +112,11 @@ boxes; the checks skip with a recorded reason when the memory guard refuses a bu
   and the pinned Shallnot reads the result under the trust `local` THE SYSTEM
   SHALL write a manifest of trust `local` with no digest of a trusted root or of a
   policy and no statement, and SHALL give no `malformed_proof` finding.
+
+## Scan
+
+- **SP-2124~1**: WHEN `spec-proof scan` runs, with no configuration, in a pytest
+  project committed in its own repository, one of whose tests runs a function and
+  asserts nothing THE SYSTEM SHALL exit 0 and print that test as one that verifies
+  nothing, and `spec-proof scan replay` SHALL re-execute the scan's findings with
+  every claim held.

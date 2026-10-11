@@ -1,8 +1,22 @@
 # Umbrella (`spec-proof` plugin)
 
 The umbrella installs Shallnot and every spec-proof module and runs them together.
-It is a Claude Code marketplace and a thin plugin with no code, no binary, no hook,
-no agent, no command and no server.
+It is a Claude Code marketplace, a thin plugin with no code, no binary, no hook, no
+agent, no command and no server, and the `spec-proof` dispatcher.
+
+## The `spec-proof` dispatcher
+
+```
+spec-proof scan [flags]
+spec-proof scan replay <dir>
+```
+
+`spec-proof` holds no rule of its own: each command runs in the binary of the
+module that owns it, with the same arguments, streams and exit code.
+`spec-proof scan` runs [`spec-proof-dp scan`](discpower.md#scan). The module
+binary is looked for beside `spec-proof`, then on `PATH`; when neither holds it,
+`spec-proof` names it and exits 2. Build it with
+`nice -n 10 go install -C umbrella -p 1 ./cmd/spec-proof`.
 
 ## Marketplace
 

@@ -7,6 +7,18 @@ were wrong. spec-proof produces proofs of those facts and hands them to
 [Shallnot](https://github.com/RachidChabane/shallnot), the gate that composes
 them with traceability.
 
+## Scan any repository
+
+One command shows which of your tests still pass when the code they run is
+broken, and hands you the broken code:
+
+```
+spec-proof scan
+```
+
+It needs no spec, no model and no configuration, runs pytest and Go suites, and
+exits 0 whatever it finds; see [scan](docs/usage/discpower.md#scan).
+
 ## The four proofs
 
 | Proof | Question it answers | Module | Binary | Gate effect |

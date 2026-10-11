@@ -1,8 +1,8 @@
 # umbrella requirements
 
 The requirements of the `umbrella` module, the marketplace and the thin plugin
-that install and run the spec-proof modules together, in Shallnot's Markdown
-spec format. `shallnot gate` traces them to the Go tests of the module in CI.
+that install and run the spec-proof modules together and the `spec-proof`
+dispatcher, in Shallnot's Markdown spec format. `shallnot gate` traces them to the Go tests of the module in CI.
 
 ## Marketplace and thin plugin
 
@@ -53,3 +53,14 @@ spec format. `shallnot gate` traces them to the Go tests of the module in CI.
   `prove-all` skill with no `allowed-tools` that leaves the way a ticket is
   answered to each module's fulfil skill, and the committed tree SHALL equal what
   the generator produces.
+
+## Dispatcher
+
+- **SP-2121~1**: WHEN `spec-proof <command>` runs THE SYSTEM SHALL run the binary
+  of the module that owns the command, `spec-proof-dp` for `scan`, found beside
+  the dispatcher first and on the PATH otherwise, with the same arguments and
+  streams, and exit with its exit code; SHALL fail with exit 2 and the name of the
+  missing binary when neither holds it; SHALL ask that binary for the help of a
+  command; and SHALL print its commands for `-h`, `--help` and `help` on standard
+  output with exit 0, on standard error with exit 2 for no command or an unknown
+  one, and its version for `version` and `--version`.

@@ -33,8 +33,9 @@ nice -n 10 go install -C verify -p 1 ./cmd/spec-proof-verify
 
 `go install` writes to `$GOBIN`, or to `$(go env GOPATH)/bin` when `GOBIN` is
 unset. `-p 1` keeps the build to one compiler job and `nice` keeps the machine
-responsive. Add `ledger` (`spec-proof-ledger`) for CI signing and `s1relay`
-(`spec-proof-s1`) for [System One](system-one.md) the same way.
+responsive. Add `ledger` (`spec-proof-ledger`) for CI signing, `s1relay`
+(`spec-proof-s1`) for [System One](system-one.md) and `umbrella` (`spec-proof`)
+for the [dispatcher](umbrella.md#the-spec-proof-dispatcher) the same way.
 
 Check the install:
 

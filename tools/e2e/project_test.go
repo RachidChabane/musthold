@@ -30,6 +30,7 @@ const (
 	alignmentBinary    = "spec-proof-alignment"
 	completenessBinary = "spec-proof-completeness"
 	s1Binary           = "spec-proof-s1"
+	dispatcherBinary   = "spec-proof"
 	alignmentTags      = "grammar_subset,grammar_subset_python,grammar_subset_javascript,grammar_subset_typescript,grammar_subset_tsx,grammar_subset_java,grammar_subset_kotlin"
 	buildTimeout       = 5 * time.Minute
 	commandTimeout     = 8 * time.Minute
@@ -66,6 +67,7 @@ func productBinaries(t *testing.T) string {
 		builds := []struct{ module, binary, tags string }{
 			{"discpower", dpBinary, ""}, {"alignment", alignmentBinary, alignmentTags}, {"completeness", completenessBinary, ""},
 			{"verify", verifyBinary, ""}, {"ledger", ledgerBinary, ""}, {"s1relay", s1Binary, ""},
+			{"umbrella", dispatcherBinary, ""},
 		}
 		for _, build := range builds {
 			args := []string{"-n", niceLevel, "go", "build", "-C", filepath.Join(repositoryDir, build.module), "-p", "1", "-o", filepath.Join(productDir, build.binary)}
