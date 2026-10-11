@@ -1034,3 +1034,56 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   SHALL ship the hooks module that carries the classifier calls of the host,
   naming the binary of the module, and the validator of Claude Code SHALL accept
   the plugin.
+
+## Scan verdicts
+
+- **SP-2020~1**: WHEN the runs of a test are settled THE SYSTEM SHALL answer
+  `killed` when exactly three runs all failed, `survived` when exactly three runs
+  all passed, and `inconclusive` for any other runs, a timeout, an error, a
+  missing run or runs that disagree included; and SHALL hold a test green only
+  when exactly three runs on the reference all passed.
+- **SP-2021~1**: WHEN a test kills a mutant THE SYSTEM SHALL take the kill as a
+  `killed_by_test` route only when the test is green, the kill is settled as
+  `killed`, and the test failed no run on any sentinel.
+- **SP-2022~1**: WHEN the differential search found a difference on a mutant THE
+  SYSTEM SHALL take it as an `f3_difference` route only when it names an input,
+  was observed on a return value, a raised exception or a mutated argument,
+  gives two different results, reproduced, and the reference agreed with itself
+  on the input.
+- **SP-2023~1**: WHEN a witness failed on a mutant THE SYSTEM SHALL take it as a
+  `witness_failure` route only when the witness is admitted, its writer was
+  blind, and the failure reproduced; SHALL never prove a sentinel, a mutant
+  identical to the reference in compiled form or a mutant that mutates no line;
+  and SHALL list each route of a mutant once, in the format's order.
+- **SP-2024~1**: WHEN the changes of a test are listed THE SYSTEM SHALL list the
+  proven mutants one of whose mutated lines is among the lines that test itself
+  ran, each with its site, the first mutated line by file then number, and the
+  test's settled outcome on it, ordered by site then mutant id.
+- **SP-2025~1**: WHEN a test is classified THE SYSTEM SHALL classify a test that
+  is not green as `not_green` and a green test the scan did not draw as
+  `not_sampled`; and a sampled green test, in order, as `unproven` with the
+  reason `kills_sentinel` when it failed a run on a sentinel, as `caught` when it
+  kills one of its changes, as `unproven` with the reason `inconclusive_outcome`
+  when one of its changes is inconclusive, as `verifies_nothing` when it survives
+  at least 5 changes on at least 2 sites, and as `unproven` with the reason
+  `too_few_changes` otherwise.
+- **SP-2026~1**: WHEN a scan is classified THE SYSTEM SHALL count every test of
+  the suite, those with reference runs and those sampled, in exactly one of the
+  five classes, so that the judged tests are the sampled green ones and the
+  tests not sampled are the other green ones.
+- **SP-2027~1**: WHEN a scan is classified THE SYSTEM SHALL rank the verdicts by
+  class, verifies nothing first, then by number of changes, most first, then by
+  test id byte-wise; SHALL give the same result whatever the order of the
+  sampled tests, the mutants, their lines and differences and the covered lines;
+  and SHALL refuse two mutants with one id.
+- **SP-2028~1**: WHEN a test kills one more mutant THE SYSTEM SHALL never move
+  that test into `verifies_nothing`; and WHEN an unproven mutant that is not a
+  sentinel is removed from a scan THE SYSTEM SHALL change no verdict and no
+  count.
+- **SP-2029~1**: WHEN the verdicts of a scan are written as scan tests THE SYSTEM
+  SHALL write the sampled green tests in test id order, each change in mutant id
+  order, so that a scan statement holding them, the counts and the routes
+  validates in the format.
+- **SP-2030~1**: WHEN an edit set is written into a scan statement THE SYSTEM
+  SHALL write its edits in canonical order with the target of a definition
+  omitted, so that their scan digest is its mutant id.

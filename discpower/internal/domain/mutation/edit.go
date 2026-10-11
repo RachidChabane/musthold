@@ -157,3 +157,18 @@ func (s EditSet) ID() (string, error) {
 	}
 	return format.SHA256Hex(canonical), nil
 }
+
+// ScanEdits writes the set in the wire form of a scan statement: in canonical
+// order, the target of a definition omitted. Their digest is the mutant id.
+func (s EditSet) ScanEdits() []format.ScanEdit {
+	canonical := s.Canonical()
+	edits := make([]format.ScanEdit, len(canonical.Edits))
+	for index, edit := range canonical.Edits {
+		target := string(edit.Kind())
+		if edit.Kind() == TargetDefinition {
+			target = ""
+		}
+		edits[index] = format.ScanEdit{File: edit.File, Qualname: edit.Qualname, Target: target, NewSource: edit.NewSource}
+	}
+	return edits
+}
