@@ -17,11 +17,13 @@ import (
 const (
 	pytestScanFixture = "fixtures/scan/pytest"
 	goScanFixture     = "fixtures/scan/go"
+	goRatesFixture    = "fixtures/scan/go-rates"
 	vacuousPytest     = "tests/test_discount.py::test_discount_accepts_any_percent"
 	vacuousGo         = "discount_test.go::TestDiscountAcceptsAnyPercent"
 	verifiesScanE2E   = " [verifies SP-2122~2]"
 	verifiesReplay    = " [verifies SP-2114~1]"
 	verifiesCommand   = " [verifies SP-2119~2]"
+	verifiesOrder     = " [verifies SP-2140~1]"
 )
 
 // scanned is a copy of a scan fixture committed in a repository of its own.
@@ -152,6 +154,36 @@ func TestScanIsQuickByDefault(t *testing.T) {
 			if scan.code != 0 || !strings.Contains(scan.stdout, want) {
 				t.Fatalf("exit %d, missing %q:\n%s", scan.code, want, scan.output())
 			}
+		}
+	})
+}
+
+func TestScanStatementOfAnyWorkers(t *testing.T) {
+	if _, err := exec.LookPath("go"); err != nil {
+		t.Skipf("no go: %v", err)
+	}
+	s := newScanned(t, goRatesFixture)
+	one := s.run(s.binary, "scan", "--budget", "0", "--workers", "1", "--format", "json")
+	four := s.run(s.binary, "scan", "--budget", "0", "--workers", "4", "--format", "json")
+	t.Run("a scan with no budget writes the same statement on one worker and on four"+verifiesOrder, func(t *testing.T) {
+		if one.code != 0 || four.code != 0 {
+			t.Fatalf("exit %d:\n%s\nexit %d:\n%s", one.code, one.output(), four.code, four.output())
+		}
+		if strings.TrimSpace(one.stdout) == "" || one.stdout != four.stdout {
+			t.Fatalf("one worker:\n%s\nfour workers:\n%s", one.stdout, four.stdout)
+		}
+	})
+}
+
+func TestQuickScanOfAGoProject(t *testing.T) {
+	if _, err := exec.LookPath("go"); err != nil {
+		t.Skipf("no go: %v", err)
+	}
+	s := newScanned(t, goScanFixture)
+	scan := s.run(s.binary, "scan")
+	t.Run("a scan with no flag names the Go test that runs code and asserts nothing"+verifiesOrder, func(t *testing.T) {
+		if scan.code != 0 || !strings.Contains(scan.stdout, "quick scan · 1m30s budget · ") || !strings.Contains(scan.stdout, "#1 "+vacuousGo+" passes on all ") {
+			t.Fatalf("exit %d:\n%s", scan.code, scan.output())
 		}
 	})
 }

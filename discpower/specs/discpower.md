@@ -1397,3 +1397,8 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   mutant recorded, in one place that no running mutant reads; and SHALL leave
   out no mutant, so that a scan that runs every mutant runs the same ones
   whatever the order they finish in.
+- **SP-2140~1**: WHEN `spec-proof-dp scan --budget 0` runs on a Go project of
+  several packages, once on one worker and once on four, THE SYSTEM SHALL write
+  the same scan statement; and WHEN `spec-proof-dp scan` runs with no flag on a
+  Go project, one of whose tests runs a function and asserts nothing, THE
+  SYSTEM SHALL name that test as the first that verifies nothing.
