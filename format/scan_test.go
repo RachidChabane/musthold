@@ -265,6 +265,15 @@ func TestScanRoutes(t *testing.T) {
 		})
 	}
 
+	t.Run("two differences on one input with other results are distinct routes [verifies SP-2005~1]", func(t *testing.T) {
+		first := format.ScanRoute{Kind: format.ScanRouteDifferential, Input: `"a,"`, Channel: format.ScanChannelReturnValue, Reference: "1", Mutant: "2"}
+		second := first
+		second.Mutant = "3"
+		if format.CompareScanRoutes(first, second) >= 0 || format.CompareScanRoutes(first, first) != 0 {
+			t.Fatal("the route order is not total")
+		}
+	})
+
 	t.Run("routes in descending order are reported [verifies SP-2005~1]", func(t *testing.T) {
 		statement := proofs.Scan(func(s *scanStatement) {
 			provenMutant(s).Routes = []format.ScanRoute{
@@ -356,6 +365,19 @@ func TestScanCounts(t *testing.T) {
 			s.Predicate.Counts.NotSampled += 4
 		})
 		assertCodes(t, statement.Validate(), format.CodeScanCounts)
+	})
+
+	t.Run("adding a test of a class counts it in that class and in the suite [verifies SP-2007~1]", func(t *testing.T) {
+		var counts format.ScanCounts
+		for _, class := range format.ScanClasses() {
+			counts = counts.Add(class)
+			if counts.Of(class) != 1 {
+				t.Fatalf("%s counted %d times", class, counts.Of(class))
+			}
+		}
+		if counts.Tests != len(format.ScanClasses()) || counts.Judged() != len(format.ScanVerdicts()) {
+			t.Fatalf("counts = %+v", counts)
+		}
 	})
 
 	t.Run("the judged denominator is the three verdicts and never the suite [verifies SP-2007~1]", func(t *testing.T) {

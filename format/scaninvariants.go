@@ -142,7 +142,7 @@ func checkScanMutant(sink *collector, path string, mutant ScanMutant, index scan
 	if mutant.Sentinel && (mutant.Origin != ScanOriginOperator || mutant.Proven()) {
 		sink.add(CodeSentinelNotEquivalent, path+".routes", "a sentinel is an operator mutant that keeps behaviour by construction")
 	}
-	checkAscending(sink, path+".routes", mutant.Routes, compareScanRoutes)
+	checkAscending(sink, path+".routes", mutant.Routes, CompareScanRoutes)
 	for position, route := range mutant.Routes {
 		checkScanRoute(sink, fmt.Sprintf("%s.routes[%d]", path, position), route, index)
 	}
@@ -182,14 +182,17 @@ func checkScanPath(sink *collector, path, value string) {
 	}
 }
 
-// compareScanRoutes orders routes by kind, then by what names their evidence.
-func compareScanRoutes(a, b ScanRoute) int {
+// CompareScanRoutes orders the routes of a mutant: by kind, then by every field
+// of their evidence, so that only identical routes compare equal.
+func CompareScanRoutes(a, b ScanRoute) int {
 	return cmp.Or(
 		strings.Compare(string(a.Kind), string(b.Kind)),
 		strings.Compare(a.Test, b.Test),
 		strings.Compare(a.Witness, b.Witness),
 		strings.Compare(a.Input, b.Input),
 		strings.Compare(string(a.Channel), string(b.Channel)),
+		strings.Compare(a.Reference, b.Reference),
+		strings.Compare(a.Mutant, b.Mutant),
 	)
 }
 

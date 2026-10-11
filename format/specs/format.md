@@ -610,7 +610,8 @@ Go tests of the module in CI.
   be an operator mutant without a route, and report `sentinel_not_equivalent`
   otherwise.
 - **SP-2005~1**: WHEN a route of a scan mutant is checked THE SYSTEM SHALL require
-  the routes in ascending order, a `killed_by_test` route to name its killing test
+  the routes in ascending order of kind and then of every field of their
+  evidence, a `killed_by_test` route to name its killing test
   and nothing else, an `f3_difference` route to name its input, a return value,
   exception or argument mutation as the observed channel and two different
   results, and nothing else, and a `witness_failure` route to name an admitted
@@ -626,8 +627,9 @@ Go tests of the module in CI.
 - **SP-2007~1**: WHEN the counts of a scan are checked THE SYSTEM SHALL require
   them to be non-negative, the five classes to add up to the tests of the suite,
   and the listed tests of each verdict to be as many as its count, reporting
-  `scan_counts`; and SHALL give as the judged denominator the sum of the three
-  verdicts, never the suite.
+  `scan_counts`; SHALL count a test added to a class in that class and in the
+  suite; and SHALL give as the judged denominator the sum of the three verdicts,
+  never the suite.
 - **SP-2008~1**: WHEN the promises of a scan are checked THE SYSTEM SHALL require
   a scan that checked no promise to hold no promise, witness, broken promise or
   question; each promise to have an id, a quote and a named source with a

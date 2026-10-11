@@ -223,6 +223,24 @@ func (c ScanCounts) Of(class ScanClass) int {
 	return 0
 }
 
+// Add counts one more test of the class.
+func (c ScanCounts) Add(class ScanClass) ScanCounts {
+	c.Tests++
+	switch class {
+	case ScanVerifiesNothing:
+		c.VerifiesNothing++
+	case ScanCaught:
+		c.Caught++
+	case ScanUnproven:
+		c.Unproven++
+	case ScanNotSampled:
+		c.NotSampled++
+	case ScanNotGreen:
+		c.NotGreen++
+	}
+	return c
+}
+
 // ScanEdit replaces one unit of one file, in the wire form of a mutant's edits:
 // the target is omitted for a definition.
 type ScanEdit struct {
