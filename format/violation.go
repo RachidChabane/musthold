@@ -34,6 +34,13 @@ const (
 	CodeExecutedWithExecutor      ViolationCode = "executed_with_executor"
 	CodeInconsistentAttribution   ViolationCode = "inconsistent_attribution"
 	CodeInputDescriptor           ViolationCode = "input_descriptor"
+
+	// Codes of the scan statement (ADR 0014).
+	CodeMutantID      ViolationCode = "mutant_id"
+	CodeScanCounts    ViolationCode = "scan_counts"
+	CodeScanClass     ViolationCode = "scan_class"
+	CodeScanRoute     ViolationCode = "scan_route"
+	CodeScanReference ViolationCode = "scan_reference"
 )
 
 // Violation is one broken invariant at a JSON path of the statement.

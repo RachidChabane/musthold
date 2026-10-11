@@ -6,6 +6,8 @@ protocol every proof module speaks. It is the only package the modules share.
 - the three Statements (alignment, discriminating power, completeness) as in-toto
   Statement v1, their JSON Schemas, RFC 8785 canonicalization, cache keys, input
   descriptors and pending files;
+- the scan statement (`scan/v1`), the executed record of `spec-proof scan`,
+  which no reader of proofs admits;
 - `hostproto`: requests, tickets, responses, the lifecycle, capabilities, hook
   payload decoders for Claude Code, Codex and Copilot, and the executor server;
 - golden vectors that every module and Shallnot's reader run.

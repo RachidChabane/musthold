@@ -29,6 +29,13 @@ var discriminatingPowerSchema []byte
 //go:embed schemas/completeness.json
 var completenessSchema []byte
 
+//go:embed schemas/scan.json
+var scanSchema []byte
+
+// ScanStatementSchemaPointer locates, inside the scan schema, the schema of a
+// whole scan statement: the envelope, its commit subject and the predicate.
+const ScanStatementSchemaPointer = "#/$defs/statement"
+
 // Schema is one embedded JSON Schema 2020-12 document and the URI it is
 // identified by (its `$id`).
 type Schema struct {
@@ -47,6 +54,11 @@ func Schemas() []Schema {
 		{ID: PredicateTypeCompleteness, Bytes: completenessSchema},
 	}
 }
+
+// ScanSchema returns the schema of the scan predicate, whose `$id` is its
+// predicate type URI. It is not a predicate schema of the format: Schemas and
+// PredicateSchema never return it, so no reader of proofs compiles it as one.
+func ScanSchema() Schema { return Schema{ID: PredicateTypeScan, Bytes: scanSchema} }
 
 // PredicateSchema returns the schema of a predicate type, whose `$id` is the
 // predicate type URI.

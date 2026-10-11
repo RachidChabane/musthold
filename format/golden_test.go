@@ -64,7 +64,10 @@ func writeGolden() error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(goldenDirectory, manifestName), append(encoded, '\n'), goldenFileMode)
+	if err := os.WriteFile(filepath.Join(goldenDirectory, manifestName), append(encoded, '\n'), goldenFileMode); err != nil {
+		return err
+	}
+	return writeScanGolden()
 }
 
 func readManifest(t *testing.T) []golden.ManifestEntry {

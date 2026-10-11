@@ -582,6 +582,74 @@ Go tests of the module in CI.
 - **SP-24~1**: WHEN a golden vector is decoded and validated THE SYSTEM SHALL
   give the outcome and the violation codes its manifest states.
 
+## Scan statements
+
+- **SP-2000~1**: WHEN a scan statement is checked THE SYSTEM SHALL require the
+  in-toto Statement v1 envelope with the scan predicate type, exactly one subject
+  named by a lowercase hex commit id of SHA-1 or SHA-256 length with the SHA-256
+  digest of the scanned tree, a module name and version, a producer, a mode with
+  a base commit in change mode and none in repository mode, a runner, and a seed
+  written as an unsigned 64-bit decimal without a leading zero.
+- **SP-2001~1**: WHEN a scan predicate carries a `requirement` member THE SYSTEM
+  SHALL report `requirement`, on a statement built in Go as on decoded bytes, and
+  the scan schema SHALL refuse it.
+- **SP-2002~1**: WHEN a scan statement is decoded or admitted as a proof THE
+  SYSTEM SHALL refuse its predicate type as outside the format, resolve it to no
+  proof kind and no predicate schema, and refuse it relabelled as the predicate
+  type of a proof; and WHEN a proof is decoded as a scan statement THE SYSTEM
+  SHALL refuse it.
+- **SP-2003~1**: WHEN a scan mutant is checked THE SYSTEM SHALL require its id to
+  be the SHA-256 of the RFC 8785 form of its edits ordered by file, target kind
+  and qualname, the target of a definition omitted, whatever order they are given
+  in, and report `mutant_id` otherwise; and SHALL require a known origin, at least
+  one edit in that order with a relative POSIX file, a qualname and a target that
+  is omitted or names a module assignment or addition, and at least one mutated
+  line, ordered by file then number, with a relative POSIX file and a number from
+  1.
+- **SP-2004~1**: WHEN a scan mutant is a sentinel THE SYSTEM SHALL require it to
+  be an operator mutant without a route, and report `sentinel_not_equivalent`
+  otherwise.
+- **SP-2005~1**: WHEN a route of a scan mutant is checked THE SYSTEM SHALL require
+  the routes in ascending order, a `killed_by_test` route to name its killing test
+  and nothing else, an `f3_difference` route to name its input, a return value,
+  exception or argument mutation as the observed channel and two different
+  results, and nothing else, and a `witness_failure` route to name an admitted
+  witness of the scan and nothing else, reporting `scan_route`, `unknown_value`
+  or `scan_reference`.
+- **SP-2006~1**: WHEN a test of a scan is checked THE SYSTEM SHALL accept only the
+  classes `verifies_nothing`, `caught` and `unproven`, a reason exactly for an
+  unproven test, and changes that cite proven mutants of the scan that are not
+  sentinels and labels that cite its promises, reporting `scan_reference`
+  otherwise; and SHALL report `scan_class` for a test that verifies nothing
+  without a change or with a change it did not survive, and for a caught test
+  without a killed change.
+- **SP-2007~1**: WHEN the counts of a scan are checked THE SYSTEM SHALL require
+  them to be non-negative, the five classes to add up to the tests of the suite,
+  and the listed tests of each verdict to be as many as its count, reporting
+  `scan_counts`; and SHALL give as the judged denominator the sum of the three
+  verdicts, never the suite.
+- **SP-2008~1**: WHEN the promises of a scan are checked THE SYSTEM SHALL require
+  a scan that checked no promise to hold no promise, witness, broken promise or
+  question; each promise to have an id, a quote and a named source with a
+  SHA-256 digest; each witness to have a SHA-256 id, a name and code, to belong to
+  a promise of the scan, and to be admitted when block-bearing; each broken
+  promise to name a block-bearing witness of its promise that its mutant fails on
+  a `witness_failure` route; and each question to name a witness of its promise
+  that is not admitted.
+- **SP-2009~1**: WHEN the quote of a promise is checked against its source THE
+  SYSTEM SHALL accept it only when the source has the digest the promise records
+  and contains the non-empty quote byte for byte.
+- **SP-2010~1**: WHEN a scan statement is encoded THE SYSTEM SHALL validate it and
+  produce its RFC 8785 canonical bytes, which admit back to the same statement;
+  and WHEN scan statement bytes are admitted THE SYSTEM SHALL refuse bytes that do
+  not decode, do not validate or are not their own canonical form.
+- **SP-2011~1**: WHEN the scan schema is listed THE SYSTEM SHALL give it as a JSON
+  Schema 2020-12 document identified by the scan predicate type; and WHEN a scan
+  golden vector is decoded and validated, or checked against the schema of a scan
+  statement, THE SYSTEM SHALL give the violation codes and the schema result its
+  manifest states, the vectors covering a valid statement and every scan
+  violation, and the committed vectors being the ones the generator produces.
+
 ## Command-line conventions
 
 - **SP-1600~1**: WHEN a command line asks for help with `-h`, `--help`, `-help` or,

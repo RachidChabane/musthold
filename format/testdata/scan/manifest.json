@@ -1,0 +1,108 @@
+[
+  {
+    "file": "scan-valid.json",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "scan-valid-repository.json",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "scan-valid-unknown-members.json",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "scan-with-requirement.json",
+    "violations": [
+      "requirement"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "scan-subject-named-after-a-criterion.json",
+    "violations": [
+      "subject"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "scan-mutant-id-not-its-edits.json",
+    "violations": [
+      "mutant_id"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "scan-unproven-change-cited.json",
+    "violations": [
+      "scan_reference"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "scan-verifies-nothing-with-a-kill.json",
+    "violations": [
+      "scan_class"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "scan-counts-do-not-add-up.json",
+    "violations": [
+      "scan_counts"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "scan-sentinel-proven.json",
+    "violations": [
+      "sentinel_not_equivalent"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "scan-route-with-foreign-fields.json",
+    "violations": [
+      "scan_route"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "scan-broken-promise-on-escalate-only-witness.json",
+    "violations": [
+      "scan_reference"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "scan-promises-without-host.json",
+    "violations": [
+      "scan_reference"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "scan-change-mode-without-base.json",
+    "violations": [
+      "missing_field"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "scan-unsorted-tests.json",
+    "violations": [
+      "unsorted"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "scan-not-sampled-test-listed.json",
+    "violations": [
+      "unknown_value"
+    ],
+    "schema": "invalid"
+  }
+]

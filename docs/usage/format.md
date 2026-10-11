@@ -60,6 +60,38 @@ The library reports a violation with a code such as `judged_without_confidence`,
 and codes for valid and invalid statements; every module and Shallnot's reader run
 them.
 
+## Scan statements
+
+`spec-proof scan` records what it ran in a scan statement: an in-toto Statement v1
+with the predicate type `https://rachid-chabane.com/attestations/scan/v1`
+([ADR 0014](../adr/0014-scan.md)). It is not a proof. It has no `requirement`, its
+subject is the scanned commit with the file-set digest of its tree, and every
+reader of proofs refuses its predicate type: `Decode` and `Admit` return
+`ErrUnknownPredicateType`, the module schema checks do the same, and the gate
+ignores it. `DecodeScan`, `AdmitScan` and `ScanSchema` read it.
+
+A scan predicate carries:
+
+- `module`, `producedBy`, `mode` (`repo`, or `pr` with its `base` commit),
+  `runner`, the decimal `seed`, `partial` when the budget stopped it, and
+  `promisesChecked`;
+- `counts` of the suite's tests by class: `verifiesNothing`, `caught`,
+  `unproven`, `notSampled` and `notGreen`, adding up to `tests`. The claim is read
+  against the sampled green tests, the sum of the first three;
+- `mutants[]` with their bodies: `edits` in the wire form of a mutant, whose
+  digest is the mutant `id`, the mutated `lines`, the `origin` (`operator` or
+  `model`), `sentinel`, and the `routes` that prove the mutant changes behaviour
+  (`killed_by_test`, `f3_difference`, `witness_failure`);
+- `tests[]`, one per sampled green test: its class, the reason when it is
+  unproven, its outcome on each proven change in the lines it ran, and the
+  promises that label it;
+- with a host, `promises[]` with their quote and source digest, `witnesses[]`,
+  `brokenPromises[]` and `questions[]`.
+
+`CheckQuote` accepts a promise only when its source has the recorded digest and
+holds the quote byte for byte. Golden vectors under `format/testdata/scan` fix the
+violation codes and the schema result of scan statements.
+
 ## Layout of proofs
 
 | Form | Path |

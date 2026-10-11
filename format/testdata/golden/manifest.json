@@ -441,5 +441,11 @@
     "decode": "unknown_predicate_type",
     "violations": [],
     "schema": "unknown_predicate_type"
+  },
+  {
+    "file": "scan-statement-is-not-a-proof.json",
+    "decode": "unknown_predicate_type",
+    "violations": [],
+    "schema": "unknown_predicate_type"
   }
 ]

@@ -122,7 +122,8 @@ func Cases() []Case {
 	cases = append(cases, completenessCases()...)
 	cases = append(cases, executorCases()...)
 	cases = append(cases, corroborationCases()...)
-	return append(cases, envelopeCases()...)
+	cases = append(cases, envelopeCases()...)
+	return append(cases, scanStatementCase())
 }
 
 func validCases() []Case {
