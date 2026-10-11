@@ -32,6 +32,10 @@ For each test bound to a requirement, the module:
 
 ## The matrix
 
+A requirement's valid mutants are those of its discriminating-power proof that
+fail one of its examples, fail one of its block-bearing witnesses, or were judged
+valid, and are not collateral.
+
 | Class | Meaning |
 |---|---|
 | `UNDEFINED_OWN` | the requirement has no valid mutant |

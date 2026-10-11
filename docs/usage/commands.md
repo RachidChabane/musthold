@@ -17,7 +17,7 @@ Flags are accepted as `--flag` or `-flag`. The other binaries (`spec-proof-ledge
 `spec-proof-verify`, `spec-proof-s1`) answer the same help forms.
 
 ```
-spec-proof-dp <version|prove|request|systemone|doctor|init|enable|disable|mcp|hook|host>
+spec-proof-dp <version|prove|request|systemone|doctor|init|enable|disable|mcp|hook|host|facts>
 ```
 
 Every command that works on a project takes `--root DIR` (default: the working
@@ -165,6 +165,20 @@ ecosystem, the version control tool, the policy, the harness files the project
 holds), then the host store and its journal chain, then the classification: the
 switch, the admission entries of the module and any version of the host that
 differs from the one an entry was measured on. Exits 2 when a check fails.
+
+## facts
+
+```
+spec-proof-dp facts show ID~REV [--root DIR]
+```
+
+Discriminating power only. Prints, as canonical JSON, the facts record of the last
+Statement written for the requirement: the policy and the admission it was decided
+under, the reference results and bindings of the tests, every witness with its runs
+on the reference and the planted refactors and its scope votes, and every mutant of
+the pool with its kill vector, the examples it fails, its differential search, its
+compiled form, the witnesses it fails and its validity votes. Exits 1 for a
+requirement that has no record.
 
 ## mcp and hook
 

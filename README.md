@@ -29,9 +29,11 @@ missing or stale proof never passes.
   and nothing else. The binary then validates the answer by schema and by
   execution.
 - **Execution decides.** A mutant counts only if it compiles, passes the tests
-  of the other requirements and violates its own requirement. A judged signal
-  (a model's opinion with a confidence) never blocks alone: blocking and pass
-  credit need executed corroboration, and an uncorroborated judgment escalates.
+  of the other requirements and fails, on execution, an example of its
+  requirement or a witness: a test a blind writer derived from the spec before
+  any mutant existed. A judged signal (a model's opinion with a confidence) never
+  blocks alone and never clears a surviving mutant alone: an unsettled survivor
+  escalates.
 - **Independent modules.** Each proof is its own binary, plugin and test suite,
   usable alone with Shallnot. The only contract between modules is the shared,
   versioned [proof format](docs/architecture.md#the-proof-format). An absent

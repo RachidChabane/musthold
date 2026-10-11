@@ -38,15 +38,32 @@ confidence source of the claim. `judge_k` is the number of blind judge tickets
 |---|---|---|---|
 | tests fail on the reference code; an example fails on it | block | the claim itself | none |
 | valid survivor that fails an example of its requirement | block | the example | none |
-| judged valid survivor | block | a confirmed witness, the mutant builds, the tests of the other requirements pass, `judge_k` judges agree | escalate |
-| judged valid mutant, killed | pass credit | a specific kill (a test of the requirement that killed no sentinel), the mutant builds, the other requirements' tests pass, a confirmed witness, the judge agrees | no credit |
-| equivalent survivor | excluded from the pool | a differential search that found no difference | escalate; a contradicting answer is rejected |
-| not-violating or off-target survivor | excluded | a failing example of another requirement and none of its own | escalate under `corroborated`; accepted with `judge_k` and counted in `hostExclusions` under `judged` |
+| witnessed survivor (VALID_e) | block | it fails, reproduced, a block-bearing witness of its requirement (a test a blind writer derived from the spec, passing the reference three times out of three, held in scope by every scope judge); the mutant builds; the tests of the other requirements pass | escalate |
+| witnessed mutant, killed | pass credit | the same, a specific kill, the witness's writer and scope judges at the isolation floor, the mutant witnessed for no other requirement | no credit |
+| equivalent survivor | excluded from the pool | the mutant compiles to the reference's form; or the full-resolution differential search found no difference, every validity judge answers equivalent, none confirms a witness and the mutant fails no witness the unmodified code passes | escalate; a contradicting answer is rejected |
+| off-target survivor | excluded | it fails an example or an admitted witness of another requirement and none of its own | escalate |
+| judged valid or not-violating survivor no witness settles | none | — | escalate |
 | closed screen of a survivor | pool membership | none; only answers at the isolation floor and not marked can screen a survivor out, and screen-outs are counted in `screenExclusions`; a survivor the screen would otherwise have let go, kept in the pool only by the floor, is counted in `screenFloorEntries` | `executed-only` bypasses the screen |
-| undetermined survivor, no valid mutant, test that killed a sentinel | escalate | none | none |
+| unsettled survivor, no credit-bearing mutant killed, test that killed a sentinel | escalate | none | none |
 | alignment ALIGNED | clears the test | judge plus a SPECIFIC or OVERBROAD matrix that is neither contaminated nor pinning off-spec behaviour | without the discriminating-power module: `uncorroborated`, which clears under `trust: local` and escalates under `trust: signed` unless the basis is `judged` |
 | alignment MISALIGNED, UNDETERMINED | escalate | none | none |
 | completeness question | reported | none | none |
+
+### Witnesses
+
+A survivor blocks only by failing, on execution, a witness: a test a blind writer
+derived from the spec before any mutant existed. The writer sees the spec documents,
+with every requirement relabelled by position, the requirement to check, the public
+signatures of the code the spec mentions and the signatures of the project's test
+helpers; never a body of the code, a test, a mutant or a kill. A witness the
+reference fails in every run is a reading conflict, reported as a question about the
+spec. Two scope judges, who see the spec and the witnesses but never a mutant, decide
+whether the requirement's text alone fixes what each witness asserts; a witness both
+hold fixed is block-bearing. The scope judges only gate a block. Validity judges
+are asked only on the survivors no witness settles, and no judgment alone excludes a
+survivor. In CI two fresh writers, seeded by the CI run, write a credit draw: only
+its witnesses earn credit there, so the witnesses that earn credit in CI were never
+shown to the coder. The witnesses the developer's host wrote still block in CI.
 
 ### Pass basis
 
@@ -54,14 +71,13 @@ confidence source of the claim. `judge_k` is the number of blind judge tickets
 
 | Basis | A pass credit or an exclusion may rest on |
 |---|---|
-| `executed-only` | executed evidence only: an example that fails on the mutant. A judged validity alone gives none. |
-| `corroborated` (default) | also a judged claim at τ whose executed corroboration is listed. A survivor judged not violating without an example escalates. |
-| `judged` | also a judged claim at τ with no further corroboration; at most `max_host_exclusions` survivors per requirement are excluded on a judgment alone. |
+| `executed-only` | executed evidence only: an example that fails on the mutant, and an exclusion by an example of another requirement or by the compiled form. A witness failure gives no credit, and the differential search with the validity judges excludes nothing. |
+| `corroborated` (default) | also a witness failure whose writer and scope judges answered at the isolation floor, and an exclusion by the differential search that every validity judge corroborates. |
+| `judged` | the same as `corroborated`: no basis lets a judgment alone exclude a survivor. |
 
 Under `trust: local` the basis is `judged`. A basis that accepts a judgment alone
-lets a forged label buy a pass, so the default asks for corroboration, and
-`executed-only` closes every judged route at the price that requirements without
-examples rarely pass.
+would let a forged label buy a pass; `executed-only` closes every judged route at the
+price that requirements without examples rarely pass.
 
 ## Harness isolation
 
@@ -166,8 +182,8 @@ attestation.
   attestation are tamper-evident, not tamper-proof, and provenance only ever
   removes credit.
 - A cheating agent can still write easily killed mutants, forge screen-outs, and
-  forge `VALID` on genuine specific kills. The corroboration rules bound this;
-  `executed-only` closes all three.
+  write or copy witnesses its own tests satisfy. The corroboration rules and the CI
+  credit draw of the witnesses bound this; `executed-only` closes all three.
 - Every executor receives the environment details of its harness session, such as a
   snapshot of the git status, which can include file names.
 - The `executor` metadata of a response is forgeable, so the isolation floor

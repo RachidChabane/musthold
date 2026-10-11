@@ -47,6 +47,7 @@ systemone:
 | `systemone.endpoint` | URL | none | Endpoint the relay posts closed questions to. |
 | `systemone.model` | string | none | Model named in each relayed request. |
 | `systemone.classify` | `auto`, `shadow`, `off`, or a mapping of `default` and proof kinds to those | `auto` | Classification by the host's mod: `auto` serves only the admitted entries, `shadow` journals and never answers, `off` does nothing. See [System One](system-one.md#classification-by-the-host). |
+| `admission.refactors` | path | none | Discriminating power only: a directory of edit sets, one `<name>.json` per planted refactor that preserves every requirement. A witness must pass each of them to be admitted. Neither `init` nor `enable` writes it. |
 | `host.classify.witness_dir` | path | none | The directory of the user's own raw API log (`OTEL_LOG_RAW_API_BODIES=file:<dir>`), against which classifications are checked at `--resume`. The product never sets the log. |
 
 The `alignment`, `completeness` and `systemone` sections of the file are
@@ -83,11 +84,11 @@ public callable that exists; an overloaded JVM method is refused.
 
 | Key | Default | Meaning |
 |---|---|---|
-| `tau_judge` | `0.70` | Confidence at which a judged verdict about a mutant has power. A number or a per-source mapping. |
-| `judge_k` | `2` | Blind judge tickets per judgment; all must reach `tau_judge`. |
+| `tau_judge` | `0.70` | Confidence a validity vote must reach to corroborate an exclusion, and a scope vote to hold a witness in scope. A number or a per-source mapping. |
+| `judge_k` | `2` | Blind judge tickets per judgment, validity or scope; all must reach `tau_judge`. |
 | `tau_screen` | `0.20` | Probability of "violates" at which a surviving mutant joins the pool. A number or a per-source mapping. |
 | `decide_k` | `3` | Host votes of a closed question when no System One endpoint answers. |
-| `min_valid` | `3` | Valid mutants the search needs before it stops. |
+| `min_valid` | `3` | Host mutants that fail a block-bearing witness or an example of the requirement the search needs before it stops. |
 | `min_sites` | `2` | Distinct mutation sites those mutants must cover. |
 | `max_rounds` | `3` | Generation rounds. |
 | `k_op` | `400` | Operator mutants kept per run. |
@@ -171,7 +172,7 @@ is authoritative; the keys are:
 | `escalation` | `error` | `error` fails the verdict on an escalating finding; `warning` only reports it. |
 | `signed_pass_basis` | `corroborated` | `executed-only`, `corroborated` or `judged`. |
 | `min_isolation` | `restricted` | Isolation floor for judged pass credit. |
-| `max_host_exclusions` | `2` | Survivors a criterion may exclude on a judgment alone. |
+| `max_host_exclusions` | `2` | Survivors a criterion may exclude on a judgment alone. The discriminating-power module excludes none on a judgment alone. |
 
 ```yaml
 proofs:

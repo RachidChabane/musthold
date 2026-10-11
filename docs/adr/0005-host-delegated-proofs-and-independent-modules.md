@@ -5,7 +5,9 @@ and `enable`", "Model ports and routing", "Repository layout and dependency
 rules" and "Pilot reuse", and the parts of "Shallnot changes", "Cache", "CI
 `prove`, signing, ledger", "Test strategy per layer" and "CI jobs" that concern
 model calls or a single product binary; amends ADR 0001 and ADR 0003 (section
-"Revisions").
+"Revisions"). The rows of the claim-power table about judged VALID_c survivors and
+kills and about EQUIVALENT and NOT_VIOLATING exclusions are superseded by ADR 0013
+(witness-based mutant validity).
 
 ## Context
 

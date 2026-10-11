@@ -91,8 +91,8 @@ executor tools. `format/hostproto/hostprototest` is test support and is never li
 into a shipped binary.
 
 **Request.** A JCS document with the module, a `kind` (`generate.targeted`,
-`generate.witnessStrategy`, `judge.validity`, `judge.equivalent`, `judge.alignment`,
-`decide.closed`), a plugin-scoped `role`, a `shape` (`open` or `closed`), the
+`generate.witnessStrategy`, `generate.witness`, `judge.validity`, `judge.equivalent`,
+`judge.alignment`, `judge.scope`, `decide.closed`), a plugin-scoped `role`, a `shape` (`open` or `closed`), the
 `prompt`, an embedded `responseSchema`, the question set of a closed request, the
 `inputs` and a `cacheKey`. Its `requestId` is the SHA-256 of its canonical bytes
 with `module.version` removed, so identical work is never asked twice and a version
