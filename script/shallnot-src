@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Prints where the Shallnot source repository is: $SHALLNOT_SRC when set, else
+# shallnot-proof-gate next to the main working tree of this repository, so that
+# a linked worktree finds the same source as the main checkout.
+#
+#   script/shallnot-src
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly SOURCE_NAME="shallnot-proof-gate"
+
+if [[ -n "${SHALLNOT_SRC:-}" ]]; then
+  echo "${SHALLNOT_SRC}"
+  exit 0
+fi
+common_dir="$(git rev-parse --path-format=absolute --git-common-dir)"
+main_tree="$(dirname "${common_dir}")"
+echo "$(dirname "${main_tree}")/${SOURCE_NAME}"

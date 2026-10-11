@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Build the pinned Shallnot into .tools/bin/shallnot. The source is the git
-# repository at $SHALLNOT_SRC (default: ../shallnot-proof-gate next to this repo),
-# built at the commit recorded in script/shallnot.pin, never from its working tree.
+# repository script/shallnot-src names ($SHALLNOT_SRC, else next to the main
+# working tree), built at the commit recorded in script/shallnot.pin, never from
+# its working tree.
 # A sidecar .tools/bin/shallnot.pin makes a re-run with an unchanged pin a no-op.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -33,7 +34,7 @@ verify_binary() {
   fi
 }
 
-SRC="${SHALLNOT_SRC:-../shallnot-proof-gate}"
+SRC="$(script/shallnot-src)"
 PIN="$(tr -d '[:space:]' <"${PIN_FILE}")"
 [[ "${PIN}" =~ ^[0-9a-f]{40}$ ]] || fail "${PIN_FILE} must hold one 40-hex commit SHA"
 
