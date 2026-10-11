@@ -64,7 +64,7 @@ var reasonLabels = []struct {
 	reason format.ScanUnprovenReason
 	label  string
 }{
-	{format.ScanTooFewChanges, fmt.Sprintf("with < %d proven changes on %d sites", vacuity.MinChanges, vacuity.MinSites)},
+	{format.ScanTooFewChanges, fmt.Sprintf("with < %d proven changes or < %d sites", vacuity.MinChanges, vacuity.MinSites)},
 	{format.ScanInconclusiveOutcome, "with an inconclusive outcome"},
 	{format.ScanKillsSentinel, "failing a behaviour-keeping change"},
 }

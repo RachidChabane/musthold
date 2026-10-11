@@ -176,7 +176,7 @@ gives each class over its denominator and never reads as a pass:
 ```
 acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled · seed 7
   7/40 verify nothing   21/40 caught ≥ 1 change   12/40 unproven   369/409 not sampled
-  unproven: 9 with < 5 proven changes on 2 sites, 3 with an inconclusive outcome
+  unproven: 9 with < 5 proven changes or < 2 sites, 3 with an inconclusive outcome
   Not a pass: unproven and unsampled tests are unjudged.
 
 #1 tests/test_parse.py::test_parse_ok passes on all 9 proven changes in lines it ran

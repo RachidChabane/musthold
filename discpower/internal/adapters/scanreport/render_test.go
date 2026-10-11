@@ -92,7 +92,7 @@ func TestText(t *testing.T) {
 		}
 	})
 	t.Run("the unproven tests are broken down by reason, and the result is never a pass"+verifiesText, func(t *testing.T) {
-		if want := "  unproven: 2 with < 5 proven changes on 2 sites, 1 with an inconclusive outcome"; lines[2] != want {
+		if want := "  unproven: 2 with < 5 proven changes or < 2 sites, 1 with an inconclusive outcome"; lines[2] != want {
 			t.Fatalf("reasons %q", lines[2])
 		}
 		if lines[3] != "  Not a pass: unproven and unsampled tests are unjudged." {
