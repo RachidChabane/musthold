@@ -183,7 +183,7 @@ func scanTests(proven []string, model string) []format.ScanTest {
 	tests := []format.ScanTest{
 		{ID: ScanVacuousTest, Class: format.ScanVerifiesNothing, Changes: changes(survives, append(slices.Clone(proven), model)...), Promises: []string{ScanPromiseID}},
 		{ID: ScanCaughtTest, Class: format.ScanCaught, Changes: changes(killsFirst, proven...)},
-		{ID: ScanThinTest, Class: format.ScanUnproven, Reason: format.ScanTooFewChanges, Changes: changes(survives, proven[1])},
+		{ID: ScanThinTest, Class: format.ScanUnproven, Reason: format.ScanTooFewChanges, Changes: changes(survives, proven[1]), NotStarted: []string{proven[0]}},
 	}
 	slices.SortFunc(tests, func(a, b format.ScanTest) int { return strings.Compare(a.ID, b.ID) })
 	return tests

@@ -46,6 +46,9 @@ func scanValid() ScanExpectation {
 	return ScanExpectation{Violations: []format.ViolationCode{}, Schema: SchemaValid}
 }
 
+// unknownMutantEdits digests to a mutant id no mutant of the scan has.
+const unknownMutantEdits = "edits of no mutant of the scan"
+
 func scanBreaks(schema string, codes ...format.ViolationCode) ScanExpectation {
 	return ScanExpectation{Violations: codes, Schema: schema}
 }
@@ -126,6 +129,26 @@ func ScanCases() []ScanCase {
 			testOf(s, format.ScanCaught).Class = format.ScanNotSampled
 			s.Predicate.Counts.Caught--
 			s.Predicate.Counts.NotSampled++
+		}),
+		build("scan-valid-without-not-started", scanValid(), func(s *scan) {
+			for index := range s.Predicate.Tests {
+				s.Predicate.Tests[index].NotStarted = nil
+			}
+		}),
+		build("scan-not-started-also-a-change", scanBreaks(SchemaValid, format.CodeScanReference), func(s *scan) {
+			test := testOf(s, format.ScanUnproven)
+			test.NotStarted = []string{test.Changes[0].Mutant}
+		}),
+		build("scan-not-started-unknown-mutant", scanBreaks(SchemaValid, format.CodeScanReference), func(s *scan) {
+			testOf(s, format.ScanUnproven).NotStarted = []string{format.SHA256Hex([]byte(unknownMutantEdits))}
+		}),
+		build("scan-not-started-sentinel", scanBreaks(SchemaValid, format.CodeScanReference), func(s *scan) {
+			index := slices.IndexFunc(s.Predicate.Mutants, func(m format.ScanMutant) bool { return m.Sentinel })
+			testOf(s, format.ScanUnproven).NotStarted = []string{s.Predicate.Mutants[index].ID}
+		}),
+		build("scan-not-started-repeated", scanBreaks(SchemaInvalid, format.CodeUnsorted), func(s *scan) {
+			test := testOf(s, format.ScanUnproven)
+			test.NotStarted = append(test.NotStarted, test.NotStarted[0])
 		}),
 	}
 }

@@ -104,5 +104,38 @@
       "unknown_value"
     ],
     "schema": "invalid"
+  },
+  {
+    "file": "scan-valid-without-not-started.json",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "scan-not-started-also-a-change.json",
+    "violations": [
+      "scan_reference"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "scan-not-started-unknown-mutant.json",
+    "violations": [
+      "scan_reference"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "scan-not-started-sentinel.json",
+    "violations": [
+      "scan_reference"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "scan-not-started-repeated.json",
+    "violations": [
+      "unsorted"
+    ],
+    "schema": "invalid"
   }
 ]

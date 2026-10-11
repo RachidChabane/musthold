@@ -299,6 +299,10 @@ type ScanTest struct {
 	// Changes are the proven mutants whose mutated lines the test ran, each with
 	// the test's settled outcome on it.
 	Changes []ScanChange `json:"changes,omitempty"`
+	// NotStarted are the proven mutants, on lines the test ran itself, on which
+	// every run stopped before any test began. They are listed apart from the
+	// changes, by id, and count neither for nor against the test.
+	NotStarted []string `json:"notStarted,omitempty"`
 	// Promises label the test with the promises its changes may break; a label
 	// never makes or unmakes a verdict.
 	Promises []string `json:"promises,omitempty"`

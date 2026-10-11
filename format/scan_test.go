@@ -328,9 +328,37 @@ func TestScanTests(t *testing.T) {
 			s.Predicate.Counts.Unproven--
 			s.Predicate.Counts.NotSampled++
 		}, format.CodeUnknownValue},
+		{"a change settled as not started", func(s *scanStatement) {
+			scanTestOf(s, format.ScanUnproven).Changes[0].Outcome = "not_started"
+		}, format.CodeUnknownValue},
+		{"a mutant that stopped a test from starting and is unproven", func(s *scanStatement) {
+			test := scanTestOf(s, format.ScanUnproven)
+			mutant := provenMutantNamed(s, test.NotStarted[0])
+			for index := range s.Predicate.Tests {
+				s.Predicate.Tests[index].Changes = slices.DeleteFunc(s.Predicate.Tests[index].Changes, func(c format.ScanChange) bool { return c.Mutant == mutant.ID })
+			}
+			mutant.Routes = nil
+		}, format.CodeScanReference},
+		{"a mutant that stopped a test from starting outside the scan", func(s *scanStatement) {
+			scanTestOf(s, format.ScanUnproven).NotStarted = []string{proofs.Digest("elsewhere")}
+		}, format.CodeScanReference},
+		{"a mutant that stopped a test from starting and is one of its changes", func(s *scanStatement) {
+			test := scanTestOf(s, format.ScanUnproven)
+			test.NotStarted = []string{test.Changes[0].Mutant}
+		}, format.CodeScanReference},
+		{"mutants that stopped a test from starting out of order", func(s *scanStatement) {
+			test := scanTestOf(s, format.ScanUnproven)
+			test.NotStarted = []string{proofs.Digest("b"), proofs.Digest("a")}
+			slices.Sort(test.NotStarted)
+			slices.Reverse(test.NotStarted)
+		}, format.CodeUnsorted},
+		{"a mutant that stopped a test from starting listed twice", func(s *scanStatement) {
+			test := scanTestOf(s, format.ScanUnproven)
+			test.NotStarted = append(test.NotStarted, test.NotStarted[0])
+		}, format.CodeUnsorted},
 	}
 	for _, c := range cases {
-		t.Run(c.name+" is reported [verifies SP-2006~1]", func(t *testing.T) {
+		t.Run(c.name+" is reported [verifies SP-2006~2]", func(t *testing.T) {
 			codes := violationCodes(t, proofs.Scan(c.mutate).Validate())
 			if !slices.Contains(codes, c.want) {
 				t.Fatalf("codes = %v, want %s among them", codes, c.want)
@@ -338,7 +366,7 @@ func TestScanTests(t *testing.T) {
 		})
 	}
 
-	t.Run("a sentinel cited as a change is reported [verifies SP-2006~1]", func(t *testing.T) {
+	t.Run("a sentinel cited as a change is reported [verifies SP-2006~2]", func(t *testing.T) {
 		statement := proofs.Scan(func(s *scanStatement) {
 			sentinel := s.Predicate.Mutants[slices.IndexFunc(s.Predicate.Mutants, func(m format.ScanMutant) bool { return m.Sentinel })]
 			test := scanTestOf(s, format.ScanUnproven)
@@ -346,6 +374,42 @@ func TestScanTests(t *testing.T) {
 		})
 		assertCodes(t, statement.Validate(), format.CodeScanReference)
 	})
+
+	t.Run("a sentinel that stopped a test from starting is reported [verifies SP-2006~2]", func(t *testing.T) {
+		statement := proofs.Scan(func(s *scanStatement) {
+			sentinel := s.Predicate.Mutants[slices.IndexFunc(s.Predicate.Mutants, func(m format.ScanMutant) bool { return m.Sentinel })]
+			scanTestOf(s, format.ScanUnproven).NotStarted = []string{sentinel.ID}
+		})
+		assertCodes(t, statement.Validate(), format.CodeScanReference)
+	})
+
+	t.Run("a test that lists no mutant that stopped it from starting validates [verifies SP-2006~2]", func(t *testing.T) {
+		statement := proofs.Scan(func(s *scanStatement) {
+			for index := range s.Predicate.Tests {
+				s.Predicate.Tests[index].NotStarted = nil
+			}
+		})
+		if err := statement.Validate(); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("the mutants that stopped a test from starting round-trip in id order [verifies SP-2006~2]", func(t *testing.T) {
+		statement := proofs.Scan()
+		decoded, err := format.AdmitScan(encodeScan(t, statement))
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := scanTestOf(&statement, format.ScanUnproven).NotStarted
+		if got := scanTestOf(&decoded, format.ScanUnproven).NotStarted; len(want) == 0 || !slices.Equal(got, want) {
+			t.Fatalf("notStarted = %v, want %v", got, want)
+		}
+	})
+}
+
+// provenMutantNamed is the mutant of the scan with the id.
+func provenMutantNamed(s *scanStatement, id string) *format.ScanMutant {
+	return &s.Predicate.Mutants[slices.IndexFunc(s.Predicate.Mutants, func(m format.ScanMutant) bool { return m.ID == id })]
 }
 
 func TestScanCounts(t *testing.T) {

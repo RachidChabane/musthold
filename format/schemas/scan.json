@@ -183,6 +183,7 @@
             }
           }
         },
+        "notStarted": { "type": "array", "items": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/sha256Hex" }, "uniqueItems": true },
         "promises": { "type": "array", "items": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/nonEmptyString" }, "uniqueItems": true }
       },
       "if": { "required": ["class"], "properties": { "class": { "const": "unproven" } } },

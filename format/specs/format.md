@@ -617,13 +617,17 @@ Go tests of the module in CI.
   results, and nothing else, and a `witness_failure` route to name an admitted
   witness of the scan and nothing else, reporting `scan_route`, `unknown_value`
   or `scan_reference`.
-- **SP-2006~1**: WHEN a test of a scan is checked THE SYSTEM SHALL accept only the
+- **SP-2006~2**: WHEN a test of a scan is checked THE SYSTEM SHALL accept only the
   classes `verifies_nothing`, `caught` and `unproven`, a reason exactly for an
-  unproven test, and changes that cite proven mutants of the scan that are not
-  sentinels and labels that cite its promises, reporting `scan_reference`
-  otherwise; and SHALL report `scan_class` for a test that verifies nothing
-  without a change or with a change it did not survive, and for a caught test
-  without a killed change.
+  unproven test, changes with the outcomes `killed`, `survived` and
+  `inconclusive` that cite proven mutants of the scan that are not sentinels,
+  mutants that stopped it from starting (`notStarted`) in ascending order
+  without repeats, reporting `unsorted` otherwise, that cite proven mutants of
+  the scan that are not sentinels and none of its changes, and labels that cite
+  its promises, reporting `scan_reference` otherwise; SHALL accept a test that
+  lists no mutant that stopped it from starting; and SHALL report `scan_class`
+  for a test that verifies nothing without a change or with a change it did not
+  survive, and for a caught test without a killed change.
 - **SP-2007~1**: WHEN the counts of a scan are checked THE SYSTEM SHALL require
   them to be non-negative, the five classes to add up to the tests of the suite,
   and the listed tests of each verdict to be as many as its count, reporting

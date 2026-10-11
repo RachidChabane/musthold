@@ -229,6 +229,26 @@ func checkScanTests(sink *collector, path string, tests []ScanTest, index scanIn
 	}
 }
 
+// checkNotStarted requires the mutants that stopped a test from starting to be
+// in ascending order without repeats, each a proven mutant of the scan that is
+// not a sentinel and none of them one of the test's changes.
+func checkNotStarted(sink *collector, path string, test ScanTest, index scanIndex) {
+	checkAscending(sink, path, test.NotStarted, strings.Compare)
+	changes := make(map[string]bool, len(test.Changes))
+	for _, change := range test.Changes {
+		changes[change.Mutant] = true
+	}
+	for position, id := range test.NotStarted {
+		entryPath := fmt.Sprintf("%s[%d]", path, position)
+		if mutant, known := index.mutants[id]; !known || !mutant.Proven() || mutant.Sentinel {
+			sink.add(CodeScanReference, entryPath, "%q is not a proven mutant of the scan", id)
+		}
+		if changes[id] {
+			sink.add(CodeScanReference, entryPath, "%q is also one of the test's changes", id)
+		}
+	}
+}
+
 func checkScanTest(sink *collector, path string, test ScanTest, index scanIndex) {
 	checkNotEmpty(sink, path+".id", test.ID)
 	checkMember(sink, path+".class", test.Class, scanVerdicts)
@@ -255,6 +275,7 @@ func checkScanTest(sink *collector, path string, test ScanTest, index scanIndex)
 	if test.Class == ScanCaught && !killed {
 		sink.add(CodeScanClass, path+".changes", "a test that caught a change killed a proven mutant")
 	}
+	checkNotStarted(sink, path+".notStarted", test, index)
 	checkAscending(sink, path+".promises", test.Promises, strings.Compare)
 	for position, promise := range test.Promises {
 		if !index.promises[promise] {
