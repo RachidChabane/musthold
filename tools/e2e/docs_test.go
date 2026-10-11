@@ -62,7 +62,7 @@ var documentedModules = []string{"format", "discpower", "alignment", "completene
 var documentedBinaries = []string{dpBinary, alignmentBinary, completenessBinary, ledgerBinary, verifyBinary, s1Binary}
 
 // verbCommands are the commands of the proof modules that take a verb.
-var verbCommands = []string{"request", "systemone", "host", "hook"}
+var verbCommands = []string{"request", "systemone", "host", "hook", "facts"}
 
 var (
 	wordRegexp     = regexp.MustCompile(wordPattern)
