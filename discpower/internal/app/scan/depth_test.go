@@ -59,6 +59,16 @@ func TestDepth(t *testing.T) {
 			t.Fatalf("depth %v", report.Depth)
 		}
 	})
+	t.Run("a quick scan of a suite that records every test in one run records every green test"+verifiesDepth, func(t *testing.T) {
+		f := newFixture()
+		f.suite.oneRun = true
+		req := request()
+		req.SampleSize, req.Coverage = 1, scan.CoverSampled
+		run(t, f, req)
+		if len(f.suite.covered) != 3 {
+			t.Fatalf("covered %v", f.suite.covered)
+		}
+	})
 	t.Run("a full scan records the coverage of every green test"+verifiesDepth, func(t *testing.T) {
 		f := newFixture()
 		run(t, f, request())

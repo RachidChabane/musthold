@@ -45,6 +45,9 @@ const (
 	columnSeparator   = "."
 )
 
+// CoverageOfOneRun is false: each test runs alone under coverage.
+func (scanSuite) CoverageOfOneRun() bool { return false }
+
 // LineCoverage builds the test binary of each package once, with coverage of
 // every package of the module, then runs each test alone, on the workers of
 // the request and within its timeout, and reads the lines of the blocks it

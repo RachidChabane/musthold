@@ -57,6 +57,10 @@ type ScanRuns struct {
 type ScanSuite interface {
 	// Run runs the selection the requested number of times.
 	Run(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ScanRunRequest) (ScanRuns, error)
+	// CoverageOfOneRun reports whether LineCoverage records every requested
+	// test in one run of the suite, so that recording fewer tests saves no
+	// time.
+	CoverageOfOneRun() bool
 	// LineCoverage records, per requested test, the lines of the project's
 	// source files the test itself ran. Test files are never reported.
 	LineCoverage(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ScanCoverageRequest) (map[ecosystem.TestID][]vacuity.Line, error)

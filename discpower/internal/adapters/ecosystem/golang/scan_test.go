@@ -155,6 +155,14 @@ func TestScanRuns(t *testing.T) {
 	})
 }
 
+func TestScanCoverageOfOneRun(t *testing.T) {
+	t.Run("a Go test runs alone under coverage"+verifiesWorkers, func(t *testing.T) {
+		if openScanProject(t).suite.CoverageOfOneRun() {
+			t.Fatal("go records every test in one run")
+		}
+	})
+}
+
 func TestScanLineCoverageBound(t *testing.T) {
 	t.Run("a test run under coverage past its bound is a coverage timeout"+verifiesBound, func(t *testing.T) {
 		project := openScanProject(t)

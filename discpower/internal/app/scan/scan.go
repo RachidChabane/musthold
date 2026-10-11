@@ -93,13 +93,15 @@ type CoverageScope int
 const (
 	// CoverGreen records the coverage of every green test.
 	CoverGreen CoverageScope = iota
-	// CoverSampled records the coverage of the sampled tests only.
+	// CoverSampled records the coverage of the sampled tests only, unless
+	// the suite records every test in one run.
 	CoverSampled
 )
 
-// of lists the tests whose coverage the scope records.
-func (c CoverageScope) of(green, sampled []ecosystem.TestID) []ecosystem.TestID {
-	if c == CoverSampled {
+// of lists the tests whose coverage the scope records: the sampled tests
+// alone only when recording fewer tests saves time.
+func (c CoverageScope) of(green, sampled []ecosystem.TestID, oneRun bool) []ecosystem.TestID {
+	if c == CoverSampled && !oneRun {
 		return sampled
 	}
 	return green

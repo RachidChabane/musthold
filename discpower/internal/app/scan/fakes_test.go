@@ -184,6 +184,8 @@ type fakeSuite struct {
 	covered []ecosystem.TestID
 	// hangs makes every run of a selection last until its context ends.
 	hangs bool
+	// oneRun makes the fake record every test's coverage in one run.
+	oneRun bool
 }
 
 func (s *fakeSuite) Run(ctx context.Context, workspace ecosystem.Workspace, _ ecosystem.Toolchain, request ports.ScanRunRequest) (ports.ScanRuns, error) {
@@ -234,6 +236,10 @@ func (s *fakeSuite) LineCoverage(_ context.Context, _ ecosystem.Workspace, _ eco
 	}
 	return covered, nil
 }
+
+// CoverageOfOneRun is the fake's: a recording of each test alone unless
+// oneRun says otherwise.
+func (s *fakeSuite) CoverageOfOneRun() bool { return s.oneRun }
 
 func (s *fakeSuite) Operation(_ ecosystem.Workspace, file, qualname string) (string, bool) {
 	return discountOp, file == totals && qualname == "discount"

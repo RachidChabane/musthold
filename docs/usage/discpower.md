@@ -168,8 +168,8 @@ to 12 sentinels, one file at a time.
 |---|---|---|
 | Tests sampled | 12 | 40 |
 | Operator mutants | 72, six per test | 150 |
-| Coverage recorded | the sampled tests | every green test |
-| Tests run on a mutant | the sampled tests that ran its lines | every green test that ran its lines |
+| Coverage recorded | the sampled tests (every green test for pytest, which records them in one run) | every green test |
+| Tests run on a mutant | the tests with recorded coverage that ran its lines | every green test that ran its lines |
 | Budget | 90 s, then running mutants stop and count as not run | none |
 
 `--sample`, `--mutants` and `--budget` replace what either depth sets. Mutants

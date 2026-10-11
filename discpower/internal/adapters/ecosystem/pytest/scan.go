@@ -145,6 +145,9 @@ func outcomesOf(report scanReport) map[ecosystem.TestID]ecosystem.TestOutcome {
 	return outcomes
 }
 
+// CoverageOfOneRun is true: one run of the suite records every test.
+func (scanSuite) CoverageOfOneRun() bool { return true }
+
 // LineCoverage runs the suite once under the coverage plugin, within the
 // timeout of the request, and keeps the lines of the requested tests, by node
 // id.
