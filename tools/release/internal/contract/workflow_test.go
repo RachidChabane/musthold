@@ -39,6 +39,7 @@ type workflow struct {
 }
 
 type job struct {
+	Strategy    strategy          `yaml:"strategy"`
 	Needs       any               `yaml:"needs"`
 	Uses        string            `yaml:"uses"`
 	If          string            `yaml:"if"`
@@ -49,6 +50,10 @@ type job struct {
 
 type step struct {
 	Run string `yaml:"run"`
+}
+
+type strategy struct {
+	Matrix map[string][]string `yaml:"matrix"`
 }
 
 func readRepositoryFile(t *testing.T, relative string) []byte {
@@ -290,12 +295,17 @@ func TestCIWorkflowKeepsItsTriggers(t *testing.T) {
 		if parsed.Jobs["product"].If != "" {
 			t.Errorf("the product job is conditional: %q", parsed.Jobs["product"].If)
 		}
-		var runs []string
-		for _, s := range parsed.Jobs["product"].Steps {
-			runs = append(runs, s.Run)
+		if groups := parsed.Jobs["product"].Strategy.Matrix["group"]; !slices.Equal(groups, []string{"discpower", "rest"}) {
+			t.Errorf("the product job gates the module groups %v", groups)
 		}
-		if !slices.Contains(runs, `make ci MODULES="$MODULES"`) {
-			t.Errorf("the product job runs %q", runs)
+		gates := false
+		for _, s := range parsed.Jobs["product"].Steps {
+			if strings.Contains(s.Run, `script/module-group "$GROUP" $MODULES`) && strings.Contains(s.Run, `make ci MODULES="$modules"`) {
+				gates = true
+			}
+		}
+		if !gates {
+			t.Errorf("no step of the product job gates the modules of its group among those the call names")
 		}
 	})
 }
