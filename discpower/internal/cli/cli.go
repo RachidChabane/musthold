@@ -36,7 +36,7 @@ const (
 )
 
 // commands lists the commands in the order the usage names them.
-var commands = []string{commandVersion, commandProve, commandRequest, commandSystemOne, commandDoctor, commandInit, commandEnable, commandDisable, commandMCP, commandHook, commandHost, commandFacts, cliconv.HelpCommand}
+var commands = []string{commandVersion, commandProve, commandScan, commandRequest, commandSystemOne, commandDoctor, commandInit, commandEnable, commandDisable, commandMCP, commandHook, commandHost, commandFacts, cliconv.HelpCommand}
 
 // flagHelp is the flag `help <command>` hands to the command.
 const flagHelp = "-h"
@@ -104,6 +104,8 @@ func Run(env Env, args []string) int {
 		return env.finish(outcome{err: cliconv.HelpRequest{Text: env.newFlags(commandVersion, "").Usage()}})
 	case command == commandProve:
 		return env.finish(env.prove(rest))
+	case command == commandScan:
+		return env.finish(env.scan(rest))
 	case command == commandRequest:
 		return env.finish(env.request(rest))
 	case command == commandSystemOne:
