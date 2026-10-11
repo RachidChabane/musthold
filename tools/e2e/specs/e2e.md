@@ -115,8 +115,8 @@ boxes; the checks skip with a recorded reason when the memory guard refuses a bu
 
 ## Scan
 
-- **SP-2124~1**: WHEN `spec-proof scan` runs, with no configuration, in a pytest
-  project committed in its own repository, one of whose tests runs a function and
-  asserts nothing THE SYSTEM SHALL exit 0 and print that test as one that verifies
-  nothing, and `spec-proof scan replay` SHALL re-execute the scan's findings with
-  every claim held.
+- **SP-2124~2**: WHEN `spec-proof scan --budget 0` runs, with no configuration,
+  in a pytest project committed in its own repository, one of whose tests runs a
+  function and asserts nothing THE SYSTEM SHALL exit 0 and print that test as one
+  that verifies nothing, and `spec-proof scan replay` SHALL re-execute the scan's
+  findings with every claim held.

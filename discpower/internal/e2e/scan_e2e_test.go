@@ -19,7 +19,7 @@ const (
 	goScanFixture     = "fixtures/scan/go"
 	vacuousPytest     = "tests/test_discount.py::test_discount_accepts_any_percent"
 	vacuousGo         = "discount_test.go::TestDiscountAcceptsAnyPercent"
-	verifiesScanE2E   = " [verifies SP-2122~1]"
+	verifiesScanE2E   = " [verifies SP-2122~2]"
 	verifiesReplay    = " [verifies SP-2114~1]"
 	verifiesCommand   = " [verifies SP-2119~2]"
 )
@@ -96,7 +96,7 @@ func TestScanFindsTheTestThatVerifiesNothing(t *testing.T) {
 			}
 			s := newScanned(t, c.fixture)
 			short := s.commit()[:7]
-			scan := s.run(s.binary, "scan")
+			scan := s.run(s.binary, "scan", "--budget", "0")
 			t.Run("the scan names the test that runs code and asserts nothing, and exits 0"+verifiesScanE2E, func(t *testing.T) {
 				if scan.code != 0 || !strings.Contains(scan.stdout, "#1 "+c.vacuous+" passes on all ") {
 					t.Fatalf("exit %d:\n%s", scan.code, scan.output())
@@ -139,6 +139,21 @@ func TestScanFindsTheTestThatVerifiesNothing(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestScanIsQuickByDefault(t *testing.T) {
+	if _, err := exec.LookPath("python3"); err != nil {
+		t.Skipf("no python3: %v", err)
+	}
+	s := newScanned(t, pytestScanFixture)
+	scan := s.run(s.binary, "scan")
+	t.Run("a scan with no flag runs quickly, prints its depth line and exits 0"+verifiesScanE2E, func(t *testing.T) {
+		for _, want := range []string{"quick scan · 1m30s budget · ", "5 of 5 green tests sampled", "run with --full for the whole suite", "Not a pass"} {
+			if scan.code != 0 || !strings.Contains(scan.stdout, want) {
+				t.Fatalf("exit %d, missing %q:\n%s", scan.code, want, scan.output())
+			}
+		}
+	})
 }
 
 func TestScanRefusesADirtyTree(t *testing.T) {

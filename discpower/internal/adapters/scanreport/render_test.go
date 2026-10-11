@@ -108,8 +108,8 @@ func TestText(t *testing.T) {
 			t.Fatalf("depth %q", lines[1])
 		}
 		full := report(t)
-		full.Depth, full.Budget = scan.DepthFull, 0
-		if want := "  full scan · no budget · 4m12s · 40 of 409 green tests sampled · 2 workers"; strings.Split(scanreport.Text(full), "\n")[1] != want {
+		full.Depth, full.Budget, full.Workers = scan.DepthFull, 0, 1
+		if want := "  full scan · no budget · 4m12s · 40 of 409 green tests sampled · 1 worker"; strings.Split(scanreport.Text(full), "\n")[1] != want {
 			t.Fatalf("depth %q", strings.Split(scanreport.Text(full), "\n")[1])
 		}
 	})

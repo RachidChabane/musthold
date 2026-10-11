@@ -15,8 +15,8 @@ import (
 const (
 	scanFixture     = "discpower/fixtures/scan/pytest"
 	vacuousTest     = "tests/test_discount.py::test_discount_accepts_any_percent"
-	scanRequirement = "SP-2124~1"
-	verifiesScan    = " [verifies SP-2124~1]"
+	scanRequirement = "SP-2124~2"
+	verifiesScan    = " [verifies SP-2124~2]"
 )
 
 // inProject runs a program in a directory under nice and returns how it ended.
@@ -70,7 +70,7 @@ func TestSpecProofScan(t *testing.T) {
 		}
 	}
 
-	scan := inProject(t, root, env, filepath.Join(bin, dispatcherBinary), "scan")
+	scan := inProject(t, root, env, filepath.Join(bin, dispatcherBinary), "scan", "--budget", "0")
 	t.Run("spec-proof scan runs the module's scan with no configuration and prints the test that verifies nothing"+verifiesScan, func(t *testing.T) {
 		if scan.code != 0 || !strings.Contains(scan.stdout, "#1 "+vacuousTest+" passes on all ") || !strings.Contains(scan.stdout, "1/5 verify nothing") {
 			t.Fatalf("exit %d:\n%s", scan.code, scan.output())

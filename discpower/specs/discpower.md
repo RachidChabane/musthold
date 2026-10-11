@@ -1238,14 +1238,16 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   reports, give the lines of the head that differ from a base, a pure deletion
   marking the line it follows, and name the repository `owner/name` from its
   origin, in URL or scp-like form, or by its directory.
-- **SP-2122~1**: WHEN `spec-proof-dp scan` runs on a pytest or a Go project
-  committed in its own repository, one of whose tests runs a function and
-  asserts nothing THE SYSTEM SHALL name that test as the first that verifies
+- **SP-2122~2**: WHEN `spec-proof-dp scan --budget 0` runs on a pytest or a Go
+  project committed in its own repository, one of whose tests runs a function
+  and asserts nothing THE SYSTEM SHALL name that test as the first that verifies
   nothing and exit 0, leave the work tree with only its reports added, and give a
-  repro script that passes the test on the changed code.
-- **SP-2123~1**: WHEN a scan of the same project is recorded THE SYSTEM SHALL
-  produce the same canonical statement whatever the number of workers, accepted
-  by the scan schema and refused by every reader of proofs.
+  repro script that passes the test on the changed code; and `spec-proof-dp
+  scan` with no flag SHALL run quickly, print its depth line and exit 0.
+- **SP-2123~2**: WHEN a scan of the same project that no budget stopped is
+  recorded THE SYSTEM SHALL produce the same canonical statement whatever the
+  number of workers, accepted by the scan schema and refused by every reader of
+  proofs.
 - **SP-2125~1**: WHEN a scan allocates its operator mutants THE SYSTEM SHALL draw
   them in rounds over the sampled tests, each round giving a turn, in an order
   shuffled by the seed, to every test that has a mutant left among the admitted

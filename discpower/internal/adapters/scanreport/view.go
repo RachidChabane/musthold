@@ -51,7 +51,9 @@ const (
 	noBudget       = "no budget"
 	budgetFormat   = "%s budget"
 	sampledFormat  = "%d of %d green tests sampled"
-	workersFormat  = "%d workers"
+	workersFormat  = "%d %s"
+	workerNoun     = "worker"
+	workersNoun    = "workers"
 	fullHint       = " — run with --full for the whole suite"
 )
 
@@ -116,13 +118,21 @@ func depthLine(report scan.Report) string {
 	}
 	parts := []string{
 		depthNames[report.Depth], budget, round(report.Elapsed),
-		fmt.Sprintf(sampledFormat, report.Suite.Sampled, report.Suite.Green), fmt.Sprintf(workersFormat, report.Workers),
+		fmt.Sprintf(sampledFormat, report.Suite.Sampled, report.Suite.Green), workersOf(report.Workers),
 	}
 	text := strings.Join(parts, separator)
 	if report.Depth == scan.DepthQuick {
 		text += fullHint
 	}
 	return text
+}
+
+// workersOf writes how many workers ran the scan.
+func workersOf(workers int) string {
+	if workers == 1 {
+		return fmt.Sprintf(workersFormat, workers, workerNoun)
+	}
+	return fmt.Sprintf(workersFormat, workers, workersNoun)
 }
 
 // split is the four counts, each over its denominator: the verdicts over the

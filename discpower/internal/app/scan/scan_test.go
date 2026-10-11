@@ -33,7 +33,7 @@ const (
 	verifiesSearch    = " [verifies SP-2112~1]"
 	verifiesRecord    = " [verifies SP-2113~1]"
 	verifiesReplay    = " [verifies SP-2114~1]"
-	verifiesContract  = " [verifies SP-2123~1]"
+	verifiesContract  = " [verifies SP-2123~2]"
 	verifiesAllocated = " [verifies SP-2125~1]"
 	verifiesSentinels = " [verifies SP-2126~1]"
 	verifiesCoverage  = " [verifies SP-2127~1]"
