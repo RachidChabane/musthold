@@ -126,17 +126,21 @@ type mutantRunner struct {
 	covered map[ecosystem.TestID]scanscope.LineSet
 }
 
-// run builds the mutant, compares its compiled form, runs the tests that ran
-// its mutated lines three times, and gathers the evidence of a mutant no test
-// killed.
+// run builds the mutant, compares the compiled form of a mutant that is not a
+// sentinel, runs the tests that ran its mutated lines three times, and gathers
+// the evidence of a mutant no test killed. A sentinel always runs: it keeps
+// behaviour by construction, often in its compiled form too, and a test that
+// fails on it proves nothing.
 func (r *mutantRunner) run(ctx context.Context, candidate Candidate) (outcome, error) {
 	result := outcome{state: stateRan}
 	tests := r.covering(candidate)
 	status, err := r.ref.executor.Mutate(ctx, r.ref.referenceOf(), candidate.Edits, func(ctx context.Context, mutant ecosystem.Workspace) error {
-		identical, err := r.identical(ctx, candidate.Edits, mutant)
-		if err != nil || identical {
-			result.identity = identical
-			return err
+		if !candidate.Sentinel {
+			identical, err := r.identical(ctx, candidate.Edits, mutant)
+			if err != nil || identical {
+				result.identity = identical
+				return err
+			}
 		}
 		if len(tests) > 0 {
 			ran, err := r.service.deps.Suite.Run(ctx, mutant, r.ref.toolchain, ports.ScanRunRequest{Tests: tests, Runs: vacuity.RunsPerOutcome, Timeout: r.ref.runTimeout})

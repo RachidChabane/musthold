@@ -1157,8 +1157,9 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   the requested number of workers, by default 2, against every green test whose
   coverage holds one of its mutated lines, three times, each run bounded by
   three times the duration of one reference run of the whole suite and at least
-  30 seconds; run no test of a mutant whose every edited site compiles to the
-  reference's form; drop and count a mutant that does not splice or build; and
+  30 seconds; run no test of a mutant other than a sentinel whose every edited
+  site compiles to the reference's form, a sentinel always running; drop and
+  count a mutant that does not splice or build; and
   start no mutant once the budget has passed since the scan began, marking the
   scan partial with the counts reached.
 - **SP-2112~1**: WHEN no test killed a mutant that is not a sentinel THE SYSTEM

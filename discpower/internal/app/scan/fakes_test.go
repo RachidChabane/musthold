@@ -265,13 +265,20 @@ func (p *fakeProber) Invoke(_ context.Context, workspace ecosystem.Workspace, _ 
 
 // fakeCompiler compiles a definition to its text with `<=` read as `<`, so a
 // mutant that only drops the equality compiles to the reference's form.
-type fakeCompiler struct{ workspaces *fakeWorkspaces }
+// A folding compiler compiles every definition to one form.
+type fakeCompiler struct {
+	workspaces *fakeWorkspaces
+	folds      bool
+}
 
 func (c fakeCompiler) Forms(_ context.Context, workspace ecosystem.Workspace, _ ecosystem.Toolchain, sites []string) (differential.CompiledForms, error) {
 	source := c.workspaces.source(workspace)
 	forms := differential.CompiledForms{}
 	for _, site := range sites {
 		forms[site] = strings.ReplaceAll(source, "<=", "<")
+		if c.folds {
+			forms[site] = "folded"
+		}
 	}
 	return forms, nil
 }
@@ -317,6 +324,7 @@ type fixture struct {
 	source     fakeSource
 	broken     func(string) bool
 	compiler   bool
+	folds      bool
 	clock      *clock
 }
 
@@ -347,7 +355,7 @@ func (f *fixture) service(t *testing.T) *scan.Service {
 		Engines: engines, Prober: f.prober, Source: f.source, Project: f.workspaces.project, Clock: f.clock.read,
 	}
 	if f.compiler {
-		deps.Compiler = fakeCompiler{workspaces: f.workspaces}
+		deps.Compiler = fakeCompiler{workspaces: f.workspaces, folds: f.folds}
 	}
 	return scan.New(deps)
 }

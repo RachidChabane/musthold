@@ -310,6 +310,20 @@ func TestMutantExecution(t *testing.T) {
 			}
 		}
 	})
+	t.Run("a sentinel runs its tests even when it compiles to the reference's form"+verifiesExecute, func(t *testing.T) {
+		f := newFixture()
+		f.compiler, f.folds = true, true
+		report := run(t, f, request())
+		sentinels := 0
+		for _, mutant := range report.Statement.Predicate.Mutants {
+			if mutant.Sentinel {
+				sentinels++
+			}
+		}
+		if sentinels == 0 || len(f.suite.selections) != sentinels || report.Mutants.CompiledIdentical != report.Mutants.Ran-sentinels {
+			t.Fatalf("%d sentinels, %d selections, mutants %+v", sentinels, len(f.suite.selections), report.Mutants)
+		}
+	})
 	t.Run("once the budget has passed no mutant starts and the scan is partial"+verifiesExecute, func(t *testing.T) {
 		f := newFixture()
 		f.clock.step = time.Minute
