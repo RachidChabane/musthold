@@ -52,10 +52,17 @@ type reference struct {
 	// runs holds the reference runs of every test of the suite.
 	runs  map[ecosystem.TestID][]vacuity.Run
 	green []ecosystem.TestID
-	// coverage holds the lines each green test ran.
+	// coverage holds the lines each green test whose coverage was recorded
+	// ran.
 	coverage map[ecosystem.TestID][]vacuity.Line
 	// runTimeout bounds one run of a mutant's tests.
 	runTimeout time.Duration
+	// referenceRuns is how long the three runs of the whole suite took.
+	referenceRuns time.Duration
+	// referenceTime is how long copying, building and running the reference
+	// took, and coverageTime how long recording its coverage took.
+	referenceTime time.Duration
+	coverageTime  time.Duration
 }
 
 // referenceOf is the reference as the mutant executor takes it.
@@ -63,11 +70,10 @@ func (r reference) referenceOf() mutantrun.Reference {
 	return mutantrun.Reference{Workspace: r.workspace, Toolchain: r.toolchain}
 }
 
-// prepareReference copies the work tree into a workspace outside it, builds it,
-// runs the whole suite three times and records the line coverage of every
-// green test, each run under coverage bounded by the request's timeout or by
-// one derived from the reference runs.
+// prepareReference copies the work tree into a workspace outside it, builds it
+// and runs the whole suite three times.
 func (s *Service) prepareReference(ctx context.Context, request Request) (reference, error) {
+	copied := s.deps.Clock()
 	ref, err := s.buildReference(ctx, request.Root)
 	if err != nil {
 		return reference{}, err
@@ -80,22 +86,42 @@ func (s *Service) prepareReference(ctx context.Context, request Request) (refere
 	if len(ran.Cases) == 0 {
 		return reference{}, ErrNoTests
 	}
-	referenceRuns := s.deps.Clock().Sub(started)
-	ref.runTimeout = runTimeout(referenceRuns)
+	finished := s.deps.Clock()
+	ref.referenceRuns = finished.Sub(started)
+	ref.referenceTime = finished.Sub(copied)
+	ref.runTimeout = runTimeout(ref.referenceRuns)
 	ref.cases, ref.runs = ran.Cases, ran.Runs
-	var greenCases []ports.ScanCase
 	for _, scanCase := range ran.Cases {
 		if vacuity.Green(ran.Runs[scanCase.ID]) {
 			ref.green = append(ref.green, scanCase.ID)
-			greenCases = append(greenCases, scanCase)
 		}
 	}
-	limit := coverageTimeout(referenceRuns, request.CoverageTimeout)
-	ref.coverage, err = s.deps.Suite.LineCoverage(ctx, ref.workspace, ref.toolchain, ports.ScanCoverageRequest{Tests: greenCases, Timeout: limit})
-	if err != nil {
-		return reference{}, fmt.Errorf("record the line coverage, each run bounded by %s: %w", limit, err)
-	}
 	return ref, nil
+}
+
+// recordCoverage records the line coverage of the given green tests, each run
+// under coverage bounded by the request's timeout or by one derived from the
+// reference runs, on the request's workers.
+func (s *Service) recordCoverage(ctx context.Context, ref *reference, tests []ecosystem.TestID, request Request) error {
+	started := s.deps.Clock()
+	wanted := make(map[ecosystem.TestID]bool, len(tests))
+	for _, test := range tests {
+		wanted[test] = true
+	}
+	var cases []ports.ScanCase
+	for _, scanCase := range ref.cases {
+		if wanted[scanCase.ID] {
+			cases = append(cases, scanCase)
+		}
+	}
+	limit := coverageTimeout(ref.referenceRuns, request.CoverageTimeout)
+	coverage, err := s.deps.Suite.LineCoverage(ctx, ref.workspace, ref.toolchain, ports.ScanCoverageRequest{Tests: cases, Timeout: limit, Workers: request.Workers})
+	if err != nil {
+		return fmt.Errorf("record the line coverage, each run bounded by %s: %w", limit, err)
+	}
+	ref.coverage = coverage
+	ref.coverageTime = s.deps.Clock().Sub(started)
+	return nil
 }
 
 // buildReference copies the work tree, scan reports aside, into a workspace

@@ -26,10 +26,10 @@ var updateGolden = flag.Bool("update", false, "rewrite the golden scan statement
 
 const (
 	goldenStatement   = "testdata/scan-repository.golden.json"
-	verifiesReference = " [verifies SP-2108~1]"
+	verifiesReference = " [verifies SP-2108~2]"
 	verifiesPlan      = " [verifies SP-2109~1]"
 	verifiesDraw      = " [verifies SP-2110~2]"
-	verifiesExecute   = " [verifies SP-2111~1]"
+	verifiesExecute   = " [verifies SP-2111~2]"
 	verifiesSearch    = " [verifies SP-2112~1]"
 	verifiesRecord    = " [verifies SP-2113~1]"
 	verifiesReplay    = " [verifies SP-2114~1]"

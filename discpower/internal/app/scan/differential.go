@@ -73,11 +73,11 @@ func newDifferentialSearch(prober ports.Prober, suite ports.ScanSuite, ref refer
 	}
 }
 
-// Gather searches each function the mutant edits that the ecosystem binds. A
-// target the probe cannot call, on the reference or on the mutant, yields no
-// evidence and is no error.
+// Gather searches each function the mutant edits that the ecosystem binds,
+// and records how far the search went. A target the probe cannot call, on the
+// reference or on the mutant, yields no evidence and is no error.
 func (d *differentialSearch) Gather(ctx context.Context, candidate Candidate, mutant ecosystem.Workspace, _ map[ecosystem.TestID][]vacuity.Run) (Evidence, error) {
-	var evidence Evidence
+	evidence := Evidence{Search: SearchUnbound}
 	for _, edit := range candidate.Edits.Canonical().Edits {
 		if edit.Kind() != mutation.TargetDefinition {
 			continue
@@ -86,6 +86,7 @@ func (d *differentialSearch) Gather(ctx context.Context, candidate Candidate, mu
 		if !bound {
 			continue
 		}
+		evidence.Search = max(evidence.Search, SearchUncallable)
 		draws := d.prepare(ctx, target)
 		if draws == nil {
 			continue
@@ -95,8 +96,10 @@ func (d *differentialSearch) Gather(ctx context.Context, candidate Candidate, mu
 		if firstErr != nil || secondErr != nil || len(first) != len(draws.calls) || len(second) != len(draws.calls) {
 			continue
 		}
+		evidence.Search = max(evidence.Search, SearchNoDifference)
 		if difference, found := firstDifference(target, draws, first, second); found {
 			evidence.Differences = append(evidence.Differences, difference)
+			evidence.Search = SearchDifference
 		}
 	}
 	return evidence, nil

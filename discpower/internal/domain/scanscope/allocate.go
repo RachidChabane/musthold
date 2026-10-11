@@ -37,6 +37,9 @@ func (c Candidate) site() vacuity.Line { return slices.MinFunc(c.Lines, format.C
 type Allocation struct {
 	// Drawn are the ids of the drawn candidates, sorted.
 	Drawn []string
+	// Order lists the same ids in the order the allocation drew them, so that
+	// a scan cut short has run every test's first candidates.
+	Order []string
 	// PerTest counts, for each sampled test with a candidate among its lines,
 	// the drawn candidates with a mutated line among them.
 	PerTest map[ecosystem.TestID]int
@@ -234,7 +237,7 @@ func (a *allocator) draw(index int) {
 }
 
 func (a *allocator) allocation() Allocation {
-	result := Allocation{Drawn: slices.Sorted(slices.Values(a.drawn)), PerTest: map[ecosystem.TestID]int{}}
+	result := Allocation{Drawn: slices.Sorted(slices.Values(a.drawn)), Order: slices.Clone(a.drawn), PerTest: map[ecosystem.TestID]int{}}
 	for test, id := range a.tests {
 		if len(a.pools[test]) > 0 {
 			result.PerTest[id] = a.counts[test]

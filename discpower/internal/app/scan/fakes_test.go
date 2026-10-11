@@ -180,6 +180,8 @@ type fakeSuite struct {
 	// coverageOverruns makes the recording outlive it.
 	coverageTimeout  time.Duration
 	coverageOverruns bool
+	// covered lists the tests whose coverage was asked for.
+	covered []ecosystem.TestID
 }
 
 func (s *fakeSuite) Run(_ context.Context, workspace ecosystem.Workspace, _ ecosystem.Toolchain, request ports.ScanRunRequest) (ports.ScanRuns, error) {
@@ -212,6 +214,9 @@ func (s *fakeSuite) Run(_ context.Context, workspace ecosystem.Workspace, _ ecos
 
 func (s *fakeSuite) LineCoverage(_ context.Context, _ ecosystem.Workspace, _ ecosystem.Toolchain, request ports.ScanCoverageRequest) (map[ecosystem.TestID][]vacuity.Line, error) {
 	s.coverageTimeout = request.Timeout
+	for _, test := range request.Tests {
+		s.covered = append(s.covered, test.ID)
+	}
 	if s.coverageOverruns {
 		return nil, ports.ErrCoverageTimedOut
 	}
@@ -334,6 +339,7 @@ type fixture struct {
 	compiler   bool
 	folds      bool
 	clock      *clock
+	capacity   ports.CapacityReader
 }
 
 func newFixture() *fixture {
@@ -365,7 +371,16 @@ func (f *fixture) service(t *testing.T) *scan.Service {
 	if f.compiler {
 		deps.Compiler = fakeCompiler{workspaces: f.workspaces, folds: f.folds}
 	}
+	deps.Capacity = f.capacity
 	return scan.New(deps)
+}
+
+// serviceWith is the scan service of the fixture on a machine of the given
+// capacity.
+func (f *fixture) serviceWith(t *testing.T, capacity ports.CapacityReader) *scan.Service {
+	t.Helper()
+	f.capacity = capacity
+	return f.service(t)
 }
 
 func request() scan.Request {

@@ -47,7 +47,16 @@ const (
 	argumentJoin   = ", "
 	emptyToken     = "(nothing)"
 	durationUnit   = time.Second
+	phasesFormat   = "%s (reference %s, coverage %s, draw %s, mutants %s)"
+	noBudget       = "no budget"
+	budgetFormat   = "%s budget"
+	sampledFormat  = "%d of %d green tests sampled"
+	workersFormat  = "%d workers"
+	fullHint       = " — run with --full for the whole suite"
 )
+
+// depthNames name the depths of a scan.
+var depthNames = map[scan.Depth]string{scan.DepthQuick: "quick scan", scan.DepthFull: "full scan"}
 
 // countLabels name the classes in the headline, in the order of the split.
 var countLabels = []struct {
@@ -97,6 +106,25 @@ func header(report scan.Report) string {
 	return strings.Join(parts, separator)
 }
 
+// depthLine says how deep the scan went: quick or full, its budget, its time,
+// how many green tests it sampled and on how many workers, and, for a quick
+// scan, how to judge more.
+func depthLine(report scan.Report) string {
+	budget := noBudget
+	if report.Budget > 0 {
+		budget = fmt.Sprintf(budgetFormat, report.Budget)
+	}
+	parts := []string{
+		depthNames[report.Depth], budget, round(report.Elapsed),
+		fmt.Sprintf(sampledFormat, report.Suite.Sampled, report.Suite.Green), fmt.Sprintf(workersFormat, report.Workers),
+	}
+	text := strings.Join(parts, separator)
+	if report.Depth == scan.DepthQuick {
+		text += fullHint
+	}
+	return text
+}
+
 // split is the four counts, each over its denominator: the verdicts over the
 // sampled green tests, the unsampled over the green ones.
 func split(report scan.Report) []string {
@@ -125,6 +153,24 @@ func unprovenReasons(report scan.Report) string {
 	return strings.Join(parts, argumentJoin)
 }
 
+// reasonLabel names why one test is unproven.
+func reasonLabel(reason format.ScanUnprovenReason) string {
+	for _, entry := range reasonLabels {
+		if entry.reason == reason {
+			return entry.label
+		}
+	}
+	return string(reason)
+}
+
+// elapsed is the time of the scan and of each of its phases.
+func elapsed(report scan.Report) string {
+	phases := report.Phases
+	return fmt.Sprintf(phasesFormat, round(report.Elapsed), round(phases.Reference), round(phases.Coverage), round(phases.Draw), round(phases.Mutants))
+}
+
+func round(duration time.Duration) string { return duration.Round(durationUnit).String() }
+
 // footer is the last line: the draw, the time, the model and the promises.
 func footer(report scan.Report) string {
 	mutants := report.Mutants
@@ -136,7 +182,7 @@ func footer(report scan.Report) string {
 		parts[0] += fmt.Sprintf(", %d did not build", mutants.DidNotBuild)
 	}
 	parts[0] += ")"
-	parts = append(parts, report.Elapsed.Round(durationUnit).String(), noModel, noPromises)
+	parts = append(parts, elapsed(report), noModel, noPromises)
 	return strings.Join(parts, separator)
 }
 

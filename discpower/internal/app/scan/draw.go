@@ -38,6 +38,10 @@ type drawn struct {
 	// perTest counts, for each sampled test with an operator mutant among its
 	// lines, the drawn operator mutants with a mutated line among them.
 	perTest map[ecosystem.TestID]int
+	// order lists the candidates in the order they start: the sentinels
+	// first, so that no kill goes unguarded when a budget cuts the scan, then
+	// the operator mutants in the order the allocation drew them.
+	order []int
 }
 
 // draw generates the operator mutants and sentinels of the files the targets
@@ -68,6 +72,7 @@ func (s *Service) draw(ref reference, plan plan, request Request) (drawn, error)
 	result := drawn{sources: sources}
 	sentinels := scanscope.KeepSentinels(generated.Sentinels, scanscope.SentinelCap, request.Seed)
 	seen := map[string]bool{}
+	var drawOrder []string
 	for _, mutant := range slices.Concat(generated.Operator, sentinels) {
 		candidate, err := candidateOf(mutant, sources[mutant.Site.File])
 		if err != nil {
@@ -76,11 +81,32 @@ func (s *Service) draw(ref reference, plan plan, request Request) (drawn, error)
 		if !seen[candidate.ID] && len(candidate.Lines) > 0 {
 			seen[candidate.ID] = true
 			result.candidates = append(result.candidates, candidate)
+			drawOrder = append(drawOrder, candidate.ID)
 		}
 	}
 	slices.SortFunc(result.candidates, func(a, b Candidate) int { return strings.Compare(a.ID, b.ID) })
 	result.perTest = operatorMutantsPerTest(result.candidates, lines)
+	result.order = startOrder(result.candidates, drawOrder)
 	return result, nil
+}
+
+// startOrder lists the candidates, by index, sentinels first in id order, then
+// the operator mutants in the order they were drawn.
+func startOrder(candidates []Candidate, drawOrder []string) []int {
+	index := make(map[string]int, len(candidates))
+	var order []int
+	for position, candidate := range candidates {
+		index[candidate.ID] = position
+		if candidate.Sentinel {
+			order = append(order, position)
+		}
+	}
+	for _, id := range drawOrder {
+		if position := index[id]; !candidates[position].Sentinel {
+			order = append(order, position)
+		}
+	}
+	return order
 }
 
 // operatorMutantsPerTest counts, for each test, the operator mutants with a
@@ -121,7 +147,8 @@ type allocationSelector struct {
 	seed    uint64
 }
 
-// Select keeps the screened mutants the allocation draws.
+// Select keeps the screened mutants the allocation draws, in the order it drew
+// them.
 func (a allocationSelector) Select(screened []operator.Mutant) []operator.Mutant {
 	candidates := make([]scanscope.Candidate, 0, len(screened))
 	for _, mutant := range screened {
@@ -131,10 +158,15 @@ func (a allocationSelector) Select(screened []operator.Mutant) []operator.Mutant
 		})
 	}
 	allocation := scanscope.Allocate(candidates, a.lines, a.budget, a.seed)
-	return slices.DeleteFunc(slices.Clone(screened), func(mutant operator.Mutant) bool {
-		_, found := slices.BinarySearch(allocation.Drawn, mutant.ID)
-		return !found
-	})
+	byID := make(map[string]operator.Mutant, len(screened))
+	for _, mutant := range screened {
+		byID[mutant.ID] = mutant
+	}
+	selected := make([]operator.Mutant, 0, len(allocation.Order))
+	for _, id := range allocation.Order {
+		selected = append(selected, byID[id])
+	}
+	return selected
 }
 
 // mutableFiles reads the files of the targets a scan may mutate and a mutation

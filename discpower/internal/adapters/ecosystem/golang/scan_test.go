@@ -29,7 +29,10 @@ const (
 	verifiesLines     = " [verifies SP-2101~1]"
 	verifiesBinding   = " [verifies SP-2103~1]"
 	verifiesEvents    = " [verifies SP-2128~1]"
-	verifiesBound     = " [verifies SP-2127~1]"
+	verifiesWorkers   = " [verifies SP-2131~1]"
+	// coverageWorkers runs the tests under coverage two at a time.
+	coverageWorkers = 2
+	verifiesBound   = " [verifies SP-2127~1]"
 	// overrunBound is a coverage bound no run can keep.
 	overrunBound = time.Nanosecond
 )
@@ -172,10 +175,16 @@ func TestScanLineCoverage(t *testing.T) {
 			{ID: acceptsAnyPercent, File: "discount_test.go"}, {ID: takesPercentOff, File: "discount_test.go"}, {ID: chargedBelowFifty, File: "tally_test.go"},
 		},
 		Timeout: scanRunTimeout,
+		Workers: coverageWorkers,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Run("the tests run under coverage on the workers each give their own lines"+verifiesWorkers, func(t *testing.T) {
+		if len(covered) != 3 || len(covered[acceptsAnyPercent]) == 0 || len(covered[chargedBelowFifty]) == 0 {
+			t.Fatalf("covered %v", covered)
+		}
+	})
 	ran := func(test ecosystem.TestID, line int) bool {
 		return slices.Contains(covered[test], vacuity.Line{File: "tally.go", Line: line})
 	}

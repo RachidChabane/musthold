@@ -22,9 +22,13 @@ func Text(report scan.Report) string {
 	var out strings.Builder
 	line := func(format string, args ...any) { fmt.Fprintf(&out, format+newline, args...) }
 	line("%s", header(report))
+	line("%s%s", indent, depthLine(report))
 	line("%s%s", indent, strings.Join(split(report), countGap))
 	if reasons := unprovenReasons(report); reasons != "" {
 		line("%sunproven: %s", indent, reasons)
+	}
+	if gaps := unprovenGaps(report); gaps != "" {
+		line("%sthey lack: %s", indent, gaps)
 	}
 	line("%s%s", indent, notAPass)
 	if report.Partial {
@@ -49,6 +53,8 @@ func Markdown(report scan.Report) string {
 	line("")
 	line("%s", header(report))
 	line("")
+	line("%s", depthLine(report))
+	line("")
 	line("| Tests | Count |")
 	line("| --- | --- |")
 	for _, count := range split(report) {
@@ -58,6 +64,14 @@ func Markdown(report scan.Report) string {
 	line("")
 	if reasons := unprovenReasons(report); reasons != "" {
 		line("Unproven: %s.", reasons)
+		line("")
+	}
+	if gaps := unprovenGaps(report); gaps != "" {
+		line("They lack: %s.", gaps)
+		line("")
+		for _, row := range gapTable(report) {
+			line("%s", row)
+		}
 		line("")
 	}
 	line("%s", notAPass)

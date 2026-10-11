@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	verifiesText     = " [verifies SP-2115~1]"
-	verifiesMarkdown = " [verifies SP-2116~1]"
+	verifiesText     = " [verifies SP-2115~2]"
+	verifiesMarkdown = " [verifies SP-2116~2]"
 	verifiesFolders  = " [verifies SP-2117~1]"
 
 	commit = "3f2a9c1d0b8e7f6a5c4d3e2f1a0b9c8d7e6f5a4b"
@@ -75,6 +75,13 @@ func report(t *testing.T) scan.Report {
 				Route: killed, Files: files, Repro: []string{"python3", "-m", "pytest", "tests/test_parse.py::test_it's_fine"}},
 		},
 		Elapsed: 4*time.Minute + 12*time.Second,
+		Phases:  scan.Phases{Reference: time.Minute, Coverage: 30 * time.Second, Draw: 2 * time.Second, Mutants: 2*time.Minute + 40*time.Second},
+		Depth:   scan.DepthQuick, Budget: 90 * time.Second, Workers: 2,
+		Unproven: []scan.UnprovenTest{
+			{Test: "tests/test_parse.py::test_three", Reason: format.ScanTooFewChanges},
+			{Test: "tests/test_parse.py::test_two", Reason: format.ScanTooFewChanges, Proven: 1, Gaps: map[string]scan.Gap{"m1": scan.GapNoDifference, "m2": scan.GapUnbound}},
+			{Test: "tests/test_split.py::test_slow", Reason: format.ScanInconclusiveOutcome, Proven: 6, Gaps: map[string]scan.Gap{"m1": scan.GapNoDifference}},
+		},
 	}
 }
 
@@ -86,17 +93,30 @@ func TestText(t *testing.T) {
 			t.Fatalf("header %q", lines[0])
 		}
 	})
-	t.Run("the four counts stand over their denominators: the judged tests, and the green tests for the unsampled"+verifiesText, func(t *testing.T) {
-		if want := "  7/40 verify nothing   21/40 caught ≥ 1 change   12/40 unproven   369/409 not sampled"; lines[1] != want {
-			t.Fatalf("split %q", lines[1])
+	t.Run("the second line names the depth, the budget, the time, the sample of the green tests and the workers, and how to judge more"+verifiesText, func(t *testing.T) {
+		if want := "  quick scan · 1m30s budget · 4m12s · 40 of 409 green tests sampled · 2 workers — run with --full for the whole suite"; lines[1] != want {
+			t.Fatalf("depth %q", lines[1])
+		}
+		full := report(t)
+		full.Depth, full.Budget = scan.DepthFull, 0
+		if want := "  full scan · no budget · 4m12s · 40 of 409 green tests sampled · 2 workers"; strings.Split(scanreport.Text(full), "\n")[1] != want {
+			t.Fatalf("depth %q", strings.Split(scanreport.Text(full), "\n")[1])
 		}
 	})
-	t.Run("the unproven tests are broken down by reason, and the result is never a pass"+verifiesText, func(t *testing.T) {
-		if want := "  unproven: 2 with < 5 proven changes or < 2 sites, 1 with an inconclusive outcome"; lines[2] != want {
-			t.Fatalf("reasons %q", lines[2])
+	t.Run("the four counts stand over their denominators: the judged tests, and the green tests for the unsampled"+verifiesText, func(t *testing.T) {
+		if want := "  7/40 verify nothing   21/40 caught ≥ 1 change   12/40 unproven   369/409 not sampled"; lines[2] != want {
+			t.Fatalf("split %q", lines[2])
 		}
-		if lines[3] != "  Not a pass: unproven and unsampled tests are unjudged." {
-			t.Fatalf("line %q", lines[3])
+	})
+	t.Run("the unproven tests are broken down by reason and by what their lines lack, and the result is never a pass"+verifiesText, func(t *testing.T) {
+		if want := "  unproven: 2 with < 5 proven changes or < 2 sites, 1 with an inconclusive outcome"; lines[3] != want {
+			t.Fatalf("reasons %q", lines[3])
+		}
+		if want := "  they lack: 1 ran no drawn mutant · 2 unproven mutants on their lines: 1 searched without a difference, 1 with no function to call · no witness without a host"; lines[4] != want {
+			t.Fatalf("gaps %q", lines[4])
+		}
+		if lines[5] != "  Not a pass: unproven and unsampled tests are unjudged." {
+			t.Fatalf("line %q", lines[5])
 		}
 	})
 	t.Run("a finding shows the literal sentence, the change, its input and both results, the route and the repro"+verifiesText, func(t *testing.T) {
@@ -113,7 +133,7 @@ func TestText(t *testing.T) {
 		}
 	})
 	t.Run("the last line counts the mutants and says no model ran and no promise was checked"+verifiesText, func(t *testing.T) {
-		want := "150 mutants (61 proven, 4 identical when compiled, 2 did not build) · 4m12s · no model used · promises not checked"
+		want := "150 mutants (61 proven, 4 identical when compiled, 2 did not build) · 4m12s (reference 1m0s, coverage 30s, draw 2s, mutants 2m40s) · no model used · promises not checked"
 		if lines[len(lines)-2] != want {
 			t.Fatalf("footer %q", lines[len(lines)-2])
 		}
@@ -149,6 +169,10 @@ func TestMarkdown(t *testing.T) {
 			"```diff\n--- a/src/invoicing/parse.py\n+++ b/src/invoicing/parse.py\n",
 			"-    if len(line) >= 2:\n+    if len(line) > 2:\n",
 			"promises not checked",
+			"quick scan · 1m30s budget · 4m12s · 40 of 409 green tests sampled · 2 workers — run with --full for the whole suite",
+			"They lack: 1 ran no drawn mutant · 2 unproven mutants on their lines",
+			"| `tests/test_parse.py::test_two` | with < 5 proven changes or < 2 sites | 1 | 1 searched without a difference, 1 with no function to call |",
+			"| `tests/test_parse.py::test_three` | with < 5 proven changes or < 2 sites | 0 | none |",
 		} {
 			if !strings.Contains(markdown, want) {
 				t.Errorf("missing %q in\n%s", want, markdown)

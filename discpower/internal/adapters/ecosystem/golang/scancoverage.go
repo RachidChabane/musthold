@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
@@ -45,34 +46,73 @@ const (
 )
 
 // LineCoverage builds the test binary of each package once, with coverage of
-// every package of the module, then runs each test alone, within the timeout
-// of the request, and reads the lines of the blocks it ran. Only the
-// workspace's build cache and results receive the instrumented binaries.
+// every package of the module, then runs each test alone, on the workers of
+// the request and within its timeout, and reads the lines of the blocks it
+// ran. Only the workspace's build cache and results receive the instrumented
+// binaries.
 func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanCoverageRequest) (map[ecosystem.TestID][]vacuity.Line, error) {
 	module, err := modulePath(os.DirFS(workspace.Dir))
 	if err != nil {
 		return nil, err
 	}
+	var runs []coveredRun
 	binaries := map[string]string{}
-	covered := map[ecosystem.TestID][]vacuity.Line{}
 	for _, test := range request.Tests {
 		file, testPath, found := strings.Cut(string(test.ID), testCaseSeparator)
 		if !found {
 			continue
 		}
 		dir := path.Dir(file)
-		binary, built := binaries[dir]
-		if !built {
-			if binary, err = s.buildCoverageBinary(ctx, workspace, toolchain, dir); err != nil {
+		if _, built := binaries[dir]; !built {
+			if binaries[dir], err = s.buildCoverageBinary(ctx, workspace, toolchain, dir); err != nil {
 				return nil, err
 			}
-			binaries[dir] = binary
 		}
-		lines, err := s.runCovered(ctx, workspace, binary, dir, testPath, module, request.Timeout)
-		if err != nil {
-			return nil, err
+		runs = append(runs, coveredRun{test: test.ID, binary: binaries[dir], dir: dir, testPath: testPath})
+	}
+	return s.runAllCovered(ctx, workspace, module, runs, request)
+}
+
+// coveredRun is one test to run alone from its package's coverage binary.
+type coveredRun struct {
+	test                  ecosystem.TestID
+	binary, dir, testPath string
+}
+
+// runAllCovered runs the tests on at most the requested workers and stops at
+// the first error.
+func (s scanSuite) runAllCovered(ctx context.Context, workspace ecosystem.Workspace, module string, runs []coveredRun, request ports.ScanCoverageRequest) (map[ecosystem.TestID][]vacuity.Line, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	covered := make(map[ecosystem.TestID][]vacuity.Line, len(runs))
+	var mutex sync.Mutex
+	var failure error
+	jobs := make(chan coveredRun)
+	var wait sync.WaitGroup
+	for range max(request.Workers, 1) {
+		wait.Go(func() {
+			for run := range jobs {
+				lines, err := s.runCovered(ctx, workspace, run.binary, run.dir, run.testPath, module, request.Timeout)
+				mutex.Lock()
+				if err != nil && failure == nil {
+					failure = err
+					cancel()
+				}
+				covered[run.test] = lines
+				mutex.Unlock()
+			}
+		})
+	}
+	for _, run := range runs {
+		if ctx.Err() != nil {
+			break
 		}
-		covered[test.ID] = lines
+		jobs <- run
+	}
+	close(jobs)
+	wait.Wait()
+	if failure != nil {
+		return nil, failure
 	}
 	return covered, nil
 }

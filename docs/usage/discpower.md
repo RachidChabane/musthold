@@ -152,17 +152,32 @@ and no configuration, which tests still pass when the code they run is broken
 (ADR 0014). `spec-proof scan` runs it through the [umbrella](umbrella.md).
 
 ```
-spec-proof-dp scan [--base REV] [--seed N] [--sample N] [--mutants N] [--budget DURATION] [--workers N] [--coverage-timeout DURATION] [--format text|md|json] [--root DIR]
+spec-proof-dp scan [--full] [--base REV] [--seed N] [--sample N] [--mutants N] [--budget DURATION] [--workers N] [--coverage-timeout DURATION] [--format text|md|json] [--root DIR]
 ```
 
 The work tree must have no uncommitted change to a tracked file: a scan names
 the commit it ran on. It copies the tree into a workspace outside it, runs the
 whole suite three times and records, per test, the lines that test itself ran.
-Without `--base` it samples 40 green tests, stratified by file; with `--base` it
+Without `--base` it samples green tests, stratified by file; with `--base` it
 takes the green tests that run a function changed since that revision. It draws
-up to 150 operator mutants on the lines the judged tests ran, round-robin over
-those tests so that each gets the mutants of its own lines its verdict needs,
-plus up to 12 sentinels, one file at a time. It never mutates a test, vendored,
+operator mutants on the lines the judged tests ran, round-robin over those
+tests so that each gets the mutants of its own lines its verdict needs, plus up
+to 12 sentinels, one file at a time.
+
+| | Quick (default) | `--full` |
+|---|---|---|
+| Tests sampled | 12 | 40 |
+| Operator mutants | 72, six per test | 150 |
+| Coverage recorded | the sampled tests | every green test |
+| Tests run on a mutant | the sampled tests that ran its lines | every green test that ran its lines |
+| Budget | no mutant starts after 90 s | none |
+
+`--sample`, `--mutants` and `--budget` replace what either depth sets. Mutants
+run on as many workers as the machine allows: one per two processors and per
+GiB of memory above the 40 % the memory guard keeps free, at most four;
+`--workers` sets another number. The sentinels start first, then the mutants in
+the order they were drawn, so a budget that cuts the scan leaves every judged
+test its first mutants. It never mutates a test, vendored,
 generated or migration file nor a line that logs, prints or records a metric,
 and runs each mutant against every test that ran one of its lines, three times.
 
@@ -176,16 +191,25 @@ gives each class over its denominator and never reads as a pass:
 
 ```
 acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled · seed 7
+  full scan · no budget · 4m12s · 40 of 409 green tests sampled · 4 workers
   7/40 verify nothing   21/40 caught ≥ 1 change   12/40 unproven   369/409 not sampled
   unproven: 9 with < 5 proven changes or < 2 sites, 3 with an inconclusive outcome
+  they lack: 2 ran no drawn mutant · 31 unproven mutants on their lines: 18 searched without a difference, 9 with no function to call, 4 identical when compiled · no witness without a host
   Not a pass: unproven and unsampled tests are unjudged.
 
 #1 tests/test_parse.py::test_parse_ok passes on all 9 proven changes in lines it ran
    src/invoicing/parse.py:41  >= → >   input line="a,": reference "a", mutant ""
    proven by: a differential run of invoicing.parse:split_fields, reproduced, on a reference that agrees with itself
    repro: .spec-proof/scan/3f2a9c1/1/repro.sh
-150 mutants (61 proven) · 4m12s · no model used · promises not checked
+150 mutants (61 proven) · 4m12s (reference 41s, coverage 1m2s, draw 1s, mutants 2m28s) · no model used · promises not checked
 ```
+
+"They lack" says why the unproven tests are unproven: how many ran no drawn
+mutant, and, for the mutants on their lines that no route proves, whether the
+differential search found no difference, had no function to call or could not
+call it, whether the only killing test fails a sentinel, or whether the mutant
+compiled to the reference's form, did not build or did not run within the
+budget. The Markdown report lists each unproven test on its own row.
 
 The scan exits 0 whatever it finds. `--budget` stops starting mutants after that
 long and marks the counts partial. Each run of tests under coverage is bounded

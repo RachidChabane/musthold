@@ -38,7 +38,9 @@ type ScanCoverageRequest struct {
 	Tests []ScanCase
 	// Timeout bounds each run of tests under coverage; a run it stops fails the
 	// recording with ErrCoverageTimedOut.
-	Timeout time.Duration
+	Timeout time.Duration // Workers bounds how many runs under coverage go at once, for a runner that
+	// runs each test alone; below one, one.
+	Workers int
 }
 
 // ScanRuns is what a batch of runs did: the tests the runner collected and,

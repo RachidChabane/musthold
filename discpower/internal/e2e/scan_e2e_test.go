@@ -21,7 +21,7 @@ const (
 	vacuousGo         = "discount_test.go::TestDiscountAcceptsAnyPercent"
 	verifiesScanE2E   = " [verifies SP-2122~1]"
 	verifiesReplay    = " [verifies SP-2114~1]"
-	verifiesCommand   = " [verifies SP-2119~1]"
+	verifiesCommand   = " [verifies SP-2119~2]"
 )
 
 // scanned is a copy of a scan fixture committed in a repository of its own.

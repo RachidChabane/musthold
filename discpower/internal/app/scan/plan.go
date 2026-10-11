@@ -25,14 +25,21 @@ type plan struct {
 }
 
 // plan samples the tests of a repository scan, or takes the tests that run the
-// functions a change edits, and the lines a draw may mutate.
-func (s *Service) plan(ctx context.Context, ref reference, request Request, base string) (plan, error) {
+// functions a change edits, records the coverage the scope of the request asks
+// for, and the lines a draw may mutate.
+func (s *Service) plan(ctx context.Context, ref *reference, request Request, base string) (plan, error) {
 	if base == "" {
 		sampled := scanscope.Sample(scanCasesOf(ref.cases, ref.green), request.SampleSize, request.Seed)
-		return plan{mode: format.ScanModeRepository, sampled: sampled, targets: s.coveredBy(ref, sampled)}, nil
+		if err := s.recordCoverage(ctx, ref, request.Coverage.of(ref.green, sampled), request); err != nil {
+			return plan{}, err
+		}
+		return plan{mode: format.ScanModeRepository, sampled: sampled, targets: s.coveredBy(*ref, sampled)}, nil
 	}
 	changed, err := s.changedFunctions(ctx, base, ref.layout)
 	if err != nil {
+		return plan{}, err
+	}
+	if err := s.recordCoverage(ctx, ref, ref.green, request); err != nil {
 		return plan{}, err
 	}
 	var running []ports.ScanCase
@@ -43,7 +50,7 @@ func (s *Service) plan(ctx context.Context, ref reference, request Request, base
 	}
 	sampled := scanscope.Sample(scanCasesOf(running, ref.green), request.SampleSize, request.Seed)
 	targets := scanscope.LineSet{}
-	for line := range s.coveredBy(ref, sampled) {
+	for line := range s.coveredBy(*ref, sampled) {
 		if changed[line] {
 			targets[line] = true
 		}

@@ -2,6 +2,7 @@ package scan
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -22,7 +23,7 @@ func TestRunTimeout(t *testing.T) {
 		{3 * time.Minute, 3 * time.Minute},
 	}
 	for _, c := range cases {
-		t.Run("three reference runs of "+c.reference.String()+" bound a mutant run by "+c.want.String()+" [verifies SP-2111~1]", func(t *testing.T) {
+		t.Run("three reference runs of "+c.reference.String()+" bound a mutant run by "+c.want.String()+" [verifies SP-2111~2]", func(t *testing.T) {
 			if got := runTimeout(c.reference); got != c.want {
 				t.Fatalf("timeout = %s", got)
 			}
@@ -48,6 +49,15 @@ func TestCoverageTimeoutBound(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestStartOrder(t *testing.T) {
+	t.Run("the sentinels start first, then the operator mutants in the order the allocation drew them [verifies SP-2110~2]", func(t *testing.T) {
+		candidates := []Candidate{{ID: "a"}, {ID: "b", Sentinel: true}, {ID: "c"}, {ID: "d", Sentinel: true}, {ID: "e"}}
+		if got := startOrder(candidates, []string{"e", "a", "c", "b", "d"}); !slices.Equal(got, []int{1, 3, 4, 0, 2}) {
+			t.Fatalf("order %v", got)
+		}
+	})
 }
 
 func integer(value string) spec.Literal { return spec.Literal{Type: spec.TypeInteger, Value: value} }

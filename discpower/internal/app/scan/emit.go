@@ -69,6 +69,7 @@ func (s *Service) emit(ctx context.Context, e emission) (Report, error) {
 		Suite:      SuiteCounts{Tests: len(e.reference.cases), Green: len(e.reference.green), Sampled: len(e.plan.sampled)},
 		Mutants:    e.mutantCounts(result),
 		Candidates: e.drawn.perTest,
+		Unproven:   e.unprovenTests(result),
 		Findings:   findings,
 		Partial:    predicate.Partial,
 	}, nil

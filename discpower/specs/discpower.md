@@ -1137,11 +1137,13 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   vendored and installed code, generated code marked `Code generated ... DO NOT
   EDIT.` or `@generated`, and migrations; and SHALL refuse a site with a line
   that calls a print, a log or a metric.
-- **SP-2108~1**: WHEN a repository is scanned THE SYSTEM SHALL refuse a work tree
+- **SP-2108~2**: WHEN a repository is scanned THE SYSTEM SHALL refuse a work tree
   whose tracked files differ from the head commit before running anything; copy
   the work tree, scan reports aside, into a workspace outside it and build it,
   failing when the reference does not build or collects no test; run the whole
-  suite three times there; and record the line coverage of every green test.
+  suite three times there; and record the line coverage of every green test, or,
+  for a repository scan whose coverage scope is its sample, of the sampled tests
+  only.
 - **SP-2109~1**: WHEN a scan plans what it judges THE SYSTEM SHALL, without a
   base, sample the green tests by the seed and admit for mutation the lines the
   sampled tests ran; and, with a base, take the green tests that ran a line of a
@@ -1152,11 +1154,12 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   screening and selection; draw at most the requested number of operator
   mutants, by default 150, by the allocation of SP-2125, and keep the sentinels
   by the rule of SP-2126; give each mutant the digest of its edits as its id and
-  the lines of its mutated span; and run the sentinels against the same tests as
-  the mutants, never proving one.
-- **SP-2111~1**: WHEN a scan runs a mutant THE SYSTEM SHALL run it, on at most
-  the requested number of workers, by default 2, against every green test whose
-  coverage holds one of its mutated lines, three times, each run bounded by
+  the lines of its mutated span; run the sentinels against the same tests as
+  the mutants, never proving one; and start the sentinels first, then the
+  operator mutants in the order the allocation drew them.
+- **SP-2111~2**: WHEN a scan runs a mutant THE SYSTEM SHALL run it, on at most
+  the requested number of workers, by default those of SP-2130, against every
+  green test whose recorded coverage holds one of its mutated lines, three times, each run bounded by
   three times the duration of one reference run of the whole suite and at least
   30 seconds; run no test of a mutant other than a sentinel whose every edited
   site compiles to the reference's form, a sentinel always running; drop and
@@ -1188,19 +1191,22 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   fails the mutant three runs out of three, and that the input of a difference
   gives each recorded result twice on its side; and SHALL report every claim
   that does not hold.
-- **SP-2115~1**: WHEN a scan is printed for a terminal THE SYSTEM SHALL print the
+- **SP-2115~2**: WHEN a scan is printed for a terminal THE SYSTEM SHALL print the
   repository, the short commit, the runner, the tests and the green ones, the
-  sampled ones and the seed; the counts of verify nothing, caught at least one
+  sampled ones and the seed; on the next line the depth, the budget or "no
+  budget", the time, how many of the green tests were sampled and the workers,
+  and, for a quick scan, that `--full` judges the whole suite; the counts of verify nothing, caught at least one
   change and unproven, each over the sampled green tests, and not sampled over
-  the green tests; the unproven tests by reason; the line that this is not a
-  pass; for each test that verifies nothing its rank, its id and "passes on all N
+  the green tests; the unproven tests by reason; what their lines lack, as in
+  SP-2129; the line that this is not a pass; for each test that verifies nothing its rank, its id and "passes on all N
   proven changes in lines it ran", the site and the change, with the input and
   both results of a difference, what proves it and its repro script; a note
-  when the scan is partial; and the mutants that ran and were proven, the time,
-  "no model used" and "promises not checked"; and SHALL never print "bug",
+  when the scan is partial; and the mutants that ran and were proven, the time
+  with the time of each phase, "no model used" and "promises not checked"; and SHALL never print "bug",
   "PASS" or a score.
-- **SP-2116~1**: WHEN a scan is written as Markdown THE SYSTEM SHALL write the
-  same header, the four counts as a table, the unproven reasons, the line that
+- **SP-2116~2**: WHEN a scan is written as Markdown THE SYSTEM SHALL write the
+  same header and depth line, the four counts as a table, the unproven reasons,
+  what their lines lack with one row per unproven test, the line that
   this is not a pass, each finding with its sentence, change, proof and repro
   script and its patch as a diff, and the closing line, never "bug", "PASS" or a
   score.
@@ -1213,8 +1219,10 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   patch and runs the one test, quoted, so that its exit status is the test's,
   and `finding.json`, which names the commit, the runner, the test, the mutant
   with its edits and the route.
-- **SP-2119~1**: WHEN `spec-proof-dp scan` runs THE SYSTEM SHALL need no
-  configuration, scan the first pytest or Go suite it detects, write the reports,
+- **SP-2119~2**: WHEN `spec-proof-dp scan` runs THE SYSTEM SHALL need no
+  configuration, scan the first pytest or Go suite it detects, quickly unless
+  `--full` is given (SP-2131), `--sample`, `--mutants` and `--budget` replacing
+  what the depth presets, write the reports,
   print the headline, the Markdown report with `--format md` or the scan statement
   with `--format json`, and exit 0 whatever the counts; SHALL fail, writing no
   report, on a tree with no such suite, a dirty tree, an unknown format or an
@@ -1262,6 +1270,27 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   duration of one reference run of the whole suite, at least 2 minutes and at
   most 30 minutes; and SHALL fail on a run past its bound with an error that
   names the bound and `--coverage-timeout`.
+- **SP-2129~1**: WHEN a scan is recorded THE SYSTEM SHALL explain each unproven
+  test by the proven changes it ran and, for each other drawn operator mutant on
+  its lines, why it proves nothing: not run within the budget, did not build,
+  identical when compiled, killed only by a test that fails a sentinel, or, when
+  no test kills it, no differential search in the ecosystem, no function the
+  search can bind, a bound function it cannot call, or a search that found no
+  difference; and SHALL time each phase of the scan: the reference, the
+  coverage, the draw and the mutants.
+- **SP-2130~1**: WHEN a scan is given no number of workers THE SYSTEM SHALL read
+  the processors of the machine and the share of its memory that is free, with
+  `sysctl` and `memory_pressure` on macOS and /proc/meminfo elsewhere, and run
+  one worker per two processors and per GiB of memory above the 40 % the memory
+  guard keeps free, the fewer of the two, at least one and at most four; and
+  the default workers when the capacity cannot be read.
+- **SP-2131~1**: WHEN a scan runs quickly THE SYSTEM SHALL sample 12 green tests,
+  draw 6 operator mutants for each, record the line coverage of the sampled
+  tests only, so that only they run a mutant or a sentinel, and start no mutant
+  once 90 seconds have passed since the scan began; WHEN a scan runs in full it
+  SHALL sample 40 tests, draw 150 mutants, record the coverage of every green
+  test and have no budget; and a Go suite SHALL run its tests under coverage on
+  the scan's workers.
 - **SP-2128~1**: WHEN a command names a file for its standard output THE SYSTEM
   SHALL write the whole output there, however long, and leave it out of the
   captured output; and a scan of a Go suite SHALL read every test event of a run

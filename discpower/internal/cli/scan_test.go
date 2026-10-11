@@ -10,7 +10,7 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
 )
 
-const verifiesScanCommand = " [verifies SP-2119~1]"
+const verifiesScanCommand = " [verifies SP-2119~2]"
 
 func runScan(t *testing.T, workDir string, arguments ...string) (code int, stdout, stderr string) {
 	t.Helper()

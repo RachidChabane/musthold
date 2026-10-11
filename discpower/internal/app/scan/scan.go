@@ -52,6 +52,9 @@ type Deps struct {
 	// Project is the work tree of the scanned repository.
 	Project fs.FS
 	Clock   func() time.Time
+	// Capacity reads the machine a scan chooses its workers on; nil chooses
+	// DefaultWorkers.
+	Capacity ports.CapacityReader
 }
 
 // Request is one scan.
@@ -67,12 +70,39 @@ type Request struct {
 	// Budget, when positive, stops the execution of mutants once it has passed
 	// since the scan began; the scan is then partial.
 	Budget time.Duration
-	// Workers is how many mutants run at once.
+	// Workers is how many mutants, or tests under coverage, run at once;
+	// below one, as many as the capacity of the machine allows.
 	Workers int
+	// Depth names the preset the other fields come from, for the report.
+	Depth Depth
 	// CoverageTimeout, when positive, bounds each run of tests under coverage
 	// in place of the bound derived from the reference runs.
 	CoverageTimeout time.Duration
-	Module          format.Module
+	// Coverage is whose line coverage a repository scan records, and so which
+	// tests may run a mutant.
+	Coverage CoverageScope
+	Module   format.Module
+}
+
+// CoverageScope is whose line coverage a repository scan records. Only a test
+// whose coverage is recorded runs a mutant or a sentinel, so it also bounds
+// the tests whose kills prove a change.
+type CoverageScope int
+
+// Scopes of the coverage of a repository scan.
+const (
+	// CoverGreen records the coverage of every green test.
+	CoverGreen CoverageScope = iota
+	// CoverSampled records the coverage of the sampled tests only.
+	CoverSampled
+)
+
+// of lists the tests whose coverage the scope records.
+func (c CoverageScope) of(green, sampled []ecosystem.TestID) []ecosystem.TestID {
+	if c == CoverSampled {
+		return sampled
+	}
+	return green
 }
 
 // Report is what a scan established and what its renderers show.
@@ -95,10 +125,32 @@ type Report struct {
 	// the lines it ran, the operator mutants drawn with a mutated line among
 	// them; the scan statement does not record it.
 	Candidates map[ecosystem.TestID]int
+	// Unproven explains each unproven test, by test id: the proven changes it
+	// ran and why each other drawn mutant on its lines proves nothing; the scan
+	// statement does not record it.
+	Unproven []UnprovenTest
 	// Findings are the tests that verify nothing, ranked, each with one change.
 	Findings []Finding
 	Partial  bool
 	Elapsed  time.Duration
+	// Depth, Budget and Workers are those the scan ran with.
+	Depth   Depth
+	Budget  time.Duration
+	Workers int
+	// Phases splits the elapsed time by phase.
+	Phases Phases
+}
+
+// Phases is how long each phase of a scan took.
+type Phases struct {
+	// Reference covers copying, building and the three runs of the suite.
+	Reference time.Duration
+	// Coverage is the recording of the line coverage of the tests.
+	Coverage time.Duration
+	// Draw is the generation and allocation of the mutants.
+	Draw time.Duration
+	// Mutants covers running the mutants and gathering their evidence.
+	Mutants time.Duration
 }
 
 // SuiteCounts counts the tests of a suite.
@@ -166,6 +218,7 @@ func New(deps Deps) *Service {
 // evidence, classification and statement.
 func (s *Service) Run(ctx context.Context, request Request) (Report, error) {
 	started := s.deps.Clock()
+	request.Workers = s.workers(ctx, request.Workers)
 	commit, err := s.commitOf(ctx)
 	if err != nil {
 		return Report{}, err
@@ -179,14 +232,16 @@ func (s *Service) Run(ctx context.Context, request Request) (Report, error) {
 		return Report{}, err
 	}
 	defer func() { _ = s.deps.Workspaces.Release(reference.workspace) }()
-	plan, err := s.plan(ctx, reference, request, base)
+	plan, err := s.plan(ctx, &reference, request, base)
 	if err != nil {
 		return Report{}, err
 	}
+	drawStarted := s.deps.Clock()
 	drawn, err := s.draw(reference, plan, request)
 	if err != nil {
 		return Report{}, err
 	}
+	mutantsStarted := s.deps.Clock()
 	deadline := time.Time{}
 	if request.Budget > 0 {
 		deadline = started.Add(request.Budget)
@@ -199,7 +254,13 @@ func (s *Service) Run(ctx context.Context, request Request) (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
-	report.Elapsed = s.deps.Clock().Sub(started)
+	finished := s.deps.Clock()
+	report.Elapsed = finished.Sub(started)
+	report.Depth, report.Budget, report.Workers = request.Depth, request.Budget, request.Workers
+	report.Phases = Phases{
+		Reference: reference.referenceTime, Coverage: reference.coverageTime,
+		Draw: mutantsStarted.Sub(drawStarted), Mutants: finished.Sub(mutantsStarted),
+	}
 	return report, nil
 }
 

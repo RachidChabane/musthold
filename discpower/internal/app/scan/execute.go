@@ -50,6 +50,8 @@ type outcome struct {
 type Evidence struct {
 	Differences     []vacuity.Difference
 	WitnessFailures []vacuity.WitnessFailure
+	// Search is how far the differential search went.
+	Search SearchOutcome
 }
 
 // EvidenceSource gathers evidence on a built mutant, in its live workspace,
@@ -64,7 +66,9 @@ type EvidenceSource interface {
 func (s *Service) execute(ctx context.Context, ref reference, drawn drawn, deadline time.Time, request Request) ([]outcome, error) {
 	runner := mutantRunner{service: s, ref: ref, forms: map[string]string{}, sources: s.evidenceSources(ref, drawn, request.Seed), covered: map[ecosystem.TestID]scanscope.LineSet{}}
 	for _, test := range ref.green {
-		runner.covered[test] = scanscope.NewLineSet(ref.coverage[test])
+		if lines, recorded := ref.coverage[test]; recorded {
+			runner.covered[test] = scanscope.NewLineSet(lines)
+		}
 	}
 	outcomes := make([]outcome, len(drawn.candidates))
 	jobs := make(chan int)
@@ -86,7 +90,7 @@ func (s *Service) execute(ctx context.Context, ref reference, drawn drawn, deadl
 	}
 	var failure error
 dispatch:
-	for index := range drawn.candidates {
+	for _, index := range drawn.order {
 		if !deadline.IsZero() && !s.deps.Clock().Before(deadline) {
 			break
 		}
@@ -159,6 +163,7 @@ func (r *mutantRunner) run(ctx context.Context, candidate Candidate) (outcome, e
 			}
 			result.evidence.Differences = append(result.evidence.Differences, found.Differences...)
 			result.evidence.WitnessFailures = append(result.evidence.WitnessFailures, found.WitnessFailures...)
+			result.evidence.Search = max(result.evidence.Search, found.Search)
 		}
 		return nil
 	})
