@@ -279,8 +279,10 @@ type ScanRoute struct {
 	Kind ScanRouteKind `json:"kind"`
 	// Test is the killing test of a killed_by_test route.
 	Test string `json:"test,omitempty"`
-	// Input, Channel, Reference and Mutant are the input of an f3_difference
-	// route, what was observed, and the two results as the probe wrote them.
+	// Operation, Input, Channel, Reference and Mutant are the probed operation
+	// of an f3_difference route, its input, what was observed, and the two
+	// results as the probe wrote them.
+	Operation string      `json:"operation,omitempty"`
 	Input     string      `json:"input,omitempty"`
 	Channel   ScanChannel `json:"channel,omitempty"`
 	Reference string      `json:"reference,omitempty"`
@@ -327,6 +329,8 @@ type ScanWitness struct {
 	ID      string `json:"id"`
 	Promise string `json:"promise"`
 	Name    string `json:"name"`
+	// Imports are the lines the witness's test file starts with.
+	Imports string `json:"imports"`
 	Code    string `json:"code"`
 	// Admitted is set when the witness passed the reference every run.
 	Admitted bool `json:"admitted,omitempty"`

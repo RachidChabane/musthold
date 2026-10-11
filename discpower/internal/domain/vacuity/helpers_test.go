@@ -33,7 +33,7 @@ func mutantID(label string) string { return format.SHA256Hex([]byte(label)) }
 // differs is a reproduced difference on a reference that agrees with itself.
 func differs() vacuity.Difference {
 	return vacuity.Difference{
-		Input: `"a,"`, Channel: format.ScanChannelReturnValue, Reference: `["a", ""]`, Mutant: `["a"]`,
+		Operation: "split_fields", Input: `"a,"`, Channel: format.ScanChannelReturnValue, Reference: `["a", ""]`, Mutant: `["a"]`,
 		Reproduced: true, ReferenceAgrees: true,
 	}
 }

@@ -101,6 +101,7 @@ func TestDifferentialRoute(t *testing.T) {
 		{"equal results", func(d *vacuity.Difference) { d.Mutant = d.Reference }, false},
 		{"a difference on the standard output", func(d *vacuity.Difference) { d.Channel = "stdout" }, false},
 		{"a difference without input", func(d *vacuity.Difference) { d.Input = "" }, false},
+		{"a difference without its operation", func(d *vacuity.Difference) { d.Operation = "" }, false},
 	}
 	for _, c := range cases {
 		t.Run(c.name+" is a proof only when executed and reproduced [verifies SP-2022~1]", func(t *testing.T) {
@@ -112,7 +113,7 @@ func TestDifferentialRoute(t *testing.T) {
 			if result.Proven(id) != c.proves {
 				t.Fatalf("proven = %v, want %v (routes %+v)", result.Proven(id), c.proves, result.Routes[id])
 			}
-			if c.proves && (result.Routes[id][0].Kind != format.ScanRouteDifferential || result.Routes[id][0].Input != difference.Input) {
+			if c.proves && (result.Routes[id][0].Kind != format.ScanRouteDifferential || result.Routes[id][0].Operation != difference.Operation || result.Routes[id][0].Input != difference.Input) {
 				t.Fatalf("routes = %+v", result.Routes[id])
 			}
 		})

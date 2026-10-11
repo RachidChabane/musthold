@@ -54,7 +54,7 @@ type scanOperatorMutant struct {
 func scanOperatorMutants() []scanOperatorMutant {
 	killed := format.ScanRoute{Kind: format.ScanRouteKilledByTest, Test: ScanCaughtTest}
 	differs := func(input, reference, mutant string) format.ScanRoute {
-		return format.ScanRoute{Kind: format.ScanRouteDifferential, Input: input, Channel: format.ScanChannelReturnValue, Reference: reference, Mutant: mutant}
+		return format.ScanRoute{Kind: format.ScanRouteDifferential, Operation: scanQualname, Input: input, Channel: format.ScanChannelReturnValue, Reference: reference, Mutant: mutant}
 	}
 	return []scanOperatorMutant{
 		{from: "start <= len(line)", to: "start < len(line)", line: 41, family: scanFamilyCmp, route: killed},
@@ -73,6 +73,9 @@ const scanModelSource = `def split_fields(line):
     if fields and fields[-1] == "":
         fields.pop()
     return fields`
+
+// ScanWitnessImports are the lines the fixture's witness file starts with.
+const ScanWitnessImports = "from invoicing.parse import split_fields"
 
 // ScanWitnessCode and ScanQuestionCode are the two witnesses of the fixture's
 // promise: the first passes the reference, the second does not.
@@ -153,8 +156,8 @@ func scanPredicate() format.Scan {
 			Source: format.ScanSource{Name: ScanReadme, Digest: format.Digest{SHA256: ScanReadmeDigest()}},
 		}},
 		Witnesses: sortedScanWitnesses([]format.ScanWitness{
-			{ID: witness, Promise: ScanPromiseID, Name: "test_keeps_trailing_empty_field", Code: ScanWitnessCode, Admitted: true, BlockBearing: true},
-			{ID: question, Promise: ScanPromiseID, Name: "test_keeps_leading_empty_field", Code: ScanQuestionCode},
+			{ID: witness, Promise: ScanPromiseID, Name: "test_keeps_trailing_empty_field", Imports: ScanWitnessImports, Code: ScanWitnessCode, Admitted: true, BlockBearing: true},
+			{ID: question, Promise: ScanPromiseID, Name: "test_keeps_leading_empty_field", Imports: ScanWitnessImports, Code: ScanQuestionCode},
 		}),
 		BrokenPromises: []format.ScanBrokenPromise{{Promise: ScanPromiseID, Mutant: model.ID, Witness: witness}},
 		Questions:      []format.ScanQuestion{{Promise: ScanPromiseID, Witness: question}},

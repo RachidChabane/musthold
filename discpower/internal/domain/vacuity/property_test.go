@@ -150,6 +150,7 @@ func mutantGenerator(label string) *rapid.Generator[vacuity.Mutant] {
 		}
 		for range rapid.IntRange(minDifferences, maxDifferences).Draw(t, "differences") {
 			mutant.Differences = append(mutant.Differences, vacuity.Difference{
+				Operation:       rapid.SampledFrom([]string{"", "split_fields", "total"}).Draw(t, "operation"),
 				Input:           rapid.SampledFrom([]string{"", `"a,"`, "0", "1"}).Draw(t, "input"),
 				Channel:         rapid.SampledFrom([]format.ScanChannel{format.ScanChannelReturnValue, format.ScanChannelException, format.ScanChannelArgumentMutation, "stdout"}).Draw(t, "channel"),
 				Reference:       rapid.SampledFrom([]string{"1", "2", "3"}).Draw(t, "reference"),
@@ -401,7 +402,7 @@ func TestScanStatementOfAResult(t *testing.T) {
 			})
 			for index, witness := range witnessPool() {
 				statement.Predicate.Witnesses = append(statement.Predicate.Witnesses, format.ScanWitness{
-					ID: witness, Promise: generatedPromise, Name: fmt.Sprintf("test_witness_%d", index), Code: "assert True", Admitted: true,
+					ID: witness, Promise: generatedPromise, Name: fmt.Sprintf("test_witness_%d", index), Imports: "import unit", Code: "assert True", Admitted: true,
 				})
 			}
 			slices.SortFunc(statement.Predicate.Witnesses, func(a, b format.ScanWitness) int { return strings.Compare(a.ID, b.ID) })

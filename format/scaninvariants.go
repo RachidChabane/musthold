@@ -189,6 +189,7 @@ func CompareScanRoutes(a, b ScanRoute) int {
 		strings.Compare(string(a.Kind), string(b.Kind)),
 		strings.Compare(a.Test, b.Test),
 		strings.Compare(a.Witness, b.Witness),
+		strings.Compare(a.Operation, b.Operation),
 		strings.Compare(a.Input, b.Input),
 		strings.Compare(string(a.Channel), string(b.Channel)),
 		strings.Compare(a.Reference, b.Reference),
@@ -199,7 +200,7 @@ func CompareScanRoutes(a, b ScanRoute) int {
 func checkScanRoute(sink *collector, path string, route ScanRoute, index scanIndex) {
 	checkMember(sink, path+".kind", route.Kind, scanRouteKinds)
 	killer := route.Test != ""
-	differential := route.Input != "" || route.Channel != "" || route.Reference != "" || route.Mutant != ""
+	differential := route.Operation != "" || route.Input != "" || route.Channel != "" || route.Reference != "" || route.Mutant != ""
 	witnessed := route.Witness != ""
 	switch route.Kind {
 	case ScanRouteKilledByTest:
@@ -207,8 +208,8 @@ func checkScanRoute(sink *collector, path string, route ScanRoute, index scanInd
 			sink.add(CodeScanRoute, path, "a killed_by_test route names its killing test and nothing else")
 		}
 	case ScanRouteDifferential:
-		if killer || witnessed || route.Input == "" || route.Reference == route.Mutant {
-			sink.add(CodeScanRoute, path, "an f3_difference route names its input and two different results, and nothing else")
+		if killer || witnessed || route.Operation == "" || route.Input == "" || route.Reference == route.Mutant {
+			sink.add(CodeScanRoute, path, "an f3_difference route names its operation, its input and two different results, and nothing else")
 		}
 		checkMember(sink, path+".channel", route.Channel, scanChannels)
 	case ScanRouteWitness:

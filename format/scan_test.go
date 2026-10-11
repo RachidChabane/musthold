@@ -249,10 +249,12 @@ func TestScanRoutes(t *testing.T) {
 		{"a killing test", format.ScanRoute{Kind: format.ScanRouteKilledByTest, Test: proofs.ScanCaughtTest}, nil},
 		{"a killing test with an input", format.ScanRoute{Kind: format.ScanRouteKilledByTest, Test: proofs.ScanCaughtTest, Input: `"a"`}, []format.ViolationCode{format.CodeScanRoute}},
 		{"a killed route without its test", format.ScanRoute{Kind: format.ScanRouteKilledByTest}, []format.ViolationCode{format.CodeScanRoute}},
-		{"a difference", format.ScanRoute{Kind: format.ScanRouteDifferential, Input: `"a,"`, Channel: format.ScanChannelException, Reference: `["a", ""]`, Mutant: "IndexError"}, nil},
-		{"a difference with equal results", format.ScanRoute{Kind: format.ScanRouteDifferential, Input: `"a,"`, Channel: format.ScanChannelReturnValue, Reference: "1", Mutant: "1"}, []format.ViolationCode{format.CodeScanRoute}},
-		{"a difference on the standard output", format.ScanRoute{Kind: format.ScanRouteDifferential, Input: `"a,"`, Channel: "stdout", Reference: "1", Mutant: "2"}, []format.ViolationCode{format.CodeUnknownValue}},
-		{"a difference naming a witness", format.ScanRoute{Kind: format.ScanRouteDifferential, Input: `"a,"`, Channel: format.ScanChannelReturnValue, Reference: "1", Mutant: "2", Witness: witness}, []format.ViolationCode{format.CodeScanRoute}},
+		{"a difference", format.ScanRoute{Kind: format.ScanRouteDifferential, Operation: "split_fields", Input: `"a,"`, Channel: format.ScanChannelException, Reference: `["a", ""]`, Mutant: "IndexError"}, nil},
+		{"a difference with equal results", format.ScanRoute{Kind: format.ScanRouteDifferential, Operation: "split_fields", Input: `"a,"`, Channel: format.ScanChannelReturnValue, Reference: "1", Mutant: "1"}, []format.ViolationCode{format.CodeScanRoute}},
+		{"a difference on the standard output", format.ScanRoute{Kind: format.ScanRouteDifferential, Operation: "split_fields", Input: `"a,"`, Channel: "stdout", Reference: "1", Mutant: "2"}, []format.ViolationCode{format.CodeUnknownValue}},
+		{"a difference naming a witness", format.ScanRoute{Kind: format.ScanRouteDifferential, Operation: "split_fields", Input: `"a,"`, Channel: format.ScanChannelReturnValue, Reference: "1", Mutant: "2", Witness: witness}, []format.ViolationCode{format.CodeScanRoute}},
+		{"a difference without its operation", format.ScanRoute{Kind: format.ScanRouteDifferential, Input: `"a,"`, Channel: format.ScanChannelReturnValue, Reference: "1", Mutant: "2"}, []format.ViolationCode{format.CodeScanRoute}},
+		{"a killing test with an operation", format.ScanRoute{Kind: format.ScanRouteKilledByTest, Test: proofs.ScanCaughtTest, Operation: "split_fields"}, []format.ViolationCode{format.CodeScanRoute}},
 		{"an admitted witness", format.ScanRoute{Kind: format.ScanRouteWitness, Witness: witness}, nil},
 		{"a witness the reference fails", format.ScanRoute{Kind: format.ScanRouteWitness, Witness: question}, []format.ViolationCode{format.CodeScanReference}},
 		{"a witness outside the scan", format.ScanRoute{Kind: format.ScanRouteWitness, Witness: proofs.Digest("elsewhere")}, []format.ViolationCode{format.CodeScanReference}},
@@ -266,7 +268,7 @@ func TestScanRoutes(t *testing.T) {
 	}
 
 	t.Run("two differences on one input with other results are distinct routes [verifies SP-2005~1]", func(t *testing.T) {
-		first := format.ScanRoute{Kind: format.ScanRouteDifferential, Input: `"a,"`, Channel: format.ScanChannelReturnValue, Reference: "1", Mutant: "2"}
+		first := format.ScanRoute{Kind: format.ScanRouteDifferential, Operation: "split_fields", Input: `"a,"`, Channel: format.ScanChannelReturnValue, Reference: "1", Mutant: "2"}
 		second := first
 		second.Mutant = "3"
 		if format.CompareScanRoutes(first, second) >= 0 || format.CompareScanRoutes(first, first) != 0 {

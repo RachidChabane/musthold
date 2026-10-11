@@ -612,7 +612,7 @@ Go tests of the module in CI.
 - **SP-2005~1**: WHEN a route of a scan mutant is checked THE SYSTEM SHALL require
   the routes in ascending order of kind and then of every field of their
   evidence, a `killed_by_test` route to name its killing test
-  and nothing else, an `f3_difference` route to name its input, a return value,
+  and nothing else, an `f3_difference` route to name its probed operation, its input, a return value,
   exception or argument mutation as the observed channel and two different
   results, and nothing else, and a `witness_failure` route to name an admitted
   witness of the scan and nothing else, reporting `scan_route`, `unknown_value`
@@ -633,7 +633,8 @@ Go tests of the module in CI.
 - **SP-2008~1**: WHEN the promises of a scan are checked THE SYSTEM SHALL require
   a scan that checked no promise to hold no promise, witness, broken promise or
   question; each promise to have an id, a quote and a named source with a
-  SHA-256 digest; each witness to have a SHA-256 id, a name and code, to belong to
+  SHA-256 digest; each witness to have a SHA-256 id, a name, the imports its file
+  starts with and code, to belong to
   a promise of the scan, and to be admitted when block-bearing; each broken
   promise to name a block-bearing witness of its promise that its mutant fails on
   a `witness_failure` route; and each question to name a witness of its promise

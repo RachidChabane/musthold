@@ -51,11 +51,12 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "promise", "name", "code"],
+        "required": ["id", "promise", "name", "imports", "code"],
         "properties": {
           "id": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/sha256Hex" },
           "promise": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/nonEmptyString" },
           "name": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/nonEmptyString" },
+          "imports": { "type": "string" },
           "code": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/nonEmptyString" },
           "admitted": { "type": "boolean" },
           "blockBearing": { "type": "boolean" }
@@ -143,23 +144,24 @@
         {
           "properties": { "kind": { "const": "killed_by_test" }, "test": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/nonEmptyString" } },
           "required": ["test"],
-          "not": { "anyOf": [{ "required": ["input"] }, { "required": ["channel"] }, { "required": ["reference"] }, { "required": ["mutant"] }, { "required": ["witness"] }] }
+          "not": { "anyOf": [{ "required": ["operation"] }, { "required": ["input"] }, { "required": ["channel"] }, { "required": ["reference"] }, { "required": ["mutant"] }, { "required": ["witness"] }] }
         },
         {
           "properties": {
             "kind": { "const": "f3_difference" },
+            "operation": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/nonEmptyString" },
             "input": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/nonEmptyString" },
             "channel": { "enum": ["return_value", "exception", "argument_mutation"] },
             "reference": { "type": "string" },
             "mutant": { "type": "string" }
           },
-          "required": ["input", "channel"],
+          "required": ["operation", "input", "channel"],
           "not": { "anyOf": [{ "required": ["test"] }, { "required": ["witness"] }] }
         },
         {
           "properties": { "kind": { "const": "witness_failure" }, "witness": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/sha256Hex" } },
           "required": ["witness"],
-          "not": { "anyOf": [{ "required": ["test"] }, { "required": ["input"] }, { "required": ["channel"] }, { "required": ["reference"] }, { "required": ["mutant"] }] }
+          "not": { "anyOf": [{ "required": ["test"] }, { "required": ["operation"] }, { "required": ["input"] }, { "required": ["channel"] }, { "required": ["reference"] }, { "required": ["mutant"] }] }
         }
       ]
     },

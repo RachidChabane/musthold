@@ -1046,8 +1046,8 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   `killed_by_test` route only when the test is green, the kill is settled as
   `killed`, and the test failed no run on any sentinel.
 - **SP-2022~1**: WHEN the differential search found a difference on a mutant THE
-  SYSTEM SHALL take it as an `f3_difference` route only when it names an input,
-  was observed on a return value, a raised exception or a mutated argument,
+  SYSTEM SHALL take it as an `f3_difference` route only when it names the
+  operation it called and an input, was observed on a return value, a raised exception or a mutated argument,
   gives two different results, reproduced, and the reference agreed with itself
   on the input.
 - **SP-2023~1**: WHEN a witness failed on a mutant THE SYSTEM SHALL take it as a

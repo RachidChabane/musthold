@@ -13,8 +13,10 @@ type Line = format.ScanLine
 // Difference is what the full-resolution differential search found on one input
 // of a mutant, with the two facts that make it evidence.
 type Difference struct {
-	Input   string
-	Channel format.ScanChannel
+	// Operation is the operation the search called with the input.
+	Operation string
+	Input     string
+	Channel   format.ScanChannel
 	// Reference and Mutant are the two results, as the probe wrote them.
 	Reference string
 	Mutant    string
@@ -26,10 +28,10 @@ type Difference struct {
 }
 
 // proves reports whether the difference is executed evidence of a behaviour
-// change: reproduced, on a reference that agrees with itself, on a compared
-// channel, with two different results.
+// change: an input of a named operation, reproduced, on a reference that agrees
+// with itself, on a compared channel, with two different results.
 func (d Difference) proves() bool {
-	return d.Reproduced && d.ReferenceAgrees && d.Input != "" && d.Reference != d.Mutant &&
+	return d.Reproduced && d.ReferenceAgrees && d.Operation != "" && d.Input != "" && d.Reference != d.Mutant &&
 		slices.Contains(comparedChannels, d.Channel)
 }
 
@@ -101,7 +103,7 @@ func routesOf(m Mutant, outcomes map[ecosystem.TestID][]Run, canProve prover) []
 	for _, difference := range m.Differences {
 		if difference.proves() {
 			routes = append(routes, format.ScanRoute{
-				Kind: format.ScanRouteDifferential, Input: difference.Input, Channel: difference.Channel,
+				Kind: format.ScanRouteDifferential, Operation: difference.Operation, Input: difference.Input, Channel: difference.Channel,
 				Reference: difference.Reference, Mutant: difference.Mutant,
 			})
 		}
