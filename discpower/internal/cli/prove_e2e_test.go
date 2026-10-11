@@ -236,9 +236,9 @@ func TestProveEndToEnd(t *testing.T) {
 	t.Run("the honest persona blocks the weak test, passes the adequate one and escalates a survivor the spec leaves open [verifies SP-182~2]", func(t *testing.T) {
 		h := newHarness(t, shared)
 		code, output := h.drive(hostprototest.PersonaHonest, oracle{})
-		// A change of the rounding of a discount survives PAR-2's tests; no
-		// requirement fixes the rounding, and a command-line host's screen
-		// answers, exposed, cannot screen the survivor out.
+		// Changes of the rounding of a discount survive PAR-2's tests and fail no
+		// witness; no requirement fixes the rounding, so execution cannot exclude
+		// them and no judgment clears them.
 		want := map[string]string{"PAR-1~1": provedPass, "PAR-2~1": provedEscalate, "PAR-3~1": provedBlock}
 		for ref, verdict := range want {
 			if got := verdicts(output)[ref]; got != verdict {

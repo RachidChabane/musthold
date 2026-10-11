@@ -17,17 +17,27 @@ import (
 )
 
 const (
-	maxWaves      = 10
-	exitClean     = 0
-	exitBlocked   = 1
-	exitHookHold  = 2
-	exitAwaiting  = 3
-	stopEvent     = `{"session_id":%q,"cwd":%q}`
-	enabledPolicy = "proofs:\n  require:\n    - discriminating-power\n  trust: local\n  code:\n    - parcel\n"
-	editedLine    = "\n# reviewed\n"
-	reportFile    = "report.json"
-	passVerdict   = "PASS"
-	blockVerdict  = "BLOCK"
+	maxWaves        = 10
+	exitClean       = 0
+	exitBlocked     = 1
+	exitHookHold    = 2
+	exitAwaiting    = 3
+	stopEvent       = `{"session_id":%q,"cwd":%q}`
+	enabledPolicy   = "proofs:\n  require:\n    - discriminating-power\n  trust: local\n  code:\n    - parcel\n"
+	editedLine      = "\n# reviewed\n"
+	reportFile      = "report.json"
+	passVerdict     = "PASS"
+	blockVerdict    = "BLOCK"
+	escalateVerdict = "ESCALATE"
+)
+
+// Criteria of the parcel project and the Shallnot findings their verdicts raise.
+const (
+	adequateCriterion   = "PAR-1"
+	escalatingCriterion = "PAR-2"
+	weakCriterion       = "PAR-3"
+	survivingValid      = "surviving_valid_mutant"
+	escalatedMutant     = "escalated_mutant"
 )
 
 // editCode makes the change an agent would make: it touches the code under test.
@@ -127,7 +137,7 @@ func TestHonestHostEndToEnd(t *testing.T) {
 	p.equip()
 	first := p.start()
 
-	t.Run("the end-of-turn hook of Shallnot holds the turn while the host owes answers [verifies SP-250~1]", func(t *testing.T) {
+	t.Run("the end-of-turn hook of Shallnot holds the turn while the host owes answers [verifies SP-250~2]", func(t *testing.T) {
 		stop := p.stop("e2e-honest")
 		if stop.code != exitHookHold || !strings.Contains(stop.stderr, "awaiting_host") || !strings.Contains(stop.stderr, "spec-proof-dp-fulfil") {
 			t.Fatalf("stop hook: exit %d\n%s", stop.code, stop.output())
@@ -144,12 +154,15 @@ func TestHonestHostEndToEnd(t *testing.T) {
 
 	host := p.claudeHost()
 	var last result
-	t.Run("the executor server and the hooks serve the honest host through the waves [verifies SP-250~1]", func(t *testing.T) {
+	t.Run("the executor server and the hooks serve the honest host through the waves [verifies SP-250~2]", func(t *testing.T) {
 		last = p.settle(func() int { return host.Serve(parcel.Oracle{}) })
 		if last.code == exitAwaiting || last.code == 2 {
 			t.Fatalf("prove ended with exit %d:\n%s", last.code, last.output())
 		}
-		want := map[string]string{"PAR-1~1": passVerdict, "PAR-2~1": passVerdict, "PAR-3~1": blockVerdict}
+		// PAR-2's tests let changes of the rounding of a discount survive; no
+		// witness fails on them and no requirement fixes the rounding, so execution
+		// cannot exclude them and no judgment clears them.
+		want := map[string]string{"PAR-1~1": passVerdict, "PAR-2~1": escalateVerdict, "PAR-3~1": blockVerdict}
 		for criterion, verdict := range want {
 			if got := verdicts(last.stdout)[criterion]; !strings.HasSuffix(got, verdict) {
 				t.Errorf("%s: %q, want a %s", criterion, got, verdict)
@@ -157,7 +170,7 @@ func TestHonestHostEndToEnd(t *testing.T) {
 		}
 	})
 
-	t.Run("a main-session call of an executor tool is denied and left in the journal [verifies SP-250~1]", func(t *testing.T) {
+	t.Run("a main-session call of an executor tool is denied and left in the journal [verifies SP-250~2]", func(t *testing.T) {
 		ticket := p.firstJournaledTicket()
 		denied, code := host.Fire(hostproto.HookPreTool, map[string]any{
 			"hook_event_name": "PreToolUse", "session_id": claudecode.SessionID, "tool_name": p.module().ToolName(hostproto.ToolFetchRequest),
@@ -171,23 +184,31 @@ func TestHonestHostEndToEnd(t *testing.T) {
 		}
 	})
 
-	t.Run("Shallnot refuses the project for the weak criterion alone, with the verdict the module reached [verifies SP-250~1]", func(t *testing.T) {
+	t.Run("Shallnot refuses the project for the weak and the escalating criteria, with the verdicts the module reached [verifies SP-250~2]", func(t *testing.T) {
 		p.writeVerifiedSet(nil)
 		check := p.check()
 		if check.code != exitBlocked {
 			t.Fatalf("shallnot check exited %d:\n%s", check.code, check.output())
 		}
-		if len(check.findings) == 0 {
-			t.Fatal("the weak criterion raised no finding")
-		}
+		wantCategory := map[string]string{weakCriterion: survivingValid, escalatingCriterion: escalatedMutant}
+		raised := map[string]int{}
 		for _, f := range check.findings {
-			if f.Requirement != "PAR-3" || f.Category != "surviving_valid_mutant" || !f.Blocking {
-				t.Errorf("finding %+v is not a surviving valid mutant of PAR-3", f)
+			raised[f.Requirement]++
+			if want, expected := wantCategory[f.Requirement]; !expected || f.Category != want || !f.Blocking {
+				t.Errorf("finding %+v is neither a surviving valid mutant of %s nor an escalated mutant of %s", f, weakCriterion, escalatingCriterion)
 			}
+		}
+		for requirement := range wantCategory {
+			if raised[requirement] == 0 {
+				t.Errorf("%s raised no finding", requirement)
+			}
+		}
+		if raised[adequateCriterion] != 0 {
+			t.Errorf("the passing %s raised %d findings", adequateCriterion, raised[adequateCriterion])
 		}
 	})
 
-	t.Run("the host-side state a proof relied on reads as attested and resolved in the journal [verifies SP-250~1]", func(t *testing.T) {
+	t.Run("the host-side state a proof relied on reads as attested and resolved in the journal [verifies SP-250~2]", func(t *testing.T) {
 		kinds := p.journalKinds()
 		for _, want := range []hostproto.EventKind{hostproto.EventAgentStarted, hostproto.EventFetched, hostproto.EventAccepted, hostproto.EventAttested, hostproto.EventRunReported, hostproto.EventConsumed} {
 			if !slices.Contains(kinds, want) {

@@ -939,15 +939,18 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 
 ## End to end
 
-- **SP-250~1**: WHEN a project is equipped with Shallnot and the module, edited and
+- **SP-250~2**: WHEN a project is equipped with Shallnot and the module, edited and
   proved THE SYSTEM SHALL have the end-of-turn hook of Shallnot hold the turn with
   `awaiting_host` naming the module's skill while the host owes answers, let a
   simulated Claude Code host answer every ticket through the real hooks and the
-  real executor server until `prove` ends with a pass for the adequate tests and a
-  block for the weak one, journal the executors as started, fetched, accepted,
-  attested and reported with no leak, exposure or conflict, deny a main-session
-  call of an executor tool, and have `shallnot check` refuse the project for the
-  weak criterion alone with a surviving valid mutant.
+  real executor server until `prove` ends with a pass for the criterion whose tests
+  kill every VALID_e mutant, an escalation for the criterion whose survivors no
+  witness fails and no execution excludes, and a block for the weak one, journal
+  the executors as started, fetched, accepted, attested and reported with no leak,
+  exposure or conflict, deny a main-session call of an executor tool, and have
+  `shallnot check` refuse the project with a surviving valid mutant of the weak
+  criterion and an escalated mutant of the escalating one, and no finding for the
+  passing one.
 - **SP-251~1**: WHEN a forger answers every ticket from the command line, or a host
   runs executors whose hooks never fire, THE SYSTEM SHALL give no criterion a
   pass, accept no uncapped answer, write no Statement for a hookless host and
