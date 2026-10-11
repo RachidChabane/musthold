@@ -53,7 +53,8 @@ type scanReport struct {
 }
 
 // Run runs pytest once per requested run, under the scan plugin that the
-// workspace alone receives. A run that times out stops the batch.
+// workspace alone receives. A run that times out leaves its tests and every
+// later run timed out, and no later run starts.
 func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanRunRequest) (ports.ScanRuns, error) {
 	pluginDir, err := installPlugin(workspace, scanPluginFile, scanPlugin)
 	if err != nil {
@@ -61,8 +62,14 @@ func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolc
 	}
 	result := ports.ScanRuns{Runs: map[ecosystem.TestID][]vacuity.Run{}}
 	tests := slices.Clone(request.Tests)
+	timedOut := false
 	for range request.Runs {
-		report, timedOut, err := s.runOnce(ctx, workspace, toolchain, pluginDir, request)
+		if timedOut {
+			suiterun.AppendScanRun(result.Runs, tests, nil, vacuity.RunTimedOut)
+			continue
+		}
+		var report scanReport
+		report, timedOut, err = s.runOnce(ctx, workspace, toolchain, pluginDir, request)
 		if err != nil {
 			return ports.ScanRuns{}, err
 		}
@@ -77,9 +84,6 @@ func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolc
 			missing = vacuity.RunTimedOut
 		}
 		suiterun.AppendScanRun(result.Runs, tests, outcomesOf(report), missing)
-		if timedOut {
-			break
-		}
 	}
 	return result, nil
 }

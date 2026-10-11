@@ -6,6 +6,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go/parser"
+	"go/token"
 	"os"
 	"path"
 	"path/filepath"
@@ -272,8 +274,8 @@ func (scanSuite) Operation(workspace ecosystem.Workspace, file, qualname string)
 	if path.Ext(file) != goSuffix || strings.HasSuffix(file, testFileSuffix) {
 		return "", false
 	}
-	_, name, found := strings.Cut(qualname, qualnameDot)
-	if !found || strings.Contains(name, qualnameDot) || strings.HasPrefix(qualname, "(") {
+	pkg, name, found := strings.Cut(qualname, qualnameDot)
+	if !found || strings.Contains(name, qualnameDot) || pkg != packageNameOf(workspace, file) {
 		return "", false
 	}
 	module, err := modulePath(os.DirFS(workspace.Dir))
@@ -285,6 +287,16 @@ func (scanSuite) Operation(workspace ecosystem.Workspace, file, qualname string)
 		return "", false
 	}
 	return target, true
+}
+
+// packageNameOf is the package clause of a file of the workspace, which tells a
+// function `pkg.Name` from a method `Type.Name` of a value receiver.
+func packageNameOf(workspace ecosystem.Workspace, file string) string {
+	parsed, err := parser.ParseFile(token.NewFileSet(), filepath.Join(workspace.Dir, filepath.FromSlash(file)), nil, parser.PackageClauseOnly)
+	if err != nil {
+		return ""
+	}
+	return parsed.Name.Name
 }
 
 // Repro runs the one test with `go test`, anchored to its subtest path.
