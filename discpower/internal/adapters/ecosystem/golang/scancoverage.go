@@ -54,32 +54,44 @@ const (
 func (scanSuite) CoverageOfOneRun() bool { return false }
 
 // LineCoverage builds the test binary of each package once, with coverage of
-// every package of the module in atomic mode, runs it once with no test to
-// count the blocks its start-up runs, then runs each test alone, on the workers
-// of the request and within its timeout, and reads the lines of the blocks it
-// ran and, among them, the lines of the blocks it ran more often than the
-// start-up did: the lines it owns. A test whose binary gives no start-up count
-// owns no line. Only the workspace's build cache and results receive the
-// instrumented binaries.
+// every package of the module in atomic mode, and runs it once with no test to
+// count the blocks its start-up runs, the packages on the workers of the
+// request; then runs each test alone, on the same workers and within the
+// request's timeout, and reads the lines of the blocks it ran and, among them,
+// the lines of the blocks it ran more often than the start-up did: the lines
+// it owns. A test whose binary gives no start-up count owns no line. Only the
+// workspace's build cache and results receive the instrumented binaries.
 func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanCoverageRequest) (map[ecosystem.TestID]vacuity.Coverage, error) {
 	module, err := modulePath(os.DirFS(workspace.Dir))
 	if err != nil {
 		return nil, err
 	}
 	var runs []coveredRun
-	binaries := map[string]*coverageBinary{}
+	var dirs []string
 	for _, test := range request.Tests {
 		file, testPath, found := strings.Cut(string(test.ID), testCaseSeparator)
 		if !found {
 			continue
 		}
-		dir := path.Dir(file)
-		if _, built := binaries[dir]; !built {
-			if binaries[dir], err = s.prepareCoverageBinary(ctx, workspace, toolchain, dir, request.Timeout); err != nil {
-				return nil, err
-			}
+		if dir := path.Dir(file); !slices.Contains(dirs, dir) {
+			dirs = append(dirs, dir)
 		}
-		runs = append(runs, coveredRun{test: test.ID, binary: binaries[dir], testPath: testPath})
+		runs = append(runs, coveredRun{test: test.ID, dir: path.Dir(file), testPath: testPath})
+	}
+	binaries := make([]*coverageBinary, len(dirs))
+	err = onWorkers(ctx, request.Workers, len(dirs), func(ctx context.Context, index int) error {
+		binary, err := s.prepareCoverageBinary(ctx, workspace, toolchain, dirs[index], request.Timeout)
+		binaries[index] = binary
+		return err
+	})
+	if err == nil {
+		err = ctx.Err()
+	}
+	if err != nil {
+		return nil, err
+	}
+	for index := range runs {
+		runs[index].binary = binaries[slices.Index(dirs, runs[index].dir)]
 	}
 	return s.runAllCovered(ctx, workspace, module, runs, request)
 }
@@ -94,6 +106,7 @@ type coverageBinary struct {
 // coveredRun is one test to run alone from its package's coverage binary.
 type coveredRun struct {
 	test     ecosystem.TestID
+	dir      string
 	binary   *coverageBinary
 	testPath string
 }
@@ -119,39 +132,55 @@ func (s scanSuite) prepareCoverageBinary(ctx context.Context, workspace ecosyste
 // runAllCovered runs the tests on at most the requested workers and stops at
 // the first error.
 func (s scanSuite) runAllCovered(ctx context.Context, workspace ecosystem.Workspace, module string, runs []coveredRun, request ports.ScanCoverageRequest) (map[ecosystem.TestID]vacuity.Coverage, error) {
+	covered := make([]vacuity.Coverage, len(runs))
+	err := onWorkers(ctx, request.Workers, len(runs), func(ctx context.Context, index int) error {
+		coverage, err := s.runCovered(ctx, workspace, runs[index], module, request.Timeout)
+		covered[index] = coverage
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	byTest := make(map[ecosystem.TestID]vacuity.Coverage, len(runs))
+	for index, run := range runs {
+		byTest[run.test] = covered[index]
+	}
+	return byTest, nil
+}
+
+// onWorkers does each of count jobs, by index, on at most the given number of
+// workers, at least one; it starts no job after the first error and returns
+// that error once every started job has ended.
+func onWorkers(ctx context.Context, workers, count int, do func(ctx context.Context, index int) error) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	covered := make(map[ecosystem.TestID]vacuity.Coverage, len(runs))
 	var mutex sync.Mutex
 	var failure error
-	jobs := make(chan coveredRun)
+	jobs := make(chan int)
 	var wait sync.WaitGroup
-	for range max(request.Workers, 1) {
+	for range max(workers, 1) {
 		wait.Go(func() {
-			for run := range jobs {
-				coverage, err := s.runCovered(ctx, workspace, run, module, request.Timeout)
-				mutex.Lock()
-				if err != nil && failure == nil {
-					failure = err
-					cancel()
+			for index := range jobs {
+				if err := do(ctx, index); err != nil {
+					mutex.Lock()
+					if failure == nil {
+						failure = err
+						cancel()
+					}
+					mutex.Unlock()
 				}
-				covered[run.test] = coverage
-				mutex.Unlock()
 			}
 		})
 	}
-	for _, run := range runs {
+	for index := range count {
 		if ctx.Err() != nil {
 			break
 		}
-		jobs <- run
+		jobs <- index
 	}
 	close(jobs)
 	wait.Wait()
-	if failure != nil {
-		return nil, failure
-	}
-	return covered, nil
+	return failure
 }
 
 func (s scanSuite) buildCoverageBinary(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, dir string) (string, error) {

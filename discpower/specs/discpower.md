@@ -1325,15 +1325,15 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   one worker per two processors and per GiB of memory above the 40 % the memory
   guard keeps free, the fewer of the two, at least one and at most four; and
   the default workers when the capacity cannot be read.
-- **SP-2131~1**: WHEN a scan runs quickly THE SYSTEM SHALL sample 12 green tests,
+- **SP-2131~2**: WHEN a scan runs quickly THE SYSTEM SHALL sample 12 green tests,
   draw 6 operator mutants for each, record the line coverage of the sampled
   tests only, so that only they run a mutant or a sentinel, unless the runner
   records every test in one run of the suite, as pytest does, when it records
   every green test; and run no mutant once 90 seconds have passed since the
   scan began; WHEN a scan runs in full it
   SHALL sample 40 tests, draw 150 mutants, record the coverage of every green
-  test and have no budget; and a Go suite SHALL run its tests under coverage on
-  the scan's workers.
+  test and have no budget; and a Go suite SHALL build the coverage binary of
+  each package and run its tests under coverage on the scan's workers.
 - **SP-2132~1**: WHEN a scan in which K of the N sampled green tests verify
   nothing, K at least one, is printed for a terminal or written as Markdown THE
   SYSTEM SHALL end it, after the line that counts the mutants, with "K/N sampled

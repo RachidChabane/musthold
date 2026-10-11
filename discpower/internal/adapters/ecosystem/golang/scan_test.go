@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"testing"
 	"time"
@@ -29,7 +30,7 @@ const (
 	verifiesLines     = " [verifies SP-2101~2]"
 	verifiesBinding   = " [verifies SP-2103~1]"
 	verifiesEvents    = " [verifies SP-2128~1]"
-	verifiesWorkers   = " [verifies SP-2131~1]"
+	verifiesWorkers   = " [verifies SP-2131~2]"
 	// coverageWorkers runs the tests under coverage two at a time.
 	coverageWorkers = 2
 	verifiesBound   = " [verifies SP-2127~1]"
@@ -219,6 +220,34 @@ func TestScanLineCoverage(t *testing.T) {
 		for _, line := range covered[chargedBelowFifty].Lines {
 			if line.File != "tally.go" {
 				t.Fatalf("line of %s", line.File)
+			}
+		}
+	})
+}
+
+func TestScanLineCoverageOfPackages(t *testing.T) {
+	project := openScanModule(t, ratesModule)
+	tests := []ports.ScanCase{
+		{ID: "billing/billing_test.go::TestTotalAddsTheStandardRate", File: "billing/billing_test.go"},
+		{ID: "ledger/ledger_test.go::TestPostSumsTheEntries", File: "ledger/ledger_test.go"},
+		{ID: "quote/quote_test.go::TestRateQuotesTheBounds", File: "quote/quote_test.go"},
+		{ID: "quote/quote_test.go::TestRateRefusesOutOfRange", File: "quote/quote_test.go"},
+	}
+	coverageOn := func(workers int) map[ecosystem.TestID]vacuity.Coverage {
+		covered, err := project.suite.LineCoverage(context.Background(), project.workspace, project.toolchain, ports.ScanCoverageRequest{Tests: tests, Timeout: scanRunTimeout, Workers: workers})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return covered
+	}
+	one, several := coverageOn(1), coverageOn(len(tests))
+	t.Run("the coverage binaries of several packages built on the workers give each test the lines one worker gives"+verifiesWorkers, func(t *testing.T) {
+		if !reflect.DeepEqual(one, several) || len(several) != len(tests) {
+			t.Fatalf("one worker %v, several %v", one, several)
+		}
+		for _, test := range tests {
+			if len(several[test.ID].Owned) == 0 {
+				t.Fatalf("%s owns no line: %v", test.ID, several[test.ID])
 			}
 		}
 	})

@@ -209,7 +209,7 @@ func TestScanRunsOfASessionThatStops(t *testing.T) {
 }
 
 func TestScanCoverageOfOneRun(t *testing.T) {
-	t.Run("one run of a pytest suite records every test's coverage [verifies SP-2131~1]", func(t *testing.T) {
+	t.Run("one run of a pytest suite records every test's coverage [verifies SP-2131~2]", func(t *testing.T) {
 		if !openScanProject(t).suite.CoverageOfOneRun() {
 			t.Fatal("pytest records each test alone")
 		}
