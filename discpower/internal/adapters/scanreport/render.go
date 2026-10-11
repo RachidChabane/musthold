@@ -35,9 +35,12 @@ func Text(report scan.Report) string {
 	if report.Partial {
 		line("%s%s", indent, partialNote)
 	}
+	for _, stopped := range notStartedLines(report) {
+		line("%s%s", indent, stopped)
+	}
 	for _, finding := range report.Findings {
 		line("")
-		line(rankFormat+findingFormat, finding.Rank, finding.Test, finding.Changes)
+		line(rankFormat+"%s", finding.Rank, finding.Test, findingSentence(finding))
 		line("%s%s", blockIndent, changeLine(finding))
 		line("%sproven by: %s", blockIndent, provenBy(finding.Route))
 		line("%srepro: %s/%s", blockIndent, FindingDir(report, finding), reproFile)
@@ -83,9 +86,15 @@ func Markdown(report scan.Report) string {
 		line("")
 		line("%s.", strings.ToUpper(partialNote[:1])+partialNote[1:])
 	}
+	if stopped := notStartedLines(report); len(stopped) > 0 {
+		line("")
+		for _, entry := range stopped {
+			line("- %s.", entry)
+		}
+	}
 	for _, finding := range report.Findings {
 		line("")
-		line("### %d. `%s` "+findingFormat, finding.Rank, finding.Test, finding.Changes)
+		line("### %d. `%s` %s", finding.Rank, finding.Test, findingSentence(finding))
 		line("")
 		line("- Change: `%s`", changeLine(finding))
 		line("- Proven by: %s", provenBy(finding.Route))

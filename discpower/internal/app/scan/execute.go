@@ -15,7 +15,6 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/scanscope"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
-	"github.com/RachidChabane/spec-proof/format"
 )
 
 // DefaultWorkers is how many mutants a scan runs at once.
@@ -70,8 +69,8 @@ func (s *Service) execute(ctx context.Context, ref reference, drawn drawn, deadl
 	defer cancel()
 	runner := mutantRunner{service: s, ref: ref, forms: map[string]string{}, sources: s.evidenceSources(ref, drawn, request.Seed), covered: map[ecosystem.TestID]scanscope.LineSet{}}
 	for _, test := range ref.green {
-		if lines, recorded := ref.coverage[test]; recorded {
-			runner.covered[test] = scanscope.NewLineSet(lines)
+		if coverage, recorded := ref.coverage[test]; recorded {
+			runner.covered[test] = scanscope.NewLineSet(coverage.Lines)
 		}
 	}
 	outcomes := make([]outcome, len(drawn.candidates))
@@ -143,7 +142,7 @@ type mutantRunner struct {
 	mutex   sync.Mutex
 	// forms memoizes the compiled forms of the reference, by site.
 	forms map[string]string
-	// covered holds the lines each green test ran.
+	// covered holds the lines each green test ran, start-up included.
 	covered map[ecosystem.TestID]scanscope.LineSet
 }
 
@@ -256,7 +255,7 @@ func (r *mutantRunner) referenceForms(ctx context.Context, compiler ports.FormCo
 // killedByOne reports whether a test failed every run of the mutant.
 func killedByOne(runs map[ecosystem.TestID][]vacuity.Run) bool {
 	for _, testRuns := range runs {
-		if vacuity.Settle(testRuns) == format.ScanKilled {
+		if vacuity.Settle(testRuns) == vacuity.SettledKilled {
 			return true
 		}
 	}

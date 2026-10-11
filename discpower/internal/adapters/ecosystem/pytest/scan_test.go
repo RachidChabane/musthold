@@ -28,8 +28,9 @@ const (
 	tracerVariable   = "SPEC_PROOF_COVERAGE_TRACER"
 	settraceTracer   = "settrace"
 	scanRunTimeout   = 2 * time.Minute
-	verifiesScanRuns = " [verifies SP-2102~2]"
-	verifiesLines    = " [verifies SP-2100~1]"
+	verifiesScanRuns = " [verifies SP-2102~3]"
+	verifiesStartUp  = " [verifies SP-2135~1]"
+	verifiesLines    = " [verifies SP-2100~2]"
 	verifiesBinding  = " [verifies SP-2103~1]"
 	verifiesBound    = " [verifies SP-2127~1]"
 	// overrunBound is a coverage bound no run can keep.
@@ -141,6 +142,72 @@ func TestScanRuns(t *testing.T) {
 	})
 }
 
+func TestScanRunsOfASessionThatStops(t *testing.T) {
+	project := openScanProject(t)
+	ctx := context.Background()
+	run := func(t *testing.T, file, content string, tests ...ecosystem.TestID) map[ecosystem.TestID][]vacuity.Run {
+		t.Helper()
+		changed, err := project.manager.Clone(ctx, project.workspace, project.layout)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := project.manager.WriteFile(changed, project.layout, file, []byte(content)); err != nil {
+			t.Fatal(err)
+		}
+		ran, err := project.suite.Run(ctx, changed, project.toolchain, ports.ScanRunRequest{Tests: tests, Runs: vacuity.RunsPerOutcome, Timeout: scanRunTimeout})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ran.Runs
+	}
+	notStarted := runsOf(vacuity.RunNotStarted, vacuity.RunsPerOutcome)
+	errored := runsOf(vacuity.RunErrored, vacuity.RunsPerOutcome)
+
+	t.Run("a test module that raises on import does not start in any session"+verifiesStartUp, func(t *testing.T) {
+		runs := run(t, discountTests, "from invoice.totals import discount\n\nRATES = {\"standard\": discount(200, 10)}[\"reduced\"]\n\n\ndef test_discount_takes_the_percent_off():\n    assert discount(200, 10) == 180\n", takesPercentOff)
+		if !slices.Equal(runs[takesPercentOff], notStarted) {
+			t.Fatalf("runs = %v", runs[takesPercentOff])
+		}
+	})
+
+	t.Run("a conftest that raises stops the tests below it from starting"+verifiesStartUp, func(t *testing.T) {
+		runs := run(t, "tests/conftest.py", "import os\n\nREGION = os.environ[\"INVOICE_REGION_THAT_IS_NOT_SET\"]\n", takesPercentOff, waivedFromFifty)
+		for _, test := range []ecosystem.TestID{takesPercentOff, waivedFromFifty} {
+			if !slices.Equal(runs[test], notStarted) {
+				t.Fatalf("%s: %v", test, runs[test])
+			}
+		}
+	})
+
+	t.Run("a package __init__ that raises stops the tests of its modules from starting"+verifiesStartUp, func(t *testing.T) {
+		runs := run(t, "tests/__init__.py", "raise ImportError(\"tests need the ledger\")\n", takesPercentOff)
+		if !slices.Equal(runs[takesPercentOff], notStarted) {
+			t.Fatalf("runs = %v", runs[takesPercentOff])
+		}
+	})
+
+	t.Run("a test whose fixture is missing started and errored"+verifiesStartUp, func(t *testing.T) {
+		runs := run(t, discountTests, "from invoice.totals import discount\n\n\ndef test_discount_takes_the_percent_off(price_list):\n    assert discount(200, 10) == 180\n", takesPercentOff)
+		if !slices.Equal(runs[takesPercentOff], errored) {
+			t.Fatalf("runs = %v", runs[takesPercentOff])
+		}
+	})
+
+	t.Run("a session that ends in an internal error, with no failed collect report, errored"+verifiesStartUp, func(t *testing.T) {
+		runs := run(t, "tests/conftest.py", "def pytest_collection_modifyitems(items):\n    raise RuntimeError(\"ordering service unavailable\")\n", takesPercentOff)
+		if !slices.Equal(runs[takesPercentOff], errored) {
+			t.Fatalf("runs = %v", runs[takesPercentOff])
+		}
+	})
+
+	t.Run("a session that does not find the test, a usage error, errored"+verifiesStartUp, func(t *testing.T) {
+		absent := ecosystem.TestID(discountTests + "::test_discount_rounds_down")
+		if runs := run(t, "tests/test_extra.py", "def test_extra():\n    pass\n", absent); !slices.Equal(runs[absent], errored) {
+			t.Fatalf("runs = %v", runs[absent])
+		}
+	})
+}
+
 func TestScanCoverageOfOneRun(t *testing.T) {
 	t.Run("one run of a pytest suite records every test's coverage [verifies SP-2131~1]", func(t *testing.T) {
 		if !openScanProject(t).suite.CoverageOfOneRun() {
@@ -180,7 +247,7 @@ func TestScanLineCoverage(t *testing.T) {
 			}
 			lines := func(test ecosystem.TestID) []int {
 				var numbers []int
-				for _, line := range covered[test] {
+				for _, line := range covered[test].Lines {
 					if line.File != totalsFile {
 						t.Fatalf("%s ran a line of %s", test, line.File)
 					}
@@ -196,6 +263,13 @@ func TestScanLineCoverage(t *testing.T) {
 			t.Run("a test of the computed discount ran the arithmetic line and not the early returns"+verifiesLines, func(t *testing.T) {
 				if got := lines(takesPercentOff); !slices.Equal(got, []int{11, 13, 15}) {
 					t.Fatalf("lines = %v", got)
+				}
+			})
+			t.Run("a test owns every line it recorded"+verifiesLines, func(t *testing.T) {
+				for _, test := range []ecosystem.TestID{acceptsAnyPrice, takesPercentOff} {
+					if !slices.Equal(covered[test].Owned, covered[test].Lines) {
+						t.Fatalf("%s: %+v", test, covered[test])
+					}
 				}
 			})
 		})

@@ -123,12 +123,14 @@ func operatorMutantsPerTest(candidates []Candidate, lines map[ecosystem.TestID]s
 	return counts
 }
 
-// sampledLines are the lines each sampled test ran that a draw may mutate.
+// sampledLines are the lines each sampled test owns that a draw may mutate:
+// the allocation spends a test's quota only on lines where a survival can
+// count against it.
 func sampledLines(ref reference, plan plan) map[ecosystem.TestID]scanscope.LineSet {
 	lines := make(map[ecosystem.TestID]scanscope.LineSet, len(plan.sampled))
 	for _, test := range plan.sampled {
 		set := scanscope.LineSet{}
-		for _, line := range ref.coverage[test] {
+		for _, line := range ref.coverage[test].Owned {
 			if plan.targets[line] {
 				set[line] = true
 			}

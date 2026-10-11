@@ -25,8 +25,8 @@ const (
 	acceptsAnyPercent = "discount_test.go::TestDiscountAcceptsAnyPercent"
 	chargedBelowFifty = "tally_test.go::TestShipping/charged_below_fifty"
 	scanRunTimeout    = 3 * time.Minute
-	verifiesScanRuns  = " [verifies SP-2102~2]"
-	verifiesLines     = " [verifies SP-2101~1]"
+	verifiesScanRuns  = " [verifies SP-2102~3]"
+	verifiesLines     = " [verifies SP-2101~2]"
 	verifiesBinding   = " [verifies SP-2103~1]"
 	verifiesEvents    = " [verifies SP-2128~1]"
 	verifiesWorkers   = " [verifies SP-2131~1]"
@@ -47,6 +47,12 @@ type scanProject struct {
 
 func openScanProject(t *testing.T) scanProject {
 	t.Helper()
+	return openScanModule(t, scanFixture)
+}
+
+// openScanModule prepares a workspace of the Go module in the directory.
+func openScanModule(t *testing.T, dir string) scanProject {
+	t.Helper()
 	if _, err := exec.LookPath("go"); err != nil {
 		t.Skipf("no go command: %v", err)
 	}
@@ -57,7 +63,7 @@ func openScanProject(t *testing.T) scanProject {
 	t.Cleanup(func() { _ = manager.Close() })
 	strategy := golang.New(golang.Dependencies{Process: process.New(), Reader: junitxml.NewReader(), Locator: goparser.NewLocator()})
 	ctx := context.Background()
-	prepared, err := manager.Prepare(ctx, filepath.Clean(scanFixture), strategy.Layout())
+	prepared, err := manager.Prepare(ctx, filepath.Clean(dir), strategy.Layout())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,28 +195,28 @@ func TestScanLineCoverage(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Run("the tests run under coverage on the workers each give their own lines"+verifiesWorkers, func(t *testing.T) {
-		if len(covered) != 3 || len(covered[acceptsAnyPercent]) == 0 || len(covered[chargedBelowFifty]) == 0 {
+		if len(covered) != 3 || len(covered[acceptsAnyPercent].Lines) == 0 || len(covered[chargedBelowFifty].Lines) == 0 {
 			t.Fatalf("covered %v", covered)
 		}
 	})
 	ran := func(test ecosystem.TestID, line int) bool {
-		return slices.Contains(covered[test], vacuity.Line{File: "tally.go", Line: line})
+		return slices.Contains(covered[test].Lines, vacuity.Line{File: "tally.go", Line: line})
 	}
 	t.Run("a test that returns early ran its branches and not the arithmetic line"+verifiesLines, func(t *testing.T) {
 		if !ran(acceptsAnyPercent, 20) || !ran(acceptsAnyPercent, 23) || ran(acceptsAnyPercent, 25) || ran(acceptsAnyPercent, 13) {
-			t.Fatalf("lines = %v", covered[acceptsAnyPercent])
+			t.Fatalf("lines = %v", covered[acceptsAnyPercent].Lines)
 		}
 	})
 	t.Run("a test of the computed discount ran the arithmetic line and no early return"+verifiesLines, func(t *testing.T) {
 		if !ran(takesPercentOff, 25) || ran(takesPercentOff, 20) || ran(takesPercentOff, 23) {
-			t.Fatalf("lines = %v", covered[takesPercentOff])
+			t.Fatalf("lines = %v", covered[takesPercentOff].Lines)
 		}
 	})
 	t.Run("a subtest ran only the lines of its own case and never a line of a test file"+verifiesLines, func(t *testing.T) {
 		if !ran(chargedBelowFifty, 33) || ran(chargedBelowFifty, 31) {
-			t.Fatalf("lines = %v", covered[chargedBelowFifty])
+			t.Fatalf("lines = %v", covered[chargedBelowFifty].Lines)
 		}
-		for _, line := range covered[chargedBelowFifty] {
+		for _, line := range covered[chargedBelowFifty].Lines {
 			if line.File != "tally.go" {
 				t.Fatalf("line of %s", line.File)
 			}

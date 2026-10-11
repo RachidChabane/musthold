@@ -57,6 +57,11 @@ type fakeTest struct {
 	lines  []int
 	checks []int
 	red    bool
+	// startUp are lines the test's process runs before any test starts.
+	startUp []int
+	// needs are lines without which the test's process stops before any test
+	// starts.
+	needs []int
 }
 
 func fakeTests() map[ecosystem.TestID]fakeTest {
@@ -209,9 +214,12 @@ func (s *fakeSuite) Run(ctx context.Context, workspace ecosystem.Workspace, _ ec
 	for _, id := range tests {
 		test, known := s.tests[id]
 		run := vacuity.RunPassed
+		missing := func(line int) bool { return !strings.Contains(source, sourceLine(line)) }
 		switch {
 		case !known:
 			run = vacuity.RunErrored
+		case slices.ContainsFunc(test.needs, missing):
+			run = vacuity.RunNotStarted
 		case test.red || slices.ContainsFunc(test.checks, func(line int) bool { return !strings.Contains(source, sourceLine(line)) }):
 			run = vacuity.RunFailed
 		}
@@ -220,7 +228,7 @@ func (s *fakeSuite) Run(ctx context.Context, workspace ecosystem.Workspace, _ ec
 	return result, nil
 }
 
-func (s *fakeSuite) LineCoverage(_ context.Context, _ ecosystem.Workspace, _ ecosystem.Toolchain, request ports.ScanCoverageRequest) (map[ecosystem.TestID][]vacuity.Line, error) {
+func (s *fakeSuite) LineCoverage(_ context.Context, _ ecosystem.Workspace, _ ecosystem.Toolchain, request ports.ScanCoverageRequest) (map[ecosystem.TestID]vacuity.Coverage, error) {
 	s.coverageTimeout = request.Timeout
 	for _, test := range request.Tests {
 		s.covered = append(s.covered, test.ID)
@@ -228,11 +236,17 @@ func (s *fakeSuite) LineCoverage(_ context.Context, _ ecosystem.Workspace, _ eco
 	if s.coverageOverruns {
 		return nil, ports.ErrCoverageTimedOut
 	}
-	covered := map[ecosystem.TestID][]vacuity.Line{}
+	covered := map[ecosystem.TestID]vacuity.Coverage{}
 	for _, test := range request.Tests {
+		var coverage vacuity.Coverage
 		for _, line := range s.tests[test.ID].lines {
-			covered[test.ID] = append(covered[test.ID], vacuity.Line{File: totals, Line: line})
+			coverage.Owned = append(coverage.Owned, vacuity.Line{File: totals, Line: line})
 		}
+		coverage.Lines = slices.Clone(coverage.Owned)
+		for _, line := range s.tests[test.ID].startUp {
+			coverage.Lines = append(coverage.Lines, vacuity.Line{File: totals, Line: line})
+		}
+		covered[test.ID] = coverage
 	}
 	return covered, nil
 }

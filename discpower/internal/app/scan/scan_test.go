@@ -34,7 +34,7 @@ const (
 	verifiesRecord    = " [verifies SP-2113~1]"
 	verifiesReplay    = " [verifies SP-2114~1]"
 	verifiesContract  = " [verifies SP-2123~2]"
-	verifiesAllocated = " [verifies SP-2125~1]"
+	verifiesAllocated = " [verifies SP-2125~2]"
 	verifiesSentinels = " [verifies SP-2126~1]"
 	verifiesCoverage  = " [verifies SP-2127~1]"
 

@@ -32,13 +32,18 @@ const (
 	reproFile   = "repro.sh"
 	findingFile = "finding.json"
 
-	arrow          = "→"
-	separator      = " · "
-	notAPass       = "Not a pass: unproven and unsampled tests are unjudged."
-	noModel        = "no model used"
-	noPromises     = "promises not checked"
-	partialNote    = "partial: the budget stopped the scan before every mutant ran"
-	findingFormat  = "passes on all %d proven changes in lines it ran"
+	arrow         = "→"
+	separator     = " · "
+	notAPass      = "Not a pass: unproven and unsampled tests are unjudged."
+	noModel       = "no model used"
+	noPromises    = "promises not checked"
+	partialNote   = "partial: the budget stopped the scan before every mutant ran"
+	findingFormat = "passes on all %d proven changes in lines it ran"
+	// notStartedMore follows the sentence of a finding when changes in the
+	// lines it ran stopped the test from starting.
+	notStartedMore = "; %d more stopped it from starting"
+	notStartedOne  = "%s: 1 proven change in lines it ran stopped it from starting; it counts neither way"
+	notStartedMany = "%s: %d proven changes in lines it ran stopped it from starting; they count neither way"
 	killedFormat   = "%s kills it %s"
 	differentialBy = "a differential run of %s, reproduced, on a reference that agrees with itself"
 	witnessFormat  = "witness %s fails on it, reproduced"
@@ -130,10 +135,7 @@ func depthLine(report scan.Report) string {
 
 // workersOf writes how many workers ran the scan.
 func workersOf(workers int) string {
-	if workers == 1 {
-		return fmt.Sprintf(workersFormat, workers, workerNoun)
-	}
-	return fmt.Sprintf(workersFormat, workers, workersNoun)
+	return fmt.Sprintf(workersFormat, workers, plural(workers, workerNoun, workersNoun))
 }
 
 // split is the four counts, each over its denominator: the verdicts over the
@@ -190,11 +192,60 @@ func footer(report scan.Report) string {
 		parts[0] += fmt.Sprintf(", %d identical when compiled", mutants.CompiledIdentical)
 	}
 	if mutants.DidNotBuild > 0 {
-		parts[0] += fmt.Sprintf(", %d did not build", mutants.DidNotBuild)
+		parts[0] += fmt.Sprintf(", %d did not build or start", mutants.DidNotBuild)
+	}
+	if mutants.StoppedSentinels > 0 {
+		parts[0] += fmt.Sprintf(stoppedSentinelsFormat, mutants.StoppedSentinels, plural(mutants.StoppedSentinels, sentinelNoun, sentinelsNoun))
 	}
 	parts[0] += ")"
 	parts = append(parts, elapsed(report), noModel, noPromises)
 	return strings.Join(parts, separator)
+}
+
+// Vocabulary of the sentinels that stopped a test binary.
+const (
+	stoppedSentinelsFormat = ", %d %s stopped a test binary"
+	sentinelNoun           = "sentinel"
+	sentinelsNoun          = "sentinels"
+)
+
+// plural is the noun for a count: the singular for one.
+func plural(count int, one, many string) string {
+	if count == 1 {
+		return one
+	}
+	return many
+}
+
+// findingSentence is the literal sentence of a finding, with the changes that
+// stopped the test from starting when there are some.
+func findingSentence(finding scan.Finding) string {
+	sentence := fmt.Sprintf(findingFormat, finding.Changes)
+	if finding.NotStarted > 0 {
+		sentence += fmt.Sprintf(notStartedMore, finding.NotStarted)
+	}
+	return sentence
+}
+
+// notStartedLines say, for each judged test that is not a finding and that
+// changes in the lines it ran stopped from starting, how many did, in test id
+// order.
+func notStartedLines(report scan.Report) []string {
+	findings := map[string]bool{}
+	for _, finding := range report.Findings {
+		findings[string(finding.Test)] = true
+	}
+	var lines []string
+	for _, test := range report.Statement.Predicate.Tests {
+		switch count := len(test.NotStarted); {
+		case count == 0 || findings[test.ID]:
+		case count == 1:
+			lines = append(lines, fmt.Sprintf(notStartedOne, test.ID))
+		default:
+			lines = append(lines, fmt.Sprintf(notStartedMany, test.ID, count))
+		}
+	}
+	return lines
 }
 
 // stake is the closing line that says what the tests that verify nothing

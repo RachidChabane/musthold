@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	verifiesText     = " [verifies SP-2115~2]"
-	verifiesMarkdown = " [verifies SP-2116~2]"
+	verifiesText     = " [verifies SP-2115~3]"
+	verifiesMarkdown = " [verifies SP-2116~3]"
+	verifiesGaps     = " [verifies SP-2129~2]"
 	verifiesFolders  = " [verifies SP-2117~1]"
 	verifiesStake    = " [verifies SP-2132~1]"
 
@@ -82,8 +83,8 @@ func report(t *testing.T) scan.Report {
 		Depth:   scan.DepthQuick, Budget: 90 * time.Second, Workers: 2,
 		Unproven: []scan.UnprovenTest{
 			{Test: "tests/test_parse.py::test_three", Reason: format.ScanTooFewChanges},
-			{Test: "tests/test_parse.py::test_two", Reason: format.ScanTooFewChanges, Proven: 1, Gaps: map[string]scan.Gap{"m1": scan.GapNoDifference, "m2": scan.GapUnbound}},
-			{Test: "tests/test_split.py::test_slow", Reason: format.ScanInconclusiveOutcome, Proven: 6, Gaps: map[string]scan.Gap{"m1": scan.GapNoDifference}},
+			{Test: "tests/test_parse.py::test_two", Reason: format.ScanTooFewChanges, Drawn: 3, Proven: 1, Gaps: map[string]scan.Gap{"m1": scan.GapNoDifference, "m2": scan.GapUnbound}},
+			{Test: "tests/test_split.py::test_slow", Reason: format.ScanInconclusiveOutcome, Drawn: 7, Proven: 6, Gaps: map[string]scan.Gap{"m1": scan.GapNoDifference}},
 		},
 	}
 }
@@ -91,7 +92,7 @@ func report(t *testing.T) scan.Report {
 func TestGapNoun(t *testing.T) {
 	t.Run("one unproven mutant is named in the singular"+verifiesText, func(t *testing.T) {
 		single := report(t)
-		single.Unproven = []scan.UnprovenTest{{Test: "t::one", Reason: format.ScanTooFewChanges, Gaps: map[string]scan.Gap{"m1": scan.GapUnbound}}}
+		single.Unproven = []scan.UnprovenTest{{Test: "t::one", Reason: format.ScanTooFewChanges, Drawn: 1, Gaps: map[string]scan.Gap{"m1": scan.GapUnbound}}}
 		if !strings.Contains(scanreport.Text(single), "they lack: 1 unproven mutant on their lines: 1 with no function to call") {
 			t.Fatalf("text:\n%s", scanreport.Text(single))
 		}
@@ -146,7 +147,7 @@ func TestText(t *testing.T) {
 		}
 	})
 	t.Run("the last line counts the mutants and says no model ran and no promise was checked"+verifiesText, func(t *testing.T) {
-		want := "150 mutants (61 proven, 4 identical when compiled, 2 did not build) · 4m12s (reference 1m0s, coverage 30s, draw 2s, mutants 2m40s) · no model used · promises not checked"
+		want := "150 mutants (61 proven, 4 identical when compiled, 2 did not build or start) · 4m12s (reference 1m0s, coverage 30s, draw 2s, mutants 2m40s) · no model used · promises not checked"
 		if lines[len(lines)-3] != want {
 			t.Fatalf("footer %q", lines[len(lines)-3])
 		}
@@ -186,6 +187,71 @@ func TestText(t *testing.T) {
 		text := scanreport.Text(empty)
 		if !strings.Contains(text, "7/40 verify nothing") || !strings.Contains(text, "Not a pass") || strings.Contains(text, "#1") {
 			t.Fatalf("text:\n%s", text)
+		}
+	})
+}
+
+// stoppedReport is the report with changes that stopped tests from starting:
+// three for the unproven test_two, one for test_three, and two for the first
+// finding.
+func stoppedReport(t *testing.T) scan.Report {
+	t.Helper()
+	stopped := report(t)
+	tests := stopped.Statement.Predicate.Tests
+	for index := range tests {
+		switch tests[index].ID {
+		case "tests/test_parse.py::test_two":
+			tests[index].NotStarted = []string{"m3", "m4", "m5"}
+		case "tests/test_parse.py::test_three":
+			tests[index].NotStarted = []string{"m6"}
+		case "tests/test_parse.py::test_parse_ok":
+			tests[index].NotStarted = []string{"m7", "m8"}
+		}
+	}
+	stopped.Findings[0].NotStarted = 2
+	stopped.Mutants.StoppedSentinels = 1
+	return stopped
+}
+
+func TestNotStarted(t *testing.T) {
+	stopped := stoppedReport(t)
+	text, markdown := scanreport.Text(stopped), scanreport.Markdown(stopped)
+	t.Run("a test that changes in its lines stopped from starting says how many, and that they count neither way"+verifiesText, func(t *testing.T) {
+		for _, want := range []string{
+			"  tests/test_parse.py::test_two: 3 proven changes in lines it ran stopped it from starting; they count neither way\n",
+			"  tests/test_parse.py::test_three: 1 proven change in lines it ran stopped it from starting; it counts neither way\n",
+		} {
+			if !strings.Contains(text, want) {
+				t.Errorf("missing %q in\n%s", want, text)
+			}
+		}
+		if strings.Contains(text, "test_parse_ok: ") {
+			t.Fatalf("a finding has its own line:\n%s", text)
+		}
+	})
+	t.Run("the sentence of a test that verifies nothing keeps its number and adds the changes that stopped it from starting"+verifiesText, func(t *testing.T) {
+		if want := "#1 tests/test_parse.py::test_parse_ok passes on all 9 proven changes in lines it ran; 2 more stopped it from starting\n"; !strings.Contains(text, want) {
+			t.Fatalf("missing %q in\n%s", want, text)
+		}
+	})
+	t.Run("the Markdown report lists the same lines and sentence"+verifiesMarkdown, func(t *testing.T) {
+		for _, want := range []string{
+			"- tests/test_parse.py::test_two: 3 proven changes in lines it ran stopped it from starting; they count neither way.\n",
+			"### 1. `tests/test_parse.py::test_parse_ok` passes on all 9 proven changes in lines it ran; 2 more stopped it from starting\n",
+		} {
+			if !strings.Contains(markdown, want) {
+				t.Errorf("missing %q in\n%s", want, markdown)
+			}
+		}
+	})
+	t.Run("the sentinels that stopped a test binary are counted with the mutants"+verifiesGaps, func(t *testing.T) {
+		if want := "2 did not build or start, 1 sentinel stopped a test binary)"; !strings.Contains(text, want) || !strings.Contains(markdown, want) {
+			t.Fatalf("missing %q in\n%s", want, text)
+		}
+	})
+	t.Run("a scan where nothing stopped a test from starting prints none of it"+verifiesText, func(t *testing.T) {
+		if plain := scanreport.Text(report(t)); strings.Contains(plain, "stopped") {
+			t.Fatalf("text:\n%s", plain)
 		}
 	})
 }

@@ -31,6 +31,10 @@ const (
 	quietFlag       = "-q"
 	targetSeparator = ":"
 	initModule      = "__init__"
+	// initFile, like conftestFile, is a file whose import starts the
+	// collection of every module below their directory.
+	initFile        = initModule + pythonSuffix
+	parentDirectory = "."
 	// reproInterpreter is the interpreter a reproduction script calls.
 	reproInterpreter = "python3"
 )
@@ -53,11 +57,16 @@ type scanReport struct {
 		File string `json:"file"`
 	} `json:"collected"`
 	Outcomes map[string]string `json:"outcomes"`
+	// CollectFailures are the node ids of the failed collect reports, and the
+	// paths of the conftest files that failed to import, relative to the root.
+	CollectFailures []string `json:"collectFailures"`
 }
 
 // Run runs pytest once per requested run, under the scan plugin that the
-// workspace alone receives. A run that times out leaves its tests and every
-// later run timed out, and no later run starts.
+// workspace alone receives. A test a session did not report did not start in
+// it when a failed collect report covers its module or a conftest.py or
+// __init__.py on its path, and errored otherwise. A run that times out leaves
+// its tests and every later run timed out, and no later run starts.
 func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanRunRequest) (ports.ScanRuns, error) {
 	pluginDir, err := installPlugin(workspace, scanPluginFile, scanPlugin)
 	if err != nil {
@@ -68,7 +77,7 @@ func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolc
 	timedOut := false
 	for range request.Runs {
 		if timedOut {
-			suiterun.AppendScanRun(result.Runs, tests, nil, vacuity.RunTimedOut)
+			suiterun.AppendScanRun(result.Runs, tests, nil, suiterun.Always(vacuity.RunTimedOut))
 			continue
 		}
 		var report scanReport
@@ -82,13 +91,47 @@ func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolc
 		if len(tests) == 0 {
 			tests = idsOf(result.Cases)
 		}
-		missing := vacuity.RunErrored
+		missing := report.missingRun
 		if timedOut {
-			missing = vacuity.RunTimedOut
+			missing = suiterun.Always(vacuity.RunTimedOut)
 		}
 		suiterun.AppendScanRun(result.Runs, tests, outcomesOf(report), missing)
 	}
 	return result, nil
+}
+
+// missingRun is the run of a test the session did not report: not started when
+// a failed collect report covers it, errored otherwise.
+func (r scanReport) missingRun(test ecosystem.TestID) vacuity.Run {
+	file, _, _ := strings.Cut(string(test), nodeSeparator)
+	for _, failure := range r.CollectFailures {
+		if coversFile(failure, file) {
+			return vacuity.RunNotStarted
+		}
+	}
+	return vacuity.RunErrored
+}
+
+// coversFile reports whether a failed collect report stops the collection of a
+// test file: the report is of the file itself, of a conftest.py or __init__.py
+// in a directory on its path, or of such a directory.
+func coversFile(failure, file string) bool {
+	failure = strings.TrimSuffix(failure, pathSeparator)
+	switch base := path.Base(failure); {
+	case failure == file:
+		return true
+	case base == conftestFile || base == initFile:
+		return isUnder(path.Dir(failure), file)
+	case path.Ext(failure) == pythonSuffix:
+		return false
+	}
+	return isUnder(failure, file)
+}
+
+// isUnder reports whether the file lies in the directory, the root holding
+// every file.
+func isUnder(dir, file string) bool {
+	return dir == "" || dir == parentDirectory || strings.HasPrefix(file, dir+pathSeparator)
 }
 
 func (s scanSuite) runOnce(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, pluginDir string, request ports.ScanRunRequest) (scanReport, bool, error) {
@@ -150,16 +193,18 @@ func (scanSuite) CoverageOfOneRun() bool { return true }
 
 // LineCoverage runs the suite once under the coverage plugin, within the
 // timeout of the request, and keeps the lines of the requested tests, by node
-// id.
-func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanCoverageRequest) (map[ecosystem.TestID][]vacuity.Line, error) {
+// id. The plugin records only inside the run of each test, its setup, call and
+// teardown, never during collection, so a test owns every line it recorded.
+func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanCoverageRequest) (map[ecosystem.TestID]vacuity.Coverage, error) {
 	report, err := runCoverage(ctx, s.deps, workspace, toolchain, request.Timeout)
 	if err != nil {
 		return nil, err
 	}
-	covered := map[ecosystem.TestID][]vacuity.Line{}
+	covered := map[ecosystem.TestID]vacuity.Coverage{}
 	for _, test := range request.Tests {
 		if recorded, found := report[string(test.ID)]; found {
-			covered[test.ID] = linesOf(recorded)
+			lines := linesOf(recorded)
+			covered[test.ID] = vacuity.Coverage{Lines: lines, Owned: lines}
 		}
 	}
 	return covered, nil

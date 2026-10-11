@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	verifiesComposition = " [verifies SP-2129~1]"
+	verifiesComposition = " [verifies SP-2129~2]"
 	verifiesWorkers     = " [verifies SP-2130~1]"
 	verifiesDepth       = " [verifies SP-2131~1]"
 

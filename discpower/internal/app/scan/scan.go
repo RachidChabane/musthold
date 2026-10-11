@@ -168,8 +168,14 @@ type MutantCounts struct {
 	Drawn int
 	// Ran are the mutants that built and ran.
 	Ran int
-	// DidNotBuild are the mutants dropped because they did not splice or build.
+	// DidNotBuild are the mutants dropped because they did not splice or
+	// failed the build check, which in Go also starts the test binaries of
+	// the packages they edit.
 	DidNotBuild int
+	// StoppedSentinels are the sentinels on which a run of a test did not
+	// start: a sentinel keeps behaviour, so the harness, not the test, is at
+	// fault.
+	StoppedSentinels int
 	// CompiledIdentical are the mutants E0 found identical to the reference.
 	CompiledIdentical int
 	// NotRun are the mutants the budget left unrun.
@@ -186,7 +192,10 @@ type Finding struct {
 	Test ecosystem.TestID
 	// Changes is how many proven changes in the lines it ran the test passed.
 	Changes int
-	Mutant  format.ScanMutant
+	// NotStarted is how many more proven changes in the lines it ran stopped
+	// it from starting; they count neither way.
+	NotStarted int
+	Mutant     format.ScanMutant
 	// Site is the first mutated line of the shown change.
 	Site  format.ScanLine
 	Route format.ScanRoute

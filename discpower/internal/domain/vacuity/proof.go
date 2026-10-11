@@ -96,7 +96,7 @@ func routesOf(m Mutant, outcomes map[ecosystem.TestID][]Run, canProve prover) []
 	}
 	var routes []format.ScanRoute
 	for test, runs := range outcomes {
-		if Settle(runs) == format.ScanKilled && canProve(test) {
+		if Settle(runs) == SettledKilled && canProve(test) {
 			routes = append(routes, format.ScanRoute{Kind: format.ScanRouteKilledByTest, Test: string(test)})
 		}
 	}

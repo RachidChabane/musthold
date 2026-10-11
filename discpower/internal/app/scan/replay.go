@@ -120,9 +120,9 @@ func (s *Service) Replay(ctx context.Context, root string, record FindingRecord)
 	if !status.Built {
 		return replay, nil
 	}
-	replay.add(fmt.Sprintf("%s passes the mutant %s", record.Test, allRuns), vacuity.Settle(onMutant.Runs[tests[0]]) == format.ScanSurvived)
+	replay.add(fmt.Sprintf("%s passes the mutant %s", record.Test, allRuns), vacuity.Settle(onMutant.Runs[tests[0]]) == vacuity.SettledSurvived)
 	if record.Route.Kind == format.ScanRouteKilledByTest {
-		replay.add(fmt.Sprintf("%s fails the mutant %s", record.Route.Test, allRuns), vacuity.Settle(onMutant.Runs[tests[1]]) == format.ScanKilled)
+		replay.add(fmt.Sprintf("%s fails the mutant %s", record.Route.Test, allRuns), vacuity.Settle(onMutant.Runs[tests[1]]) == vacuity.SettledKilled)
 	}
 	replay.Checks = append(replay.Checks, differs...)
 	if record.Route.Kind == format.ScanRouteWitness {

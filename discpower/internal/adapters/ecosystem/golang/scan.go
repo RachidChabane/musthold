@@ -1,10 +1,7 @@
 package golang
 
 import (
-	"bufio"
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"go/parser"
 	"go/token"
@@ -25,10 +22,6 @@ var _ ports.Scanning = (*Strategy)(nil)
 
 const (
 	countFlagName = "-count="
-	// The actions of `go test -json` that end one run of a test.
-	actionPass = "pass"
-	actionFail = "fail"
-	actionSkip = "skip"
 	// testCaseSeparator joins the test file and the subtest path of a test id.
 	testCaseSeparator = "::"
 	testFileSuffix    = "_test.go"
@@ -36,6 +29,8 @@ const (
 	// eventsSuffix names the file that receives the events of one run, whole
 	// however much the tests log.
 	eventsSuffix = ".jsonl"
+	// oneRun is the count of a process that gives each test one observation.
+	oneRun = 1
 )
 
 // Scan runs the suite for a scan with `go test -json`, and its line coverage
@@ -46,16 +41,14 @@ type scanSuite struct {
 	deps Dependencies
 }
 
-// testEvent is one event of `go test -json`.
-type testEvent struct {
-	Action  string `json:"Action"`
-	Package string `json:"Package"`
-	Test    string `json:"Test"`
-}
-
 // Run runs every package, or the packages of the selection with an anchored
 // `-run` expression each, with `-count` set to the number of runs, within the
-// timeout of one run that many times over.
+// timeout of one run that many times over. When that process exits non-zero
+// without timing out before a test of a package had every run, the process
+// is one observation of each test of the package, and the package runs again
+// in fresh processes of one run each, within the timeout of one run, until
+// every test has the requested number of observations; no process starts
+// after one timed out.
 func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanRunRequest) (ports.ScanRuns, error) {
 	module, err := modulePath(os.DirFS(workspace.Dir))
 	if err != nil {
@@ -68,44 +61,76 @@ func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolc
 	locator := testLocator{deps: s.deps, workspace: workspace}
 	result := ports.ScanRuns{Runs: map[ecosystem.TestID][]vacuity.Run{}}
 	for _, batch := range batches {
-		argv := append(append([]string{}, toolchain.Command...), testSubcommand, jsonFlag, fmt.Sprintf("%s%d", countFlagName, request.Runs))
-		if len(batch.paths) > 0 {
-			argv = append(argv, runFlag, expression(batch.paths))
-		}
-		argv = append(argv, batch.pattern)
-		events := suiterun.ResultsFile(workspace, eventsSuffix)
-		timeout := request.Timeout * time.Duration(max(request.Runs, 1))
-		executed, err := s.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: workspace.Dir, Timeout: timeout, StdoutFile: events})
+		first, err := s.runProcess(ctx, workspace, toolchain, batch, request.Runs, request.Timeout*time.Duration(max(request.Runs, oneRun)))
 		if err != nil {
-			return ports.ScanRuns{}, fmt.Errorf("run the suite: %w", err)
-		}
-		output, err := os.ReadFile(events)
-		if err != nil {
-			return ports.ScanRuns{}, fmt.Errorf("read the test events: %w", err)
-		}
-		seen := leafResults(output)
-		missing := vacuity.RunErrored
-		if executed.TimedOut {
-			missing = vacuity.RunTimedOut
+			return ports.ScanRuns{}, err
 		}
 		wanted := batch.tests
 		if len(wanted) == 0 {
-			for _, key := range sortedKeys(seen) {
+			for _, key := range sortedKeys(first.leaves) {
 				id, file := locator.id(module, key)
 				result.Cases = append(result.Cases, ports.ScanCase{ID: id, File: file})
 				wanted = append(wanted, id)
 			}
 		}
-		for _, test := range wanted {
-			runs := slices.Clone(seen[keyOf(test, module)])
-			runs = runs[:min(len(runs), request.Runs)]
-			for len(runs) < request.Runs {
-				runs = append(runs, missing)
+		for _, group := range byPackage(wanted, module) {
+			if !first.cutShort(group.keys, request.Runs) {
+				for index, test := range group.tests {
+					result.Runs[test] = first.runsOf(group.keys[index], request.Runs)
+				}
+				continue
 			}
-			result.Runs[test] = runs
+			observed, err := s.observeApart(ctx, workspace, toolchain, batch.of(group.pkg), group, first, request)
+			if err != nil {
+				return ports.ScanRuns{}, err
+			}
+			for test, runs := range observed {
+				result.Runs[test] = runs
+			}
 		}
 	}
 	return result, nil
+}
+
+// observeApart gives each test of the group the observation of the first
+// process, then runs the batch again, one run per fresh process, until every
+// test has the requested number of observations. A process that times out
+// leaves every later observation timed out, and no later process starts.
+func (s scanSuite) observeApart(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, rerun batch, group packageGroup, first testProcess, request ports.ScanRunRequest) (map[ecosystem.TestID][]vacuity.Run, error) {
+	observed := make(map[ecosystem.TestID][]vacuity.Run, len(group.tests))
+	process := first
+	for observation := range request.Runs {
+		if observation > 0 && !process.timedOut {
+			var err error
+			if process, err = s.runProcess(ctx, workspace, toolchain, rerun, oneRun, request.Timeout); err != nil {
+				return nil, err
+			}
+		}
+		for index, test := range group.tests {
+			observed[test] = append(observed[test], process.observation(group.keys[index]))
+		}
+	}
+	return observed, nil
+}
+
+// runProcess runs one `go test -json` process of the batch, each test the given
+// number of times, and reads its events.
+func (s scanSuite) runProcess(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, batch batch, count int, timeout time.Duration) (testProcess, error) {
+	argv := append(append([]string{}, toolchain.Command...), testSubcommand, jsonFlag, fmt.Sprintf("%s%d", countFlagName, count))
+	if len(batch.paths) > 0 {
+		argv = append(argv, runFlag, expression(batch.paths))
+	}
+	argv = append(argv, batch.pattern)
+	events := suiterun.ResultsFile(workspace, eventsSuffix)
+	executed, err := s.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: workspace.Dir, Timeout: timeout, StdoutFile: events})
+	if err != nil {
+		return testProcess{}, fmt.Errorf("run the suite: %w", err)
+	}
+	output, err := os.ReadFile(events)
+	if err != nil {
+		return testProcess{}, fmt.Errorf("read the test events: %w", err)
+	}
+	return readProcess(output, executed.ExitCode, executed.TimedOut), nil
 }
 
 // batch is one `go test` invocation: a package pattern and, for a selection,
@@ -114,6 +139,16 @@ type batch struct {
 	pattern string
 	paths   [][]string
 	tests   []ecosystem.TestID
+}
+
+// of is the batch that runs one package of this batch again: the batch itself
+// for a selection, which holds one package, and the package alone for a run
+// of every package.
+func (b batch) of(pkg string) batch {
+	if len(b.paths) > 0 {
+		return b
+	}
+	return batch{pattern: pkg}
 }
 
 // batchesOf groups a selection by package directory; an empty selection is one
@@ -145,61 +180,31 @@ func batchesOf(tests []ecosystem.TestID) ([]batch, error) {
 	return batches, nil
 }
 
-// resultKey names a test by its package import path and its subtest path.
-type resultKey struct {
-	pkg  string
-	test string
+// packageGroup is the tests of one package, each with its result key.
+type packageGroup struct {
+	pkg   string
+	tests []ecosystem.TestID
+	keys  []resultKey
 }
 
-// leafResults reads the run results of every leaf test from `go test -json`
-// output: a test none of whose subtests ran. A parent's own result is the
-// merge of its subtests' and is never read.
-func leafResults(output []byte) map[resultKey][]vacuity.Run {
-	results := map[resultKey][]vacuity.Run{}
-	scanner := bufio.NewScanner(bytes.NewReader(output))
-	scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), maxEventLine)
-	for scanner.Scan() {
-		var event testEvent
-		if json.Unmarshal(scanner.Bytes(), &event) != nil || event.Test == "" {
-			continue
+// byPackage groups tests by the import path of their package, in order of
+// import path, each group keeping the order of the tests.
+func byPackage(tests []ecosystem.TestID, module string) []packageGroup {
+	index := map[string]int{}
+	var groups []packageGroup
+	for _, test := range tests {
+		key := keyOf(test, module)
+		position, known := index[key.pkg]
+		if !known {
+			position = len(groups)
+			index[key.pkg] = position
+			groups = append(groups, packageGroup{pkg: key.pkg})
 		}
-		run, ends := runOfAction(event.Action)
-		if !ends {
-			continue
-		}
-		key := resultKey{pkg: event.Package, test: event.Test}
-		results[key] = append(results[key], run)
+		groups[position].tests = append(groups[position].tests, test)
+		groups[position].keys = append(groups[position].keys, key)
 	}
-	for key := range results {
-		if isParent(key, results) {
-			delete(results, key)
-		}
-	}
-	return results
-}
-
-// maxEventLine bounds one line of `go test -json` output.
-const maxEventLine = 16 << 20
-
-func runOfAction(action string) (vacuity.Run, bool) {
-	switch action {
-	case actionPass:
-		return vacuity.RunPassed, true
-	case actionFail:
-		return vacuity.RunFailed, true
-	case actionSkip:
-		return vacuity.RunErrored, true
-	}
-	return "", false
-}
-
-func isParent(key resultKey, results map[resultKey][]vacuity.Run) bool {
-	for other := range results {
-		if other.pkg == key.pkg && strings.HasPrefix(other.test, key.test+subtestSeparator) {
-			return true
-		}
-	}
-	return false
+	slices.SortFunc(groups, func(a, b packageGroup) int { return strings.Compare(a.pkg, b.pkg) })
+	return groups
 }
 
 func sortedKeys(results map[resultKey][]vacuity.Run) []resultKey {

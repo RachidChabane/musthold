@@ -107,7 +107,7 @@ func (e emission) partial() bool {
 }
 
 func (e emission) mutantCounts(result vacuity.Result) MutantCounts {
-	counts := MutantCounts{Drawn: len(e.drawn.candidates), Proven: len(result.Routes)}
+	counts := MutantCounts{Drawn: len(e.drawn.candidates), Proven: len(result.Routes), StoppedSentinels: e.stoppedSentinels()}
 	for _, executed := range e.executed {
 		switch {
 		case executed.state == stateNotRun:
@@ -182,7 +182,7 @@ func (s *Service) findings(result vacuity.Result, mutants []format.ScanMutant, d
 			return nil, err
 		}
 		findings = append(findings, Finding{
-			Rank: len(findings) + 1, Test: verdict.Test, Changes: len(verdict.Changes),
+			Rank: len(findings) + 1, Test: verdict.Test, Changes: len(verdict.Changes), NotStarted: len(verdict.NotStarted),
 			Mutant: mutant, Site: change.Site, Route: shownRoute(mutant.Routes),
 			Files: files, Repro: s.deps.Suite.Repro(verdict.Test),
 		})

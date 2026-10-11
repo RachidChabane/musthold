@@ -1,5 +1,8 @@
 import json
 import os
+import pathlib
+
+import pytest
 
 OUTPUT_VARIABLE = "SPEC_PROOF_SCAN_OUT"
 CALL_PHASE = "call"
@@ -8,9 +11,12 @@ FAILED = "failed"
 ERRORED = "errored"
 SKIPPED = "skipped"
 SEVERITY = {PASSED: 0, SKIPPED: 1, FAILED: 2, ERRORED: 3}
+USAGE_ERROR = int(pytest.ExitCode.USAGE_ERROR)
+CONFTEST_PATH_ATTRIBUTE = "path"
 
 collected = []
 outcomes = {}
+collect_failures = []
 
 
 def relative_file(item, root):
@@ -18,6 +24,38 @@ def relative_file(item, root):
         return item.path.relative_to(root).as_posix()
     except ValueError:
         return item.path.as_posix()
+
+
+def write_report(exit_code):
+    output = os.environ.get(OUTPUT_VARIABLE)
+    if not output:
+        return
+    with open(output, "w", encoding="utf-8") as sink:
+        json.dump(
+            {"collected": collected, "outcomes": outcomes, "collectFailures": collect_failures, "exit": exit_code},
+            sink,
+        )
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_load_initial_conftests(early_config, parser, args):
+    outcome = yield
+    if outcome.excinfo is None:
+        return
+    conftest = getattr(outcome.excinfo[1], CONFTEST_PATH_ATTRIBUTE, None)
+    if conftest is None:
+        return
+    root = pathlib.Path(getattr(early_config.invocation_params, "dir", os.getcwd()))
+    try:
+        collect_failures.append(pathlib.Path(conftest).resolve().relative_to(root.resolve()).as_posix())
+    except ValueError:
+        return
+    write_report(USAGE_ERROR)
+
+
+def pytest_collectreport(report):
+    if report.failed:
+        collect_failures.append(report.nodeid)
 
 
 def pytest_collection_finish(session):
@@ -50,8 +88,4 @@ def pytest_runtest_logreport(report):
 
 
 def pytest_sessionfinish(session, exitstatus):
-    output = os.environ.get(OUTPUT_VARIABLE)
-    if not output:
-        return
-    with open(output, "w", encoding="utf-8") as sink:
-        json.dump({"collected": collected, "outcomes": outcomes, "exit": int(exitstatus)}, sink)
+    write_report(int(exitstatus))

@@ -2,6 +2,7 @@ package vacuity_test
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -15,31 +16,52 @@ func TestSettle(t *testing.T) {
 	cases := []struct {
 		name string
 		runs []vacuity.Run
-		want format.ScanOutcome
+		want vacuity.Settled
 	}{
-		{"three failures", runs(vacuity.RunFailed), format.ScanKilled},
-		{"three passes", runs(vacuity.RunPassed), format.ScanSurvived},
-		{"a timeout among passes", []vacuity.Run{vacuity.RunPassed, vacuity.RunTimedOut, vacuity.RunPassed}, format.ScanInconclusive},
-		{"a timeout among failures", []vacuity.Run{vacuity.RunFailed, vacuity.RunFailed, vacuity.RunTimedOut}, format.ScanInconclusive},
-		{"an error", []vacuity.Run{vacuity.RunErrored, vacuity.RunErrored, vacuity.RunErrored}, format.ScanInconclusive},
-		{"runs that disagree", []vacuity.Run{vacuity.RunPassed, vacuity.RunFailed, vacuity.RunPassed}, format.ScanInconclusive},
-		{"two failures only", []vacuity.Run{vacuity.RunFailed, vacuity.RunFailed}, format.ScanInconclusive},
-		{"four passes", append(runs(vacuity.RunPassed), vacuity.RunPassed), format.ScanInconclusive},
-		{"no run", nil, format.ScanInconclusive},
+		{"three failures", runs(vacuity.RunFailed), vacuity.SettledKilled},
+		{"three passes", runs(vacuity.RunPassed), vacuity.SettledSurvived},
+		{"three runs that did not start", runs(vacuity.RunNotStarted), vacuity.SettledNotStarted},
+		{"a timeout among passes", []vacuity.Run{vacuity.RunPassed, vacuity.RunTimedOut, vacuity.RunPassed}, vacuity.SettledInconclusive},
+		{"a timeout among failures", []vacuity.Run{vacuity.RunFailed, vacuity.RunFailed, vacuity.RunTimedOut}, vacuity.SettledInconclusive},
+		{"an error", []vacuity.Run{vacuity.RunErrored, vacuity.RunErrored, vacuity.RunErrored}, vacuity.SettledInconclusive},
+		{"runs that disagree", []vacuity.Run{vacuity.RunPassed, vacuity.RunFailed, vacuity.RunPassed}, vacuity.SettledInconclusive},
+		{"a run that did not start among passes", []vacuity.Run{vacuity.RunNotStarted, vacuity.RunPassed, vacuity.RunPassed}, vacuity.SettledInconclusive},
+		{"a run that did not start among failures", []vacuity.Run{vacuity.RunFailed, vacuity.RunNotStarted, vacuity.RunFailed}, vacuity.SettledInconclusive},
+		{"runs that did not start and a timeout", []vacuity.Run{vacuity.RunNotStarted, vacuity.RunNotStarted, vacuity.RunTimedOut}, vacuity.SettledInconclusive},
+		{"two runs that did not start only", runs(vacuity.RunNotStarted)[:2], vacuity.SettledInconclusive},
+		{"two failures only", []vacuity.Run{vacuity.RunFailed, vacuity.RunFailed}, vacuity.SettledInconclusive},
+		{"four passes", append(runs(vacuity.RunPassed), vacuity.RunPassed), vacuity.SettledInconclusive},
+		{"no run", nil, vacuity.SettledInconclusive},
 	}
 	for _, c := range cases {
-		t.Run(c.name+" settle as "+string(c.want)+" [verifies SP-2020~1]", func(t *testing.T) {
+		t.Run(c.name+" settle as "+string(c.want)+" [verifies SP-2020~2]", func(t *testing.T) {
 			if got := vacuity.Settle(c.runs); got != c.want {
 				t.Fatalf("Settle = %s, want %s", got, c.want)
 			}
 		})
 	}
 
-	t.Run("a test is green only on three passes out of three [verifies SP-2020~1]", func(t *testing.T) {
+	t.Run("a settled outcome is recorded as itself, and not_started is never recorded as a change [verifies SP-2020~2]", func(t *testing.T) {
+		for settled, want := range map[vacuity.Settled]format.ScanOutcome{
+			vacuity.SettledKilled: format.ScanKilled, vacuity.SettledSurvived: format.ScanSurvived, vacuity.SettledInconclusive: format.ScanInconclusive,
+		} {
+			if got, recorded := settled.Recorded(); !recorded || got != want {
+				t.Fatalf("%s is recorded as %q, %v", settled, got, recorded)
+			}
+		}
+		if got, recorded := vacuity.SettledNotStarted.Recorded(); recorded || got != "" {
+			t.Fatalf("not_started is recorded as %q", got)
+		}
+	})
+
+	t.Run("a test is green only on three passes out of three [verifies SP-2020~2]", func(t *testing.T) {
 		if !vacuity.Green(runs(vacuity.RunPassed)) {
 			t.Fatal("three passes are not green")
 		}
-		for _, notGreen := range [][]vacuity.Run{nil, runs(vacuity.RunPassed)[:2], {vacuity.RunPassed, vacuity.RunPassed, vacuity.RunTimedOut}} {
+		for _, notGreen := range [][]vacuity.Run{
+			nil, runs(vacuity.RunPassed)[:2], {vacuity.RunPassed, vacuity.RunPassed, vacuity.RunTimedOut},
+			{vacuity.RunPassed, vacuity.RunNotStarted, vacuity.RunPassed}, runs(vacuity.RunNotStarted),
+		} {
 			if vacuity.Green(notGreen) {
 				t.Fatalf("%v is green", notGreen)
 			}
@@ -69,6 +91,13 @@ func TestKilledByTestRoute(t *testing.T) {
 		}
 	})
 
+	t.Run("a killer that did not start on a sentinel still proves the mutant [verifies SP-2021~1]", func(t *testing.T) {
+		result := build(runs(vacuity.RunPassed), runs(vacuity.RunNotStarted), runs(vacuity.RunFailed))
+		if !result.Proven(target) {
+			t.Fatalf("routes = %+v", result.Routes[target])
+		}
+	})
+
 	refused := []struct {
 		name                       string
 		killer, sentinelRuns, kill []vacuity.Run
@@ -77,6 +106,8 @@ func TestKilledByTestRoute(t *testing.T) {
 		{"a killer that failed a sentinel once", runs(vacuity.RunPassed), []vacuity.Run{vacuity.RunPassed, vacuity.RunFailed, vacuity.RunPassed}, runs(vacuity.RunFailed)},
 		{"a kill in two runs out of three", runs(vacuity.RunPassed), nil, []vacuity.Run{vacuity.RunFailed, vacuity.RunPassed, vacuity.RunFailed}},
 		{"a kill that timed out once", runs(vacuity.RunPassed), nil, []vacuity.Run{vacuity.RunFailed, vacuity.RunTimedOut, vacuity.RunFailed}},
+		{"runs that did not start", runs(vacuity.RunPassed), nil, runs(vacuity.RunNotStarted)},
+		{"a kill with a run that did not start", runs(vacuity.RunPassed), nil, []vacuity.Run{vacuity.RunFailed, vacuity.RunNotStarted, vacuity.RunFailed}},
 	}
 	for _, c := range refused {
 		t.Run(c.name+" proves nothing [verifies SP-2021~1]", func(t *testing.T) {
@@ -183,7 +214,7 @@ func TestWitnessRouteAndUnprovableMutants(t *testing.T) {
 }
 
 func TestChanges(t *testing.T) {
-	t.Run("a test's changes are the proven mutants of the lines it ran, by site then id [verifies SP-2024~1]", func(t *testing.T) {
+	t.Run("a test's changes are the proven mutants of the lines it ran, by site then id [verifies SP-2024~2]", func(t *testing.T) {
 		f := newFixture().sampled(vacuousTest, line(parseFile, 41), line(totalFile, 7))
 		ran := f.proven("ran", line(totalFile, 7))
 		multi := f.mutant(vacuity.Mutant{ID: mutantID("multi"), Lines: []vacuity.Line{line(parseFile, 50), line(parseFile, 41)}, Differences: []vacuity.Difference{differs()}})
@@ -200,13 +231,127 @@ func TestChanges(t *testing.T) {
 		}
 	})
 
-	t.Run("a proven change the test ran but never ran against is inconclusive [verifies SP-2024~1]", func(t *testing.T) {
+	t.Run("a proven change the test ran but never ran against is inconclusive [verifies SP-2024~2]", func(t *testing.T) {
 		f := newFixture().sampled(vacuousTest, line(parseFile, 41))
 		f.proven("m", line(parseFile, 41))
 		verdict := verdictOf(t, classify(t, f.input), vacuousTest)
 		if len(verdict.Changes) != 1 || verdict.Changes[0].Outcome != format.ScanInconclusive {
 			t.Fatalf("changes = %+v", verdict.Changes)
 		}
+	})
+
+	pairs := []struct {
+		name       string
+		runs       []vacuity.Run
+		owned      bool
+		change     format.ScanOutcome
+		notStarted bool
+	}{
+		{"a kill on an owned line is a change", runs(vacuity.RunFailed), true, format.ScanKilled, false},
+		{"a kill on a start-up-only line is a change", runs(vacuity.RunFailed), false, format.ScanKilled, false},
+		{"an inconclusive outcome on an owned line is a change", []vacuity.Run{vacuity.RunPassed, vacuity.RunErrored, vacuity.RunPassed}, true, format.ScanInconclusive, false},
+		{"an inconclusive outcome on a start-up-only line is a change", []vacuity.Run{vacuity.RunPassed, vacuity.RunNotStarted, vacuity.RunPassed}, false, format.ScanInconclusive, false},
+		{"a survival on an owned line is a change", runs(vacuity.RunPassed), true, format.ScanSurvived, false},
+		{"a survival on a start-up-only line is ignored", runs(vacuity.RunPassed), false, "", false},
+		{"runs that did not start on an owned line are listed apart", runs(vacuity.RunNotStarted), true, "", true},
+		{"runs that did not start on a start-up-only line are ignored", runs(vacuity.RunNotStarted), false, "", false},
+	}
+	for _, c := range pairs {
+		t.Run(c.name+" [verifies SP-2024~2]", func(t *testing.T) {
+			f := newFixture().sampled(vacuousTest)
+			at := line(parseFile, 41)
+			if c.owned {
+				f.owns(vacuousTest, at)
+			} else {
+				f.atStartUp(vacuousTest, at)
+			}
+			id := f.proven("pair", at)
+			f.outcome(id, vacuousTest, c.runs)
+			verdict := verdictOf(t, classify(t, f.input), vacuousTest)
+			var want []vacuity.Change
+			if c.change != "" {
+				want = []vacuity.Change{{Mutant: id, Site: at, Outcome: c.change}}
+			}
+			var wantNotStarted []string
+			if c.notStarted {
+				wantNotStarted = []string{id}
+			}
+			if !slices.Equal(verdict.Changes, want) || !slices.Equal(verdict.NotStarted, wantNotStarted) {
+				t.Fatalf("changes %+v, not started %v; want %+v, %v", verdict.Changes, verdict.NotStarted, want, wantNotStarted)
+			}
+		})
+	}
+
+	t.Run("a mutant with one mutated line the test owns counts as on an owned line [verifies SP-2024~2]", func(t *testing.T) {
+		f := newFixture().sampled(vacuousTest).owns(vacuousTest, line(parseFile, 42)).atStartUp(vacuousTest, line(parseFile, 41))
+		id := f.mutant(vacuity.Mutant{ID: mutantID("both"), Lines: []vacuity.Line{line(parseFile, 41), line(parseFile, 42)}, Differences: []vacuity.Difference{differs()}})
+		f.outcome(id, vacuousTest, runs(vacuity.RunPassed))
+		if verdict := verdictOf(t, classify(t, f.input), vacuousTest); len(verdict.Changes) != 1 || verdict.Changes[0].Outcome != format.ScanSurvived {
+			t.Fatalf("changes = %+v", verdict.Changes)
+		}
+	})
+
+	t.Run("an unproven mutant that stopped the test from starting is not listed [verifies SP-2024~2]", func(t *testing.T) {
+		f := newFixture().sampled(vacuousTest, line(parseFile, 41))
+		id := f.mutant(vacuity.Mutant{ID: mutantID("unproven"), Lines: []vacuity.Line{line(parseFile, 41)}})
+		f.outcome(id, vacuousTest, runs(vacuity.RunNotStarted))
+		if verdict := verdictOf(t, classify(t, f.input), vacuousTest); verdict.NotStarted != nil || verdict.Changes != nil {
+			t.Fatalf("verdict = %+v", verdict)
+		}
+	})
+}
+
+func TestStartUp(t *testing.T) {
+	t.Run("survivals on lines the test ran only at start-up never make it verify nothing [verifies SP-2133~1]", func(t *testing.T) {
+		f := newFixture().sampled(vacuousTest)
+		for index, site := range []vacuity.Line{line(parseFile, 41), line(parseFile, 41), line(parseFile, 41), line(parseFile, 44), line(parseFile, 44)} {
+			id := f.proven(fmt.Sprintf("start-up/%d", index), site)
+			f.outcome(id, vacuousTest, runs(vacuity.RunPassed))
+		}
+		f.atStartUp(vacuousTest, line(parseFile, 41), line(parseFile, 44))
+		verdict := verdictOf(t, classify(t, f.input), vacuousTest)
+		assertClass(t, verdict, format.ScanUnproven, format.ScanTooFewChanges)
+		if len(verdict.Changes) != 0 {
+			t.Fatalf("changes = %+v", verdict.Changes)
+		}
+	})
+
+	t.Run("a test that verifies nothing keeps its claim beside the changes that stopped it from starting [verifies SP-2133~1]", func(t *testing.T) {
+		f := newFixture().sampled(vacuousTest, line(totalFile, 3))
+		f.fiveSurvivedOnTwoSites(vacuousTest)
+		stopped := f.proven("stopped", line(totalFile, 3))
+		f.outcome(stopped, vacuousTest, runs(vacuity.RunNotStarted))
+		verdict := verdictOf(t, classify(t, f.input), vacuousTest)
+		assertClass(t, verdict, format.ScanVerifiesNothing, "")
+		if len(verdict.Changes) != vacuity.MinChanges || !slices.Equal(verdict.NotStarted, []string{stopped}) {
+			t.Fatalf("changes %+v, not started %v", verdict.Changes, verdict.NotStarted)
+		}
+	})
+
+	t.Run("an inconclusive outcome on a start-up-only line keeps the test from verifying nothing [verifies SP-2133~1]", func(t *testing.T) {
+		f := newFixture().sampled(vacuousTest)
+		f.fiveSurvivedOnTwoSites(vacuousTest)
+		blocking := f.proven("blocking", line(totalFile, 3))
+		f.atStartUp(vacuousTest, line(totalFile, 3))
+		f.outcome(blocking, vacuousTest, []vacuity.Run{vacuity.RunPassed, vacuity.RunTimedOut, vacuity.RunPassed})
+		assertClass(t, verdictOf(t, classify(t, f.input), vacuousTest), format.ScanUnproven, format.ScanInconclusiveOutcome)
+	})
+
+	t.Run("a kill on a start-up-only line is caught [verifies SP-2133~1]", func(t *testing.T) {
+		f := newFixture().sampled(killerTest)
+		killed := f.proven("killed", line(totalFile, 3))
+		f.atStartUp(killerTest, line(totalFile, 3))
+		f.outcome(killed, killerTest, runs(vacuity.RunFailed))
+		assertClass(t, verdictOf(t, classify(t, f.input), killerTest), format.ScanCaught, "")
+	})
+
+	t.Run("a test whose coverage records no owned line owns none [verifies SP-2133~1]", func(t *testing.T) {
+		f := newFixture().sampled(vacuousTest)
+		f.fiveSurvivedOnTwoSites(vacuousTest)
+		coverage := f.input.Coverage[vacuousTest]
+		coverage.Owned = nil
+		f.input.Coverage[vacuousTest] = coverage
+		assertClass(t, verdictOf(t, classify(t, f.input), vacuousTest), format.ScanUnproven, format.ScanTooFewChanges)
 	})
 }
 
@@ -287,7 +432,7 @@ func TestClassification(t *testing.T) {
 	t.Run("a green test the scan did not draw is not sampled [verifies SP-2025~1]", func(t *testing.T) {
 		f := newFixture()
 		f.input.Reference[otherTest] = runs(vacuity.RunPassed)
-		f.input.Coverage[otherTest] = []vacuity.Line{line(parseFile, 41)}
+		f.owns(otherTest, line(parseFile, 41))
 		assertClass(t, verdictOf(t, classify(t, f.input), otherTest), format.ScanNotSampled, "")
 	})
 }
@@ -317,7 +462,7 @@ func TestRanking(t *testing.T) {
 		f.fiveSurvivedOnTwoSites("tests/b.py::test_b")
 		f.fiveSurvivedOnTwoSites("tests/a.py::test_a")
 		extra := f.proven("extra", line(totalFile, 9))
-		f.input.Coverage["tests/b.py::test_b"] = append(f.input.Coverage["tests/b.py::test_b"], line(totalFile, 9))
+		f.owns("tests/b.py::test_b", line(totalFile, 9))
 		f.outcome(extra, "tests/b.py::test_b", runs(vacuity.RunPassed))
 		f.input.Reference["tests/0.py::test_not_sampled"] = runs(vacuity.RunPassed)
 		var order []ecosystem.TestID
@@ -341,7 +486,7 @@ func TestRanking(t *testing.T) {
 }
 
 func TestScanTests(t *testing.T) {
-	t.Run("the verdicts of the sampled green tests are written as the scan statement orders them [verifies SP-2029~1]", func(t *testing.T) {
+	t.Run("the verdicts of the sampled green tests are written as the scan statement orders them [verifies SP-2029~2]", func(t *testing.T) {
 		f := newFixture().sampled(vacuousTest).sampled(killerTest, line(totalFile, 3))
 		f.fiveSurvivedOnTwoSites(vacuousTest)
 		caught := f.proven("caught", line(totalFile, 3))
@@ -353,6 +498,19 @@ func TestScanTests(t *testing.T) {
 		}
 		if !slices.IsSortedFunc(tests[0].Changes, func(a, b format.ScanChange) int { return strings.Compare(a.Mutant, b.Mutant) }) {
 			t.Fatalf("changes are not ordered by mutant: %+v", tests[0].Changes)
+		}
+	})
+
+	t.Run("the mutants that stopped a test from starting are written apart from its changes, by id [verifies SP-2029~2]", func(t *testing.T) {
+		f := newFixture().sampled(vacuousTest, line(totalFile, 3), line(totalFile, 4))
+		f.fiveSurvivedOnTwoSites(vacuousTest)
+		first, second := f.proven("stopped/1", line(totalFile, 3)), f.proven("stopped/2", line(totalFile, 4))
+		f.outcome(first, vacuousTest, runs(vacuity.RunNotStarted)).outcome(second, vacuousTest, runs(vacuity.RunNotStarted))
+		tests := classify(t, f.input).ScanTests()
+		want := []string{first, second}
+		slices.Sort(want)
+		if len(tests) != 1 || !slices.Equal(tests[0].NotStarted, want) || len(tests[0].Changes) != vacuity.MinChanges {
+			t.Fatalf("tests = %+v", tests)
 		}
 	})
 }

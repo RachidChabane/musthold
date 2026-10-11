@@ -44,7 +44,7 @@ func (s *Service) plan(ctx context.Context, ref *reference, request Request, bas
 	}
 	var running []ports.ScanCase
 	for _, scanCase := range ref.cases {
-		if vacuity.Green(ref.runs[scanCase.ID]) && changed.Intersects(ref.coverage[scanCase.ID]) {
+		if vacuity.Green(ref.runs[scanCase.ID]) && changed.Intersects(ref.coverage[scanCase.ID].Lines) {
 			running = append(running, scanCase)
 		}
 	}
@@ -58,11 +58,11 @@ func (s *Service) plan(ctx context.Context, ref *reference, request Request, bas
 	return plan{mode: format.ScanModeChange, sampled: sampled, targets: targets}, nil
 }
 
-// coveredBy is the set of lines the given tests ran.
+// coveredBy is the set of lines the given tests ran, start-up included.
 func (s *Service) coveredBy(ref reference, tests []ecosystem.TestID) scanscope.LineSet {
 	set := scanscope.LineSet{}
 	for _, test := range tests {
-		for _, line := range ref.coverage[test] {
+		for _, line := range ref.coverage[test].Lines {
 			set[line] = true
 		}
 	}

@@ -31,7 +31,7 @@ const (
 	generatedPromise   = "P1"
 )
 
-var allRuns = []vacuity.Run{vacuity.RunPassed, vacuity.RunFailed, vacuity.RunTimedOut, vacuity.RunErrored}
+var allRuns = []vacuity.Run{vacuity.RunPassed, vacuity.RunFailed, vacuity.RunTimedOut, vacuity.RunErrored, vacuity.RunNotStarted}
 
 func testPool() []ecosystem.TestID {
 	tests := make([]ecosystem.TestID, generatedTests)
@@ -80,6 +80,8 @@ const (
 	greenShare            = 85
 	survivedShare         = 82
 	killedShare           = 9
+	notStartedShare       = 4
+	ownedShare            = 80
 	likelyShare           = 85
 	sentinelShare         = 10
 	identicalShare        = 5
@@ -114,6 +116,8 @@ func mutantRuns(t *rapid.T, sentinel bool) []vacuity.Run {
 		return runs(vacuity.RunPassed)
 	case draw < survivedShare+killedShare:
 		return runs(vacuity.RunFailed)
+	case draw < survivedShare+killedShare+notStartedShare:
+		return runs(vacuity.RunNotStarted)
 	}
 	return rapid.SliceOfN(rapid.SampledFrom(allRuns), 0, unsettledMaxRuns).Draw(t, "unsettled")
 }
@@ -176,7 +180,7 @@ func inputGenerator() *rapid.Generator[vacuity.Input] {
 		tests := testPool()
 		input := vacuity.Input{
 			Reference: map[ecosystem.TestID][]vacuity.Run{},
-			Coverage:  map[ecosystem.TestID][]vacuity.Line{},
+			Coverage:  map[ecosystem.TestID]vacuity.Coverage{},
 			Outcomes:  map[string]map[ecosystem.TestID][]vacuity.Run{},
 			Sampled:   eachOf(t, "sampled", tests, sampledShare),
 		}
@@ -184,7 +188,8 @@ func inputGenerator() *rapid.Generator[vacuity.Input] {
 			if chance(t, "known", likelyShare) {
 				input.Reference[test] = referenceRuns(t)
 			}
-			input.Coverage[test] = eachOf(t, "coverage", linePool(), coveredShare)
+			lines := eachOf(t, "coverage", linePool(), coveredShare)
+			input.Coverage[test] = vacuity.Coverage{Lines: lines, Owned: eachOf(t, "owned", lines, ownedShare)}
 		}
 		for index := range rapid.IntRange(minMutants, maxMutants).Draw(t, "mutants") {
 			mutant := mutantGenerator(fmt.Sprintf("m%d", index)).Draw(t, "mutant")
@@ -285,8 +290,10 @@ func TestDeterminism(t *testing.T) {
 				mutant.Differences = rapid.Permutation(mutant.Differences).Draw(t, "differences")
 				shuffled.Mutants[index] = mutant
 			}
-			for test, lines := range input.Coverage {
-				shuffled.Coverage[test] = rapid.Permutation(lines).Draw(t, "coverage")
+			for test, coverage := range input.Coverage {
+				shuffled.Coverage[test] = vacuity.Coverage{
+					Lines: rapid.Permutation(coverage.Lines).Draw(t, "coverage"), Owned: rapid.Permutation(coverage.Owned).Draw(t, "owned"),
+				}
 			}
 			if !reflect.DeepEqual(mustClassify(t, input), mustClassify(t, shuffled)) {
 				t.Fatal("a permutation of the input changed the result")
@@ -335,7 +342,7 @@ func TestSoundness(t *testing.T) {
 					t.Fatalf("%s: %d changes on %d sites", verdict.Test, len(verdict.Changes), verdict.Sites())
 				}
 				for _, change := range verdict.Changes {
-					if change.Outcome != format.ScanSurvived || vacuity.Settle(input.Outcomes[change.Mutant][verdict.Test]) != format.ScanSurvived {
+					if change.Outcome != format.ScanSurvived || vacuity.Settle(input.Outcomes[change.Mutant][verdict.Test]) != vacuity.SettledSurvived {
 						t.Fatalf("%s did not survive %s", verdict.Test, change.Mutant)
 					}
 				}
@@ -354,7 +361,7 @@ func TestSoundness(t *testing.T) {
 				for _, route := range result.Routes[mutant.ID] {
 					if route.Kind == format.ScanRouteKilledByTest {
 						killer := ecosystem.TestID(route.Test)
-						if !vacuity.Green(input.Reference[killer]) || vacuity.Settle(input.Outcomes[mutant.ID][killer]) != format.ScanKilled {
+						if !vacuity.Green(input.Reference[killer]) || vacuity.Settle(input.Outcomes[mutant.ID][killer]) != vacuity.SettledKilled {
 							t.Fatalf("%s proves %s without a green 3/3 kill", killer, mutant.ID)
 						}
 					}
@@ -390,7 +397,7 @@ func TestCountProperties(t *testing.T) {
 }
 
 func TestScanStatementOfAResult(t *testing.T) {
-	t.Run("a scan statement built from any result validates in the format [verifies SP-2029~1]", func(t *testing.T) {
+	t.Run("a scan statement built from any result validates in the format [verifies SP-2029~2]", func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
 			input := inputGenerator().Draw(t, "input")
 			result := mustClassify(t, input)
@@ -420,6 +427,122 @@ func TestScanStatementOfAResult(t *testing.T) {
 			slices.SortFunc(statement.Predicate.Mutants, func(a, b format.ScanMutant) int { return strings.Compare(a.ID, b.ID) })
 			if err := statement.Validate(); err != nil {
 				t.Fatal(err)
+			}
+		})
+	})
+}
+
+// startUpLine is a line no generated test runs, for a mutant added on top of a
+// generated scan.
+var startUpLine = line("src/start_up.py", 1)
+
+// withStartUpPair adds to the input a mutant proven by a difference on
+// startUpLine and, when runs are given, the runs of the test on it and the
+// line in the test's coverage, owned or not.
+func withStartUpPair(input vacuity.Input, test ecosystem.TestID, runsOnIt []vacuity.Run, owned bool) (vacuity.Input, string) {
+	added := cloneInput(input)
+	id := generatedID("start-up")
+	added.Mutants = append(added.Mutants, vacuity.Mutant{ID: id, Lines: []vacuity.Line{startUpLine}, Differences: []vacuity.Difference{differs()}})
+	added.Outcomes[id] = map[ecosystem.TestID][]vacuity.Run{}
+	if runsOnIt == nil {
+		return added, id
+	}
+	added.Outcomes[id][test] = runsOnIt
+	coverage := added.Coverage[test]
+	coverage.Lines = append(slices.Clone(coverage.Lines), startUpLine)
+	if owned {
+		coverage.Owned = append(slices.Clone(coverage.Owned), startUpLine)
+	}
+	added.Coverage[test] = coverage
+	return added, id
+}
+
+// sameJudgement reports whether two results give every test the same class,
+// reason and changes, the same counts and the same routes.
+func sameJudgement(a, b vacuity.Result) bool {
+	if a.Counts != b.Counts || !reflect.DeepEqual(a.Routes, b.Routes) || len(a.Verdicts) != len(b.Verdicts) {
+		return false
+	}
+	for index := range a.Verdicts {
+		left, right := a.Verdicts[index], b.Verdicts[index]
+		if left.Test != right.Test || left.Class != right.Class || left.Reason != right.Reason || !slices.Equal(left.Changes, right.Changes) {
+			return false
+		}
+	}
+	return true
+}
+
+func ownsOneOf(coverage vacuity.Coverage, lines []vacuity.Line) bool {
+	return slices.ContainsFunc(lines, func(l vacuity.Line) bool { return slices.Contains(coverage.Owned, l) })
+}
+
+func TestStartUpProperties(t *testing.T) {
+	t.Run("a survival on a line the test ran only at start-up changes no class and creates no route [verifies SP-2133~1]", func(t *testing.T) {
+		rapid.Check(t, func(t *rapid.T) {
+			input := inputGenerator().Draw(t, "input")
+			test := rapid.SampledFrom(testPool()).Draw(t, "test")
+			without, _ := withStartUpPair(input, test, nil, false)
+			with, _ := withStartUpPair(input, test, runs(vacuity.RunPassed), false)
+			if !sameJudgement(mustClassify(t, without), mustClassify(t, with)) {
+				t.Fatalf("a start-up-only survival of %s changed the judgement", test)
+			}
+		})
+	})
+
+	t.Run("runs that did not start change no class and create no route [verifies SP-2133~1]", func(t *testing.T) {
+		rapid.Check(t, func(t *rapid.T) {
+			input := inputGenerator().Draw(t, "input")
+			test := rapid.SampledFrom(testPool()).Draw(t, "test")
+			owned := rapid.Bool().Draw(t, "owned")
+			without, _ := withStartUpPair(input, test, nil, false)
+			with, id := withStartUpPair(input, test, runs(vacuity.RunNotStarted), owned)
+			result := mustClassify(t, with)
+			if !sameJudgement(mustClassify(t, without), result) {
+				t.Fatalf("runs of %s that did not start changed the judgement", test)
+			}
+			verdict := verdictsByTest(result)[test]
+			listed := slices.Contains(verdict.NotStarted, id)
+			if want := owned && slices.Contains(format.ScanVerdicts(), verdict.Class); listed != want {
+				t.Fatalf("listed %v, want %v", listed, want)
+			}
+		})
+	})
+
+	t.Run("no survival on a line a test does not own is one of its changes [verifies SP-2133~1]", func(t *testing.T) {
+		rapid.Check(t, func(t *rapid.T) {
+			input := inputGenerator().Draw(t, "input")
+			byID := map[string]vacuity.Mutant{}
+			for _, mutant := range input.Mutants {
+				byID[mutant.ID] = mutant
+			}
+			for _, verdict := range mustClassify(t, input).Verdicts {
+				for _, change := range verdict.Changes {
+					if change.Outcome == format.ScanSurvived && !ownsOneOf(input.Coverage[verdict.Test], byID[change.Mutant].Lines) {
+						t.Fatalf("%s counts the survival %s on a line it does not own", verdict.Test, change.Mutant)
+					}
+				}
+			}
+		})
+	})
+
+	t.Run("the changes of a test that verifies nothing are its survivals on the lines it owns [verifies SP-2133~1]", func(t *testing.T) {
+		rapid.Check(t, func(t *rapid.T) {
+			input := inputGenerator().Draw(t, "input")
+			result := mustClassify(t, input)
+			for _, verdict := range result.Verdicts {
+				if verdict.Class != format.ScanVerifiesNothing {
+					continue
+				}
+				survivals := 0
+				for _, mutant := range input.Mutants {
+					settled := vacuity.Settle(input.Outcomes[mutant.ID][verdict.Test])
+					if result.Proven(mutant.ID) && ownsOneOf(input.Coverage[verdict.Test], mutant.Lines) && settled == vacuity.SettledSurvived {
+						survivals++
+					}
+				}
+				if len(verdict.Changes) != survivals {
+					t.Fatalf("%s verifies nothing on %d changes, %d owned survivals", verdict.Test, len(verdict.Changes), survivals)
+				}
 			}
 		})
 	})

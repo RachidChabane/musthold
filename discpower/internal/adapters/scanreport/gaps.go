@@ -38,11 +38,7 @@ func unprovenGaps(report scan.Report) string {
 		maps.Copy(gaps, test.Gaps)
 	}
 	if len(gaps) > 0 {
-		noun := mutantsNoun
-		if len(gaps) == 1 {
-			noun = mutantNoun
-		}
-		parts = append(parts, fmt.Sprintf(gapsFormat, len(gaps), noun, gapCounts(gaps)))
+		parts = append(parts, fmt.Sprintf(gapsFormat, len(gaps), plural(len(gaps), mutantNoun, mutantsNoun), gapCounts(gaps)))
 	}
 	return strings.Join(append(parts, noWitness), separator)
 }
@@ -50,7 +46,7 @@ func unprovenGaps(report scan.Report) string {
 func countEmpty(tests []scan.UnprovenTest) int {
 	empty := 0
 	for _, test := range tests {
-		if test.Proven == 0 && len(test.Gaps) == 0 {
+		if test.Drawn == 0 {
 			empty++
 		}
 	}

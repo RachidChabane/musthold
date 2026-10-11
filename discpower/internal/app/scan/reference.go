@@ -52,9 +52,9 @@ type reference struct {
 	// runs holds the reference runs of every test of the suite.
 	runs  map[ecosystem.TestID][]vacuity.Run
 	green []ecosystem.TestID
-	// coverage holds the lines each green test whose coverage was recorded
-	// ran.
-	coverage map[ecosystem.TestID][]vacuity.Line
+	// coverage holds, for each green test whose coverage was recorded, the
+	// lines it ran and the lines it owns among them.
+	coverage map[ecosystem.TestID]vacuity.Coverage
 	// runTimeout bounds one run of a mutant's tests.
 	runTimeout time.Duration
 	// referenceRuns is how long the three runs of the whole suite took.

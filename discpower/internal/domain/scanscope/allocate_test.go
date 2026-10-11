@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	verifiesAllocation = " [verifies SP-2125~1]"
+	verifiesAllocation = " [verifies SP-2125~2]"
 
 	allocatedFile      = "pkg/code.py"
 	maxAllocatedLines  = 40

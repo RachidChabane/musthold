@@ -46,16 +46,34 @@ type fixture struct {
 func newFixture() *fixture {
 	return &fixture{input: vacuity.Input{
 		Reference: map[ecosystem.TestID][]vacuity.Run{},
-		Coverage:  map[ecosystem.TestID][]vacuity.Line{},
+		Coverage:  map[ecosystem.TestID]vacuity.Coverage{},
 		Outcomes:  map[string]map[ecosystem.TestID][]vacuity.Run{},
 	}}
 }
 
-// sampled adds a sampled test, green on the reference, that ran the lines.
+// sampled adds a sampled test, green on the reference, that ran the lines
+// itself.
 func (f *fixture) sampled(test ecosystem.TestID, lines ...vacuity.Line) *fixture {
 	f.input.Reference[test] = runs(vacuity.RunPassed)
 	f.input.Sampled = append(f.input.Sampled, test)
-	f.input.Coverage[test] = append(f.input.Coverage[test], lines...)
+	return f.owns(test, lines...)
+}
+
+// owns records lines the test ran itself.
+func (f *fixture) owns(test ecosystem.TestID, lines ...vacuity.Line) *fixture {
+	coverage := f.input.Coverage[test]
+	coverage.Lines = append(coverage.Lines, lines...)
+	coverage.Owned = append(coverage.Owned, lines...)
+	f.input.Coverage[test] = coverage
+	return f
+}
+
+// atStartUp records lines the test's process ran before any test started, so
+// that the test ran them without owning them.
+func (f *fixture) atStartUp(test ecosystem.TestID, lines ...vacuity.Line) *fixture {
+	coverage := f.input.Coverage[test]
+	coverage.Lines = append(coverage.Lines, lines...)
+	f.input.Coverage[test] = coverage
 	return f
 }
 
@@ -88,7 +106,7 @@ func (f *fixture) fiveSurvivedOnTwoSites(test ecosystem.TestID) []string {
 		ids[index] = f.proven(fmt.Sprintf("%s/%d", test, index), site)
 		f.outcome(ids[index], test, runs(vacuity.RunPassed))
 	}
-	f.input.Coverage[test] = append(f.input.Coverage[test], line(parseFile, 41), line(parseFile, 44))
+	f.owns(test, line(parseFile, 41), line(parseFile, 44))
 	return ids
 }
 

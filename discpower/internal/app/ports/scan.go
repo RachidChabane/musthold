@@ -44,8 +44,9 @@ type ScanCoverageRequest struct {
 }
 
 // ScanRuns is what a batch of runs did: the tests the runner collected and,
-// per test, the result of each run, in order. A test that was asked for and
-// never reported has no entry.
+// per test, the result of each run, in order. A run is not_started only on
+// the runner's positive evidence that its process stopped before any test
+// began.
 type ScanRuns struct {
 	Cases []ScanCase
 	Runs  map[ecosystem.TestID][]vacuity.Run
@@ -62,8 +63,10 @@ type ScanSuite interface {
 	// time.
 	CoverageOfOneRun() bool
 	// LineCoverage records, per requested test, the lines of the project's
-	// source files the test itself ran. Test files are never reported.
-	LineCoverage(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ScanCoverageRequest) (map[ecosystem.TestID][]vacuity.Line, error)
+	// source files its run executed and, among them, the lines the test itself
+	// ran beyond the start-up of its process: the lines it owns. Test files are
+	// never reported.
+	LineCoverage(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ScanCoverageRequest) (map[ecosystem.TestID]vacuity.Coverage, error)
 	// Operation binds a definition of the workspace to the probe target that
 	// calls it without a spec, when the ecosystem can call it as a function.
 	Operation(workspace ecosystem.Workspace, file, qualname string) (string, bool)

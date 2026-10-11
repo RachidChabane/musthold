@@ -1037,11 +1037,15 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 
 ## Scan verdicts
 
-- **SP-2020~1**: WHEN the runs of a test are settled THE SYSTEM SHALL answer
-  `killed` when exactly three runs all failed, `survived` when exactly three runs
-  all passed, and `inconclusive` for any other runs, a timeout, an error, a
-  missing run or runs that disagree included; and SHALL hold a test green only
-  when exactly three runs on the reference all passed.
+- **SP-2020~2**: WHEN the runs of a test are settled THE SYSTEM SHALL answer
+  `not_started` when exactly three runs all did not start, `killed` when exactly
+  three runs all failed, `survived` when exactly three runs all passed, and
+  `inconclusive` for any other runs, a timeout, an error, a missing run, runs
+  that disagree and any mix with a run that did not start included; SHALL record
+  `killed`, `survived` and `inconclusive` as the outcome of a change and never
+  `not_started`; SHALL hold a test green only when exactly three runs on the
+  reference all passed; and SHALL never count a run that did not start as a
+  failure on a sentinel.
 - **SP-2021~1**: WHEN a test kills a mutant THE SYSTEM SHALL take the kill as a
   `killed_by_test` route only when the test is green, the kill is settled as
   `killed`, and the test failed no run on any sentinel.
@@ -1055,10 +1059,15 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   blind, and the failure reproduced; SHALL never prove a sentinel, a mutant
   identical to the reference in compiled form or a mutant that mutates no line;
   and SHALL list each route of a mutant once, in the format's order.
-- **SP-2024~1**: WHEN the changes of a test are listed THE SYSTEM SHALL list the
-  proven mutants one of whose mutated lines is among the lines that test itself
-  ran, each with its site, the first mutated line by file then number, and the
-  test's settled outcome on it, ordered by site then mutant id.
+- **SP-2024~2**: WHEN the pairs of a test are read THE SYSTEM SHALL take each
+  proven mutant one of whose mutated lines is among the lines the test's run
+  executed, start-up included, with the test's settled outcome on it; SHALL list
+  as a change, with its site, the first mutated line by file then number, a
+  pair settled `killed` or `inconclusive`, and a pair settled `survived` only
+  when the test owns one of the mutant's mutated lines; SHALL list apart, as a
+  mutant that stopped the test from starting, a pair settled `not_started` on a
+  line the test owns; SHALL ignore every other pair; and SHALL order the changes
+  by site then mutant id and the mutants that stopped the test by id.
 - **SP-2025~1**: WHEN a test is classified THE SYSTEM SHALL classify a test that
   is not green as `not_green` and a green test the scan did not draw as
   `not_sampled`; and a sampled green test, in order, as `unproven` with the
@@ -1080,40 +1089,56 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   that test into `verifies_nothing`; and WHEN an unproven mutant that is not a
   sentinel is removed from a scan THE SYSTEM SHALL change no verdict and no
   count.
-- **SP-2029~1**: WHEN the verdicts of a scan are written as scan tests THE SYSTEM
-  SHALL write the sampled green tests in test id order, each change in mutant id
+- **SP-2029~2**: WHEN the verdicts of a scan are written as scan tests THE SYSTEM
+  SHALL write the sampled green tests in test id order, each change, and apart
+  from them each mutant that stopped the test from starting, in mutant id
   order, so that a scan statement holding them, the counts and the routes
   validates in the format.
 - **SP-2030~1**: WHEN an edit set is written into a scan statement THE SYSTEM
   SHALL write its edits in canonical order with the target of a definition
   omitted, so that their scan digest is its mutant id.
+- **SP-2133~1**: WHEN a scan is classified THE SYSTEM SHALL change no class, no
+  reason, no change, no count and no route by a survival on a line a test ran
+  only at start-up or by runs that did not start; SHALL count among the changes
+  of a test that verifies nothing exactly its survivals of proven mutants on
+  lines it owns; SHALL hold a test with an inconclusive outcome on a line it ran
+  only at start-up unproven, and a test that kills a change on such a line
+  caught; and SHALL hold a test whose coverage names no owned line as owning
+  none.
 
 ## Scan
 
-- **SP-2100~1**: WHEN the line coverage of a pytest suite is recorded THE SYSTEM
+- **SP-2100~2**: WHEN the line coverage of a pytest suite is recorded THE SYSTEM
   SHALL run the suite once under a coverage plugin placed only on the import path
   of the workspace, record line events over the setup, call and teardown of each
-  test, and give per test, by node id, the lines of the project's source files it
-  ran, never a line of a test file; and SHALL derive from the same run the
+  test and never during collection, and give per test, by node id, the lines of
+  the project's source files it ran, never a line of a test file, the test
+  owning every line it recorded; and SHALL derive from the same run the
   functions of SP-161, with `sys.monitoring` where the interpreter has it and
   `sys.settrace` otherwise.
-- **SP-2101~1**: WHEN the line coverage of a Go test is recorded THE SYSTEM SHALL
+- **SP-2101~2**: WHEN the line coverage of a Go test is recorded THE SYSTEM SHALL
   build the test binary of its package once in the workspace with coverage of
-  every package of the module, run the test alone from its package directory,
-  anchored to its subtest path, and give every line of each block its cover
-  profile counts as run, as a path relative to the module root, never a line of
-  a file outside the module.
-- **SP-2102~2**: WHEN a scan runs a selection of tests, or the whole suite, a
+  every package of the module in atomic mode, run it once from its package
+  directory with no test to count the blocks its start-up runs, run the test
+  alone from its package directory, anchored to its subtest path, and give every
+  line of each block its cover profile counts as run, and as owned every line of
+  each block it counts more often than the start-up did, summing a block the
+  profile lists more than once, as paths relative to the module root, never a
+  line of a file outside the module; and a test whose binary's start-up left no
+  profile SHALL own no line.
+- **SP-2102~3**: WHEN a scan runs a selection of tests, or the whole suite, a
   number of times THE SYSTEM SHALL address each test by its runner-native id, a
   pytest node id or, for Go, the test file and the subtest path of a leaf test,
   never a parent; run each run of pytest in a session of its own, bounded by the
-  timeout of one run, and the runs of each Go package in one `go test -count`,
-  bounded by that timeout times the number of runs; list the collected tests
-  with their files for a run of the whole suite; give each test one result per
-  run, a pass only for a pass and a failure only for a failure, errored for a
-  skip, an error or a test a run did not report; let a test module that does not
-  import leave the other tests running; and give every run a timeout stopped
-  before it reported a test timed out, starting no later pytest run.
+  timeout of one run, and the runs of each Go package first in one `go test
+  -count`, bounded by that timeout times the number of runs, then as SP-2134
+  gives; list the collected tests with their files for a run of the whole
+  suite; give each test one result per run, a pass only for a pass and a failure
+  only for a failure, not started only as SP-2134 and SP-2135 give, and errored
+  for a skip, an error or a test a run did not report otherwise; let a test
+  module that does not import leave the other tests of a run of the whole suite
+  running; and give every run a timeout stopped before it reported a test timed
+  out, starting no later pytest run.
 - **SP-2103~1**: WHEN a definition a mutant edits is bound for the differential
   search of a scan THE SYSTEM SHALL bind a top-level Python function to
   `package.module:function`, a `src/` layout read from below `src`, and an
@@ -1201,18 +1226,25 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   and, for a quick scan, that `--full` judges the whole suite; the counts of verify nothing, caught at least one
   change and unproven, each over the sampled green tests, and not sampled over
   the green tests; the unproven tests by reason; what their lines lack, as in
-  SP-2129; the line that this is not a pass; for each test that verifies nothing its rank, its id and "passes on all N
-  proven changes in lines it ran", the site and the change, with the input and
-  both results of a difference, what proves it and its repro script; a note
-  when the scan is partial; and the mutants that ran and were proven, the time
-  with the time of each phase, "no model used" and "promises not checked"; and SHALL never print "bug",
-  "PASS" or a score.
-- **SP-2116~2**: WHEN a scan is written as Markdown THE SYSTEM SHALL write the
+  SP-2129; the line that this is not a pass; for each other judged test that k
+  proven changes, k at least one, stopped from starting, in test id order, its id
+  and "k proven changes in lines it ran stopped it from starting; they count
+  neither way", in the singular for one; for each test that verifies nothing its
+  rank, its id and "passes on all N proven changes in lines it ran", followed,
+  when k proven changes stopped it from starting, by "; k more stopped it from
+  starting", the site and the change, with the input and both results of a
+  difference, what proves it and its repro script; a note when the scan is
+  partial; and the mutants that ran and were proven, with those identical when
+  compiled, those that did not build or start and the sentinels that stopped a
+  test binary, the time with the time of each phase, "no model used" and
+  "promises not checked"; and SHALL never print "bug", "PASS" or a score.
+- **SP-2116~3**: WHEN a scan is written as Markdown THE SYSTEM SHALL write the
   same header and depth line, the four counts as a table, the unproven reasons,
-  what their lines lack with one row per unproven test, the line that
-  this is not a pass, each finding with its sentence, change, proof and repro
-  script and its patch as a diff, and the closing line, never "bug", "PASS" or a
-  score.
+  what their lines lack with one row per unproven test, the line that this is
+  not a pass, one item per other judged test that proven changes stopped from
+  starting with the line of SP-2115, each finding with its sentence, change,
+  proof and repro script and its patch as a diff, and the closing line, never
+  "bug", "PASS" or a score.
 - **SP-2117~1**: WHEN the reports of a scan are written THE SYSTEM SHALL write,
   under `.spec-proof/scan/<short commit>/` and in place of the earlier reports of
   that commit, `report.md`, the canonical statement as `scan.json` and, per
@@ -1248,20 +1280,20 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   recorded THE SYSTEM SHALL produce the same canonical statement whatever the
   number of workers, accepted by the scan schema and refused by every reader of
   proofs.
-- **SP-2125~1**: WHEN a scan allocates its operator mutants THE SYSTEM SHALL draw
+- **SP-2125~2**: WHEN a scan allocates its operator mutants THE SYSTEM SHALL draw
   them in rounds over the sampled tests, each round giving a turn, in an order
   shuffled by the seed, to every test that has a mutant left among the admitted
-  lines it ran and no more drawn mutants among them than the fewest such a test
+  lines it owns and no more drawn mutants among them than the fewest such a test
   had when the round began, first among the tests with fewer than six, then
   among all; on its turn a test SHALL draw, among the mutants of its lines not
   drawn yet, the one that gives it a second site while it has fewer than two,
   then the one run by the most tests with fewer than six, then one on a site it
   has not, then one of a family it has not, ties broken by an order shuffled by
   the seed, a site being the first mutated line of a mutant; a drawn mutant SHALL
-  count for every sampled test that ran one of its lines; and THE SYSTEM SHALL
-  draw no mutant that no sampled test ran, give every sampled test at least the
+  count for every sampled test that owns one of its lines; and THE SYSTEM SHALL
+  draw no mutant that no sampled test owns a line of, give every sampled test at least the
   fewer of the mutants of its lines and the budget divided by the number of
-  sampled tests with a mutant, draw every mutant a sampled test ran when the
+  sampled tests with a mutant, draw every mutant on a line a sampled test owns when the
   budget allows, and make the same draw for the same seed whatever the order of
   the mutants.
 - **SP-2126~1**: WHEN a scan keeps its sentinels THE SYSTEM SHALL keep at most
@@ -1275,14 +1307,16 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   duration of one reference run of the whole suite, at least 2 minutes and at
   most 30 minutes; and SHALL fail on a run past its bound with an error that
   names the bound and `--coverage-timeout`.
-- **SP-2129~1**: WHEN a scan is recorded THE SYSTEM SHALL explain each unproven
-  test by the proven changes it ran and, for each other drawn operator mutant on
-  its lines, why it proves nothing: not run within the budget, did not build,
-  identical when compiled, killed only by a test that fails a sentinel, or, when
+- **SP-2129~2**: WHEN a scan is recorded THE SYSTEM SHALL explain each unproven
+  test by its changes, the drawn operator mutants on the lines it ran and, for
+  each of them no route proves, why it proves nothing: not run within the
+  budget, did not build or start, identical when compiled, killed only by a
+  test that fails a sentinel, or, when
   no test kills it, no differential search in the ecosystem, no function the
   search can bind, a bound function it cannot call, or a search that found no
-  difference; and SHALL time each phase of the scan: the reference, the
-  coverage, the draw and the mutants.
+  difference; SHALL count the sentinels on which a run of a test did not
+  start; and SHALL time each phase of the scan: the reference, the coverage, the
+  draw and the mutants.
 - **SP-2130~1**: WHEN a scan is given no number of workers THE SYSTEM SHALL read
   the processors of the machine and the share of its memory that is free, with
   `sysctl` and `memory_pressure` on macOS and /proc/meminfo elsewhere, and run
@@ -1308,3 +1342,32 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   SHALL write the whole output there, however long, and leave it out of the
   captured output; and a scan of a Go suite SHALL read every test event of a run
   from such a file, so that no test goes unreported however much the tests log.
+- **SP-2134~1**: WHEN the `go test -count` process of a Go package exits
+  non-zero without timing out before a test of the package had an end event for
+  every run THE SYSTEM SHALL count that process as one observation of each test
+  of the package, its first end event, and run the package again in fresh
+  processes of one run each, each bounded by the timeout of one run, until every
+  test has as many observations as runs, starting no process after one timed
+  out; and SHALL give a test of a process that is one observation its first end
+  event, timed out when the process timed out, not started only when the process
+  exited non-zero without timing out, the package's binary ended in a failure,
+  no event of the package names a test and no event reports a build failure,
+  and errored otherwise.
+- **SP-2135~1**: WHEN a pytest session does not report a test THE SYSTEM SHALL
+  give it a run that did not start only when a failed collect report of the
+  session, or a `conftest.py` that failed to import before the session began,
+  covers its module, a `conftest.py` or `__init__.py` in a directory on its path,
+  or such a directory, and errored otherwise, a session that ended in a usage,
+  internal or interruption error without such a report included; and SHALL give
+  a test whose fixture or setup failed errored.
+- **SP-2136~1**: WHEN `spec-proof-dp scan --budget 0` runs on a Go project, one
+  of whose packages calls a helper from a test-file variable and from its test
+  bodies, another of which calls it from its test bodies, and a third only at
+  start-up, or on a pytest project, one of whose test modules calls a helper on
+  import and in its test bodies, THE SYSTEM SHALL list, for each test whose
+  binary or module a change of the helper stops from starting, that change
+  apart and count it neither for nor against the test; settle the change as
+  usual for a Go test whose binary starts; record no survival on the helper for
+  the Go test that runs it only at start-up; print how many changes stopped each
+  such test and keep the sentence of the test that verifies nothing; write a
+  statement the format accepts; and replay its finding with every claim held.

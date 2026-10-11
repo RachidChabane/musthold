@@ -28,8 +28,9 @@ type Input struct {
 	Reference map[ecosystem.TestID][]Run
 	// Sampled lists the tests the scan drew.
 	Sampled []ecosystem.TestID
-	// Coverage holds, per test, the lines that test itself ran on the reference.
-	Coverage map[ecosystem.TestID][]Line
+	// Coverage holds, per test, the lines it ran on the reference and the lines
+	// it owns among them.
+	Coverage map[ecosystem.TestID]Coverage
 	Mutants  []Mutant
 	// Outcomes holds, per mutant id, the runs of each test run against it.
 	// Sentinels are included: a test that fails one proves nothing.
@@ -49,9 +50,14 @@ type Verdict struct {
 	Test   ecosystem.TestID
 	Class  format.ScanClass
 	Reason format.ScanUnprovenReason
-	// Changes are the proven mutants the test ran, ordered by site then id; set
-	// for a sampled green test only.
+	// Changes are the pairs of the test with the proven mutants it ran that
+	// count, by the rule of pairKindOf, ordered by site then id; set for a
+	// sampled green test only.
 	Changes []Change
+	// NotStarted are the proven mutants on lines the test owns that stopped it
+	// from starting, by id; they count neither way. Set for a sampled green
+	// test only.
+	NotStarted []string
 }
 
 // Sites counts the distinct sites of the verdict's changes.
@@ -161,29 +167,39 @@ func (s scan) verdict(test ecosystem.TestID, routes map[string][]format.ScanRout
 	case !s.sampled[test]:
 		return Verdict{Test: test, Class: format.ScanNotSampled}
 	}
-	verdict := Verdict{Test: test, Changes: s.changes(test, routes)}
+	verdict := Verdict{Test: test}
+	verdict.Changes, verdict.NotStarted = s.pairs(test, routes)
 	verdict.Class, verdict.Reason = s.judge(test, verdict)
 	return verdict
 }
 
-// changes lists the proven mutants with a mutated line among the lines the test
-// ran, and the test's settled outcome on each.
-func (s scan) changes(test ecosystem.TestID, routes map[string][]format.ScanRoute) []Change {
-	ran := map[Line]bool{}
-	for _, line := range s.input.Coverage[test] {
-		ran[line] = true
-	}
+// pairs reads the test's settled outcome on each proven mutant with a mutated
+// line among the lines it ran, and sorts each pair by the rule of pairKindOf:
+// the changes, ordered by site then id, and the mutants that stopped it from
+// starting, by id.
+func (s scan) pairs(test ecosystem.TestID, routes map[string][]format.ScanRoute) ([]Change, []string) {
+	coverage := s.input.Coverage[test]
+	ran, owned := setOf(coverage.Lines), setOf(coverage.Owned)
 	var changes []Change
+	var notStarted []string
 	for id, mutant := range s.mutants {
-		if len(routes[id]) == 0 || !slices.ContainsFunc(mutant.Lines, func(line Line) bool { return ran[line] }) {
+		if len(routes[id]) == 0 || !ran.holdsAny(mutant.Lines) {
 			continue
 		}
-		changes = append(changes, Change{Mutant: id, Site: mutant.Site(), Outcome: Settle(s.input.Outcomes[id][test])})
+		settled := Settle(s.input.Outcomes[id][test])
+		switch pairKindOf(settled, owned.holdsAny(mutant.Lines)) {
+		case pairChange:
+			outcome, _ := settled.Recorded()
+			changes = append(changes, Change{Mutant: id, Site: mutant.Site(), Outcome: outcome})
+		case pairNotStarted:
+			notStarted = append(notStarted, id)
+		}
 	}
 	slices.SortFunc(changes, func(a, b Change) int {
 		return cmp.Or(format.CompareScanLines(a.Site, b.Site), strings.Compare(a.Mutant, b.Mutant))
 	})
-	return changes
+	slices.Sort(notStarted)
+	return changes, notStarted
 }
 
 // judge classifies a sampled green test, in the order of ADR 0014: a test that
