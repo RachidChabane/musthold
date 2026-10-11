@@ -1,0 +1,294 @@
+package golang
+
+import (
+	"bufio"
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path"
+	"path/filepath"
+	"slices"
+	"strings"
+
+	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
+)
+
+var _ ports.Scanning = (*Strategy)(nil)
+
+const (
+	countFlagName = "-count="
+	// The actions of `go test -json` that end one run of a test.
+	actionPass = "pass"
+	actionFail = "fail"
+	actionSkip = "skip"
+	// testCaseSeparator joins the test file and the subtest path of a test id.
+	testCaseSeparator = "::"
+	testFileSuffix    = "_test.go"
+	scanReproTool     = "go"
+)
+
+// Scan runs the suite for a scan with `go test -json`, and its line coverage
+// with test binaries built with coverage in the workspace.
+func (s *Strategy) Scan() ports.ScanSuite { return scanSuite{deps: s.deps} }
+
+type scanSuite struct {
+	deps Dependencies
+}
+
+// testEvent is one event of `go test -json`.
+type testEvent struct {
+	Action  string `json:"Action"`
+	Package string `json:"Package"`
+	Test    string `json:"Test"`
+}
+
+// Run runs every package, or the packages of the selection with an anchored
+// `-run` expression each, with `-count` set to the number of runs.
+func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanRunRequest) (ports.ScanRuns, error) {
+	module, err := modulePath(os.DirFS(workspace.Dir))
+	if err != nil {
+		return ports.ScanRuns{}, err
+	}
+	batches, err := batchesOf(request.Tests)
+	if err != nil {
+		return ports.ScanRuns{}, err
+	}
+	locator := testLocator{deps: s.deps, workspace: workspace}
+	result := ports.ScanRuns{Runs: map[ecosystem.TestID][]vacuity.Run{}}
+	for _, batch := range batches {
+		argv := append(append([]string{}, toolchain.Command...), testSubcommand, jsonFlag, fmt.Sprintf("%s%d", countFlagName, request.Runs))
+		if len(batch.paths) > 0 {
+			argv = append(argv, runFlag, expression(batch.paths))
+		}
+		argv = append(argv, batch.pattern)
+		executed, err := s.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: workspace.Dir, Timeout: request.Timeout})
+		if err != nil {
+			return ports.ScanRuns{}, fmt.Errorf("run the suite: %w", err)
+		}
+		seen := leafResults(executed.Stdout)
+		missing := vacuity.RunErrored
+		if executed.TimedOut {
+			missing = vacuity.RunTimedOut
+		}
+		wanted := batch.tests
+		if len(wanted) == 0 {
+			for _, key := range sortedKeys(seen) {
+				id, file := locator.id(module, key)
+				result.Cases = append(result.Cases, ports.ScanCase{ID: id, File: file})
+				wanted = append(wanted, id)
+			}
+		}
+		for _, test := range wanted {
+			runs := slices.Clone(seen[keyOf(test, module)])
+			runs = runs[:min(len(runs), request.Runs)]
+			for len(runs) < request.Runs {
+				runs = append(runs, missing)
+			}
+			result.Runs[test] = runs
+		}
+	}
+	return result, nil
+}
+
+// batch is one `go test` invocation: a package pattern and, for a selection,
+// the subtest paths it runs and the tests it reads.
+type batch struct {
+	pattern string
+	paths   [][]string
+	tests   []ecosystem.TestID
+}
+
+// batchesOf groups a selection by package directory; an empty selection is one
+// batch over every package.
+func batchesOf(tests []ecosystem.TestID) ([]batch, error) {
+	if len(tests) == 0 {
+		return []batch{{pattern: allPackages}}, nil
+	}
+	byDir := map[string]*batch{}
+	var dirs []string
+	for _, test := range tests {
+		file, testPath, found := strings.Cut(string(test), testCaseSeparator)
+		if !found || testPath == "" {
+			return nil, fmt.Errorf("%w: %s", ErrUnmappedTest, test)
+		}
+		dir := path.Dir(file)
+		if byDir[dir] == nil {
+			byDir[dir] = &batch{pattern: packagePath(dir)}
+			dirs = append(dirs, dir)
+		}
+		byDir[dir].paths = append(byDir[dir].paths, strings.Split(testPath, subtestSeparator))
+		byDir[dir].tests = append(byDir[dir].tests, test)
+	}
+	slices.Sort(dirs)
+	batches := make([]batch, 0, len(dirs))
+	for _, dir := range dirs {
+		batches = append(batches, *byDir[dir])
+	}
+	return batches, nil
+}
+
+// resultKey names a test by its package import path and its subtest path.
+type resultKey struct {
+	pkg  string
+	test string
+}
+
+// leafResults reads the run results of every leaf test from `go test -json`
+// output: a test none of whose subtests ran. A parent's own result is the
+// merge of its subtests' and is never read.
+func leafResults(output []byte) map[resultKey][]vacuity.Run {
+	results := map[resultKey][]vacuity.Run{}
+	scanner := bufio.NewScanner(bytes.NewReader(output))
+	scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), maxEventLine)
+	for scanner.Scan() {
+		var event testEvent
+		if json.Unmarshal(scanner.Bytes(), &event) != nil || event.Test == "" {
+			continue
+		}
+		run, ends := runOfAction(event.Action)
+		if !ends {
+			continue
+		}
+		key := resultKey{pkg: event.Package, test: event.Test}
+		results[key] = append(results[key], run)
+	}
+	for key := range results {
+		if isParent(key, results) {
+			delete(results, key)
+		}
+	}
+	return results
+}
+
+// maxEventLine bounds one line of `go test -json` output.
+const maxEventLine = 16 << 20
+
+func runOfAction(action string) (vacuity.Run, bool) {
+	switch action {
+	case actionPass:
+		return vacuity.RunPassed, true
+	case actionFail:
+		return vacuity.RunFailed, true
+	case actionSkip:
+		return vacuity.RunErrored, true
+	}
+	return "", false
+}
+
+func isParent(key resultKey, results map[resultKey][]vacuity.Run) bool {
+	for other := range results {
+		if other.pkg == key.pkg && strings.HasPrefix(other.test, key.test+subtestSeparator) {
+			return true
+		}
+	}
+	return false
+}
+
+func sortedKeys(results map[resultKey][]vacuity.Run) []resultKey {
+	keys := make([]resultKey, 0, len(results))
+	for key := range results {
+		keys = append(keys, key)
+	}
+	slices.SortFunc(keys, func(a, b resultKey) int {
+		if byPackage := strings.Compare(a.pkg, b.pkg); byPackage != 0 {
+			return byPackage
+		}
+		return strings.Compare(a.test, b.test)
+	})
+	return keys
+}
+
+// keyOf gives the result key of a test id: the package of its file's directory
+// and its subtest path.
+func keyOf(test ecosystem.TestID, module string) resultKey {
+	file, testPath, _ := strings.Cut(string(test), testCaseSeparator)
+	return resultKey{pkg: importPathOf(module, path.Dir(file)), test: testPath}
+}
+
+// testLocator finds the test file that declares a top-level test function.
+type testLocator struct {
+	deps      Dependencies
+	workspace ecosystem.Workspace
+	declared  map[string]map[string]string
+}
+
+// id names a test by the file that declares its top-level function; a test
+// whose declaration is not found is named after its package directory.
+func (l *testLocator) id(module string, key resultKey) (ecosystem.TestID, string) {
+	dir := rootDirectory
+	if key.pkg != module {
+		dir = strings.TrimPrefix(key.pkg, module+importPathSeparator)
+	}
+	top, _, _ := strings.Cut(key.test, subtestSeparator)
+	file, found := l.files(dir)[top]
+	if !found {
+		file = path.Join(dir, testFileSuffix)
+	}
+	return ecosystem.TestID(file + testCaseSeparator + key.test), file
+}
+
+// files maps each top-level function name declared in the test files of a
+// directory to its file.
+func (l *testLocator) files(dir string) map[string]string {
+	if l.declared == nil {
+		l.declared = map[string]map[string]string{}
+	}
+	if declared, done := l.declared[dir]; done {
+		return declared
+	}
+	declared := map[string]string{}
+	entries, _ := os.ReadDir(filepath.Join(l.workspace.Dir, filepath.FromSlash(dir)))
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), testFileSuffix) {
+			continue
+		}
+		file := path.Join(dir, entry.Name())
+		source, err := os.ReadFile(filepath.Join(l.workspace.Dir, filepath.FromSlash(file)))
+		if err != nil {
+			continue
+		}
+		definitions, err := l.deps.Locator.Locate(file, source)
+		if err != nil {
+			continue
+		}
+		for _, definition := range definitions {
+			if definition.Kind == ecosystem.KindFunction {
+				_, name, _ := strings.Cut(definition.Qualname, qualnameDot)
+				declared[name] = file
+			}
+		}
+	}
+	l.declared[dir] = declared
+	return declared
+}
+
+// Operation binds an exported top-level function to `import/path:Function`;
+// a method or an unexported function has no binding.
+func (scanSuite) Operation(workspace ecosystem.Workspace, file, qualname string) (string, bool) {
+	if path.Ext(file) != goSuffix || strings.HasSuffix(file, testFileSuffix) {
+		return "", false
+	}
+	_, name, found := strings.Cut(qualname, qualnameDot)
+	if !found || strings.Contains(name, qualnameDot) || strings.HasPrefix(qualname, "(") {
+		return "", false
+	}
+	module, err := modulePath(os.DirFS(workspace.Dir))
+	if err != nil {
+		return "", false
+	}
+	target := importPathOf(module, path.Dir(file)) + targetSeparator + name
+	if _, err := parseProbeTarget(target); err != nil {
+		return "", false
+	}
+	return target, true
+}
+
+// Repro runs the one test with `go test`, anchored to its subtest path.
+func (scanSuite) Repro(test ecosystem.TestID) []string {
+	file, testPath, _ := strings.Cut(string(test), testCaseSeparator)
+	return []string{scanReproTool, testSubcommand, countFlag, runFlag, expression([][]string{strings.Split(testPath, subtestSeparator)}), packagePath(path.Dir(file))}
+}

@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
@@ -15,6 +15,8 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/coverage"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/footprint"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/spec-proof/format"
 )
 
 var _ ports.Covering = (*Strategy)(nil)
@@ -46,49 +48,90 @@ type coverageRecorder struct {
 // entries of the requested tests. A non-zero pytest exit is not an error as
 // long as the plugin wrote its report.
 func (c coverageRecorder) Record(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, tests []ecosystem.BoundTest) (coverage.Map, error) {
-	pluginDir := suiterun.ResultsFile(workspace, "")
-	if err := os.MkdirAll(pluginDir, coverageDirPermissions); err != nil {
-		return nil, fmt.Errorf("create the coverage plugin directory: %w", err)
+	report, err := runCoverage(ctx, c.deps, workspace, toolchain)
+	if err != nil {
+		return nil, err
 	}
-	if err := os.WriteFile(filepath.Join(pluginDir, coveragePluginFile), coveragePlugin, probeFilePermissions); err != nil {
-		return nil, fmt.Errorf("write the coverage plugin: %w", err)
+	return unitsOf(report, tests), nil
+}
+
+// coverageReport is what the coverage plugin records, by pytest node id.
+type coverageReport map[string]nodeCoverage
+
+// nodeCoverage holds the units and the lines one test ran: each unit is a file
+// and a qualified name, each line a file and a line number.
+type nodeCoverage struct {
+	Units [][]string          `json:"units"`
+	Lines [][]json.RawMessage `json:"lines"`
+}
+
+// runCoverage runs the whole suite once under the coverage plugin, which the
+// workspace alone receives, and reads its report.
+func runCoverage(ctx context.Context, deps Dependencies, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain) (coverageReport, error) {
+	pluginDir, err := installPlugin(workspace, coveragePluginFile, coveragePlugin)
+	if err != nil {
+		return nil, err
 	}
 	report := suiterun.ResultsFile(workspace, coverageReportSuffix)
 	argv := append(append([]string{}, toolchain.Command...), moduleFlag, pytestModule,
-		pluginFlag, coveragePluginModule, noCacheProvider, noCacheProviderID)
-	pythonPath := strings.Join([]string{pluginDir, importPath(workspace)}, string(filepath.ListSeparator))
-	if _, err := c.deps.Process.Run(ctx, ports.Command{
+		pluginFlag, coveragePluginModule, noCacheProvider, noCacheProviderID, rootDirFlag)
+	pythonPath := pluginPath(pluginDir, workspace)
+	if _, err := deps.Process.Run(ctx, ports.Command{
 		Argv:    argv,
 		Dir:     workspace.Dir,
 		Env:     []string{noBytecodeVariable, pythonPathVariable + pythonPath, coverageOutputVariable + environmentAssignment + report},
-		Timeout: c.deps.Timeout,
+		Timeout: deps.Timeout,
 	}); err != nil {
 		return nil, fmt.Errorf("run the coverage suite: %w", err)
 	}
-	return readCoverage(report, tests)
+	return readCoverage(report)
 }
 
-func readCoverage(report string, tests []ecosystem.BoundTest) (coverage.Map, error) {
+func readCoverage(report string) (coverageReport, error) {
 	content, err := os.ReadFile(report)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrCoverageFailed, err)
 	}
-	var executed map[string][][]string
+	var executed coverageReport
 	if err := json.Unmarshal(content, &executed); err != nil {
 		return nil, fmt.Errorf("%w: unreadable report: %v", ErrCoverageFailed, err)
 	}
+	return executed, nil
+}
+
+// unitsOf keeps the units of the requested tests, keyed as the JUnit report
+// names them.
+func unitsOf(report coverageReport, tests []ecosystem.BoundTest) coverage.Map {
 	requested := make(map[ecosystem.TestID]bool, len(tests))
 	for _, test := range tests {
 		requested[test.ID] = true
 	}
 	result := coverage.Map{}
-	for node, units := range executed {
+	for node, recorded := range report {
 		id, ok := testIDOfNode(node)
 		if ok && requested[id] {
-			result[id] = refsOf(units)
+			result[id] = refsOf(recorded.Units)
 		}
 	}
-	return result, nil
+	return result
+}
+
+// linesOf reads the lines of one test; an entry that is not a file and a
+// positive line number is skipped.
+func linesOf(recorded nodeCoverage) []vacuity.Line {
+	lines := make([]vacuity.Line, 0, len(recorded.Lines))
+	for _, entry := range recorded.Lines {
+		if len(entry) != lineFieldCount {
+			continue
+		}
+		var line vacuity.Line
+		if json.Unmarshal(entry[0], &line.File) != nil || json.Unmarshal(entry[1], &line.Line) != nil || line.Line < 1 {
+			continue
+		}
+		lines = append(lines, line)
+	}
+	slices.SortFunc(lines, format.CompareScanLines)
+	return slices.Compact(lines)
 }
 
 func refsOf(units [][]string) []footprint.Ref {
@@ -101,8 +144,12 @@ func refsOf(units [][]string) []footprint.Ref {
 	return refs
 }
 
-// unitFieldCount is the length of a reported unit: file and qualified name.
-const unitFieldCount = 2
+// unitFieldCount is the length of a reported unit: file and qualified name;
+// lineFieldCount the length of a reported line: file and line number.
+const (
+	unitFieldCount = 2
+	lineFieldCount = 2
+)
 
 // testIDOfNode maps a pytest node id to the identity the JUnit report gives the
 // test: the classname is the module path and the classes, the name is the
