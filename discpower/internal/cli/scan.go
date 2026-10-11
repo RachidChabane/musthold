@@ -108,26 +108,9 @@ func (e Env) scan(args []string) outcome {
 	}
 	defer wired.close()
 	niceness.Lower(scanNiceness)
-	depth := scan.DepthQuick
-	if *full {
-		depth = scan.DepthFull
-	}
-	given := givenFlags(set.FlagSet)
-	preset := scan.PresetOf(depth)
-	request := scan.Request{
-		Root: wired.root, Base: *base, Seed: *seed, SampleSize: preset.SampleSize, Mutants: preset.Mutants, Budget: preset.Budget,
-		Coverage: preset.Coverage, Depth: depth, Workers: *workers, CoverageTimeout: *coverageTimeout,
-		Module: format.Module{Name: moduleName, Version: version.Version},
-	}
-	if given[flagSample] {
-		request.SampleSize = *sample
-	}
-	if given[flagMutants] {
-		request.Mutants = *mutants
-	}
-	if given[flagBudget] {
-		request.Budget = *budget
-	}
+	request := depthRequest(*full, givenFlags(set.FlagSet), scan.Preset{SampleSize: *sample, Mutants: *mutants, Budget: *budget})
+	request.Root, request.Base, request.Seed, request.Workers, request.CoverageTimeout = wired.root, *base, *seed, *workers, *coverageTimeout
+	request.Module = format.Module{Name: moduleName, Version: version.Version}
 	report, err := wired.service.Run(context.Background(), request)
 	if err != nil {
 		return outcome{err: scanFailure(err)}
@@ -148,6 +131,28 @@ func (e Env) scan(args []string) outcome {
 		fmt.Fprint(e.Stdout, scanreport.Text(report))
 	}
 	return outcome{code: ExitClean}
+}
+
+// depthRequest is the request of a depth, quick unless full: the preset of
+// the depth, with the sample, the mutants and the budget the command line
+// gave in place of the preset's.
+func depthRequest(full bool, given map[string]bool, flags scan.Preset) scan.Request {
+	depth := scan.DepthQuick
+	if full {
+		depth = scan.DepthFull
+	}
+	preset := scan.PresetOf(depth)
+	request := scan.Request{SampleSize: preset.SampleSize, Mutants: preset.Mutants, Budget: preset.Budget, Coverage: preset.Coverage, Depth: depth}
+	if given[flagSample] {
+		request.SampleSize = flags.SampleSize
+	}
+	if given[flagMutants] {
+		request.Mutants = flags.Mutants
+	}
+	if given[flagBudget] {
+		request.Budget = flags.Budget
+	}
+	return request
 }
 
 // givenFlags names the flags the command line set.
