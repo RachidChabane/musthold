@@ -179,8 +179,12 @@ to 12 sentinels, one file at a time.
 run on as many workers as the machine allows: one per two processors and per
 GiB of memory above the 40 % the memory guard keeps free, at most four;
 `--workers` sets another number. The sentinels start first, then the mutants in
-the order they were drawn, so a budget that cuts the scan leaves every judged
-test its first mutants. It never mutates a test, vendored,
+the order they were drawn, except that a mutant only settled tests run waits
+behind every mutant an open test runs. Once every sentinel has finished, a test
+that killed a mutant on its lines keeps its class whatever else runs, as does a
+test that failed a sentinel; every other judged test is open. A budget that cuts
+the scan therefore spends its time on the open verdicts first. It never
+mutates a test, vendored,
 generated or migration file nor a line that logs, prints or records a metric,
 and runs each mutant against every test that ran one of its lines, three times.
 

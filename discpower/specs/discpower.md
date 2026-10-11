@@ -1176,14 +1176,15 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   sampled tests ran; and, with a base, take the green tests that ran a line of a
   function whose lines differ from the base, sample them, and admit only the
   lines of those functions the sampled tests ran.
-- **SP-2110~2**: WHEN a scan draws mutants THE SYSTEM SHALL keep only the operator
+- **SP-2110~3**: WHEN a scan draws mutants THE SYSTEM SHALL keep only the operator
   and sentinel candidates whose mutated lines include an admitted line, before
   screening and selection; draw at most the requested number of operator
   mutants, by default 150, by the allocation of SP-2125, and keep the sentinels
   by the rule of SP-2126; give each mutant the digest of its edits as its id and
   the lines of its mutated span; run the sentinels against the same tests as
-  the mutants, never proving one; and start the sentinels first, then the
-  operator mutants in the order the allocation drew them.
+  the mutants, never proving one; and order the mutants to start the sentinels
+  first, then the operator mutants in the order the allocation drew them, the
+  order SP-2139 starts them from.
 - **SP-2111~2**: WHEN a scan runs a mutant THE SYSTEM SHALL run it, on at most
   the requested number of workers, by default those of SP-2130, against every
   green test whose recorded coverage holds one of its mutated lines, three times, each run bounded by
@@ -1378,3 +1379,20 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   SHALL read both afresh for sites that span several packages, a dependency
   among them possibly changed, so that each form is the one a fresh compile of
   the workspace gives.
+- **SP-2138~1**: WHEN a scan follows the outcomes of its finished mutants THE
+  SYSTEM SHALL hold a sampled green test settled only when it failed a run on a
+  sentinel, or when every sentinel has finished, it failed a run on none of
+  them, and it killed, every run failing, a finished mutant that is no sentinel
+  and not identical when compiled, with a mutated line among the lines it ran;
+  SHALL hold every other sampled green test open, whatever it survived; and
+  SHALL give a settled test the class and reason its classification gives
+  whatever the outcomes of the mutants that have not finished, and the same
+  settled tests whatever the order the mutants finished in.
+- **SP-2139~1**: WHEN a scan starts its next mutant THE SYSTEM SHALL start, among
+  the mutants not started yet, the first in the order of SP-2110 that is a
+  sentinel or has a mutated line among the lines, start-up included, that an
+  open sampled test of SP-2138 ran, and only when no such mutant is left the
+  first other one; SHALL read the progress of SP-2138 with every finished
+  mutant recorded, in one place that no running mutant reads; and SHALL leave
+  out no mutant, so that a scan that runs every mutant runs the same ones
+  whatever the order they finish in.

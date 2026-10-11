@@ -60,11 +60,14 @@ type EvidenceSource interface {
 	Gather(ctx context.Context, candidate Candidate, mutant ecosystem.Workspace, runs map[ecosystem.TestID][]vacuity.Run) (Evidence, error)
 }
 
-// execute runs every candidate on the workers until the deadline, if any,
+// execute runs the candidates on the workers until the deadline, if any,
 // passes: no candidate starts after it, and a candidate still running when it
-// passes is stopped and counted as not run. The outcomes are indexed like the
+// passes is stopped and counted as not run. One coordinator starts each
+// candidate on an idle worker, the next one by need (scanscope.Queue), and
+// records each finished candidate in the progress of the scan
+// (vacuity.Progress), which no worker reads. The outcomes are indexed like the
 // candidates.
-func (s *Service) execute(ctx context.Context, ref reference, drawn drawn, deadline time.Time, request Request) ([]outcome, error) {
+func (s *Service) execute(ctx context.Context, ref reference, plan plan, drawn drawn, deadline time.Time, request Request) ([]outcome, error) {
 	budgeted, cancel := s.budgeted(ctx, deadline)
 	defer cancel()
 	runner := mutantRunner{service: s, ref: ref, forms: map[string]string{}, sources: s.evidenceSources(ref, drawn, request.Seed), covered: map[ecosystem.TestID]scanscope.LineSet{}}
@@ -73,47 +76,115 @@ func (s *Service) execute(ctx context.Context, ref reference, drawn drawn, deadl
 			runner.covered[test] = scanscope.NewLineSet(coverage.Lines)
 		}
 	}
-	outcomes := make([]outcome, len(drawn.candidates))
+	workers := max(request.Workers, 1)
 	jobs := make(chan int)
-	errs := make(chan error, max(request.Workers, 1))
+	finished := make(chan finishedRun)
 	var wait sync.WaitGroup
-	for range max(request.Workers, 1) {
-		wait.Add(1)
-		go func() {
-			defer wait.Done()
+	for range workers {
+		wait.Go(func() {
 			for index := range jobs {
 				result, err := runner.run(budgeted, drawn.candidates[index])
-				switch {
-				case budgeted.Err() != nil && ctx.Err() == nil:
-					outcomes[index] = outcome{state: stateNotRun}
-				case err != nil:
-					errs <- err
-					return
-				default:
-					outcomes[index] = result
-				}
+				stopped := budgeted.Err() != nil && ctx.Err() == nil
+				finished <- finishedRun{index: index, result: result, err: err, stopped: stopped}
 			}
-		}()
+		})
 	}
-	var failure error
-dispatch:
-	for _, index := range drawn.order {
-		if !deadline.IsZero() && !s.deps.Clock().Before(deadline) {
-			break
-		}
-		select {
-		case jobs <- index:
-		case failure = <-errs:
-			break dispatch
-		}
+	coordinator := coordinator{
+		service: s, deadline: deadline, drawn: drawn,
+		queue: scanscope.NewQueue(drawn.order), progress: vacuity.NewProgress(progressInput(ref, plan, drawn)),
+		outcomes: make([]outcome, len(drawn.candidates)),
 	}
+	failure := coordinator.dispatch(workers, jobs, finished)
 	close(jobs)
 	wait.Wait()
-	close(errs)
-	if failure == nil {
-		failure = <-errs
+	return coordinator.outcomes, failure
+}
+
+// finishedRun is one candidate a worker finished, with what it did.
+type finishedRun struct {
+	index  int
+	result outcome
+	err    error
+	// stopped is set when the deadline passed while the candidate ran.
+	stopped bool
+}
+
+// coordinator starts the candidates and gathers their outcomes; it alone reads
+// and writes the progress and the queue.
+type coordinator struct {
+	service  *Service
+	deadline time.Time
+	drawn    drawn
+	queue    *scanscope.Queue
+	progress *vacuity.Progress
+	outcomes []outcome
+}
+
+// dispatch keeps every worker busy until no candidate is left, the deadline
+// passes or a candidate fails, and returns the first failure once every
+// started candidate has finished.
+func (c *coordinator) dispatch(workers int, jobs chan<- int, finished <-chan finishedRun) error {
+	var failure error
+	running := 0
+	for {
+		for running < workers && failure == nil && c.mayStart() {
+			index, left := c.queue.Next(c.needed)
+			if !left {
+				break
+			}
+			jobs <- index
+			running++
+		}
+		if running == 0 {
+			return failure
+		}
+		done := <-finished
+		running--
+		if err := c.gather(done); err != nil && failure == nil {
+			failure = err
+		}
 	}
-	return outcomes, failure
+}
+
+// mayStart reports whether the deadline, read on the scan's clock, has not
+// passed.
+func (c *coordinator) mayStart() bool {
+	return c.deadline.IsZero() || c.service.deps.Clock().Before(c.deadline)
+}
+
+// needed reports whether the candidate can still move a verdict: a sentinel
+// always can, and another mutant can when a sampled test whose verdict is
+// still open ran one of its mutated lines.
+func (c *coordinator) needed(index int) bool {
+	candidate := c.drawn.candidates[index]
+	return candidate.Sentinel || c.progress.Open(candidate.Lines)
+}
+
+// gather keeps the outcome of a finished candidate and records it in the
+// progress: a candidate the deadline stopped is not run, and one that failed
+// is the failure of the scan.
+func (c *coordinator) gather(done finishedRun) error {
+	switch {
+	case done.stopped:
+		c.outcomes[done.index] = outcome{state: stateNotRun}
+		return nil
+	case done.err != nil:
+		return done.err
+	}
+	c.outcomes[done.index] = done.result
+	candidate := c.drawn.candidates[done.index]
+	c.progress.Record(vacuity.Mutant{ID: candidate.ID, Lines: candidate.Lines, Sentinel: candidate.Sentinel, CompiledIdentical: done.result.identity}, done.result.runs)
+	return nil
+}
+
+// progressInput is what the progress of a scan follows: the reference runs,
+// the sample, the coverage and every drawn candidate.
+func progressInput(ref reference, plan plan, drawn drawn) vacuity.Input {
+	input := vacuity.Input{Reference: ref.runs, Sampled: plan.sampled, Coverage: ref.coverage}
+	for _, candidate := range drawn.candidates {
+		input.Mutants = append(input.Mutants, vacuity.Mutant{ID: candidate.ID, Lines: candidate.Lines, Sentinel: candidate.Sentinel})
+	}
+	return input
 }
 
 // budgeted is the context of the mutant runs: it ends when the deadline, read
@@ -227,7 +298,34 @@ func (r *mutantRunner) identical(ctx context.Context, edits mutation.EditSet, mu
 	return differential.CompareForms(sites, reference, forms) == power.IdentityIdentical, nil
 }
 
+// referenceForms are the compiled forms of the sites on the reference,
+// memoized by site. The lock guards the memo only: workers that need forms of
+// other sites compile them at the same time, and two that need the same new
+// site may both compile it, to the same form.
 func (r *mutantRunner) referenceForms(ctx context.Context, compiler ports.FormCompiler, sites []string) (differential.CompiledForms, error) {
+	missing := r.unknownSites(sites)
+	if len(missing) > 0 {
+		compiled, err := compiler.Forms(ctx, r.ref.workspace, r.ref.toolchain, missing)
+		if err != nil {
+			return nil, fmt.Errorf("compile the reference: %w", err)
+		}
+		r.mutex.Lock()
+		for _, site := range missing {
+			r.forms[site] = compiled[site]
+		}
+		r.mutex.Unlock()
+	}
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	forms := differential.CompiledForms{}
+	for _, site := range sites {
+		forms[site] = r.forms[site]
+	}
+	return forms, nil
+}
+
+// unknownSites are the sites whose reference form is not memoized yet.
+func (r *mutantRunner) unknownSites(sites []string) []string {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	var missing []string
@@ -236,20 +334,7 @@ func (r *mutantRunner) referenceForms(ctx context.Context, compiler ports.FormCo
 			missing = append(missing, site)
 		}
 	}
-	if len(missing) > 0 {
-		compiled, err := compiler.Forms(ctx, r.ref.workspace, r.ref.toolchain, missing)
-		if err != nil {
-			return nil, fmt.Errorf("compile the reference: %w", err)
-		}
-		for _, site := range missing {
-			r.forms[site] = compiled[site]
-		}
-	}
-	forms := differential.CompiledForms{}
-	for _, site := range sites {
-		forms[site] = r.forms[site]
-	}
-	return forms, nil
+	return missing
 }
 
 // killedByOne reports whether a test failed every run of the mutant.

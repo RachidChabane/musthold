@@ -257,7 +257,7 @@ func (s *Service) Run(ctx context.Context, request Request) (Report, error) {
 	if request.Budget > 0 {
 		deadline = started.Add(request.Budget)
 	}
-	executed, err := s.execute(ctx, reference, drawn, deadline, request)
+	executed, err := s.execute(ctx, reference, plan, drawn, deadline, request)
 	if err != nil {
 		return Report{}, err
 	}

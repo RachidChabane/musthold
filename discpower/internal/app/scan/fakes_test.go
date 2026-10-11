@@ -3,6 +3,7 @@ package scan_test
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
 	"io/fs"
 	"maps"
 	"slices"
@@ -191,6 +192,19 @@ type fakeSuite struct {
 	hangs bool
 	// oneRun makes the fake record every test's coverage in one run.
 	oneRun bool
+	// jitter makes each run of a selection last a time the mutated source
+	// gives, so that the mutants finish in another order than they start.
+	jitter bool
+}
+
+// jitterSpan bounds the time a jittered run lasts.
+const jitterSpan = 9 * time.Millisecond
+
+// jitterOf is how long a jittered run of the source lasts.
+func jitterOf(source string) time.Duration {
+	digest := fnv.New32a()
+	_, _ = digest.Write([]byte(source))
+	return time.Duration(digest.Sum32()) % jitterSpan
 }
 
 func (s *fakeSuite) Run(ctx context.Context, workspace ecosystem.Workspace, _ ecosystem.Toolchain, request ports.ScanRunRequest) (ports.ScanRuns, error) {
@@ -210,6 +224,9 @@ func (s *fakeSuite) Run(ctx context.Context, workspace ecosystem.Workspace, _ ec
 		s.mutex.Lock()
 		s.selections = append(s.selections, slices.Clone(tests))
 		s.mutex.Unlock()
+		if s.jitter {
+			time.Sleep(jitterOf(source))
+		}
 	}
 	for _, id := range tests {
 		test, known := s.tests[id]

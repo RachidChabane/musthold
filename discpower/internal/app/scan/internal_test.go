@@ -52,7 +52,7 @@ func TestCoverageTimeoutBound(t *testing.T) {
 }
 
 func TestStartOrder(t *testing.T) {
-	t.Run("the sentinels start first, then the operator mutants in the order the allocation drew them [verifies SP-2110~2]", func(t *testing.T) {
+	t.Run("the start order holds the sentinels first, then the operator mutants in the order the allocation drew them [verifies SP-2110~3]", func(t *testing.T) {
 		candidates := []Candidate{{ID: "a"}, {ID: "b", Sentinel: true}, {ID: "c"}, {ID: "d", Sentinel: true}, {ID: "e"}}
 		if got := startOrder(candidates, []string{"e", "a", "c", "b", "d"}); !slices.Equal(got, []int{1, 3, 4, 0, 2}) {
 			t.Fatalf("order %v", got)

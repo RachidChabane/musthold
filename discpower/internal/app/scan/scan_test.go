@@ -28,7 +28,7 @@ const (
 	goldenStatement   = "testdata/scan-repository.golden.json"
 	verifiesReference = " [verifies SP-2108~2]"
 	verifiesPlan      = " [verifies SP-2109~1]"
-	verifiesDraw      = " [verifies SP-2110~2]"
+	verifiesDraw      = " [verifies SP-2110~3]"
 	verifiesExecute   = " [verifies SP-2111~2]"
 	verifiesSearch    = " [verifies SP-2112~1]"
 	verifiesRecord    = " [verifies SP-2113~1]"
@@ -251,6 +251,15 @@ func TestScanContract(t *testing.T) {
 		single.Workers = 1
 		if again := run(t, newFixture(), single); !bytes.Equal(again.Encoded, report.Encoded) {
 			t.Fatal("one worker records another statement")
+		}
+	})
+	t.Run("the statement does not depend on the order the mutants finish in"+verifiesContract, func(t *testing.T) {
+		jittered := newFixture()
+		jittered.suite.jitter = true
+		several := request()
+		several.Workers = 4
+		if again := run(t, jittered, several); !bytes.Equal(again.Encoded, report.Encoded) {
+			t.Fatal("mutants finishing in another order record another statement")
 		}
 	})
 }
