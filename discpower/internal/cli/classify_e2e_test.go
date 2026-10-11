@@ -91,9 +91,10 @@ func TestClassifiedScreens(t *testing.T) {
 	if testing.Short() {
 		t.Skip("runs the parcel project's tests against many mutants")
 	}
+	shared := t.TempDir()
 
 	t.Run("a witnessed classification with a threshold of its own source screens a survivor out [verifies SP-1916~1] [verifies SP-1917~1]", func(t *testing.T) {
-		h := newHarness(t, "")
+		h := newHarness(t, shared)
 		h.admitting()
 		h.witnessing()
 		code, imported := h.driveClassifying("CONSISTENT", screeningOut{})
@@ -113,7 +114,7 @@ func TestClassifiedScreens(t *testing.T) {
 	})
 
 	t.Run("an unraised classification that lets a survivor go is handed to the deciders and screens nothing out [verifies SP-1916~1]", func(t *testing.T) {
-		h := newHarness(t, "")
+		h := newHarness(t, shared)
 		h.admitting()
 		code, imported := h.driveClassifying("CONSISTENT", screeningOut{})
 		if code != cli.ExitClean && code != cli.ExitBlocked {
@@ -134,7 +135,7 @@ func TestClassifiedScreens(t *testing.T) {
 	})
 
 	t.Run("an unraised classification that flags a survivor keeps it in the pool and is recorded [verifies SP-1916~1]", func(t *testing.T) {
-		h := newHarness(t, "")
+		h := newHarness(t, shared)
 		h.admitting()
 		code, imported := h.driveClassifying("VIOLATES", screeningOut{})
 		if code != cli.ExitClean && code != cli.ExitBlocked {
@@ -153,7 +154,7 @@ func TestClassifiedScreens(t *testing.T) {
 	})
 
 	t.Run("with the shipped, empty admission table nothing is classified and the screens are the host's [verifies SP-1916~1]", func(t *testing.T) {
-		h := newHarness(t, "")
+		h := newHarness(t, shared)
 		code, imported := h.driveClassifying("VIOLATES", screeningOut{})
 		if code != cli.ExitClean && code != cli.ExitBlocked {
 			t.Fatalf("exit code %d", code)
