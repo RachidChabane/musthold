@@ -62,8 +62,12 @@ type EvidenceSource interface {
 }
 
 // execute runs every candidate on the workers until the deadline, if any,
-// passes. The outcomes are indexed like the candidates.
+// passes: no candidate starts after it, and a candidate still running when it
+// passes is stopped and counted as not run. The outcomes are indexed like the
+// candidates.
 func (s *Service) execute(ctx context.Context, ref reference, drawn drawn, deadline time.Time, request Request) ([]outcome, error) {
+	budgeted, cancel := s.budgeted(ctx, deadline)
+	defer cancel()
 	runner := mutantRunner{service: s, ref: ref, forms: map[string]string{}, sources: s.evidenceSources(ref, drawn, request.Seed), covered: map[ecosystem.TestID]scanscope.LineSet{}}
 	for _, test := range ref.green {
 		if lines, recorded := ref.coverage[test]; recorded {
@@ -79,12 +83,16 @@ func (s *Service) execute(ctx context.Context, ref reference, drawn drawn, deadl
 		go func() {
 			defer wait.Done()
 			for index := range jobs {
-				result, err := runner.run(ctx, drawn.candidates[index])
-				if err != nil {
+				result, err := runner.run(budgeted, drawn.candidates[index])
+				switch {
+				case budgeted.Err() != nil && ctx.Err() == nil:
+					outcomes[index] = outcome{state: stateNotRun}
+				case err != nil:
 					errs <- err
 					return
+				default:
+					outcomes[index] = result
 				}
-				outcomes[index] = result
 			}
 		}()
 	}
@@ -107,6 +115,15 @@ dispatch:
 		failure = <-errs
 	}
 	return outcomes, failure
+}
+
+// budgeted is the context of the mutant runs: it ends when the deadline, read
+// on the scan's clock, passes; with no deadline it ends with the scan.
+func (s *Service) budgeted(ctx context.Context, deadline time.Time) (context.Context, context.CancelFunc) {
+	if deadline.IsZero() {
+		return context.WithCancel(ctx)
+	}
+	return context.WithTimeout(ctx, deadline.Sub(s.deps.Clock()))
 }
 
 // evidenceSources are the evidence a scan gathers without a host: the

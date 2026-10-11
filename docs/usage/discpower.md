@@ -170,7 +170,7 @@ to 12 sentinels, one file at a time.
 | Operator mutants | 72, six per test | 150 |
 | Coverage recorded | the sampled tests | every green test |
 | Tests run on a mutant | the sampled tests that ran its lines | every green test that ran its lines |
-| Budget | no mutant starts after 90 s | none |
+| Budget | 90 s, then running mutants stop and count as not run | none |
 
 `--sample`, `--mutants` and `--budget` replace what either depth sets. Mutants
 run on as many workers as the machine allows: one per two processors and per

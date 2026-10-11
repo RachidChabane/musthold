@@ -182,9 +182,15 @@ type fakeSuite struct {
 	coverageOverruns bool
 	// covered lists the tests whose coverage was asked for.
 	covered []ecosystem.TestID
+	// hangs makes every run of a selection last until its context ends.
+	hangs bool
 }
 
-func (s *fakeSuite) Run(_ context.Context, workspace ecosystem.Workspace, _ ecosystem.Toolchain, request ports.ScanRunRequest) (ports.ScanRuns, error) {
+func (s *fakeSuite) Run(ctx context.Context, workspace ecosystem.Workspace, _ ecosystem.Toolchain, request ports.ScanRunRequest) (ports.ScanRuns, error) {
+	if s.hangs && len(request.Tests) > 0 {
+		<-ctx.Done()
+		return ports.ScanRuns{}, ctx.Err()
+	}
 	source := s.workspaces.source(workspace)
 	result := ports.ScanRuns{Runs: map[ecosystem.TestID][]vacuity.Run{}}
 	tests := request.Tests

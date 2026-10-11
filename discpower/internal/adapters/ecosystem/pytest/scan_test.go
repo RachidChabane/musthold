@@ -28,7 +28,7 @@ const (
 	tracerVariable   = "SPEC_PROOF_COVERAGE_TRACER"
 	settraceTracer   = "settrace"
 	scanRunTimeout   = 2 * time.Minute
-	verifiesScanRuns = " [verifies SP-2102~1]"
+	verifiesScanRuns = " [verifies SP-2102~2]"
 	verifiesLines    = " [verifies SP-2100~1]"
 	verifiesBinding  = " [verifies SP-2103~1]"
 	verifiesBound    = " [verifies SP-2127~1]"

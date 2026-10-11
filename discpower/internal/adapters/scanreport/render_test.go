@@ -85,6 +85,16 @@ func report(t *testing.T) scan.Report {
 	}
 }
 
+func TestGapNoun(t *testing.T) {
+	t.Run("one unproven mutant is named in the singular"+verifiesText, func(t *testing.T) {
+		single := report(t)
+		single.Unproven = []scan.UnprovenTest{{Test: "t::one", Reason: format.ScanTooFewChanges, Gaps: map[string]scan.Gap{"m1": scan.GapUnbound}}}
+		if !strings.Contains(scanreport.Text(single), "they lack: 1 unproven mutant on their lines: 1 with no function to call") {
+			t.Fatalf("text:\n%s", scanreport.Text(single))
+		}
+	})
+}
+
 func TestText(t *testing.T) {
 	text := scanreport.Text(report(t))
 	lines := strings.Split(text, "\n")

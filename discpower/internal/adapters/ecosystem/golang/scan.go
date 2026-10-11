@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/suiterun"
@@ -53,7 +54,8 @@ type testEvent struct {
 }
 
 // Run runs every package, or the packages of the selection with an anchored
-// `-run` expression each, with `-count` set to the number of runs.
+// `-run` expression each, with `-count` set to the number of runs, within the
+// timeout of one run that many times over.
 func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanRunRequest) (ports.ScanRuns, error) {
 	module, err := modulePath(os.DirFS(workspace.Dir))
 	if err != nil {
@@ -72,7 +74,8 @@ func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolc
 		}
 		argv = append(argv, batch.pattern)
 		events := suiterun.ResultsFile(workspace, eventsSuffix)
-		executed, err := s.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: workspace.Dir, Timeout: request.Timeout, StdoutFile: events})
+		timeout := request.Timeout * time.Duration(max(request.Runs, 1))
+		executed, err := s.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: workspace.Dir, Timeout: timeout, StdoutFile: events})
 		if err != nil {
 			return ports.ScanRuns{}, fmt.Errorf("run the suite: %w", err)
 		}

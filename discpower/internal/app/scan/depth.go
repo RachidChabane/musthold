@@ -17,8 +17,8 @@ const (
 	// the coverage of every green test and runs every mutant.
 	DepthFull Depth = iota
 	// DepthQuick samples QuickSampleSize tests, draws CandidatesPerTest mutants
-	// for each, records the coverage of the sampled tests only, and starts no
-	// mutant once QuickBudget has passed.
+	// for each, records the coverage of the sampled tests only, and runs no
+	// mutant after QuickBudget.
 	DepthQuick
 )
 
@@ -29,7 +29,7 @@ const (
 	// QuickMutants is how many operator mutants a quick scan draws: the
 	// allocation's share of each sampled test.
 	QuickMutants = QuickSampleSize * scanscope.CandidatesPerTest
-	// QuickBudget is how long after it began a quick scan starts no mutant.
+	// QuickBudget is how long after it began a quick scan runs mutants.
 	QuickBudget = 90 * time.Second
 )
 

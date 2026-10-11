@@ -37,6 +37,11 @@ const (
 	verifiesAllocated = " [verifies SP-2125~1]"
 	verifiesSentinels = " [verifies SP-2126~1]"
 	verifiesCoverage  = " [verifies SP-2127~1]"
+
+	// inFlightBudget leaves the mutants a fraction of a second, and
+	// inFlightBound is how long a scan stopped by it may take.
+	inFlightBudget = 300 * time.Millisecond
+	inFlightBound  = 10 * time.Second
 )
 
 func run(t *testing.T, f *fixture, req scan.Request) scan.Report {
@@ -398,6 +403,17 @@ func TestMutantExecution(t *testing.T) {
 		}
 		if statement.Counts.Unproven != 3 || statement.Counts.VerifiesNothing != 0 {
 			t.Fatalf("counts %+v", statement.Counts)
+		}
+	})
+	t.Run("a mutant still running when the budget passes is stopped and counted as not run"+verifiesExecute, func(t *testing.T) {
+		f := newFixture()
+		f.suite.hangs = true
+		req := request()
+		req.Budget = inFlightBudget
+		started := time.Now()
+		report := run(t, f, req)
+		if !report.Partial || report.Mutants.NotRun != report.Mutants.Drawn || len(report.Statement.Predicate.Mutants) != 0 || time.Since(started) > inFlightBound {
+			t.Fatalf("partial %v, mutants %+v after %s", report.Partial, report.Mutants, time.Since(started))
 		}
 	})
 	t.Run("a difference that does not reproduce on the mutant proves nothing"+verifiesSearch, func(t *testing.T) {

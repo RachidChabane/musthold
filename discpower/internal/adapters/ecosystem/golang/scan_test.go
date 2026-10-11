@@ -25,7 +25,7 @@ const (
 	acceptsAnyPercent = "discount_test.go::TestDiscountAcceptsAnyPercent"
 	chargedBelowFifty = "tally_test.go::TestShipping/charged_below_fifty"
 	scanRunTimeout    = 3 * time.Minute
-	verifiesScanRuns  = " [verifies SP-2102~1]"
+	verifiesScanRuns  = " [verifies SP-2102~2]"
 	verifiesLines     = " [verifies SP-2101~1]"
 	verifiesBinding   = " [verifies SP-2103~1]"
 	verifiesEvents    = " [verifies SP-2128~1]"

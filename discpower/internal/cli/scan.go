@@ -63,7 +63,7 @@ var (
 		scanscope.DefaultSampleSize, scanscope.DefaultMutants, scan.QuickSampleSize, scan.QuickBudget)
 	sampleUsage  = fmt.Sprintf("how many green tests to sample (quick: %d, full: %d)", scan.QuickSampleSize, scanscope.DefaultSampleSize)
 	mutantsUsage = fmt.Sprintf("how many operator mutants to draw (quick: %d, full: %d)", scan.QuickMutants, scanscope.DefaultMutants)
-	budgetUsage  = fmt.Sprintf("stop starting mutants once this long has passed since the scan began, with partial counts (quick: %s, full: no limit; 0: no limit)", scan.QuickBudget)
+	budgetUsage  = fmt.Sprintf("run no mutant once this long has passed since the scan began, with partial counts (quick: %s, full: no limit; 0: no limit)", scan.QuickBudget)
 	workersUsage = fmt.Sprintf("how many mutants, or tests under coverage, run at once (0: from the processors and the memory above the guard's free share, at most %d)", scan.MaxAutoWorkers)
 )
 

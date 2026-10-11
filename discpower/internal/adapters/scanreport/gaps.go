@@ -11,7 +11,9 @@ import (
 // Vocabulary of the composition of the unproven tests.
 const (
 	noMutantFormat  = "%d ran no drawn mutant"
-	gapsFormat      = "%d unproven mutants on their lines: %s"
+	gapsFormat      = "%d unproven %s on their lines: %s"
+	mutantNoun      = "mutant"
+	mutantsNoun     = "mutants"
 	gapFormat       = "%d %s"
 	noWitness       = "no witness without a host"
 	gapTableHeading = "| Unproven test | Reason | Proven changes | Unproven mutants on its lines |"
@@ -36,7 +38,11 @@ func unprovenGaps(report scan.Report) string {
 		maps.Copy(gaps, test.Gaps)
 	}
 	if len(gaps) > 0 {
-		parts = append(parts, fmt.Sprintf(gapsFormat, len(gaps), gapCounts(gaps)))
+		noun := mutantsNoun
+		if len(gaps) == 1 {
+			noun = mutantNoun
+		}
+		parts = append(parts, fmt.Sprintf(gapsFormat, len(gaps), noun, gapCounts(gaps)))
 	}
 	return strings.Join(append(parts, noWitness), separator)
 }

@@ -1103,15 +1103,17 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   anchored to its subtest path, and give every line of each block its cover
   profile counts as run, as a path relative to the module root, never a line of
   a file outside the module.
-- **SP-2102~1**: WHEN a scan runs a selection of tests, or the whole suite, a
+- **SP-2102~2**: WHEN a scan runs a selection of tests, or the whole suite, a
   number of times THE SYSTEM SHALL address each test by its runner-native id, a
   pytest node id or, for Go, the test file and the subtest path of a leaf test,
-  never a parent; list the collected tests with their files for a run of the
-  whole suite; give each test one result per run, a pass only for a pass and a
-  failure only for a failure, errored for a skip, an error or a test a run did
-  not report; let a test module that does not import leave the other tests
-  running; and, once a run times out, give its unreported tests and every later
-  run timed out without starting it.
+  never a parent; run each run of pytest in a session of its own, bounded by the
+  timeout of one run, and the runs of each Go package in one `go test -count`,
+  bounded by that timeout times the number of runs; list the collected tests
+  with their files for a run of the whole suite; give each test one result per
+  run, a pass only for a pass and a failure only for a failure, errored for a
+  skip, an error or a test a run did not report; let a test module that does not
+  import leave the other tests running; and give every run a timeout stopped
+  before it reported a test timed out, starting no later pytest run.
 - **SP-2103~1**: WHEN a definition a mutant edits is bound for the differential
   search of a scan THE SYSTEM SHALL bind a top-level Python function to
   `package.module:function`, a `src/` layout read from below `src`, and an
@@ -1164,8 +1166,9 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   30 seconds; run no test of a mutant other than a sentinel whose every edited
   site compiles to the reference's form, a sentinel always running; drop and
   count a mutant that does not splice or build; and
-  start no mutant once the budget has passed since the scan began, marking the
-  scan partial with the counts reached.
+  start no mutant once the budget has passed since the scan began, and stop a
+  mutant still running then, counting it as not run, marking the scan partial
+  with the counts reached.
 - **SP-2112~1**: WHEN no test killed a mutant that is not a sentinel THE SYSTEM
   SHALL search for a difference without a spec: call each function the mutant
   edits that the ecosystem binds and whose every parameter has a known type, on

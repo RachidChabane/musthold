@@ -41,7 +41,7 @@ func TestLeafResults(t *testing.T) {
 		`{"Action":"output","Package":"example.com/tally","Output":"ok\n"}`,
 		`{"Action":"pass","Package":"example.com/tally"}`,
 	}, "\n")
-	t.Run("each leaf test has its results in order; a parent and package events are not tests [verifies SP-2102~1]", func(t *testing.T) {
+	t.Run("each leaf test has its results in order; a parent and package events are not tests [verifies SP-2102~2]", func(t *testing.T) {
 		got := leafResults([]byte(output))
 		want := map[resultKey][]vacuity.Run{
 			{pkg: "example.com/tally", test: "TestShipping/waived"}:  {vacuity.RunPassed, vacuity.RunPassed},
