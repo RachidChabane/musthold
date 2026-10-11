@@ -45,3 +45,9 @@ func shuffle[T any](s *stream, items []T) {
 		items[i], items[j] = items[j], items[i]
 	}
 }
+
+// Shuffle permutes items in place with the stream of the seed and the label: the
+// same seed, label and items always give the same order.
+func Shuffle[T any](seed Seed, label string, items []T) {
+	shuffle(streamFor(seed, label), items)
+}

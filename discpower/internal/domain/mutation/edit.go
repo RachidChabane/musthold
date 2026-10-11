@@ -172,3 +172,14 @@ func (s EditSet) ScanEdits() []format.ScanEdit {
 	}
 	return edits
 }
+
+// EditSetOf reads the wire form of a scan mutant's edits back as an edit set:
+// an omitted target is a definition.
+func EditSetOf(edits []format.ScanEdit) EditSet {
+	set := EditSet{Edits: make([]Edit, len(edits))}
+	for index, edit := range edits {
+		set.Edits[index] = Edit{File: edit.File, Qualname: edit.Qualname, Target: TargetKind(edit.Target), NewSource: edit.NewSource}
+		set.Edits[index].Target = set.Edits[index].Kind()
+	}
+	return set
+}

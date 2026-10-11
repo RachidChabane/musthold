@@ -22,6 +22,9 @@ type Request struct {
 	// definition and module-level assignment of Files is in scope.
 	Entries []footprint.Ref
 	Config  operator.Config
+	// Admit, when set, keeps only the operator and sentinel candidates whose
+	// site it admits, before screening and sampling.
+	Admit func(file mutation.SourceFile, site operator.Site) bool
 }
 
 // Stats counts the stages of a run.
@@ -79,7 +82,9 @@ func (g *Generator) Generate(request Request) (Result, error) {
 		if err != nil {
 			return Result{}, err
 		}
-		inScope := slices.DeleteFunc(candidates, func(c operator.Candidate) bool { return !scope.allowsEdit(c.Edit) })
+		inScope := slices.DeleteFunc(candidates, func(c operator.Candidate) bool {
+			return !scope.allowsEdit(c.Edit) || !request.admits(file, c.Site)
+		})
 		stats.Enumerated += len(inScope)
 		kept, screen, err := operator.Screen(inScope, engine)
 		if err != nil {
@@ -98,7 +103,7 @@ func (g *Generator) Generate(request Request) (Result, error) {
 	stats.EnumeratedByFamily = countFamilies(screened)
 	stats.SampledByFamily = countFamilies(sampled)
 
-	sentinels, err := g.drawSentinels(files, scope, request.Config.Seed)
+	sentinels, err := g.drawSentinels(files, scope, request)
 	if err != nil {
 		return Result{}, err
 	}
@@ -130,7 +135,8 @@ func (g *Generator) verifySplices(files []mutation.SourceFile, mutants []operato
 	return nil
 }
 
-func (g *Generator) drawSentinels(files []mutation.SourceFile, scope scope, seed operator.Seed) ([]operator.Mutant, error) {
+func (g *Generator) drawSentinels(files []mutation.SourceFile, scope scope, request Request) ([]operator.Mutant, error) {
+	seed := request.Config.Seed
 	var drawn []operator.Mutant
 	for _, file := range files {
 		if !scope.hasFile(file.Path) {
@@ -144,7 +150,9 @@ func (g *Generator) drawSentinels(files []mutation.SourceFile, scope scope, seed
 		if err != nil {
 			return nil, err
 		}
-		allowed := slices.DeleteFunc(candidates, func(c operator.SentinelCandidate) bool { return !scope.allowsEdit(c.Edit) })
+		allowed := slices.DeleteFunc(candidates, func(c operator.SentinelCandidate) bool {
+			return !scope.allowsEdit(c.Edit) || !request.admits(file, c.Site)
+		})
 		mutants, err := operator.DrawSentinels(file.Path, allowed, seed)
 		if err != nil {
 			return nil, err
@@ -152,6 +160,11 @@ func (g *Generator) drawSentinels(files []mutation.SourceFile, scope scope, seed
 		drawn = append(drawn, mutants...)
 	}
 	return drawn, nil
+}
+
+// admits reports whether the request keeps a candidate at the site.
+func (r Request) admits(file mutation.SourceFile, site operator.Site) bool {
+	return r.Admit == nil || r.Admit(file, site)
 }
 
 func countStrata(mutants []operator.Mutant) int {
