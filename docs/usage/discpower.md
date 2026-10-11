@@ -183,8 +183,8 @@ the order they were drawn, except that a mutant only settled tests run waits
 behind every mutant an open test runs. Once every sentinel has finished, a test
 that killed a mutant on its lines keeps its class whatever else runs, as does a
 test that failed a sentinel; every other judged test is open. A budget that cuts
-the scan therefore spends its time on the open verdicts first. It never
-mutates a test, vendored,
+the scan therefore spends its time on the open verdicts first, and the mutant
+count names how many mutants it left unrun. It never mutates a test, vendored,
 generated or migration file nor a line that logs, prints or records a metric,
 and runs each mutant against every test that ran one of its lines, three times.
 

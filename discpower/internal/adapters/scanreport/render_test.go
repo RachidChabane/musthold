@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	verifiesText     = " [verifies SP-2115~3]"
+	verifiesText     = " [verifies SP-2115~4]"
 	verifiesMarkdown = " [verifies SP-2116~3]"
 	verifiesGaps     = " [verifies SP-2129~2]"
 	verifiesFolders  = " [verifies SP-2117~1]"
@@ -179,6 +179,17 @@ func TestText(t *testing.T) {
 		partial.Partial = true
 		if !strings.Contains(scanreport.Text(partial), "partial: the budget stopped the scan before every mutant ran") {
 			t.Fatal("no partial note")
+		}
+	})
+	t.Run("the mutant count names the mutants the budget left unrun, in the text and the Markdown"+verifiesText, func(t *testing.T) {
+		partial := report(t)
+		partial.Partial, partial.Mutants.NotRun = true, 21
+		want := "150 mutants (61 proven, 4 identical when compiled, 2 did not build or start, 21 not run within the budget) · "
+		if text, markdown := scanreport.Text(partial), scanreport.Markdown(partial); !strings.Contains(text, want) || !strings.Contains(markdown, want) {
+			t.Fatalf("missing %q in\n%s", want, text)
+		}
+		if strings.Contains(scanreport.Text(report(t)), "not run within the budget") {
+			t.Fatal("a scan that ran every mutant names unrun ones")
 		}
 	})
 	t.Run("a scan with no finding still prints the split and the note"+verifiesText, func(t *testing.T) {

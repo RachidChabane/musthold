@@ -197,10 +197,16 @@ func footer(report scan.Report) string {
 	if mutants.StoppedSentinels > 0 {
 		parts[0] += fmt.Sprintf(stoppedSentinelsFormat, mutants.StoppedSentinels, plural(mutants.StoppedSentinels, sentinelNoun, sentinelsNoun))
 	}
+	if mutants.NotRun > 0 {
+		parts[0] += fmt.Sprintf(notRunFormat, mutants.NotRun, scan.GapNotRun)
+	}
 	parts[0] += ")"
 	parts = append(parts, elapsed(report), noModel, noPromises)
 	return strings.Join(parts, separator)
 }
+
+// notRunFormat counts the drawn mutants the budget left unrun.
+const notRunFormat = ", %d %s"
 
 // Vocabulary of the sentinels that stopped a test binary.
 const (

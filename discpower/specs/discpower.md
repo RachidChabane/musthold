@@ -1220,7 +1220,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   fails the mutant three runs out of three, and that the input of a difference
   gives each recorded result twice on its side; and SHALL report every claim
   that does not hold.
-- **SP-2115~3**: WHEN a scan is printed for a terminal THE SYSTEM SHALL print the
+- **SP-2115~4**: WHEN a scan is printed for a terminal THE SYSTEM SHALL print the
   repository, the short commit, the runner, the tests and the green ones, the
   sampled ones and the seed; on the next line the depth, the budget or "no
   budget", the time, how many of the green tests were sampled and the workers,
@@ -1236,9 +1236,10 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   starting", the site and the change, with the input and both results of a
   difference, what proves it and its repro script; a note when the scan is
   partial; and the mutants that ran and were proven, with those identical when
-  compiled, those that did not build or start and the sentinels that stopped a
-  test binary, the time with the time of each phase, "no model used" and
-  "promises not checked"; and SHALL never print "bug", "PASS" or a score.
+  compiled, those that did not build or start, the sentinels that stopped a
+  test binary and the mutants not run within the budget, the time with the
+  time of each phase, "no model used" and "promises not checked"; and SHALL
+  never print "bug", "PASS" or a score.
 - **SP-2116~3**: WHEN a scan is written as Markdown THE SYSTEM SHALL write the
   same header and depth line, the four counts as a table, the unproven reasons,
   what their lines lack with one row per unproven test, the line that this is
