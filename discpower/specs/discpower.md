@@ -1219,7 +1219,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   fails the mutant three runs out of three, and that the input of a difference
   gives each recorded result twice on its side; and SHALL report every claim
   that does not hold.
-- **SP-2115~2**: WHEN a scan is printed for a terminal THE SYSTEM SHALL print the
+- **SP-2115~3**: WHEN a scan is printed for a terminal THE SYSTEM SHALL print the
   repository, the short commit, the runner, the tests and the green ones, the
   sampled ones and the seed; on the next line the depth, the budget or "no
   budget", the time, how many of the green tests were sampled and the workers,
