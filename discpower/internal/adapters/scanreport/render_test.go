@@ -20,6 +20,9 @@ const (
 	verifiesText     = " [verifies SP-2115~2]"
 	verifiesMarkdown = " [verifies SP-2116~2]"
 	verifiesFolders  = " [verifies SP-2117~1]"
+	verifiesStake    = " [verifies SP-2132~1]"
+
+	stakeLine = "7/40 sampled tests stay green on every proven change in lines they ran: on those lines, their green is no evidence the code is right."
 
 	commit = "3f2a9c1d0b8e7f6a5c4d3e2f1a0b9c8d7e6f5a4b"
 	parse  = "src/invoicing/parse.py"
@@ -144,8 +147,25 @@ func TestText(t *testing.T) {
 	})
 	t.Run("the last line counts the mutants and says no model ran and no promise was checked"+verifiesText, func(t *testing.T) {
 		want := "150 mutants (61 proven, 4 identical when compiled, 2 did not build) · 4m12s (reference 1m0s, coverage 30s, draw 2s, mutants 2m40s) · no model used · promises not checked"
-		if lines[len(lines)-2] != want {
-			t.Fatalf("footer %q", lines[len(lines)-2])
+		if lines[len(lines)-3] != want {
+			t.Fatalf("footer %q", lines[len(lines)-3])
+		}
+	})
+	t.Run("a scan with a test that verifies nothing ends on what its green leaves unshown, over the sampled tests"+verifiesStake, func(t *testing.T) {
+		if lines[len(lines)-2] != stakeLine {
+			t.Fatalf("closing %q", lines[len(lines)-2])
+		}
+	})
+	t.Run("a scan with no test that verifies nothing ends on the footer"+verifiesStake, func(t *testing.T) {
+		none := report(t)
+		none.Statement.Predicate.Counts.VerifiesNothing, none.Statement.Predicate.Counts.Caught = 0, 28
+		none.Findings = nil
+		lines := strings.Split(scanreport.Text(none), "\n")
+		if !strings.HasSuffix(lines[len(lines)-2], "promises not checked") {
+			t.Fatalf("closing %q", lines[len(lines)-2])
+		}
+		if markdown := scanreport.Markdown(none); strings.Contains(markdown, "stay green") {
+			t.Fatalf("markdown:\n%s", markdown)
 		}
 	})
 	t.Run("the headline never says bug, PASS or score"+verifiesText, func(t *testing.T) {
@@ -190,6 +210,11 @@ func TestMarkdown(t *testing.T) {
 		}
 		if found := bannedWords.FindString(markdown); found != "" {
 			t.Fatalf("the report says %q", found)
+		}
+	})
+	t.Run("the report ends on what the green of the tests that verify nothing leaves unshown"+verifiesStake, func(t *testing.T) {
+		if !strings.HasSuffix(markdown, "promises not checked\n\n"+stakeLine+"\n") {
+			t.Fatalf("markdown ends\n%s", markdown[max(0, len(markdown)-300):])
 		}
 	})
 }

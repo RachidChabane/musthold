@@ -202,6 +202,7 @@ acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled ·
    proven by: a differential run of invoicing.parse:split_fields, reproduced, on a reference that agrees with itself
    repro: .spec-proof/scan/3f2a9c1/1/repro.sh
 150 mutants (61 proven) · 4m12s (reference 41s, coverage 1m2s, draw 1s, mutants 2m28s) · no model used · promises not checked
+7/40 sampled tests stay green on every proven change in lines they ran: on those lines, their green is no evidence the code is right.
 ```
 
 "They lack" says why the unproven tests are unproven: how many ran no drawn
@@ -210,6 +211,10 @@ differential search found no difference, had no function to call or could not
 call it, whether the only killing test fails a sentinel, or whether the mutant
 compiled to the reference's form, did not build or did not run within the
 budget. The Markdown report lists each unproven test on its own row.
+
+When a sampled test verifies nothing, the last line says what its green
+leaves unshown, over the sampled tests; a scan in which none does ends on the
+mutant count.
 
 The scan exits 0 whatever it finds. `--budget` stops starting mutants after that
 long and marks the counts partial. Each run of tests under coverage is bounded

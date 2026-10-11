@@ -1298,6 +1298,12 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   SHALL sample 40 tests, draw 150 mutants, record the coverage of every green
   test and have no budget; and a Go suite SHALL run its tests under coverage on
   the scan's workers.
+- **SP-2132~1**: WHEN a scan in which K of the N sampled green tests verify
+  nothing, K at least one, is printed for a terminal or written as Markdown THE
+  SYSTEM SHALL end it, after the line that counts the mutants, with "K/N sampled
+  tests stay green on every proven change in lines they ran: on those lines,
+  their green is no evidence the code is right."; and SHALL end a scan in which
+  no sampled test verifies nothing on the line that counts the mutants.
 - **SP-2128~1**: WHEN a command names a file for its standard output THE SYSTEM
   SHALL write the whole output there, however long, and leave it out of the
   captured output; and a scan of a Go suite SHALL read every test event of a run

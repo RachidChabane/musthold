@@ -55,6 +55,7 @@ const (
 	workerNoun     = "worker"
 	workersNoun    = "workers"
 	fullHint       = " — run with --full for the whole suite"
+	stakeFormat    = "%d/%d sampled tests stay green on every proven change in lines they ran: on those lines, their green is no evidence the code is right."
 )
 
 // depthNames name the depths of a scan.
@@ -194,6 +195,17 @@ func footer(report scan.Report) string {
 	parts[0] += ")"
 	parts = append(parts, elapsed(report), noModel, noPromises)
 	return strings.Join(parts, separator)
+}
+
+// stake is the closing line that says what the tests that verify nothing
+// leave unshown, or "" when no sampled test verifies nothing.
+func stake(report scan.Report) string {
+	counts := report.Statement.Predicate.Counts
+	nothing := counts.Of(format.ScanVerifiesNothing)
+	if nothing == 0 {
+		return ""
+	}
+	return fmt.Sprintf(stakeFormat, nothing, counts.Judged())
 }
 
 // changeLine shows the change of a finding: where, what became what and, for

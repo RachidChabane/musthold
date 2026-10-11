@@ -101,7 +101,7 @@ func TestScanFindsTheTestThatVerifiesNothing(t *testing.T) {
 				if scan.code != 0 || !strings.Contains(scan.stdout, "#1 "+c.vacuous+" passes on all ") {
 					t.Fatalf("exit %d:\n%s", scan.code, scan.output())
 				}
-				for _, want := range []string{"1/5 verify nothing", "Not a pass", "no model used", "promises not checked"} {
+				for _, want := range []string{"1/5 verify nothing", "Not a pass", "no model used", "promises not checked", "1/5 sampled tests stay green on every proven change"} {
 					if !strings.Contains(scan.stdout, want) {
 						t.Errorf("missing %q:\n%s", want, scan.stdout)
 					}

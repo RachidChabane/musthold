@@ -17,7 +17,8 @@ const (
 
 // Text renders the headline a terminal prints: the suite, the four counts over
 // their denominators, why the unproven tests are unproven, one block per test
-// that verifies nothing, and the draw.
+// that verifies nothing, the draw and, when a test verifies nothing, what its
+// green leaves unshown.
 func Text(report scan.Report) string {
 	var out strings.Builder
 	line := func(format string, args ...any) { fmt.Fprintf(&out, format+newline, args...) }
@@ -42,6 +43,9 @@ func Text(report scan.Report) string {
 		line("%srepro: %s/%s", blockIndent, FindingDir(report, finding), reproFile)
 	}
 	line("%s", footer(report))
+	if closing := stake(report); closing != "" {
+		line("%s", closing)
+	}
 	return out.String()
 }
 
@@ -95,5 +99,9 @@ func Markdown(report scan.Report) string {
 	}
 	line("")
 	line("%s", footer(report))
+	if closing := stake(report); closing != "" {
+		line("")
+		line("%s", closing)
+	}
 	return out.String()
 }
