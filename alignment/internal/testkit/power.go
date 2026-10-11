@@ -25,6 +25,9 @@ const (
 	ValidExample
 	// ValidCollateral: VALID but collateral, which the matrix leaves out.
 	ValidCollateral
+	// ValidWitnessed: VALID because it fails a block-bearing witness of the
+	// criterion, on execution.
+	ValidWitnessed
 	// Unattributed: NOT_VIOLATING and unattributed.
 	Unattributed
 	// Sentinel: an AST-level no-op, EQUIVALENT by construction.
@@ -137,7 +140,7 @@ func (p Power) mutant(t testing.TB, mutant Mutant, tests []string) format.Mutant
 	}
 	decision := func(basis format.DecisionBasis) *format.Decision {
 		source := format.HostVotesSource(judgeCount)
-		if basis == format.BasisSpecExample {
+		if basis == format.BasisSpecExample || basis == format.BasisExecution {
 			source = format.SourceExecution
 		}
 		return &format.Decision{Basis: basis, Deciders: []string{"judge-1", "judge-2"}, ConfidenceSource: source, RawConfidence: judgeConfidence, Threshold: decisionThreshold}
@@ -154,6 +157,9 @@ func (p Power) mutant(t testing.TB, mutant Mutant, tests []string) format.Mutant
 	case ValidExample:
 		entry.Validity = judged(t, format.ValidityValid).Corroborated(p.corroboration(mutant, format.CorroborationExampleFailed))
 		entry.Extensions = &format.MutantExtensions{Decision: decision(format.BasisSpecExample)}
+	case ValidWitnessed:
+		entry.Validity = judged(t, format.ValidityValid).Corroborated(p.corroboration(mutant, format.CorroborationWitness))
+		entry.Extensions = &format.MutantExtensions{Decision: decision(format.BasisExecution)}
 	case ValidCollateral:
 		entry.Validity = judged(t, format.ValidityValid).Corroborated(p.corroboration(mutant, format.CorroborationSpecificKill))
 		entry.Extensions = &format.MutantExtensions{Decision: decision(format.BasisJudges), Collateral: true}

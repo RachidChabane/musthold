@@ -38,7 +38,8 @@ type Mutant struct {
 }
 
 // Facts are the pools a matrix is computed from. Pools holds, per criterion, the
-// VALID mutants that are owner-attributed or reasoning-judged and not collateral;
+// VALID mutants that are owner-attributed, witnessed on execution or
+// reasoning-judged and not collateral;
 // Unattributed the UNATTRIBUTED mutants of any grade; Sentinels the sentinel
 // mutants. A test is named by its result identity.
 type Facts struct {

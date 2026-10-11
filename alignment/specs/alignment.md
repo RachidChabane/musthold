@@ -53,9 +53,9 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 
 ## Matrix
 
-- **SP-303~1**: WHEN a discriminating-power Statement is read into pools THE
-  SYSTEM SHALL keep as VALID only owner-attributed or judged, non-collateral
-  mutants, as unattributed those of any grade, and as sentinels the sentinel
+- **SP-303~2**: WHEN a discriminating-power Statement is read into pools THE
+  SYSTEM SHALL keep as VALID only owner-attributed, witnessed on execution or
+  judged, non-collateral mutants, as unattributed those of any grade, and as sentinels the sentinel
   mutants, count a kill only for an outcome killed, and leave out of a test's
   facts a Statement that does not list the test.
 - **SP-304~1**: WHEN a test is classified THE SYSTEM SHALL answer UNDEFINED_OWN

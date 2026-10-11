@@ -279,7 +279,19 @@ func TestMatrixVerdicts(t *testing.T) {
 		}
 	})
 
-	t.Run("a collateral VALID mutant stays out of the matrix [verifies SP-303~1]", func(t *testing.T) {
+	t.Run("a VALID mutant witnessed on execution enters the matrix [verifies SP-303~2]", func(t *testing.T) {
+		h := newHarness(t, testkit.PythonParcel)
+		powers := testkit.PythonPowers()
+		powers[2].Mutants = []testkit.Mutant{{Digest: "w1", Kind: testkit.ValidWitnessed, Killers: []string{testkit.PyZeroRejected}}}
+		h.withPowers(powers)
+		_, output := h.driveAttested(testkit.Oracle{})
+		matrix := string(h.statements()["PAR-3~1 "+testkit.PyZeroRejectedLabel].Predicate.Extensions.Matrix)
+		if strings.Contains(matrix, `"UNDEFINED_OWN"`) || results(output)["PAR-3~1 "+testkit.PyZeroRejectedLabel].Verdict != "ALIGNED" {
+			t.Fatalf("matrix %s\n%s", matrix, output)
+		}
+	})
+
+	t.Run("a collateral VALID mutant stays out of the matrix [verifies SP-303~2]", func(t *testing.T) {
 		h := newHarness(t, testkit.PythonParcel)
 		powers := testkit.PythonPowers()
 		powers[2].Mutants = []testkit.Mutant{{Digest: "c1", Kind: testkit.ValidCollateral, Killers: []string{testkit.PyZeroRejected}}}

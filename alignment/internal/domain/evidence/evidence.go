@@ -1,7 +1,8 @@
 // Package evidence reads discriminating-power Statements into the pools a
 // matrix is computed from. A pool holds only what the claim-power table lets
-// carry weight: VALID mutants that are owner-attributed or reasoning-judged and
-// not collateral, UNATTRIBUTED mutants of any grade, and sentinels.
+// carry weight: VALID mutants that are owner-attributed, witnessed on execution
+// or reasoning-judged and not collateral, UNATTRIBUTED mutants of any grade, and
+// sentinels.
 package evidence
 
 import (
@@ -12,8 +13,10 @@ import (
 	"github.com/RachidChabane/spec-proof/format"
 )
 
-// qualifyingBases are the decision bases whose VALID verdicts enter a pool.
-var qualifyingBases = []format.DecisionBasis{format.BasisSpecExample, format.BasisJudges}
+// qualifyingBases are the decision bases whose VALID verdicts enter a pool: a
+// failed example of the criterion, a failed block-bearing witness of it, and the
+// judges.
+var qualifyingBases = []format.DecisionBasis{format.BasisSpecExample, format.BasisExecution, format.BasisJudges}
 
 // Pools are the three pools of one Statement.
 type Pools struct {
