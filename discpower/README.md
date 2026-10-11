@@ -32,9 +32,12 @@ spec-proof-dp prove --changed
 spec-proof-dp request list
 spec-proof-dp prove --resume
 spec-proof-dp doctor
+spec-proof-dp scan
 ```
 
-`prove` exits 3 while tickets wait for the host. The full command set is in
+`prove` exits 3 while tickets wait for the host. `scan` needs no spec and no
+configuration: it names the tests of any pytest or Go repository that still pass
+when the code they run is broken ([scan](../docs/usage/discpower.md#scan)). The full command set is in
 [commands](../docs/usage/commands.md).
 
 ## Documentation

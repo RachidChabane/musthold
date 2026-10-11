@@ -145,6 +145,64 @@ and sees only its ticket.
 | `spec-proof-dp:judge` | the scope of witnesses, and the validity of a surviving mutant and its equivalence, with a confidence and a witness |
 | `spec-proof-dp:decider` | answers to closed questions, such as the screen of surviving mutants |
 
+## Scan
+
+`spec-proof-dp scan` asks of any pytest or Go repository, with no spec, no model
+and no configuration, which tests still pass when the code they run is broken
+(ADR 0014). `spec-proof scan` runs it through the [umbrella](umbrella.md).
+
+```
+spec-proof-dp scan [--base REV] [--seed N] [--sample N] [--mutants N] [--budget DURATION] [--workers N] [--format text|md|json] [--root DIR]
+```
+
+The work tree must have no uncommitted change to a tracked file: a scan names
+the commit it ran on. It copies the tree into a workspace outside it, runs the
+whole suite three times and records, per test, the lines that test itself ran.
+Without `--base` it samples 40 green tests, stratified by file; with `--base` it
+takes the green tests that run a function changed since that revision. It draws
+up to 150 operator mutants, plus sentinels, on the lines the judged tests ran,
+never in a test, vendored, generated or migration file nor on a line that logs,
+prints or records a metric, and runs each against every test that ran one of its
+lines, three times.
+
+A mutant counts only when executed evidence proves it changes behaviour: another
+green test kills it three runs out of three, or a differential run of the
+function it edits, called on inputs drawn from the literals of the code and the
+tests, gives another result than the reference, reproduced, on an input where the
+reference agrees with itself. A test **verifies nothing** when it passes all of at
+least 5 proven changes, on at least 2 lines, in the lines it ran. The headline
+gives each class over its denominator and never reads as a pass:
+
+```
+acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled · seed 7
+  7/40 verify nothing   21/40 caught ≥ 1 change   12/40 unproven   369/409 not sampled
+  unproven: 9 with < 5 proven changes on 2 sites, 3 with an inconclusive outcome
+  Not a pass: unproven and unsampled tests are unjudged.
+
+#1 tests/test_parse.py::test_parse_ok passes on all 9 proven changes in lines it ran
+   src/invoicing/parse.py:41  >= → >   input line="a,": reference "a", mutant ""
+   proven by: a differential run of invoicing.parse:split_fields, reproduced, on a reference that agrees with itself
+   repro: .spec-proof/scan/3f2a9c1/1/repro.sh
+150 mutants (61 proven) · 4m12s · no model used · promises not checked
+```
+
+The scan exits 0 whatever it finds. `--budget` stops starting mutants after that
+long and marks the counts partial. `--format md` prints the report as a
+pull-request comment and `--format json` the scan statement, which no reader of
+proofs admits.
+
+| Path | Content |
+|---|---|
+| `.spec-proof/scan/<commit>/report.md` | the Markdown report |
+| `.spec-proof/scan/<commit>/scan.json` | the scan statement |
+| `.spec-proof/scan/<commit>/<n>/mutant.patch` | the change the test passes on |
+| `.spec-proof/scan/<commit>/<n>/repro.sh` | extracts the commit into a temporary directory, applies the patch and runs the one test |
+| `.spec-proof/scan/<commit>/<n>/finding.json` | the record a replay re-executes |
+
+`spec-proof scan replay <dir>` re-executes, with no model, the finding of a
+finding folder or every finding of a scan folder, and exits 1 when a claim no
+longer holds.
+
 ## Configuration
 
 `.spec-proof/config.yaml` holds `proofs.discriminating-power`, `ecosystems`,

@@ -1087,3 +1087,149 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-2030~1**: WHEN an edit set is written into a scan statement THE SYSTEM
   SHALL write its edits in canonical order with the target of a definition
   omitted, so that their scan digest is its mutant id.
+
+## Scan
+
+- **SP-2100~1**: WHEN the line coverage of a pytest suite is recorded THE SYSTEM
+  SHALL run the suite once under a coverage plugin placed only on the import path
+  of the workspace, record line events over the setup, call and teardown of each
+  test, and give per test, by node id, the lines of the project's source files it
+  ran, never a line of a test file; and SHALL derive from the same run the
+  functions of SP-161, with `sys.monitoring` where the interpreter has it and
+  `sys.settrace` otherwise.
+- **SP-2101~1**: WHEN the line coverage of a Go test is recorded THE SYSTEM SHALL
+  build the test binary of its package once in the workspace with coverage of
+  every package of the module, run the test alone from its package directory,
+  anchored to its subtest path, and give every line of each block its cover
+  profile counts as run, as a path relative to the module root, never a line of
+  a file outside the module.
+- **SP-2102~1**: WHEN a scan runs a selection of tests, or the whole suite, a
+  number of times THE SYSTEM SHALL address each test by its runner-native id, a
+  pytest node id or, for Go, the test file and the subtest path of a leaf test,
+  never a parent; list the collected tests with their files for a run of the
+  whole suite; give each test one result per run, a pass only for a pass and a
+  failure only for a failure, errored for a skip, an error or a test a run did
+  not report; and, once a run times out, give its unreported tests and every
+  later run timed out without starting it.
+- **SP-2103~1**: WHEN a definition a mutant edits is bound for the differential
+  search of a scan THE SYSTEM SHALL bind a top-level Python function to
+  `package.module:function`, a `src/` layout read from below `src`, and an
+  exported top-level Go function to `import/path:Function`, and SHALL bind no
+  method, nested function, unexported Go function or test; and SHALL give, for
+  each test, the command line that runs it alone from the project root.
+- **SP-2104~1**: WHEN a scan samples tests THE SYSTEM SHALL draw up to the sample
+  size, by default 40, stratified by file: the files and the tests of each file
+  shuffled by the seed, one test of each file in turn, so that no file gives a
+  second test before every file gave one; every test when there are fewer; and
+  the same sample, sorted by test id, for the same seed whatever the order of
+  the tests.
+- **SP-2105~1**: WHEN a scan draws THE SYSTEM SHALL derive the operator seed of
+  every draw from the scan seed under a domain only scans use, so that a scan
+  seed gives one operator seed, never the seed of a local proof nor the scan
+  seed itself.
+- **SP-2106~1**: WHEN the lines of a mutant are computed THE SYSTEM SHALL give
+  every line from the one that holds the first byte of its mutated span to the
+  one that holds its last, the line of the insertion for an empty span, and no
+  line for a span outside the file.
+- **SP-2107~1**: WHEN a scan chooses what it may mutate THE SYSTEM SHALL refuse
+  test files and the files of `tests`, `test` and `testdata` directories,
+  vendored and installed code, generated code marked `Code generated ... DO NOT
+  EDIT.` or `@generated`, and migrations; and SHALL refuse a site with a line
+  that calls a print, a log or a metric.
+- **SP-2108~1**: WHEN a repository is scanned THE SYSTEM SHALL refuse a work tree
+  whose tracked files differ from the head commit before running anything; copy
+  the work tree, scan reports aside, into a workspace outside it and build it,
+  failing when the reference does not build or collects no test; run the whole
+  suite three times there; and record the line coverage of every green test.
+- **SP-2109~1**: WHEN a scan plans what it judges THE SYSTEM SHALL, without a
+  base, sample the green tests by the seed and admit for mutation the lines the
+  sampled tests ran; and, with a base, take the green tests that ran a line of a
+  function whose lines differ from the base, sample them, and admit only the
+  lines of those functions the sampled tests ran.
+- **SP-2110~1**: WHEN a scan draws mutants THE SYSTEM SHALL keep only the operator
+  and sentinel candidates whose mutated lines include an admitted line, before
+  screening and sampling; sample at most the requested number of operator
+  mutants, by default 150, by site and family, plus the sentinels; give each
+  mutant the digest of its edits as its id and the lines of its mutated span;
+  and run the sentinels against the same tests as the mutants, never proving
+  one.
+- **SP-2111~1**: WHEN a scan runs a mutant THE SYSTEM SHALL run it, on at most
+  the requested number of workers, by default 2, against every green test whose
+  coverage holds one of its mutated lines, three times, each run bounded by
+  three times the duration of one reference run of the whole suite and at least
+  30 seconds; run no test of a mutant whose every edited site compiles to the
+  reference's form; drop and count a mutant that does not splice or build; and
+  start no mutant once the budget has passed since the scan began, marking the
+  scan partial with the counts reached.
+- **SP-2112~1**: WHEN no test killed a mutant that is not a sentinel THE SYSTEM
+  SHALL search for a difference without a spec: call each function the mutant
+  edits that the ecosystem binds and whose every parameter has a known type, on
+  inputs drawn by the seed from the literals of the drawn code and of every test
+  file, twice on the reference and twice on the mutant, and report the smallest
+  input on which each side agreed with itself and the two differed, with the
+  operation, the input, the two results and the channel, an exception when
+  either side raised and the return value otherwise; a function the probe cannot
+  call yields no difference and no error.
+- **SP-2113~1**: WHEN a scan is recorded THE SYSTEM SHALL classify every test with
+  the rules of the scan verdicts, write a scan statement of the head commit with
+  the file-set digest of its tracked files, scan reports aside, holding the
+  module, the producer, the mode, the base, the runner, the seed, the partial
+  mark, the counts, every mutant that ran with its edits, lines, origin, family
+  and routes, and every sampled green test, encode it canonically, and give one
+  finding per test that verifies nothing, in rank order, with the first of its
+  changes a difference proves, else its first change, the route, the files the
+  change edits before and after, and the command line that runs the test.
+- **SP-2114~1**: WHEN a finding is replayed THE SYSTEM SHALL refuse a work tree
+  that is dirty or at another commit, and re-execute with no model, on a copy of
+  the work tree, that the test passes the reference and the mutant three runs out
+  of three, that the mutant builds, that a killing test passes the reference and
+  fails the mutant three runs out of three, and that the input of a difference
+  gives each recorded result twice on its side; and SHALL report every claim
+  that does not hold.
+- **SP-2115~1**: WHEN a scan is printed for a terminal THE SYSTEM SHALL print the
+  repository, the short commit, the runner, the tests and the green ones, the
+  sampled ones and the seed; the counts of verify nothing, caught at least one
+  change and unproven, each over the sampled green tests, and not sampled over
+  the green tests; the unproven tests by reason; the line that this is not a
+  pass; for each test that verifies nothing its rank, its id and "passes on all N
+  proven changes in lines it ran", the site and the change, with the input and
+  both results of a difference, what proves it and its repro script; a note
+  when the scan is partial; and the mutants that ran and were proven, the time,
+  "no model used" and "promises not checked"; and SHALL never print "bug",
+  "PASS" or a score.
+- **SP-2116~1**: WHEN a scan is written as Markdown THE SYSTEM SHALL write the
+  same header, the four counts as a table, the unproven reasons, the line that
+  this is not a pass, each finding with its sentence, change, proof and repro
+  script and its patch as a diff, and the closing line, never "bug", "PASS" or a
+  score.
+- **SP-2117~1**: WHEN the reports of a scan are written THE SYSTEM SHALL write,
+  under `.spec-proof/scan/<short commit>/` and in place of the earlier reports of
+  that commit, `report.md`, the canonical statement as `scan.json` and, per
+  finding, `mutant.patch`, a unified diff with one hunk that `git apply` applies
+  to the commit, an executable `repro.sh` that extracts the commit into a
+  temporary directory, links the project's dependency directories, applies the
+  patch and runs the one test, quoted, so that its exit status is the test's,
+  and `finding.json`, which names the commit, the runner, the test, the mutant
+  with its edits and the route.
+- **SP-2119~1**: WHEN `spec-proof-dp scan` runs THE SYSTEM SHALL need no
+  configuration, scan the first pytest or Go suite it detects, write the reports,
+  print the headline, the Markdown report with `--format md` or the scan statement
+  with `--format json`, and exit 0 whatever the counts; SHALL fail, writing no
+  report, on a tree with no such suite, a dirty tree, an unknown format or an
+  extra argument; and `spec-proof-dp scan replay <dir>` SHALL replay the finding
+  of a finding folder or every finding of a scan folder and exit 1 when a claim
+  does not hold.
+- **SP-2120~1**: WHEN the git state of a scanned project is read THE SYSTEM SHALL
+  resolve the head and a base revision to full commit ids, list the tracked
+  files, report the tree dirty only for a changed tracked file outside the scan
+  reports, give the lines of the head that differ from a base, a pure deletion
+  marking the line it follows, and name the repository `owner/name` from its
+  origin, in URL or scp-like form, or by its directory.
+- **SP-2122~1**: WHEN `spec-proof-dp scan` runs on a pytest or a Go project
+  committed in its own repository, one of whose tests runs a function and
+  asserts nothing THE SYSTEM SHALL name that test as the first that verifies
+  nothing and exit 0, leave the work tree with only its reports added, and give a
+  repro script that passes the test on the changed code.
+- **SP-2123~1**: WHEN a scan of the same project is recorded THE SYSTEM SHALL
+  produce the same canonical statement whatever the number of workers, accepted
+  by the scan schema and refused by every reader of proofs.
