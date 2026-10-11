@@ -1262,3 +1262,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   duration of one reference run of the whole suite, at least 2 minutes and at
   most 30 minutes; and SHALL fail on a run past its bound with an error that
   names the bound and `--coverage-timeout`.
+- **SP-2128~1**: WHEN a command names a file for its standard output THE SYSTEM
+  SHALL write the whole output there, however long, and leave it out of the
+  captured output; and a scan of a Go suite SHALL read every test event of a run
+  from such a file, so that no test goes unreported however much the tests log.

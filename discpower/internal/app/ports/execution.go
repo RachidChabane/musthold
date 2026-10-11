@@ -16,6 +16,9 @@ type Command struct {
 	// Timeout is the deadline after which the process group is killed; zero means
 	// no deadline beyond the context's.
 	Timeout time.Duration
+	// StdoutFile, when set, receives the whole standard output, which
+	// CommandResult.Stdout then leaves out.
+	StdoutFile string
 }
 
 // CommandResult is what a finished process left behind.

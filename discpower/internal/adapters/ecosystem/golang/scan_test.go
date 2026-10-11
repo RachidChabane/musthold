@@ -28,6 +28,7 @@ const (
 	verifiesScanRuns  = " [verifies SP-2102~1]"
 	verifiesLines     = " [verifies SP-2101~1]"
 	verifiesBinding   = " [verifies SP-2103~1]"
+	verifiesEvents    = " [verifies SP-2128~1]"
 	verifiesBound     = " [verifies SP-2127~1]"
 	// overrunBound is a coverage bound no run can keep.
 	overrunBound = time.Nanosecond
@@ -64,6 +65,22 @@ func openScanProject(t *testing.T) scanProject {
 	return scanProject{manager: manager, suite: strategy.Scan(), workspace: prepared, toolchain: toolchain, layout: strategy.Layout()}
 }
 
+// noisyTest logs more than a process keeps of a standard output it captures.
+const noisyTest = `package tally
+
+import (
+	"strings"
+	"testing"
+)
+
+func TestNoisy(t *testing.T) {
+	line := strings.Repeat("x", 1000)
+	for range 6000 {
+		t.Log(line)
+	}
+}
+`
+
 func runsOf(run vacuity.Run, count int) []vacuity.Run {
 	return slices.Repeat([]vacuity.Run{run}, count)
 }
@@ -94,6 +111,24 @@ func TestScanRuns(t *testing.T) {
 		ran, err := project.suite.Run(ctx, project.workspace, project.toolchain, ports.ScanRunRequest{Tests: []ecosystem.TestID{chargedBelowFifty}, Runs: 3, Timeout: scanRunTimeout})
 		if err != nil || len(ran.Runs) != 1 || !slices.Equal(ran.Runs[chargedBelowFifty], runsOf(vacuity.RunPassed, 3)) {
 			t.Fatalf("runs = %v, %v", ran.Runs, err)
+		}
+	})
+	t.Run("every test is read however much the tests log"+verifiesEvents, func(t *testing.T) {
+		noisy, err := project.manager.Clone(ctx, project.workspace, project.layout)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := project.manager.WriteFile(noisy, project.layout, "noisy_test.go", []byte(noisyTest)); err != nil {
+			t.Fatal(err)
+		}
+		ran, err := project.suite.Run(ctx, noisy, project.toolchain, ports.ScanRunRequest{Runs: 1, Timeout: scanRunTimeout})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, test := range []ecosystem.TestID{"noisy_test.go::TestNoisy", "tally_test.go::TestShipping/waived_from_fifty"} {
+			if !slices.Equal(ran.Runs[test], runsOf(vacuity.RunPassed, 1)) {
+				t.Fatalf("%s: %v", test, ran.Runs[test])
+			}
 		}
 	})
 	t.Run("a failing test fails each run and a test no run reported is errored"+verifiesScanRuns, func(t *testing.T) {

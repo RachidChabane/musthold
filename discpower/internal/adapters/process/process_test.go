@@ -5,6 +5,8 @@ package process_test
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -69,6 +71,19 @@ func TestRunCapturesOutputAndExitStatus(t *testing.T) {
 		}
 		if _, err := runner.Run(context.Background(), ports.Command{}); !errors.Is(err, process.ErrEmptyCommand) {
 			t.Fatalf("err = %v", err)
+		}
+	})
+
+	t.Run("a standard output sent to a file is written whole and left out of the result [verifies SP-2128~1]", func(t *testing.T) {
+		command := sh(oversizeOutput)
+		command.StdoutFile = filepath.Join(t.TempDir(), "stdout")
+		result, err := runner.Run(context.Background(), command)
+		if err != nil {
+			t.Fatal(err)
+		}
+		written, err := os.ReadFile(command.StdoutFile)
+		if err != nil || len(written) <= process.DefaultOutputLimit || len(result.Stdout) != 0 {
+			t.Fatalf("wrote %d bytes, kept %d, %v", len(written), len(result.Stdout), err)
 		}
 	})
 

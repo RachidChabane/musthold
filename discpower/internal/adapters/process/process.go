@@ -54,6 +54,14 @@ func (r *Runner) Run(ctx context.Context, command ports.Command) (ports.CommandR
 	cmd.Dir = command.Dir
 	cmd.Env = append(os.Environ(), command.Env...)
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	if command.StdoutFile != "" {
+		file, err := os.Create(command.StdoutFile)
+		if err != nil {
+			return ports.CommandResult{}, fmt.Errorf("create the output file of %q: %w", command.Argv[0], err)
+		}
+		defer func() { _ = file.Close() }()
+		cmd.Stdout = file
+	}
 	cmd.WaitDelay = pipeGrace
 	isolateGroup(cmd)
 

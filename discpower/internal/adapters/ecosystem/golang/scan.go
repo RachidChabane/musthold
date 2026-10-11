@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
+	"github.com/RachidChabane/spec-proof/discpower/internal/app/suiterun"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
 )
@@ -31,6 +32,9 @@ const (
 	testCaseSeparator = "::"
 	testFileSuffix    = "_test.go"
 	scanReproTool     = "go"
+	// eventsSuffix names the file that receives the events of one run, whole
+	// however much the tests log.
+	eventsSuffix = ".jsonl"
 )
 
 // Scan runs the suite for a scan with `go test -json`, and its line coverage
@@ -67,11 +71,16 @@ func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolc
 			argv = append(argv, runFlag, expression(batch.paths))
 		}
 		argv = append(argv, batch.pattern)
-		executed, err := s.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: workspace.Dir, Timeout: request.Timeout})
+		events := suiterun.ResultsFile(workspace, eventsSuffix)
+		executed, err := s.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: workspace.Dir, Timeout: request.Timeout, StdoutFile: events})
 		if err != nil {
 			return ports.ScanRuns{}, fmt.Errorf("run the suite: %w", err)
 		}
-		seen := leafResults(executed.Stdout)
+		output, err := os.ReadFile(events)
+		if err != nil {
+			return ports.ScanRuns{}, fmt.Errorf("read the test events: %w", err)
+		}
+		seen := leafResults(output)
 		missing := vacuity.RunErrored
 		if executed.TimedOut {
 			missing = vacuity.RunTimedOut
