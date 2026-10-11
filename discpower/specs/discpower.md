@@ -1371,3 +1371,10 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   the Go test that runs it only at start-up; print how many changes stopped each
   such test and keep the sentence of the test that verifies nothing; write a
   statement the format accepts; and replay its finding with every claim held.
+- **SP-2137~1**: WHEN the compiled forms of sites that all lie in one Go package
+  are computed THE SYSTEM SHALL compile the package's files in the workspace
+  against the listing and the import configuration of its dependencies read
+  the first time that package was compiled so for the same comparison, and
+  SHALL read both afresh for sites that span several packages, a dependency
+  among them possibly changed, so that each form is the one a fresh compile of
+  the workspace gives.
