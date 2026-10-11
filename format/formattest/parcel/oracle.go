@@ -26,6 +26,10 @@ func (Oracle) Answer(_ string, view hostproto.ExecutorView) (string, error) {
 	switch {
 	case len(view.Closed) > 0:
 		return ScreenAnswer(view.User), nil
+	case strings.Contains(string(view.ResponseSchema), `"witnesses"`):
+		return WitnessAnswer(view.User), nil
+	case strings.Contains(string(view.ResponseSchema), `"verdicts"`):
+		return ScopeAnswer(view.User), nil
 	case strings.Contains(string(view.ResponseSchema), `"mutants"`):
 		return generationAnswer(view.User), nil
 	case strings.Contains(string(view.ResponseSchema), `"equivalent"`):
@@ -149,7 +153,11 @@ func ScreenAnswer(user string) string {
 }
 
 func judgeAnswer(user string) string {
-	statement := user[:strings.Index(user, "Operations you may use")]
+	end := strings.Index(user, "Operations you may use")
+	if end < 0 {
+		end = strings.Index(user, "Changed units")
+	}
+	statement := user[:max(end, 0)]
 	if !violates(statement, changedUnits(user)) {
 		return `{"validity":"NOT_VIOLATING","confidence":0.9}`
 	}

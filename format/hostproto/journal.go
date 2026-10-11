@@ -68,6 +68,11 @@ const (
 	// EventWitnessConsumed records the request ids of the raw API log a witness
 	// matched, so that no entry witnesses twice.
 	EventWitnessConsumed EventKind = "witness_consumed"
+	// EventWitnessSetCommitted records, before the witnesses of a criterion run on
+	// any mutant and before the first generation ticket of that criterion, the
+	// digest of a witness set a writer returned: the detail is
+	// `<criterion> <draw> <set digest>`.
+	EventWitnessSetCommitted EventKind = "witness_set_committed"
 )
 
 // Event is one journaled fact. Only the fields that apply are set.

@@ -253,6 +253,17 @@ Go tests of the module in CI.
   the digest of its predecessor from a genesis digest, SHALL refuse a chain in
   which a record was edited, removed, reordered or renumbered, and SHALL derive
   the roster of started executors from the journal.
+- **SP-1982~1**: WHEN a module commits an event about no ticket, such as the digest
+  of a witness set, THE SYSTEM SHALL journal it once, append nothing when an
+  event of the same kind and detail is already in the journal, and report
+  whether it was there before.
+- **SP-1983~1**: WHEN a `generate.witness` or `judge.scope` request is validated THE
+  SYSTEM SHALL require the generator role, a round and a seed of a witness
+  request, and the judge role and neither a round nor a seed of a scope request.
+- **SP-1984~1**: WHEN a discriminating-power Statement carries the witness summary
+  and the fault classes of its pool, or the class, route, witnesses and
+  collateral criteria of a mutant, THE SYSTEM SHALL validate them against the
+  embedded schemas and keep every other reader that ignores them unaffected.
 
 - **SP-195~1**: WHEN a response is discarded THE SYSTEM SHALL remove it so that its
   key can be answered again, treat an absent response as discarded, and provide a

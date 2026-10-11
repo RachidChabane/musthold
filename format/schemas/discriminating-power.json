@@ -58,7 +58,19 @@
             "decision": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/decision" },
             "collateral": { "type": "boolean" },
             "offTarget": { "type": "string" },
-            "unattributed": { "type": "boolean" }
+            "unattributed": { "type": "boolean" },
+            "class": { "enum": ["sentinel", "owner_attributed", "valid_e", "collateral", "excluded", "unsettled"] },
+            "route": { "enum": ["e0_identity", "f3_equivalent", "other_criterion"] },
+            "witnesses": {
+              "type": "array",
+              "items": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/sha256Hex" },
+              "uniqueItems": true
+            },
+            "collateralWith": {
+              "type": "array",
+              "items": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/nonEmptyString" },
+              "uniqueItems": true
+            }
           }
         }
       },

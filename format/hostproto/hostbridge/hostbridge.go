@@ -223,6 +223,25 @@ func (b *Bridge) journal(kind hostproto.EventKind, ticket hostproto.TicketID) er
 	return nil
 }
 
+// Commit journals an event about no ticket once: an event of the same kind and
+// detail already in the journal is not appended again. It reports whether the
+// event was journaled before this call.
+func (b *Bridge) Commit(kind hostproto.EventKind, detail string) (alreadyJournaled bool, err error) {
+	records, err := b.Store.Records()
+	if err != nil {
+		return false, fmt.Errorf("read the journal: %w", err)
+	}
+	for _, record := range records {
+		if record.Event.Kind == kind && record.Event.Detail == detail {
+			return true, nil
+		}
+	}
+	if _, err := b.Store.Append(hostproto.Event{Kind: kind, Detail: detail}); err != nil {
+		return false, fmt.Errorf("journal %s: %w", kind, err)
+	}
+	return false, nil
+}
+
 // Validate marks the accepted votes of an answer validated: execution found
 // nothing against them. A vote in another state is left alone.
 func (b *Bridge) Validate(answer Answer) error {

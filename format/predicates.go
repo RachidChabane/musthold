@@ -95,6 +95,32 @@ type Extensions struct {
 	// executed corroboration of its own (ADR 0005, `signed_pass_basis: judged`).
 	HostExclusions *int            `json:"hostExclusions,omitempty"`
 	Matrix         json.RawMessage `json:"matrix,omitempty"`
+	// Witnesses counts the witnesses of the criterion by where they stand, and
+	// names the universe of every criterion's witnesses the pool was run against.
+	Witnesses *WitnessSummary `json:"witnesses,omitempty"`
+	// Faults groups the mutants that block or escalate by fault (E3).
+	Faults []FaultClass `json:"faults,omitempty"`
+}
+
+// WitnessSummary counts the witnesses of a criterion by status.
+type WitnessSummary struct {
+	Universe         string `json:"universe"`
+	Written          int    `json:"written"`
+	ReadingConflicts int    `json:"readingConflicts,omitempty"`
+	Flaky            int    `json:"flaky,omitempty"`
+	Unrunnable       int    `json:"unrunnable,omitempty"`
+	RefactorDropped  int    `json:"refactorDropped,omitempty"`
+	EscalateOnly     int    `json:"escalateOnly,omitempty"`
+	BlockBearing     int    `json:"blockBearing,omitempty"`
+}
+
+// FaultClass is one fault of a pool: the mutants that edit the same sites and
+// fail the same witnesses, or, failing none, differ on the same inputs.
+type FaultClass struct {
+	Key       string   `json:"key"`
+	Sites     []string `json:"sites"`
+	Witnesses []string `json:"witnesses,omitempty"`
+	Mutants   []string `json:"mutants"`
 }
 
 // Core is the part shared by the three predicates.
@@ -122,6 +148,13 @@ type MutantExtensions struct {
 	Collateral   bool      `json:"collateral,omitempty"`
 	OffTarget    string    `json:"offTarget,omitempty"`
 	Unattributed bool      `json:"unattributed,omitempty"`
+	// Class is the mutant's class for the criterion, Route how execution
+	// excluded it, Witnesses the block-bearing witnesses of the criterion it
+	// fails, reproduced, and CollateralWith the other criteria it is VALID_e for.
+	Class          string   `json:"class,omitempty"`
+	Route          string   `json:"route,omitempty"`
+	Witnesses      []string `json:"witnesses,omitempty"`
+	CollateralWith []string `json:"collateralWith,omitempty"`
 }
 
 // TestResult is the executed outcome of one test against one mutant.

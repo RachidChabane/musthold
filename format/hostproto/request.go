@@ -31,10 +31,16 @@ type Kind string
 const (
 	KindGenerateTargeted        Kind = "generate.targeted"
 	KindGenerateWitnessStrategy Kind = "generate.witnessStrategy"
-	KindJudgeValidity           Kind = "judge.validity"
-	KindJudgeEquivalent         Kind = "judge.equivalent"
-	KindJudgeAlignment          Kind = "judge.alignment"
-	KindDecideClosed            Kind = "decide.closed"
+	// KindGenerateWitness asks a blind writer for the witnesses of a criterion:
+	// tests derived from the spec alone, before and without any mutant.
+	KindGenerateWitness Kind = "generate.witness"
+	KindJudgeValidity   Kind = "judge.validity"
+	KindJudgeEquivalent Kind = "judge.equivalent"
+	KindJudgeAlignment  Kind = "judge.alignment"
+	// KindJudgeScope asks a blind scope judge, per witness, whether the
+	// criterion's text alone fixes the output the witness checks.
+	KindJudgeScope   Kind = "judge.scope"
+	KindDecideClosed Kind = "decide.closed"
 )
 
 // Agent is the executor agent that serves a kind of request.
@@ -59,15 +65,17 @@ const (
 var agentOfKind = map[Kind]Agent{
 	KindGenerateTargeted:        AgentGenerator,
 	KindGenerateWitnessStrategy: AgentGenerator,
+	KindGenerateWitness:         AgentGenerator,
 	KindJudgeValidity:           AgentJudge,
 	KindJudgeEquivalent:         AgentJudge,
 	KindJudgeAlignment:          AgentJudge,
+	KindJudgeScope:              AgentJudge,
 	KindDecideClosed:            AgentDecider,
 }
 
 var kinds = []Kind{
-	KindGenerateTargeted, KindGenerateWitnessStrategy, KindJudgeValidity,
-	KindJudgeEquivalent, KindJudgeAlignment, KindDecideClosed,
+	KindGenerateTargeted, KindGenerateWitnessStrategy, KindGenerateWitness, KindJudgeValidity,
+	KindJudgeEquivalent, KindJudgeAlignment, KindJudgeScope, KindDecideClosed,
 }
 
 // Kinds lists the closed set of request kinds.

@@ -15,7 +15,7 @@
       }
     },
     "kind": {
-      "enum": ["generate.targeted", "generate.witnessStrategy", "judge.validity", "judge.equivalent", "judge.alignment", "decide.closed"]
+      "enum": ["generate.targeted", "generate.witnessStrategy", "generate.witness", "judge.validity", "judge.equivalent", "judge.alignment", "judge.scope", "decide.closed"]
     },
     "role": { "type": "string", "pattern": "^[^:]+:(generator|judge|decider)$" },
     "shape": { "enum": ["open", "closed"] },
@@ -80,7 +80,7 @@
     {
       "if": {
         "required": ["kind"],
-        "properties": { "kind": { "enum": ["generate.targeted", "generate.witnessStrategy"] } }
+        "properties": { "kind": { "enum": ["generate.targeted", "generate.witnessStrategy", "generate.witness"] } }
       },
       "then": {
         "required": ["round", "seed"],
@@ -91,7 +91,7 @@
     {
       "if": {
         "required": ["kind"],
-        "properties": { "kind": { "enum": ["judge.validity", "judge.equivalent", "judge.alignment"] } }
+        "properties": { "kind": { "enum": ["judge.validity", "judge.equivalent", "judge.alignment", "judge.scope"] } }
       },
       "then": { "properties": { "role": { "pattern": ":judge$" } } }
     },
