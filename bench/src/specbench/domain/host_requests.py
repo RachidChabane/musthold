@@ -32,22 +32,23 @@ def request_id_of(ticket: str) -> str:
     return ticket.split(".", 1)[0]
 
 
+EXACT_REQUEST_KINDS: Final[dict[str, RequestKind]] = {
+    KIND_GENERATE_WITNESS: RequestKind.WITNESSES,
+    KIND_JUDGE_SCOPE: RequestKind.SCOPE,
+    KIND_JUDGE_VALIDITY: RequestKind.VALIDITY,
+    KIND_JUDGE_EQUIVALENT: RequestKind.EQUIVALENCE,
+    KIND_JUDGE_ALIGNMENT: RequestKind.ALIGNMENT,
+    KIND_DECIDE_CLOSED: RequestKind.CLOSED_QUESTION,
+}
+"""Product request kinds that map to one benchmark request kind by their exact name."""
+
+
 def request_kind_of(module: Module, kind: str) -> RequestKind:
     """The benchmark's request kind of a product request: completeness questions are one kind whatever they ask."""
     if module is Module.COMPLETENESS:
         return RequestKind.COMPLETENESS
-    if kind == KIND_GENERATE_WITNESS:
-        return RequestKind.WITNESSES
-    if kind == KIND_JUDGE_SCOPE:
-        return RequestKind.SCOPE
+    if (exact := EXACT_REQUEST_KINDS.get(kind)) is not None:
+        return exact
     if kind.startswith(KIND_GENERATE_PREFIX):
         return RequestKind.MUTANTS
-    if kind == KIND_JUDGE_VALIDITY:
-        return RequestKind.VALIDITY
-    if kind == KIND_JUDGE_EQUIVALENT:
-        return RequestKind.EQUIVALENCE
-    if kind == KIND_JUDGE_ALIGNMENT:
-        return RequestKind.ALIGNMENT
-    if kind == KIND_DECIDE_CLOSED:
-        return RequestKind.CLOSED_QUESTION
     raise RecordError(f"unknown request kind {kind!r}")
