@@ -74,7 +74,7 @@ func runCoverage(ctx context.Context, deps Dependencies, workspace ecosystem.Wor
 	}
 	report := suiterun.ResultsFile(workspace, coverageReportSuffix)
 	argv := append(append([]string{}, toolchain.Command...), moduleFlag, pytestModule,
-		pluginFlag, coveragePluginModule, noCacheProvider, noCacheProviderID, rootDirFlag)
+		pluginFlag, coveragePluginModule, noCacheProvider, noCacheProviderID, rootDirFlag, continueFlag)
 	pythonPath := pluginPath(pluginDir, workspace)
 	if _, err := deps.Process.Run(ctx, ports.Command{
 		Argv:    argv,

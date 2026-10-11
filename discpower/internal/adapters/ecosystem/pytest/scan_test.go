@@ -108,6 +108,20 @@ func TestScanRuns(t *testing.T) {
 		}
 	})
 
+	t.Run("a test module that does not import leaves the other tests running"+verifiesScanRuns, func(t *testing.T) {
+		broken, err := project.manager.Clone(ctx, project.workspace, project.layout)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := project.manager.WriteFile(broken, project.layout, "tests/test_ledger.py", []byte("from invoice.ledger import post\n")); err != nil {
+			t.Fatal(err)
+		}
+		ran, err := project.suite.Run(ctx, broken, project.toolchain, ports.ScanRunRequest{Runs: 1, Timeout: scanRunTimeout})
+		if err != nil || len(ran.Cases) != 5 || !slices.Equal(ran.Runs[takesPercentOff], []vacuity.Run{vacuity.RunPassed}) {
+			t.Fatalf("cases %v, runs %v, %v", ran.Cases, ran.Runs, err)
+		}
+	})
+
 	t.Run("a run the timeout stops leaves its tests and every later run timed out"+verifiesScanRuns, func(t *testing.T) {
 		slow, err := project.manager.Clone(ctx, project.workspace, project.layout)
 		if err != nil {

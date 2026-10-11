@@ -1109,8 +1109,9 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   never a parent; list the collected tests with their files for a run of the
   whole suite; give each test one result per run, a pass only for a pass and a
   failure only for a failure, errored for a skip, an error or a test a run did
-  not report; and, once a run times out, give its unreported tests and every
-  later run timed out without starting it.
+  not report; let a test module that does not import leave the other tests
+  running; and, once a run times out, give its unreported tests and every later
+  run timed out without starting it.
 - **SP-2103~1**: WHEN a definition a mutant edits is bound for the differential
   search of a scan THE SYSTEM SHALL bind a top-level Python function to
   `package.module:function`, a `src/` layout read from below `src`, and an

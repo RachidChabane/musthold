@@ -25,9 +25,12 @@ const (
 	scanOutputVariable = "SPEC_PROOF_SCAN_OUT"
 	scanReportSuffix   = ".json"
 	rootDirFlag        = "--rootdir=."
-	quietFlag          = "-q"
-	targetSeparator    = ":"
-	initModule         = "__init__"
+	// continueFlag keeps a module that does not import from stopping the run
+	// of every other test.
+	continueFlag    = "--continue-on-collection-errors"
+	quietFlag       = "-q"
+	targetSeparator = ":"
+	initModule      = "__init__"
 	// reproInterpreter is the interpreter a reproduction script calls.
 	reproInterpreter = "python3"
 )
@@ -91,7 +94,7 @@ func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolc
 func (s scanSuite) runOnce(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, pluginDir string, request ports.ScanRunRequest) (scanReport, bool, error) {
 	output := suiterun.ResultsFile(workspace, scanReportSuffix)
 	argv := append(append([]string{}, toolchain.Command...), moduleFlag, pytestModule,
-		noCacheProvider, noCacheProviderID, pluginFlag, scanPluginModule, rootDirFlag, quietFlag)
+		noCacheProvider, noCacheProviderID, pluginFlag, scanPluginModule, rootDirFlag, continueFlag, quietFlag)
 	for _, test := range request.Tests {
 		argv = append(argv, string(test))
 	}
