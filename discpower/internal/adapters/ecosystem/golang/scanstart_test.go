@@ -82,6 +82,19 @@ func calibrate() bool {
 }
 `
 
+// slowReading declares a test that outlives a run's timeout.
+const slowReading = `package gauge
+
+import (
+	"testing"
+	"time"
+)
+
+func TestSlowReading(t *testing.T) {
+	time.Sleep(8 * time.Second)
+}
+`
+
 // faultReadings declares a test that panics between two that pass.
 const faultReadings = `package gauge
 
@@ -173,6 +186,28 @@ func TestScanRunsOfABinaryThatStops(t *testing.T) {
 		runs := project.run(t, project.withFile(t, calibrationFile, calibrationThatHangs), startUpRunTimeout, keepsPositive)
 		if !slices.Equal(runs[keepsPositive], runsOf(vacuity.RunTimedOut, vacuity.RunsPerOutcome)) {
 			t.Fatalf("runs = %v", runs[keepsPositive])
+		}
+	})
+
+	t.Run("a fresh process that times out leaves every later run timed out and starts no other"+verifiesStartUp, func(t *testing.T) {
+		const slow = ecosystem.TestID("gauge/slow_test.go::TestSlowReading")
+		stopping := project.withFile(t, calibrationFile, calibrationThatFailsFirst)
+		if err := project.manager.WriteFile(stopping, project.layout, "gauge/slow_test.go", []byte(slowReading)); err != nil {
+			t.Fatal(err)
+		}
+		runs := project.run(t, stopping, startUpRunTimeout, keepsPositive, slow)
+		if want := []vacuity.Run{vacuity.RunNotStarted, vacuity.RunPassed, vacuity.RunTimedOut}; !slices.Equal(runs[keepsPositive], want) {
+			t.Fatalf("test that passed before the timeout: %v", runs[keepsPositive])
+		}
+		if want := []vacuity.Run{vacuity.RunNotStarted, vacuity.RunTimedOut, vacuity.RunTimedOut}; !slices.Equal(runs[slow], want) {
+			t.Fatalf("test that outlived the timeout: %v", runs[slow])
+		}
+		journal, err := project.manager.ReadFile(stopping, launchJournal)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if launches := strings.Count(string(journal), "\n"); launches != 2 {
+			t.Fatalf("%d processes started", launches)
 		}
 	})
 

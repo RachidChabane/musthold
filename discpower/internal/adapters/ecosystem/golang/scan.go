@@ -100,7 +100,13 @@ func (s scanSuite) observeApart(ctx context.Context, workspace ecosystem.Workspa
 	observed := make(map[ecosystem.TestID][]vacuity.Run, len(group.tests))
 	process := first
 	for observation := range request.Runs {
-		if observation > 0 && !process.timedOut {
+		if observation > 0 {
+			if process.timedOut {
+				for _, test := range group.tests {
+					observed[test] = append(observed[test], vacuity.RunTimedOut)
+				}
+				continue
+			}
 			var err error
 			if process, err = s.runProcess(ctx, workspace, toolchain, rerun, oneRun, request.Timeout); err != nil {
 				return nil, err
