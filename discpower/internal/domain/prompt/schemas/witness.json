@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["imports", "witnesses"],
+  "properties": {
+    "imports": { "type": "string", "maxLength": 4000 },
+    "witnesses": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 9,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "clause", "kind", "code"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$" },
+          "clause": { "type": "string", "minLength": 1, "maxLength": 400 },
+          "kind": { "enum": ["example", "property"] },
+          "code": { "type": "string", "minLength": 1, "maxLength": 8000 }
+        }
+      }
+    }
+  }
+}

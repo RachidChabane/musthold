@@ -360,10 +360,11 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   meets and fail one a violating mutant breaks, find a witness where a mutant moves
   a boundary, and confirm that witness by running it on the reference and on the
   mutant.
-- **SP-957~2**: WHEN a host whose responses are exposed, as those of a command-line
+- **SP-957~3**: WHEN a host whose responses are exposed, as those of a command-line
   host are, answers every request for a Go project THE SYSTEM SHALL block the
-  criterion whose weak test lets a validated mutant survive and escalate the
-  criteria whose survivors only a response with exclusion power could clear.
+  criterion whose weak test lets a VALID_e mutant survive, though its writer is
+  exposed, and pass the criteria whose tests kill a mutant that fails one of their
+  examples and whose survivors execution excludes.
 
 ## Jest and Vitest projects
 
@@ -438,11 +439,11 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   reference meets and fail one a violating mutant breaks, find a witness where a
   mutant moves a boundary, and confirm that witness by running it on the
   reference and on the mutant.
-- **SP-1041~2**: WHEN a host whose responses are exposed, as those of a command-line
+- **SP-1041~3**: WHEN a host whose responses are exposed, as those of a command-line
   host are, answers every request for a Jest or Vitest project THE SYSTEM SHALL
-  block the criterion whose weak test lets a validated mutant survive and
-  escalate the criteria whose survivors only a response with exclusion power
-  could clear.
+  block the criterion whose weak test lets a VALID_e mutant survive, though its
+  writer is exposed, and pass the criteria whose tests kill a mutant that fails
+  one of their examples and whose survivors execution excludes.
 - **SP-1042~1**: WHEN a project is inspected THE SYSTEM SHALL recognize a Jest or
   Vitest project among the ecosystems it supports.
 
@@ -490,10 +491,11 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   identifier already so spelled as it is.
 - **SP-1121~1**: WHEN `init` inspects a Maven or Gradle project THE SYSTEM SHALL
   name the ecosystem in the configuration it writes.
-- **SP-1122~2**: WHEN a host whose responses are exposed, as those of a command-line
+- **SP-1122~3**: WHEN a host whose responses are exposed, as those of a command-line
   host are, answers every request for a Maven project THE SYSTEM SHALL block the
-  criterion whose weak test lets a validated mutant survive and escalate the
-  criteria whose survivors only a response with exclusion power could clear.
+  criterion whose weak test lets a VALID_e mutant survive, though its writer is
+  exposed, and pass the criteria whose tests kill a mutant that fails one of their
+  examples and whose survivors execution excludes.
 - **SP-1123~1**: WHEN the EcosystemContract runs on Maven with Java, Gradle with
   Java and Gradle with Kotlin THE SYSTEM SHALL pass its six cases on each.
 
@@ -513,36 +515,51 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 
 ## Decisions on mutants
 
-- **SP-164~1**: WHEN a mutant is a sentinel THE SYSTEM SHALL decide it EQUIVALENT
-  by construction, and WHEN a mutant fails the examples of one criterion alone
-  THE SYSTEM SHALL decide it VALID for that criterion on the basis of the spec
-  example with full confidence and the failed example as corroboration, failing
-  examples of several criteria SHALL make it collateral when the criterion is
-  among them, and a mutant failing examples of other criteria only SHALL be
-  decided NOT_VIOLATING and off target.
-- **SP-165~1**: WHEN the judges rule a mutant VALID THE SYSTEM SHALL accept it
-  only when every judge agrees at or above `tau_judge`, a witness is confirmed by
-  execution, the mutant builds and the tests of every other criterion pass, and
-  for a killed mutant a test of the criterion that killed no sentinel killed it
-  and every response keeps judged credit under the isolation floor, and SHALL
-  otherwise leave it UNDETERMINED, a survivor keeping its power to block under a
-  response below the floor.
-- **SP-166~1**: WHEN the judges rule a surviving mutant EQUIVALENT THE SYSTEM SHALL
-  accept it only when the differential search found no difference and the pass
-  basis is not `executed-only`, WHEN they rule it NOT_VIOLATING THE SYSTEM SHALL
-  accept it only under the `judged` basis and count it as a host exclusion, and
-  WHEN execution refutes an answer, which is EQUIVALENT for a killed mutant or a
-  mutant whose behaviour differs, or a witness that execution does not confirm,
-  THE SYSTEM SHALL name the contradiction so that the answer is rejected.
-- **SP-167~1**: WHEN the outcome of a criterion is decided THE SYSTEM SHALL block
-  on a failing reference, a failing example or a surviving VALID mutant, escalate
-  on an undetermined survivor, the absence of a killed VALID mutant, a test that
-  killed a sentinel, an exhausted budget or an unresponsive host, and pass only
-  when a killed VALID mutant was credited and nothing else remains, blocking
+- **SP-164~2**: WHEN a mutant is classified for a criterion THE SYSTEM SHALL
+  decide a sentinel EQUIVALENT by construction, exclude a mutant whose compiled
+  form is identical to the reference's, decide a mutant that fails an example of
+  the criterion and of no other criterion owner-attributed and VALID on the basis
+  of the spec example with full confidence and the failed example as
+  corroboration, and exclude as NOT_VIOLATING and off target, corroborated by
+  `other_example_failed`, a mutant that fails an example or an admitted witness
+  of another criterion and no example and no admitted witness of its own.
+- **SP-165~2**: WHEN a mutant fails, reproduced, a block-bearing witness of the
+  criterion and no test bound to another criterion killed it or errored on it
+  THE SYSTEM SHALL decide it VALID_e, VALID on the basis of execution with full
+  confidence and corroborated by `builds`, `other_criteria_pass` and
+  `f4_witness`, decide it collateral when it is VALID_e for another criterion
+  too, and make it credit-bearing only when it is not collateral, the pass basis
+  is not `executed-only` and one of the witnesses it fails was written and judged
+  in scope by responses at or above the isolation floor and unmarked; a mutant
+  that fails such a witness but is not isolated SHALL stay unsettled.
+- **SP-166~2**: WHEN validity votes are cast on a survivor no witness settles THE
+  SYSTEM SHALL exclude it only when the full-resolution differential search
+  found no difference, at least `judge_k` votes answer EQUIVALENT at or above
+  `tau_judge` from responses at or above the floor and unmarked, no vote
+  confirms a witness, no test killed it, it fails no witness the reference
+  passes and the basis is not `executed-only`,
+  SHALL leave it unsettled with the reason the votes give in every other case,
+  VALID and NOT_VIOLATING included, and WHEN execution refutes an answer, which
+  is EQUIVALENT for a killed mutant or a mutant whose behaviour differs, or a
+  witness that execution does not confirm, THE SYSTEM SHALL name the
+  contradiction so that the answer is rejected.
+- **SP-167~2**: WHEN the outcome of a criterion and a test set is decided THE
+  SYSTEM SHALL block on a reference that fails a test of the set, a failing
+  example, or an owner-attributed, VALID_e or collateral mutant that survives
+  every test of the set; escalate when no credit-bearing mutant of the pool is
+  killed by the set, on any other surviving mutant that execution did not
+  exclude, on a test of the set that killed a sentinel, an exhausted budget or
+  an unresponsive host; pass only when a credit-bearing mutant was killed by a
+  test of the set that killed no sentinel and nothing else remains; and block
   before escalating.
-- **SP-168~1**: WHEN the search for mutants is checked for its end THE SYSTEM SHALL
-  stop on a block, and otherwise once `min_valid` VALID mutants cover `min_sites`
-  distinct sites with at least one killed.
+- **SP-168~2**: WHEN the search for mutants is checked for its end THE SYSTEM SHALL
+  stop once the targeted and owner-attributed mutants of the pool that fail a
+  block-bearing witness or an example of the criterion number `min_valid` over
+  `min_sites` distinct sites, read no kill vector and no binding to decide it,
+  and WHEN a finished search leaves fewer than two targeted mutants that fail a
+  block-bearing witness of the criterion and are neither owner-attributed nor
+  identical to the reference in compiled form THE SYSTEM SHALL ask one further
+  witness writer, reading no kill vector and no binding to decide it.
 - **SP-169~2**: WHEN screen answers are read THE SYSTEM SHALL take P(VIOLATES) as
   the mean, over the answers, of the probability each gives to VIOLATES: for a
   System One answer the probability its endpoint states for that option, never its
@@ -557,12 +574,160 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   the survivors that entered the pool only because the floor kept answers below it
   or marked from screening them out.
 
+## Witnesses
+
+- **SP-1960~1**: WHEN a witness is judged THE SYSTEM SHALL read its three runs on
+  the reference as passing when all pass, a reading conflict when all fail, flaky
+  when they disagree and unrunnable when one errors or is missing, admit a
+  passing witness when it also passes every planted refactor the admission names,
+  make an admitted witness block-bearing when `judge_k` scope votes all answer
+  FIXED at or above `tau_judge`, whatever their isolation, and escalate-only
+  otherwise, and hold it credit-eligible only when its writer and every scope
+  judge answered at or above the isolation floor and unmarked.
+- **SP-1961~1**: WHEN a witness set is digested THE SYSTEM SHALL digest its
+  criterion, imports and the content digests of its witnesses, so that two sets
+  with the same content and different writers have the same digest, and digest a
+  universe of sets whatever their order.
+- **SP-1962~1**: WHEN the witnesses of a criterion are asked THE SYSTEM SHALL emit
+  one `generate.witness` request of two votes before any other request of the
+  criterion, carrying the spec documents and the criterion's statement with every
+  criterion relabelled, the public signatures of the code the spec mentions and
+  the signatures of the helpers of every test file, never a body, a test, a
+  mutant or a kill, so that two test trees whose helpers are equal give the same
+  request.
+- **SP-1963~1**: WHEN a writer's set is read THE SYSTEM SHALL journal
+  `witness_set_committed` with the criterion, the draw and the set's digest once,
+  before the set runs on any mutant and before the criterion's first generation
+  request, and reject a vote whose set is incomplete so that its ticket is
+  reissued.
+- **SP-1964~1**: WHEN the witnesses of a draw are answered THE SYSTEM SHALL run
+  each set alone on the reference three times, run the sets that hold a passing
+  witness on every planted refactor, and ask one `judge.scope` request of
+  `judge_k` votes that shows the spec and every witness the reference passes, the
+  refactor results applying after the scope verdicts and recorded per witness.
+- **SP-1965~1**: WHEN witness sets run on a mutant or a refactor THE SYSTEM SHALL
+  write their files into a workspace of that program only, run every set the
+  memo does not hold in one batch, run each set alone when the whole batch
+  errors, rerun every set one of whose witnesses failed and read a failure the
+  rerun does not repeat as flaky, and memoize the outcomes per program and set.
+- **SP-1966~2**: WHEN a pass proves the criteria THE SYSTEM SHALL let no criterion
+  go past its witnesses while the writers or scope judges of a draw any search
+  reads still owe an answer, ask the validity votes of the survivors no witness
+  settles as the generation rounds go without holding back the next round, prove
+  no criterion before every search ended, and settle every pool against the
+  witnesses of every criterion.
+- **SP-1967~1**: WHEN the footprint of a criterion is built in an ecosystem that
+  runs witnesses THE SYSTEM SHALL take its entry functions from the units the
+  criterion's runnable witnesses execute on the reference, and every unit of the
+  code when they execute none or the ecosystem records no coverage, so that the
+  code a generation request shows never depends on the tests.
+- **SP-1968~1**: WHEN an operator mutant survives the criterion's tests and fails,
+  reproduced, a block-bearing witness of the criterion THE SYSTEM SHALL put it in
+  the pool whatever the differential search and the screen would say.
+- **SP-1969~2**: WHEN the first or the further witness draw of a criterion is
+  seeded THE SYSTEM SHALL draw its seed from the criterion's statement and the
+  draw alone, never from the run seed, so that a CI run asks the requests the
+  developer's host answered.
+- **SP-1987~1**: WHEN a run produces its Statements in CI THE SYSTEM SHALL ask,
+  for every criterion that runs witnesses, a credit draw of two writers seeded
+  by the CI run seed, withhold the credit of the witnesses of every other draw,
+  let neither the footprint, the stop rule nor the further draw read the credit
+  draw, run every pool against its witnesses, and write no Statement before it
+  is settled.
+- **SP-1970~1**: WHEN a witness of the criterion fails on the reference in every
+  run THE SYSTEM SHALL report a `reading_conflict` finding that names the
+  criterion, the witness and its clause, and count it in the Statement, without
+  changing the criterion's outcome.
+- **SP-1971~1**: WHEN the ecosystem cannot run witnesses THE SYSTEM SHALL ask no
+  witness, report `witness_runner_unavailable`, and take the footprint from the
+  criterion's tests.
+- **SP-1972~1**: WHEN the configuration names `admission.refactors` THE SYSTEM
+  SHALL read every edit set of that directory as a planted refactor named after
+  its file, admit witnesses with them, keep the setting when the configuration is
+  written again, and write it on neither `init` nor `enable`.
+
+## Compiled forms and fault classes
+
+- **SP-1973~1**: WHEN the compiled forms of a mutant are compared THE SYSTEM SHALL
+  call the mutant identical when every edited site compiles to the reference's
+  form, different when one does not, and unknown when a site has no form or the
+  mutant edits nothing.
+- **SP-1974~1**: WHEN a Python unit is compiled for comparison THE SYSTEM SHALL
+  digest its code object, nested code objects included, with every line table,
+  first line and file name left out, so that a change of layout or position
+  keeps the form and a change of behaviour changes it.
+- **SP-1975~1**: WHEN a Go unit is compiled for comparison THE SYSTEM SHALL
+  digest the assembly the compiler gives its function and closures with every
+  source position left out, and give no form for a package that uses cgo or does
+  not compile.
+- **SP-1976~1**: WHEN the mutants of a pool are grouped by fault THE SYSTEM SHALL
+  put the mutants that block or escalate and edit the same sites in one class when
+  they fail the same witnesses, or, failing none, differ on the same inputs,
+  leave sentinels and excluded mutants out, and list the classes in the
+  Statement's `extensions.faults`.
+
+## Facts records
+
+- **SP-1977~1**: WHEN a Statement is written THE SYSTEM SHALL keep beside it, under
+  the state directory, the facts record of its criterion: the policy, the
+  admission, the reference results, the bindings, every witness with its runs and
+  scope votes, and every pool mutant with its kill vector, examples, differential
+  search, compiled form, witness outcomes and validity votes, so that the outcome
+  of any test set and binding recomputed from the record equals the outcome
+  evaluated on its standing.
+- **SP-1978~1**: WHEN `facts show ID~REV` runs THE SYSTEM SHALL print the facts
+  record of the last Statement written for the criterion, and refuse a criterion
+  that has none.
+
+## Witness hosts
+
+- **SP-1979~1**: WHEN a pytest project briefs a witness writer THE SYSTEM SHALL list
+  the headers of the public functions, classes and methods of the sources the spec
+  mentions by module, with the annotated fields of a class, every public one when
+  it mentions none, and the headers of the helpers and fixtures of every test
+  file, and SHALL lay out a set as a test module beside the first test module of
+  the project, each witness renamed after its short id and named the way the
+  JUnit report names it.
+- **SP-1980~1**: WHEN a Go module briefs a witness writer THE SYSTEM SHALL list the
+  exported declarations of its packages the spec mentions without bodies, the
+  helpers of every test file, and the package the spec mentions most, and SHALL
+  lay out a set as an internal test file of that package with the imports the
+  writer listed, `testing` included, each witness that declares exactly its own
+  function renamed after its short id and named the way gotestsum reports it.
+- **SP-1981~1**: WHEN a witness set is laid out and run on the reference and on a
+  mutant that breaks what it checks, in a real pytest or Go project, THE SYSTEM
+  SHALL read the witness passing on the reference and failing, reproduced, on the
+  mutant.
+- **SP-1985~1**: WHEN a Jest or Vitest project briefs a witness writer THE SYSTEM
+  SHALL list the exported functions, the public methods of exported classes and
+  the exported variables, classes and types of the sources the spec mentions,
+  each under the specifier the witness file imports it by and without a body or a
+  value, every exported one when it mentions none, and the exported declarations
+  of every test file, and SHALL lay out a set as a test file beside the first test
+  file of the project, in TypeScript or JavaScript as that file is, with each
+  witness's function renamed after its short id and registered in one describe
+  block, named the way the runner's JUnit report names it.
+- **SP-1986~1**: WHEN a Maven or Gradle project, in Java or Kotlin, briefs a
+  witness writer THE SYSTEM SHALL list the public methods, constructors, types and
+  constants of the sources the spec mentions, qualified by their package and owner
+  and without a body or a value, every public one when it mentions none, and the
+  non-test methods of every test file, and SHALL lay out a set as a JUnit 5 test
+  class in the package the spec mentions most, under the test source set of the
+  source's language, with each witness's method renamed after its short id,
+  annotated as a test and displayed under that name, named the way the build
+  tool's JUnit report names it, and compiled by the build tool before it runs.
+
 ## Differential search
 
-- **SP-170~1**: WHEN inputs are drawn for an operation THE SYSTEM SHALL give the
+- **SP-170~2**: WHEN inputs are drawn for an operation THE SYSTEM SHALL give the
   same inputs for the same pool, signature and seed, sweep each parameter over
-  both sides of every number of the code and of the examples before it draws
-  random combinations, never repeat an input and never exceed the number asked.
+  every number of the code, the examples and the spec's text with its neighbours
+  at full resolution (one unit, one written step, one step a decimal finer and
+  half a written step on each side), and for a datetime parameter over the
+  anchor day, every time of day and duration the spec names and every example
+  datetime with their neighbours a microsecond, a second and a minute away,
+  before it draws random combinations, never repeat an input and never exceed
+  the number asked.
 - **SP-171~1**: WHEN the observations on the reference and on a mutant are
   compared THE SYSTEM SHALL report no difference when they agree, and otherwise
   the simplest inputs on which the reference returns and the mutant differs, at
@@ -576,15 +741,20 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 
 ## Prompts
 
-- **SP-173~1**: WHEN a request prompt is built THE SYSTEM SHALL name no criterion
-  by its identifier, show a generation request no test, change the template digest
-  exactly when the prompt text or the response schema changes, and carry at most
-  64 questions in a closed request.
-- **SP-174~1**: WHEN an executor's output is read THE SYSTEM SHALL give the
+- **SP-173~2**: WHEN a request prompt is built THE SYSTEM SHALL name no criterion
+  by its identifier, the spec documents and statements of a witness or scope
+  request naming every criterion by a label of its position instead, show a
+  generation request no test and no witness, show a witness request no body of
+  the code, no test, no mutant and no kill, show a scope request the spec and the
+  witnesses alone, change the template digest exactly when the prompt text or the
+  response schema changes, and carry at most 64 questions in a closed request.
+- **SP-174~2**: WHEN an executor's output is read THE SYSTEM SHALL give the
   generated mutants, the judged answer with its confidence and witness, an
-  equivalence answer other than EQUIVALENT as undetermined, and the screen answers
-  by question id, and a vote that states no confidence SHALL count as full
-  confidence.
+  equivalence answer other than EQUIVALENT as undetermined, the screen answers by
+  question id, the witness set of a writer only when it holds 3 to 6 examples and
+  1 to 3 properties with distinct names, and the scope verdicts only when every
+  witness shown is answered, and a vote that states no confidence SHALL count as
+  full confidence.
 
 ## Execution of mutants
 
@@ -616,14 +786,16 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   host, 1 when a criterion blocks or escalates, 0 otherwise, advance one wave per
   run, give the same requests when run again, and refuse `--resume` when no
   request was ever emitted.
-- **SP-182~1**: WHEN an honest host answers every request THE SYSTEM SHALL block a
-  criterion whose weak test lets a validated mutant survive and pass criteria
-  whose tests kill every validated mutant, writing one Statement per criterion.
+- **SP-182~2**: WHEN an honest host answers every request THE SYSTEM SHALL block a
+  criterion whose weak test lets a VALID_e mutant survive and pass criteria whose
+  tests kill every VALID_e mutant, writing one Statement per criterion.
 - **SP-183~1**: WHEN the host forges, omits, replays with a stale nonce or breaks the
   schema of its answers THE SYSTEM SHALL never pass a criterion.
-- **SP-184~1**: WHEN any assignment of judge answers is considered, including the most
-  favourable one, THE SYSTEM SHALL never block or credit a mutant on judged
-  evidence without executed corroboration.
+- **SP-184~2**: WHEN any assignment of validity and scope answers is considered,
+  including the most favourable one, THE SYSTEM SHALL never block or credit a
+  mutant that fails no witness and no example, never clear a survivor on a
+  judgment alone, and never turn a block into a pass when a witness failure is
+  added.
 - **SP-185~1**: WHEN the same votes are consumed in any order THE SYSTEM SHALL write the
   same Statement, with no nonce, time or consumption order in it.
 - **SP-186~1**: WHEN any input of a proof changes THE SYSTEM SHALL give another cache key,
@@ -633,16 +805,17 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-187~1**: WHEN a criterion has no host tickets left THE SYSTEM SHALL leave the
   judgments it could not ask for UNDETERMINED with the reason `budget_exhausted`
   and escalate the criterion, never pass it.
-- **SP-188~1**: WHEN a criterion's inputs are unchanged since its last Statement and
-  `--changed` selects it THE SYSTEM SHALL not prove it again and report its stored
-  outcome.
+- **SP-188~2**: WHEN a criterion's inputs are unchanged since its last Statement and
+  `--changed` selects it THE SYSTEM SHALL write it no new Statement and report its
+  stored outcome.
 - **SP-189~1**: WHEN a Statement is written THE SYSTEM SHALL validate it against the
   embedded schemas, write it under `.spec-proof/cache/discriminating-power`, and
   keep mutant bodies only in the user cache outside the work tree.
-- **SP-190~2**: WHEN no search can run, because the ecosystem cannot probe calls or the
-  project binds no operation, THE SYSTEM SHALL ask the host for nothing, report the
-  skipped searches as findings and escalate every criterion that has no VALID
-  mutant.
+- **SP-190~3**: WHEN no differential search can run, because the ecosystem cannot
+  probe calls or the project binds no operation, THE SYSTEM SHALL still ask for the
+  witnesses, the scope verdicts, the generated mutants and the validity votes of
+  the survivors no witness settles, report the skipped searches as findings, and
+  escalate every criterion that has no credit-bearing mutant killed.
 
 ## Configuration and command line
 

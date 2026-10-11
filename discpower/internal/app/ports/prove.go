@@ -69,6 +69,12 @@ type ProofStore interface {
 	Write(criterion spec.Ref, cacheKey string, canonical []byte) error
 }
 
+// FactsStore keeps the facts record of each Statement: every executed fact and
+// answer its outcome rests on.
+type FactsStore interface {
+	Write(criterion spec.Ref, cacheKey string, record []byte) error
+}
+
 // MutantVault keeps mutant bodies outside the work tree.
 type MutantVault interface {
 	Put(id string, edits mutation.EditSet) error

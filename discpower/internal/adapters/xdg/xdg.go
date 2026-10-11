@@ -17,6 +17,7 @@ const (
 	suiteDirectory    = "spec-proof"
 	moduleDirectory   = "discpower"
 	hostDirectory     = "host"
+	recordsDirectory  = "records"
 )
 
 // LookupEnv reads an environment variable the way os.LookupEnv does.
@@ -51,6 +52,12 @@ func RepoDigest(absRoot string) string {
 // `<state>/spec-proof/discpower/<repo-digest>/host`.
 func HostDir(lookup LookupEnv, home, absRoot string) string {
 	return filepath.Join(StateHome(lookup, home), suiteDirectory, moduleDirectory, RepoDigest(absRoot), hostDirectory)
+}
+
+// RecordsDir is where the facts records of the project's Statements live:
+// `<state>/spec-proof/discpower/<repo-digest>/records`.
+func RecordsDir(lookup LookupEnv, home, absRoot string) string {
+	return filepath.Join(StateHome(lookup, home), suiteDirectory, moduleDirectory, RepoDigest(absRoot), recordsDirectory)
 }
 
 // CacheDir is where the local caches of the project live:

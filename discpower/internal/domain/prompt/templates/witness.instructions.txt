@@ -1,0 +1,7 @@
+Write 3 to 6 examples and 1 to 3 properties for the requirement to check.
+An example calls the code on one input and asserts the output the requirement fixes for that input.
+A property draws at least 200 inputs from a pseudo-random generator seeded with a fixed constant, at the full resolution of each type (to the microsecond for a time, below the smallest unit the specification names for an amount), and asserts what the requirement fixes for every drawn input.
+Check only what the requirement's text, read under the specification's precedence, fixes. Never assert an output the specification leaves open or that another requirement decides.
+Use the standard library, the public interface and the test helpers only.
+Tag each witness with the clause of the requirement it checks, quoted from the requirement's text, and with its kind, "example" or "property".
+Each witness is one complete test function named as its "name" says, with no other top-level definition. Put the imports every witness needs in "imports".

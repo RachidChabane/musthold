@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	verifiesSP173 = " [verifies SP-173~1]"
-	verifiesSP174 = " [verifies SP-174~1]"
+	verifiesSP173 = " [verifies SP-173~2]"
+	verifiesSP174 = " [verifies SP-174~2]"
 
 	digestHexLength = 64
 	closedLimit     = 64
@@ -327,7 +327,7 @@ func TestEmbeddedSchemas(t *testing.T) {
 }
 
 func TestTemplateDigests(t *testing.T) {
-	kinds := []hostproto.Kind{hostproto.KindGenerateTargeted, hostproto.KindJudgeValidity, hostproto.KindJudgeEquivalent, hostproto.KindDecideClosed}
+	kinds := []hostproto.Kind{hostproto.KindGenerateTargeted, hostproto.KindJudgeValidity, hostproto.KindJudgeEquivalent, hostproto.KindDecideClosed, hostproto.KindGenerateWitness, hostproto.KindJudgeScope}
 	t.Run("every kind of request has a digest"+verifiesSP173, func(t *testing.T) {
 		digests := prompt.TemplateDigests()
 		if len(digests) != len(kinds) {
@@ -368,6 +368,8 @@ func TestTemplateDigests(t *testing.T) {
 			hostproto.KindJudgeValidity:    prompt.BuildValidity(input).Prompt.TemplateDigest,
 			hostproto.KindJudgeEquivalent:  prompt.BuildEquivalence(input).Prompt.TemplateDigest,
 			hostproto.KindDecideClosed:     screen.Prompt.TemplateDigest,
+			hostproto.KindGenerateWitness:  prompt.BuildWitness(prompt.WitnessInput{Spec: "Anything", Interface: []string{"def f(): ..."}}).Prompt.TemplateDigest,
+			hostproto.KindJudgeScope:       prompt.BuildScope(prompt.ScopeInput{Statement: "Anything", Witnesses: []prompt.ScopeWitness{{Clause: "c", Code: "def t(): pass"}}}).Prompt.TemplateDigest,
 		}
 		for _, kind := range kinds {
 			if got[kind] != digests[kind] {

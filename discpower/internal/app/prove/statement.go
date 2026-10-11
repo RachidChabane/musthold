@@ -10,6 +10,7 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/prompt"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
@@ -22,6 +23,7 @@ const (
 	inputNameMutantSet = "mutant-set"
 	inputNameModels    = "host-models"
 	inputNameResponses = "host-responses"
+	inputNameWitnesses = "witness-universe"
 	noExecutorHarness  = "spec-proof-dp"
 	noExecutorHarnessV = "none"
 	modelSeparator     = "@"
@@ -123,6 +125,7 @@ func (r *critRun) finalInputs(base []format.Input) []format.Input {
 		descriptor(format.RoleMutantSet, inputNameMutantSet, digestText(strings.Join(ids, responseSeparator))),
 		descriptor(format.RoleModelID, inputNameModels, digestText(strings.Join(r.modelNames(), responseSeparator))),
 		descriptor(format.RoleHostResponse, inputNameResponses, digestText(strings.Join(r.responseDigests(), responseSeparator))),
+		descriptor(format.RoleHostResponse, inputNameWitnesses, universeDigest(r.records)),
 	)
 }
 
@@ -196,21 +199,22 @@ func (r *critRun) proofExecutor() format.Executor {
 }
 
 // predicate assembles the discriminating-power predicate of the criterion.
-func (r *critRun) predicate(inputs []format.Input, cacheKey string, correctCodePasses bool) (format.DiscriminatingPower, error) {
+func (r *critRun) predicate(inputs []format.Input, cacheKey string, correctCodePasses bool, evaluation power.Evaluation) (format.DiscriminatingPower, error) {
 	tests := make([]string, 0, len(r.c.Tests))
 	for _, test := range r.subject.Tests {
 		tests = append(tests, string(test))
 	}
 	slices.Sort(tests)
-	mutants, exclusions, err := r.mutantEntries()
+	mutants, err := r.mutantEntries(evaluation.Decisions)
 	if err != nil {
 		return format.DiscriminatingPower{}, err
 	}
-	extensions := format.Extensions{OperatorScreen: &format.OperatorScreen{
-		Flagged: r.flagged, ScreenedOut: r.screenedOut, FloorEntries: r.screenFloorEntries, Classify: r.classifications(),
-	}}
-	if exclusions > 0 {
-		extensions.HostExclusions = &exclusions
+	extensions := format.Extensions{
+		OperatorScreen: &format.OperatorScreen{
+			Flagged: r.flagged, ScreenedOut: r.screenedOut, FloorEntries: r.screenFloorEntries, Classify: r.classifications(),
+		},
+		Witnesses: r.witnessSummary(),
+		Faults:    faultClasses(evaluation.Faults),
 	}
 	return format.DiscriminatingPower{
 		Requirement: format.Requirement{ID: r.c.Ref.ID, Revision: r.c.Ref.Revision, StatementCanonicalization: format.StatementCanonicalizationC1},
@@ -242,31 +246,81 @@ func (r *critRun) exampleRuns() []format.ExampleRun {
 	return runs
 }
 
-// mutantEntries lists the pool as the Statement's mutants, sorted by digest, and
-// counts the survivors cleared on judges alone.
-func (r *critRun) mutantEntries() ([]format.Mutant, int, error) {
+// mutantEntries lists the pool as the Statement's mutants, sorted by digest.
+func (r *critRun) mutantEntries(decisions map[string]power.Decision) ([]format.Mutant, error) {
 	entries := make([]format.Mutant, 0, len(r.pool))
-	exclusions := 0
 	for _, m := range r.pool {
-		decision := power.Undetermined(power.ReasonNotAdjudicated)
-		if m.decision != nil {
-			decision = *m.decision
-		}
-		if decision.HostExclusion {
-			exclusions++
-		}
-		entry, err := r.mutantEntry(m, decision)
+		entry, err := r.mutantEntry(m, decisions[m.spec.ID])
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
 		entries = append(entries, entry)
 	}
 	slices.SortFunc(entries, func(a, b format.Mutant) int { return strings.Compare(a.Digest, b.Digest) })
-	return entries, exclusions, nil
+	return entries, nil
+}
+
+// claimProfiles are the executors a mutant's claim rests on: the writer and the
+// scope judges of the witness a VALID_e claim rests on, the validity judges of a
+// judged one, and none for a claim execution alone made.
+func (r *critRun) claimProfiles(m *poolMutant, decision power.Decision) []format.ExecutorProfile {
+	switch {
+	case decision.Witness != "":
+		return r.profilesOf(decision.Witness)
+	case decision.Basis == format.BasisJudges:
+		return m.profiles
+	}
+	return nil
+}
+
+// witnessSummary counts the criterion's witnesses by status and names the
+// universe of every criterion's witnesses.
+func (r *critRun) witnessSummary() *format.WitnessSummary {
+	own := r.witnessRecords()
+	if len(own) == 0 && len(r.records) == 0 {
+		return nil
+	}
+	rules := r.g3w()
+	summary := &format.WitnessSummary{Universe: universeDigest(r.records), Written: len(own)}
+	for _, record := range own {
+		switch record.Status(rules.Admission, rules.ScopeRule()) {
+		case witness.StatusReadingConflict:
+			summary.ReadingConflicts++
+		case witness.StatusFlaky:
+			summary.Flaky++
+		case witness.StatusUnrunnable:
+			summary.Unrunnable++
+		case witness.StatusRefactorDropped:
+			summary.RefactorDropped++
+		case witness.StatusEscalateOnly:
+			summary.EscalateOnly++
+		case witness.StatusBlockBearing:
+			summary.BlockBearing++
+		}
+	}
+	return summary
+}
+
+// universeDigest digests the ids of every witness the pool was run against.
+func universeDigest(records []witness.Record) string {
+	ids := make([]string, len(records))
+	for index, record := range records {
+		ids[index] = record.Witness.ID
+	}
+	slices.Sort(ids)
+	return digestText(strings.Join(ids, responseSeparator))
+}
+
+func faultClasses(faults []power.FaultClass) []format.FaultClass {
+	var classes []format.FaultClass
+	for _, fault := range faults {
+		classes = append(classes, format.FaultClass{Key: fault.Key, Sites: fault.Sites, Witnesses: fault.Witnesses, Mutants: fault.Mutants})
+	}
+	return classes
 }
 
 func (r *critRun) mutantEntry(m *poolMutant, decision power.Decision) (format.Mutant, error) {
-	validity, err := validityClaim(decision, m.profiles)
+	validity, err := validityClaim(decision, r.claimProfiles(m, decision))
 	if err != nil {
 		return format.Mutant{}, err
 	}
@@ -280,11 +334,16 @@ func (r *critRun) mutantEntry(m *poolMutant, decision power.Decision) (format.Mu
 			Basis: decision.Basis, Deciders: decision.Deciders, ConfidenceSource: decision.Source, ConfidenceMapping: decision.Mapping,
 			RawConfidence: decision.Confidence, Threshold: r.rules.TauJudge.For(decision.Source), EscalationReason: string(decision.Reason),
 		},
-		Collateral:   decision.Class == power.ClassCollateral,
-		Unattributed: decision.Class == power.ClassUnattributed,
+		Collateral: decision.Class == power.ClassCollateral,
+		Class:      string(decision.Class),
+		Route:      string(decision.Route),
+		Witnesses:  decision.Failing,
 	}
 	if decision.OffTarget != nil {
 		extensions.OffTarget = decision.OffTarget.String()
+	}
+	for _, ref := range decision.CollateralWith {
+		extensions.CollateralWith = append(extensions.CollateralWith, ref.String())
 	}
 	return format.Mutant{Digest: m.spec.ID, Validity: validity, Sentinel: m.origin == power.OriginSentinel, Results: results, Extensions: extensions}, nil
 }
@@ -304,8 +363,12 @@ func validityClaim(decision power.Decision, profiles []format.ExecutorProfile) (
 		}
 		claim = claim.Corroborated(corroboration...)
 	}
-	if profile, ok := weakest(profiles); ok && decision.Basis == format.BasisJudges {
-		claim = claim.ProducedByExecutor(format.Executor{ExecutorProfile: profile, PromptDigest: prompt.TemplateDigests()[hostproto.KindJudgeValidity], Blind: true})
+	if profile, ok := weakest(profiles); ok {
+		kind := hostproto.KindJudgeValidity
+		if decision.Witness != "" {
+			kind = hostproto.KindGenerateWitness
+		}
+		claim = claim.ProducedByExecutor(format.Executor{ExecutorProfile: profile, PromptDigest: prompt.TemplateDigests()[kind], Blind: true})
 	}
 	return claim, nil
 }

@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/RachidChabane/spec-proof/format/formattest/parcel"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
 
@@ -43,6 +44,10 @@ func (javaOracle) Answer(_ string, view hostproto.ExecutorView) (string, error) 
 	switch {
 	case len(view.Closed) > 0:
 		return javaScreenAnswer(view.User), nil
+	case strings.Contains(string(view.ResponseSchema), `"witnesses"`):
+		return parcel.WitnessAnswer(view.User), nil
+	case strings.Contains(string(view.ResponseSchema), `"verdicts"`):
+		return parcel.ScopeAnswer(view.User), nil
 	case strings.Contains(string(view.ResponseSchema), `"mutants"`):
 		return javaGenerationAnswer(view.User), nil
 	case strings.Contains(string(view.ResponseSchema), `"equivalent"`):

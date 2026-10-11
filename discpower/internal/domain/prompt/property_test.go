@@ -118,6 +118,8 @@ func TestPromptProperties(t *testing.T) {
 				hostproto.KindJudgeValidity:    prompt.BuildValidity(prompt.JudgeInput{Statement: statement, Edits: edits}).Prompt.TemplateDigest,
 				hostproto.KindJudgeEquivalent:  prompt.BuildEquivalence(prompt.JudgeInput{Statement: statement, Edits: edits}).Prompt.TemplateDigest,
 				hostproto.KindDecideClosed:     screen.Prompt.TemplateDigest,
+				hostproto.KindGenerateWitness:  prompt.BuildWitness(prompt.WitnessInput{Spec: statement, Statement: statement, Interface: []string{statement}}).Prompt.TemplateDigest,
+				hostproto.KindJudgeScope:       prompt.BuildScope(prompt.ScopeInput{Spec: statement, Statement: statement, Witnesses: []prompt.ScopeWitness{{Clause: statement, Code: statement}}}).Prompt.TemplateDigest,
 			}
 			seen := map[string]hostproto.Kind{}
 			for kind, digest := range got {

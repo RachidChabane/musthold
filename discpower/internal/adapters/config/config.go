@@ -31,6 +31,9 @@ const (
 	keyClassify           = "classify"
 	keyWitnessDir         = "witness_dir"
 	samplingOn            = "on"
+
+	keyAdmission = "admission"
+	keyRefactors = "refactors"
 )
 
 // indentWidth is the number of spaces per YAML indentation level.
@@ -43,6 +46,7 @@ type document struct {
 	Operations map[string]map[string]string `yaml:"operations"`
 	Policy     policyDocument               `yaml:"policy"`
 	Host       hostDocument                 `yaml:"host"`
+	Admission  admissionDocument            `yaml:"admission"`
 
 	// Sections of the other modules share the file; this module reads none of them.
 	Alignment    yaml.Node `yaml:"alignment"`
@@ -55,6 +59,11 @@ type hostDocument struct {
 	Sampling           bool             `yaml:"sampling"`
 	RequireAttestation *bool            `yaml:"require_attestation"`
 	Classify           classifyDocument `yaml:"classify"`
+}
+
+// admissionDocument is the YAML shape of `admission`.
+type admissionDocument struct {
+	Refactors string `yaml:"refactors"`
 }
 
 // classifyDocument is the YAML shape of `host.classify`.
@@ -118,6 +127,7 @@ func Decode(data []byte) (projectconfig.Settings, error) {
 	settings.Operations = doc.Operations
 	settings.PolicyOverrides = doc.Policy.overrides()
 	settings.Host = projectconfig.HostSettings{Sampling: doc.Host.Sampling, RequireAttestation: doc.Host.RequireAttestation, ClassifyWitnessDir: doc.Host.Classify.WitnessDir}
+	settings.Admission = projectconfig.AdmissionSettings{RefactorsDir: doc.Admission.Refactors}
 	if err := settings.Validate(); err != nil {
 		return projectconfig.Settings{}, err
 	}
@@ -157,6 +167,10 @@ func Encode(settings projectconfig.Settings) ([]byte, error) {
 
 	if !settings.Host.IsDefault() {
 		root.Content = append(root.Content, scalar(keyHost), hostNode(settings.Host))
+	}
+	if settings.Admission.RefactorsDir != "" {
+		admission := &yaml.Node{Kind: yaml.MappingNode, Content: []*yaml.Node{scalar(keyRefactors), scalar(settings.Admission.RefactorsDir)}}
+		root.Content = append(root.Content, scalar(keyAdmission), admission)
 	}
 
 	var out bytes.Buffer

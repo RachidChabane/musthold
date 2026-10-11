@@ -116,7 +116,10 @@ func (e Env) runProve(rootFlag string, options prove.Options, record, replay str
 			Recordings: recordings.Directory{Dir: replay},
 		}
 	}
-	settings := project.proveSettings()
+	settings, err := project.proveSettings()
+	if err != nil {
+		return outcome{err: err}
+	}
 	finish, err := e.prepareCI(project, &settings, ci)
 	if err != nil {
 		return outcome{err: err}

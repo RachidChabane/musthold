@@ -10,7 +10,6 @@ import (
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
 	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
 )
 
@@ -43,26 +42,28 @@ func TestProveWithoutAnOperation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("runs the Go fixture's tests against many mutants")
 	}
-	t.Run("a project that binds no operation asks the host for nothing and escalates [verifies SP-190~2]", func(t *testing.T) {
+	t.Run("a project that binds no operation still asks for witnesses and never passes on judged evidence [verifies SP-190~3]", func(t *testing.T) {
 		h := newGoHarness(t)
 		if err := os.Remove(filepath.Join(h.root, goConfig)); err != nil {
 			t.Fatal(err)
 		}
-		code, output, stderr := h.run(nil, proveCommand, allFlag)
-		if code != cli.ExitBlocked {
-			t.Fatalf("exit code %d, want %d\n%s", code, cli.ExitBlocked, stderr)
+		if code, _, stderr := h.run(nil, proveCommand, allFlag); code != cli.ExitAwaitingHost {
+			t.Fatalf("exit code %d, want %d\n%s", code, cli.ExitAwaitingHost, stderr)
 		}
-		_, listing, _ := h.run(nil, hostproto.ListArgs()...)
-		if !strings.Contains(listing, `"items":[]`) {
-			t.Errorf("the host was asked for something: %s", listing)
+		if witnesses, _, _ := h.pendingSchemas(); witnesses == 0 {
+			t.Error("no witness was asked")
 		}
-		for _, ref := range []string{"PAR-1~1", "PAR-2~1", "PAR-3~1"} {
+		_, output := h.drive(hostprototest.PersonaHonest, oracle{})
+		for _, ref := range []string{"PAR-1~1", "PAR-2~1"} {
 			if got := verdicts(output)[ref]; got != provedEscalate {
 				t.Errorf("%s: %q, want %q\n%s", ref, got, provedEscalate, output)
 			}
 			if !slices.Contains(findings(output, ref), "no_valid_mutant") {
 				t.Errorf("%s findings %v, want no_valid_mutant", ref, findings(output, ref))
 			}
+		}
+		if got := verdicts(output)["PAR-3~1"]; got != provedBlock {
+			t.Errorf("PAR-3~1: %q, want %q\n%s", got, provedBlock, output)
 		}
 		if !strings.Contains(output, "differential_skipped") {
 			t.Errorf("the skipped search is not reported:\n%s", output)
@@ -78,10 +79,10 @@ func TestProveAGoProjectEndToEnd(t *testing.T) {
 		t.Skip("runs the Go fixture's tests against many mutants")
 	}
 
-	t.Run("the honest persona blocks the weak test and escalates the others, whose survivors exposed answers cannot clear [verifies SP-957~2]", func(t *testing.T) {
+	t.Run("the honest persona blocks the weak test on an exposed witness and passes the others on their examples [verifies SP-957~3]", func(t *testing.T) {
 		h := newGoHarness(t)
 		code, output := h.drive(hostprototest.PersonaHonest, oracle{})
-		want := map[string]string{"PAR-1~1": provedEscalate, "PAR-2~1": provedEscalate, "PAR-3~1": provedBlock}
+		want := map[string]string{"PAR-1~1": provedPass, "PAR-2~1": provedPass, "PAR-3~1": provedBlock}
 		for ref, verdict := range want {
 			if got := verdicts(output)[ref]; got != verdict {
 				t.Errorf("%s: %q, want %q\n%s", ref, got, verdict, output)

@@ -11,6 +11,7 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/policy"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
 )
@@ -27,9 +28,14 @@ type poolMutant struct {
 	flagged bool
 	// violation is the screen's probability that the survivor violates the criterion.
 	violation float64
-	decision  *power.Decision
-	// profiles are the executors of the votes the decision rests on.
+	// votes are the validity votes cast on an unwitnessed survivor, and profiles
+	// the executors that cast them.
+	votes    []power.Vote
 	profiles []format.ExecutorProfile
+	// unjudged says why a survivor that needed votes has none.
+	unjudged power.Reason
+	// asked is set once this pass asked the votes of the survivor.
+	asked bool
 }
 
 // critRun is one pass over one criterion.
@@ -43,13 +49,24 @@ type critRun struct {
 	subject  power.Subject
 	pool     []*poolMutant
 	poolByID map[string]*poolMutant
+	// draws are the witness draws of the criterion the search reads, and
+	// creditDraws the draw a CI run asks for credit alone.
+	draws       []*witnessDraw
+	creditDraws []*witnessDraw
+	// records are the witnesses of every criterion the pool was settled against.
+	records []witness.Record
 
-	// spent counts the host tickets of this pass that the budget pays for.
-	spent            int
-	waiting          bool
-	budgetExhausted  bool
-	hostUnresponsive bool
-	mechanisms       []string
+	// spentSchedule and spentJudgment count the host tickets of this pass the
+	// budget pays for.
+	spentSchedule int
+	spentJudgment int
+	// generationPending is set while a generation request waits for its answer:
+	// the search has not ended.
+	generationPending bool
+	waiting           bool
+	budgetExhausted   bool
+	hostUnresponsive  bool
+	mechanisms        []string
 	// answers are the validated answers the Statement rests on.
 	answers []hostbridge.Answer
 	// screenedOut and flagged count the operator survivors the screen let go or
@@ -61,8 +78,33 @@ type critRun struct {
 	screenFloorEntries int
 }
 
-func (p *project) newCritRun(bridge *hostbridge.Bridge, criterion spec.Criterion, st *staticAnalysis) *critRun {
-	return &critRun{p: p, bridge: bridge, c: criterion, st: st, rules: p.settings.Policy, poolByID: map[string]*poolMutant{}}
+func (p *project) newCritRun(bridge *hostbridge.Bridge, criterion spec.Criterion) *critRun {
+	return &critRun{p: p, bridge: bridge, c: criterion, rules: p.settings.Policy, poolByID: map[string]*poolMutant{}}
+}
+
+// firstDraw asks the first writers of the criterion, when the ecosystem can run
+// witnesses.
+func (r *critRun) firstDraw(ctx context.Context) error {
+	if !r.p.runner.Witnesses.Available() {
+		return nil
+	}
+	draw, err := r.drawWitnesses(ctx, firstDraw, firstDrawVotes)
+	if err != nil {
+		return err
+	}
+	r.draws = append(r.draws, draw)
+	if !r.p.redrawsForCredit() {
+		return nil
+	}
+	// The credit draw holds back the Statement alone, never the search.
+	searchWaiting := r.waiting
+	credit, err := r.drawWitnesses(ctx, creditDraw, creditDrawVotes)
+	if err != nil {
+		return err
+	}
+	r.waiting = searchWaiting
+	r.creditDraws = append(r.creditDraws, credit)
+	return nil
 }
 
 func (r *critRun) add(m *poolMutant) {
@@ -83,17 +125,38 @@ const (
 	askOverBudget
 )
 
+// billing says which part of a criterion's ticket budget a request is paid from.
+type billing int
+
+const (
+	// billNone: the request is not counted, such as a reissue or a screen.
+	billNone billing = iota
+	// billSchedule: the writers, the scope judges and the generation, which the
+	// validity votes never crowd out, so that these requests never depend on
+	// the tests.
+	billSchedule
+	// billJudgment: the validity votes, paid from what the schedule left.
+	billJudgment
+)
+
 // ask puts a request to the host. A request the budget pays for is refused when
 // the criterion has no tickets left; the budget is counted per pass, in the
 // order the pass asks, so that it never depends on what earlier runs left in the
 // store.
-func (r *critRun) ask(ask hostbridge.Ask, billable bool) (hostbridge.Answer, askState, error) {
-	if billable {
-		if r.spent+ask.Votes > r.rules.MaxHostTickets {
+func (r *critRun) ask(ask hostbridge.Ask, bill billing) (hostbridge.Answer, askState, error) {
+	switch bill {
+	case billSchedule:
+		if r.spentSchedule+ask.Votes > r.rules.MaxHostTickets {
 			r.budgetExhausted = true
 			return hostbridge.Answer{}, askOverBudget, nil
 		}
-		r.spent += ask.Votes
+		r.spentSchedule += ask.Votes
+	case billJudgment:
+		if r.spentSchedule+r.spentJudgment+ask.Votes > r.rules.MaxHostTickets {
+			r.budgetExhausted = true
+			return hostbridge.Answer{}, askOverBudget, nil
+		}
+		r.spentJudgment += ask.Votes
 	}
 	answer, err := r.bridge.Want(ask)
 	if err != nil {
@@ -110,22 +173,31 @@ func (r *critRun) ask(ask hostbridge.Ask, billable bool) (hostbridge.Answer, ask
 	return answer, askAnswered, nil
 }
 
-// buildSubject names the criterion's tests, every other test and the tests that
-// killed a sentinel.
-func (r *critRun) buildSubject(sentinels []power.Facts) {
-	own := r.c.TestIDs()
-	var others []ecosystem.TestID
-	for _, test := range r.p.tests {
-		if !slices.Contains(own, test.ID) {
-			others = append(others, test.ID)
+// bindings names, for every bound test of the suite, the criteria it is bound
+// to.
+func (p *project) bindings() map[ecosystem.TestID][]spec.Ref {
+	bindings := map[ecosystem.TestID][]spec.Ref{}
+	for _, criterion := range p.criteria {
+		for _, test := range criterion.TestIDs() {
+			if !slices.Contains(bindings[test], criterion.Ref) {
+				bindings[test] = append(bindings[test], criterion.Ref)
+			}
 		}
 	}
-	r.subject = power.Subject{Ref: r.c.Ref, Tests: own, OtherTests: others, SentinelKillers: power.SentinelKillers(sentinels)}
+	return bindings
+}
+
+// buildSubject names the criterion's tests, the bindings of every test and the
+// tests that killed a sentinel.
+func (r *critRun) buildSubject(sentinels []power.Facts) {
+	r.subject = power.NewSubject(r.c.Ref, r.p.bindings(), power.SentinelKillers(sentinels))
 }
 
 // observeOperatorPool executes the sentinels and the operator mutants over the
 // criterion's footprint and sorts them into the pool: sentinels, mutants that
-// fail an example of the criterion, and survivors that still need the screen.
+// fail an example of the criterion, survivors that fail a block-bearing witness
+// of the criterion, and survivors that still need the screen. A survivor that
+// fails such a witness enters the pool whatever the differential search found.
 func (r *critRun) observeOperatorPool(ctx context.Context) (survivors []*poolMutant, err error) {
 	var sentinels []*poolMutant
 	for _, mutant := range r.st.generated.Sentinels {
@@ -145,6 +217,7 @@ func (r *critRun) observeOperatorPool(ctx context.Context) (survivors []*poolMut
 	for _, m := range sentinels {
 		r.add(m)
 	}
+	own := r.ownUniverse()
 	for _, mutant := range r.st.generated.Operator {
 		m, err := r.observe(ctx, mutant.ID, mutant.EditSet, power.OriginOperator, "")
 		if err != nil {
@@ -158,6 +231,13 @@ func (r *critRun) observeOperatorPool(ctx context.Context) (survivors []*poolMut
 			r.add(m)
 		case len(m.facts.FailedExamples) > 0 || r.subject.Killed(m.facts):
 		default:
+			if err := r.runOwnWitnesses(ctx, m); err != nil {
+				return nil, err
+			}
+			if own.Witnessed(m.facts, r.c.Ref) {
+				r.add(m)
+				continue
+			}
 			if m.facts.Differential, err = r.p.runner.Differential(ctx, m.spec, r.st.draws, r.st.skipReason); err != nil {
 				return nil, err
 			}
@@ -167,6 +247,20 @@ func (r *critRun) observeOperatorPool(ctx context.Context) (survivors []*poolMut
 		}
 	}
 	return survivors, nil
+}
+
+// runOwnWitnesses runs the criterion's own witnesses on a mutant.
+func (r *critRun) runOwnWitnesses(ctx context.Context, m *poolMutant) error {
+	sets := r.searchSets()
+	if len(sets) == 0 {
+		return nil
+	}
+	outcomes, err := r.p.runner.EditWitnesses(ctx, m.spec.ID, m.edits, sets)
+	if err != nil {
+		return err
+	}
+	m.facts.WitnessOutcomes = outcomes
+	return nil
 }
 
 // observe executes a mutant that built; it returns nil for one that did not.
@@ -189,25 +283,28 @@ func onlyDefinitions(edits mutation.EditSet) bool {
 	return !slices.ContainsFunc(edits.Edits, func(edit mutation.Edit) bool { return edit.Kind() != mutation.TargetDefinition })
 }
 
-// decide settles the decision of a mutant from the votes the host gave.
-func (r *critRun) decide(m *poolMutant, votes []power.Vote, profiles []format.ExecutorProfile) {
-	decision := power.Decide(r.subject, m.facts, votes, r.rules)
-	m.decision, m.profiles = &decision, profiles
+// rules are the G3-W rules of the run.
+func (r *critRun) g3w() power.Rules {
+	return power.Rules{Policy: r.rules, Admission: r.p.settings.Admission()}
 }
 
-// standing assembles what the terminal outcome rests on. A mutant without a
-// decision is undetermined: it only happens when the host could not answer.
+// standing assembles what the terminal outcome rests on.
 func (r *critRun) standing(correctCodePasses, exampleFailed bool) power.Standing {
 	entries := make([]power.Entry, 0, len(r.pool))
 	for _, m := range r.pool {
-		decision := power.Undetermined(power.ReasonNotAdjudicated)
-		if m.decision != nil {
-			decision = *m.decision
-		}
-		entries = append(entries, power.Entry{Facts: m.facts, Decision: decision})
+		entries = append(entries, power.Entry{Facts: m.facts, Votes: m.votes, Unjudged: m.unjudged})
 	}
 	return power.Standing{
 		Subject: r.subject, CorrectCodePasses: correctCodePasses, ExampleFailed: exampleFailed,
-		Entries: entries, BudgetExhausted: r.budgetExhausted, HostUnresponsive: r.hostUnresponsive,
+		Witnesses: r.records, Entries: entries, BudgetExhausted: r.budgetExhausted, HostUnresponsive: r.hostUnresponsive,
 	}
+}
+
+// poolFacts lists the facts of the pool, in pool order.
+func (r *critRun) poolFacts() []power.Facts {
+	facts := make([]power.Facts, len(r.pool))
+	for index, m := range r.pool {
+		facts[index] = m.facts
+	}
+	return facts
 }

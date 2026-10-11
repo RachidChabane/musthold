@@ -3,6 +3,7 @@ package prove
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/prompt"
@@ -15,29 +16,28 @@ import (
 // Grounds on which execution contradicts a vote, recorded with the rejection.
 const contradictionUnreadable = "unreadable_answer"
 
-// judge puts the validity or the equivalence of a mutant to the host and, once
-// the votes are in, settles the decision.
+// judge puts the validity or the equivalence of an unwitnessed survivor to the
+// host (V-H) and keeps the votes. The votes never block; an EQUIVALENT from every
+// one of them only corroborates the exclusion of a mutant the full-resolution
+// differential search found no difference for.
 func (r *critRun) judge(ctx context.Context, m *poolMutant) error {
-	if m.decision != nil {
-		return nil
-	}
 	question := questionOf(m)
 	request, err := r.judgeRequest(m, question)
 	if err != nil {
 		return err
 	}
 	ask := hostbridge.Ask{Request: request, Votes: r.rules.JudgeK, Criteria: []string{r.c.Ref.String()}, Purpose: string(request.Kind)}
-	answer, state, err := r.ask(ask, true)
+	answer, state, err := r.ask(ask, billJudgment)
 	switch {
 	case err != nil:
 		return err
 	case state == askPending:
 		return nil
 	case state == askUnresponsive:
-		r.settleWithout(m, power.ReasonHostUnresponsive)
+		m.unjudged = power.ReasonHostUnresponsive
 		return nil
 	case state == askOverBudget:
-		r.settleWithout(m, power.ReasonBudgetExhausted)
+		m.unjudged = power.ReasonBudgetExhausted
 		return nil
 	}
 	votes, profiles, contradicted, err := r.readVotes(ctx, m, answer, question)
@@ -45,20 +45,15 @@ func (r *critRun) judge(ctx context.Context, m *poolMutant) error {
 		return err
 	}
 	if contradicted {
-		_, _, err := r.ask(ask, false)
+		_, _, err := r.ask(ask, billNone)
 		return err
 	}
 	if err := r.bridge.Validate(answer); err != nil {
 		return err
 	}
 	r.answers = append(r.answers, answer)
-	r.decide(m, votes, profiles)
+	m.votes, m.profiles = votes, profiles
 	return nil
-}
-
-func (r *critRun) settleWithout(m *poolMutant, reason power.Reason) {
-	decision := power.Undetermined(reason)
-	m.decision = &decision
 }
 
 // questionOf chooses what a judge is asked: the equivalence of a mutant the
@@ -205,9 +200,10 @@ func (r *critRun) screenGroup(ctx context.Context, representative *poolMutant) (
 	if r.rules.BypassesScreen() {
 		return screenOutcome{violation: 1, flagged: true}, nil
 	}
-	scope, err := r.p.scopeOf(ctx, representative.spec.ID)
-	if err != nil {
-		return screenOutcome{}, err
+	scope := r.p.scopeOf(representative.spec.ID)
+	if !slices.Contains(scope, r.c.Ref) {
+		scope = append(slices.Clone(scope), r.c.Ref)
+		slices.SortFunc(scope, spec.Ref.Compare)
 	}
 	window := windowAround(scope, r.c.Ref)
 	statements := make([]string, len(window))
@@ -266,15 +262,15 @@ func (r *critRun) screenGroup(ctx context.Context, representative *poolMutant) (
 // follow only when it was answered by a host executor.
 func (r *critRun) askScreen(ask hostbridge.Ask) (hostbridge.Answer, askState, error) {
 	if !r.p.settings.ClassifyFirst {
-		return r.ask(ask, false)
+		return r.ask(ask, billNone)
 	}
 	first := ask
 	first.Votes = 1
-	answer, state, err := r.ask(first, false)
+	answer, state, err := r.ask(first, billNone)
 	if err != nil || state != askAnswered || standsForTheVotes(answer.Votes[0]) {
 		return answer, state, err
 	}
-	return r.ask(ask, false)
+	return r.ask(ask, billNone)
 }
 
 // standsForTheVotes reports whether the first vote replaces the host votes: the
@@ -295,7 +291,7 @@ func (r *critRun) deferClassification(ask hostbridge.Ask, question string, answe
 	if err := r.bridge.Contradict(first, reasonClassificationDeferred); err != nil {
 		return answer, askAnswered, err
 	}
-	return r.ask(ask, false)
+	return r.ask(ask, billNone)
 }
 
 // reasonClassificationDeferred is why a classification is rejected for the host's

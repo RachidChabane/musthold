@@ -23,7 +23,7 @@ const (
 	shallnotVariable  = "SPEC_PROOF_SHALLNOT"
 	stateVariable     = "XDG_STATE_HOME"
 	cacheVariable     = "XDG_CACHE_HOME"
-	maxWavesPerDrive  = 8
+	maxWavesPerDrive  = 16
 	directoryMode     = 0o755
 	fileMode          = 0o644
 	binaryName        = "spec-proof-dp"

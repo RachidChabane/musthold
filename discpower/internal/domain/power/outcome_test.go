@@ -6,107 +6,105 @@ import (
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/policy"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/spec-proof/format"
 )
 
-func entryOf(facts power.Facts, class power.Class) power.Entry {
-	return power.Entry{Facts: facts, Decision: power.Decision{Class: class}}
+func entry(facts power.Facts) power.Entry { return power.Entry{Facts: facts} }
+
+func withID(facts power.Facts, id string) power.Facts {
+	facts.ID = id
+	return facts
 }
 
-func validKilled() power.Entry {
-	return entryOf(killedBy(power.OriginTargeted, testOwnA), power.ClassValid)
+func ownerKilledBy(test ...string) power.Facts {
+	facts := survivor(power.OriginOperator, power.Skipped)
+	facts.FailedExamples = []spec.Ref{subjectRef}
+	if len(test) > 0 {
+		facts = killedBy(power.OriginOperator, testOwnA)
+		facts.FailedExamples = []spec.Ref{subjectRef}
+	}
+	return facts
 }
 
-func validKilledAt(site string) power.Entry {
-	entry := validKilled()
-	entry.Facts.Sites = []string{site}
-	return entry
-}
-
-func validSurviving() power.Entry {
-	return entryOf(survivor(power.OriginTargeted, power.Skipped), power.ClassValid)
-}
-
-func undeterminedSurvivor() power.Entry {
-	return entryOf(survivor(power.OriginTargeted, power.Skipped), power.ClassUndetermined)
-}
-
-func healthy(entries ...power.Entry) power.Standing {
-	return power.Standing{Subject: newSubject(), CorrectCodePasses: true, Entries: entries}
-}
-
-func TestTerminal(t *testing.T) {
-	collateralKilled := entryOf(killedBy(power.OriginTargeted, testOwnB), power.ClassCollateral)
-	collateralSurviving := entryOf(survivor(power.OriginTargeted, power.Skipped), power.ClassCollateral)
-	survivingSentinel := entryOf(survivor(power.OriginSentinel, power.NoDiffFound), power.ClassEquivalent)
-	undeterminedSentinel := entryOf(survivor(power.OriginSentinel, power.NoDiffFound), power.ClassUndetermined)
-	survivingEquivalent := entryOf(survivor(power.OriginTargeted, power.NoDiffFound), power.ClassEquivalent)
-	survivingOffTarget := entryOf(survivor(power.OriginOperator, power.Skipped), power.ClassOffTarget)
-	survivingUnattributed := entryOf(survivor(power.OriginTargeted, power.Skipped), power.ClassUnattributed)
-	killedEquivalent := entryOf(killedBy(power.OriginTargeted, testOwnA), power.ClassEquivalent)
-	killedUndetermined := entryOf(killedBy(power.OriginTargeted, testOwnA), power.ClassUndetermined)
-
+func TestEvaluate(t *testing.T) {
+	killedValidE := withID(failing(killedBy(power.OriginTargeted, testOwnA), ownWitness), "killed-valid")
+	survivingValidE := withID(failing(survivor(power.OriginTargeted, power.DiffersAt), ownWitness), "surviving-valid")
+	unsettled := withID(survivor(power.OriginTargeted, power.DiffersAt), "unsettled")
+	excluded := withID(failing(survivor(power.OriginTargeted, power.DiffersAt), otherWitness), "excluded")
+	killedLow := withID(failing(killedBy(power.OriginTargeted, testOwnA), ownWitnessLow), "killed-low")
+	collateral := withID(failing(survivor(power.OriginTargeted, power.DiffersAt), ownWitness, otherWitness), "collateral")
 	cases := []struct {
 		name     string
 		standing power.Standing
 		result   power.Result
 		findings []power.Finding
 	}{
-		{"a killed VALID mutant and nothing else", healthy(validKilled()), power.Pass, nil},
-		{"a killed collateral mutant is a credited VALID mutant", healthy(collateralKilled), power.Pass, nil},
-		{"a credited VALID mutant with excluded survivors", healthy(validKilled(), survivingEquivalent, survivingOffTarget, survivingUnattributed, survivingSentinel), power.Pass, nil},
-		{"a killed mutant of any decision is not a survivor", healthy(validKilled(), killedEquivalent, killedUndetermined), power.Pass, nil},
-		{"a failing reference", power.Standing{Subject: newSubject(), CorrectCodePasses: false, Entries: []power.Entry{validKilled()}}, power.Block, []power.Finding{power.FindingCorrectCodeFails}},
-		{"a failing example", power.Standing{Subject: newSubject(), CorrectCodePasses: true, ExampleFailed: true, Entries: []power.Entry{validKilled()}}, power.Block, []power.Finding{power.FindingExampleFailed}},
-		{"a failing reference and a failing example", power.Standing{Subject: newSubject(), ExampleFailed: true}, power.Block, []power.Finding{power.FindingCorrectCodeFails, power.FindingExampleFailed}},
-		{"a failing reference leaves out the credit findings", power.Standing{Subject: newSubject()}, power.Block, []power.Finding{power.FindingCorrectCodeFails}},
-		{"a surviving VALID mutant", healthy(validKilled(), validSurviving()), power.Block, []power.Finding{power.FindingSurvivingValid}},
-		{"a surviving collateral mutant", healthy(validKilled(), collateralSurviving), power.Block, []power.Finding{power.FindingSurvivingValid}},
-		{"a surviving VALID mutant with nothing credited", healthy(validSurviving()), power.Block, []power.Finding{power.FindingNoKilledValidMutant, power.FindingSurvivingValid}},
-		{"a surviving VALID mutant blocks before an undetermined survivor escalates", healthy(validKilled(), validSurviving(), undeterminedSurvivor()), power.Block, []power.Finding{power.FindingSurvivingValid, power.FindingUndeterminedSurvivor}},
-		{"a block blocks before an exhausted budget escalates", power.Standing{Subject: newSubject(), CorrectCodePasses: true, Entries: []power.Entry{validKilled(), validSurviving()}, BudgetExhausted: true}, power.Block, []power.Finding{power.FindingBudgetExhausted, power.FindingSurvivingValid}},
-		{"an undetermined survivor", healthy(validKilled(), undeterminedSurvivor()), power.Escalate, []power.Finding{power.FindingUndeterminedSurvivor}},
-		{"an undetermined survivor of the operators", healthy(validKilled(), entryOf(survivor(power.OriginOperator, power.Skipped), power.ClassUndetermined)), power.Escalate, []power.Finding{power.FindingUndeterminedSurvivor}},
-		{"no mutant at all", healthy(), power.Escalate, []power.Finding{power.FindingNoValidMutant}},
-		{"only excluded mutants", healthy(survivingEquivalent, survivingOffTarget), power.Escalate, []power.Finding{power.FindingNoValidMutant}},
-		{"a sentinel is no VALID mutant", healthy(survivingSentinel), power.Escalate, []power.Finding{power.FindingNoValidMutant}},
-		{"an undetermined sentinel raises no finding", healthy(validKilled(), undeterminedSentinel), power.Pass, nil},
-		{"a killed VALID mutant whose killer also killed a sentinel", power.Standing{Subject: newSubject(testOtherA), CorrectCodePasses: true, Entries: []power.Entry{entryOf(killedBy(power.OriginTargeted, testOwnA, testOtherA), power.ClassValid)}}, power.Pass, nil},
-		{"a killed VALID mutant killed only by a sentinel killer", power.Standing{Subject: newSubject(testOwnA), CorrectCodePasses: true, Entries: []power.Entry{validKilled()}}, power.Escalate, []power.Finding{power.FindingMutationSensitiveTest, power.FindingNoKilledValidMutant}},
-		{"a test of the criterion that killed a sentinel", power.Standing{Subject: newSubject(testOwnB), CorrectCodePasses: true, Entries: []power.Entry{validKilled()}}, power.Escalate, []power.Finding{power.FindingMutationSensitiveTest}},
-		{"a sentinel killer outside the criterion", power.Standing{Subject: newSubject(testOtherA), CorrectCodePasses: true, Entries: []power.Entry{validKilled()}}, power.Pass, nil},
-		{"an exhausted budget", power.Standing{Subject: newSubject(), CorrectCodePasses: true, Entries: []power.Entry{validKilled()}, BudgetExhausted: true}, power.Escalate, []power.Finding{power.FindingBudgetExhausted}},
-		{"an unresponsive host", power.Standing{Subject: newSubject(), CorrectCodePasses: true, Entries: []power.Entry{validKilled()}, HostUnresponsive: true}, power.Escalate, []power.Finding{power.FindingHostUnresponsive}},
-		{"every ground to escalate", power.Standing{Subject: newSubject(testOwnB), CorrectCodePasses: true, Entries: []power.Entry{undeterminedSurvivor()}, BudgetExhausted: true, HostUnresponsive: true}, power.Escalate, []power.Finding{
-			power.FindingBudgetExhausted, power.FindingHostUnresponsive, power.FindingMutationSensitiveTest, power.FindingNoValidMutant, power.FindingUndeterminedSurvivor}},
+		{"a killed credit-bearing VALID_e and nothing else passes", standing(entry(killedValidE)), power.Pass, nil},
+		{"a surviving VALID_e blocks", standing(entry(killedValidE), entry(survivingValidE)), power.Block, []power.Finding{power.FindingSurvivingValid}},
+		{"a surviving collateral mutant blocks", standing(entry(killedValidE), entry(collateral)), power.Block, []power.Finding{power.FindingSurvivingValid}},
+		{"a surviving owner-attributed mutant blocks", standing(entry(killedValidE), entry(withID(ownerKilledBy(), "owner"))), power.Block, []power.Finding{power.FindingSurvivingValid}},
+		{"a killed owner-attributed mutant earns credit", standing(entry(withID(ownerKilledBy(string(testOwnA)), "owner"))), power.Pass, nil},
+		{"an unsettled survivor escalates", standing(entry(killedValidE), entry(unsettled)), power.Escalate, []power.Finding{power.FindingUnexcludedSurvivor}},
+		{"an excluded survivor does not escalate", standing(entry(killedValidE), entry(excluded)), power.Pass, nil},
+		{"an empty pool escalates", standing(), power.Escalate, []power.Finding{power.FindingNoValidMutant}},
+		{"a VALID_e written below the floor gives no credit", standing(entry(killedLow)), power.Escalate, []power.Finding{power.FindingNoValidMutant}},
+		{"a survivor and no credit escalates on both", standing(entry(unsettled)), power.Escalate, []power.Finding{power.FindingNoValidMutant, power.FindingUnexcludedSurvivor}},
+		{"blocking wins over escalating", standing(entry(survivingValidE), entry(unsettled)), power.Block, []power.Finding{power.FindingNoKilledValidMutant, power.FindingSurvivingValid, power.FindingUnexcludedSurvivor}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name+verifiesSP167, func(t *testing.T) {
-			got := power.Terminal(tc.standing)
-			if got.Result != tc.result {
-				t.Fatalf("result %q (%v), want %q", got.Result, got.Findings, tc.result)
-			}
-			if !slices.Equal(got.Findings, tc.findings) {
-				t.Errorf("findings %v, want %v", got.Findings, tc.findings)
-			}
-			for _, finding := range tc.findings {
-				if !got.Has(finding) {
-					t.Errorf("Has(%q) = false", finding)
-				}
-			}
-			if got.Has("unlisted") {
-				t.Error("Has reported an unknown finding")
+			got := power.Terminal(tc.standing, rulesOf(policy.Default()))
+			if got.Result != tc.result || !slices.Equal(got.Findings, tc.findings) {
+				t.Errorf("outcome %+v, want %s %v", got, tc.result, tc.findings)
 			}
 		})
 	}
-	t.Run("findings are sorted and without duplicates"+verifiesSP167, func(t *testing.T) {
-		got := power.Terminal(healthy(validSurviving(), validSurviving(), undeterminedSurvivor(), undeterminedSurvivor()))
-		if !slices.IsSorted(got.Findings) || len(slices.Compact(slices.Clone(got.Findings))) != len(got.Findings) {
-			t.Errorf("findings %v", got.Findings)
+
+	t.Run("a reference that fails a test blocks, and so does a failing example"+verifiesSP167, func(t *testing.T) {
+		failing := standing(entry(killedValidE))
+		failing.CorrectCodePasses = false
+		if got := power.Terminal(failing, rulesOf(policy.Default())); got.Result != power.Block || !got.Has(power.FindingCorrectCodeFails) {
+			t.Errorf("outcome %+v", got)
+		}
+		example := standing(entry(killedValidE))
+		example.ExampleFailed = true
+		if got := power.Terminal(example, rulesOf(policy.Default())); got.Result != power.Block || !got.Has(power.FindingExampleFailed) {
+			t.Errorf("outcome %+v", got)
 		}
 	})
-	t.Run("a pass carries no finding"+verifiesSP167, func(t *testing.T) {
-		if got := power.Terminal(healthy(validKilled())); len(got.Findings) != 0 {
-			t.Errorf("findings %v", got.Findings)
+
+	t.Run("a test that killed a sentinel escalates and earns no credit"+verifiesSP167, func(t *testing.T) {
+		tainted := standing(entry(killedValidE))
+		tainted.Subject = newSubject(testOwnA)
+		got := power.Terminal(tainted, rulesOf(policy.Default()))
+		if got.Result != power.Escalate || !got.Has(power.FindingMutationSensitiveTest) || !got.Has(power.FindingNoKilledValidMutant) {
+			t.Errorf("outcome %+v", got)
+		}
+	})
+
+	t.Run("an exhausted budget and an unresponsive host escalate"+verifiesSP167, func(t *testing.T) {
+		stalled := standing(entry(killedValidE))
+		stalled.BudgetExhausted, stalled.HostUnresponsive = true, true
+		got := power.Terminal(stalled, rulesOf(policy.Default()))
+		if got.Result != power.Escalate || !got.Has(power.FindingBudgetExhausted) || !got.Has(power.FindingHostUnresponsive) {
+			t.Errorf("outcome %+v", got)
+		}
+	})
+
+	t.Run("a mutant whose results are errors is neither a kill nor a survival"+verifiesSP167, func(t *testing.T) {
+		errored := withID(failing(survivor(power.OriginTargeted, power.DiffersAt), ownWitness), "errored")
+		errored.Outcomes[testOwnA] = format.OutcomeError
+		got := power.Terminal(standing(entry(killedValidE), entry(errored)), rulesOf(policy.Default()))
+		if got.Result != power.Pass {
+			t.Errorf("outcome %+v", got)
+		}
+	})
+
+	t.Run("the decisions of the pool are returned by mutant"+verifiesSP167, func(t *testing.T) {
+		evaluation := power.Evaluate(standing(entry(killedValidE), entry(unsettled)), rulesOf(policy.Default()))
+		if evaluation.Decisions["killed-valid"].Class != power.ClassValidE || evaluation.Decisions["unsettled"].Class != power.ClassUnsettled {
+			t.Errorf("decisions %+v", evaluation.Decisions)
 		}
 	})
 }
@@ -114,79 +112,124 @@ func TestTerminal(t *testing.T) {
 func TestResultSeverity(t *testing.T) {
 	t.Run("results rank from block down to pass"+verifiesSP167, func(t *testing.T) {
 		if !(power.Block.Severity() > power.Escalate.Severity() && power.Escalate.Severity() > power.Pass.Severity()) {
-			t.Errorf("severities %d %d %d", power.Block.Severity(), power.Escalate.Severity(), power.Pass.Severity())
-		}
-	})
-	t.Run("an unknown result ranks as a pass"+verifiesSP167, func(t *testing.T) {
-		if power.Result("OTHER").Severity() != power.Pass.Severity() {
-			t.Error("an unknown result outranks a pass")
+			t.Fatal("severity order")
 		}
 	})
 }
 
 func TestStopSearching(t *testing.T) {
 	rules := policy.Default()
-	cases := []struct {
-		name     string
-		standing power.Standing
-		rules    policy.Policy
-		stop     bool
-	}{
-		{"an empty pool", healthy(), rules, false},
-		{"a surviving VALID mutant", healthy(validSurviving()), rules, true},
-		{"a surviving collateral mutant", healthy(entryOf(survivor(power.OriginTargeted, power.Skipped), power.ClassCollateral)), rules, true},
-		{"a surviving VALID mutant among killed ones that are too few", healthy(validKilledAt(siteFirst), validSurviving()), rules, true},
-		{"a failing reference", power.Standing{Subject: newSubject(), CorrectCodePasses: false}, rules, true},
-		{"a failing example", power.Standing{Subject: newSubject(), CorrectCodePasses: true, ExampleFailed: true}, rules, true},
-		{"too few VALID mutants", healthy(validKilledAt(siteFirst), validKilledAt(siteSecond)), rules, false},
-		{"enough VALID mutants on one site only", healthy(validKilledAt(siteFirst), validKilledAt(siteFirst), validKilledAt(siteFirst)), rules, false},
-		{"min_valid VALID mutants on min_sites sites with all killed", healthy(validKilledAt(siteFirst), validKilledAt(siteFirst), validKilledAt(siteSecond)), rules, true},
-		{"more than enough on many sites", healthy(validKilledAt(siteFirst), validKilledAt(siteSecond), validKilledAt(siteThird), validKilledAt(siteThird)), rules, true},
-		{"enough killed mutants whose other decisions do not count", healthy(validKilledAt(siteFirst), validKilledAt(siteSecond), undeterminedSurvivor(), entryOf(survivor(power.OriginTargeted, power.NoDiffFound), power.ClassEquivalent)), rules, false},
-		{"a mutant editing several sites counts every one", healthy(func() power.Entry {
-			entry := validKilled()
-			entry.Facts.Sites = []string{siteFirst, siteSecond}
-			return entry
-		}(), validKilledAt(siteFirst), validKilledAt(siteFirst)), rules, true},
-		{"a lowered min_valid", healthy(validKilledAt(siteFirst), validKilledAt(siteSecond)), func() policy.Policy {
-			lowered := policy.Default()
-			lowered.MinValid = 2
-			return lowered
-		}(), true},
-		{"a raised min_sites", healthy(validKilledAt(siteFirst), validKilledAt(siteSecond), validKilledAt(siteSecond)), func() policy.Policy {
-			raised := policy.Default()
-			raised.MinSites = 3
-			return raised
-		}(), false},
-		{"a block even with nothing else", power.Standing{Subject: newSubject(), CorrectCodePasses: false, Entries: []power.Entry{validKilledAt(siteFirst)}}, rules, true},
+	witnessed := func(id, site string) power.Facts {
+		facts := failing(killedBy(power.OriginTargeted, testOwnA), ownWitness)
+		facts.ID, facts.Sites = id, []string{site}
+		return facts
 	}
-	for _, tc := range cases {
-		t.Run(tc.name+verifiesSP168, func(t *testing.T) {
-			if got := power.StopSearching(tc.standing, tc.rules); got != tc.stop {
-				t.Errorf("StopSearching() = %v, want %v", got, tc.stop)
+	enough := []power.Facts{witnessed("a", siteFirst), witnessed("b", siteSecond), witnessed("c", siteThird)}
+	t.Run("the search stops once enough witnessed mutants cover enough sites"+verifiesSP168, func(t *testing.T) {
+		if !power.StopSearching(universe(rules), subjectRef, enough, rules) {
+			t.Fatal("did not stop")
+		}
+	})
+
+	t.Run("the search goes on below min_valid or min_sites"+verifiesSP168, func(t *testing.T) {
+		if power.StopSearching(universe(rules), subjectRef, enough[:2], rules) {
+			t.Error("stopped below min_valid")
+		}
+		oneSite := []power.Facts{witnessed("a", siteFirst), witnessed("b", siteFirst), witnessed("c", siteFirst)}
+		if power.StopSearching(universe(rules), subjectRef, oneSite, rules) {
+			t.Error("stopped below min_sites")
+		}
+	})
+
+	t.Run("the stop rule reads no kill vector"+verifiesSP168, func(t *testing.T) {
+		survivors := make([]power.Facts, len(enough))
+		for index, facts := range enough {
+			facts.Outcomes = outcomesWith()
+			survivors[index] = facts
+		}
+		if power.StopSearching(universe(rules), subjectRef, survivors, rules) != power.StopSearching(universe(rules), subjectRef, enough, rules) {
+			t.Error("the kill vector changed the stop rule")
+		}
+	})
+
+	t.Run("operator mutants a witness flags do not count, owner-attributed ones do"+verifiesSP168, func(t *testing.T) {
+		operators := make([]power.Facts, len(enough))
+		for index, facts := range enough {
+			facts.Origin = power.OriginOperator
+			operators[index] = facts
+		}
+		if power.StopSearching(universe(rules), subjectRef, operators, rules) {
+			t.Error("operator mutants stopped the search")
+		}
+		owners := make([]power.Facts, len(operators))
+		for index, facts := range operators {
+			facts.FailedExamples = []spec.Ref{subjectRef}
+			owners[index] = facts
+		}
+		if !power.StopSearching(universe(rules), subjectRef, owners, rules) {
+			t.Error("owner-attributed mutants did not stop the search")
+		}
+	})
+
+	t.Run("a further witness draw is asked below two VALID_e candidates"+verifiesSP168, func(t *testing.T) {
+		if !power.NeedsFurtherWitnesses(universe(rules), subjectRef, enough[:1]) || power.NeedsFurtherWitnesses(universe(rules), subjectRef, enough[:2]) {
+			t.Error("further witness draw")
+		}
+	})
+
+	t.Run("owner-attributed, operator and compiled-identical mutants are no VALID_e candidates"+verifiesSP168, func(t *testing.T) {
+		owner, operator, identical := enough[0], enough[1], enough[1]
+		owner.FailedExamples = []spec.Ref{subjectRef}
+		operator.Origin = power.OriginOperator
+		identical.Identity = power.IdentityIdentical
+		for _, pool := range [][]power.Facts{{owner, enough[1]}, {enough[0], operator}, {enough[0], identical}} {
+			if !power.NeedsFurtherWitnesses(universe(rules), subjectRef, pool) {
+				t.Errorf("no further draw for %+v", pool)
 			}
-		})
-	}
-	t.Run("a pool of VALID mutants with none killed cannot reach the quota without blocking"+verifiesSP168, func(t *testing.T) {
-		standing := healthy(validSurviving(), validSurviving(), validSurviving())
-		if !power.StopSearching(standing, rules) || power.Terminal(standing).Result != power.Block {
-			t.Error("the search continues past a block")
+		}
+	})
+
+	t.Run("the further draw reads no kill vector"+verifiesSP168, func(t *testing.T) {
+		killed := slices.Clone(enough[:2])
+		for index := range killed {
+			killed[index].Outcomes = outcomesWith(testOwnA, testOtherA)
+		}
+		if power.NeedsFurtherWitnesses(universe(rules), subjectRef, killed) != power.NeedsFurtherWitnesses(universe(rules), subjectRef, enough[:2]) {
+			t.Error("the kill vector changed the further draw")
 		}
 	})
 }
 
-func TestTerminalAgreesWithStop(t *testing.T) {
-	t.Run("a pool that stops the search by its quota passes when nothing remains"+verifiesSP168, func(t *testing.T) {
-		standing := healthy(validKilledAt(siteFirst), validKilledAt(siteFirst), validKilledAt(siteSecond))
-		if !power.StopSearching(standing, policy.Default()) || power.Terminal(standing).Result != power.Pass {
-			t.Error("the quota did not end in a pass")
+func TestGroupFaults(t *testing.T) {
+	sameA := withID(failing(survivor(power.OriginTargeted, power.DiffersAt), ownWitness), "a")
+	sameB := withID(failing(survivor(power.OriginTargeted, power.DiffersAt), ownWitness), "b")
+	otherSite := withID(failing(survivor(power.OriginTargeted, power.DiffersAt), ownWitness), "c")
+	otherSite.Sites = []string{siteSecond}
+	sentinel := withID(survivor(power.OriginSentinel, power.NoDiffFound), "s")
+	excluded := withID(failing(survivor(power.OriginTargeted, power.DiffersAt), otherWitness), "x")
+
+	t.Run("mutants on the same sites failing the same witnesses are one fault"+verifiesSP1976, func(t *testing.T) {
+		evaluation := power.Evaluate(standing(entry(sameA), entry(sameB), entry(otherSite), entry(sentinel), entry(excluded)), rulesOf(policy.Default()))
+		if len(evaluation.Faults) != 2 {
+			t.Fatalf("faults %+v", evaluation.Faults)
+		}
+		var sizes []int
+		for _, fault := range evaluation.Faults {
+			sizes = append(sizes, len(fault.Mutants))
+		}
+		slices.Sort(sizes)
+		if !slices.Equal(sizes, []int{1, 2}) {
+			t.Errorf("sizes %v", sizes)
 		}
 	})
-	t.Run("sentinel decisions never count towards the quota"+verifiesSP168, func(t *testing.T) {
-		sentinel := entryOf(killedBy(power.OriginSentinel, testOwnA), power.ClassEquivalent)
-		standing := healthy(sentinel, sentinel, sentinel)
-		if power.StopSearching(standing, policy.Default()) {
-			t.Error("sentinels ended the search")
+
+	t.Run("mutants failing no witness group by the inputs they differ on"+verifiesSP1976, func(t *testing.T) {
+		first := withID(survivor(power.OriginTargeted, power.DiffersAt), "d")
+		second := withID(survivor(power.OriginTargeted, power.DiffersAt), "e")
+		second.Differential.Witnesses = []power.Witness{{Call: spec.Call{Operation: "op"}}}
+		evaluation := power.Evaluate(standing(entry(first), entry(second)), rulesOf(policy.Default()))
+		if len(evaluation.Faults) != 2 {
+			t.Errorf("faults %+v", evaluation.Faults)
 		}
 	})
 }

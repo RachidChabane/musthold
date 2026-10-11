@@ -46,6 +46,9 @@ var _ ports.Ecosystem = (*Strategy)(nil)
 // Strategy implements ports.Ecosystem for Go testing.
 type Strategy struct {
 	deps Dependencies
+	// witnessDir is the directory of the package the witnesses belong to, which
+	// the witness brief chose.
+	witnessDir string
 }
 
 // New builds the strategy over its ports.

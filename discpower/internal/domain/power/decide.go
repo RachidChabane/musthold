@@ -5,10 +5,11 @@ import (
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/policy"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
 	"github.com/RachidChabane/spec-proof/format"
 )
 
-// Reason names why a claim was not accepted or why a criterion escalates.
+// Reason names why a mutant is unsettled or why a criterion escalates.
 type Reason string
 
 // Reasons a decision or an outcome carries.
@@ -16,53 +17,79 @@ const (
 	ReasonNone                  Reason = ""
 	ReasonJudgesSplit           Reason = "judges_split"
 	ReasonBelowThreshold        Reason = "below_threshold"
-	ReasonUncorroborated        Reason = "uncorroborated"
 	ReasonIsolationFloor        Reason = "below_isolation_floor"
 	ReasonNoExecutedEquivalence Reason = "no_executed_equivalence"
-	ReasonNoExecutedExclusion   Reason = "no_executed_exclusion"
+	ReasonJudgedValid           Reason = "judged_valid"
+	ReasonJudgedNotViolating    Reason = "judged_not_violating"
 	ReasonJudgedUndetermined    Reason = "judged_undetermined"
+	ReasonWitnessedNotIsolated  Reason = "witnessed_not_isolated"
 	ReasonBudgetExhausted       Reason = "budget_exhausted"
 	ReasonHostUnresponsive      Reason = "host_unresponsive"
 	ReasonNoExecutor            Reason = "no_executor"
 	ReasonNotAdjudicated        Reason = "not_adjudicated"
 )
 
-// Class is the pilot's mutant class (ADR 0003, validity mapping).
+// Class is the class of a mutant for a criterion under G3-W.
 type Class string
 
 // Mutant classes.
 const (
-	// ClassValid is VALID_c: the mutant violates the criterion.
-	ClassValid Class = "valid"
-	// ClassCollateral is VALID that violates several criteria; counted by the
-	// gate, excluded from the matrix.
+	// ClassSentinel is a semantic no-op drawn from the sentinel catalogue:
+	// EQUIVALENT by construction.
+	ClassSentinel Class = "sentinel"
+	// ClassOwnerAttributed fails an example of the criterion and no example of
+	// another one.
+	ClassOwnerAttributed Class = "owner_attributed"
+	// ClassValidE is VALID_e: it fails, reproduced, a block-bearing witness of the
+	// criterion, and no test bound to another criterion killed it or errored on
+	// it.
+	ClassValidE Class = "valid_e"
+	// ClassCollateral is VALID_e for the criterion and for another one: it blocks
+	// the criterion when it survives and earns no credit.
 	ClassCollateral Class = "collateral"
-	// ClassOffTarget is NOT_VIOLATING, re-homed to the criterion it violates.
-	ClassOffTarget Class = "off_target"
-	// ClassUnattributed is NOT_VIOLATING with no criterion to blame.
-	ClassUnattributed Class = "unattributed"
-	// ClassEquivalent is EQUIVALENT: no behavioural difference.
-	ClassEquivalent Class = "equivalent"
-	// ClassUndetermined is everything else.
-	ClassUndetermined Class = "undetermined"
+	// ClassExcluded is cleared by execution: see its route.
+	ClassExcluded Class = "excluded"
+	// ClassUnsettled is everything else; a surviving one escalates.
+	ClassUnsettled Class = "unsettled"
+)
+
+// Route names how execution excluded a mutant.
+type Route string
+
+// Exclusion routes.
+const (
+	RouteNone Route = ""
+	// RouteIdentity: it compiles to the reference's form (E0).
+	RouteIdentity Route = "e0_identity"
+	// RouteEquivalent: the full-resolution differential search found no
+	// difference, every validity vote answered EQUIVALENT and no vote gave a
+	// confirmed witness.
+	RouteEquivalent Route = "f3_equivalent"
+	// RouteOtherCriterion: it fails an example or an admitted witness of another
+	// criterion and none of the criterion's own.
+	RouteOtherCriterion Route = "other_criterion"
 )
 
 // Identities of the deciders recorded in `extensions.decision`.
 const (
 	DeciderSentinelCatalogue = "sentinel-catalogue"
 	DeciderExamplePrefix     = "example-"
+	DeciderWitnessPrefix     = "witness-"
+	DeciderIdentity          = "compiled-form"
 	DeciderHostJudge         = "host-judge"
 )
 
-// Evidence is one piece of executed evidence behind a judged claim.
+// Evidence is one piece of executed evidence behind a claim.
 type Evidence struct {
 	Kind   format.CorroborationKind
 	Digest string
 }
 
-// Decision is the validity of one mutant for one criterion and what backs it.
+// Decision is the class of one mutant for one criterion, the claim it is
+// recorded as and the evidence behind it.
 type Decision struct {
 	Class      Class
+	Route      Route
 	Validity   format.Validity
 	Basis      format.DecisionBasis
 	Confidence float64
@@ -73,34 +100,40 @@ type Decision struct {
 	Mapping string
 	// Corroboration is the executed evidence, sorted and without duplicates.
 	Corroboration []Evidence
-	// OffTarget is the criterion an off-target mutant violates.
+	// OffTarget is the criterion whose example or witness excluded the mutant.
 	OffTarget *spec.Ref
-	// Reason says why a claim is undetermined.
+	// Reason says why a mutant is unsettled.
 	Reason Reason
-	// HostExclusion is set when a survivor was cleared on judges alone.
-	HostExclusion bool
+	// Witness is the id of the block-bearing witness a VALID_e claim rests on:
+	// a credit-eligible one when the mutant fails one.
+	Witness string
+	// Failing lists the block-bearing witnesses of the criterion the mutant
+	// fails, reproduced, sorted.
+	Failing []string
+	// CollateralWith lists the other criteria the mutant is VALID_e for, sorted.
+	CollateralWith []spec.Ref
+	// CreditBearing is set for a mutant whose kill earns pass credit: an
+	// owner-attributed mutant, or a VALID_e mutant that is not collateral and
+	// fails a credit-eligible witness, under a basis that credits it.
+	CreditBearing bool
 }
 
-// Carries reports whether the decision gives its mutant the power to block or to
-// earn pass credit: a VALID class.
-func (d Decision) Carries() bool { return d.Class == ClassValid || d.Class == ClassCollateral }
-
-// Undetermined builds the decision of a mutant no stage could classify.
-func Undetermined(reason Reason) Decision {
-	return Decision{Class: ClassUndetermined, Validity: format.ValidityUndetermined, Basis: format.BasisJudges, Confidence: format.MinConfidence, Deciders: []string{DeciderHostJudge}, Source: format.SourceExecution, Reason: reason}
+// Carries reports whether the decision gives its mutant the power to block: an
+// owner-attributed, VALID_e or collateral class.
+func (d Decision) Carries() bool {
+	return d.Class == ClassOwnerAttributed || d.Class == ClassValidE || d.Class == ClassCollateral
 }
 
-// undetermined turns a judged decision into one no stage could classify, keeping
-// the confidence and its source that the claim was held to.
-func (d Decision) undetermined(reason Reason) Decision {
-	d.Class, d.Validity, d.Reason = ClassUndetermined, format.ValidityUndetermined, reason
-	return d
+// Unsettled builds the decision of a mutant no execution settled and no vote
+// could be read for.
+func Unsettled(reason Reason) Decision {
+	return Decision{Class: ClassUnsettled, Validity: format.ValidityUndetermined, Basis: format.BasisExecution, Confidence: format.MinConfidence, Deciders: []string{DeciderHostJudge}, Source: format.SourceExecution, Reason: reason}
 }
 
-// VoteQuestion is what a judge was asked about a mutant.
+// VoteQuestion is what a validity judge was asked about a mutant.
 type VoteQuestion string
 
-// Questions a judge ticket carries.
+// Questions a validity ticket carries.
 const (
 	QuestionValidity   VoteQuestion = "validity"
 	QuestionEquivalent VoteQuestion = "equivalent"
@@ -131,16 +164,17 @@ const (
 	WitnessRefused WitnessCheck = "refused"
 )
 
-// Vote is one judge ticket's answer, with the provenance of its response.
+// Vote is one validity ticket's answer (V-H), with the provenance of its
+// response.
 type Vote struct {
-	Answer     Answer
-	Confidence float64
-	Isolation  format.Isolation
+	Answer     Answer           `json:"answer"`
+	Confidence float64          `json:"confidence"`
+	Isolation  format.Isolation `json:"isolation"`
 	// Marked is set for a response journaled as leaked, exposed or conflicting.
-	Marked  bool
-	Witness WitnessCheck
+	Marked  bool         `json:"marked,omitempty"`
+	Witness WitnessCheck `json:"witness"`
 	// WitnessDigest is the digest of the confirmed witness record.
-	WitnessDigest string
+	WitnessDigest string `json:"witnessDigest,omitempty"`
 }
 
 // AtFloor reports whether the vote's response keeps judged pass credit under the
@@ -168,58 +202,326 @@ func TallyVotes(votes []Vote) Tally {
 	return tally
 }
 
-// Decide applies the validity mapping and the claim-power table to one mutant of
-// a pool. Sentinels are EQUIVALENT by construction, a failed example attributes
-// the mutant to the criterion it belongs to, and everything else rests on the
-// judge votes together with the executed evidence the table names.
-func Decide(subject Subject, facts Facts, votes []Vote, rules policy.Policy) Decision {
-	if facts.Origin == OriginSentinel {
-		return sentinelDecision(facts)
-	}
-	if len(facts.FailedExamples) > 0 {
-		return attributedDecision(subject, facts)
-	}
-	return judgedDecision(subject, facts, votes, rules)
+// Rules are what G3-W reads beyond the facts: the decision policy and whether
+// the planted refactors take part in admitting a witness.
+type Rules struct {
+	Policy    policy.Policy
+	Admission witness.Admission
 }
 
-func sentinelDecision(facts Facts) Decision {
-	return Decision{
-		Class: ClassEquivalent, Validity: format.ValidityEquivalent, Basis: format.BasisConstruction,
-		Confidence: format.MaxConfidence, Deciders: []string{DeciderSentinelCatalogue}, Source: format.SourceExecution,
-		Corroboration: nil, Reason: ReasonNone,
-	}
+// ScopeRule is what the scope judges must give for a witness to be
+// block-bearing: `judge_k` votes, each FIXED at or above the threshold of the
+// host votes.
+func (r Rules) ScopeRule() witness.ScopeRule {
+	return witness.ScopeRule{Votes: r.Policy.JudgeK, Threshold: r.Policy.TauJudge.For(format.HostVotesSource(r.Policy.JudgeK))}
 }
 
-func attributedDecision(subject Subject, facts Facts) Decision {
-	failed := facts.FailedExamples
-	deciders := make([]string, 0, len(failed))
-	for _, ref := range failed {
-		deciders = append(deciders, DeciderExamplePrefix+ref.String())
+// Universe indexes the witnesses of every criterion with their status under the
+// rules.
+type Universe struct {
+	records  map[string]witness.Record
+	statuses map[string]witness.Status
+	byRef    map[spec.Ref][]string
+}
+
+// NewUniverse indexes the witness records.
+func NewUniverse(records []witness.Record, rules Rules) Universe {
+	universe := Universe{records: map[string]witness.Record{}, statuses: map[string]witness.Status{}, byRef: map[spec.Ref][]string{}}
+	scope := rules.ScopeRule()
+	for _, record := range records {
+		id := record.Witness.ID
+		if _, known := universe.records[id]; known {
+			continue
+		}
+		universe.records[id] = record
+		universe.statuses[id] = record.Status(rules.Admission, scope)
+		universe.byRef[record.Witness.Criterion] = append(universe.byRef[record.Witness.Criterion], id)
 	}
-	slices.Sort(deciders)
-	evidence := []Evidence{{Kind: format.CorroborationExampleFailed, Digest: evidenceDigest(format.CorroborationExampleFailed, facts.ID, refStrings(failed))}}
-	decision := Decision{Basis: format.BasisSpecExample, Confidence: format.MaxConfidence, Deciders: deciders, Source: format.SourceExecution, Corroboration: evidence}
-	inSubject := slices.ContainsFunc(failed, func(ref spec.Ref) bool { return ref == subject.Ref })
+	for ref := range universe.byRef {
+		slices.Sort(universe.byRef[ref])
+	}
+	return universe
+}
+
+// Status returns the status of a witness.
+func (u Universe) Status(id string) witness.Status { return u.statuses[id] }
+
+// Record returns the record of a witness.
+func (u Universe) Record(id string) (witness.Record, bool) {
+	record, known := u.records[id]
+	return record, known
+}
+
+// Of lists the ids of the witnesses of a criterion, sorted.
+func (u Universe) Of(ref spec.Ref) []string { return slices.Clone(u.byRef[ref]) }
+
+// Criteria lists the criteria that have witnesses, sorted.
+func (u Universe) Criteria() []spec.Ref {
+	refs := make([]spec.Ref, 0, len(u.byRef))
+	for ref := range u.byRef {
+		refs = append(refs, ref)
+	}
+	slices.SortFunc(refs, spec.Ref.Compare)
+	return refs
+}
+
+// BlockBearing reports whether the witness is block-bearing.
+func (u Universe) BlockBearing(id string) bool { return u.statuses[id] == witness.StatusBlockBearing }
+
+// admitted reports whether the witness is admitted: block-bearing or
+// escalate-only.
+func (u Universe) admitted(id string) bool {
+	status := u.statuses[id]
+	return status == witness.StatusBlockBearing || status == witness.StatusEscalateOnly
+}
+
+// FailingBlockBearing lists the block-bearing witnesses of the criterion the
+// mutant fails, reproduced.
+func (u Universe) FailingBlockBearing(f Facts, ref spec.Ref) []string {
+	var failing []string
+	for _, id := range u.byRef[ref] {
+		if u.BlockBearing(id) && f.FailsWitness(id) {
+			failing = append(failing, id)
+		}
+	}
+	return failing
+}
+
+// FailsPassingWitness reports whether the mutant fails, reproduced, a witness of
+// any criterion that the reference passes: executed evidence that the mutant
+// behaves differently from the reference, whatever the witness's scope.
+func (u Universe) FailsPassingWitness(f Facts) bool {
+	for id, record := range u.records {
+		if record.Reading() == witness.ReadingPasses && f.FailsWitness(id) {
+			return true
+		}
+	}
+	return false
+}
+
+// failsAdmitted reports whether the mutant fails, reproduced, an admitted
+// witness of the criterion.
+func (u Universe) failsAdmitted(f Facts, ref spec.Ref) bool {
+	return slices.ContainsFunc(u.byRef[ref], func(id string) bool { return u.admitted(id) && f.FailsWitness(id) })
+}
+
+// Witnessed reports whether the pool may count the mutant towards the search's
+// stop rule and the further witness draw: it is owner-attributed or fails,
+// reproduced, a block-bearing witness of the criterion. Neither reads a kill
+// vector or a binding, so the requests a criterion makes never depend on the
+// tests.
+func (u Universe) Witnessed(f Facts, ref spec.Ref) bool {
+	return f.OwnerAttributed(ref) || len(u.FailingBlockBearing(f, ref)) > 0
+}
+
+// Decide classifies one pool mutant for the subject's criterion (G3-W, "Mutant
+// classes"): a sentinel by construction, an identity by its compiled form, an
+// owner-attributed mutant by its example, VALID_e and collateral by the
+// block-bearing witnesses it fails, an exclusion by another criterion's example
+// or witness, or by the full-resolution differential search with every validity
+// vote EQUIVALENT; everything else is unsettled. No judgment alone settles a
+// mutant.
+func Decide(subject Subject, universe Universe, facts Facts, votes []Vote, rules Rules) Decision {
 	switch {
-	case inSubject && len(failed) == 1:
-		decision.Class, decision.Validity = ClassValid, format.ValidityValid
-	case inSubject:
-		decision.Class, decision.Validity = ClassCollateral, format.ValidityValid
-	default:
-		other := firstOther(failed, subject.Ref)
-		decision.Class, decision.Validity, decision.OffTarget = ClassOffTarget, format.ValidityNotViolating, &other
-		decision.Corroboration = []Evidence{{Kind: format.CorroborationOtherExampleFailed, Digest: evidenceDigest(format.CorroborationOtherExampleFailed, facts.ID, refStrings(failed))}}
+	case facts.Origin == OriginSentinel:
+		return sentinelDecision()
+	case facts.Identity == IdentityIdentical:
+		return identityDecision(facts)
+	case facts.OwnerAttributed(subject.Ref):
+		return ownerDecision(facts)
+	}
+	if failing := universe.FailingBlockBearing(facts, subject.Ref); len(failing) > 0 {
+		if !subject.IsolatedFor(facts, subject.Ref) {
+			return judgedOrUnsettled(universe, facts, votes, rules, ReasonWitnessedNotIsolated)
+		}
+		return witnessedDecision(subject, universe, facts, failing, rules)
+	}
+	if other, excluded := offTarget(subject.Ref, universe, facts); excluded {
+		return offTargetDecision(facts, other)
+	}
+	return judgedOrUnsettled(universe, facts, votes, rules, ReasonNone)
+}
+
+func sentinelDecision() Decision {
+	return Decision{
+		Class: ClassSentinel, Validity: format.ValidityEquivalent, Basis: format.BasisConstruction,
+		Confidence: format.MaxConfidence, Deciders: []string{DeciderSentinelCatalogue}, Source: format.SourceExecution,
+	}
+}
+
+func identityDecision(facts Facts) Decision {
+	return Decision{
+		Class: ClassExcluded, Route: RouteIdentity, Validity: format.ValidityEquivalent, Basis: format.BasisExecution,
+		Confidence: format.MaxConfidence, Deciders: []string{DeciderIdentity}, Source: format.SourceExecution,
+		Corroboration: []Evidence{{Kind: format.CorroborationNoDiffFound, Digest: evidenceDigest(format.CorroborationNoDiffFound, facts.ID, RouteIdentity)}},
+	}
+}
+
+func ownerDecision(facts Facts) Decision {
+	return Decision{
+		Class: ClassOwnerAttributed, Validity: format.ValidityValid, Basis: format.BasisSpecExample,
+		Confidence: format.MaxConfidence, Deciders: []string{DeciderExamplePrefix + facts.FailedExamples[0].String()}, Source: format.SourceExecution,
+		Corroboration: []Evidence{{Kind: format.CorroborationExampleFailed, Digest: evidenceDigest(format.CorroborationExampleFailed, facts.ID, refStrings(facts.FailedExamples))}},
+		CreditBearing: true,
+	}
+}
+
+// witnessedDecision decides a mutant that fails, reproduced, a block-bearing
+// witness of the criterion and is isolated for it: VALID_e, or collateral when it
+// is VALID_e for another criterion too.
+func witnessedDecision(subject Subject, universe Universe, facts Facts, failing []string, rules Rules) Decision {
+	var collateral []spec.Ref
+	for _, ref := range universe.Criteria() {
+		if ref != subject.Ref && len(universe.FailingBlockBearing(facts, ref)) > 0 && subject.IsolatedFor(facts, ref) {
+			collateral = append(collateral, ref)
+		}
+	}
+	chosen, eligible := chooseWitness(universe, failing, rules.Policy.MinIsolation)
+	decision := Decision{
+		Class: ClassValidE, Validity: format.ValidityValid, Basis: format.BasisExecution,
+		Confidence: format.MaxConfidence, Deciders: []string{DeciderWitnessPrefix + shortID(chosen)}, Source: format.SourceExecution,
+		Witness: chosen, Failing: failing, CollateralWith: collateral,
+		CreditBearing: eligible && len(collateral) == 0 && rules.Policy.SignedPassBasis != policy.ExecutedOnly,
+	}
+	if len(collateral) > 0 {
+		decision.Class = ClassCollateral
+	}
+	evidence := []Evidence{
+		{Kind: format.CorroborationBuilds, Digest: evidenceDigest(format.CorroborationBuilds, facts.ID, nil)},
+		{Kind: format.CorroborationOtherCriteriaPass, Digest: evidenceDigest(format.CorroborationOtherCriteriaPass, facts.ID, subject.OtherTests)},
+		{Kind: format.CorroborationWitness, Digest: evidenceDigest(format.CorroborationWitness, facts.ID, chosen)},
+	}
+	if killers := subject.SpecificKillers(facts); decision.CreditBearing && len(killers) > 0 {
+		evidence = append(evidence, Evidence{Kind: format.CorroborationSpecificKill, Digest: evidenceDigest(format.CorroborationSpecificKill, facts.ID, killers)})
+	}
+	decision.Corroboration = sortEvidence(evidence)
+	return decision
+}
+
+// chooseWitness picks the witness a VALID_e claim rests on: the first
+// credit-eligible one, else the first one.
+func chooseWitness(universe Universe, failing []string, floor format.Isolation) (id string, eligible bool) {
+	for _, candidate := range failing {
+		if record, known := universe.Record(candidate); known && record.CreditEligible(floor) {
+			return candidate, true
+		}
+	}
+	return failing[0], false
+}
+
+func shortID(id string) string {
+	const shortLength = 12
+	if len(id) <= shortLength {
+		return id
+	}
+	return id[:shortLength]
+}
+
+// otherFailure is the other criterion an off-target mutant fails, and whether it
+// fails one of its examples or only one of its witnesses.
+type otherFailure struct {
+	ref     spec.Ref
+	example bool
+}
+
+// offTarget finds the other criterion whose example or admitted witness the
+// mutant fails, when it fails none of the criterion's own: the first one by
+// reference, an example taking the place of a witness of the same criterion.
+func offTarget(own spec.Ref, universe Universe, facts Facts) (otherFailure, bool) {
+	if facts.FailsExampleOf(own) || universe.failsAdmitted(facts, own) {
+		return otherFailure{}, false
+	}
+	var others []otherFailure
+	for _, ref := range facts.FailedExamples {
+		if ref != own {
+			others = append(others, otherFailure{ref: ref, example: true})
+		}
+	}
+	for _, ref := range universe.Criteria() {
+		if ref != own && universe.failsAdmitted(facts, ref) {
+			others = append(others, otherFailure{ref: ref})
+		}
+	}
+	if len(others) == 0 {
+		return otherFailure{}, false
+	}
+	slices.SortStableFunc(others, func(a, b otherFailure) int { return a.ref.Compare(b.ref) })
+	return others[0], true
+}
+
+func offTargetDecision(facts Facts, other otherFailure) Decision {
+	ref := other.ref
+	decision := Decision{
+		Class: ClassExcluded, Route: RouteOtherCriterion, Validity: format.ValidityNotViolating, Basis: format.BasisExecution,
+		Confidence: format.MaxConfidence, Deciders: []string{DeciderWitnessPrefix + ref.String()}, Source: format.SourceExecution,
+		Corroboration: []Evidence{{Kind: format.CorroborationOtherExampleFailed, Digest: evidenceDigest(format.CorroborationOtherExampleFailed, facts.ID, ref.String())}},
+		OffTarget:     &ref,
+	}
+	if other.example {
+		decision.Basis, decision.Deciders = format.BasisSpecExample, []string{DeciderExamplePrefix + ref.String()}
 	}
 	return decision
 }
 
-func firstOther(failed []spec.Ref, own spec.Ref) spec.Ref {
-	for _, ref := range failed {
-		if ref != own {
-			return ref
-		}
+// judgedOrUnsettled reads the validity votes of a mutant no witness settled. Only
+// one answer has an effect: EQUIVALENT from every vote, at or above the
+// threshold and the floor, excludes a mutant whose full-resolution differential
+// search found no difference, that no test killed, that fails no witness the
+// reference passes and on which no vote confirmed a witness. Every other answer
+// leaves it unsettled, with the reason the escalation shows.
+func judgedOrUnsettled(universe Universe, facts Facts, votes []Vote, rules Rules, fallback Reason) Decision {
+	if len(votes) == 0 {
+		return Unsettled(fallbackReason(fallback, ReasonNotAdjudicated))
 	}
-	return own
+	tally := TallyVotes(votes)
+	base := Decision{
+		Class: ClassUnsettled, Validity: format.ValidityUndetermined, Basis: format.BasisJudges, Confidence: tally.MinConfidence,
+		Deciders: []string{DeciderHostJudge}, Source: format.HostVotesSource(len(votes)), Mapping: format.MappingWeakestStated,
+	}
+	reason := unsettledReason(universe, facts, votes, tally, rules)
+	if reason == ReasonNone && fallback == ReasonNone {
+		base.Class, base.Route, base.Validity = ClassExcluded, RouteEquivalent, format.ValidityEquivalent
+		base.Corroboration = []Evidence{{Kind: format.CorroborationNoDiffFound, Digest: evidenceDigest(format.CorroborationNoDiffFound, facts.ID, RouteEquivalent)}}
+		return base
+	}
+	base.Reason = fallbackReason(fallback, reason)
+	return base
+}
+
+func fallbackReason(preferred, otherwise Reason) Reason {
+	if preferred != ReasonNone {
+		return preferred
+	}
+	return otherwise
+}
+
+// unsettledReason says why the votes do not exclude the mutant, or returns
+// ReasonNone when they do.
+func unsettledReason(universe Universe, facts Facts, votes []Vote, tally Tally, rules Rules) Reason {
+	switch {
+	case len(votes) < rules.Policy.JudgeK:
+		return ReasonNoExecutor
+	case !tally.Unanimous:
+		return ReasonJudgesSplit
+	case tally.Answer == AnswerValid:
+		return ReasonJudgedValid
+	case tally.Answer == AnswerNotViolating:
+		return ReasonJudgedNotViolating
+	case tally.Answer != AnswerEquivalent:
+		return ReasonJudgedUndetermined
+	case tally.MinConfidence < rules.Policy.TauJudge.For(format.HostVotesSource(len(votes))):
+		return ReasonBelowThreshold
+	case facts.Differential.Status != NoDiffFound || facts.KilledByAny() || universe.FailsPassingWitness(facts) ||
+		confirmsWitness(votes) || rules.Policy.SignedPassBasis == policy.ExecutedOnly:
+		return ReasonNoExecutedEquivalence
+	case slices.ContainsFunc(votes, func(v Vote) bool { return !v.AtFloor(rules.Policy.MinIsolation) }):
+		return ReasonIsolationFloor
+	}
+	return ReasonNone
+}
+
+func confirmsWitness(votes []Vote) bool {
+	return slices.ContainsFunc(votes, func(v Vote) bool { return v.Witness == WitnessConfirmed })
 }
 
 func refStrings(refs []spec.Ref) []string {
@@ -228,102 +530,6 @@ func refStrings(refs []spec.Ref) []string {
 		out[index] = ref.String()
 	}
 	return out
-}
-
-func judgedDecision(subject Subject, facts Facts, votes []Vote, rules policy.Policy) Decision {
-	if len(votes) < rules.JudgeK {
-		return Undetermined(ReasonNoExecutor)
-	}
-	tally := TallyVotes(votes)
-	base := Decision{
-		Basis: format.BasisJudges, Confidence: tally.MinConfidence, Deciders: []string{DeciderHostJudge},
-		Source: format.HostVotesSource(rules.JudgeK), Mapping: format.MappingWeakestStated,
-	}
-	switch {
-	case !tally.Unanimous:
-		return Undetermined(ReasonJudgesSplit)
-	case tally.MinConfidence < rules.TauJudge.For(base.Source):
-		return base.undetermined(ReasonBelowThreshold)
-	}
-	atFloor := allAtFloor(votes, rules.MinIsolation)
-	switch tally.Answer {
-	case AnswerValid:
-		return validDecision(subject, facts, votes, rules, base, atFloor)
-	case AnswerEquivalent:
-		return equivalentDecision(subject, facts, rules, base, atFloor)
-	case AnswerNotViolating:
-		return notViolatingDecision(subject, facts, rules, base, atFloor)
-	default:
-		return Undetermined(ReasonJudgedUndetermined)
-	}
-}
-
-func allAtFloor(votes []Vote, floor format.Isolation) bool {
-	return !slices.ContainsFunc(votes, func(v Vote) bool { return !v.AtFloor(floor) })
-}
-
-// validDecision applies the VALID rows of the claim-power table. A survivor that
-// is judged VALID blocks with a confirmed witness, a build and the passing tests
-// of the other criteria; a killed one earns credit with a specific kill on top,
-// and only from responses that keep judged credit.
-func validDecision(subject Subject, facts Facts, votes []Vote, rules policy.Policy, base Decision, atFloor bool) Decision {
-	witness, hasWitness := confirmedWitness(votes)
-	if !hasWitness || !subject.OtherCriteriaPass(facts) {
-		return Undetermined(ReasonUncorroborated)
-	}
-	evidence := []Evidence{
-		{Kind: format.CorroborationBuilds, Digest: evidenceDigest(format.CorroborationBuilds, facts.ID, nil)},
-		{Kind: format.CorroborationOtherCriteriaPass, Digest: evidenceDigest(format.CorroborationOtherCriteriaPass, facts.ID, subject.OtherTests)},
-		{Kind: format.CorroborationWitness, Digest: witness},
-	}
-	if subject.Killed(facts) {
-		killers := subject.SpecificKillers(facts)
-		switch {
-		case len(killers) == 0:
-			return Undetermined(ReasonUncorroborated)
-		case !atFloor || rules.SignedPassBasis == policy.ExecutedOnly:
-			return Undetermined(ReasonIsolationFloor)
-		}
-		evidence = append(evidence, Evidence{Kind: format.CorroborationSpecificKill, Digest: evidenceDigest(format.CorroborationSpecificKill, facts.ID, killers)})
-	}
-	base.Class, base.Validity, base.Corroboration = ClassValid, format.ValidityValid, sortEvidence(evidence)
-	return base
-}
-
-func confirmedWitness(votes []Vote) (digest string, found bool) {
-	for _, vote := range votes {
-		if vote.Witness == WitnessConfirmed {
-			return vote.WitnessDigest, true
-		}
-	}
-	return "", false
-}
-
-func equivalentDecision(subject Subject, facts Facts, rules policy.Policy, base Decision, atFloor bool) Decision {
-	switch {
-	case facts.KilledByAny() || facts.Differential.Status == DiffersAt:
-		return Undetermined(ReasonJudgedUndetermined)
-	case facts.Differential.Status != NoDiffFound || rules.SignedPassBasis == policy.ExecutedOnly:
-		return Undetermined(ReasonNoExecutedEquivalence)
-	case !atFloor:
-		return Undetermined(ReasonIsolationFloor)
-	}
-	base.Class, base.Validity = ClassEquivalent, format.ValidityEquivalent
-	base.Corroboration = []Evidence{{Kind: format.CorroborationNoDiffFound, Digest: evidenceDigest(format.CorroborationNoDiffFound, facts.ID, nil)}}
-	return base
-}
-
-func notViolatingDecision(subject Subject, facts Facts, rules policy.Policy, base Decision, atFloor bool) Decision {
-	switch {
-	case subject.Killed(facts):
-		return Undetermined(ReasonJudgedUndetermined)
-	case rules.SignedPassBasis != policy.Judged:
-		return Undetermined(ReasonNoExecutedExclusion)
-	case !atFloor:
-		return Undetermined(ReasonIsolationFloor)
-	}
-	base.Class, base.Validity, base.HostExclusion = ClassUnattributed, format.ValidityNotViolating, true
-	return base
 }
 
 func sortEvidence(evidence []Evidence) []Evidence {

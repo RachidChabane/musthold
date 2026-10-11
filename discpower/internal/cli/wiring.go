@@ -12,6 +12,7 @@ import (
 	jvmecosystem "github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/jvm"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/node"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/pytest"
+	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/factsrecord"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/hoststore"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/junitxml"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/localcache"
@@ -19,6 +20,7 @@ import (
 	javascriptmutation "github.com/RachidChabane/spec-proof/discpower/internal/adapters/mutation/javascript"
 	jvmmutation "github.com/RachidChabane/spec-proof/discpower/internal/adapters/mutation/jvm"
 	pythonmutation "github.com/RachidChabane/spec-proof/discpower/internal/adapters/mutation/python"
+	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/plantedrefactors"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/proofcache"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/schemacheck"
@@ -155,6 +157,7 @@ func (e Env) openProject(rootFlag string) (*project, error) {
 		Vault:      localcache.NewVault(cacheDir),
 		Memo:       localcache.NewMemo(cacheDir),
 		Statements: checker,
+		Facts:      factsrecord.New(xdg.RecordsDir(e.lookupEnv, e.HomeDir, root)),
 		Clock:      e.Now,
 		Entropy:    e.Entropy,
 	}}, nil
@@ -219,14 +222,19 @@ func newEngines() (*operatorgen.Registry, error) {
 }
 
 // proveSettings assembles the settings of a run from the project's configuration.
-func (p *project) proveSettings() prove.Settings {
+func (p *project) proveSettings() (prove.Settings, error) {
+	refactors, err := plantedrefactors.Load(p.root, p.settings.Admission.RefactorsDir)
+	if err != nil {
+		return prove.Settings{}, err
+	}
 	return prove.Settings{
-		Root: p.root, Ecosystem: p.name, Policy: p.settings.Policy(),
+		Refactors: refactors,
+		Root:      p.root, Ecosystem: p.name, Policy: p.settings.Policy(),
 		Operations: execution.Operations(p.settings.OperationsFor(p.name)),
 		Seed:       uint64(operator.LocalSeed),
 		Module:     format.Module{Name: moduleName, Version: version.Version},
 		Plugin:     pluginName,
 
 		ClassifyFirst: p.classifyFirst,
-	}
+	}, nil
 }

@@ -189,7 +189,7 @@ func TestRunnerCommand(t *testing.T) {
 		if err != nil || result.Outcomes["parcel.RatesTest::x"] != ecosystem.TestPassed {
 			t.Fatalf("%+v %v", result, err)
 		}
-		want := []string{"./mvnw", "-o", "-q", "-B", "-T", "1", "surefire:test", "-Dsurefire.failIfNoSpecifiedTests=false", "-DfailIfNoTests=false", "-Dtest=a.RatesTest#m"}
+		want := []string{"./mvnw", "-o", "-q", "-B", "-T", "1", "test-compile", "surefire:test", "-Dsurefire.failIfNoSpecifiedTests=false", "-DfailIfNoTests=false", "-Dtest=a.RatesTest#m"}
 		if !reflect.DeepEqual(process.commands[0].Argv, want) {
 			t.Fatalf("argv = %v, want %v", process.commands[0].Argv, want)
 		}

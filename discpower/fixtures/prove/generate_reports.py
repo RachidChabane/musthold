@@ -14,6 +14,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 BINDINGS_DIR = HERE.parent.parent / "internal" / "testkit" / "bindings" / "testdata"
+ECOSYSTEMS_DIR = HERE.parent / "ecosystems"
+SPEC_FILE = "specs/parcel.md"
 SCHEMA_VERSION = "1.2"
 TOOL = {"name": "shallnot", "version": "v0.5.0"}
 
@@ -39,10 +41,18 @@ def example(index, operation, args, value):
             "expect": {"kind": "returns", "type": "integer", "value": value}}
 
 
-def requirement(identifier, tests, examples):
+def location(identifier, spec):
+    """The spec file of a requirement and the line that declares it."""
+    lines = spec.read_text().splitlines()
+    line = next(index for index, text in enumerate(lines, start=1) if f"**{identifier}~" in text)
+    return {"file": SPEC_FILE, "line": line}
+
+
+def requirement(identifier, tests, examples, spec):
     statement = STATEMENTS[identifier]
     return {"id": identifier, "revision": 1, "ref": identifier + "~1", "statement": statement,
-            "status": "active", "statement_digest": sha256(statement), "tests": tests, "examples": examples}
+            "status": "active", "statement_digest": sha256(statement), "location": location(identifier, spec),
+            "tests": tests, "examples": examples}
 
 
 def report(requirements):
@@ -51,11 +61,12 @@ def report(requirements):
 
 
 def parcel_report():
+    spec = HERE / "parcel" / SPEC_FILE
     module = "tests.test_rates"
     limits = module + ".TestDiscountLimits"
     return report([
         requirement("PAR-1", [pytest_test("test_line_total_multiplies_price_by_quantity", module, 7)],
-                    [example(0, "line_total", {"unit_price": "4", "quantity": "3"}, "12")]),
+                    [example(0, "line_total", {"unit_price": "4", "quantity": "3"}, "12")], spec),
         requirement("PAR-2", [
             pytest_test("test_discount_reduces_total[0-19.99-19.99]", module, 17),
             pytest_test("test_discount_reduces_total[10-200-180.0]", module, 17),
@@ -65,9 +76,9 @@ def parcel_report():
         ], [
             example(0, "discounted", {"total": "200", "percent": "10"}, "180"),
             example(1, "discounted", {"total": "80", "percent": "150"}, "0"),
-        ]),
+        ], spec),
         requirement("PAR-3", [pytest_test("test_large_orders_ship_free", module, 31),
-                              pytest_test("test_small_orders_pay_the_fee", module, 36)], []),
+                              pytest_test("test_small_orders_pay_the_fee", module, 36)], [], spec),
     ])
 
 
@@ -88,13 +99,14 @@ NODE_EXAMPLES = {
 
 
 def bound_report(suite, bindings, examples):
+    spec = ECOSYSTEMS_DIR / suite / SPEC_FILE
     bound = json.loads((BINDINGS_DIR / bindings).read_text())
     requirements = []
     for ref, tests in sorted(bound.items()):
         identifier = ref.split("~")[0]
         converted = [{"name": t["name"], "classname": t["classname"], "suite": suite, "outcome": "passed",
                       "source": {"file": t["file"], "line": t["line"]}} for t in tests]
-        requirements.append(requirement(identifier, converted, examples[identifier]))
+        requirements.append(requirement(identifier, converted, examples[identifier], spec))
     return report(requirements)
 
 

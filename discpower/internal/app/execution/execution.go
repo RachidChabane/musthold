@@ -142,6 +142,17 @@ type Runner struct {
 	// SuiteKey identifies the code, the tests, the examples and the bindings the
 	// facts depend on.
 	SuiteKey string
+	// Witnesses lays out and runs witness sets; its host is nil for an ecosystem
+	// that cannot run them.
+	Witnesses Witnesses
+	// Compiler is nil for an ecosystem with no comparable compiled form.
+	Compiler ports.FormCompiler
+	// Recorder records the coverage of the witnesses; nil for an ecosystem that
+	// records none.
+	Recorder ports.CoverageRecorder
+	// SpecTexts are the statements of the criteria, whose literals seed the
+	// differential search at full resolution.
+	SpecTexts []string
 }
 
 func (r Runner) memoKey(parts ...string) string {
@@ -397,7 +408,7 @@ func (r Runner) PrepareDraws(ctx context.Context, sources []string, seed uint64)
 	for index, example := range r.Examples {
 		exampleCalls[index] = example.Example.Call
 	}
-	pool := differential.NewPool(sources, exampleCalls)
+	pool := differential.NewPool(sources, exampleCalls).WithSpec(r.SpecTexts)
 	var calls []spec.Call
 	for _, signature := range signatures {
 		calls = append(calls, pool.Draw(signature, seed, differential.DefaultDraws)...)

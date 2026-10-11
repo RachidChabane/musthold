@@ -1,0 +1,5 @@
+Answer every witness by its id in "verdicts", with one of:
+FIXED: the requirement's text alone, under the precedence, fixes the output the witness asserts, on every input it checks.
+NOT_FIXED: the text leaves that output open for some input the witness checks, or another requirement decides it.
+UNDETERMINED: the text does not let you decide.
+Give "confidence" between 0 and 1.

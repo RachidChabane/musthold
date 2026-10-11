@@ -35,7 +35,7 @@ func TestRecordedThreshold(t *testing.T) {
 	}
 
 	t.Run("a decision of the host judges records the threshold of host votes [verifies SP-902~1]", func(t *testing.T) {
-		decision := power.Undetermined(power.ReasonJudgesSplit)
+		decision := power.Unsettled(power.ReasonJudgesSplit)
 		decision.Source = format.HostVotesSource(judgeK)
 		if got := recorded(t, decision); got != hostVotesTau {
 			t.Fatalf("threshold = %v, want %v", got, hostVotesTau)
@@ -43,7 +43,7 @@ func TestRecordedThreshold(t *testing.T) {
 	})
 
 	t.Run("a decision the module fixed itself records the default [verifies SP-902~1]", func(t *testing.T) {
-		if got := recorded(t, power.Undetermined(power.ReasonJudgesSplit)); got != defaultTau {
+		if got := recorded(t, power.Unsettled(power.ReasonJudgesSplit)); got != defaultTau {
 			t.Fatalf("threshold = %v, want %v", got, defaultTau)
 		}
 	})
@@ -62,7 +62,7 @@ func TestRecordedThreshold(t *testing.T) {
 		}}}
 		_, relayed := closedAnswers(answer, "q1", format.UniformThreshold(0.2))
 		fixture.run.rules.TauJudge.BySource[source] = relayTau
-		decision := power.Undetermined(power.ReasonJudgesSplit)
+		decision := power.Unsettled(power.ReasonJudgesSplit)
 		decision.Source = relayed
 		entry, err := fixture.run.mutantEntry(mutant, decision)
 		if err != nil {
@@ -75,7 +75,7 @@ func TestRecordedThreshold(t *testing.T) {
 
 	t.Run("the threshold of an exact source beats the one of its kind [verifies SP-902~1]", func(t *testing.T) {
 		fixture.run.rules.TauJudge.BySource[format.HostVotesSource(judgeK)] = exactTau
-		decision := power.Undetermined(power.ReasonJudgesSplit)
+		decision := power.Unsettled(power.ReasonJudgesSplit)
 		decision.Source = format.HostVotesSource(judgeK)
 		if got := recorded(t, decision); got != exactTau {
 			t.Fatalf("threshold = %v, want %v", got, exactTau)

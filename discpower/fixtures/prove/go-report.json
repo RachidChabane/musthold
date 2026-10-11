@@ -12,6 +12,10 @@
       "statement": "WHEN an order has line items THE SYSTEM SHALL total each line as its unit price times its quantity.",
       "status": "active",
       "statement_digest": "d0c5c9363af1e3b1ca3335d338595f878df6190aaf315552303604dd3867bf20",
+      "location": {
+        "file": "specs/parcel.md",
+        "line": 7
+      },
       "tests": [
         {
           "name": "TestLineTotal/multiplies_the_unit_price_by_the_quantity_[verifies_PAR-1~1]",
@@ -53,6 +57,10 @@
       "statement": "WHEN a discount percentage is applied THE SYSTEM SHALL reduce the total by that percentage, limited to the range 0 to 100.",
       "status": "active",
       "statement_digest": "04fa9f4b8238a4b7fa626572b7e5aeb31d5fd34dfac8834e9508b90f8d9cc9c9",
+      "location": {
+        "file": "specs/parcel.md",
+        "line": 10
+      },
       "tests": [
         {
           "name": "TestDiscounted/takes_-5_percent_off_8000_[verifies_PAR-2~1]",
@@ -153,6 +161,10 @@
       "statement": "WHEN an order total reaches 50 THE SYSTEM SHALL waive the shipping fee.",
       "status": "active",
       "statement_digest": "89e6c3fc82e77e6f357693a81b2be675692858c08cb1834394252c1367ada67a",
+      "location": {
+        "file": "specs/parcel.md",
+        "line": 17
+      },
       "tests": [
         {
           "name": "TestShippingFee/is_waived_from_fifty_[verifies_PAR-3~1]",

@@ -57,6 +57,7 @@ type framework interface {
 	detect(root fs.FS) (ecosystem.Detection, bool)
 	selector() ports.TestSelector
 	runner(deps Dependencies) ports.SuiteRunner
+	witnessFramework
 }
 
 var _ ports.Ecosystem = (*Strategy)(nil)

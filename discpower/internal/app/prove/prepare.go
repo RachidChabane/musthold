@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"slices"
+	"strings"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/execution"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/mutantrun"
@@ -12,7 +13,10 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/coverage"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/footprint"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/prompt"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
 	"github.com/RachidChabane/spec-proof/format"
 )
 
@@ -45,9 +49,93 @@ type project struct {
 	// suiteKey identifies the code, tests, examples and bindings of the run.
 	suiteKey string
 
-	statics map[spec.Ref]*staticAnalysis
+	// statics holds the static analysis of each criterion, by criterion and
+	// footprint entries.
+	statics map[string]*staticAnalysis
+	// footprints holds the entry functions each criterion's analysis was made
+	// with in this pass.
+	footprints map[spec.Ref][]footprint.Ref
 	// scopes lists, per operator mutant, the criteria whose footprint it lies in.
 	scopes map[string][]spec.Ref
+	// searchSets and searchRecords are the witnesses of every criterion the
+	// searches of this pass run their pools against: never a credit draw's.
+	searchSets    []witness.Set
+	searchRecords []witness.Record
+
+	// labels names every criterion of the spec by position, specText is the text
+	// of the spec documents with the criteria relabelled, and brief is what a
+	// witness writer is told about the project.
+	labels   prompt.Labels
+	specText string
+	brief    ports.WitnessBrief
+	// specTexts are the statements of every criterion, whose literals seed the
+	// differential search.
+	specTexts []string
+}
+
+// specSeparator separates the spec documents shown to a witness writer or a
+// scope judge.
+const specSeparator = "\n\n"
+
+// prepareWitnesses reads the spec documents the criteria are declared in and the
+// brief the ecosystem gives a witness writer. Neither reads a test: the brief
+// lists the signatures of the helpers of every test file of the project.
+func (p *project) prepareWitnesses(all []spec.Criterion) error {
+	refs := make([]spec.Ref, len(all))
+	var statements []string
+	for index, criterion := range all {
+		refs[index] = criterion.Ref
+		statements = append(statements, criterion.Statement)
+	}
+	p.labels = prompt.NewLabels(refs)
+	raw, err := p.specDocuments(all)
+	if err != nil {
+		return err
+	}
+	p.specText = p.labels.Relabel(raw)
+	p.specTexts = statements
+	if host := p.witnessHost(); host != nil {
+		if p.brief, err = host.Brief(p.deps.Project, p.sources, raw); err != nil {
+			return fmt.Errorf("brief the witness writers: %w", err)
+		}
+	}
+	return nil
+}
+
+// specDocuments returns the text of the spec documents that declare the
+// criteria, in path order; when the report names none, the statements stand for
+// them, each under its criterion.
+func (p *project) specDocuments(all []spec.Criterion) (string, error) {
+	var files []string
+	for _, criterion := range all {
+		if criterion.SpecFile != "" && !slices.Contains(files, criterion.SpecFile) {
+			files = append(files, criterion.SpecFile)
+		}
+	}
+	slices.Sort(files)
+	var documents []string
+	for _, file := range files {
+		content, err := fs.ReadFile(p.deps.Project, file)
+		if err != nil {
+			return "", fmt.Errorf("read the spec document %q: %w", file, err)
+		}
+		documents = append(documents, strings.TrimSpace(string(content)))
+	}
+	if len(documents) == 0 {
+		for _, criterion := range all {
+			documents = append(documents, criterion.Ref.String()+": "+strings.TrimSpace(criterion.Statement))
+		}
+	}
+	return strings.Join(documents, specSeparator), nil
+}
+
+// witnessHost is the ecosystem's witness host, or nil when it cannot run
+// witnesses.
+func (p *project) witnessHost() ports.WitnessHost {
+	if witnessing, ok := p.deps.Strategy.(ports.Witnessing); ok {
+		return witnessing.Witnesses()
+	}
+	return nil
 }
 
 // prepare builds the reference, runs the suite on it and observes what the
@@ -57,9 +145,12 @@ func prepare(ctx context.Context, deps Deps, settings Settings) (*project, error
 	if err != nil {
 		return nil, fmt.Errorf("load the criteria: %w", err)
 	}
-	p := &project{deps: deps, settings: settings, criteria: withTests(report.Criteria), statics: map[spec.Ref]*staticAnalysis{}}
+	p := &project{deps: deps, settings: settings, criteria: withTests(report.Criteria), statics: map[string]*staticAnalysis{}, footprints: map[spec.Ref][]footprint.Ref{}}
 	layout := deps.Strategy.Layout()
 	if p.sources, err = discoverSources(deps.Project, layout, deps.Engines); err != nil {
+		return nil, err
+	}
+	if err := p.prepareWitnesses(report.Criteria); err != nil {
 		return nil, err
 	}
 	p.tests = distinctTests(p.criteria)
@@ -182,11 +273,20 @@ func (p *project) newRunner(ctx context.Context) execution.Runner {
 	runner := execution.Runner{
 		Executor: p.executor, Reference: p.reference, Tests: p.tests,
 		Operations: p.settings.Operations, Memo: p.deps.Memo, SuiteKey: p.suiteKey,
+		Witnesses: execution.Witnesses{Host: p.witnessHost(), Project: p.deps.Project},
+		SpecTexts: p.specTexts,
 	}
 	if probing, ok := p.deps.Strategy.(ports.Probing); ok {
 		runner.Prober = probing.Prober()
 	}
+	if compiling, ok := p.deps.Strategy.(ports.Compiling); ok {
+		runner.Compiler = compiling.Compiler()
+	}
+	if runner.Witnesses.Host == nil {
+		p.findings = append(p.findings, FindingWitnessRunnerUnavailable)
+	}
 	if covering, ok := p.deps.Strategy.(ports.Covering); ok {
+		runner.Recorder = covering.Coverage()
 		recorded, err := covering.Coverage().Record(ctx, p.reference.Workspace, p.reference.Toolchain, p.tests)
 		if err != nil {
 			p.findings = append(p.findings, FindingCoverageUnavailable)

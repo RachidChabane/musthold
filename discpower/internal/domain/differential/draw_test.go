@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	verifiesSP170 = " [verifies SP-170~1]"
+	verifiesSP170 = " [verifies SP-170~2]"
 	verifiesSP171 = " [verifies SP-171~1]"
 
 	operation   = "price"
@@ -149,18 +149,29 @@ func TestDrawLimits(t *testing.T) {
 			t.Errorf("got %v", got)
 		}
 	})
-	t.Run("a parameter with no candidate gives no input"+verifiesSP170, func(t *testing.T) {
+	t.Run("a datetime parameter without example draws the basic datetimes of the anchor day"+verifiesSP170, func(t *testing.T) {
 		datetime := differential.Param{Name: "when", Hint: differential.HintDatetime}
-		if got := pool.Draw(signatureOf(datetime), seed, differential.DefaultDraws); got != nil {
-			t.Errorf("got %v", got)
+		values := valuesOf(pool.Draw(signatureOf(datetime), seed, differential.DefaultDraws), "when")
+		want := []string{"2024-01-01T00:00:00", "2024-01-01T00:00:00.000001", "2024-01-01T12:00:00", "2024-01-02T00:00:00"}
+		if !slices.Equal(values, want) {
+			t.Errorf("got %v, want %v", values, want)
 		}
 	})
-	t.Run("a datetime parameter draws the datetimes of the examples"+verifiesSP170, func(t *testing.T) {
+	t.Run("a datetime parameter draws the datetimes of the examples with their neighbours"+verifiesSP170, func(t *testing.T) {
 		moment := spec.Literal{Type: spec.TypeDatetime, Value: "2026-01-01T00:00:00Z"}
 		withExample := differential.NewPool(nil, []spec.Call{exampleCall(map[string]spec.Literal{"when": moment})})
 		calls := withExample.Draw(signatureOf(differential.Param{Name: "when", Hint: differential.HintDatetime}), seed, differential.DefaultDraws)
-		if len(calls) != 1 || calls[0].Args["when"] != moment {
-			t.Errorf("got %v", calls)
+		if len(calls) == 0 || calls[0].Args["when"] != moment {
+			t.Fatalf("the example is not drawn first: %v", calls)
+		}
+		values := valuesOf(calls, "when")
+		for _, want := range []string{
+			"2026-01-01T00:00:00", "2026-01-01T00:00:00.000001", "2025-12-31T23:59:59.999999",
+			"2026-01-01T00:00:01", "2025-12-31T23:59:59", "2026-01-01T00:01:00", "2025-12-31T23:59:00",
+		} {
+			if !slices.Contains(values, want) {
+				t.Errorf("%s is missing from %v", want, values)
+			}
 		}
 	})
 	t.Run("a finite input space is exhausted without repeats"+verifiesSP170, func(t *testing.T) {

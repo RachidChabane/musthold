@@ -62,8 +62,10 @@ func (mavenTool) buildCheckArgs() []string {
 	return append(append([]string{}, mavenBaseFlags...), testCompileGoal)
 }
 
+// runArgs compile the test classes first, so that a test file written after the
+// build check is compiled too; with nothing changed the compilation is a no-op.
 func (mavenTool) runArgs(filters []string) []string {
-	args := append(append([]string{}, mavenBaseFlags...), surefireGoal)
+	args := append(append([]string{}, mavenBaseFlags...), testCompileGoal, surefireGoal)
 	return append(append(args, mavenSurefireFlags...), filters...)
 }
 

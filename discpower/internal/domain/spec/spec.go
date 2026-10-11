@@ -20,6 +20,22 @@ type Ref struct {
 // String renders the reference as `ID~REV`.
 func (r Ref) String() string { return format.SubjectName(r.ID, r.Revision) }
 
+// ErrMalformedRef is returned for a text that is not `ID~REV`.
+var ErrMalformedRef = fmt.Errorf("malformed criterion reference")
+
+// MarshalText renders the reference as `ID~REV`, in JSON as in map keys.
+func (r Ref) MarshalText() ([]byte, error) { return []byte(r.String()), nil }
+
+// UnmarshalText reads a reference written as `ID~REV`.
+func (r *Ref) UnmarshalText(text []byte) error {
+	id, revision, ok := format.ParseCriterion(string(text))
+	if !ok {
+		return fmt.Errorf("%w: %q", ErrMalformedRef, text)
+	}
+	*r = Ref{ID: id, Revision: revision}
+	return nil
+}
+
 // Compare orders references by identifier, then revision.
 func (r Ref) Compare(other Ref) int {
 	switch {
@@ -121,6 +137,9 @@ type Criterion struct {
 	StatementDigest string
 	Examples        []Example
 	Tests           []ecosystem.BoundTest
+	// SpecFile is the spec document that declares the criterion, relative to the
+	// project root, with forward slashes; empty when the report names none.
+	SpecFile string
 }
 
 // TestIDs lists the identities of the bound tests without duplicates, in order.

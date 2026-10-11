@@ -16,9 +16,11 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/operatorgen"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/policy"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
@@ -70,6 +72,24 @@ type Settings struct {
 	// of the host mod before the host votes are asked: set when the switch is
 	// `auto` and the admission table holds an entry for this module.
 	ClassifyFirst bool
+	// Refactors are the planted refactors every witness must pass to be
+	// admitted; with none, every witness the reference passes is admitted.
+	Refactors []Refactor
+}
+
+// Refactor is one planted refactor: a change that preserves every criterion.
+type Refactor struct {
+	Name  string
+	Edits mutation.EditSet
+}
+
+// Admission tells how a witness is admitted under the settings: with the planted
+// refactors when some are named, on the reference alone otherwise.
+func (s Settings) Admission() witness.Admission {
+	if len(s.Refactors) > 0 {
+		return witness.AdmissionWithRefactors
+	}
+	return witness.AdmissionReferenceOnly
 }
 
 // Deps are the ports a run works through.
@@ -84,8 +104,10 @@ type Deps struct {
 	Vault      ports.MutantVault
 	Memo       ports.ExecutionMemo
 	Statements ports.StatementValidator
-	Clock      func() time.Time
-	Entropy    io.Reader
+	// Facts keeps the facts record of every Statement written.
+	Facts   ports.FactsStore
+	Clock   func() time.Time
+	Entropy io.Reader
 	// Replay and Record are optional.
 	Replay requests.Replayer
 	Record requests.Recorder

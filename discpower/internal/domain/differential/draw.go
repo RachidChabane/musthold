@@ -3,6 +3,7 @@ package differential
 import (
 	"encoding/json"
 	"hash/fnv"
+	"maps"
 	"math/big"
 	"regexp"
 	"slices"
@@ -12,8 +13,9 @@ import (
 )
 
 // DefaultDraws is the number of inputs drawn for one operation, boundary inputs
-// first.
-const DefaultDraws = 48
+// first: enough for a sweep of every parameter over the full-resolution
+// neighbours of the literals of a spec and its code.
+const DefaultDraws = 256
 
 const (
 	numberPattern  = `\b\d+(?:\.\d+)?\b`
@@ -44,17 +46,21 @@ var (
 )
 
 // Pool is the set of values inputs are drawn from: the constants of the code, on
-// both sides, and the argument values of the spec examples.
+// both sides, the argument values of the spec examples and, once seeded with
+// WithSpec, the literals of the spec's text.
 type Pool struct {
-	numbers []spec.Literal
-	strings []spec.Literal
-	byName  map[string][]spec.Literal
+	numbers   []spec.Literal
+	strings   []spec.Literal
+	datetimes []spec.Literal
+	byName    map[string][]spec.Literal
 }
 
 // NewPool builds the pool from the source text of the code under test and the
-// calls of the spec examples. Every number of the code enters with its neighbours
-// one unit and one smallest decimal step away, every short string literal enters
-// as is, and every example argument enters under its parameter name.
+// calls of the spec examples. Every number of the code enters with its
+// neighbours at full resolution: one unit, one step of its written resolution,
+// one step a decimal finer and half of its written step away on each side. Every
+// short string literal enters as is, and every example argument enters under its
+// parameter name.
 func NewPool(sources []string, examples []spec.Call) Pool {
 	pool := Pool{byName: map[string][]spec.Literal{}}
 	for _, source := range sources {
@@ -66,10 +72,14 @@ func NewPool(sources []string, examples []spec.Call) Pool {
 		}
 	}
 	for _, call := range examples {
-		for name, value := range call.Args {
+		for _, name := range slices.Sorted(maps.Keys(call.Args)) {
+			value := call.Args[name]
 			pool.byName[name] = appendUnique(pool.byName[name], value)
-			if value.Type == spec.TypeInteger || value.Type == spec.TypeDecimal {
+			switch value.Type {
+			case spec.TypeInteger, spec.TypeDecimal:
 				pool.addNumberWithNeighbours(value.Value)
+			case spec.TypeDatetime:
+				pool.addDatetimeWithNeighbours(value.Value)
 			}
 		}
 	}
@@ -87,8 +97,16 @@ func (p *Pool) addNumberWithNeighbours(text string) {
 	}
 	one := big.NewRat(1, 1)
 	step := new(big.Rat).SetFrac64(1, pow10(fraction))
-	for _, neighbour := range []*big.Rat{value, new(big.Rat).Add(value, one), new(big.Rat).Sub(value, one), new(big.Rat).Add(value, step), new(big.Rat).Sub(value, step)} {
-		p.numbers = appendUnique(p.numbers, numberLiteral(neighbour, fraction))
+	finer := new(big.Rat).SetFrac64(1, pow10(fraction+finerDigits))
+	half := new(big.Rat).SetFrac64(1, pow10(fraction)*halfStepDenominator)
+	p.numbers = appendUnique(p.numbers, numberLiteral(value, fraction))
+	for _, delta := range []struct {
+		step     *big.Rat
+		fraction int
+	}{{one, fraction}, {step, fraction}, {finer, fraction + finerDigits}, {half, fraction + finerDigits}} {
+		for _, neighbour := range []*big.Rat{new(big.Rat).Add(value, delta.step), new(big.Rat).Sub(value, delta.step)} {
+			p.numbers = appendUnique(p.numbers, numberLiteral(neighbour, delta.fraction))
+		}
 	}
 }
 
@@ -143,6 +161,8 @@ func (p Pool) candidates(param Param) []spec.Literal {
 	case HintBoolean:
 		add(spec.Literal{Type: spec.TypeBoolean, Value: "true"}, spec.Literal{Type: spec.TypeBoolean, Value: "false"})
 	case HintDatetime:
+		add(basicDatetimes()...)
+		add(p.datetimes...)
 	default:
 		add(literals(spec.TypeInteger, basicIntegers)...)
 		add(p.numbers...)

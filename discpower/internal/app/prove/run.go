@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
 	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
@@ -48,23 +50,42 @@ func (u UseCase) Run(ctx context.Context, options Options) (Result, error) {
 	}
 }
 
-// pass is one wave: every selected criterion is advanced as far as the host's
-// answers allow.
+// pass is one wave. Every criterion first draws its witnesses; while one of them
+// still waits for its writers or its scope judges, no criterion goes further, so
+// that every footprint and every search sees the witnesses of every criterion.
+// Then each criterion searches its pool. Once every search ended, the pools are
+// run against the witnesses of every criterion and settled, and the criteria
+// whose survivors are judged are proved.
 func (u UseCase) pass(ctx context.Context, p *project, options Options) (Result, error) {
 	wave, err := u.Deps.Store.AdvanceWave()
 	if err != nil {
 		return Result{}, fmt.Errorf("advance the wave: %w", err)
 	}
 	bridge := hostbridge.New(u.Deps.Store, u.Deps.Clock, u.Deps.Entropy, wave)
+	p.scopes = nil
+	runs := make([]*critRun, len(p.criteria))
+	settled := true
+	for index, criterion := range p.criteria {
+		runs[index] = p.newCritRun(bridge, criterion)
+		if err := runs[index].firstDraw(ctx); err != nil {
+			return Result{}, fmt.Errorf("prove %s: %w", criterion.Ref, err)
+		}
+		settled = settled && runs[index].witnessesSettled()
+	}
 	result := Result{Wave: wave}
-	for _, criterion := range p.criteria {
-		proved, err := p.proveCriterion(ctx, bridge, criterion, options)
-		if err != nil {
+	if settled {
+		if result.Criteria, err = p.proveAll(ctx, runs, options); err != nil {
 			return Result{}, err
 		}
-		result.Criteria = append(result.Criteria, proved)
+	} else {
+		for _, run := range runs {
+			result.Criteria = append(result.Criteria, CriterionResult{Ref: run.c.Ref, Status: StatusAwaitingHost})
+		}
 	}
 	result.Findings = slices.Clone(p.findings)
+	for _, run := range runs {
+		result.Findings = append(result.Findings, run.readingConflicts()...)
+	}
 	if err := bridge.SupersedeUnwanted(); err != nil {
 		return Result{}, err
 	}
@@ -85,47 +106,104 @@ type freshRecord struct {
 	Result   string `json:"result"`
 }
 
-func (p *project) proveCriterion(ctx context.Context, bridge *hostbridge.Bridge, criterion spec.Criterion, options Options) (CriterionResult, error) {
-	analysis, err := p.staticOf(ctx, criterion)
+// proveAll runs the searches of every criterion, then settles the pools against
+// the witnesses of every criterion and proves the criteria that need no more
+// answers. A criterion whose Statement of the current inputs exists is reported
+// fresh under `--changed`; its search still runs, so that its witnesses take
+// their part in every other criterion's proof.
+func (p *project) proveAll(ctx context.Context, runs []*critRun, options Options) ([]CriterionResult, error) {
+	for _, run := range runs {
+		entries, err := run.entriesOf(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if run.st, err = p.staticOf(ctx, run.c, entries); err != nil {
+			return nil, err
+		}
+	}
+	p.searchSets, p.searchRecords = universeOf(runs, (*critRun).searchDraws)
+	searching := false
+	for _, run := range runs {
+		if err := run.search(ctx); err != nil {
+			return nil, fmt.Errorf("prove %s: %w", run.c.Ref, err)
+		}
+		searching = searching || run.waiting
+	}
+	results := make([]CriterionResult, len(runs))
+	if searching {
+		for index, run := range runs {
+			results[index] = CriterionResult{Ref: run.c.Ref, Status: StatusAwaitingHost}
+		}
+		return results, nil
+	}
+	sets, records := universeOf(runs, (*critRun).allDraws)
+	for index, run := range runs {
+		result, err := run.conclude(ctx, sets, records, options)
+		if err != nil {
+			return nil, fmt.Errorf("prove %s: %w", run.c.Ref, err)
+		}
+		results[index] = result
+	}
+	return results, nil
+}
+
+// universeOf gathers the witnesses of the chosen draws of every criterion: the
+// sets a pool mutant runs and the records its classification reads.
+func universeOf(runs []*critRun, drawsOf func(*critRun) []*witnessDraw) ([]witness.Set, []witness.Record) {
+	var sets []witness.Set
+	var records []witness.Record
+	for _, run := range runs {
+		draws := drawsOf(run)
+		sets = append(sets, run.runnableSetsAmong(draws)...)
+		records = append(records, recordsOf(draws)...)
+	}
+	return sets, records
+}
+
+// conclude settles the pool of a criterion against the witnesses of every
+// criterion, asks the validity votes its unwitnessed survivors need and, once
+// they are in, writes its Statement.
+func (r *critRun) conclude(ctx context.Context, sets []witness.Set, records []witness.Record, options Options) (CriterionResult, error) {
+	if err := r.settle(ctx, sets, records); err != nil {
+		return CriterionResult{}, err
+	}
+	base, err := r.baseInputs()
 	if err != nil {
 		return CriterionResult{}, err
 	}
-	run := p.newCritRun(bridge, criterion, analysis)
-	base, err := run.baseInputs()
-	if err != nil {
-		return CriterionResult{}, err
-	}
-	freshness, err := run.freshnessKey(base)
+	freshness, err := r.freshnessKey(base)
 	if err != nil {
 		return CriterionResult{}, err
 	}
 	if options.Selection == SelectChanged {
-		if record, fresh := p.freshRecord(criterion.Ref, freshness); fresh {
-			return CriterionResult{Ref: criterion.Ref, Status: StatusFresh, CacheKey: record.CacheKey, Outcome: power.Outcome{Result: power.Result(record.Result)}}, nil
+		if record, fresh := r.p.freshRecord(r.c.Ref, freshness); fresh {
+			return CriterionResult{Ref: r.c.Ref, Status: StatusFresh, CacheKey: record.CacheKey, Outcome: power.Outcome{Result: power.Result(record.Result)}}, nil
 		}
 	}
-	if err := run.search(ctx); err != nil {
-		return CriterionResult{}, fmt.Errorf("prove %s: %w", criterion.Ref, err)
+	if r.waiting || !r.creditSettled() {
+		return CriterionResult{Ref: r.c.Ref, Status: StatusAwaitingHost}, nil
 	}
-	if run.waiting {
-		return CriterionResult{Ref: criterion.Ref, Status: StatusAwaitingHost}, nil
-	}
-	return run.finalize(base, freshness)
+	return r.finalize(base, freshness)
 }
 
 // finalize writes the Statement of a criterion whose pool is settled and consumes
 // the answers it rests on.
 func (r *critRun) finalize(base []format.Input, freshness string) (CriterionResult, error) {
 	correct, exampleFailed := r.p.referencePasses(r.c), r.p.exampleFailsOnReference(r.c.Ref)
-	outcome := power.Terminal(r.standing(correct, exampleFailed))
+	standing := r.standing(correct, exampleFailed)
+	evaluation := power.Evaluate(standing, r.g3w())
+	outcome := evaluation.Outcome
 	inputs := r.finalInputs(base)
 	slices.SortFunc(inputs, format.CompareInputs)
 	cacheKey, err := format.CacheKey(r.statementSubject(), inputs)
 	if err != nil {
 		return CriterionResult{}, err
 	}
-	predicate, err := r.predicate(inputs, cacheKey, correct)
+	predicate, err := r.predicate(inputs, cacheKey, correct, evaluation)
 	if err != nil {
+		return CriterionResult{}, err
+	}
+	if err := r.writeFacts(standing, cacheKey); err != nil {
 		return CriterionResult{}, err
 	}
 	encoded, err := format.NewStatement(r.statementSubject(), predicate).Encode()
@@ -142,6 +220,27 @@ func (r *critRun) finalize(base []format.Input, freshness string) (CriterionResu
 		return CriterionResult{}, err
 	}
 	return CriterionResult{Ref: r.c.Ref, Status: StatusProved, Outcome: outcome, CacheKey: cacheKey}, nil
+}
+
+// writeFacts keeps the facts record of the Statement: every executed fact and
+// answer its outcome rests on, so that the outcome of any test set can be
+// recomputed from it.
+func (r *critRun) writeFacts(standing power.Standing, cacheKey string) error {
+	if r.p.deps.Facts == nil {
+		return nil
+	}
+	reference := make(map[ecosystem.TestID]ecosystem.TestOutcome, len(r.p.referenceOutcomes))
+	for test, outcome := range r.p.referenceOutcomes {
+		reference[test] = outcome
+	}
+	encoded, err := power.NewRecord(standing, r.g3w(), reference).Encode()
+	if err != nil {
+		return fmt.Errorf("encode the facts of %s: %w", r.c.Ref, err)
+	}
+	if err := r.p.deps.Facts.Write(r.c.Ref, cacheKey, encoded); err != nil {
+		return fmt.Errorf("write the facts of %s: %w", r.c.Ref, err)
+	}
+	return nil
 }
 
 // consume records the answers a written Statement used, and keeps each vote when

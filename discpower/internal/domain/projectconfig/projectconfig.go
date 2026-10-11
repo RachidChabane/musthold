@@ -31,6 +31,17 @@ type Settings struct {
 	PolicyOverrides PolicyOverrides
 	// Host holds the settings of the host harness.
 	Host HostSettings
+	// Admission holds the inputs that take part in admitting a witness beyond
+	// the reference. Neither `init` nor `enable` writes it.
+	Admission AdmissionSettings
+}
+
+// AdmissionSettings names the planted refactors every witness must pass to be
+// admitted: a directory of edit sets, one JSON file per refactor, each a change
+// that preserves every criterion. An empty directory name admits every witness
+// that passes the reference.
+type AdmissionSettings struct {
+	RefactorsDir string
 }
 
 // Default returns the settings `spec-proof init` writes: every proof disabled and

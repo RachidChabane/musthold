@@ -36,7 +36,7 @@ const (
 )
 
 // commands lists the commands in the order the usage names them.
-var commands = []string{commandVersion, commandProve, commandRequest, commandSystemOne, commandDoctor, commandInit, commandEnable, commandDisable, commandMCP, commandHook, commandHost, cliconv.HelpCommand}
+var commands = []string{commandVersion, commandProve, commandRequest, commandSystemOne, commandDoctor, commandInit, commandEnable, commandDisable, commandMCP, commandHook, commandHost, commandFacts, cliconv.HelpCommand}
 
 // flagHelp is the flag `help <command>` hands to the command.
 const flagHelp = "-h"
@@ -122,6 +122,8 @@ func Run(env Env, args []string) int {
 		return env.finish(env.mcp(rest))
 	case command == commandHook:
 		return env.finish(env.hook(rest))
+	case command == commandFacts:
+		return env.finish(env.facts(rest))
 	default:
 		err = fmt.Errorf("unknown command %q", command)
 	}

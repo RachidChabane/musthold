@@ -63,7 +63,7 @@ func TestFakehostSmoke(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Run("the real fake host drives the real binary to the recorded verdicts [verifies SP-182~1]", func(t *testing.T) {
+	t.Run("the real fake host drives the real binary to the recorded verdicts [verifies SP-182~2]", func(t *testing.T) {
 		var output []byte
 		code := cli.ExitAwaitingHost
 		for wave := 0; code == cli.ExitAwaitingHost && wave < maxWavesPerDrive; wave++ {
@@ -84,7 +84,7 @@ func TestFakehostSmoke(t *testing.T) {
 			}
 		}
 		got := verdicts(string(output))
-		want := map[string]string{"PAR-1~1": provedPass, "PAR-2~1": provedPass, "PAR-3~1": provedBlock}
+		want := map[string]string{"PAR-1~1": provedPass, "PAR-2~1": provedEscalate, "PAR-3~1": provedBlock}
 		for ref, verdict := range want {
 			if !strings.EqualFold(got[ref], verdict) {
 				t.Errorf("%s: %q, want %q\n%s", ref, got[ref], verdict, output)

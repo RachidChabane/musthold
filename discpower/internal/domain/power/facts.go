@@ -6,10 +6,12 @@
 package power
 
 import (
+	"maps"
 	"slices"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
 	"github.com/RachidChabane/spec-proof/format"
 )
 
@@ -72,21 +74,54 @@ type Differential struct {
 	SkipReason string             `json:"skipReason,omitempty"`
 }
 
+// Identity is the result of comparing the compiled forms of a mutant and the
+// reference (E0).
+type Identity string
+
+// Identities.
+const (
+	// IdentityUnknown: the ecosystem compiles no comparable form, or the
+	// comparison could not run.
+	IdentityUnknown Identity = ""
+	// IdentityIdentical: the mutant compiles to the reference's form.
+	IdentityIdentical Identity = "identical"
+	// IdentityDiffers: the compiled forms differ.
+	IdentityDiffers Identity = "differs"
+)
+
 // Facts are the executed facts about one mutant that built: where it edits, what
-// every test of the suite did against it, which criteria's examples it fails and
-// what the differential search found.
+// every test of the suite did against it, which criteria's examples it fails,
+// what the differential search found, whether it compiles to the reference's
+// form and what every witness did on it.
 type Facts struct {
-	ID     string
-	Origin Origin
-	Slot   Slot
+	ID     string `json:"id"`
+	Origin Origin `json:"origin"`
+	Slot   Slot   `json:"slot,omitempty"`
 	// Sites lists the units the mutant edits, as `file::qualname`.
-	Sites []string
+	Sites []string `json:"sites"`
 	// Outcomes holds the outcome of every test of the suite against the mutant.
-	Outcomes map[ecosystem.TestID]format.Outcome
+	Outcomes map[ecosystem.TestID]format.Outcome `json:"outcomes"`
 	// FailedExamples lists the criteria one of whose examples the mutant fails,
 	// sorted.
-	FailedExamples []spec.Ref
-	Differential   Differential
+	FailedExamples []spec.Ref   `json:"failedExamples,omitempty"`
+	Differential   Differential `json:"differential"`
+	Identity       Identity     `json:"identity,omitempty"`
+	// WitnessOutcomes holds, by witness id, what each witness the mutant ran
+	// against did: a failure is reproduced, a failure the rerun did not repeat is
+	// flaky.
+	WitnessOutcomes map[string]witness.Outcome `json:"witnessOutcomes,omitempty"`
+}
+
+// FailsWitness reports whether the mutant failed the witness, reproduced.
+func (f Facts) FailsWitness(id string) bool { return f.WitnessOutcomes[id] == witness.OutcomeFailed }
+
+// FailsExampleOf reports whether the mutant fails an example of the criterion.
+func (f Facts) FailsExampleOf(ref spec.Ref) bool { return slices.Contains(f.FailedExamples, ref) }
+
+// OwnerAttributed reports whether the mutant fails an example of the criterion
+// and no example of another one.
+func (f Facts) OwnerAttributed(ref spec.Ref) bool {
+	return len(f.FailedExamples) == 1 && f.FailedExamples[0] == ref
 }
 
 // KilledBy lists, in the given order, the tests among the candidates that the
@@ -124,12 +159,54 @@ func (f Facts) AllSurvived(tests []ecosystem.TestID) bool {
 // Subject is the criterion a pool is judged for and the suite around it.
 type Subject struct {
 	Ref spec.Ref
-	// Tests are the tests bound to the criterion.
+	// Tests are the tests bound to the criterion: the set S the outcome is about.
 	Tests []ecosystem.TestID
-	// OtherTests are the tests bound to every other criterion.
+	// OtherTests are the tests bound to some other criterion, a test bound to the
+	// criterion and to another one included.
 	OtherTests []ecosystem.TestID
 	// SentinelKillers are the tests of the suite that killed a sentinel.
 	SentinelKillers map[ecosystem.TestID]bool
+	// Bindings names, for every bound test of the suite, the criteria it is bound
+	// to; it decides whether a mutant is isolated for another criterion.
+	Bindings map[ecosystem.TestID][]spec.Ref
+}
+
+// NewSubject builds the subject of a criterion from the bindings of the suite and
+// the tests that killed a sentinel.
+func NewSubject(ref spec.Ref, bindings map[ecosystem.TestID][]spec.Ref, sentinelKillers map[ecosystem.TestID]bool) Subject {
+	subject := Subject{Ref: ref, SentinelKillers: sentinelKillers, Bindings: bindings}
+	for _, test := range slices.Sorted(maps.Keys(bindings)) {
+		criteria := bindings[test]
+		if slices.Contains(criteria, ref) {
+			subject.Tests = append(subject.Tests, test)
+		}
+		if boundElsewhere(criteria, ref) {
+			subject.OtherTests = append(subject.OtherTests, test)
+		}
+	}
+	return subject
+}
+
+func boundElsewhere(criteria []spec.Ref, ref spec.Ref) bool {
+	return slices.ContainsFunc(criteria, func(other spec.Ref) bool { return other != ref })
+}
+
+// IsolatedFor reports whether no test bound to a criterion other than ref killed
+// the mutant or errored on it. Without bindings, the other tests of the subject
+// stand for those of the subject's own criterion.
+func (s Subject) IsolatedFor(f Facts, ref spec.Ref) bool {
+	if s.Bindings == nil {
+		return ref == s.Ref && s.OtherCriteriaPass(f)
+	}
+	for test, criteria := range s.Bindings {
+		if !boundElsewhere(criteria, ref) {
+			continue
+		}
+		if outcome := f.Outcomes[test]; outcome == format.OutcomeKilled || outcome == format.OutcomeError {
+			return false
+		}
+	}
+	return true
 }
 
 // SpecificKillers lists the criterion's tests that killed the mutant and killed

@@ -49,6 +49,9 @@ type wireRequirement struct {
 	StatementDigest string        `json:"statement_digest"`
 	Examples        []wireExample `json:"examples"`
 	Tests           []wireTest    `json:"tests"`
+	Location        struct {
+		File string `json:"file"`
+	} `json:"location"`
 }
 
 type wireExample struct {
@@ -157,7 +160,7 @@ func (r wireRequirement) criterion() (spec.Criterion, error) {
 	for index, test := range r.Tests {
 		tests[index] = ecosystem.NewBoundTest(test.Classname, test.Name, test.Source.File, test.Source.Line)
 	}
-	return spec.Criterion{Ref: ref, Statement: r.Statement, StatementDigest: r.StatementDigest, Examples: examples, Tests: tests}, nil
+	return spec.Criterion{Ref: ref, Statement: r.Statement, StatementDigest: r.StatementDigest, Examples: examples, Tests: tests, SpecFile: r.Location.File}, nil
 }
 
 func (r wireRequirement) examples() ([]spec.Example, error) {

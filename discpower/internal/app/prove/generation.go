@@ -45,7 +45,7 @@ func (r *critRun) generate(ctx context.Context, round int) ([]*poolMutant, askSt
 		return nil, askAnswered, err
 	}
 	ask := hostbridge.Ask{Request: request, Votes: 1, Criteria: []string{r.c.Ref.String()}, Purpose: string(hostproto.KindGenerateTargeted)}
-	answer, state, err := r.ask(ask, true)
+	answer, state, err := r.ask(ask, billSchedule)
 	if err != nil || state != askAnswered {
 		return nil, state, err
 	}
@@ -60,7 +60,7 @@ func (r *critRun) generate(ctx context.Context, round int) ([]*poolMutant, askSt
 	if err := r.bridge.Contradict(answer.Votes[0], contradictionNoUsableMutant); err != nil {
 		return nil, askAnswered, err
 	}
-	_, state, err = r.ask(ask, false)
+	_, state, err = r.ask(ask, billNone)
 	return nil, state, err
 }
 
@@ -120,7 +120,7 @@ func (r *critRun) intakeOne(ctx context.Context, proposal prompt.GeneratedMutant
 	if len(m.facts.FailedExamples) > 0 && !slices.Contains(m.facts.FailedExamples, r.c.Ref) {
 		return nil, false, nil
 	}
-	return m, false, nil
+	return m, false, r.runOwnWitnesses(ctx, m)
 }
 
 // admissible checks the edit set a host proposed: known target kinds, no unit

@@ -1,6 +1,7 @@
 package power_test
 
 import (
+	"fmt"
 	"testing"
 
 	"pgregory.net/rapid"
@@ -9,18 +10,16 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/policy"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
 	"github.com/RachidChabane/spec-proof/format"
 )
 
-const maxVotes = 4
+const (
+	maxVotes   = 4
+	maxEntries = 5
+)
 
-func genOrigin() *rapid.Generator[power.Origin] {
-	return rapid.SampledFrom([]power.Origin{power.OriginTargeted, power.OriginOperator, power.OriginSentinel})
-}
-
-func genNonSentinelOrigin() *rapid.Generator[power.Origin] {
-	return rapid.SampledFrom([]power.Origin{power.OriginTargeted, power.OriginOperator})
-}
+var witnessIDs = []string{ownWitness, ownWitnessLow, ownEscalateOnly, ownConflict, otherWitness, otherEscalateOnly}
 
 func genOutcomes() *rapid.Generator[map[ecosystem.TestID]format.Outcome] {
 	outcome := rapid.SampledFrom([]format.Outcome{format.OutcomeKilled, format.OutcomeSurvived, format.OutcomeError})
@@ -33,26 +32,38 @@ func genOutcomes() *rapid.Generator[map[ecosystem.TestID]format.Outcome] {
 	})
 }
 
-func genFailedExamples() *rapid.Generator[[]spec.Ref] {
-	return rapid.Custom(func(t *rapid.T) []spec.Ref {
-		var failed []spec.Ref
-		for _, ref := range []spec.Ref{subjectRef, otherRef, thirdRef} {
-			if rapid.Bool().Draw(t, ref.String()) {
-				failed = append(failed, ref)
-			}
+func genWitnessOutcomes(ids []string) *rapid.Generator[map[string]witness.Outcome] {
+	outcome := rapid.SampledFrom([]witness.Outcome{witness.OutcomePassed, witness.OutcomeFailed, witness.OutcomeFlaky, witness.OutcomeErrored})
+	return rapid.Custom(func(t *rapid.T) map[string]witness.Outcome {
+		outcomes := map[string]witness.Outcome{}
+		if len(ids) == 0 {
+			rapid.Just(0).Draw(t, "none")
+			return outcomes
 		}
-		return failed
+		for _, id := range ids {
+			outcomes[id] = outcome.Draw(t, id)
+		}
+		return outcomes
 	})
 }
 
-func genFacts(origin *rapid.Generator[power.Origin], failed *rapid.Generator[[]spec.Ref]) *rapid.Generator[power.Facts] {
+func genFacts(id string, witnesses []string) *rapid.Generator[power.Facts] {
 	status := rapid.SampledFrom([]power.DifferentialStatus{power.DiffersAt, power.NoDiffFound, power.Skipped})
+	identity := rapid.SampledFrom([]power.Identity{power.IdentityUnknown, power.IdentityDiffers, power.IdentityIdentical})
 	return rapid.Custom(func(t *rapid.T) power.Facts {
+		var failed []spec.Ref
+		for _, ref := range []spec.Ref{subjectRef, otherRef, thirdRef} {
+			if rapid.Bool().Draw(t, "example-"+ref.String()) {
+				failed = append(failed, ref)
+			}
+		}
 		return power.Facts{
-			ID: mutantID, Origin: origin.Draw(t, "origin"), Slot: power.SlotDirect, Sites: []string{siteFirst},
-			Outcomes:       genOutcomes().Draw(t, "outcomes"),
-			FailedExamples: failed.Draw(t, "failed"),
-			Differential:   power.Differential{Status: status.Draw(t, "status")},
+			ID: id, Origin: rapid.SampledFrom([]power.Origin{power.OriginTargeted, power.OriginOperator, power.OriginSentinel}).Draw(t, "origin"),
+			Slot: power.SlotDirect, Sites: []string{rapid.SampledFrom([]string{siteFirst, siteSecond, siteThird}).Draw(t, "site")},
+			Outcomes: genOutcomes().Draw(t, "outcomes"), FailedExamples: failed,
+			Differential:    power.Differential{Status: status.Draw(t, "status")},
+			Identity:        identity.Draw(t, "identity"),
+			WitnessOutcomes: genWitnessOutcomes(witnesses).Draw(t, "witnesses"),
 		}
 	})
 }
@@ -64,7 +75,7 @@ func genVote() *rapid.Generator[power.Vote] {
 			Confidence:    rapid.Float64Range(0, 1).Draw(t, "confidence"),
 			Isolation:     rapid.SampledFrom(format.Isolations()).Draw(t, "isolation"),
 			Marked:        rapid.Bool().Draw(t, "marked"),
-			Witness:       rapid.SampledFrom([]power.WitnessCheck{power.WitnessAbsent, power.WitnessConfirmed, power.WitnessRefused}).Draw(t, "witness"),
+			Witness:       rapid.SampledFrom([]power.WitnessCheck{power.WitnessAbsent, power.WitnessConfirmed}).Draw(t, "witness"),
 			WitnessDigest: witnessDigest,
 		}
 	})
@@ -81,198 +92,122 @@ func genRules() *rapid.Generator[policy.Policy] {
 	})
 }
 
-func genSubject() *rapid.Generator[power.Subject] {
-	return rapid.Custom(func(t *rapid.T) power.Subject {
-		subject := newSubject()
-		for _, test := range allTests() {
-			if rapid.Bool().Draw(t, "sentinelKiller-"+string(test)) {
-				subject.SentinelKillers[test] = true
+func genEntries() *rapid.Generator[[]power.Entry] {
+	return rapid.Custom(func(t *rapid.T) []power.Entry {
+		count := rapid.IntRange(0, maxEntries).Draw(t, "count")
+		entries := make([]power.Entry, count)
+		for index := range entries {
+			entries[index] = power.Entry{
+				Facts: genFacts(fmt.Sprintf("m%d", index), witnessIDs).Draw(t, fmt.Sprintf("facts%d", index)),
+				Votes: rapid.SliceOfN(genVote(), 0, maxVotes).Draw(t, fmt.Sprintf("votes%d", index)),
 			}
 		}
-		return subject
+		return entries
 	})
 }
 
 func TestDecideProperties(t *testing.T) {
-	t.Run("a VALID decision always carries corroboration, and a sentinel never carries power"+verifiesSP165, func(t *testing.T) {
+	t.Run("a mutant that fails no witness and no example never blocks or earns credit, whatever the votes"+verifiesSP184, func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
-			subject := genSubject().Draw(t, "subject")
-			facts := genFacts(genOrigin(), genFailedExamples()).Draw(t, "facts")
+			rules := genRules().Draw(t, "rules")
+			facts := genFacts(mutantID, nil).Draw(t, "facts")
+			facts.FailedExamples = nil
 			votes := rapid.SliceOfN(genVote(), 0, maxVotes).Draw(t, "votes")
-			got := power.Decide(subject, facts, votes, genRules().Draw(t, "rules"))
-			if got.Carries() && len(got.Corroboration) == 0 {
-				t.Fatalf("a %s decision has no corroboration: %+v", got.Class, got)
-			}
-			if got.Class == power.ClassValid && len(got.Corroboration) == 0 && len(facts.FailedExamples) == 0 {
-				t.Fatalf("a VALID decision is neither corroborated nor attributed by examples")
-			}
-			if facts.Origin == power.OriginSentinel && got.Carries() {
-				t.Fatalf("a sentinel carries power")
-			}
-			if got.Class == power.ClassUndetermined && (got.Reason == power.ReasonNone || got.Carries()) {
-				t.Fatalf("an undetermined decision without reason: %+v", got)
+			if got := decide(facts, votes, rules); got.Carries() || got.CreditBearing {
+				t.Fatalf("decision %+v", got)
 			}
 		})
 	})
 
-	t.Run("the most favourable votes never give power to a mutant without a confirmed witness"+verifiesSP165, func(t *testing.T) {
+	t.Run("no judgment alone clears a survivor: without an executed exclusion, votes leave it unsettled"+verifiesSP184, func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
-			subject := genSubject().Draw(t, "subject")
-			facts := genFacts(genNonSentinelOrigin(), rapid.Just([]spec.Ref(nil))).Draw(t, "facts")
-			favourable := power.Vote{
-				Answer: power.AnswerValid, Confidence: fullConfidence, Isolation: format.IsolationRestrictedAttested,
-				Witness: rapid.SampledFrom([]power.WitnessCheck{power.WitnessAbsent, power.WitnessRefused}).Draw(t, "witness"),
-			}
 			rules := genRules().Draw(t, "rules")
-			votes := repeated(favourable, rapid.IntRange(rules.JudgeK, maxVotes+rules.JudgeK).Draw(t, "count"))
-			if got := power.Decide(subject, facts, votes, rules); got.Carries() {
-				t.Fatalf("a mutant without a confirmed witness carries power: %+v", got)
+			facts := genFacts(mutantID, nil).Draw(t, "facts")
+			facts.Origin, facts.FailedExamples, facts.Identity = power.OriginTargeted, nil, power.IdentityDiffers
+			facts.Differential.Status = rapid.SampledFrom([]power.DifferentialStatus{power.DiffersAt, power.Skipped}).Draw(t, "status")
+			votes := rapid.SliceOfN(genVote(), 0, maxVotes).Draw(t, "votes")
+			if got := decide(facts, votes, rules); got.Class != power.ClassUnsettled {
+				t.Fatalf("class %q for votes %+v", got.Class, votes)
 			}
 		})
 	})
 
-	t.Run("raising tau_judge never turns an undetermined decision into a carrying one"+verifiesSP165, func(t *testing.T) {
+	t.Run("a carrying decision always rests on executed evidence"+verifiesSP165, func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
-			subject := genSubject().Draw(t, "subject")
-			facts := genFacts(genNonSentinelOrigin(), rapid.Just([]spec.Ref(nil))).Draw(t, "facts")
-			votes := rapid.SliceOfN(genVote(), 0, maxVotes).Draw(t, "votes")
 			rules := genRules().Draw(t, "rules")
-			higher := rules
-			higher.TauJudge = format.UniformThreshold(rapid.Float64Range(rules.TauJudge.Default, 1).Draw(t, "higherTau"))
-			if power.Decide(subject, facts, votes, rules).Class != power.ClassUndetermined {
+			got := decide(genFacts(mutantID, witnessIDs).Draw(t, "facts"), rapid.SliceOfN(genVote(), 0, maxVotes).Draw(t, "votes"), rules)
+			if got.Carries() && (len(got.Corroboration) == 0 || got.Source != format.SourceExecution) {
+				t.Fatalf("decision %+v", got)
+			}
+		})
+	})
+
+	t.Run("collateral never bears credit, and credit needs a credit-eligible witness or an example"+verifiesSP165, func(t *testing.T) {
+		rapid.Check(t, func(t *rapid.T) {
+			rules := genRules().Draw(t, "rules")
+			facts := genFacts(mutantID, witnessIDs).Draw(t, "facts")
+			got := decide(facts, nil, rules)
+			if got.Class == power.ClassCollateral && got.CreditBearing {
+				t.Fatalf("collateral bears credit: %+v", got)
+			}
+			if got.Class == power.ClassValidE && got.CreditBearing && (rules.SignedPassBasis == policy.ExecutedOnly || !format.IsolationRestricted.AtLeast(rules.MinIsolation)) {
+				t.Fatalf("credit without a witness at the floor: %+v under %+v", got, rules)
+			}
+		})
+	})
+}
+
+func TestEvaluateProperties(t *testing.T) {
+	t.Run("adding a reproduced failure of a block-bearing witness never turns a block into a pass"+verifiesSP184, func(t *testing.T) {
+		rapid.Check(t, func(t *rapid.T) {
+			rules := rulesOf(policy.Default())
+			current := standing(genEntries().Draw(t, "entries")...)
+			before := power.Terminal(current, rules)
+			if len(current.Entries) == 0 {
 				return
 			}
-			if got := power.Decide(subject, facts, votes, higher); got.Carries() {
-				t.Fatalf("raising tau_judge from %v to %v produced %+v", rules.TauJudge, higher.TauJudge, got)
+			index := rapid.IntRange(0, len(current.Entries)-1).Draw(t, "index")
+			id := rapid.SampledFrom([]string{ownWitness, ownWitnessLow, otherWitness}).Draw(t, "witness")
+			current.Entries[index].Facts.WitnessOutcomes[id] = witness.OutcomeFailed
+			after := power.Terminal(current, rules)
+			if before.Result == power.Block && after.Result == power.Pass {
+				t.Fatalf("%+v became %+v", before, after)
 			}
 		})
 	})
 
-	t.Run("a decision from judges depends on tau_judge only through the confidence check"+verifiesSP165, func(t *testing.T) {
+	t.Run("a pass needs a killed credit-bearing mutant, and the order of entries is irrelevant"+verifiesSP167, func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
-			subject := genSubject().Draw(t, "subject")
-			facts := genFacts(genNonSentinelOrigin(), rapid.Just([]spec.Ref(nil))).Draw(t, "facts")
-			votes := rapid.SliceOfN(genVote(), 0, maxVotes).Draw(t, "votes")
-			rules := genRules().Draw(t, "rules")
-			lowest := power.TallyVotes(votes).MinConfidence
-			if len(votes) == 0 || lowest < rules.TauJudge.Default {
+			rules := rulesOf(genRules().Draw(t, "rules"))
+			entries := genEntries().Draw(t, "entries")
+			got := power.Evaluate(standing(entries...), rules)
+			reversed := make([]power.Entry, len(entries))
+			for index, item := range entries {
+				reversed[len(entries)-1-index] = item
+			}
+			if power.Terminal(standing(reversed...), rules).Result != got.Outcome.Result {
+				t.Fatal("the order of entries changed the outcome")
+			}
+			if got.Outcome.Result != power.Pass {
 				return
 			}
-			zero := rules
-			zero.TauJudge = format.UniformThreshold(0)
-			got, baseline := power.Decide(subject, facts, votes, rules), power.Decide(subject, facts, votes, zero)
-			if got.Class != baseline.Class || got.Reason != baseline.Reason {
-				t.Fatalf("decision %+v differs from the one at tau_judge 0: %+v", got, baseline)
+			subject := newSubject()
+			for _, item := range entries {
+				decision := got.Decisions[item.Facts.ID]
+				if decision.CreditBearing && subject.Killed(item.Facts) && len(subject.SpecificKillers(item.Facts)) > 0 {
+					return
+				}
 			}
+			t.Fatal("a pass without a killed credit-bearing mutant")
 		})
 	})
-}
 
-type entryKind int
-
-const (
-	kindValidKilledSpecific entryKind = iota
-	kindEquivalentSurvivor
-	kindOffTargetSurvivor
-	kindUnattributedSurvivor
-	kindUndeterminedSurvivor
-	kindValidSurvivor
-	kindSentinel
-	kindKilledUndetermined
-)
-
-func entryFor(kind entryKind, site string) power.Entry {
-	var entry power.Entry
-	switch kind {
-	case kindValidKilledSpecific:
-		entry = validKilled()
-	case kindEquivalentSurvivor:
-		entry = entryOf(survivor(power.OriginTargeted, power.NoDiffFound), power.ClassEquivalent)
-	case kindOffTargetSurvivor:
-		entry = entryOf(survivor(power.OriginOperator, power.Skipped), power.ClassOffTarget)
-	case kindUnattributedSurvivor:
-		entry = entryOf(survivor(power.OriginTargeted, power.Skipped), power.ClassUnattributed)
-	case kindUndeterminedSurvivor:
-		entry = undeterminedSurvivor()
-	case kindValidSurvivor:
-		entry = validSurviving()
-	case kindSentinel:
-		entry = entryOf(survivor(power.OriginSentinel, power.NoDiffFound), power.ClassEquivalent)
-	default:
-		entry = killedUndetermined()
-	}
-	entry.Facts.Sites = []string{site}
-	return entry
-}
-
-func killedUndetermined() power.Entry {
-	return entryOf(killedBy(power.OriginTargeted, testOwnB), power.ClassUndetermined)
-}
-
-func genStanding() *rapid.Generator[power.Standing] {
-	kind := rapid.SampledFrom([]entryKind{
-		kindValidKilledSpecific, kindEquivalentSurvivor, kindOffTargetSurvivor, kindUnattributedSurvivor,
-		kindUndeterminedSurvivor, kindValidSurvivor, kindSentinel, kindKilledUndetermined,
-	})
-	site := rapid.SampledFrom([]string{siteFirst, siteSecond, siteThird})
-	return rapid.Custom(func(t *rapid.T) power.Standing {
-		count := rapid.IntRange(0, maxVotes+maxVotes).Draw(t, "entries")
-		entries := make([]power.Entry, count)
-		for index := range entries {
-			entries[index] = entryFor(kind.Draw(t, "kind"), site.Draw(t, "site"))
-		}
-		return power.Standing{
-			Subject: genSubject().Draw(t, "subject"), CorrectCodePasses: rapid.Bool().Draw(t, "reference"), ExampleFailed: rapid.Bool().Draw(t, "example"),
-			Entries: entries, BudgetExhausted: rapid.Bool().Draw(t, "budget"), HostUnresponsive: rapid.Bool().Draw(t, "host"),
-		}
-	})
-}
-
-func TestTerminalProperties(t *testing.T) {
-	worse := []entryKind{kindValidSurvivor, kindUndeterminedSurvivor}
-	t.Run("adding a worse entry never improves the outcome"+verifiesSP167, func(t *testing.T) {
+	t.Run("adding a surviving VALID_e mutant always blocks"+verifiesSP167, func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
-			standing := genStanding().Draw(t, "standing")
-			before := power.Terminal(standing).Result
-			added := entryFor(rapid.SampledFrom(worse).Draw(t, "worse"), siteFirst)
-			standing.Entries = append(append([]power.Entry(nil), standing.Entries...), added)
-			after := power.Terminal(standing).Result
-			if after.Severity() < before.Severity() {
-				t.Fatalf("the outcome improved from %s to %s", before, after)
-			}
-		})
-	})
-	t.Run("adding a surviving VALID entry always blocks"+verifiesSP167, func(t *testing.T) {
-		rapid.Check(t, func(t *rapid.T) {
-			standing := genStanding().Draw(t, "standing")
-			standing.Entries = append(append([]power.Entry(nil), standing.Entries...), validSurviving())
-			if got := power.Terminal(standing); got.Result != power.Block || !got.Has(power.FindingSurvivingValid) {
+			entries := genEntries().Draw(t, "entries")
+			blocker := power.Entry{Facts: withID(failing(survivor(power.OriginTargeted, power.DiffersAt), ownWitness), "blocker")}
+			if got := power.Terminal(standing(append(entries, blocker)...), rulesOf(policy.Default())); got.Result != power.Block {
 				t.Fatalf("outcome %+v", got)
-			}
-		})
-	})
-	t.Run("a pass needs a credited mutant and no finding, and the order of entries is irrelevant"+verifiesSP167, func(t *testing.T) {
-		rapid.Check(t, func(t *rapid.T) {
-			standing := genStanding().Draw(t, "standing")
-			got := power.Terminal(standing)
-			if (got.Result == power.Pass) != (len(got.Findings) == 0) {
-				t.Fatalf("result %s with findings %v", got.Result, got.Findings)
-			}
-			reversed := standing
-			reversed.Entries = make([]power.Entry, len(standing.Entries))
-			for index, entry := range standing.Entries {
-				reversed.Entries[len(standing.Entries)-1-index] = entry
-			}
-			if other := power.Terminal(reversed); other.Result != got.Result || len(other.Findings) != len(got.Findings) {
-				t.Fatalf("the outcome depends on the order: %+v against %+v", got, other)
-			}
-		})
-	})
-	t.Run("the search stops whenever the outcome blocks on an entry"+verifiesSP168, func(t *testing.T) {
-		rapid.Check(t, func(t *rapid.T) {
-			standing := genStanding().Draw(t, "standing")
-			if power.Terminal(standing).Result == power.Block && !power.StopSearching(standing, policy.Default()) {
-				t.Fatalf("the search continues past a block")
 			}
 		})
 	})

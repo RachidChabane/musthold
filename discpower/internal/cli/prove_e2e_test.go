@@ -233,10 +233,13 @@ func TestProveEndToEnd(t *testing.T) {
 		}
 	})
 
-	t.Run("the honest persona blocks the weak test and passes the adequate ones [verifies SP-182~1]", func(t *testing.T) {
+	t.Run("the honest persona blocks the weak test, passes the adequate one and escalates a survivor the spec leaves open [verifies SP-182~2]", func(t *testing.T) {
 		h := newHarness(t, shared)
 		code, output := h.drive(hostprototest.PersonaHonest, oracle{})
-		want := map[string]string{"PAR-1~1": provedPass, "PAR-2~1": provedPass, "PAR-3~1": provedBlock}
+		// A change of the rounding of a discount survives PAR-2's tests; no
+		// requirement fixes the rounding, and a command-line host's screen
+		// answers, exposed, cannot screen the survivor out.
+		want := map[string]string{"PAR-1~1": provedPass, "PAR-2~1": provedEscalate, "PAR-3~1": provedBlock}
 		for ref, verdict := range want {
 			if got := verdicts(output)[ref]; got != verdict {
 				t.Errorf("%s: %q, want %q\n%s", ref, got, verdict, output)
@@ -368,7 +371,7 @@ func TestProveEndToEnd(t *testing.T) {
 		}
 	})
 
-	t.Run("an unchanged criterion is reported fresh and not proved again [verifies SP-188~1]", func(t *testing.T) {
+	t.Run("an unchanged criterion is reported fresh and not proved again [verifies SP-188~2]", func(t *testing.T) {
 		h := newHarness(t, shared)
 		h.drive(hostprototest.PersonaHonest, oracle{})
 		before := h.statementBytes()
@@ -397,6 +400,7 @@ func TestProveCleanRun(t *testing.T) {
 	h := newHarness(t, t.TempDir())
 	h.rewrite("tests/test_rates.py", "assert shipping_fee(100) == 0", "assert shipping_fee(100) == 0 and shipping_fee(50) == 0")
 	h.rewrite("tests/test_rates.py", "assert shipping_fee(10) == 4.5", "assert shipping_fee(10) == 4.5 and shipping_fee(49.99) == 4.5")
+	h.rewrite("tests/test_rates.py", "assert discounted(80, -5) == 80", "assert discounted(80, -5) == 80 and discounted(1.234, 0) == 1.23")
 	h.useReport(func(requirements []any) {
 		third := requirements[2].(map[string]any)
 		third["examples"] = []any{map[string]any{

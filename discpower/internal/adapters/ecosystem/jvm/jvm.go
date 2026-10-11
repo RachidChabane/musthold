@@ -52,6 +52,8 @@ type Strategy struct {
 	deps       Dependencies
 	tool       buildTool
 	classpaths *classpathCache
+	// witnessTarget remembers the package a witness brief placed the witnesses in.
+	witnessTarget *targetMemo
 }
 
 // NewMaven builds the Strategy of JUnit 5 on Maven.
@@ -70,7 +72,7 @@ func newStrategy(deps Dependencies, tool buildTool) *Strategy {
 	if deps.Timeout <= 0 {
 		deps.Timeout = DefaultTimeout
 	}
-	return &Strategy{deps: deps, tool: tool, classpaths: newClasspathCache()}
+	return &Strategy{deps: deps, tool: tool, classpaths: newClasspathCache(), witnessTarget: &targetMemo{}}
 }
 
 // Name is ecosystem.Maven or ecosystem.Gradle.

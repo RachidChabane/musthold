@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/execution"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/operatorgen"
@@ -14,6 +15,7 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/operator"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/prompt"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
 )
 
 // staticAnalysis is what the deterministic stages learn about one criterion
@@ -31,12 +33,13 @@ type staticAnalysis struct {
 	sourceTexts []string
 }
 
-// staticOf computes, once per run, the static analysis of a criterion.
-func (p *project) staticOf(ctx context.Context, criterion spec.Criterion) (*staticAnalysis, error) {
-	if cached, done := p.statics[criterion.Ref]; done {
+// staticOf computes, once per run and footprint, the static analysis of a
+// criterion from the entry functions of its footprint.
+func (p *project) staticOf(ctx context.Context, criterion spec.Criterion, entries []footprint.Ref) (*staticAnalysis, error) {
+	key := criterion.Ref.String() + seedSeparator + footprintKey(entries)
+	if cached, done := p.statics[key]; done {
 		return cached, nil
 	}
-	entries := p.runner.Coverage.EntriesOf(criterion.TestIDs())
 	generated, err := operatorgen.NewGenerator(p.deps.Engines).Generate(operatorgen.Request{
 		Files:   p.sources,
 		Entries: entries,
@@ -61,8 +64,39 @@ func (p *project) staticOf(ctx context.Context, criterion spec.Criterion) (*stat
 	if analysis.draws == nil {
 		p.findings = append(p.findings, fmt.Sprintf("%s: %s %s", FindingDifferentialSkipped, criterion.Ref, analysis.skipReason))
 	}
-	p.statics[criterion.Ref] = analysis
+	p.statics[key] = analysis
+	p.footprints[criterion.Ref] = entries
 	return analysis, nil
+}
+
+// footprintKey names the entry functions of a footprint.
+func footprintKey(entries []footprint.Ref) string {
+	parts := make([]string, len(entries))
+	for index, entry := range entries {
+		parts[index] = entry.File + "\x00" + entry.Qualname
+	}
+	return digestText(strings.Join(parts, "\x01"))
+}
+
+// entriesOf returns the entry functions of a criterion's footprint: the units its
+// witnesses execute on the reference, so that the code a generation request
+// shows never depends on the tests. An ecosystem that cannot run witnesses takes
+// the units the criterion's tests execute. No entry puts every unit of the code
+// in scope.
+//
+// Only the first draw's witnesses count: a further draw comes after the search
+// ended, and the footprint the search ran on stays the one its requests showed.
+func (r *critRun) entriesOf(ctx context.Context) ([]footprint.Ref, error) {
+	if !r.p.runner.Witnesses.Available() {
+		return r.p.runner.Coverage.EntriesOf(r.c.TestIDs()), nil
+	}
+	var first []witness.Set
+	for _, draw := range r.draws {
+		if draw.number == firstDraw {
+			first = append(first, r.runnableSetsOf(draw)...)
+		}
+	}
+	return r.p.runner.WitnessEntries(ctx, first)
 }
 
 // codeFilesOf lists the files the criterion's code tree consists of: the files of

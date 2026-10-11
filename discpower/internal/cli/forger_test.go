@@ -36,7 +36,9 @@ func (f forging) Answer(persona string, view hostproto.ExecutorView) (string, er
 	switch {
 	case len(view.Closed) > 0:
 		return strings.ReplaceAll(parcel.ScreenAnswer(view.User), "CONSISTENT", "VIOLATES"), nil
-	case strings.Contains(string(view.ResponseSchema), `"mutants"`):
+	case strings.Contains(string(view.ResponseSchema), `"mutants"`),
+		strings.Contains(string(view.ResponseSchema), `"witnesses"`),
+		strings.Contains(string(view.ResponseSchema), `"verdicts"`):
 		return f.honest.Answer(persona, view)
 	case strings.Contains(string(view.ResponseSchema), `"equivalent"`):
 		return `{"equivalent":"EQUIVALENT","confidence":1}`, nil
