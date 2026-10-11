@@ -33,9 +33,15 @@ permissions:
 
 jobs:
   product:
-    name: product modules
+    name: product modules (${{ matrix.group }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        # The discriminating-power module's end-to-end runs take most of the gate's
+        # time, so it gates in its own job, beside every other module.
+        group: [discpower, rest]
     steps:
       - name: Check out spec-proof
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -103,7 +109,15 @@ jobs:
         env:
           SHALLNOT_SRC: ${{ github.workspace }}/shallnot-proof-gate
           MODULES: ${{ inputs.modules }}
-        run: make ci MODULES="$MODULES"
+          GROUP: ${{ matrix.group }}
+        run: |
+          # shellcheck disable=SC2086 # MODULES is a space-separated list
+          modules="$(script/module-group "$GROUP" $MODULES | tr '\n' ' ')"
+          if [ -z "${modules// /}" ]; then
+            echo "no module of the ${GROUP} group to gate"
+            exit 0
+          fi
+          make ci MODULES="$modules"
 
   pilot:
     if: inputs.modules == ''

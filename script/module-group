@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Prints the modules of one CI gate group, one per line: `discpower`, the
+# discriminating-power module, whose end-to-end runs take most of the gate's time,
+# or `rest`, every other module. Arguments restrict the modules considered; with
+# none, every module of the workspace is.
+#
+#   script/module-group discpower|rest [MODULE...]
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly GROUP_ALONE="discpower"
+readonly GROUP_REST="rest"
+readonly ALONE_MODULE="./discpower"
+readonly EXIT_USAGE=2
+
+group="${1:-}"
+shift || true
+case "${group}" in
+  "${GROUP_ALONE}" | "${GROUP_REST}") ;;
+  *)
+    echo "usage: script/module-group ${GROUP_ALONE}|${GROUP_REST} [MODULE...]" >&2
+    exit "${EXIT_USAGE}"
+    ;;
+esac
+
+if (($#)); then
+  modules=("$@")
+else
+  read -r -a modules <<<"$(script/modules | tr '\n' ' ')"
+fi
+for module in "${modules[@]}"; do
+  normalized="./${module#./}"
+  if [[ "${group}" == "${GROUP_ALONE}" && "${normalized}" == "${ALONE_MODULE}" ]] ||
+    [[ "${group}" == "${GROUP_REST}" && "${normalized}" != "${ALONE_MODULE}" ]]; then
+    echo "${normalized}"
+  fi
+done
