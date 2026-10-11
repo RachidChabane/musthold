@@ -1,0 +1,1 @@
+{"confidence":0.9,"validity":"VALID","witness":{"args":{"percent":{"type":"decimal","value":"1.5"},"total":{"type":"integer","value":"1"}},"expected":{"kind":"returns","type":"decimal","value":"0.98"},"operation":"discounted"}}

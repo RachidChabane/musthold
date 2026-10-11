@@ -38,6 +38,8 @@ def test_a_string_that_is_not_a_ticket_is_refused() -> None:
     [
         (Module.DISCRIMINATING_POWER, "generate.targeted", RequestKind.MUTANTS),
         (Module.DISCRIMINATING_POWER, "generate.witnessStrategy", RequestKind.MUTANTS),
+        (Module.DISCRIMINATING_POWER, "generate.witness", RequestKind.WITNESSES),
+        (Module.DISCRIMINATING_POWER, "judge.scope", RequestKind.SCOPE),
         (Module.DISCRIMINATING_POWER, "judge.validity", RequestKind.VALIDITY),
         (Module.DISCRIMINATING_POWER, "judge.equivalent", RequestKind.EQUIVALENCE),
         (Module.DISCRIMINATING_POWER, "decide.closed", RequestKind.CLOSED_QUESTION),

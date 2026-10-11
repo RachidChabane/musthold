@@ -17,7 +17,7 @@
     "after": "bench/tests/fixtures/site_run/evidence/parcel-shipping-boundary/mutant-rates.py",
     "answer": "bench/tests/fixtures/parcel_answers/5d4b08cd931d435d5ed834ea18275a025eab5733a64593ace8e6b1b4ddbf3c41.json",
     "index": 1,
-    "witness": "bench/tests/fixtures/parcel_answers/745ceb69bd72ec7fa6e62fe3ead5630d915233c5fa7f5ecff00efb86d65ebe51.json",
+    "witness": null,
     "results": [
       {"test": "test_large_orders_ship_free", "outcome": "survived"},
       {"test": "test_small_orders_pay_the_fee", "outcome": "survived"}

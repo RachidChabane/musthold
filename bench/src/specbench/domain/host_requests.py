@@ -11,6 +11,8 @@ from specbench.domain.sessions import RequestKind
 
 TICKET_PATTERN: Final = re.compile(r"[0-9a-f]{64}\.\d+\.\d+")
 KIND_GENERATE_PREFIX: Final = "generate."
+KIND_GENERATE_WITNESS: Final = "generate.witness"
+KIND_JUDGE_SCOPE: Final = "judge.scope"
 KIND_JUDGE_VALIDITY: Final = "judge.validity"
 KIND_JUDGE_EQUIVALENT: Final = "judge.equivalent"
 KIND_JUDGE_ALIGNMENT: Final = "judge.alignment"
@@ -34,6 +36,10 @@ def request_kind_of(module: Module, kind: str) -> RequestKind:
     """The benchmark's request kind of a product request: completeness questions are one kind whatever they ask."""
     if module is Module.COMPLETENESS:
         return RequestKind.COMPLETENESS
+    if kind == KIND_GENERATE_WITNESS:
+        return RequestKind.WITNESSES
+    if kind == KIND_JUDGE_SCOPE:
+        return RequestKind.SCOPE
     if kind.startswith(KIND_GENERATE_PREFIX):
         return RequestKind.MUTANTS
     if kind == KIND_JUDGE_VALIDITY:

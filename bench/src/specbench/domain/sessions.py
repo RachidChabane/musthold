@@ -31,6 +31,8 @@ class SessionOutcome(Enum):
 
 class RequestKind(Enum):
     MUTANTS = "mutants"
+    WITNESSES = "witnesses"
+    SCOPE = "scope"
     VALIDITY = "validity"
     EQUIVALENCE = "equivalence"
     ALIGNMENT = "alignment"
