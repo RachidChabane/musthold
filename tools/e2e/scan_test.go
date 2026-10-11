@@ -16,6 +16,7 @@ const (
 	scanFixture     = "discpower/fixtures/scan/pytest"
 	vacuousTest     = "tests/test_discount.py::test_discount_accepts_any_percent"
 	scanRequirement = "SP-2124~1"
+	verifiesScan    = " [verifies SP-2124~1]"
 )
 
 // inProject runs a program in a directory under nice and returns how it ended.
@@ -70,12 +71,12 @@ func TestSpecProofScan(t *testing.T) {
 	}
 
 	scan := inProject(t, root, env, filepath.Join(bin, dispatcherBinary), "scan")
-	t.Run("spec-proof scan runs the module's scan with no configuration and prints the test that verifies nothing [verifies "+scanRequirement+"]", func(t *testing.T) {
+	t.Run("spec-proof scan runs the module's scan with no configuration and prints the test that verifies nothing"+verifiesScan, func(t *testing.T) {
 		if scan.code != 0 || !strings.Contains(scan.stdout, "#1 "+vacuousTest+" passes on all ") || !strings.Contains(scan.stdout, "1/5 verify nothing") {
 			t.Fatalf("exit %d:\n%s", scan.code, scan.output())
 		}
 	})
-	t.Run("spec-proof scan replay re-executes the findings with no model [verifies "+scanRequirement+"]", func(t *testing.T) {
+	t.Run("spec-proof scan replay re-executes the findings with no model"+verifiesScan, func(t *testing.T) {
 		commit := strings.TrimSpace(inProject(t, root, env, "git", "rev-parse", "--short=7", "HEAD").stdout)
 		replay := inProject(t, root, env, filepath.Join(bin, dispatcherBinary), "scan", "replay", filepath.Join(".spec-proof", "scan", commit))
 		if replay.code != 0 || !strings.Contains(replay.stdout, vacuousTest) || strings.Contains(replay.stdout, "NOT held") {
