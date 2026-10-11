@@ -59,6 +59,10 @@ watch-ci:  ## wait for the CI run of a commit and report its outcome (script/wat
 wait-job:  ## wait for a background job by its PID with a bounded timeout, never by its output file alone (script/wait-job; ARGS="--pid PID --timeout S --log FILE")
 	./script/wait-job $(ARGS)
 
+.PHONY: escalation-rate
+escalation-rate:  ## verdicts and escalation rate of the honest end-to-end fixtures per commit (script/escalation-rate; ARGS="BEFORE AFTER", SHALLNOT_SRC set)
+	./script/escalation-rate $(ARGS)
+
 .PHONY: regen-statement-fixtures
 regen-statement-fixtures:  ## regenerate every fixture derived from the proof statements, in dependency order (script/regen-statement-fixtures)
 	./script/regen-statement-fixtures

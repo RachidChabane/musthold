@@ -1,0 +1,676 @@
+#!/usr/bin/env python3
+"""Measure the verdicts an honest host earns on every honest end-to-end fixture.
+
+    script/escalation-rate [--out DIR] [--work DIR] [--fixtures A,B] [--timeout-min N] COMMIT...
+    script/escalation-rate --report-only [--out DIR] COMMIT...
+    script/escalation-rate --list
+
+`make escalation-rate ARGS="BEFORE AFTER"` runs the same command. The default --out
+is .tools/escalation-rate.
+
+For each COMMIT, in the order given, the script checks the commit out in a detached
+worktree under --work, adds one test file per end-to-end package that drives each
+fixture with the honest persona and keeps what the run left (the last `prove`
+output, every Statement, the facts record of each criterion and the mutant
+bodies), runs every fixture alone under `nice script/mem-guard run`, and removes
+the worktree. It writes, under --out:
+
+    <commit>/<fixture>/...      what each run left
+    <commit>/summary.json       per fixture and criterion: the verdict, and for an
+                                escalation the surviving mutants nothing settled
+    report.md                   fixture x criterion -> verdict per commit, and the
+                                escalation rate (escalated / honest criteria),
+                                overall and per fixture
+
+A fixture whose test was skipped, refused by the memory guard or left nothing is
+reported NOT MEASURED and never counted. SHALLNOT_SRC must name the Shallnot
+source the end-to-end packages build their pinned Shallnot from.
+"""
+
+from __future__ import annotations
+
+import argparse
+import base64
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import time
+from dataclasses import dataclass
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+MEM_GUARD = REPO / "script" / "mem-guard"
+MEASURE_DIR_VARIABLE = "SPEC_PROOF_MEASURE_DIR"
+SCRUBBED_VARIABLE_PREFIXES = ("SPEC_PROOF_CI_",)
+SCRUBBED_VARIABLES = ("CI", "GITHUB_ACTIONS")
+MEASURE_TEST_FILE = "zz_measure_test.go"
+DEFAULT_TIMEOUT_MINUTES = 60
+MEM_GUARD_REFUSED = 4
+MEM_GUARD_INTERRUPTED = 5
+GUARD_RETRY_WAIT_S = 60
+GUARD_RETRIES = 20
+LOG_TAIL_LINES = 30
+SHORT_SHA_LENGTH = 7
+DIGEST_SHOWN = 12
+
+VERDICT_PASS = "PASS"
+VERDICT_BLOCK = "BLOCK"
+VERDICT_ESCALATE = "ESCALATE"
+VERDICTS = (VERDICT_PASS, VERDICT_BLOCK, VERDICT_ESCALATE)
+NOT_MEASURED = "NOT MEASURED"
+VALIDITY_UNDETERMINED = "UNDETERMINED"
+OUTCOME_KILLED = "killed"
+WITNESS_FAILED = "failed"
+SKIP_MARKER = "--- SKIP: TestMeasure"
+MEMORY_SKIP_HINT = "memory guard"
+CRITERION_LINE = re.compile(r"^(\S+~\d+) (.*)$")
+FINDING_LINE = re.compile(r"^  finding (\S+)")
+
+# ---------------------------------------------------------------------------
+# Fixtures: one measurement test per honest end-to-end fixture of the repository.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Fixture:
+    name: str
+    module: str
+    package: str
+    test: str
+    note: str
+    headline: bool = True
+
+
+FIXTURES = (
+    Fixture("parcel-python", "discpower", "./internal/cli", "TestMeasureParcelPython",
+            "TestProveEndToEnd's honest persona on fixtures/prove/parcel"),
+    Fixture("parcel-python-clean", "discpower", "./internal/cli", "TestMeasureParcelPythonClean",
+            "TestProveCleanRun's edits that make PAR-3 adequate, PAR-2's tests untouched"),
+    Fixture("parcel-python-clean-rounding", "discpower", "./internal/cli", "TestMeasureParcelPythonCleanRounding",
+            "the clean run plus a PAR-2 test that fixes the rounding: discounted(1.234, 0) == 1.23",
+            headline=False),
+    Fixture("go", "discpower", "./internal/cli", "TestMeasureGo",
+            "TestProveAGoProjectEndToEnd's honest persona on fixtures/ecosystems/go"),
+    Fixture("go-no-operation", "discpower", "./internal/cli", "TestMeasureGoNoOperation",
+            "TestProveWithoutAnOperation: the Go fixture with no bound operation, built to escalate",
+            headline=False),
+    Fixture("jest", "discpower", "./internal/cli", "TestMeasureJest",
+            "TestProveATypeScriptProjectEndToEnd on fixtures/ecosystems/jest"),
+    Fixture("vitest", "discpower", "./internal/cli", "TestMeasureVitest",
+            "TestProveATypeScriptProjectEndToEnd on fixtures/ecosystems/vitest"),
+    Fixture("maven", "discpower", "./internal/cli", "TestMeasureMaven",
+            "TestProveAJavaProjectEndToEnd on fixtures/ecosystems/junit5-maven"),
+    Fixture("e2e-honest-host", "discpower", "./internal/e2e", "TestMeasureHonestHost",
+            "TestHonestHostEndToEnd: shipped binary, real Shallnot, simulated Claude Code host"),
+    Fixture("chain-honest", "tools/e2e", ".", "TestMeasureHonestChain",
+            "TestHonestChain: both modules, the verifier and the gate"),
+)
+
+# ---------------------------------------------------------------------------
+# Measurement tests added to the worktree. They call only helpers the
+# end-to-end packages already have, so the same text compiles before and after.
+# ---------------------------------------------------------------------------
+
+GO_COMMON = '''
+const measureDirVariable = "SPEC_PROOF_MEASURE_DIR"
+
+var measureCriterionLine = regexp.MustCompile(`^(\\S+~\\d+) `)
+
+// measureWrite keeps what an honest run left: the last prove output and its exit
+// code, every Statement of the project, the facts record of each criterion and the
+// mutant bodies of the cache.
+func measureWrite(t *testing.T, fixture string, code int, output, root, cache string, facts func(ref string) (string, bool)) {
+	t.Helper()
+	target := measureTarget(t, fixture)
+	measureCheck(t, os.RemoveAll(target))
+	measureFile(t, filepath.Join(target, "output.txt"), output)
+	measureFile(t, filepath.Join(target, "exit.txt"), strconv.Itoa(code))
+	measureCopy(t, filepath.Join(root, ".spec-proof", "cache", "discriminating-power"), filepath.Join(target, "statements"), func(string) bool { return true })
+	measureCopy(t, cache, filepath.Join(target, "mutants"), func(path string) bool { return filepath.Base(filepath.Dir(path)) == "mutants" })
+	for _, line := range strings.Split(output, "\\n") {
+		if match := measureCriterionLine.FindStringSubmatch(line); match != nil {
+			if record, ok := facts(match[1]); ok {
+				measureFile(t, filepath.Join(target, "facts", match[1]+".json"), record)
+			}
+		}
+	}
+}
+
+func measureTarget(t *testing.T, fixture string) string {
+	t.Helper()
+	base := os.Getenv(measureDirVariable)
+	if base == "" {
+		t.Fatalf("%s is not set", measureDirVariable)
+	}
+	return filepath.Join(base, fixture)
+}
+
+func measureCheck(t *testing.T, err error) {
+	t.Helper()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func measureFile(t *testing.T, path, content string) {
+	t.Helper()
+	measureCheck(t, os.MkdirAll(filepath.Dir(path), 0o755))
+	measureCheck(t, os.WriteFile(path, []byte(content), 0o644))
+}
+
+func measureCopy(t *testing.T, from, to string, keep func(path string) bool) {
+	t.Helper()
+	err := filepath.WalkDir(from, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil || entry.IsDir() || !keep(path) {
+			return nil
+		}
+		relative, err := filepath.Rel(from, path)
+		if err != nil {
+			return err
+		}
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		measureFile(t, filepath.Join(to, relative), string(content))
+		return nil
+	})
+	measureCheck(t, err)
+}
+'''
+
+GO_COMMON_IMPORTS = ('"io/fs"', '"os"', '"path/filepath"', '"regexp"', '"strconv"', '"strings"', '"testing"')
+
+GO_CLI = '''
+func measureCLI(t *testing.T, fixture string, h *harness, answers hostprototest.AnswerSource) {
+	t.Helper()
+	code, output := h.drive(hostprototest.PersonaHonest, answers)
+	measureWrite(t, fixture, code, output, h.root, h.cache, func(ref string) (string, bool) {
+		status, stdout, _ := h.run(nil, "facts", "show", ref)
+		return stdout, status == cli.ExitClean
+	})
+}
+
+// measureCleanEdits are the edits of the clean run that make the shipping tests
+// adequate; the discount tests stay as the fixture has them.
+func measureCleanEdits(h *harness) {
+	h.rewrite("tests/test_rates.py", "assert shipping_fee(100) == 0", "assert shipping_fee(100) == 0 and shipping_fee(50) == 0")
+	h.rewrite("tests/test_rates.py", "assert shipping_fee(10) == 4.5", "assert shipping_fee(10) == 4.5 and shipping_fee(49.99) == 4.5")
+	h.useReport(func(requirements []any) {
+		third := requirements[2].(map[string]any)
+		third["examples"] = []any{map[string]any{
+			"index": 0, "operation": "shipping_fee",
+			"args":   map[string]any{"total": map[string]any{"type": "integer", "value": "50"}},
+			"expect": map[string]any{"kind": "returns", "type": "integer", "value": "0"},
+		}}
+	})
+}
+
+func TestMeasureParcelPython(t *testing.T) {
+	measureCLI(t, "parcel-python", newHarness(t, ""), oracle{})
+}
+
+func TestMeasureParcelPythonClean(t *testing.T) {
+	h := newHarness(t, "")
+	measureCleanEdits(h)
+	measureCLI(t, "parcel-python-clean", h, oracle{})
+}
+
+func TestMeasureParcelPythonCleanRounding(t *testing.T) {
+	h := newHarness(t, "")
+	measureCleanEdits(h)
+	h.rewrite("tests/test_rates.py", "assert discounted(80, -5) == 80", "assert discounted(80, -5) == 80 and discounted(1.234, 0) == 1.23")
+	measureCLI(t, "parcel-python-clean-rounding", h, oracle{})
+}
+
+func TestMeasureGo(t *testing.T) {
+	measureCLI(t, "go", newGoHarness(t), oracle{})
+}
+
+func TestMeasureGoNoOperation(t *testing.T) {
+	h := newGoHarness(t)
+	measureCheck(t, os.Remove(filepath.Join(h.root, goConfig)))
+	measureCLI(t, "go-no-operation", h, oracle{})
+}
+
+func TestMeasureJest(t *testing.T) {
+	nodeinstall.RequireNode(t)
+	measureCLI(t, "jest", newNodeHarness(t, ecosystem.Jest), oracle{})
+}
+
+func TestMeasureVitest(t *testing.T) {
+	nodeinstall.RequireNode(t)
+	measureCLI(t, "vitest", newNodeHarness(t, ecosystem.Vitest), oracle{})
+}
+
+func TestMeasureMaven(t *testing.T) {
+	measureCLI(t, "maven", newJavaHarness(t), javaOracle{})
+}
+'''
+
+GO_CLI_IMPORTS = (
+    '"github.com/RachidChabane/spec-proof/discpower/internal/cli"',
+    '"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"',
+    '"github.com/RachidChabane/spec-proof/discpower/internal/testkit/nodeinstall"',
+    '"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"',
+)
+
+GO_HOST = '''
+func TestMeasureHonestHost(t *testing.T) {
+	skipWhenShort(t)
+	p := newProject(t)
+	p.equip()
+	p.start()
+	host := p.claudeHost()
+	last := p.settle(func() int { return host.Serve(parcel.Oracle{}) })
+	measureWrite(t, "e2e-honest-host", last.code, last.stdout, p.root, p.cache, func(ref string) (string, bool) {
+		r := p.dp("", "facts", "show", ref)
+		return r.stdout, r.code == 0
+	})
+}
+'''
+
+GO_HOST_IMPORTS = ('"github.com/RachidChabane/spec-proof/format/formattest/parcel"',)
+
+GO_CHAIN = '''
+func TestMeasureHonestChain(t *testing.T) {
+	var requirements []string
+	for _, tag := range []string{verifiesHonest, verifiesCareless, verifiesStaleness, verifiesForger} {
+		requirements = append(requirements, strings.TrimSuffix(strings.TrimPrefix(tag, " [verifies "), "]"))
+	}
+	p := newParcelProject(t, requirements)
+	p.equip()
+	p.edit(rangeCodeFile)
+	last := p.proveDiscriminatingPower(claudeHostOf(p), parcel.Oracle{})
+	measureWrite(t, "chain-honest", last.code, last.stdout, p.root, p.cache, func(ref string) (string, bool) {
+		r := p.dp("", "facts", "show", ref)
+		return r.stdout, r.code == 0
+	})
+	p.verifyLocal()
+	p.proveAlignment(parcel.HonestAlignment())
+	p.verifyLocal()
+	table, err := json.Marshal(p.check().table())
+	measureCheck(t, err)
+	measureFile(t, filepath.Join(measureTarget(t, "chain-honest"), "gate.json"), string(table))
+}
+'''
+
+GO_CHAIN_IMPORTS = ('"encoding/json"', '"github.com/RachidChabane/spec-proof/format/formattest/parcel"')
+
+GO_FILES = {
+    ("discpower", "./internal/cli"): ("cli_test", GO_CLI, GO_CLI_IMPORTS),
+    ("discpower", "./internal/e2e"): ("e2e_test", GO_HOST, GO_HOST_IMPORTS),
+    ("tools/e2e", "."): ("e2e_test", GO_CHAIN, GO_CHAIN_IMPORTS),
+}
+
+
+def go_test_file(package: str, body: str, imports: tuple[str, ...]) -> str:
+    lines = "\n".join(f"\t{name}" for name in sorted(set(GO_COMMON_IMPORTS + imports)))
+    return f"package {package}\n\nimport (\n{lines}\n)\n{GO_COMMON}{body}"
+
+
+def add_measure_tests(tree: Path) -> None:
+    for (module, package_dir), (package, body, imports) in GO_FILES.items():
+        target = tree / module / package_dir / MEASURE_TEST_FILE
+        target.write_text(go_test_file(package, body, imports))
+
+
+# ---------------------------------------------------------------------------
+# Running the fixtures.
+# ---------------------------------------------------------------------------
+
+
+def log(message: str) -> None:
+    print(f"escalation-rate: {message}", file=sys.stderr, flush=True)
+
+
+def git(*args: str, cwd: Path = REPO) -> str:
+    return subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True).stdout.strip()
+
+
+def resolve(commit: str) -> str:
+    return git("rev-parse", "--short=%d" % SHORT_SHA_LENGTH, f"{commit}^{{commit}}")
+
+
+def test_environment(measure_dir: Path) -> dict[str, str]:
+    env = {key: value for key, value in os.environ.items()
+           if key not in SCRUBBED_VARIABLES and not key.startswith(SCRUBBED_VARIABLE_PREFIXES)}
+    env[MEASURE_DIR_VARIABLE] = str(measure_dir)
+    return env
+
+
+def go_test_command(fixture: Fixture, timeout_minutes: int) -> list[str]:
+    return ["nice", str(MEM_GUARD), "run", "--", "go", "test", "-count=1", "-p", "1", "-v",
+            "-timeout", f"{timeout_minutes}m", "-run", f"^{fixture.test}$", fixture.package]
+
+
+def run_guarded(fixture: Fixture, tree: Path, measure_dir: Path, timeout_minutes: int, log_path: Path) -> tuple[int, str]:
+    for attempt in range(1, GUARD_RETRIES + 1):
+        completed = subprocess.run(go_test_command(fixture, timeout_minutes), cwd=tree / fixture.module,
+                                   env=test_environment(measure_dir), capture_output=True, text=True)
+        output = completed.stdout + completed.stderr
+        log_path.write_text(output)
+        refused = completed.returncode in (MEM_GUARD_REFUSED, MEM_GUARD_INTERRUPTED)
+        skipped_for_memory = SKIP_MARKER in output and MEMORY_SKIP_HINT in output
+        if not (refused or skipped_for_memory):
+            return completed.returncode, output
+        log(f"{fixture.name}: the memory guard held the run back (attempt {attempt}/{GUARD_RETRIES}); waiting {GUARD_RETRY_WAIT_S}s")
+        time.sleep(GUARD_RETRY_WAIT_S)
+    return completed.returncode, output
+
+
+def tail(text: str) -> str:
+    return "\n".join(text.splitlines()[-LOG_TAIL_LINES:])
+
+
+def run_fixture(fixture: Fixture, tree: Path, commit_dir: Path, timeout_minutes: int) -> dict:
+    log(f"{fixture.name}: running {fixture.test}")
+    started = time.monotonic()
+    code, output = run_guarded(fixture, tree, commit_dir, timeout_minutes, commit_dir / f"{fixture.name}.log")
+    elapsed = round(time.monotonic() - started)
+    dumped = (commit_dir / fixture.name / "output.txt").exists()
+    status = {"go_test_exit": code, "seconds": elapsed, "measured": dumped and SKIP_MARKER not in output}
+    if not status["measured"]:
+        status["reason"] = tail(output)
+    log(f"{fixture.name}: exit {code} in {elapsed}s, measured={status['measured']}")
+    return status
+
+
+def measure_commit(commit: str, fixtures: list[Fixture], out: Path, work: Path, timeout_minutes: int) -> None:
+    sha = resolve(commit)
+    commit_dir = out / sha
+    commit_dir.mkdir(parents=True, exist_ok=True)
+    tree = work / f"tree-{sha}"
+    git("worktree", "add", "--detach", str(tree), sha)
+    try:
+        add_measure_tests(tree)
+        runs = {fixture.name: run_fixture(fixture, tree, commit_dir, timeout_minutes) for fixture in fixtures}
+    finally:
+        git("worktree", "remove", "--force", str(tree))
+    previous = load_json(commit_dir / "runs.json") or {}
+    previous.update(runs)
+    (commit_dir / "runs.json").write_text(json.dumps(previous, indent=2, sort_keys=True))
+
+
+# ---------------------------------------------------------------------------
+# Reading what the runs left.
+# ---------------------------------------------------------------------------
+
+
+def load_json(path: Path):
+    try:
+        return json.loads(path.read_text())
+    except (OSError, ValueError):
+        return None
+
+
+def parse_output(output: str) -> dict[str, dict]:
+    criteria: dict[str, dict] = {}
+    current = None
+    for line in output.splitlines():
+        match = CRITERION_LINE.match(line)
+        if match:
+            words = match.group(2).split()
+            verdict = next((word for word in reversed(words) if word in VERDICTS), match.group(2))
+            current = criteria[match.group(1)] = {"verdict": verdict, "status": match.group(2), "findings": []}
+            continue
+        finding = FINDING_LINE.match(line)
+        if finding and current is not None:
+            current["findings"].append(finding.group(1))
+        elif not line.startswith(" "):
+            current = None
+    return criteria
+
+
+def decode_statement(path: Path) -> dict | None:
+    document = load_json(path)
+    if isinstance(document, dict) and "payload" in document:
+        document = json.loads(base64.b64decode(document["payload"]))
+    return document
+
+
+def statement_of(fixture_dir: Path, ref: str) -> dict | None:
+    found = sorted((fixture_dir / "statements" / ref).glob("*.json"))
+    return decode_statement(found[-1]) if found else None
+
+
+def survived(mutant: dict) -> bool:
+    return not any(result["outcome"]["value"] == OUTCOME_KILLED for result in mutant.get("results") or [])
+
+
+def facts_entries(fixture_dir: Path, ref: str) -> dict[str, dict]:
+    record = load_json(fixture_dir / "facts" / f"{ref}.json") or {}
+    return {entry["facts"]["id"]: entry for entry in record.get("entries") or []}
+
+
+def witness_statuses(fixture_dir: Path, ref: str) -> dict:
+    record = load_json(fixture_dir / "facts" / f"{ref}.json") or {}
+    witnesses = record.get("witnesses") or []
+    return {
+        "written": len(witnesses),
+        "reference_runs": [sorted(set(w.get("reference") or [])) for w in witnesses],
+        "scope": [[vote.get("answer") or vote.get("fixed") for vote in (w.get("scope") or [])] for w in witnesses],
+    }
+
+
+def mutant_edits(fixture_dir: Path, digest: str) -> list[str]:
+    """The edits of a mutant body, one `file::qualname: source` line each."""
+    for path in (fixture_dir / "mutants").rglob(f"{digest}.json"):
+        body = load_json(path) or {}
+        return [f"{edit.get('file')}::{edit.get('qualname')}: {' '.join(edit.get('new_source', '').split())}"
+                for edit in body.get("edits") or []]
+    return []
+
+
+def describe_mutant(mutant: dict, entry: dict | None, fixture_dir: Path) -> dict:
+    validity = mutant.get("validity") or {}
+    extensions = mutant.get("extensions") or {}
+    decision = extensions.get("decision") or {}
+    described = {
+        "digest": mutant["digest"][:DIGEST_SHOWN],
+        "validity": validity.get("value"),
+        "basis": validity.get("class"),
+        "class": extensions.get("class"),
+        "route": extensions.get("route"),
+        "escalation_reason": decision.get("escalationReason"),
+        "edits": mutant_edits(fixture_dir, mutant["digest"]),
+    }
+    if entry:
+        facts = entry["facts"]
+        differential = facts.get("differential") or {}
+        described.update({
+            "origin": facts.get("origin"),
+            "sites": facts.get("sites"),
+            "differential": differential.get("status"),
+            "differential_inputs": differential.get("witnesses"),
+            "identity": facts.get("identity") or "unknown",
+            "failed_witnesses": sorted(w for w, outcome in (facts.get("witnessOutcomes") or {}).items() if outcome == WITNESS_FAILED),
+            "failed_examples": facts.get("failedExamples"),
+            "unjudged": entry.get("unjudged"),
+            "votes": [(vote.get("answer"), vote.get("confidence"), vote.get("witness")) for vote in entry.get("votes") or []],
+        })
+    return described
+
+
+def criterion_details(fixture_dir: Path, ref: str, criterion: dict) -> dict:
+    statement = statement_of(fixture_dir, ref)
+    if statement is None:
+        return criterion
+    predicate = statement["predicate"]
+    entries = facts_entries(fixture_dir, ref)
+    survivors = [m for m in predicate.get("mutants") or [] if survived(m) and not m.get("sentinel")]
+    counts: dict[str, int] = {}
+    for mutant in survivors:
+        key = f"{(mutant.get('validity') or {}).get('value')}/{(mutant.get('validity') or {}).get('class')}"
+        counts[key] = counts.get(key, 0) + 1
+    escalated = [describe_mutant(m, entries.get(m["digest"]), fixture_dir)
+                 for m in survivors if (m.get("validity") or {}).get("value") == VALIDITY_UNDETERMINED]
+    criterion.update({
+        "pool": len(predicate.get("mutants") or []),
+        "survivors_by_validity": counts,
+        "host_exclusions": (predicate.get("extensions") or {}).get("hostExclusions"),
+        "witnesses": (predicate.get("extensions") or {}).get("witnesses"),
+        "escalated_mutants": escalated if criterion["verdict"] == VERDICT_ESCALATE else [],
+        "unsettled_survivors": len(escalated),
+    })
+    if entries:
+        criterion["facts_witnesses"] = witness_statuses(fixture_dir, ref)
+    return criterion
+
+
+def summarize_fixture(commit_dir: Path, fixture: Fixture, run: dict | None) -> dict:
+    fixture_dir = commit_dir / fixture.name
+    if not run or not run.get("measured"):
+        return {"measured": False, "reason": (run or {}).get("reason", "not run")}
+    criteria = parse_output((fixture_dir / "output.txt").read_text())
+    for ref, criterion in criteria.items():
+        criterion_details(fixture_dir, ref, criterion)
+    summary = {"measured": True, "go_test_exit": run.get("go_test_exit"), "criteria": criteria}
+    gate = load_json(fixture_dir / "gate.json")
+    if gate is not None:
+        summary["gate"] = gate
+    return summary
+
+
+def summarize_commit(out: Path, sha: str) -> dict:
+    commit_dir = out / sha
+    runs = load_json(commit_dir / "runs.json") or {}
+    summary = {fixture.name: summarize_fixture(commit_dir, fixture, runs.get(fixture.name)) for fixture in FIXTURES}
+    (commit_dir / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True))
+    return summary
+
+
+# ---------------------------------------------------------------------------
+# The report.
+# ---------------------------------------------------------------------------
+
+
+def rate(summary: dict, names: list[str]) -> tuple[int, int]:
+    escalated = total = 0
+    for name in names:
+        fixture = summary.get(name) or {}
+        if not fixture.get("measured"):
+            continue
+        for criterion in fixture["criteria"].values():
+            total += 1
+            escalated += criterion["verdict"] == VERDICT_ESCALATE
+    return escalated, total
+
+
+def percent(pair: tuple[int, int]) -> str:
+    escalated, total = pair
+    return f"{escalated}/{total} ({100 * escalated / total:.0f} %)" if total else "n/a"
+
+
+def verdict_cell(summary: dict, fixture: str, ref: str) -> str:
+    entry = summary.get(fixture) or {}
+    if not entry.get("measured"):
+        return NOT_MEASURED
+    criterion = entry["criteria"].get(ref)
+    return criterion["verdict"] if criterion else "-"
+
+
+def verdict_table(shas: list[str], summaries: dict[str, dict]) -> list[str]:
+    lines = ["| fixture | criterion | " + " | ".join(shas) + " |", "|---|---|" + "---|" * len(shas)]
+    for fixture in FIXTURES:
+        refs = sorted({ref for sha in shas for ref in ((summaries[sha].get(fixture.name) or {}).get("criteria") or {})})
+        for ref in refs or ["-"]:
+            cells = [verdict_cell(summaries[sha], fixture.name, ref) for sha in shas]
+            flip = " **flip**" if len(set(cells)) > 1 and NOT_MEASURED not in cells else ""
+            lines.append(f"| {fixture.name} | {ref} | " + " | ".join(cells) + f" |{flip}")
+    return lines
+
+
+def rate_table(shas: list[str], summaries: dict[str, dict]) -> list[str]:
+    headline = [f.name for f in FIXTURES if f.headline]
+    every = [f.name for f in FIXTURES]
+    lines = ["| scope | " + " | ".join(shas) + " |", "|---|" + "---|" * len(shas)]
+    lines.append("| overall (headline fixtures) | " + " | ".join(percent(rate(summaries[s], headline)) for s in shas) + " |")
+    lines.append("| overall (every fixture) | " + " | ".join(percent(rate(summaries[s], every)) for s in shas) + " |")
+    for fixture in FIXTURES:
+        lines.append(f"| {fixture.name} | " + " | ".join(percent(rate(summaries[s], [fixture.name])) for s in shas) + " |")
+    return lines
+
+
+def escalation_details(shas: list[str], summaries: dict[str, dict]) -> list[str]:
+    lines = []
+    for sha in shas:
+        for fixture in FIXTURES:
+            entry = summaries[sha].get(fixture.name) or {}
+            for ref, criterion in (entry.get("criteria") or {}).items():
+                if criterion["verdict"] != VERDICT_ESCALATE:
+                    continue
+                lines.append(f"### {sha} {fixture.name} {ref}: findings {criterion['findings']}, "
+                             f"survivors {criterion.get('survivors_by_validity')}, witnesses {criterion.get('witnesses')}")
+                for mutant in criterion.get("escalated_mutants") or []:
+                    lines.append("- " + json.dumps(mutant, sort_keys=True))
+    return lines
+
+
+def write_report(out: Path, shas: list[str], summaries: dict[str, dict]) -> str:
+    notes = [f"- **{f.name}**: {f.note}" + ("" if f.headline else " (outside the headline rate)") for f in FIXTURES]
+    sections = [
+        "# Escalation rate of the honest end-to-end fixtures", "",
+        "## Verdicts", "", *verdict_table(shas, summaries), "",
+        "## Escalation rate (escalated criteria / honest criteria)", "", *rate_table(shas, summaries), "",
+        "## Fixtures", "", *notes, "",
+        "## Escalated criteria", "", *escalation_details(shas, summaries), "",
+    ]
+    report = "\n".join(sections)
+    (out / "report.md").write_text(report)
+    return report
+
+
+# ---------------------------------------------------------------------------
+# Command line.
+# ---------------------------------------------------------------------------
+
+
+def parse_arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("commits", nargs="*", help="commits to measure, in report order")
+    parser.add_argument("--out", type=Path, default=REPO / ".tools" / "escalation-rate")
+    parser.add_argument("--work", type=Path, default=None, help="where the worktrees go (default: a temporary directory)")
+    parser.add_argument("--fixtures", default="", help="comma-separated fixture names (default: every fixture)")
+    parser.add_argument("--timeout-min", type=int, default=DEFAULT_TIMEOUT_MINUTES, help="go test -timeout per fixture")
+    parser.add_argument("--report-only", action="store_true", help="rebuild the report from earlier runs")
+    parser.add_argument("--list", action="store_true", help="list the fixtures")
+    return parser.parse_args()
+
+
+def select_fixtures(names: str) -> list[Fixture]:
+    if not names:
+        return list(FIXTURES)
+    by_name = {fixture.name: fixture for fixture in FIXTURES}
+    unknown = [name for name in names.split(",") if name not in by_name]
+    if unknown:
+        sys.exit(f"escalation-rate: unknown fixtures {unknown}; known: {sorted(by_name)}")
+    return [by_name[name] for name in names.split(",")]
+
+
+def main() -> None:
+    arguments = parse_arguments()
+    if arguments.list:
+        for fixture in FIXTURES:
+            print(f"{fixture.name:30} {fixture.module}/{fixture.package} {fixture.test}")
+        return
+    if not arguments.commits:
+        sys.exit("escalation-rate: name at least one commit")
+    if not arguments.report_only and not os.environ.get("SHALLNOT_SRC"):
+        sys.exit("escalation-rate: SHALLNOT_SRC must name the Shallnot source")
+    out = arguments.out.resolve()
+    shas = [resolve(commit) for commit in arguments.commits]
+    if not arguments.report_only:
+        work = (arguments.work or Path(tempfile.mkdtemp(prefix="escalation-rate-"))).resolve()
+        work.mkdir(parents=True, exist_ok=True)
+        for commit in arguments.commits:
+            measure_commit(commit, select_fixtures(arguments.fixtures), out, work, arguments.timeout_min)
+    summaries = {sha: summarize_commit(out, sha) for sha in shas}
+    print(write_report(out, shas, summaries))
+
+
+if __name__ == "__main__":
+    main()
