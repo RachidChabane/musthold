@@ -12,9 +12,10 @@
 # chain of binaries. A change to the benchmark core, to the product it drives or
 # records (every Go module), to the bench scripts or to the CI workflow also runs
 # the benchmark core's checks (bench/script/check), which include the check of the
-# recorded parcel answers. The gate runs under nice with GOMAXPROCS=2, and waits
-# for script/mem-guard to allow the benchmark core's tests rather than failing on
-# a busy machine.
+# recorded parcel answers; it first builds the product from the work tree
+# (script/product-build), so those checks never drive a stale build. The gate
+# runs under nice with GOMAXPROCS=2, and waits for script/mem-guard to allow the
+# benchmark core's tests rather than failing on a busy machine.
 #
 # Exit 0: every selected gate passed, or nothing to gate. 1: a gate failed.
 # 2: usage error.
@@ -132,5 +133,6 @@ fi
 if ((bench_needed)); then
   echo "gate-changed: checking the benchmark core"
   wait_for_memory
+  GOMAXPROCS="${GATE_PROCS}" nice -n "${NICE_LEVEL}" script/product-build
   GOMAXPROCS="${GATE_PROCS}" nice -n "${NICE_LEVEL}" bench/script/check
 fi
