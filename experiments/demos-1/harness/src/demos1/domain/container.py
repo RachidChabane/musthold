@@ -9,7 +9,7 @@ from typing import Final
 from demos1.domain.jsonvalue import JsonObject
 
 CPUS: Final = "2"
-MEMORY: Final = "3g"
+MEMORY: Final = "2560m"
 BINARIES_TARGET: Final = "/opt/spec-proof/bin"
 WRAPPER: Final = "/usr/local/bin/demos1-run"
 ENV_PROGRAM: Final = "/usr/bin/env"

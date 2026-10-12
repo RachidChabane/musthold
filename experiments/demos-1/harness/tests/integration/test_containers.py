@@ -338,7 +338,7 @@ def test_oom_killed_and_the_wall_time_limit_in_a_real_container(work: WorkLayout
         assert not visible_in_machine(REPO_ROOT)
         assert not visible_in_machine(Path.home() / ".ssh")
         runner.settle(plan("oom", ["/bin/sh", "-c", "head -c 400M /dev/zero | tail"], OOM_MEMORY, None), oom)
-        runner.settle(plan("slow", ["sleep", "5"], "3g", 1), slow)
+        runner.settle(plan("slow", ["sleep", "5"], "2560m", 1), slow)
         left = engine.names_with_prefix("demos-1-limits-")
     (oom_run,) = oom.runs
     assert oom_run.oom_killed is True

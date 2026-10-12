@@ -12,7 +12,7 @@ from demos1.domain.environment import Fact
 
 PROFILE: Final = "spec-proof-demos"
 MACHINE_CPUS: Final = 2
-MACHINE_MEMORY_GIB: Final = 4
+MACHINE_MEMORY_GIB: Final = 3
 MACHINE_DISK_GIB: Final = 40
 GIB: Final = 1 << 30
 MIN_FREE_BYTES: Final = 50 * GIB

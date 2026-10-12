@@ -288,8 +288,8 @@ class TestContainer:
             "--cap-drop ALL",
             "--security-opt no-new-privileges",
             "--cpus 2",
-            "--memory 3g",
-            "--memory-swap 3g",
+            "--memory 2560m",
+            "--memory-swap 2560m",
             "--network none",
             "type=bind,source=/work/attempts/B-go-03,target=/work/attempts/B-go-03",
             "type=bind,source=/product/bin,target=/opt/spec-proof/bin,readonly",
@@ -339,7 +339,7 @@ class TestNamesAndMachine:
         assert "--activate=false" in argv
         assert "--ssh-config=false" in argv
         assert argv[argv.index("--cpu") + 1] == "2"
-        assert argv[argv.index("--memory") + 1] == "4"
+        assert argv[argv.index("--memory") + 1] == "3"
         assert argv[argv.index("--disk") + 1] == "40"
         assert [argv[index + 1] for index, word in enumerate(argv) if word == "--mount"] == ["/home/w:w", "/home/p/bin"]
 
