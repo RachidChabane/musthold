@@ -55,6 +55,16 @@ def undeclared_paths(changed: Sequence[str], declared: Sequence[str]) -> list[st
     return sorted(path for path in changed if not is_declared(path, declared))
 
 
+FROZEN_INPUT_PATHS: Final = ("prereg/", "fixture/")
+"""What the amended freeze fixes for good: the pre-registration and the fixture the run
+was measured on. The run's results, its records and the harness may change after it."""
+
+
+def changed_frozen_inputs(changed: Sequence[str]) -> list[str]:
+    """The changed paths under the pre-registration or the fixture the amended tag froze."""
+    return sorted(path for path in changed if path.startswith(FROZEN_INPUT_PATHS))
+
+
 @dataclass(frozen=True)
 class AmendmentFacts:
     superseded_tag: str

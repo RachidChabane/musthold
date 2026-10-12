@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from pilot.domain.amendment import AMENDMENT_FILENAME, IMPORT_DIGESTS_PLACEHOLDER, undeclared_paths
-from pilot.domain.preregistration import SUPERSEDED_PREREG_TAG
+from pilot.domain.amendment import AMENDMENT_FILENAME, IMPORT_DIGESTS_PLACEHOLDER, changed_frozen_inputs, undeclared_paths
+from pilot.domain.preregistration import PREREG_TAG, SUPERSEDED_PREREG_TAG
 
 EXPERIMENT = Path(__file__).resolve().parents[3]
 FIXTURE_PATHS = ("fixture/", "prereg/oracle/", "prereg/labels.yaml", "prereg/label_matrix.csv", "prereg/violations/", "prereg/planted/", "prereg/refactor/")
@@ -40,18 +40,17 @@ def test_the_import_digests_hold_a_placeholder_until_the_seal_fills_them(amendme
     assert amendment["import_digests"] in (IMPORT_DIGESTS_PLACEHOLDER,) or isinstance(amendment["import_digests"], dict)
 
 
-def test_committed_changes_since_the_superseded_tag_are_declared(amendment):
+def test_every_change_between_the_superseded_and_the_amended_tag_is_declared(amendment):
     require_tag()
-    changed = git("diff", "--name-only", "--relative", SUPERSEDED_PREREG_TAG, "HEAD", "--", ".").stdout.split()
+    changed = git("diff", "--name-only", "--relative", SUPERSEDED_PREREG_TAG, PREREG_TAG, "--", ".").stdout.split()
     assert undeclared_paths(changed, amendment["declared_paths"]) == []
 
 
-def test_working_tree_changes_and_new_files_are_declared_too(amendment):
+def test_after_the_amended_tag_the_preregistration_and_the_fixture_never_change(amendment):
     require_tag()
-    changed = git("diff", "--name-only", "--relative", SUPERSEDED_PREREG_TAG, "--", ".").stdout.split()
+    changed = git("diff", "--name-only", "--relative", PREREG_TAG, "--", ".").stdout.split()
     untracked = git("ls-files", "--others", "--exclude-standard", "--", ".").stdout.split()
-    new = [p for p in untracked if not p.startswith("runs/")]
-    assert undeclared_paths(changed + new, amendment["declared_paths"]) == []
+    assert changed_frozen_inputs(changed + untracked) == []
 
 
 def test_the_fixture_oracle_labels_and_violations_are_not_declared(amendment):
