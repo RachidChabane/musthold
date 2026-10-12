@@ -49,7 +49,7 @@ type coverageRecorder struct {
 // entries of the requested tests. A non-zero pytest exit is not an error as
 // long as the plugin wrote its report.
 func (c coverageRecorder) Record(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, tests []ecosystem.BoundTest) (coverage.Map, error) {
-	report, err := runCoverage(ctx, c.deps, workspace, toolchain, c.deps.Timeout)
+	report, err := runCoverage(ctx, c.deps, workspace, toolchain, c.deps.Timeout, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -68,23 +68,32 @@ type nodeCoverage struct {
 	Owned [][]json.RawMessage `json:"owned"`
 }
 
-// runCoverage runs the whole suite once under the coverage plugin, which the
-// workspace alone receives, within the timeout, and reads its report.
-func runCoverage(ctx context.Context, deps Dependencies, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, timeout time.Duration) (coverageReport, error) {
-	pluginDir, err := installPlugin(workspace, coveragePluginFile, coveragePlugin)
+// runCoverage runs one session under the coverage plugin, which the workspace
+// alone receives, within the timeout, and reads its report: the whole suite,
+// or, with selected tests, the test files of those tests, in order, the scan
+// plugin keeping them alone and deselecting the others.
+func runCoverage(ctx context.Context, deps Dependencies, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, timeout time.Duration, selected []ecosystem.TestID) (coverageReport, error) {
+	plugins := []pluginModule{{file: coveragePluginFile, content: coveragePlugin}}
+	if len(selected) > 0 {
+		plugins = append(plugins, pluginModule{file: scanPluginFile, content: scanPlugin})
+	}
+	pluginDir, err := installPlugin(workspace, plugins...)
 	if err != nil {
 		return nil, err
 	}
 	report := suiterun.ResultsFile(workspace, coverageReportSuffix)
 	argv := append(append([]string{}, toolchain.Command...), moduleFlag, pytestModule,
 		pluginFlag, coveragePluginModule, noCacheProvider, noCacheProviderID, rootDirFlag, continueFlag, noMaxFailFlag)
-	pythonPath := pluginPath(pluginDir, workspace)
-	executed, err := deps.Process.Run(ctx, ports.Command{
-		Argv:    argv,
-		Dir:     workspace.Dir,
-		Env:     []string{noBytecodeVariable, pythonPathVariable + pythonPath, coverageOutputVariable + environmentAssignment + report},
-		Timeout: timeout,
-	})
+	env := []string{noBytecodeVariable, pythonPathVariable + pluginPath(pluginDir, workspace), coverageOutputVariable + environmentAssignment + report}
+	if len(selected) > 0 {
+		selection, err := writeSelection(workspace, selected)
+		if err != nil {
+			return nil, err
+		}
+		argv = append(append(argv, pluginFlag, scanPluginModule), filesOf(selected)...)
+		env = append(env, scanSelectionVariable+environmentAssignment+selection)
+	}
+	executed, err := deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: workspace.Dir, Env: env, Timeout: timeout})
 	if err != nil {
 		return nil, fmt.Errorf("run the coverage suite: %w", err)
 	}

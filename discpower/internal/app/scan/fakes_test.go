@@ -63,6 +63,21 @@ type fakeTest struct {
 	// needs are lines without which the test's process stops before any test
 	// starts.
 	needs []int
+	// setter is the test whose state this test reads: a run of the whole
+	// suite, or of a selection that holds the setter, runs the setter first.
+	setter ecosystem.TestID
+	// gated are lines the test runs only once its setter ran.
+	gated []int
+	// checksUnset are lines the test checks only when its setter did not run.
+	checksUnset []int
+	// failsUnset makes the test fail whenever its setter did not run.
+	failsUnset bool
+}
+
+// set reports whether the test's setter runs before it in a run of the
+// selection, empty for the whole suite.
+func (t fakeTest) set(selection []ecosystem.TestID) bool {
+	return t.setter != "" && (len(selection) == 0 || slices.Contains(selection, t.setter))
 }
 
 func fakeTests() map[ecosystem.TestID]fakeTest {
@@ -195,6 +210,13 @@ type fakeSuite struct {
 	// jitter makes each run of a selection last a time the mutated source
 	// gives, so that the mutants finish in another order than they start.
 	jitter bool
+	// alone lists the tests whose coverage was recorded alone, and
+	// aloneFails makes that recording fail.
+	alone      []ecosystem.TestID
+	aloneFails bool
+	// onSelection, when set, sees each run of a selection, with the
+	// directory of its workspace.
+	onSelection func(dir string, tests []ecosystem.TestID)
 }
 
 // jitterSpan bounds the time a jittered run lasts.
@@ -224,6 +246,9 @@ func (s *fakeSuite) Run(ctx context.Context, workspace ecosystem.Workspace, _ ec
 		s.mutex.Lock()
 		s.selections = append(s.selections, slices.Clone(tests))
 		s.mutex.Unlock()
+		if s.onSelection != nil {
+			s.onSelection(workspace.Dir, slices.Clone(tests))
+		}
 		if s.jitter {
 			time.Sleep(jitterOf(source))
 		}
@@ -232,12 +257,15 @@ func (s *fakeSuite) Run(ctx context.Context, workspace ecosystem.Workspace, _ ec
 		test, known := s.tests[id]
 		run := vacuity.RunPassed
 		missing := func(line int) bool { return !strings.Contains(source, sourceLine(line)) }
+		unset := test.setter != "" && !test.set(request.Tests)
 		switch {
 		case !known:
 			run = vacuity.RunErrored
 		case slices.ContainsFunc(test.needs, missing):
 			run = vacuity.RunNotStarted
-		case test.red || slices.ContainsFunc(test.checks, func(line int) bool { return !strings.Contains(source, sourceLine(line)) }):
+		case test.red || slices.ContainsFunc(test.checks, missing):
+			run = vacuity.RunFailed
+		case unset && (test.failsUnset || slices.ContainsFunc(test.checksUnset, missing)):
 			run = vacuity.RunFailed
 		}
 		result.Runs[id] = slices.Repeat([]vacuity.Run{run}, request.Runs)
@@ -245,18 +273,37 @@ func (s *fakeSuite) Run(ctx context.Context, workspace ecosystem.Workspace, _ ec
 	return result, nil
 }
 
+// LineCoverage records what each requested test runs: alone for a fake that
+// records each test alone or for a request of each test alone, and otherwise
+// in one run of the whole suite, where a test's setter runs before it.
 func (s *fakeSuite) LineCoverage(_ context.Context, _ ecosystem.Workspace, _ ecosystem.Toolchain, request ports.ScanCoverageRequest) (map[ecosystem.TestID]vacuity.Coverage, error) {
-	s.coverageTimeout = request.Timeout
-	for _, test := range request.Tests {
-		s.covered = append(s.covered, test.ID)
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	if request.Alone {
+		for _, test := range request.Tests {
+			s.alone = append(s.alone, test.ID)
+		}
+		if s.aloneFails {
+			return nil, ports.ErrCoverageTimedOut
+		}
+	} else {
+		s.coverageTimeout = request.Timeout
+		for _, test := range request.Tests {
+			s.covered = append(s.covered, test.ID)
+		}
+		if s.coverageOverruns {
+			return nil, ports.ErrCoverageTimedOut
+		}
 	}
-	if s.coverageOverruns {
-		return nil, ports.ErrCoverageTimedOut
-	}
+	wholeSuite := s.oneRun && !request.Alone
 	covered := map[ecosystem.TestID]vacuity.Coverage{}
 	for _, test := range request.Tests {
 		var coverage vacuity.Coverage
-		for _, line := range s.tests[test.ID].lines {
+		ran := s.tests[test.ID].lines
+		if wholeSuite && s.tests[test.ID].set(nil) {
+			ran = slices.Concat(ran, s.tests[test.ID].gated)
+		}
+		for _, line := range ran {
 			coverage.Owned = append(coverage.Owned, vacuity.Line{File: totals, Line: line})
 		}
 		coverage.Lines = slices.Clone(coverage.Owned)
@@ -369,6 +416,20 @@ func (c *clock) read() time.Time {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.now = c.now.Add(c.step)
+	return c.now
+}
+
+// jump moves the clock forward without a reading.
+func (c *clock) jump(by time.Duration) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.now = c.now.Add(by)
+}
+
+// peek is the time of the clock without a reading.
+func (c *clock) peek() time.Time {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	return c.now
 }
 

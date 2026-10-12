@@ -26,17 +26,27 @@ type emission struct {
 	drawn     drawn
 	executed  []outcome
 	request   Request
+	// ran are the candidates that ran, and confirmed their classification
+	// once its claims are confirmed.
+	ran       []Candidate
+	confirmed confirmed
 }
 
-// emit classifies every test, records the scan statement and picks the change
-// each finding shows.
-func (s *Service) emit(ctx context.Context, e emission) (Report, error) {
+// classify classifies every test on what the scan executed.
+func (e emission) classify() (vacuity.Input, []Candidate, vacuity.Result, error) {
 	input, ran := e.classificationInput()
 	result, err := vacuity.Classify(input)
 	if err != nil {
-		return Report{}, fmt.Errorf("classify the tests: %w", err)
+		return vacuity.Input{}, nil, vacuity.Result{}, fmt.Errorf("classify the tests: %w", err)
 	}
-	mutants := scanMutants(ran, result)
+	return input, ran, result, nil
+}
+
+// emit records the confirmed classification as the scan statement and picks
+// the change each finding shows.
+func (s *Service) emit(ctx context.Context, e emission) (Report, error) {
+	result := e.confirmed.result
+	mutants := scanMutants(e.ran, result)
 	predicate := format.Scan{
 		Module:     e.request.Module,
 		ProducedBy: format.ProducedByLocal,
@@ -58,7 +68,7 @@ func (s *Service) emit(ctx context.Context, e emission) (Report, error) {
 	if err != nil {
 		return Report{}, fmt.Errorf("encode the scan statement: %w", err)
 	}
-	findings, err := s.findings(result, mutants, e.drawn)
+	findings, err := s.findings(result, mutants, e.drawn, e.confirmed.killers)
 	if err != nil {
 		return Report{}, err
 	}
@@ -164,8 +174,9 @@ func (s *Service) treeDigest(ctx context.Context) (string, error) {
 }
 
 // findings gives each test that verifies nothing, in rank order, with the first
-// of its changes that a differential difference proves, else its first change.
-func (s *Service) findings(result vacuity.Result, mutants []format.ScanMutant, drawn drawn) ([]Finding, error) {
+// of its changes that a differential difference proves, else its first change,
+// and the route its confirmation upheld.
+func (s *Service) findings(result vacuity.Result, mutants []format.ScanMutant, drawn drawn, killers map[string][]ecosystem.TestID) ([]Finding, error) {
 	byID := map[string]format.ScanMutant{}
 	for _, mutant := range mutants {
 		byID[mutant.ID] = mutant
@@ -183,7 +194,7 @@ func (s *Service) findings(result vacuity.Result, mutants []format.ScanMutant, d
 		}
 		findings = append(findings, Finding{
 			Rank: len(findings) + 1, Test: verdict.Test, Changes: len(verdict.Changes), NotStarted: len(verdict.NotStarted),
-			Mutant: mutant, Site: change.Site, Route: shownRoute(mutant.Routes),
+			Mutant: mutant, Site: change.Site, Route: shownRoute(mutant.Routes, killers[mutant.ID]),
 			Files: files, Repro: s.deps.Suite.Repro(verdict.Test),
 		})
 	}
@@ -201,9 +212,16 @@ func shownChange(changes []vacuity.Change, mutants map[string]format.ScanMutant)
 	return changes[0]
 }
 
-// shownRoute is the first differential route, else the first route.
-func shownRoute(routes []format.ScanRoute) format.ScanRoute {
+// shownRoute is the first differential route, else the first kill by a
+// killer the confirmation upheld, else the first route.
+func shownRoute(routes []format.ScanRoute, confirmedKillers []ecosystem.TestID) format.ScanRoute {
 	if index := slices.IndexFunc(routes, isDifferential); index >= 0 {
+		return routes[index]
+	}
+	upheld := func(route format.ScanRoute) bool {
+		return route.Kind == format.ScanRouteKilledByTest && slices.Contains(confirmedKillers, ecosystem.TestID(route.Test))
+	}
+	if index := slices.IndexFunc(routes, upheld); index >= 0 {
 		return routes[index]
 	}
 	return routes[0]

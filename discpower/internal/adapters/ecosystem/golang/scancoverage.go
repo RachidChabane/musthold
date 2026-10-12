@@ -61,7 +61,8 @@ func (scanSuite) CoverageOfOneRun() bool { return false }
 // each distinct ancestor of a leaf it records, with that ancestor alone and no
 // subtest; and each test alone. It reads the lines of the blocks each test ran
 // and, among them, the lines it owns against its baselines (see leafCoverage).
-// Only the workspace's build cache and results receive the instrumented
+// Each test already runs alone, so a request for each test alone records the
+// same. Only the workspace's build cache and results receive the instrumented
 // binaries.
 func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanCoverageRequest) (map[ecosystem.TestID]vacuity.Coverage, error) {
 	module, err := modulePath(os.DirFS(workspace.Dir))

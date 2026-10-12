@@ -76,7 +76,7 @@ func (r Replay) Held() bool {
 
 // Replay re-executes a finding on the work tree at its commit, with no model:
 // the test passes the reference and the mutant three runs out of three, and the
-// route still proves the change.
+// route still proves the change. The test and a killing test each run alone.
 func (s *Service) Replay(ctx context.Context, root string, record FindingRecord) (Replay, error) {
 	commit, err := s.commitOf(ctx)
 	if err != nil {
@@ -95,18 +95,18 @@ func (s *Service) Replay(ctx context.Context, root string, record FindingRecord)
 		tests = append(tests, ecosystem.TestID(record.Route.Test))
 	}
 	replay := Replay{Test: record.Test}
-	onReference, err := s.deps.Suite.Run(ctx, ref.workspace, ref.toolchain, ports.ScanRunRequest{Tests: tests, Runs: vacuity.RunsPerOutcome, Timeout: ReferenceTimeout})
+	onReference, err := s.eachAlone(ctx, ref.workspace, ref.toolchain, tests)
 	if err != nil {
 		return Replay{}, fmt.Errorf("run the reference: %w", err)
 	}
 	for _, test := range tests {
-		replay.add(fmt.Sprintf("%s passes the reference %s", test, allRuns), vacuity.Green(onReference.Runs[test]))
+		replay.add(fmt.Sprintf("%s passes the reference %s", test, allRuns), vacuity.Green(onReference[test]))
 	}
-	var onMutant ports.ScanRuns
+	var onMutant map[ecosystem.TestID][]vacuity.Run
 	var differs []Check
 	status, err := ref.executor.Mutate(ctx, ref.referenceOf(), mutation.EditSetOf(record.Mutant.Edits), func(ctx context.Context, mutant ecosystem.Workspace) error {
 		var runErr error
-		onMutant, runErr = s.deps.Suite.Run(ctx, mutant, ref.toolchain, ports.ScanRunRequest{Tests: tests, Runs: vacuity.RunsPerOutcome, Timeout: ReferenceTimeout})
+		onMutant, runErr = s.eachAlone(ctx, mutant, ref.toolchain, tests)
 		if runErr != nil || record.Route.Kind != format.ScanRouteDifferential {
 			return runErr
 		}
@@ -120,15 +120,29 @@ func (s *Service) Replay(ctx context.Context, root string, record FindingRecord)
 	if !status.Built {
 		return replay, nil
 	}
-	replay.add(fmt.Sprintf("%s passes the mutant %s", record.Test, allRuns), vacuity.Settle(onMutant.Runs[tests[0]]) == vacuity.SettledSurvived)
+	replay.add(fmt.Sprintf("%s passes the mutant %s", record.Test, allRuns), vacuity.Settle(onMutant[tests[0]]) == vacuity.SettledSurvived)
 	if record.Route.Kind == format.ScanRouteKilledByTest {
-		replay.add(fmt.Sprintf("%s fails the mutant %s", record.Route.Test, allRuns), vacuity.Settle(onMutant.Runs[tests[1]]) == vacuity.SettledKilled)
+		replay.add(fmt.Sprintf("%s fails the mutant %s", record.Route.Test, allRuns), vacuity.Settle(onMutant[tests[1]]) == vacuity.SettledKilled)
 	}
 	replay.Checks = append(replay.Checks, differs...)
 	if record.Route.Kind == format.ScanRouteWitness {
 		replay.add("a witness route needs the host's witness, which this replay does not hold", false)
 	}
 	return replay, nil
+}
+
+// eachAlone runs each test three times in a selection of its own, so that no
+// test of a replay runs beside another.
+func (s *Service) eachAlone(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, tests []ecosystem.TestID) (map[ecosystem.TestID][]vacuity.Run, error) {
+	runs := make(map[ecosystem.TestID][]vacuity.Run, len(tests))
+	for _, test := range tests {
+		ran, err := s.deps.Suite.Run(ctx, workspace, toolchain, ports.ScanRunRequest{Tests: []ecosystem.TestID{test}, Runs: vacuity.RunsPerOutcome, Timeout: ReferenceTimeout})
+		if err != nil {
+			return nil, err
+		}
+		runs[test] = ran.Runs[test]
+	}
+	return runs, nil
 }
 
 func (r *Replay) add(claim string, held bool) {

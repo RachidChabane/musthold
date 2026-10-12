@@ -79,7 +79,7 @@ func report(t *testing.T) scan.Report {
 				Route: killed, Files: files, Repro: []string{"python3", "-m", "pytest", "tests/test_parse.py::test_it's_fine"}},
 		},
 		Elapsed: 4*time.Minute + 12*time.Second,
-		Phases:  scan.Phases{Reference: time.Minute, Coverage: 30 * time.Second, Draw: 2 * time.Second, Mutants: 2*time.Minute + 40*time.Second},
+		Phases:  scan.Phases{Reference: time.Minute, Coverage: 30 * time.Second, Draw: 2 * time.Second, Mutants: 2*time.Minute + 30*time.Second, Confirmation: 10 * time.Second},
 		Depth:   scan.DepthQuick, Budget: 90 * time.Second, Workers: 2,
 		Unproven: []scan.UnprovenTest{
 			{Test: "tests/test_parse.py::test_three", Reason: format.ScanTooFewChanges},
@@ -147,7 +147,7 @@ func TestText(t *testing.T) {
 		}
 	})
 	t.Run("the last line counts the mutants and says no model ran and no promise was checked"+verifiesText, func(t *testing.T) {
-		want := "150 mutants (61 proven, 4 identical when compiled, 2 did not build or start) · 4m12s (reference 1m0s, coverage 30s, draw 2s, mutants 2m40s) · no model used · promises not checked"
+		want := "150 mutants (61 proven, 4 identical when compiled, 2 did not build or start) · 4m12s (reference 1m0s, coverage 30s, draw 2s, mutants 2m30s, confirmation 10s) · no model used · promises not checked"
 		if lines[len(lines)-3] != want {
 			t.Fatalf("footer %q", lines[len(lines)-3])
 		}

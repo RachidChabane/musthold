@@ -52,7 +52,7 @@ const (
 	argumentJoin   = ", "
 	emptyToken     = "(nothing)"
 	durationUnit   = time.Second
-	phasesFormat   = "%s (reference %s, coverage %s, draw %s, mutants %s)"
+	phasesFormat   = "%s (reference %s, coverage %s, draw %s, mutants %s, confirmation %s)"
 	noBudget       = "no budget"
 	budgetFormat   = "%s budget"
 	sampledFormat  = "%d of %d green tests sampled"
@@ -179,7 +179,7 @@ func reasonLabel(reason format.ScanUnprovenReason) string {
 // elapsed is the time of the scan and of each of its phases.
 func elapsed(report scan.Report) string {
 	phases := report.Phases
-	return fmt.Sprintf(phasesFormat, round(report.Elapsed), round(phases.Reference), round(phases.Coverage), round(phases.Draw), round(phases.Mutants))
+	return fmt.Sprintf(phasesFormat, round(report.Elapsed), round(phases.Reference), round(phases.Coverage), round(phases.Draw), round(phases.Mutants), round(phases.Confirmation))
 }
 
 func round(duration time.Duration) string { return duration.Round(durationUnit).String() }

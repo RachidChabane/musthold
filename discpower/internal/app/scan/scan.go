@@ -3,8 +3,9 @@
 // line coverage, samples tests, draws operator mutants and sentinels in the code
 // the sampled tests ran, runs each mutant against the tests that ran its
 // mutated lines, gathers the executed evidence that proves a mutant changes
-// behaviour, classifies every test with domain/vacuity and records the scan as
-// a scan/v1 statement. It never calls a model.
+// behaviour, classifies every test with domain/vacuity, confirms each test
+// that verifies nothing by running it alone, and records the scan as a scan/v1
+// statement. It never calls a model.
 //
 // The phases are seams: a host adds model mutants to the draw and witnesses to
 // the evidence without changing the others.
@@ -153,6 +154,9 @@ type Phases struct {
 	Draw time.Duration
 	// Mutants covers running the mutants and gathering their evidence.
 	Mutants time.Duration
+	// Confirmation covers running alone each test that verifies nothing, on
+	// the changes it cites.
+	Confirmation time.Duration
 }
 
 // SuiteCounts counts the tests of a suite.
@@ -226,7 +230,8 @@ func New(deps Deps) *Service {
 }
 
 // Run scans the repository: reference, coverage, sample, draw, execute,
-// evidence, classification and statement.
+// evidence, classification, confirmation of its claims and statement. The
+// budget bounds the mutants only: the confirmation runs once they stop.
 func (s *Service) Run(ctx context.Context, request Request) (Report, error) {
 	started := s.deps.Clock()
 	request.Workers = s.workers(ctx, request.Workers)
@@ -261,16 +266,27 @@ func (s *Service) Run(ctx context.Context, request Request) (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
-	report, err := s.emit(ctx, emission{commit: commit, base: base, reference: reference, plan: plan, drawn: drawn, executed: executed, request: request})
+	emission := emission{commit: commit, base: base, reference: reference, plan: plan, drawn: drawn, executed: executed, request: request}
+	input, ran, result, err := emission.classify()
 	if err != nil {
 		return Report{}, err
 	}
-	finished := s.deps.Clock()
-	report.Elapsed = finished.Sub(started)
+	confirmationStarted := s.deps.Clock()
+	emission.ran = ran
+	if emission.confirmed, err = s.confirm(ctx, reference, drawn, input, result, request); err != nil {
+		return Report{}, err
+	}
+	confirmationFinished := s.deps.Clock()
+	report, err := s.emit(ctx, emission)
+	if err != nil {
+		return Report{}, err
+	}
+	report.Elapsed = s.deps.Clock().Sub(started)
 	report.Depth, report.Budget, report.Workers = request.Depth, request.Budget, request.Workers
 	report.Phases = Phases{
 		Reference: reference.referenceTime, Coverage: reference.coverageTime,
-		Draw: mutantsStarted.Sub(drawStarted), Mutants: finished.Sub(mutantsStarted),
+		Draw: mutantsStarted.Sub(drawStarted), Mutants: confirmationStarted.Sub(mutantsStarted),
+		Confirmation: confirmationFinished.Sub(confirmationStarted),
 	}
 	return report, nil
 }

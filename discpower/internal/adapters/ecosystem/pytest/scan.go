@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
@@ -92,7 +93,7 @@ func fileOf(test ecosystem.TestID) string {
 // tests that no earlier session of it covers, and every later run, timed out,
 // and no later session starts.
 func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanRunRequest) (ports.ScanRuns, error) {
-	pluginDir, err := installPlugin(workspace, scanPluginFile, scanPlugin)
+	pluginDir, err := installPlugin(workspace, pluginModule{file: scanPluginFile, content: scanPlugin})
 	if err != nil {
 		return ports.ScanRuns{}, err
 	}
@@ -298,23 +299,41 @@ func (scanSuite) CoverageOfOneRun() bool { return true }
 
 // LineCoverage runs the suite once under the coverage plugin, within the
 // timeout of the request, and keeps the lines of the requested tests, by node
-// id. The plugin records only inside the run of each test, its setup, call and
-// teardown, never during collection; a test owns the lines among them that ran
-// on the thread of its run, in its setup or call, outside the setup of a
-// fixture of a scope wider than the function and outside the body of a module
-// its run imported.
+// id; a request for each test alone runs, for each, a session that selects it
+// and no other test. The plugin records only inside the run of each test, its
+// setup, call and teardown, never during collection; a test owns the lines
+// among them that ran on the thread of its run, in its setup or call, outside
+// the setup of a fixture of a scope wider than the function and outside the
+// body of a module its run imported.
 func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanCoverageRequest) (map[ecosystem.TestID]vacuity.Coverage, error) {
-	report, err := runCoverage(ctx, s.deps, workspace, toolchain, request.Timeout)
-	if err != nil {
-		return nil, err
+	if !request.Alone {
+		report, err := runCoverage(ctx, s.deps, workspace, toolchain, request.Timeout, nil)
+		if err != nil {
+			return nil, err
+		}
+		return coverageOfTests(report, request.Tests), nil
 	}
 	covered := map[ecosystem.TestID]vacuity.Coverage{}
 	for _, test := range request.Tests {
+		report, err := runCoverage(ctx, s.deps, workspace, toolchain, request.Timeout, []ecosystem.TestID{test.ID})
+		if err != nil {
+			return nil, err
+		}
+		maps.Copy(covered, coverageOfTests(report, []ports.ScanCase{test}))
+	}
+	return covered, nil
+}
+
+// coverageOfTests keeps the lines of the tests a coverage report records, by
+// node id.
+func coverageOfTests(report coverageReport, tests []ports.ScanCase) map[ecosystem.TestID]vacuity.Coverage {
+	covered := map[ecosystem.TestID]vacuity.Coverage{}
+	for _, test := range tests {
 		if recorded, found := report[string(test.ID)]; found {
 			covered[test.ID] = lineCoverageOf(recorded)
 		}
 	}
-	return covered, nil
+	return covered
 }
 
 // Operation binds a top-level function of a module to the target
@@ -337,15 +356,23 @@ func (scanSuite) Repro(test ecosystem.TestID) []string {
 	return []string{reproInterpreter, moduleFlag, pytestModule, noCacheProvider, noCacheProviderID, string(test)}
 }
 
-// installPlugin writes a plugin module into a fresh directory of the
+// pluginModule is a plugin a run loads: its module file and its source.
+type pluginModule struct {
+	file    string
+	content []byte
+}
+
+// installPlugin writes plugin modules into a fresh directory of the
 // workspace's results, which is put on the import path of the run.
-func installPlugin(workspace ecosystem.Workspace, file string, content []byte) (string, error) {
+func installPlugin(workspace ecosystem.Workspace, plugins ...pluginModule) (string, error) {
 	pluginDir := suiterun.ResultsFile(workspace, "")
 	if err := os.MkdirAll(pluginDir, coverageDirPermissions); err != nil {
 		return "", fmt.Errorf("create the plugin directory: %w", err)
 	}
-	if err := os.WriteFile(filepath.Join(pluginDir, file), content, probeFilePermissions); err != nil {
-		return "", fmt.Errorf("write the plugin: %w", err)
+	for _, plugin := range plugins {
+		if err := os.WriteFile(filepath.Join(pluginDir, plugin.file), plugin.content, probeFilePermissions); err != nil {
+			return "", fmt.Errorf("write the plugin %s: %w", plugin.file, err)
+		}
 	}
 	return pluginDir, nil
 }
