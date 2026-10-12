@@ -395,7 +395,13 @@ class _Attempt:
             self.target.base,
         )
         plan = self._setup_plan(
-            SetupStage.CLONE, argv, network=True, limit=CLONE_LIMIT_SECONDS, workdir=self.layout.root, clone=True
+            SetupStage.CLONE,
+            argv,
+            network=True,
+            limit=CLONE_LIMIT_SECONDS,
+            workdir=self.layout.root,
+            clone=True,
+            cleared=(self.layout.clone,),
         )
         self._settle(plan, stage.command)
         return setup_failed(stage.command.end(), SetupOutcome.CLONE)
