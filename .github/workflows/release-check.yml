@@ -35,7 +35,7 @@ env:
 jobs:
   dry-run:
     name: dry run
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, mac-mini]
     timeout-minutes: 60
     steps:
       - name: Check out spec-proof with its tags
@@ -64,7 +64,7 @@ jobs:
 
   actionlint:
     name: actionlint
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, mac-mini]
     timeout-minutes: 10
     steps:
       - name: Check out spec-proof

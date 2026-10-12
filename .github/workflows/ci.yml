@@ -27,6 +27,10 @@ concurrency:
 env:
   # The pytest the Python fixtures of the proof modules and the bench recordings run.
   FIXTURE_PYTEST_VERSION: "9.1.1"
+  # The jobs run on the self-hosted runner, whose caches live on its work volume,
+  # never in the home directory.
+  GRADLE_USER_HOME: /Volumes/ci-runner/cache/gradle
+  MAVEN_OPTS: -Dmaven.repo.local=/Volumes/ci-runner/cache/m2
 
 permissions:
   contents: read
@@ -34,7 +38,7 @@ permissions:
 jobs:
   product:
     name: product modules (${{ matrix.group }})
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, mac-mini]
     timeout-minutes: 150
     strategy:
       fail-fast: false
@@ -65,24 +69,13 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: spec-proof/go.work
-          cache-dependency-path: spec-proof/**/go.sum
+          cache: false
 
       - name: Set up Java 21 for the JUnit 5 fixtures
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
           java-version: "21"
-          cache: maven
-          cache-dependency-path: spec-proof/discpower/fixtures/ecosystems/*/pom.xml
-
-      - name: Cache the Gradle home of the JUnit 5 fixtures
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('spec-proof/discpower/fixtures/ecosystems/*/build.gradle*', 'spec-proof/discpower/fixtures/ecosystems/*/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: gradle-${{ runner.os }}-
 
       - name: Set up Python for the pytest fixtures
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -96,8 +89,6 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
-          cache: npm
-          cache-dependency-path: spec-proof/discpower/fixtures/ecosystems/*/package-lock.json
 
       - name: Install the pinned Claude Code CLI for the offline plugin checks
         run: |
@@ -122,7 +113,7 @@ jobs:
   pilot:
     if: inputs.modules == ''
     name: pilot harness
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, mac-mini]
     timeout-minutes: 30
     steps:
       - name: Check out spec-proof
@@ -154,7 +145,7 @@ jobs:
   bench:
     if: inputs.modules == ''
     name: benchmark core
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, mac-mini]
     timeout-minutes: 60
     steps:
       - name: Check out spec-proof
@@ -230,7 +221,7 @@ jobs:
   calibration:
     if: inputs.modules == ''
     name: calibration harness
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, mac-mini]
     timeout-minutes: 45
     steps:
       - name: Check out spec-proof with its tags
@@ -278,7 +269,7 @@ jobs:
   demos-1:
     if: inputs.modules == ''
     name: demos-1 tooling
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, mac-mini]
     timeout-minutes: 30
     steps:
       - name: Check out spec-proof
@@ -313,7 +304,7 @@ jobs:
   notices:
     if: inputs.modules == ''
     name: third-party notices
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, mac-mini]
     timeout-minutes: 15
     steps:
       - name: Check out spec-proof
