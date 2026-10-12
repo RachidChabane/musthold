@@ -19,6 +19,18 @@ def test_an_included_response_gives_status_headers_and_body():
     assert response.json() == {"message": "limit"}
 
 
+def test_a_secondary_limit_with_requests_left_is_rate_limited_and_waits_at_least_a_minute():
+    output = 'HTTP/2.0 403 Forbidden\r\nX-Ratelimit-Remaining: 6\r\nX-Ratelimit-Reset: 1791850000\r\n\r\n{"message": "secondary"}'
+    response = parse_included(output, START)
+    assert response.is_rate_limited()
+    assert response.retry_wait_seconds(START) >= 60.0
+
+
+def test_a_forbidden_response_without_a_rate_limit_header_is_not_rate_limited():
+    response = parse_included('HTTP/2.0 403 Forbidden\r\n\r\n{"message": "no"}', START)
+    assert not response.is_rate_limited()
+
+
 def test_a_request_without_a_response_has_no_status():
     assert parse_included("error connecting to api.github.com", START).status == 0
 

@@ -16,6 +16,8 @@ RATE_LIMIT_HEADERS: Final = ("retry-after", "x-ratelimit-remaining", "x-ratelimi
 RETRY_AFTER: Final = "retry-after"
 RATE_LIMIT_REMAINING: Final = "x-ratelimit-remaining"
 RATE_LIMIT_RESET: Final = "x-ratelimit-reset"
+MIN_RATE_LIMIT_WAIT_SECONDS: Final = 60.0
+"""The shortest wait before retrying a rate-limited request; a secondary limit names a reset that comes too soon."""
 NO_STATUS: Final = 0
 """The status of a request that got no HTTP response at all."""
 
@@ -43,16 +45,15 @@ class ApiResponse:
         """HTTP 403 or 429 that carries a rate-limit header."""
         if self.status not in RATE_LIMIT_STATUSES:
             return False
-        if self.header(RETRY_AFTER) is not None:
-            return True
-        return self.header(RATE_LIMIT_REMAINING) == "0" and self.header(RATE_LIMIT_RESET) is not None
+        return any(self.header(name) is not None for name in RATE_LIMIT_HEADERS)
 
     def retry_wait_seconds(self, now: datetime) -> float:
-        """How long until the reset time the response names; never negative."""
+        """How long until the reset time the response names, and never less than the shortest wait."""
+        named = 0.0
         retry_after = self.header(RETRY_AFTER)
-        if retry_after is not None and retry_after.strip().isdigit():
-            return float(retry_after.strip())
         reset = self.header(RATE_LIMIT_RESET)
-        if reset is not None and reset.strip().isdigit():
-            return max(0.0, float(reset.strip()) - now.timestamp())
-        return 0.0
+        if retry_after is not None and retry_after.strip().isdigit():
+            named = float(retry_after.strip())
+        elif reset is not None and reset.strip().isdigit():
+            named = float(reset.strip()) - now.timestamp()
+        return max(MIN_RATE_LIMIT_WAIT_SECONDS, named)

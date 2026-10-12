@@ -15,7 +15,7 @@ from demos1.domain.window import Interval, format_utc
 RATE_LIMIT_RETRIES: Final = 3
 INCOMPLETE_RETRIES: Final = 3
 INCOMPLETE_RETRY_SECONDS: Final = 60.0
-SEARCH_SPACING_SECONDS: Final = 2.1
+SEARCH_SPACING_SECONDS: Final = 3.0
 SEARCH_CEILING: Final = 1000
 
 
@@ -29,7 +29,7 @@ class SearchFailed(RuntimeError):
 
 
 class Requests:
-    """Every request of the selection: searches spaced at least 2.1 s apart, rate limits waited out up to 3 times."""
+    """Every request of the selection: searches spaced 3 s apart (the rule asks at least 2.1 s), rate limits waited out up to 3 times."""
 
     def __init__(self, api: GitHubApi, clock: Clock) -> None:
         self._api = api

@@ -36,33 +36,47 @@ def query(interval: Interval) -> str:
     return f"is:pr {interval.merged_qualifier()}"
 
 
-def test_searches_are_spaced_at_least_2_1_seconds():
+def test_searches_are_spaced_3_seconds_apart_at_least_the_2_1_the_rule_asks():
     clock = FakeClock()
     api = ScriptedApi(lambda request: page(0, 0))
     requests = Requests(api, clock)
     requests.get(search_issues("q", 1))
     requests.get(search_issues("q", 2))
     requests.get(ApiRequest("repos/north/ledger"))
-    assert clock.sleeps == [pytest.approx(2.1)]
+    assert clock.sleeps == [pytest.approx(3.0)]
 
 
 def test_a_rate_limited_request_waits_for_the_reset_three_times_at_most():
     clock = FakeClock()
-    reset = str(int(START.timestamp()) + 30)
+    reset = str(int(START.timestamp()) + 90)
     limited = ApiResponse(403, "{}", START, {"x-ratelimit-remaining": "0", "x-ratelimit-reset": reset})
     api = ScriptedApi(lambda request: limited)
     response = Requests(api, clock).get(ApiRequest("repos/north/ledger"))
     assert response.status == 403
     assert len(api.requests) == 4
-    assert clock.sleeps[0] == pytest.approx(30)
+    assert clock.sleeps[0] == pytest.approx(90)
 
 
-def test_a_retry_after_header_names_the_wait():
+def test_a_retry_after_header_names_the_wait_when_longer_than_a_minute():
     clock = FakeClock()
-    answers = iter([ApiResponse(429, "{}", START, {"retry-after": "7"}), ApiResponse(200, "{}", START)])
+    answers = iter([ApiResponse(429, "{}", START, {"retry-after": "75"}), ApiResponse(200, "{}", START)])
     response = Requests(ScriptedApi(lambda request: next(answers)), clock).get(ApiRequest("repos/a/b"))
     assert response.status == 200
-    assert clock.sleeps == [7.0]
+    assert clock.sleeps == [75.0]
+
+
+def test_a_reset_that_comes_too_soon_still_waits_a_minute():
+    clock = FakeClock()
+    soon = str(int(START.timestamp()) + 5)
+    answers = iter(
+        [
+            ApiResponse(403, "{}", START, {"x-ratelimit-remaining": "6", "x-ratelimit-reset": soon}),
+            ApiResponse(200, "{}", START),
+        ]
+    )
+    response = Requests(ScriptedApi(lambda request: next(answers)), clock).get(ApiRequest("repos/a/b"))
+    assert response.status == 200
+    assert clock.sleeps == [60.0]
 
 
 def test_an_incomplete_page_is_retried_60_seconds_apart():
