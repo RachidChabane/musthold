@@ -20,6 +20,7 @@ on:
     secrets:
       SHALLNOT_PROOF_GATE_DEPLOY_KEY:
         required: true
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -43,6 +44,10 @@ permissions:
 jobs:
   product:
     name: product modules (${{ matrix.group }})
+    # The product modules' self-gates run on pushes through the local gate
+    # (script/gate-changed), the reference before a merge; the self-hosted runner
+    # runs them only when dispatched or called by the release workflow.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
     runs-on: [self-hosted, mac-mini]
     timeout-minutes: 480
     strategy:

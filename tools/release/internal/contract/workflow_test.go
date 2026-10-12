@@ -263,6 +263,10 @@ func TestToolchainPinMatchesTheWorkspace(t *testing.T) {
 	})
 }
 
+// productJobCondition is when the product job runs on the self-hosted runner: when
+// the release workflow calls CI, or when CI is dispatched by hand.
+const productJobCondition = "github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'"
+
 // ciPushBranches are the branches whose pushes run CI: main, and the gate branches
 // that run the whole CI before a merge.
 var ciPushBranches = []string{"main", "gate/**"}
@@ -296,14 +300,17 @@ func TestCIWorkflowKeepsItsTriggers(t *testing.T) {
 		}
 	})
 
-	t.Run("a call with modules runs only the product job, and a push or pull request runs every job"+verifiesWorkflow, func(t *testing.T) {
+	t.Run("a call with modules runs only the product job, the product job runs when called or dispatched, and a push or pull request runs every other job"+verifiesWorkflow, func(t *testing.T) {
 		for _, name := range []string{"pilot", "bench", "calibration"} {
 			if parsed.Jobs[name].If != "inputs.modules == ''" {
 				t.Errorf("job %s runs when %q", name, parsed.Jobs[name].If)
 			}
 		}
-		if parsed.Jobs["product"].If != "" {
-			t.Errorf("the product job is conditional: %q", parsed.Jobs["product"].If)
+		if parsed.Jobs["product"].If != productJobCondition {
+			t.Errorf("the product job runs when %q", parsed.Jobs["product"].If)
+		}
+		if _, dispatchable := parsed.On["workflow_dispatch"]; !dispatchable {
+			t.Error("CI cannot be dispatched by hand")
 		}
 		if groups := parsed.Jobs["product"].Strategy.Matrix["group"]; !slices.Equal(groups, []string{"discpower", "rest"}) {
 			t.Errorf("the product job gates the module groups %v", groups)
