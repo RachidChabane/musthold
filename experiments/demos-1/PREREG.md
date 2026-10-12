@@ -84,7 +84,7 @@ it is committed.
   - the CPython version each pytest attempt selects (§8.2);
   - the git version of the image, gh 2.93.0 on the host, and the Docker engine
     version;
-  - the memory and CPU settings of the Docker engine's virtual machine;
+  - the colima version and the settings of the engine's virtual machine (§13);
   - the OS name, version and architecture of both the host and the image.
 
   A tool version or engine setting that differs from the one recorded at `select`
@@ -614,12 +614,14 @@ one starts:
   - `setup-suite-does-not-run`;
   - `setup-too-few-passing`;
   - `setup-oom`;
+  - `setup-disk`;
   - `setup-interrupted`.
 
   For each scan of a pick, the outcome is `scan-ok` (exit 0), or one of:
   - `scan-error`;
   - `scan-killed`;
   - `scan-oom`;
+  - `scan-disk`;
   - `scan-interrupted`.
 
 ## 11. Raw data
@@ -632,11 +634,12 @@ one starts:
 | `selection/responses/` | every API response of §5 |
 | `selection/frame.jsonl` | every candidate examined, with its first failing filter or its rank |
 | `selection/lists.json` | the lists of §6.5 and §7.2 |
-| `attempts/<id>/` | `attempt.json`, `home/`, `cache/`, the logs, the clone, `suite-<k>.*`, and one directory per scan holding its outputs, its moved scan directory and its replay outputs |
+| `attempts/<id>/` | `attempt.json`, the logs, `suite-<k>.*`, and one directory per scan holding its outputs, its moved scan directory and its replay outputs; the clone, `home/` and `cache/` while the attempt runs (§13) |
 | `DEVIATIONS.md` | §14 |
 
-Clones and finding folders stay until the summary is committed and the owner decides
-on publication. Nothing under `$DEMOS1_WORK` is published or committed.
+Finding folders stay until the summary is committed and the owner decides on
+publication. A clone is deleted at the end of its attempt (§13); the recorded commit
+recreates it. Nothing under `$DEMOS1_WORK` is published or committed.
 
 ## 12. Analysis and reporting
 
@@ -743,7 +746,7 @@ inline code spans and lines starting with `>`. It fails on:
     scans and replays, `<stage>` is the name §9.1 and §9.2 give;
   - `--user <host uid>:<host gid>`, `--cap-drop ALL` and
     `--security-opt no-new-privileges`;
-  - `--cpus 2`, `--memory 8g` and `--memory-swap 8g`;
+  - `--cpus 2`, `--memory 3g` and `--memory-swap 3g`;
   - two mounts and no other host path:
     - the attempt directory, read-write, at the same path;
     - the product binaries, read-only, at `/opt/spec-proof/bin`.
@@ -779,7 +782,28 @@ inline code spans and lines starting with `>`. It fails on:
   next to the command's log.
 - **Limits.** Work is limited to 2 workers: `--workers 2` for scans, `-p 2` for Go,
   and `--cpus 2` for every container. The slots and the guard of §9.3 wrap every
-  container command.
+  container command. One container runs at a time: the verb runs attempts, stages
+  and scans strictly one after another.
+- **Engine.** The engine is a colima virtual machine of its own profile,
+  `spec-proof-demos`, started with 2 CPUs, 4 GiB of memory and a 40 GiB disk. Its
+  only mounts are `$DEMOS1_WORK`, read-write, and the directory of the product
+  binaries, read-only; no other host directory is visible to it. Every docker
+  command of the tooling names that profile's socket through `DOCKER_HOST`; the
+  tooling changes no other Docker configuration of the host and leaves the current
+  docker context as it found it. `attempt` starts the machine before its first
+  container and stops it (`colima stop --profile spec-proof-demos`) when it ends,
+  whatever its exit; the machine never runs while no command of this document
+  runs.
+- **Disk.**
+  - An attempt starts only when the volume of `$DEMOS1_WORK` has at least
+    50 GiB free; otherwise the verb waits, as for a slot refusal (§9.3).
+  - After every container command, the size of the attempt directory is
+    measured. Above 15 GiB, the command's stage ends as `setup-disk` or
+    `scan-disk`, and the attempt stops there.
+  - Once an attempt's records are written (§10) and every replay of §9.2 has
+    run, the tooling deletes the clone, `<attempt>/cache/`, `<attempt>/home/` and
+    every `TMPDIR`. It keeps `attempt.json`, the logs, the suite records and the
+    directory of each scan with its moved scan directory and replay outputs.
 - **Cleanup.** Every container is inspected and then removed (§9.3). At the end of
   each attempt, `docker ps -a --filter name=<id>-` lists nothing, and no host
   process the attempt started is left running.
