@@ -1126,7 +1126,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   owned; and SHALL derive from the same run the functions of SP-161, with
   `sys.monitoring` where the interpreter has it and `sys.settrace` otherwise,
   both giving the same owned lines.
-- **SP-2101~3**: WHEN the line coverage of Go tests is recorded THE SYSTEM SHALL
+- **SP-2101~4**: WHEN the line coverage of Go tests is recorded THE SYSTEM SHALL
   build the test binary of each package once in the workspace with coverage of
   every package of the module in atomic mode; run from its package directory,
   three times each, on the scan's workers and once for every leaf that needs
@@ -1142,9 +1142,14 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   baseline; SHALL hold that a block holds code on a line when its span there,
   read from the source, has a character other than whitespace or a brace, and
   give as owned a line on which the leaf owns a block holding code and owns
-  every block holding code there that it ran; and SHALL give a leaf no owned
-  line when one of its baselines left no profile, exited non-zero or timed
-  out.
+  every block holding code there that it ran; SHALL give as owned the line of
+  a `case` or `default` clause header of a switch, type switch or select that
+  is written whole on one line, from its keyword to its colon, that no block
+  of the profile holds code on and that no `fallthrough` of the previous
+  clause enters, when the leaf owns the block that starts at the colon, and
+  never a line of a header written on several lines; and SHALL give a leaf no
+  owned line when one of its baselines left no profile, exited non-zero or
+  timed out.
 - **SP-2102~4**: WHEN a scan runs a selection of tests, or the whole suite, a
   number of times THE SYSTEM SHALL address each test by its runner-native id, a
   pytest node id or, for Go, the test file and the subtest path of a leaf test,
@@ -1448,11 +1453,11 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   report of one of its sessions covers it as SP-2135 gives, the outcome of the
   session that ran it otherwise, timed out when its last session timed out, and
   errored for a test absent from a module that collected.
-- **SP-2143~1**: WHEN `spec-proof-dp scan --budget 0` runs on a Go project whose
+- **SP-2143~2**: WHEN `spec-proof-dp scan --budget 0` runs on a Go project whose
   only survivals of a test lie in the setup its parent test runs before its
-  subtests, or on a pytest project whose only survivals of a test lie in the
-  teardown of a fixture, THE SYSTEM SHALL make no claim that the test verifies
-  nothing; WHEN it runs on a pytest project in which a change stops a test
+  subtests or in the header of a clause that a `fallthrough` enters, or on a
+  pytest project whose only survivals of a test lie in the teardown of a
+  fixture, THE SYSTEM SHALL make no claim that the test verifies nothing; WHEN it runs on a pytest project in which a change stops a test
   module and a `conftest.py` from importing, THE SYSTEM SHALL settle the tests
   outside them as usual and list that change apart for the tests it stops; and
   SHALL write a statement the format accepts and replay its findings with

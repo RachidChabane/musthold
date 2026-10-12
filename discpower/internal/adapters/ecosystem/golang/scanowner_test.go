@@ -20,7 +20,7 @@ const (
 	quotesNear        = ecosystem.TestID(tariffTests + "::TestQuotes/near")
 	quotesFar         = ecosystem.TestID(tariffTests + "::TestQuotes/far")
 	samplesAreWarm    = ecosystem.TestID(tariffTests + "::TestSamplesAreWarm")
-	verifiesBaselines = " [verifies SP-2101~3]"
+	verifiesBaselines = " [verifies SP-2101~4]"
 	verifiesAncestry  = " [verifies SP-2141~1]"
 	// verifiesSelectionRuns names the requirement of how a scan selects tests.
 	verifiesSelectionRuns = " [verifies SP-2102~4]"

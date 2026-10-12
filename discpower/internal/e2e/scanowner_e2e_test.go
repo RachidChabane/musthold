@@ -14,7 +14,7 @@ import (
 const (
 	goReceiptsFixture     = "fixtures/scan/go-receipts"
 	pytestReceiptsFixture = "fixtures/scan/pytest-receipts"
-	verifiesOwnershipE2E  = " [verifies SP-2143~1]"
+	verifiesOwnershipE2E  = " [verifies SP-2143~2]"
 )
 
 // ownershipCase is a project of the receipts fixtures: the test that verifies
@@ -80,4 +80,47 @@ func TestScanClaimsOnlyTheLinesATestOwns(t *testing.T) {
 			})
 		})
 	}
+}
+
+// The project whose parcel test runs a lane picker through the clause that falls
+// into the next one, and what its scan judges.
+const (
+	goRoutesFixture     = "fixtures/scan/go-routes"
+	fallthroughOnlyTest = "routes_test.go::TestFragileExpressParcelGetsALane"
+	handlingTest        = "routes_test.go::TestHandlingAcceptsAnyParcel"
+)
+
+func TestScanMakesNoClaimOnAFallthroughTargetHeader(t *testing.T) {
+	if _, err := exec.LookPath("go"); err != nil {
+		t.Skipf("no go: %v", err)
+	}
+	s := newScanned(t, goRoutesFixture)
+	scan := s.run(s.binary, "scan", "--budget", "0")
+	if scan.code != 0 {
+		t.Fatalf("exit %d:\n%s", scan.code, scan.output())
+	}
+	statement := scannedStatement(t, s)
+
+	t.Run("a test whose only survivals lie in the header of a clause a fallthrough enters makes no claim"+verifiesOwnershipE2E, func(t *testing.T) {
+		test := testNamed(statement, fallthroughOnlyTest)
+		if test.ID == "" || test.Class == format.ScanVerifiesNothing || len(test.Changes) != 0 || strings.Contains(scan.stdout, fallthroughOnlyTest+" passes on all") {
+			t.Fatalf("%s is judged %q with %v:\n%s", fallthroughOnlyTest, test.Class, test.Changes, scan.stdout)
+		}
+	})
+	t.Run("a replay holds the findings"+verifiesOwnershipE2E, func(t *testing.T) {
+		if testNamed(statement, handlingTest).Class != format.ScanVerifiesNothing {
+			for _, mutant := range statement.Predicate.Mutants {
+				for _, change := range testNamed(statement, handlingTest).Changes {
+					if change.Outcome == format.ScanKilled && change.Mutant == mutant.ID {
+						t.Logf("KILLED %+v", mutant)
+					}
+				}
+			}
+			t.Fatalf("%s does not verify nothing:\n%s", handlingTest, scan.stdout)
+		}
+		replay := s.run(s.binary, "scan", "replay", ".spec-proof/scan/"+s.commit()[:7])
+		if replay.code != 0 || !strings.Contains(replay.stdout, handlingTest) || strings.Contains(replay.stdout, "NOT held") {
+			t.Fatalf("exit %d:\n%s", replay.code, replay.output())
+		}
+	})
 }

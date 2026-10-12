@@ -11,7 +11,7 @@ import (
 const (
 	tallyModule       = "example.com/tally"
 	tallyPackage      = "example.com/tally"
-	verifiesOwnership = " [verifies SP-2101~3]"
+	verifiesOwnership = " [verifies SP-2101~4]"
 	verifiesAncestors = " [verifies SP-2141~1]"
 	verifiesSelection = " [verifies SP-2102~4]"
 	// actionRun starts one run of a test.
@@ -38,12 +38,8 @@ var tallySource = []string{
 	"}",
 }
 
-func tallyLines(file string, line int) (string, bool) {
-	if file != "tally.go" || line < 1 || line > len(tallySource) {
-		return "", false
-	}
-	return tallySource[line-1], true
-}
+// tallyFiles is the source of the module the profiles below count.
+var tallyFiles = textSource{"tally.go": strings.Join(tallySource, lineSeparator)}
 
 func profileOf(lines ...string) blockCounts {
 	return readBlockCounts([]byte(strings.Join(append([]string{"mode: atomic"}, lines...), "\n")))
@@ -76,7 +72,7 @@ func TestLeafCoverage(t *testing.T) {
 			"example.com/other/x.go:1.1,2.2 1 1",
 			"example.com/tally/broken.go:x 1 1",
 		)
-		got := leafCoverage(profile, baselineChain{startUp}, tallyLines, tallyModule).Lines
+		got := leafCoverage(profile, baselineChain{startUp}, tallyFiles, tallyModule).Lines
 		if want := []vacuity.Line{line(3), line(4)}; !slices.Equal(got, want) {
 			t.Fatalf("lines = %v", got)
 		}
@@ -86,7 +82,7 @@ func TestLeafCoverage(t *testing.T) {
 			"example.com/tally/tally.go:3.22,4.7 1 1",
 			"example.com/tally/tally.go:4.7,4.19 1 1",
 		)
-		coverage := leafCoverage(profile, baselineChain{startUp}, tallyLines, tallyModule)
+		coverage := leafCoverage(profile, baselineChain{startUp}, tallyFiles, tallyModule)
 		if slices.Contains(coverage.Owned, line(4)) || !slices.Contains(coverage.Lines, line(4)) {
 			t.Fatalf("coverage = %+v", coverage)
 		}
@@ -97,7 +93,7 @@ func TestLeafCoverage(t *testing.T) {
 			"example.com/tally/tally.go:5.2,5.7 1 2",
 			"example.com/tally/tally.go:5.7,7.3 1 1",
 		)
-		coverage := leafCoverage(profile, baselineChain{startUp}, tallyLines, tallyModule)
+		coverage := leafCoverage(profile, baselineChain{startUp}, tallyFiles, tallyModule)
 		if !slices.Contains(coverage.Owned, line(5)) || slices.Contains(coverage.Owned, line(6)) {
 			t.Fatalf("owned = %v", coverage.Owned)
 		}
@@ -105,13 +101,13 @@ func TestLeafCoverage(t *testing.T) {
 			t.Fatalf("a line whose only block holds its brace is owned: %v", coverage.Owned)
 		}
 	})
-	t.Run("a case line, whose condition no block holds, is run and not owned, though the test owns the case's body"+verifiesOwnership, func(t *testing.T) {
+	t.Run("a case line whose header is on one line is owned when the test owns the case's body"+verifiesOwnership, func(t *testing.T) {
 		profile := profileOf(
 			"example.com/tally/tally.go:10.23,11.9 1 1",
 			"example.com/tally/tally.go:12.9,13.11 1 1",
 		)
-		coverage := leafCoverage(profile, baselineChain{startUp}, tallyLines, tallyModule)
-		if !slices.Contains(coverage.Lines, line(12)) || slices.Contains(coverage.Owned, line(12)) || !slices.Contains(coverage.Owned, line(13)) {
+		coverage := leafCoverage(profile, baselineChain{startUp}, tallyFiles, tallyModule)
+		if !slices.Contains(coverage.Lines, line(12)) || !slices.Contains(coverage.Owned, line(12)) || !slices.Contains(coverage.Owned, line(13)) {
 			t.Fatalf("coverage = %+v", coverage)
 		}
 	})
@@ -124,28 +120,27 @@ func TestLeafCoverage(t *testing.T) {
 		parent := stableBaseline("example.com/tally/tally.go:5.2,5.7 1 2", "example.com/tally/tally.go:8.2,8.10 1 3")
 		chain := baselineChain{unsteady, parent}
 		profile := profileOf("example.com/tally/tally.go:8.2,8.10 1 9", "example.com/tally/tally.go:5.2,5.7 1 2")
-		if coverage := leafCoverage(profile, chain, tallyLines, tallyModule); coverage.Owned != nil {
+		if coverage := leafCoverage(profile, chain, tallyFiles, tallyModule); coverage.Owned != nil {
 			t.Fatalf("owned = %v", coverage.Owned)
 		}
-		if owned := leafCoverage(profileOf("example.com/tally/tally.go:5.2,5.7 1 3"), chain, tallyLines, tallyModule).Owned; !slices.Equal(owned, []vacuity.Line{line(5)}) {
+		if owned := leafCoverage(profileOf("example.com/tally/tally.go:5.2,5.7 1 3"), chain, tallyFiles, tallyModule).Owned; !slices.Equal(owned, []vacuity.Line{line(5)}) {
 			t.Fatalf("owned = %v", owned)
 		}
 	})
 	t.Run("a test with a missing baseline above it owns no line"+verifiesOwnership, func(t *testing.T) {
 		failing := baselineOf([]baselineRun{{counts: runOf(), usable: true}, {counts: countsRun(profileOf())}, {counts: runOf(), usable: true}})
 		profile := profileOf("example.com/tally/tally.go:8.2,8.10 1 1")
-		coverage := leafCoverage(profile, baselineChain{startUp, failing}, tallyLines, tallyModule)
+		coverage := leafCoverage(profile, baselineChain{startUp, failing}, tallyFiles, tallyModule)
 		if len(coverage.Lines) == 0 || coverage.Owned != nil {
 			t.Fatalf("coverage = %+v", coverage)
 		}
-		if coverage := leafCoverage(profile, nil, tallyLines, tallyModule); coverage.Owned != nil {
+		if coverage := leafCoverage(profile, nil, tallyFiles, tallyModule); coverage.Owned != nil {
 			t.Fatalf("a test with no baseline owns %v", coverage.Owned)
 		}
 	})
 	t.Run("a block on a line that cannot be read holds code there"+verifiesOwnership, func(t *testing.T) {
-		unreadable := func(string, int) (string, bool) { return "", false }
 		profile := profileOf("example.com/tally/tally.go:3.22,4.7 1 2")
-		if owned := leafCoverage(profile, baselineChain{startUp}, unreadable, tallyModule).Owned; !slices.Equal(owned, []vacuity.Line{line(3), line(4)}) {
+		if owned := leafCoverage(profile, baselineChain{startUp}, textSource{}, tallyModule).Owned; !slices.Equal(owned, []vacuity.Line{line(3), line(4)}) {
 			t.Fatalf("owned = %v", owned)
 		}
 	})

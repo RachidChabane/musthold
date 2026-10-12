@@ -49,8 +49,6 @@ const (
 	columnSeparator   = "."
 	// noSubtest is the name of a level that matches no subtest.
 	noSubtest = ""
-	// lineSeparator ends a line of a Go source file.
-	lineSeparator = "\n"
 )
 
 // CoverageOfOneRun is false: each test runs alone under coverage.
@@ -241,7 +239,7 @@ func (s scanSuite) runLeaves(ctx context.Context, workspace ecosystem.Workspace,
 			return fmt.Errorf("%w: %s of %s ran past %s", ports.ErrCoverageTimedOut, selection, leaf.dir, request.Timeout)
 		}
 		if ran.profile != nil {
-			covered[index] = leafCoverage(readBlockCounts(ran.profile), plan.chainOf(leaf), source.line, module)
+			covered[index] = leafCoverage(readBlockCounts(ran.profile), plan.chainOf(leaf), source, module)
 		}
 		return nil
 	})
@@ -328,36 +326,6 @@ func (s scanSuite) runBinary(ctx context.Context, workspace ecosystem.Workspace,
 	return ran, nil
 }
 
-// sourceReader reads the lines of the module's files, each file once, for any
-// number of goroutines.
-type sourceReader struct {
-	root  string
-	mutex sync.Mutex
-	files map[string][]string
-}
-
-func newSourceReader(root string) *sourceReader {
-	return &sourceReader{root: root, files: map[string][]string{}}
-}
-
-// line gives the text of a line of a file relative to the module root, and
-// whether it could be read.
-func (r *sourceReader) line(file string, line int) (string, bool) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-	lines, read := r.files[file]
-	if !read {
-		if content, err := os.ReadFile(filepath.Join(r.root, filepath.FromSlash(file))); err == nil {
-			lines = strings.Split(string(content), lineSeparator)
-		}
-		r.files[file] = lines
-	}
-	if line < 1 || line > len(lines) {
-		return "", false
-	}
-	return lines[line-1], true
-}
-
 // profileBlock is one block of a cover profile: its file, its first and last
 // line, the column it starts at on its first line and the column it ends
 // before on its last.
@@ -402,7 +370,7 @@ func readBlockCounts(profile []byte) blockCounts {
 // lines are the lines of the block, relative to the module root; none for a
 // file outside the module.
 func (b profileBlock) lines(module string) []vacuity.Line {
-	relative, inside := strings.CutPrefix(b.file, module+importPathSeparator)
+	relative, inside := b.relativeFile(module)
 	if !inside {
 		return nil
 	}
@@ -411,6 +379,12 @@ func (b profileBlock) lines(module string) []vacuity.Line {
 		lines = append(lines, vacuity.Line{File: relative, Line: line})
 	}
 	return lines
+}
+
+// relativeFile gives the file of the block relative to the module root, and
+// whether it lies inside the module.
+func (b profileBlock) relativeFile(module string) (string, bool) {
+	return strings.CutPrefix(b.file, module+importPathSeparator)
 }
 
 func sortedLines(lines []vacuity.Line) []vacuity.Line {

@@ -89,10 +89,6 @@ func (c baselineChain) owns(position string, count int64) bool {
 	return count > c[len(c)-1].counts[position]
 }
 
-// sourceLines gives the text of a line of a file relative to the module root,
-// and whether it could be read.
-type sourceLines func(file string, line int) (string, bool)
-
 // lineHolders records, for one line, whether the leaf ran a block holding code
 // on it that it owns, and one that it does not own.
 type lineHolders struct {
@@ -102,9 +98,10 @@ type lineHolders struct {
 // leafCoverage reads a leaf's profile against its baseline chain: the lines of
 // every block it ran, and among them the lines it owns. A line is owned when the
 // leaf owns a block holding code on it and owns every block holding code on it
-// that it ran; a leaf with a missing baseline owns no line. A block of a file
+// that it ran, or when it is a clause header that the leaf matched (see
+// ownedClauseHeaders); a leaf with a missing baseline owns no line. A block of a file
 // outside the module is left out.
-func leafCoverage(profile blockCounts, chain baselineChain, source sourceLines, module string) vacuity.Coverage {
+func leafCoverage(profile blockCounts, chain baselineChain, source moduleSource, module string) vacuity.Coverage {
 	var ran []vacuity.Line
 	holders := map[vacuity.Line]lineHolders{}
 	for position, entry := range profile {
@@ -118,7 +115,7 @@ func leafCoverage(profile blockCounts, chain baselineChain, source sourceLines, 
 		}
 		owned := chain.owns(position, entry.count)
 		for _, line := range lines {
-			text, readable := source(line.File, line.Line)
+			text, readable := source.line(line.File, line.Line)
 			if readable && !entry.block.holdsCode(line.Line, text) {
 				continue
 			}
@@ -134,6 +131,7 @@ func leafCoverage(profile blockCounts, chain baselineChain, source sourceLines, 
 			ownedLines = append(ownedLines, line)
 		}
 	}
+	ownedLines = append(ownedLines, ownedClauseHeaders(profile, chain, source, module)...)
 	coverage := vacuity.Coverage{Lines: sortedLines(ran)}
 	if ownedLines != nil {
 		coverage.Owned = sortedLines(ownedLines)
@@ -170,3 +168,65 @@ const (
 	openingBrace = '{'
 	closingBrace = '}'
 )
+
+// positionedBlock is a block of a profile with the position that names it.
+type positionedBlock struct {
+	position string
+	countedBlock
+}
+
+// blocksByFile groups the blocks of a profile, whatever their count, by their
+// file relative to the module; a block of a file outside it is left out.
+func (c blockCounts) blocksByFile(module string) map[string][]positionedBlock {
+	byFile := map[string][]positionedBlock{}
+	for position, entry := range c {
+		if relative, inside := entry.block.relativeFile(module); inside {
+			byFile[relative] = append(byFile[relative], positionedBlock{position: position, countedBlock: entry})
+		}
+	}
+	return byFile
+}
+
+// ownedClauseHeaders gives the lines of the clause headers a leaf owns: a
+// header written on one line, entered by no fallthrough, that no block of the
+// profile holds code on, is owned when the leaf owns the block that starts one
+// column after its colon, which only a match of the clause enters.
+func ownedClauseHeaders(profile blockCounts, chain baselineChain, source moduleSource, module string) []vacuity.Line {
+	if chain.missing() {
+		return nil
+	}
+	var owned []vacuity.Line
+	for file, blocks := range profile.blocksByFile(module) {
+		for _, header := range source.clauseHeaders(file) {
+			if holdsCodeOnLine(blocks, file, header.line, source) {
+				continue
+			}
+			if matched, found := blockStartingAt(blocks, header.line, header.colonColumn+1); found && chain.owns(matched.position, matched.count) {
+				owned = append(owned, vacuity.Line{File: file, Line: header.line})
+			}
+		}
+	}
+	return owned
+}
+
+// holdsCodeOnLine reports whether a block holds code on the line of a file.
+func holdsCodeOnLine(blocks []positionedBlock, file string, line int, source moduleSource) bool {
+	text, readable := source.line(file, line)
+	if !readable {
+		return true
+	}
+	return slices.ContainsFunc(blocks, func(entry positionedBlock) bool {
+		return entry.block.first <= line && line <= entry.block.last && entry.block.holdsCode(line, text)
+	})
+}
+
+// blockStartingAt finds the block that starts at the column of a line.
+func blockStartingAt(blocks []positionedBlock, line, column int) (positionedBlock, bool) {
+	index := slices.IndexFunc(blocks, func(entry positionedBlock) bool {
+		return entry.block.first == line && entry.block.firstColumn == column
+	})
+	if index < 0 {
+		return positionedBlock{}, false
+	}
+	return blocks[index], true
+}
