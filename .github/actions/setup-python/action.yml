@@ -1,0 +1,33 @@
+name: Set up Python with uv
+description: >-
+  Installs uv and puts a virtual environment of the requested Python, seeded with
+  pip, first on PATH. uv installs the interpreter under UV_PYTHON_INSTALL_DIR, so
+  nothing lands in the runner's home directory.
+inputs:
+  python-version:
+    description: The Python version to install; read from python-version-file when empty.
+    required: false
+    default: ""
+  python-version-file:
+    description: A file whose first line names the Python version.
+    required: false
+    default: ""
+runs:
+  using: composite
+  steps:
+    - name: Set up uv
+      uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+
+    - name: Create the Python environment
+      shell: bash
+      env:
+        PYTHON_VERSION: ${{ inputs.python-version }}
+        PYTHON_VERSION_FILE: ${{ inputs.python-version-file }}
+      run: |
+        version="${PYTHON_VERSION}"
+        if [[ -z "${version}" ]]; then
+          version="$(head -n 1 "${PYTHON_VERSION_FILE}" | tr -d '[:space:]')"
+        fi
+        environment="${RUNNER_TEMP}/python-${version}"
+        uv venv --seed --python "${version}" "${environment}"
+        echo "${environment}/bin" >> "${GITHUB_PATH}"
