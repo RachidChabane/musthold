@@ -1448,3 +1448,12 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   report of one of its sessions covers it as SP-2135 gives, the outcome of the
   session that ran it otherwise, timed out when its last session timed out, and
   errored for a test absent from a module that collected.
+- **SP-2143~1**: WHEN `spec-proof-dp scan --budget 0` runs on a Go project whose
+  only survivals of a test lie in the setup its parent test runs before its
+  subtests, or on a pytest project whose only survivals of a test lie in the
+  teardown of a fixture, THE SYSTEM SHALL make no claim that the test verifies
+  nothing; WHEN it runs on a pytest project in which a change stops a test
+  module and a `conftest.py` from importing, THE SYSTEM SHALL settle the tests
+  outside them as usual and list that change apart for the tests it stops; and
+  SHALL write a statement the format accepts and replay its findings with
+  every claim held.
