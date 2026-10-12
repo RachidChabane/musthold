@@ -86,22 +86,39 @@ func (r Result) Proven(mutant string) bool { return len(r.Routes[mutant]) > 0 }
 // Classify computes the proven mutants, every test's verdict, the counts and the
 // ranking. The result does not depend on the order of any list of the input.
 func Classify(input Input) (Result, error) {
-	byID := map[string]Mutant{}
-	for _, mutant := range input.Mutants {
-		if _, seen := byID[mutant.ID]; seen {
-			return Result{}, fmt.Errorf("%w: %s", ErrDuplicateMutant, mutant.ID)
-		}
-		byID[mutant.ID] = mutant
+	byID, err := mutantsByID(input.Mutants)
+	if err != nil {
+		return Result{}, err
 	}
 	scan := newScan(input, byID)
 	result := Result{Routes: scan.routes()}
 	for _, test := range scan.suite() {
-		verdict := scan.verdict(test, result.Routes)
-		result.Verdicts = append(result.Verdicts, verdict)
-		result.Counts = result.Counts.Add(verdict.Class)
+		result.Verdicts = append(result.Verdicts, scan.verdict(test, result.Routes))
 	}
+	result.Counts = countsOf(result.Verdicts)
 	slices.SortFunc(result.Verdicts, compareVerdicts)
 	return result, nil
+}
+
+// mutantsByID indexes the mutants by id, refusing two with one id.
+func mutantsByID(mutants []Mutant) (map[string]Mutant, error) {
+	byID := make(map[string]Mutant, len(mutants))
+	for _, mutant := range mutants {
+		if _, seen := byID[mutant.ID]; seen {
+			return nil, fmt.Errorf("%w: %s", ErrDuplicateMutant, mutant.ID)
+		}
+		byID[mutant.ID] = mutant
+	}
+	return byID, nil
+}
+
+// countsOf counts the verdicts by class.
+func countsOf(verdicts []Verdict) format.ScanCounts {
+	var counts format.ScanCounts
+	for _, verdict := range verdicts {
+		counts = counts.Add(verdict.Class)
+	}
+	return counts
 }
 
 // scan is an input indexed for classification.
@@ -207,12 +224,18 @@ func (s scan) pairs(test ecosystem.TestID, routes map[string][]format.ScanRoute)
 // that survives enough changes on enough sites verifies nothing; any other
 // test is unproven.
 func (s scan) judge(test ecosystem.TestID, verdict Verdict) (format.ScanClass, format.ScanUnprovenReason) {
+	return classOf(s.sentinelKillers[test], verdict)
+}
+
+// classOf is the class and reason of a sampled green test, by whether it
+// failed a run on a sentinel and by its changes.
+func classOf(killsSentinel bool, verdict Verdict) (format.ScanClass, format.ScanUnprovenReason) {
 	outcomes := map[format.ScanOutcome]int{}
 	for _, change := range verdict.Changes {
 		outcomes[change.Outcome]++
 	}
 	switch {
-	case s.sentinelKillers[test]:
+	case killsSentinel:
 		return format.ScanUnproven, format.ScanKillsSentinel
 	case outcomes[format.ScanKilled] > 0:
 		return format.ScanCaught, ""
