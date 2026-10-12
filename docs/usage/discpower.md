@@ -158,9 +158,16 @@ spec-proof-dp scan [--full] [--base REV] [--seed N] [--sample N] [--mutants N] [
 The work tree must have no uncommitted change to a tracked file: a scan names
 the commit it ran on. It copies the tree into a workspace outside it, runs the
 whole suite three times and records, per test, the lines its run executed and,
-among them, the lines the test owns: for Go, the blocks it ran more often than
-its test binary's start-up does; for pytest, every line it recorded, since
-collection is never recorded.
+among them, the lines the test owns, which exclude what it shares with other
+tests. For Go, a test owns the blocks it ran more often than its parent test
+run alone with no subtest, or than its binary's start-up for a top-level test,
+each run three times; a block whose count differs between those runs is no
+test's own, and a test whose parent fails with no subtest owns nothing. A line
+is owned when every block holding code on it that the test ran is owned, so a
+`case` condition, which no block holds, is never owned. For pytest, a test owns
+the lines its own thread ran in its setup and call, outside the setup of a
+fixture wider than the function and outside the body of a module it imported;
+a teardown is never owned.
 Without `--base` it samples green tests, stratified by file; with `--base` it
 takes the green tests that run a function changed since that revision. It draws
 operator mutants on the lines the judged tests own, round-robin over those
@@ -201,10 +208,15 @@ A mutant can stop a test's process before any test starts: a Go test binary
 that panics in a package variable or `init`, or a pytest module, `conftest.py`
 or `__init__.py` that raises on import. When every run of a test on a mutant
 stopped so, the change counts neither for nor against the test: the statement
-lists it apart from the test's changes, under `notStarted`. A Go process that
-exits early with tests left unrun counts as one run, and the package runs again
-in fresh processes until each test has three. The headline gives each class
-over its denominator and never reads as a pass:
+lists it apart from the test's changes, under `notStarted`. The other tests of
+the run still run: a pytest session names the test files, keeps the selected
+tests alone and never stops at a failure, whatever the project's options say,
+and runs again without the tests below a `conftest.py` that stopped it. A Go
+process that exits early with tests left unrun counts as one run, and the
+package runs again in fresh processes until each test has three. A Go subtest
+that passes while its parent fails on its own did not pass; when a failing
+sibling may have failed the parent, the subtest runs again without it. The
+headline gives each class over its denominator and never reads as a pass:
 
 ```
 acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled · seed 7
