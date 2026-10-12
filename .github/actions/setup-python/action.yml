@@ -1,8 +1,9 @@
 name: Set up Python with uv
 description: >-
-  Installs uv and puts a virtual environment of the requested Python, seeded with
-  pip, first on PATH. uv installs the interpreter under UV_PYTHON_INSTALL_DIR, so
-  nothing lands in the runner's home directory.
+  Installs uv, installs the requested Python into the job's temporary directory,
+  outside uv's managed installations so that projects set to python-preference
+  only-system find it on PATH, and puts first on PATH a virtual environment of it
+  seeded with pip. Nothing lands in the runner's home directory.
 inputs:
   python-version:
     description: The Python version to install; read from python-version-file when empty.
@@ -28,6 +29,11 @@ runs:
         if [[ -z "${version}" ]]; then
           version="$(head -n 1 "${PYTHON_VERSION_FILE}" | tr -d '[:space:]')"
         fi
+        distribution="${RUNNER_TEMP}/python-dist-${version}"
         environment="${RUNNER_TEMP}/python-${version}"
-        uv venv --seed --python "${version}" "${environment}"
+        (cd "${RUNNER_TEMP}" && uv python install --install-dir "${distribution}" "${version}")
+        interpreter_bin="$(find "${distribution}" -maxdepth 2 -type d -name bin -path "*cpython-*" | head -n 1)"
+        (cd "${RUNNER_TEMP}" && uv venv --seed --python "${interpreter_bin}/python3" "${environment}")
+        # Each GITHUB_PATH line goes before the earlier ones: the environment comes first.
+        echo "${interpreter_bin}" >> "${GITHUB_PATH}"
         echo "${environment}/bin" >> "${GITHUB_PATH}"
