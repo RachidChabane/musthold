@@ -171,6 +171,16 @@ jobs:
         with:
           python-version-file: bench/.python-version
 
+      - name: Put OpenSSL 3 first on PATH
+        # The gate's tests sign with ed25519 keys, which macOS's LibreSSL cannot make.
+        env:
+          HOMEBREW_CACHE: /Volumes/ci-runner/cache/homebrew
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
+        run: |
+          brew list --versions openssl@3 >/dev/null || brew install openssl@3
+          echo "$(brew --prefix openssl@3)/bin" >> "${GITHUB_PATH}"
+
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
