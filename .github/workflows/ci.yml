@@ -182,9 +182,11 @@ jobs:
           HOMEBREW_CACHE: /Volumes/ci-runner/cache/homebrew
           HOMEBREW_NO_AUTO_UPDATE: "1"
           HOMEBREW_NO_INSTALL_CLEANUP: "1"
+          # The runner's service PATH does not hold Homebrew.
+          BREW: /opt/homebrew/bin/brew
         run: |
-          brew list --versions openssl@3 >/dev/null || brew install openssl@3
-          echo "$(brew --prefix openssl@3)/bin" >> "${GITHUB_PATH}"
+          "${BREW}" list --versions openssl@3 >/dev/null || "${BREW}" install openssl@3
+          echo "$("${BREW}" --prefix openssl@3)/bin" >> "${GITHUB_PATH}"
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
