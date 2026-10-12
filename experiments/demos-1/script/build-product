@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# PREREG 2: build spec-proof and spec-proof-dp for linux from the tree of a commit, with
+# -ldflags "-X main.version=<commit> -X main.commit=<commit>", into $DEMOS1_PRODUCT/bin.
+# Usage: script/build-product [--ref REF]   (default: the tag demos-1-product)
+set -euo pipefail
+# shellcheck source=experiments/demos-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+demos_heavy build-product "$@"

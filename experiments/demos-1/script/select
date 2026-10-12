@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# PREREG 5-7: build the four lists from the GitHub API, once, within one UTC date, saving every response.
+# Usage: script/select                         (the run; needs the product and the image built)
+#        script/select --replay DIR --out DIR  (recompute the lists offline from saved responses)
+set -euo pipefail
+# shellcheck source=experiments/demos-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+trap stop_machine EXIT
+demos_light select "$@"

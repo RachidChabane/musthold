@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# The harness tests without containers, in one pytest process under mem-guard (no network).
+# Usage: script/test [PYTEST ARGS...]
+set -euo pipefail
+# shellcheck source=experiments/demos-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+cd "${HARNESS_DIR}"
+run_heavy uv run --frozen pytest -q "$@"

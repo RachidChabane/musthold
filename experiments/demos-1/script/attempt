@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# PREREG 8-10: the attempts, pytest first then Go, one container at a time; resumable at the command it
+# stopped at. Every container command runs under script/with-slot and script/mem-guard.
+# Usage: script/attempt
+set -euo pipefail
+# shellcheck source=experiments/demos-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+trap stop_machine EXIT
+demos_light attempt "$@"

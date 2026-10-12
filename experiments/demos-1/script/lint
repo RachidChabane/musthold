@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Static checks: ruff, pyright strict, the import-linter contracts, and shellcheck of the scripts and the wrapper.
+set -euo pipefail
+# shellcheck source=experiments/demos-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+cd "${HARNESS_DIR}"
+run_light uv run --frozen ruff format --check src tests
+run_light uv run --frozen ruff check src tests
+run_light uv run --frozen lint-imports
+run_heavy uv run --frozen pyright
+if command -v shellcheck >/dev/null 2>&1; then
+  cd "${REPO_ROOT}"
+  run_light shellcheck -x experiments/demos-1/script/* experiments/demos-1/image/demos1-run
+fi

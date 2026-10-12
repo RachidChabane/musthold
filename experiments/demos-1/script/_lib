@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Shared by the experiments/demos-1/script/<verb> front door; source it, never run it.
+#
+# A verb runs as `uv run --frozen --project harness python -m demos1.cli <verb>`, from any directory.
+# Heavy work (product builds, image builds, test runs) goes through `script/mem-guard run --`: it applies
+# nice and refuses to start, or stops, when the laptop's free memory or pressure level is not safe.
+# $DEMOS1_WORK (default ~/.spec-proof-demos-1) holds every raw record; $DEMOS1_PRODUCT (default
+# ~/.spec-proof-demos-1-product) holds the product binaries the engine's machine mounts read-only.
+
+DEMOS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "${DEMOS_DIR}/../.." && pwd)"
+HARNESS_DIR="${DEMOS_DIR}/harness"
+MEM_GUARD="${REPO_ROOT}/script/mem-guard"
+MACHINE_PROFILE="spec-proof-demos"
+readonly DEMOS_DIR REPO_ROOT HARNESS_DIR MEM_GUARD MACHINE_PROFILE
+export DEMOS1_REPO="${REPO_ROOT}"
+
+# run_light CMD...: a short command that needs no memory guard.
+run_light() {
+  nice -n 10 "$@"
+}
+
+# run_heavy CMD...: a long or memory-hungry command, guarded.
+run_heavy() {
+  "${MEM_GUARD}" run -- "$@"
+}
+
+# demos_light VERB ARGS...
+demos_light() {
+  run_light uv run --frozen --project "${HARNESS_DIR}" python -m demos1.cli "$@"
+}
+
+# demos_heavy VERB ARGS...
+demos_heavy() {
+  run_heavy uv run --frozen --project "${HARNESS_DIR}" python -m demos1.cli "$@"
+}
+
+# stop_machine: stop the engine's machine whatever state it is in; used by traps on exit.
+stop_machine() {
+  if command -v colima >/dev/null 2>&1; then
+    colima stop --profile "${MACHINE_PROFILE}" >/dev/null 2>&1 || true
+  fi
+}

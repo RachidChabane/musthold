@@ -1,0 +1,61 @@
+#!/bin/sh
+# Runs one command of a container and records it (PREREG 13).
+#
+#   demos1-run --record PREFIX [--limit SECONDS] -- COMMAND [ARGS...]
+#
+# The command's stdout and stderr go to PREFIX.stdout and PREFIX.stderr. With a limit, the command
+# runs under `timeout -s KILL SECONDS`. The wall time comes from /proc/uptime, a clock that never
+# goes back; the peak memory is the container cgroup's memory.peak, read at exit. Both go to
+# PREFIX.measure.json, next to the log PREFIX.log. The exit status is the command's.
+set -u
+
+readonly EXIT_USAGE=2
+readonly KILLED_STATUS=137
+readonly MEMORY_PEAK=/sys/fs/cgroup/memory.peak
+
+record=""
+limit=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --record) record="$2"; shift 2 ;;
+    --limit) limit="$2"; shift 2 ;;
+    --) shift; break ;;
+    *) echo "demos1-run: unknown argument $1" >&2; exit "$EXIT_USAGE" ;;
+  esac
+done
+if [ -z "$record" ] || [ $# -eq 0 ]; then
+  echo "usage: demos1-run --record PREFIX [--limit SECONDS] -- COMMAND [ARGS...]" >&2
+  exit "$EXIT_USAGE"
+fi
+
+uptime_seconds() { cut -d' ' -f1 /proc/uptime; }
+
+log="$record.log"
+{
+  echo "start $(date -u +%Y-%m-%dT%H:%M:%SZ) limit=${limit:-none}"
+  printf 'command:'
+  for argument in "$@"; do printf ' %s' "$argument"; done
+  echo
+} >"$log"
+
+start="$(uptime_seconds)"
+if [ -n "$limit" ]; then
+  timeout -s KILL "$limit" "$@" >"$record.stdout" 2>"$record.stderr"
+else
+  "$@" >"$record.stdout" 2>"$record.stderr"
+fi
+status=$?
+end="$(uptime_seconds)"
+
+peak="$(cat "$MEMORY_PEAK" 2>/dev/null || echo null)"
+wall="$(awk -v s="$start" -v e="$end" 'BEGIN { printf "%.2f", e - s }')"
+timed_out=false
+if [ -n "$limit" ] && [ "$status" -eq "$KILLED_STATUS" ] &&
+  awk -v w="$wall" -v l="$limit" 'BEGIN { exit !(w >= l - 0.1) }'; then
+  timed_out=true
+fi
+
+printf '{"exit_status": %d, "limit_seconds": %s, "memory_peak_bytes": %s, "timed_out": %s, "wall_seconds": %s}\n' \
+  "$status" "${limit:-null}" "$peak" "$timed_out" "$wall" >"$record.measure.json"
+echo "end status=$status wall=${wall}s memory.peak=$peak timed_out=$timed_out" >>"$log"
+exit "$status"

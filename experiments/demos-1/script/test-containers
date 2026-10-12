@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# PREREG 15.4: the container tests on the two local fixture repositories, one pytest and one Go, in the
+# engine's machine. Builds the product from HEAD and the image into a scratch work directory, runs the
+# tests marked `docker`, then stops the machine and deletes the scratch directory, whatever the exit.
+# Set DEMOS1_KEEP=1 to keep the scratch directory for inspection.
+# Usage: script/test-containers [PYTEST ARGS...]
+set -euo pipefail
+# shellcheck source=experiments/demos-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+
+scratch="$(cd "$(mktemp -d "${TMPDIR:-/tmp}/demos1-containers.XXXXXX")" && pwd -P)"
+cleanup() {
+  stop_machine
+  if [[ "${DEMOS1_KEEP:-0}" == "1" ]]; then
+    echo "test-containers: kept ${scratch}" >&2
+  else
+    chmod -R u+w "${scratch}" 2>/dev/null || true
+    rm -rf "${scratch}"
+  fi
+}
+trap cleanup EXIT
+
+export DEMOS1_WORK="${scratch}/work"
+export DEMOS1_PRODUCT="${scratch}/product"
+demos_heavy build-product --ref HEAD
+demos_heavy build-image
+cd "${HARNESS_DIR}"
+run_heavy uv run --frozen pytest -q -m docker tests/integration "$@"

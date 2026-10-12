@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# PREREG 12.2: write notes/demos-1/summary.json and SUMMARY.md from $DEMOS1_WORK; refused unless the
+# origin is private and the public export leaves notes/ out.
+# Usage: script/summarize
+set -euo pipefail
+# shellcheck source=experiments/demos-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+demos_light summarize "$@"

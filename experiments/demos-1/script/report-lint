@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# PREREG 12.3: lint notes/demos-1/SUMMARY.md outside quoted scan output; exit 1 on any violation.
+# Usage: script/report-lint
+set -euo pipefail
+# shellcheck source=experiments/demos-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+demos_light report-lint "$@"

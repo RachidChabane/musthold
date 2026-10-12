@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Install the locked dependencies of the harness (the only step of the tests that needs the network).
+set -euo pipefail
+# shellcheck source=experiments/demos-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+run_light uv sync --frozen --project "${HARNESS_DIR}"

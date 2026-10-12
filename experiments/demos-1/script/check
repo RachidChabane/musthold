@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Everything CI runs: static checks, then the tests without containers.
+set -euo pipefail
+"$(dirname "${BASH_SOURCE[0]}")/lint"
+"$(dirname "${BASH_SOURCE[0]}")/test" "$@"

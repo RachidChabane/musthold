@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# PREREG 2: resolve both source images to digests and build the image from them, inside the engine's
+# machine, which starts for the build and stops after it.
+# Usage: script/build-image
+set -euo pipefail
+# shellcheck source=experiments/demos-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+trap stop_machine EXIT
+demos_heavy build-image "$@"
