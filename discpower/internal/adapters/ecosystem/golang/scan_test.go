@@ -30,7 +30,7 @@ const (
 	verifiesLines     = " [verifies SP-2101~4]"
 	verifiesBinding   = " [verifies SP-2103~1]"
 	verifiesEvents    = " [verifies SP-2128~1]"
-	verifiesWorkers   = " [verifies SP-2131~2]"
+	verifiesWorkers   = " [verifies SP-2131~3]"
 	// coverageWorkers runs the tests under coverage two at a time.
 	coverageWorkers = 2
 	verifiesBound   = " [verifies SP-2127~1]"

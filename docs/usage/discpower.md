@@ -204,6 +204,14 @@ least 5 proven changes, on at least 2 lines, in the lines it ran. A pass counts
 only on a line the test owns: a line its process ran only at start-up records a
 kill or an inconclusive outcome, never a survival.
 
+Before a test is named, the scan confirms its claim alone, since a mutant runs
+every test that ran its lines in one selection. The test keeps only the changes
+on lines it also owns when it runs alone, recorded again in a session of its
+own for pytest; a change only kills prove stays only when one of its killers,
+run alone, passes the reference and fails the mutant three times; and the test
+runs alone three times on each change left, a change it does not pass three
+times making it unproven. The number it prints is the confirmed one.
+
 A mutant can stop a test's process before any test starts: a Go test binary
 that panics in a package variable or `init`, or a pytest module, `conftest.py`
 or `__init__.py` that raises on import. When every run of a test on a mutant
@@ -231,7 +239,7 @@ acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled ·
    src/invoicing/parse.py:41  >= → >   input line="a,": reference "a", mutant ""
    proven by: a differential run of invoicing.parse:split_fields, reproduced, on a reference that agrees with itself
    repro: .spec-proof/scan/3f2a9c1/1/repro.sh
-150 mutants (61 proven) · 4m12s (reference 41s, coverage 1m2s, draw 1s, mutants 2m28s) · no model used · promises not checked
+150 mutants (61 proven) · 4m12s (reference 41s, coverage 1m2s, draw 1s, mutants 2m16s, confirmation 12s) · no model used · promises not checked
 7/40 sampled tests stay green on every proven change in lines they ran: on those lines, their green is no evidence the code is right.
 ```
 
@@ -249,7 +257,8 @@ leaves unshown, over the sampled tests; a scan in which none does ends on the
 mutant count.
 
 The scan exits 0 whatever it finds. `--budget` stops starting mutants after that
-long and marks the counts partial. Each run of tests under coverage is bounded
+long and marks the counts partial; the claims are confirmed once the mutants
+stop, whatever the budget. Each run of tests under coverage is bounded
 by ten times one reference run of the suite, between 2 and 30 minutes;
 `--coverage-timeout` sets another bound, and a run past its bound fails the scan
 with an error that names it. `--format md` prints the report as a

@@ -30,7 +30,7 @@ const (
 	scanRunTimeout   = 2 * time.Minute
 	verifiesScanRuns = " [verifies SP-2102~4]"
 	verifiesStartUp  = " [verifies SP-2135~1]"
-	verifiesLines    = " [verifies SP-2100~3]"
+	verifiesLines    = " [verifies SP-2100~4]"
 	verifiesBinding  = " [verifies SP-2103~1]"
 	verifiesBound    = " [verifies SP-2127~1]"
 	// overrunBound is a coverage bound no run can keep.
@@ -215,7 +215,7 @@ func TestScanRunsOfASessionThatStops(t *testing.T) {
 }
 
 func TestScanCoverageOfOneRun(t *testing.T) {
-	t.Run("one run of a pytest suite records every test's coverage [verifies SP-2131~2]", func(t *testing.T) {
+	t.Run("one run of a pytest suite records every test's coverage [verifies SP-2131~3]", func(t *testing.T) {
 		if !openScanProject(t).suite.CoverageOfOneRun() {
 			t.Fatal("pytest records each test alone")
 		}

@@ -8,7 +8,7 @@ import (
 )
 
 func TestStoppedSentinels(t *testing.T) {
-	t.Run("a sentinel on which a run of a test did not start is counted once; an operator mutant or a sentinel that did not run is not [verifies SP-2129~2]", func(t *testing.T) {
+	t.Run("a sentinel on which a run of a test did not start is counted once; an operator mutant or a sentinel that did not run is not [verifies SP-2129~3]", func(t *testing.T) {
 		const first, second = ecosystem.TestID("tests/test_a.py::test_a"), ecosystem.TestID("tests/test_b.py::test_b")
 		stopped := map[ecosystem.TestID][]vacuity.Run{
 			first:  {vacuity.RunNotStarted, vacuity.RunPassed, vacuity.RunPassed},

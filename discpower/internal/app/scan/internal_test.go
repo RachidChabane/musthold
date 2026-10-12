@@ -23,7 +23,7 @@ func TestRunTimeout(t *testing.T) {
 		{3 * time.Minute, 3 * time.Minute},
 	}
 	for _, c := range cases {
-		t.Run("three reference runs of "+c.reference.String()+" bound a mutant run by "+c.want.String()+" [verifies SP-2111~2]", func(t *testing.T) {
+		t.Run("three reference runs of "+c.reference.String()+" bound a mutant run by "+c.want.String()+" [verifies SP-2111~3]", func(t *testing.T) {
 			if got := runTimeout(c.reference); got != c.want {
 				t.Fatalf("timeout = %s", got)
 			}

@@ -19,7 +19,7 @@ import (
 const (
 	verifiesText     = " [verifies SP-2115~4]"
 	verifiesMarkdown = " [verifies SP-2116~3]"
-	verifiesGaps     = " [verifies SP-2129~2]"
+	verifiesGaps     = " [verifies SP-2129~3]"
 	verifiesFolders  = " [verifies SP-2117~1]"
 	verifiesStake    = " [verifies SP-2132~1]"
 

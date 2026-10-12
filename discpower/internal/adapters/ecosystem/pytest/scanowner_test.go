@@ -24,7 +24,7 @@ const (
 	loyaltyTakesATenth  = ecosystem.TestID(chargesTests + "::test_loyalty_takes_a_tenth")
 	tickerKeepsItsBook  = ecosystem.TestID(tickerTests + "::test_ticker_keeps_its_own_book")
 	expressCostsMore    = ecosystem.TestID(invoicingTests + "::test_express_costs_more")
-	verifiesOwnedLines  = " [verifies SP-2100~3]"
+	verifiesOwnedLines  = " [verifies SP-2100~4]"
 	verifiesSessionRuns = " [verifies SP-2142~1]"
 	verifiesSelection   = " [verifies SP-2102~4]"
 )

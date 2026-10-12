@@ -1111,9 +1111,11 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 
 ## Scan
 
-- **SP-2100~3**: WHEN the line coverage of a pytest suite is recorded THE SYSTEM
+- **SP-2100~4**: WHEN the line coverage of a pytest suite is recorded THE SYSTEM
   SHALL run the suite once under a coverage plugin placed only on the import path
-  of the workspace, with `--continue-on-collection-errors --maxfail=0`, record
+  of the workspace, or, for a recording of each test alone, one session per
+  test that selects it and no other test as SP-2102 selects tests, with
+  `--continue-on-collection-errors --maxfail=0`, record
   line events over the setup, call and teardown of each test and never during
   collection, and give per test, by node id, the lines of the project's source
   files it ran, never a line of a test file; SHALL give as owned only the lines
@@ -1213,14 +1215,14 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   the mutants, never proving one; and order the mutants to start the sentinels
   first, then the operator mutants in the order the allocation drew them, the
   order SP-2139 starts them from.
-- **SP-2111~2**: WHEN a scan runs a mutant THE SYSTEM SHALL run it, on at most
+- **SP-2111~3**: WHEN a scan runs a mutant of its draw THE SYSTEM SHALL run it, on at most
   the requested number of workers, by default those of SP-2130, against every
   green test whose recorded coverage holds one of its mutated lines, three times, each run bounded by
   three times the duration of one reference run of the whole suite and at least
   30 seconds; run no test of a mutant other than a sentinel whose every edited
   site compiles to the reference's form, a sentinel always running; drop and
   count a mutant that does not splice or build; and
-  start no mutant once the budget has passed since the scan began, and stop a
+  start no mutant of the draw once the budget has passed since the scan began, and stop a
   mutant still running then, counting it as not run, marking the scan partial
   with the counts reached.
 - **SP-2112~1**: WHEN no test killed a mutant that is not a sentinel THE SYSTEM
@@ -1241,11 +1243,12 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   finding per test that verifies nothing, in rank order, with the first of its
   changes a difference proves, else its first change, the route, the files the
   change edits before and after, and the command line that runs the test.
-- **SP-2114~1**: WHEN a finding is replayed THE SYSTEM SHALL refuse a work tree
+- **SP-2114~2**: WHEN a finding is replayed THE SYSTEM SHALL refuse a work tree
   that is dirty or at another commit, and re-execute with no model, on a copy of
   the work tree, that the test passes the reference and the mutant three runs out
   of three, that the mutant builds, that a killing test passes the reference and
-  fails the mutant three runs out of three, and that the input of a difference
+  fails the mutant three runs out of three, the test and the killing test each
+  in a selection of its own, and that the input of a difference
   gives each recorded result twice on its side; and SHALL report every claim
   that does not hold.
 - **SP-2115~4**: WHEN a scan is printed for a terminal THE SYSTEM SHALL print the
@@ -1337,7 +1340,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   duration of one reference run of the whole suite, at least 2 minutes and at
   most 30 minutes; and SHALL fail on a run past its bound with an error that
   names the bound and `--coverage-timeout`.
-- **SP-2129~2**: WHEN a scan is recorded THE SYSTEM SHALL explain each unproven
+- **SP-2129~3**: WHEN a scan is recorded THE SYSTEM SHALL explain each unproven
   test by its changes, the drawn operator mutants on the lines it ran and, for
   each of them no route proves, why it proves nothing: not run within the
   budget, did not build or start, identical when compiled, killed only by a
@@ -1346,19 +1349,19 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   search can bind, a bound function it cannot call, or a search that found no
   difference; SHALL count the sentinels on which a run of a test did not
   start; and SHALL time each phase of the scan: the reference, the coverage, the
-  draw and the mutants.
+  draw, the mutants and the confirmation of SP-2144.
 - **SP-2130~1**: WHEN a scan is given no number of workers THE SYSTEM SHALL read
   the processors of the machine and the share of its memory that is free, with
   `sysctl` and `memory_pressure` on macOS and /proc/meminfo elsewhere, and run
   one worker per two processors and per GiB of memory above the 40 % the memory
   guard keeps free, the fewer of the two, at least one and at most four; and
   the default workers when the capacity cannot be read.
-- **SP-2131~2**: WHEN a scan runs quickly THE SYSTEM SHALL sample 12 green tests,
+- **SP-2131~3**: WHEN a scan runs quickly THE SYSTEM SHALL sample 12 green tests,
   draw 6 operator mutants for each, record the line coverage of the sampled
   tests only, so that only they run a mutant or a sentinel, unless the runner
   records every test in one run of the suite, as pytest does, when it records
-  every green test; and run no mutant once 90 seconds have passed since the
-  scan began; WHEN a scan runs in full it
+  every green test; and run no mutant of the draw once 90 seconds have passed since the
+  scan began, confirming its claims as SP-2144 gives once they stop; WHEN a scan runs in full it
   SHALL sample 40 tests, draw 150 mutants, record the coverage of every green
   test and have no budget; and a Go suite SHALL build the coverage binary of
   each package and run its tests under coverage on the scan's workers.
@@ -1460,5 +1463,31 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   fixture, THE SYSTEM SHALL make no claim that the test verifies nothing; WHEN it runs on a pytest project in which a change stops a test
   module and a `conftest.py` from importing, THE SYSTEM SHALL settle the tests
   outside them as usual and list that change apart for the tests it stops; and
+  SHALL write a statement the format accepts and replay its findings with
+  every claim held.
+- **SP-2144~1**: WHEN a scan has classified a test as verifying nothing THE
+  SYSTEM SHALL, before it reports the test, confirm the claim on the changes
+  the test cites: keep a change only when the test owns one of its mutated
+  lines both in the recording of the scan and in a recording of the test in a
+  run that selects it alone, recording it so where the runner records every
+  test in one run of the suite and reading the scan's recording where it
+  records each test alone; keep a change that only kills prove only when one
+  of its killers, run alone, passes the reference and fails the mutant three
+  runs out of three; run the test alone three times on the mutant of each
+  change left and record a change it does not pass on all three as
+  inconclusive; classify the test again on those changes, so that the count it
+  prints is the confirmed one, and hold it unproven when its recording alone
+  fails, each of its changes inconclusive; run every test of the confirmation
+  in a selection of its own, after the mutants of the draw, whether or not the
+  budget has passed, bounded by the changes the tests cite; change no other
+  verdict, no route and no count but the test's own; show in a finding a kill
+  only by a killer the confirmation upheld; and write the scan statement in
+  the same form.
+- **SP-2145~1**: WHEN `spec-proof-dp scan --budget 0` runs on a pytest project
+  one of whose tests owns lines only once an earlier test of the session set
+  the state it reads, or on a Go project one of whose tests passes the changes
+  it runs only beside the test that seeds the state it reads, THE SYSTEM SHALL
+  make no claim that the test verifies nothing; SHALL keep the claim of a test
+  that verifies nothing alone and print the time of the confirmation; and
   SHALL write a statement the format accepts and replay its findings with
   every claim held.

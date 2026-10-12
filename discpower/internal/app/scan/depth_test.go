@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	verifiesComposition = " [verifies SP-2129~2]"
+	verifiesComposition = " [verifies SP-2129~3]"
 	verifiesWorkers     = " [verifies SP-2130~1]"
-	verifiesDepth       = " [verifies SP-2131~2]"
+	verifiesDepth       = " [verifies SP-2131~3]"
 
 	gibibyte = 1 << 30
 )
@@ -153,8 +153,8 @@ func TestUnprovenComposition(t *testing.T) {
 	})
 	t.Run("the phases of the scan add up to no more than its time"+verifiesComposition, func(t *testing.T) {
 		phases := report.Phases
-		if phases.Reference <= 0 || phases.Coverage <= 0 || phases.Draw <= 0 || phases.Mutants <= 0 ||
-			phases.Reference+phases.Coverage+phases.Draw+phases.Mutants > report.Elapsed {
+		if phases.Reference <= 0 || phases.Coverage <= 0 || phases.Draw <= 0 || phases.Mutants <= 0 || phases.Confirmation <= 0 ||
+			phases.Reference+phases.Coverage+phases.Draw+phases.Mutants+phases.Confirmation > report.Elapsed {
 			t.Fatalf("phases %+v of %s", phases, report.Elapsed)
 		}
 	})

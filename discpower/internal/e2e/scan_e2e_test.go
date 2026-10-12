@@ -21,7 +21,7 @@ const (
 	vacuousPytest     = "tests/test_discount.py::test_discount_accepts_any_percent"
 	vacuousGo         = "discount_test.go::TestDiscountAcceptsAnyPercent"
 	verifiesScanE2E   = " [verifies SP-2122~2]"
-	verifiesReplay    = " [verifies SP-2114~1]"
+	verifiesReplay    = " [verifies SP-2114~2]"
 	verifiesCommand   = " [verifies SP-2119~2]"
 	verifiesOrder     = " [verifies SP-2140~1]"
 )
