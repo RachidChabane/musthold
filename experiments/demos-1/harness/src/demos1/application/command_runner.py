@@ -55,6 +55,8 @@ class PlannedRun:
     command: ContainerCommand
     fresh: Sequence[PurePosixPath]
     prefix: PurePosixPath
+    cleared: Sequence[PurePosixPath] = ()
+    """What an earlier run of the command may have left half built; removed before every run after the first."""
 
 
 @dataclass(frozen=True)
@@ -96,6 +98,9 @@ class CommandRunner:
             if not self._engine.available():
                 self._wait(0.0)
                 continue
+            if record.runs:
+                for path in planned.cleared:
+                    self._files.remove_tree(path)
             self._files.make_fresh(planned.fresh)
             try:
                 host = self._engine.run(planned.command, plan.slots, plan.cap_seconds, planned.prefix)

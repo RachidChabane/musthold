@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import PurePosixPath
@@ -364,6 +364,7 @@ class _Attempt:
         limit: int | None,
         workdir: PurePosixPath,
         clone: bool = False,
+        cleared: Sequence[PurePosixPath] = (),
     ) -> CommandPlan:
         def planned(run: int) -> PlannedRun:
             prefix = self.layout.setup_prefix(stage, run)
@@ -378,7 +379,7 @@ class _Attempt:
                 workdir=workdir,
                 clone=clone,
             )
-            return PlannedRun(command, (tmpdir, self.layout.logs), prefix)
+            return PlannedRun(command, (tmpdir, self.layout.logs), prefix, cleared)
 
         return CommandPlan(SETUP_SLOTS, None, planned)
 
@@ -468,7 +469,12 @@ class _Attempt:
         argv = commands.install_command(self.target.ecosystem, facts, self._python_request())
         stage.details |= {"recipe_files": sorted(present), "recipe": argv}
         plan = self._setup_plan(
-            SetupStage.INSTALL, argv, network=True, limit=INSTALL_LIMIT_SECONDS, workdir=self.layout.clone
+            SetupStage.INSTALL,
+            argv,
+            network=True,
+            limit=INSTALL_LIMIT_SECONDS,
+            workdir=self.layout.clone,
+            cleared=(self.layout.clone / commands.VENV_DIRECTORY,),
         )
         self._settle(plan, stage.command)
         return setup_failed(stage.command.end(), SetupOutcome.INSTALL)

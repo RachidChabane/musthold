@@ -12,7 +12,8 @@ from typing import Final, cast
 from demos1.domain.ecosystem import Ecosystem
 
 SHELL: Final = ("/bin/sh", "-c")
-VENV_PYTHON: Final = ".venv/bin/python"
+VENV_DIRECTORY: Final = ".venv"
+VENV_PYTHON: Final = f"{VENV_DIRECTORY}/bin/python"
 GITMODULES: Final = ".gitmodules"
 UV_LOCK: Final = "uv.lock"
 PROJECT_FILES: Final = ("pyproject.toml", "setup.py", "setup.cfg")

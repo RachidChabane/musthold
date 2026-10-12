@@ -130,3 +130,33 @@ def test_a_container_left_by_a_stopped_verb_is_recorded_and_the_command_reruns_u
     assert [run.name for run in record.runs] == ["B-go-01-install-r1", "B-go-01-install-r2"]
     assert record.runs[0].stopped_by_operator
     assert ("stop", "B-go-01-install-r1") in engine.calls
+
+
+def test_a_rerun_after_an_interruption_starts_without_what_the_first_run_left_half_built(tmp_path: Path):
+    venv = tmp_path / "clone" / ".venv"
+    seen: list[bool] = []
+    answers = iter(
+        [
+            Played(
+                exit_code=143, host_exit=5, client_stderr="mem-guard: memory pressure left normal; stopping the batch"
+            ),
+            Played(exit_code=0),
+        ]
+    )
+
+    def play(command: ContainerCommand) -> Played:
+        seen.append(venv.exists())
+        if not seen[1:]:
+            (venv / "bin").mkdir(parents=True)
+        return next(answers)
+
+    base = plan(tmp_path)
+
+    def planned(run: int) -> PlannedRun:
+        first = base.run(run)
+        return PlannedRun(first.command, first.fresh, first.prefix, (PurePosixPath(venv),))
+
+    record = CommandRecord()
+    runner(ScriptedEngine(play), FakeClock()).settle(CommandPlan(1, None, planned), record)
+    assert seen == [False, False]
+    assert [run.interrupted for run in record.runs] == [True, False]
