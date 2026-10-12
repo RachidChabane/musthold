@@ -22,7 +22,7 @@ const (
 	launchJournal     = "gauge/launches"
 	calibrationFile   = "gauge/calibration_test.go"
 	verifiesStartUp   = " [verifies SP-2134~1]"
-	verifiesOwnership = " [verifies SP-2101~2]"
+	verifiesOwnership = " [verifies SP-2101~3]"
 	// startUpRunTimeout bounds one run of a selection whose start-up sleeps
 	// past it.
 	startUpRunTimeout = time.Second

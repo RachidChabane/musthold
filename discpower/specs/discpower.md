@@ -1097,48 +1097,71 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-2030~1**: WHEN an edit set is written into a scan statement THE SYSTEM
   SHALL write its edits in canonical order with the target of a definition
   omitted, so that their scan digest is its mutant id.
-- **SP-2133~1**: WHEN a scan is classified THE SYSTEM SHALL change no class, no
+- **SP-2133~2**: WHEN a scan is classified THE SYSTEM SHALL change no class, no
   reason, no change, no count and no route by a survival on a line a test ran
   only at start-up or by runs that did not start; SHALL count among the changes
   of a test that verifies nothing exactly its survivals of proven mutants on
   lines it owns; SHALL hold a test with an inconclusive outcome on a line it ran
   only at start-up unproven, and a test that kills a change on such a line
-  caught; and SHALL hold a test whose coverage names no owned line as owning
-  none.
+  caught; SHALL hold a test whose coverage names no owned line as owning
+  none, and a line outside the lines a test ran as one it does not own; SHALL
+  create no kill, no route, no inconclusive outcome and no test that verifies
+  nothing when a test owns fewer lines; and SHALL give the same judgement
+  whatever the order of the lines a test ran and owns.
 
 ## Scan
 
-- **SP-2100~2**: WHEN the line coverage of a pytest suite is recorded THE SYSTEM
+- **SP-2100~3**: WHEN the line coverage of a pytest suite is recorded THE SYSTEM
   SHALL run the suite once under a coverage plugin placed only on the import path
-  of the workspace, record line events over the setup, call and teardown of each
-  test and never during collection, and give per test, by node id, the lines of
-  the project's source files it ran, never a line of a test file, the test
-  owning every line it recorded; and SHALL derive from the same run the
-  functions of SP-161, with `sys.monitoring` where the interpreter has it and
-  `sys.settrace` otherwise.
-- **SP-2101~2**: WHEN the line coverage of a Go test is recorded THE SYSTEM SHALL
-  build the test binary of its package once in the workspace with coverage of
-  every package of the module in atomic mode, run it once from its package
-  directory with no test to count the blocks its start-up runs, run the test
-  alone from its package directory, anchored to its subtest path, and give every
-  line of each block its cover profile counts as run, and as owned every line of
-  each block it counts more often than the start-up did, summing a block the
-  profile lists more than once, as paths relative to the module root, never a
-  line of a file outside the module; and a test whose binary's start-up left no
-  profile SHALL own no line.
-- **SP-2102~3**: WHEN a scan runs a selection of tests, or the whole suite, a
+  of the workspace, with `--continue-on-collection-errors --maxfail=0`, record
+  line events over the setup, call and teardown of each test and never during
+  collection, and give per test, by node id, the lines of the project's source
+  files it ran, never a line of a test file; SHALL give as owned only the lines
+  among them that ran on the thread that runs the test's protocol, in its setup
+  or call and never its teardown, outside the setup of a fixture whose scope is
+  wider than the function, and outside the body of a module whose import began
+  on that thread during the test's protocol and has not returned or unwound,
+  following every module body to its end whatever its file; SHALL stop a code
+  location from reporting for the rest of a test only once it recorded it as
+  owned; and SHALL derive from the same run the functions of SP-161, with
+  `sys.monitoring` where the interpreter has it and `sys.settrace` otherwise,
+  both giving the same owned lines.
+- **SP-2101~3**: WHEN the line coverage of Go tests is recorded THE SYSTEM SHALL
+  build the test binary of each package once in the workspace with coverage of
+  every package of the module in atomic mode; run from its package directory,
+  three times each, on the scan's workers and once for every leaf that needs
+  it, each baseline of a binary: its start-up, with no test, and each distinct
+  ancestor of a recorded leaf, alone with no subtest; run each test alone from
+  its package directory, anchored to its subtest path, on the same workers; and
+  give every line of each block its cover profile counts as run, summing a
+  block the profile lists more than once, as paths relative to the module root,
+  never a line of a file outside the module; SHALL hold a block stable when the
+  three runs of the leaf's immediate baseline, its parent's or the start-up
+  for a top-level test, and of every baseline above it give it the same count,
+  and let a leaf own a stable block it ran more often than its immediate
+  baseline; SHALL hold that a block holds code on a line when its span there,
+  read from the source, has a character other than whitespace or a brace, and
+  give as owned a line on which the leaf owns a block holding code and owns
+  every block holding code there that it ran; and SHALL give a leaf no owned
+  line when one of its baselines left no profile, exited non-zero or timed
+  out.
+- **SP-2102~4**: WHEN a scan runs a selection of tests, or the whole suite, a
   number of times THE SYSTEM SHALL address each test by its runner-native id, a
   pytest node id or, for Go, the test file and the subtest path of a leaf test,
-  never a parent; run each run of pytest in a session of its own, bounded by the
-  timeout of one run, and the runs of each Go package first in one `go test
-  -count`, bounded by that timeout times the number of runs, then as SP-2134
-  gives; list the collected tests with their files for a run of the whole
-  suite; give each test one result per run, a pass only for a pass and a failure
-  only for a failure, not started only as SP-2134 and SP-2135 give, and errored
-  for a skip, an error or a test a run did not report otherwise; let a test
-  module that does not import leave the other tests of a run of the whole suite
-  running; and give every run a timeout stopped before it reported a test timed
-  out, starting no later pytest run.
+  never a parent; run each run of pytest in a session of its own, or as SP-2142
+  gives, bounded by the timeout of one run, a selection naming the distinct test
+  files of its tests in order, the plugin keeping the selected node ids alone
+  and deselecting the others, with `--continue-on-collection-errors
+  --maxfail=0`; run the runs of each Go package first in one `go test -count`
+  whose `-run` expression selects exactly the selected subtest paths, bounded
+  by that timeout times the number of runs, then as SP-2134 and SP-2141 give;
+  list the collected tests with their files for a run of the whole suite; give
+  each test one result per run, a pass only for a pass and a failure only for a
+  failure, not started only as SP-2134 and SP-2135 give, and errored for a skip,
+  an error or a test a run did not report otherwise; let a test module that does
+  not import leave the other tests of the run running; and give every run a
+  timeout stopped before it reported a test timed out, starting no later
+  pytest run.
 - **SP-2103~1**: WHEN a definition a mutant edits is bound for the differential
   search of a scan THE SYSTEM SHALL bind a top-level Python function to
   `package.module:function`, a `src/` layout read from below `src`, and an
@@ -1402,3 +1425,26 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   the same scan statement; and WHEN `spec-proof-dp scan` runs with no flag on a
   Go project, one of whose tests runs a function and asserts nothing, THE
   SYSTEM SHALL name that test as the first that verifies nothing.
+- **SP-2141~1**: WHEN a Go process of a scan gives a leaf test a pass THE
+  SYSTEM SHALL read it against the end events its ancestors gave in the same
+  iteration of `-count`: keep the pass when every ancestor passed; give the run
+  errored, or timed out when the process timed out, when an ancestor failed or
+  gave no end event in that iteration while no other test below it, neither the
+  leaf nor one of the leaf's ancestors, failed in that iteration, never a
+  failure; and otherwise, unless a process of the package timed out, run the
+  leaves of the package that had such a pass and failed no run again, together
+  and without the others, in one fresh `go test -count` process of as many runs,
+  bounded by the timeout of one run times the number of runs, which gives them
+  every run under the same reading, a pass whose ancestors fail there again
+  being errored, and which, when it exits non-zero without timing out before a
+  leaf had an end event for every run, gives each leaf its first end event and
+  errored runs.
+- **SP-2142~1**: WHEN a pytest session of selected tests stops before
+  collection because a `conftest.py` it loads first failed to import THE SYSTEM
+  SHALL run, within the same run, a session of the selected tests that no
+  failure of that run covers yet, and again while such a session stops so,
+  until a session runs, no test is left or a session covers no more of them; and
+  SHALL give each test of the run one result: not started when a failed collect
+  report of one of its sessions covers it as SP-2135 gives, the outcome of the
+  session that ran it otherwise, timed out when its last session timed out, and
+  errored for a test absent from a module that collected.

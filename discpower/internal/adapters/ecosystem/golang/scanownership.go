@@ -1,0 +1,162 @@
+package golang
+
+import (
+	"slices"
+	"strings"
+	"unicode"
+
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
+)
+
+// baselineRunsPerPath is how many times each baseline of a coverage binary
+// runs: a block is stable only when every run gives it the same count.
+const baselineRunsPerPath = vacuity.RunsPerOutcome
+
+// baselineRun is what one run of a baseline left: the counts of its profile,
+// and whether it is usable, which it is not when it left no profile, exited
+// non-zero or timed out.
+type baselineRun struct {
+	counts blockCounts
+	usable bool
+}
+
+// baseline is what the runs of a coverage binary that start no test, or that
+// start an ancestor of a leaf and none of its subtests, count: the count of
+// each block that every run gave the same count, and the blocks they did not
+// agree on. A missing baseline had a run that is not usable.
+type baseline struct {
+	counts   map[string]int64
+	unstable map[string]bool
+	missing  bool
+}
+
+// baselineOf reads the runs of one baseline; a block one run lists and
+// another does not counts zero in the other.
+func baselineOf(runs []baselineRun) baseline {
+	if len(runs) == 0 {
+		return baseline{missing: true}
+	}
+	for _, run := range runs {
+		if !run.usable {
+			return baseline{missing: true}
+		}
+	}
+	result := baseline{counts: map[string]int64{}, unstable: map[string]bool{}}
+	for _, run := range runs {
+		for position := range run.counts {
+			if _, read := result.counts[position]; read || result.unstable[position] {
+				continue
+			}
+			count := runs[0].counts[position].count
+			if slices.ContainsFunc(runs, func(other baselineRun) bool { return other.counts[position].count != count }) {
+				result.unstable[position] = true
+				continue
+			}
+			result.counts[position] = count
+		}
+	}
+	return result
+}
+
+// baselineChain is the baselines of a leaf, from the start-up of its binary
+// down to its immediate baseline: the run of its parent with no subtest, or
+// the start-up for a top-level test.
+type baselineChain []baseline
+
+// missing reports whether a baseline of the chain is missing: the leaf then
+// owns nothing.
+func (c baselineChain) missing() bool {
+	return len(c) == 0 || slices.ContainsFunc(c, func(b baseline) bool { return b.missing })
+}
+
+// owns reports whether a leaf that ran the block the given number of times
+// owns it: the block is stable in every baseline of the chain and the leaf ran
+// it more often than its immediate baseline did.
+func (c baselineChain) owns(position string, count int64) bool {
+	if c.missing() || slices.ContainsFunc(c, func(b baseline) bool { return b.unstable[position] }) {
+		return false
+	}
+	return count > c[len(c)-1].counts[position]
+}
+
+// sourceLines gives the text of a line of a file relative to the module root,
+// and whether it could be read.
+type sourceLines func(file string, line int) (string, bool)
+
+// lineHolders records, for one line, whether the leaf ran a block holding code
+// on it that it owns, and one that it does not own.
+type lineHolders struct {
+	owned, unowned bool
+}
+
+// leafCoverage reads a leaf's profile against its baseline chain: the lines of
+// every block it ran, and among them the lines it owns. A line is owned when the
+// leaf owns a block holding code on it and owns every block holding code on it
+// that it ran; a leaf with a missing baseline owns no line. A block of a file
+// outside the module is left out.
+func leafCoverage(profile blockCounts, chain baselineChain, source sourceLines, module string) vacuity.Coverage {
+	var ran []vacuity.Line
+	holders := map[vacuity.Line]lineHolders{}
+	for position, entry := range profile {
+		if entry.count == 0 {
+			continue
+		}
+		lines := entry.block.lines(module)
+		ran = append(ran, lines...)
+		if chain.missing() {
+			continue
+		}
+		owned := chain.owns(position, entry.count)
+		for _, line := range lines {
+			text, readable := source(line.File, line.Line)
+			if readable && !entry.block.holdsCode(line.Line, text) {
+				continue
+			}
+			holder := holders[line]
+			holder.owned = holder.owned || owned
+			holder.unowned = holder.unowned || !owned
+			holders[line] = holder
+		}
+	}
+	var ownedLines []vacuity.Line
+	for line, holder := range holders {
+		if holder.owned && !holder.unowned {
+			ownedLines = append(ownedLines, line)
+		}
+	}
+	coverage := vacuity.Coverage{Lines: sortedLines(ran)}
+	if ownedLines != nil {
+		coverage.Owned = sortedLines(ownedLines)
+	}
+	return coverage
+}
+
+// holdsCode reports whether the block's span on the line, read from the line's
+// text, has a character other than whitespace or a brace. Columns count bytes
+// from one, and a block ends before its end column.
+func (b profileBlock) holdsCode(line int, text string) bool {
+	from, to := 1, len(text)+1
+	if line == b.first {
+		from = b.firstColumn
+	}
+	if line == b.last {
+		to = b.lastColumn
+	}
+	from, to = min(max(from, 1), len(text)+1), min(max(to, 1), len(text)+1)
+	if from >= to {
+		return false
+	}
+	return strings.ContainsFunc(text[from-1:to-1], isCode)
+}
+
+// isCode reports whether a character of a block's span is code: anything but
+// whitespace and the braces that open and close a block.
+func isCode(r rune) bool {
+	return !unicode.IsSpace(r) && r != openingBrace && r != closingBrace
+}
+
+// The braces of a Go block.
+const (
+	openingBrace = '{'
+	closingBrace = '}'
+)

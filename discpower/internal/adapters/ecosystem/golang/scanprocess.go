@@ -40,10 +40,13 @@ type resultKey struct {
 }
 
 // testProcess is what one `go test -json` process reported: the end events of
-// each leaf test, what its events say of each package's test binary, and how
-// the process ended.
+// each leaf test and of each test with subtests, the tests its events name,
+// what its events say of each package's test binary, and how the process
+// ended.
 type testProcess struct {
 	leaves   map[resultKey][]vacuity.Run
+	parents  map[resultKey][]vacuity.Run
+	named    map[resultKey]bool
 	packages map[string]binaryReport
 	// buildFailed is set when an event reports a test binary that did not
 	// compile.
@@ -62,7 +65,10 @@ type binaryReport struct {
 
 // readProcess reads the events of one process and how it ended.
 func readProcess(output []byte, exitCode int, timedOut bool) testProcess {
-	process := testProcess{leaves: map[resultKey][]vacuity.Run{}, packages: map[string]binaryReport{}, timedOut: timedOut, exitCode: exitCode}
+	process := testProcess{
+		leaves: map[resultKey][]vacuity.Run{}, parents: map[resultKey][]vacuity.Run{}, named: map[resultKey]bool{},
+		packages: map[string]binaryReport{}, timedOut: timedOut, exitCode: exitCode,
+	}
 	scanner := bufio.NewScanner(bytes.NewReader(output))
 	scanner.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), maxEventLine)
 	for scanner.Scan() {
@@ -74,6 +80,7 @@ func readProcess(output []byte, exitCode int, timedOut bool) testProcess {
 	}
 	for key := range process.leaves {
 		if isParent(key, process.leaves) {
+			process.parents[key] = process.leaves[key]
 			delete(process.leaves, key)
 		}
 	}
@@ -90,8 +97,9 @@ func (p *testProcess) read(event testEvent) {
 	report := p.packages[event.Package]
 	if event.Test != "" {
 		report.testStarted = true
+		key := resultKey{pkg: event.Package, test: event.Test}
+		p.named[key] = true
 		if run, ends := runOfAction(event.Action); ends {
-			key := resultKey{pkg: event.Package, test: event.Test}
 			p.leaves[key] = append(p.leaves[key], run)
 		}
 	} else if event.Action == actionFail {
@@ -115,35 +123,123 @@ func (p testProcess) cutShort(keys []resultKey, runs int) bool {
 	return false
 }
 
-// runsOf gives the test its end events, at most the wanted number, and the
+// runsOf gives the test its end events, at most the wanted number, each paired
+// with its ancestors' end events of the same iteration (see paired), and the
 // runs the process left without one: timed out after a timeout, errored
-// otherwise.
-func (p testProcess) runsOf(key resultKey, runs int) []vacuity.Run {
-	result := append([]vacuity.Run(nil), p.leaves[key][:min(len(p.leaves[key]), runs)]...)
-	missing := vacuity.RunErrored
-	if p.timedOut {
-		missing = vacuity.RunTimedOut
+// otherwise. It also reports whether a pass was ambiguous in some iteration.
+func (p testProcess) runsOf(key resultKey, runs int) ([]vacuity.Run, bool) {
+	ends := p.leaves[key]
+	result := make([]vacuity.Run, 0, runs)
+	ambiguous := false
+	for iteration := range min(len(ends), runs) {
+		run, unclear := p.paired(key, iteration, ends[iteration])
+		result = append(result, run)
+		ambiguous = ambiguous || unclear
 	}
 	for len(result) < runs {
-		result = append(result, missing)
+		result = append(result, p.missingRun())
 	}
-	return result
+	return result, ambiguous
+}
+
+// missingRun is a run the process did not give a test: timed out after a
+// timeout, errored otherwise.
+func (p testProcess) missingRun() vacuity.Run {
+	if p.timedOut {
+		return vacuity.RunTimedOut
+	}
+	return vacuity.RunErrored
 }
 
 // observation is the one run the process gives the test when it counts as one
-// observation: its first end event; timed out when the process timed out; not
-// started when the test's package binary stopped before any of its tests
-// began; errored otherwise.
-func (p testProcess) observation(key resultKey) vacuity.Run {
+// observation: its first end event, paired with its ancestors' first end
+// events; timed out when the process timed out; not started when the test's
+// package binary stopped before any of its tests began; errored otherwise. It
+// also reports whether a pass was ambiguous.
+func (p testProcess) observation(key resultKey) (vacuity.Run, bool) {
 	switch {
 	case len(p.leaves[key]) > 0:
-		return p.leaves[key][0]
+		return p.paired(key, 0, p.leaves[key][0])
 	case p.timedOut:
-		return vacuity.RunTimedOut
+		return vacuity.RunTimedOut, false
 	case p.stoppedBeforeTests(key.pkg):
-		return vacuity.RunNotStarted
+		return vacuity.RunNotStarted, false
 	}
-	return vacuity.RunErrored
+	return vacuity.RunErrored, false
+}
+
+// paired reads a leaf's run of one iteration against the end events its
+// ancestors gave in that iteration. A pass whose ancestors all passed stays a
+// pass. A pass under an ancestor that did not pass, while no other descendant
+// of that ancestor failed in the iteration, is errored, or timed out after a
+// timeout: the ancestor failed on its own, so the pass is no pass, and never a
+// failure. A pass under failing ancestors that each have another descendant
+// that failed in the iteration is ambiguous, since they may have failed only
+// through those descendants: it counts as errored, or timed out, and is
+// reported ambiguous unless the process timed out, so that the leaf may run
+// again without them.
+func (p testProcess) paired(key resultKey, iteration int, run vacuity.Run) (vacuity.Run, bool) {
+	if run != vacuity.RunPassed {
+		return run, false
+	}
+	failing := p.failingAncestors(key, iteration)
+	if len(failing) == 0 {
+		return run, false
+	}
+	for _, ancestor := range failing {
+		if !p.otherDescendantFailed(ancestor, key, iteration) {
+			return p.missingRun(), false
+		}
+	}
+	return p.missingRun(), !p.timedOut
+}
+
+// failingAncestors are the ancestors of the leaf that did not pass in the
+// iteration: each test the events name whose subtest path the leaf's extends,
+// with a failure, or no end event, in that iteration.
+func (p testProcess) failingAncestors(key resultKey, iteration int) []resultKey {
+	var failing []resultKey
+	for _, ancestor := range ancestorsOf(key) {
+		if !p.named[ancestor] {
+			continue
+		}
+		if ends := p.parents[ancestor]; len(ends) <= iteration || ends[iteration] != vacuity.RunPassed {
+			failing = append(failing, ancestor)
+		}
+	}
+	return failing
+}
+
+// otherDescendantFailed reports whether a test below the ancestor, neither the
+// leaf nor one of the leaf's ancestors, failed in the iteration.
+func (p testProcess) otherDescendantFailed(ancestor, leaf resultKey, iteration int) bool {
+	for _, ends := range []map[resultKey][]vacuity.Run{p.leaves, p.parents} {
+		for other, runs := range ends {
+			if other == leaf || !isAncestor(ancestor, other) || isAncestor(other, leaf) {
+				continue
+			}
+			if len(runs) > iteration && runs[iteration] == vacuity.RunFailed {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// ancestorsOf are the subtest paths the leaf's path extends, shallowest first.
+func ancestorsOf(key resultKey) []resultKey {
+	var ancestors []resultKey
+	for index := range len(key.test) {
+		if strings.HasPrefix(key.test[index:], subtestSeparator) {
+			ancestors = append(ancestors, resultKey{pkg: key.pkg, test: key.test[:index]})
+		}
+	}
+	return ancestors
+}
+
+// isAncestor reports whether the test's subtest path is extended by the other's.
+func isAncestor(test, other resultKey) bool {
+	return test.pkg == other.pkg && strings.HasPrefix(other.test, test.test+subtestSeparator)
 }
 
 // stoppedBeforeTests reports the positive evidence that a package's test
@@ -168,10 +264,10 @@ func runOfAction(action string) (vacuity.Run, bool) {
 }
 
 // isParent reports whether a subtest of the test has results: a parent's own
-// result is the merge of its subtests' and is never read.
+// result is the merge of its subtests' and is read only against them.
 func isParent(key resultKey, results map[resultKey][]vacuity.Run) bool {
 	for other := range results {
-		if other.pkg == key.pkg && strings.HasPrefix(other.test, key.test+subtestSeparator) {
+		if isAncestor(key, other) {
 			return true
 		}
 	}

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/suiterun"
@@ -23,11 +24,18 @@ const (
 	scanPluginModule   = "spproof_scan"
 	scanPluginFile     = scanPluginModule + pythonSuffix
 	scanOutputVariable = "SPEC_PROOF_SCAN_OUT"
-	scanReportSuffix   = ".json"
-	rootDirFlag        = "--rootdir=."
+	// scanSelectionVariable names the file that lists, as a JSON array, the
+	// node ids a session of selected tests keeps.
+	scanSelectionVariable = "SPEC_PROOF_SCAN_SELECTION"
+	scanReportSuffix      = ".json"
+	scanSelectionSuffix   = ".json"
+	rootDirFlag           = "--rootdir=."
 	// continueFlag keeps a module that does not import from stopping the run
-	// of every other test.
-	continueFlag    = "--continue-on-collection-errors"
+	// of every other test of the files a session collects.
+	continueFlag = "--continue-on-collection-errors"
+	// noMaxFailFlag keeps a failure from stopping the session, whatever the
+	// project's own options say.
+	noMaxFailFlag   = "--maxfail=0"
 	quietFlag       = "-q"
 	targetSeparator = ":"
 	initModule      = "__init__"
@@ -60,13 +68,29 @@ type scanReport struct {
 	// CollectFailures are the node ids of the failed collect reports, and the
 	// paths of the conftest files that failed to import, relative to the root.
 	CollectFailures []string `json:"collectFailures"`
+	// StoppedBeforeCollection is set when a conftest file loaded before the
+	// session began failed to import, so that the session ran nothing.
+	StoppedBeforeCollection bool `json:"stoppedBeforeCollection"`
+}
+
+// covers reports whether a failed collect report of the session covers the
+// test (see coversFile).
+func (r scanReport) covers(test ecosystem.TestID) bool {
+	file := fileOf(test)
+	return slices.ContainsFunc(r.CollectFailures, func(failure string) bool { return coversFile(failure, file) })
+}
+
+// fileOf is the test file of a node id.
+func fileOf(test ecosystem.TestID) string {
+	file, _, _ := strings.Cut(string(test), nodeSeparator)
+	return file
 }
 
 // Run runs pytest once per requested run, under the scan plugin that the
-// workspace alone receives. A test a session did not report did not start in
-// it when a failed collect report covers its module or a conftest.py or
-// __init__.py on its path, and errored otherwise. A run that times out leaves
-// its tests and every later run timed out, and no later run starts.
+// workspace alone receives: each run is one run index, in one session or more
+// (see runIndex), and gives each test one run. A run that times out leaves its
+// tests that no earlier session of it covers, and every later run, timed out,
+// and no later session starts.
 func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanRunRequest) (ports.ScanRuns, error) {
 	pluginDir, err := installPlugin(workspace, scanPluginFile, scanPlugin)
 	if err != nil {
@@ -80,36 +104,95 @@ func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolc
 			suiterun.AppendScanRun(result.Runs, tests, nil, suiterun.Always(vacuity.RunTimedOut))
 			continue
 		}
-		var report scanReport
-		report, timedOut, err = s.runOnce(ctx, workspace, toolchain, pluginDir, request)
+		index, err := s.runIndex(ctx, workspace, toolchain, pluginDir, request)
 		if err != nil {
 			return ports.ScanRuns{}, err
 		}
+		timedOut = index.timedOut
 		if result.Cases == nil {
-			result.Cases = casesOf(report)
+			result.Cases = casesOf(index.first())
 		}
 		if len(tests) == 0 {
 			tests = idsOf(result.Cases)
 		}
-		missing := report.missingRun
-		if timedOut {
-			missing = suiterun.Always(vacuity.RunTimedOut)
-		}
-		suiterun.AppendScanRun(result.Runs, tests, outcomesOf(report), missing)
+		suiterun.AppendScanRun(result.Runs, tests, index.outcomes(), index.missingRun)
 	}
 	return result, nil
 }
 
-// missingRun is the run of a test the session did not report: not started when
-// a failed collect report covers it, errored otherwise.
-func (r scanReport) missingRun(test ecosystem.TestID) vacuity.Run {
-	file, _, _ := strings.Cut(string(test), nodeSeparator)
-	for _, failure := range r.CollectFailures {
-		if coversFile(failure, file) {
-			return vacuity.RunNotStarted
+// runIndex is what the sessions of one run index reported, in order, and
+// whether its last session timed out.
+type runIndex struct {
+	sessions []scanReport
+	timedOut bool
+}
+
+// first is the report of the first session; empty when it left none.
+func (r runIndex) first() scanReport {
+	if len(r.sessions) == 0 {
+		return scanReport{}
+	}
+	return r.sessions[0]
+}
+
+// outcomes are the outcomes the sessions reported, by node id.
+func (r runIndex) outcomes() map[ecosystem.TestID]ecosystem.TestOutcome {
+	outcomes := map[ecosystem.TestID]ecosystem.TestOutcome{}
+	for _, report := range r.sessions {
+		for node, outcome := range report.Outcomes {
+			outcomes[ecosystem.TestID(node)] = ecosystem.TestOutcome(outcome)
 		}
 	}
+	return outcomes
+}
+
+// covers reports whether a failed collect report of one of the sessions covers
+// the test.
+func (r runIndex) covers(test ecosystem.TestID) bool {
+	return slices.ContainsFunc(r.sessions, func(report scanReport) bool { return report.covers(test) })
+}
+
+// missingRun is the run of a test no session reported: not started when a
+// failed collect report of one of them covers it, timed out when the last
+// session timed out, errored otherwise, a test absent from a module that
+// collected included.
+func (r runIndex) missingRun(test ecosystem.TestID) vacuity.Run {
+	switch {
+	case r.covers(test):
+		return vacuity.RunNotStarted
+	case r.timedOut:
+		return vacuity.RunTimedOut
+	}
 	return vacuity.RunErrored
+}
+
+// runIndex runs one run index: a session of the requested tests, then, while a
+// session stops before collection on a conftest file that failed to import, a
+// session of the requested tests that no failure so far covers, until a
+// session runs, no test is left, or a session covers no more of them. A
+// session that times out ends the run index.
+func (s scanSuite) runIndex(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, pluginDir string, request ports.ScanRunRequest) (runIndex, error) {
+	var index runIndex
+	remaining := request.Tests
+	for {
+		report, timedOut, err := s.runOnce(ctx, workspace, toolchain, pluginDir, remaining, request.Timeout)
+		if err != nil {
+			return runIndex{}, err
+		}
+		if timedOut {
+			index.timedOut = true
+			return index, nil
+		}
+		index.sessions = append(index.sessions, report)
+		if !report.StoppedBeforeCollection || len(remaining) == 0 {
+			return index, nil
+		}
+		left := slices.DeleteFunc(slices.Clone(remaining), index.covers)
+		if len(left) == 0 || len(left) == len(remaining) {
+			return index, nil
+		}
+		remaining = left
+	}
 }
 
 // coversFile reports whether a failed collect report stops the collection of a
@@ -134,19 +217,23 @@ func isUnder(dir, file string) bool {
 	return dir == "" || dir == parentDirectory || strings.HasPrefix(file, dir+pathSeparator)
 }
 
-func (s scanSuite) runOnce(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, pluginDir string, request ports.ScanRunRequest) (scanReport, bool, error) {
+// runOnce runs one session: the whole suite, or the test files of the tests, in
+// order, the plugin keeping the tests alone, and reads its report; an empty
+// report when the session left none or an unreadable one.
+func (s scanSuite) runOnce(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, pluginDir string, tests []ecosystem.TestID, timeout time.Duration) (scanReport, bool, error) {
 	output := suiterun.ResultsFile(workspace, scanReportSuffix)
 	argv := append(append([]string{}, toolchain.Command...), moduleFlag, pytestModule,
-		noCacheProvider, noCacheProviderID, pluginFlag, scanPluginModule, rootDirFlag, continueFlag, quietFlag)
-	for _, test := range request.Tests {
-		argv = append(argv, string(test))
+		noCacheProvider, noCacheProviderID, pluginFlag, scanPluginModule, rootDirFlag, continueFlag, noMaxFailFlag, quietFlag)
+	env := []string{noBytecodeVariable, pythonPathVariable + pluginPath(pluginDir, workspace), scanOutputVariable + environmentAssignment + output}
+	if len(tests) > 0 {
+		selection, err := writeSelection(workspace, tests)
+		if err != nil {
+			return scanReport{}, false, err
+		}
+		env = append(env, scanSelectionVariable+environmentAssignment+selection)
+		argv = append(argv, filesOf(tests)...)
 	}
-	executed, err := s.deps.Process.Run(ctx, ports.Command{
-		Argv:    argv,
-		Dir:     workspace.Dir,
-		Env:     []string{noBytecodeVariable, pythonPathVariable + pluginPath(pluginDir, workspace), scanOutputVariable + environmentAssignment + output},
-		Timeout: request.Timeout,
-	})
+	executed, err := s.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: workspace.Dir, Env: env, Timeout: timeout})
 	if err != nil {
 		return scanReport{}, false, fmt.Errorf("run the suite: %w", err)
 	}
@@ -162,6 +249,32 @@ func (s scanSuite) runOnce(ctx context.Context, workspace ecosystem.Workspace, t
 		return scanReport{}, false, nil
 	}
 	return report, false, nil
+}
+
+// writeSelection writes the node ids a session keeps, as a JSON array, into a
+// fresh file of the workspace's results.
+func writeSelection(workspace ecosystem.Workspace, tests []ecosystem.TestID) (string, error) {
+	content, err := json.Marshal(tests)
+	if err != nil {
+		return "", fmt.Errorf("encode the selected tests: %w", err)
+	}
+	selection := suiterun.ResultsFile(workspace, scanSelectionSuffix)
+	if err := os.WriteFile(selection, content, probeFilePermissions); err != nil {
+		return "", fmt.Errorf("write the selected tests: %w", err)
+	}
+	return selection, nil
+}
+
+// filesOf are the distinct test files of the tests, in the order of their first
+// test.
+func filesOf(tests []ecosystem.TestID) []string {
+	var files []string
+	for _, test := range tests {
+		if file := fileOf(test); !slices.Contains(files, file) {
+			files = append(files, file)
+		}
+	}
+	return files
 }
 
 func casesOf(report scanReport) []ports.ScanCase {
@@ -180,21 +293,16 @@ func idsOf(cases []ports.ScanCase) []ecosystem.TestID {
 	return ids
 }
 
-func outcomesOf(report scanReport) map[ecosystem.TestID]ecosystem.TestOutcome {
-	outcomes := make(map[ecosystem.TestID]ecosystem.TestOutcome, len(report.Outcomes))
-	for node, outcome := range report.Outcomes {
-		outcomes[ecosystem.TestID(node)] = ecosystem.TestOutcome(outcome)
-	}
-	return outcomes
-}
-
 // CoverageOfOneRun is true: one run of the suite records every test.
 func (scanSuite) CoverageOfOneRun() bool { return true }
 
 // LineCoverage runs the suite once under the coverage plugin, within the
 // timeout of the request, and keeps the lines of the requested tests, by node
 // id. The plugin records only inside the run of each test, its setup, call and
-// teardown, never during collection, so a test owns every line it recorded.
+// teardown, never during collection; a test owns the lines among them that ran
+// on the thread of its run, in its setup or call, outside the setup of a
+// fixture of a scope wider than the function and outside the body of a module
+// its run imported.
 func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanCoverageRequest) (map[ecosystem.TestID]vacuity.Coverage, error) {
 	report, err := runCoverage(ctx, s.deps, workspace, toolchain, request.Timeout)
 	if err != nil {
@@ -203,8 +311,7 @@ func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspa
 	covered := map[ecosystem.TestID]vacuity.Coverage{}
 	for _, test := range request.Tests {
 		if recorded, found := report[string(test.ID)]; found {
-			lines := linesOf(recorded)
-			covered[test.ID] = vacuity.Coverage{Lines: lines, Owned: lines}
+			covered[test.ID] = lineCoverageOf(recorded)
 		}
 	}
 	return covered, nil

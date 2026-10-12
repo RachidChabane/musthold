@@ -10,7 +10,7 @@ import (
 
 const (
 	verifiesOwnedDraw  = " [verifies SP-2125~2]"
-	verifiesStartUpRun = " [verifies SP-2133~1]"
+	verifiesStartUpRun = " [verifies SP-2133~2]"
 	// bootTest runs the shipping lines at start-up only, and its process needs
 	// the line of the free-shipping threshold to start.
 	bootTest = "tests/test_boot.py::test_boot_reads_the_fee"

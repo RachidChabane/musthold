@@ -9,9 +9,17 @@ type Coverage struct {
 	// the test.
 	Lines []Line
 	// Owned are the lines the test ran itself, beyond what its process runs
-	// before any test starts. Only a line the test owns lets a survival count
-	// against it; a test with no owned line owns none.
+	// before any test starts and what it shares with other tests. Only a line
+	// the test owns lets a survival count against it; a test with no owned line
+	// owns none.
 	Owned []Line
+}
+
+// OwnedLines are the owned lines among the lines the test ran: a line outside
+// Lines is never owned, whatever Owned says.
+func (c Coverage) OwnedLines() []Line {
+	ran := setOf(c.Lines)
+	return slices.DeleteFunc(slices.Clone(c.Owned), func(line Line) bool { return !ran[line] })
 }
 
 // lineSet is a set of lines.

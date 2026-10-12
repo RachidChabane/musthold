@@ -59,11 +59,13 @@ func (c coverageRecorder) Record(ctx context.Context, workspace ecosystem.Worksp
 // coverageReport is what the coverage plugin records, by pytest node id.
 type coverageReport map[string]nodeCoverage
 
-// nodeCoverage holds the units and the lines one test ran: each unit is a file
-// and a qualified name, each line a file and a line number.
+// nodeCoverage holds the units and the lines one test ran, and the lines it
+// owns among them: each unit is a file and a qualified name, each line a file
+// and a line number.
 type nodeCoverage struct {
 	Units [][]string          `json:"units"`
 	Lines [][]json.RawMessage `json:"lines"`
+	Owned [][]json.RawMessage `json:"owned"`
 }
 
 // runCoverage runs the whole suite once under the coverage plugin, which the
@@ -75,7 +77,7 @@ func runCoverage(ctx context.Context, deps Dependencies, workspace ecosystem.Wor
 	}
 	report := suiterun.ResultsFile(workspace, coverageReportSuffix)
 	argv := append(append([]string{}, toolchain.Command...), moduleFlag, pytestModule,
-		pluginFlag, coveragePluginModule, noCacheProvider, noCacheProviderID, rootDirFlag, continueFlag)
+		pluginFlag, coveragePluginModule, noCacheProvider, noCacheProviderID, rootDirFlag, continueFlag, noMaxFailFlag)
 	pythonPath := pluginPath(pluginDir, workspace)
 	executed, err := deps.Process.Run(ctx, ports.Command{
 		Argv:    argv,
@@ -121,11 +123,23 @@ func unitsOf(report coverageReport, tests []ecosystem.BoundTest) coverage.Map {
 	return result
 }
 
-// linesOf reads the lines of one test; an entry that is not a file and a
-// positive line number is skipped.
-func linesOf(recorded nodeCoverage) []vacuity.Line {
-	lines := make([]vacuity.Line, 0, len(recorded.Lines))
-	for _, entry := range recorded.Lines {
+// lineCoverageOf reads the lines one test ran and, among them, the lines it
+// owns.
+func lineCoverageOf(recorded nodeCoverage) vacuity.Coverage {
+	lines := linesOf(recorded.Lines)
+	ran := make(map[vacuity.Line]bool, len(lines))
+	for _, line := range lines {
+		ran[line] = true
+	}
+	owned := slices.DeleteFunc(linesOf(recorded.Owned), func(line vacuity.Line) bool { return !ran[line] })
+	return vacuity.Coverage{Lines: lines, Owned: owned}
+}
+
+// linesOf reads reported lines; an entry that is not a file and a positive line
+// number is skipped.
+func linesOf(entries [][]json.RawMessage) []vacuity.Line {
+	lines := make([]vacuity.Line, 0, len(entries))
+	for _, entry := range entries {
 		if len(entry) != lineFieldCount {
 			continue
 		}

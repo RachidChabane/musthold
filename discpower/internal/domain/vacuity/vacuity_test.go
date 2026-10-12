@@ -302,7 +302,7 @@ func TestChanges(t *testing.T) {
 }
 
 func TestStartUp(t *testing.T) {
-	t.Run("survivals on lines the test ran only at start-up never make it verify nothing [verifies SP-2133~1]", func(t *testing.T) {
+	t.Run("survivals on lines the test ran only at start-up never make it verify nothing [verifies SP-2133~2]", func(t *testing.T) {
 		f := newFixture().sampled(vacuousTest)
 		for index, site := range []vacuity.Line{line(parseFile, 41), line(parseFile, 41), line(parseFile, 41), line(parseFile, 44), line(parseFile, 44)} {
 			id := f.proven(fmt.Sprintf("start-up/%d", index), site)
@@ -316,7 +316,7 @@ func TestStartUp(t *testing.T) {
 		}
 	})
 
-	t.Run("a test that verifies nothing keeps its claim beside the changes that stopped it from starting [verifies SP-2133~1]", func(t *testing.T) {
+	t.Run("a test that verifies nothing keeps its claim beside the changes that stopped it from starting [verifies SP-2133~2]", func(t *testing.T) {
 		f := newFixture().sampled(vacuousTest, line(totalFile, 3))
 		f.fiveSurvivedOnTwoSites(vacuousTest)
 		stopped := f.proven("stopped", line(totalFile, 3))
@@ -328,7 +328,7 @@ func TestStartUp(t *testing.T) {
 		}
 	})
 
-	t.Run("an inconclusive outcome on a start-up-only line keeps the test from verifying nothing [verifies SP-2133~1]", func(t *testing.T) {
+	t.Run("an inconclusive outcome on a start-up-only line keeps the test from verifying nothing [verifies SP-2133~2]", func(t *testing.T) {
 		f := newFixture().sampled(vacuousTest)
 		f.fiveSurvivedOnTwoSites(vacuousTest)
 		blocking := f.proven("blocking", line(totalFile, 3))
@@ -337,7 +337,7 @@ func TestStartUp(t *testing.T) {
 		assertClass(t, verdictOf(t, classify(t, f.input), vacuousTest), format.ScanUnproven, format.ScanInconclusiveOutcome)
 	})
 
-	t.Run("a kill on a start-up-only line is caught [verifies SP-2133~1]", func(t *testing.T) {
+	t.Run("a kill on a start-up-only line is caught [verifies SP-2133~2]", func(t *testing.T) {
 		f := newFixture().sampled(killerTest)
 		killed := f.proven("killed", line(totalFile, 3))
 		f.atStartUp(killerTest, line(totalFile, 3))
@@ -345,7 +345,7 @@ func TestStartUp(t *testing.T) {
 		assertClass(t, verdictOf(t, classify(t, f.input), killerTest), format.ScanCaught, "")
 	})
 
-	t.Run("a test whose coverage records no owned line owns none [verifies SP-2133~1]", func(t *testing.T) {
+	t.Run("a test whose coverage records no owned line owns none [verifies SP-2133~2]", func(t *testing.T) {
 		f := newFixture().sampled(vacuousTest)
 		f.fiveSurvivedOnTwoSites(vacuousTest)
 		coverage := f.input.Coverage[vacuousTest]

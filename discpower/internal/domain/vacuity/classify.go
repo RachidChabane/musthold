@@ -179,7 +179,7 @@ func (s scan) verdict(test ecosystem.TestID, routes map[string][]format.ScanRout
 // starting, by id.
 func (s scan) pairs(test ecosystem.TestID, routes map[string][]format.ScanRoute) ([]Change, []string) {
 	coverage := s.input.Coverage[test]
-	ran, owned := setOf(coverage.Lines), setOf(coverage.Owned)
+	ran, owned := setOf(coverage.Lines), setOf(coverage.OwnedLines())
 	var changes []Change
 	var notStarted []string
 	for id, mutant := range s.mutants {

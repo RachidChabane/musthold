@@ -41,14 +41,18 @@ type scanSuite struct {
 	deps Dependencies
 }
 
-// Run runs every package, or the packages of the selection with an anchored
-// `-run` expression each, with `-count` set to the number of runs, within the
-// timeout of one run that many times over. When that process exits non-zero
-// without timing out before a test of a package had every run, the process
-// is one observation of each test of the package, and the package runs again
-// in fresh processes of one run each, within the timeout of one run, until
-// every test has the requested number of observations; no process starts
-// after one timed out.
+// Run runs every package, or the packages of the selection with a `-run`
+// expression that selects exactly their subtest paths, with `-count` set to the
+// number of runs, within the timeout of one run that many times over. When
+// that process exits non-zero without timing out before a test of a package
+// had every run, the process is one observation of each test of the package,
+// and the package runs again in fresh processes of one run each, within the
+// timeout of one run, until every test has the requested number of
+// observations; no process starts after one timed out. Each run of a leaf is
+// read against its ancestors' end events of the same run (see
+// testProcess.paired); the leaves of a package with an ambiguous pass and no
+// failure run again together, without the others, in one fresh process (see
+// rerunAmbiguous).
 func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanRunRequest) (ports.ScanRuns, error) {
 	module, err := modulePath(os.DirFS(workspace.Dir))
 	if err != nil {
@@ -74,17 +78,18 @@ func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolc
 			}
 		}
 		for _, group := range byPackage(wanted, module) {
-			if !first.cutShort(group.keys, request.Runs) {
-				for index, test := range group.tests {
-					result.Runs[test] = first.runsOf(group.keys[index], request.Runs)
+			var observed groupRuns
+			if first.cutShort(group.keys, request.Runs) {
+				if observed, err = s.observeApart(ctx, workspace, toolchain, batch.of(group.pkg), group, first, request); err != nil {
+					return ports.ScanRuns{}, err
 				}
-				continue
+			} else {
+				observed = first.groupRuns(group, request.Runs)
 			}
-			observed, err := s.observeApart(ctx, workspace, toolchain, batch.of(group.pkg), group, first, request)
-			if err != nil {
+			if err := s.rerunAmbiguous(ctx, workspace, toolchain, group, observed, request); err != nil {
 				return ports.ScanRuns{}, err
 			}
-			for test, runs := range observed {
+			for test, runs := range observed.runs {
 				result.Runs[test] = runs
 			}
 		}
@@ -92,31 +97,97 @@ func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolc
 	return result, nil
 }
 
+// groupRuns is what the processes of a package gave its tests: the runs of
+// each test, the tests with an ambiguous pass, and whether a process timed
+// out.
+type groupRuns struct {
+	runs      map[ecosystem.TestID][]vacuity.Run
+	ambiguous map[ecosystem.TestID]bool
+	timedOut  bool
+}
+
+func newGroupRuns(group packageGroup) groupRuns {
+	return groupRuns{runs: make(map[ecosystem.TestID][]vacuity.Run, len(group.tests)), ambiguous: map[ecosystem.TestID]bool{}}
+}
+
+// groupRuns gives each test of the group its runs of this process.
+func (p testProcess) groupRuns(group packageGroup, runs int) groupRuns {
+	observed := newGroupRuns(group)
+	observed.timedOut = p.timedOut
+	for index, test := range group.tests {
+		observed.runs[test], observed.ambiguous[test] = p.runsOf(group.keys[index], runs)
+	}
+	return observed
+}
+
 // observeApart gives each test of the group the observation of the first
 // process, then runs the batch again, one run per fresh process, until every
 // test has the requested number of observations. A process that times out
 // leaves every later observation timed out, and no later process starts.
-func (s scanSuite) observeApart(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, rerun batch, group packageGroup, first testProcess, request ports.ScanRunRequest) (map[ecosystem.TestID][]vacuity.Run, error) {
-	observed := make(map[ecosystem.TestID][]vacuity.Run, len(group.tests))
+func (s scanSuite) observeApart(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, rerun batch, group packageGroup, first testProcess, request ports.ScanRunRequest) (groupRuns, error) {
+	observed := newGroupRuns(group)
 	process := first
 	for observation := range request.Runs {
 		if observation > 0 {
 			if process.timedOut {
 				for _, test := range group.tests {
-					observed[test] = append(observed[test], vacuity.RunTimedOut)
+					observed.runs[test] = append(observed.runs[test], vacuity.RunTimedOut)
 				}
 				continue
 			}
 			var err error
 			if process, err = s.runProcess(ctx, workspace, toolchain, rerun, oneRun, request.Timeout); err != nil {
-				return nil, err
+				return groupRuns{}, err
 			}
 		}
+		observed.timedOut = observed.timedOut || process.timedOut
 		for index, test := range group.tests {
-			observed[test] = append(observed[test], process.observation(group.keys[index]))
+			run, ambiguous := process.observation(group.keys[index])
+			observed.runs[test] = append(observed.runs[test], run)
+			observed.ambiguous[test] = observed.ambiguous[test] || ambiguous
 		}
 	}
 	return observed, nil
+}
+
+// rerunAmbiguous runs again, unless a process of the group timed out, the tests
+// of the group that had an ambiguous pass and failed no run: together, without
+// the others, in one fresh process with `-count` set to the number of runs,
+// within the timeout of one run that many times over. That process gives them
+// every run, each read against its ancestors as in any process, an ambiguous
+// pass now counting as errored. When it exits non-zero without timing out
+// before a test had every run, it gives each test one observation and
+// errored runs.
+func (s scanSuite) rerunAmbiguous(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, group packageGroup, observed groupRuns, request ports.ScanRunRequest) error {
+	if observed.timedOut {
+		return nil
+	}
+	rerun := batch{pattern: group.pkg}
+	var keys []resultKey
+	for index, test := range group.tests {
+		if observed.ambiguous[test] && !slices.Contains(observed.runs[test], vacuity.RunFailed) {
+			rerun.tests = append(rerun.tests, test)
+			rerun.paths = append(rerun.paths, strings.Split(group.keys[index].test, subtestSeparator))
+			keys = append(keys, group.keys[index])
+		}
+	}
+	if len(rerun.tests) == 0 {
+		return nil
+	}
+	process, err := s.runProcess(ctx, workspace, toolchain, rerun, request.Runs, request.Timeout*time.Duration(max(request.Runs, oneRun)))
+	if err != nil {
+		return err
+	}
+	cutShort := process.cutShort(keys, request.Runs)
+	for index, test := range rerun.tests {
+		if !cutShort {
+			observed.runs[test], _ = process.runsOf(keys[index], request.Runs)
+			continue
+		}
+		run, _ := process.observation(keys[index])
+		observed.runs[test] = append([]vacuity.Run{run}, slices.Repeat([]vacuity.Run{vacuity.RunErrored}, request.Runs-oneRun)...)
+	}
+	return nil
 }
 
 // runProcess runs one `go test -json` process of the batch, each test the given
@@ -124,7 +195,7 @@ func (s scanSuite) observeApart(ctx context.Context, workspace ecosystem.Workspa
 func (s scanSuite) runProcess(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, batch batch, count int, timeout time.Duration) (testProcess, error) {
 	argv := append(append([]string{}, toolchain.Command...), testSubcommand, jsonFlag, fmt.Sprintf("%s%d", countFlagName, count))
 	if len(batch.paths) > 0 {
-		argv = append(argv, runFlag, expression(batch.paths))
+		argv = append(argv, runFlag, exactExpression(batch.paths))
 	}
 	argv = append(argv, batch.pattern)
 	events := suiterun.ResultsFile(workspace, eventsSuffix)

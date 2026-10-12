@@ -28,9 +28,9 @@ const (
 	tracerVariable   = "SPEC_PROOF_COVERAGE_TRACER"
 	settraceTracer   = "settrace"
 	scanRunTimeout   = 2 * time.Minute
-	verifiesScanRuns = " [verifies SP-2102~3]"
+	verifiesScanRuns = " [verifies SP-2102~4]"
 	verifiesStartUp  = " [verifies SP-2135~1]"
-	verifiesLines    = " [verifies SP-2100~2]"
+	verifiesLines    = " [verifies SP-2100~3]"
 	verifiesBinding  = " [verifies SP-2103~1]"
 	verifiesBound    = " [verifies SP-2127~1]"
 	// overrunBound is a coverage bound no run can keep.
@@ -200,7 +200,7 @@ func TestScanRunsOfASessionThatStops(t *testing.T) {
 		}
 	})
 
-	t.Run("a session that does not find the test, a usage error, errored"+verifiesStartUp, func(t *testing.T) {
+	t.Run("a test absent from a module that collected errored"+verifiesStartUp, func(t *testing.T) {
 		absent := ecosystem.TestID(discountTests + "::test_discount_rounds_down")
 		if runs := run(t, "tests/test_extra.py", "def test_extra():\n    pass\n", absent); !slices.Equal(runs[absent], errored) {
 			t.Fatalf("runs = %v", runs[absent])
@@ -265,7 +265,7 @@ func TestScanLineCoverage(t *testing.T) {
 					t.Fatalf("lines = %v", got)
 				}
 			})
-			t.Run("a test owns every line it recorded"+verifiesLines, func(t *testing.T) {
+			t.Run("a test owns the lines its own call ran"+verifiesLines, func(t *testing.T) {
 				for _, test := range []ecosystem.TestID{acceptsAnyPrice, takesPercentOff} {
 					if !slices.Equal(covered[test].Owned, covered[test].Lines) {
 						t.Fatalf("%s: %+v", test, covered[test])

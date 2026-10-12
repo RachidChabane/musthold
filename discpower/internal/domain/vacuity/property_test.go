@@ -477,7 +477,7 @@ func ownsOneOf(coverage vacuity.Coverage, lines []vacuity.Line) bool {
 }
 
 func TestStartUpProperties(t *testing.T) {
-	t.Run("a survival on a line the test ran only at start-up changes no class and creates no route [verifies SP-2133~1]", func(t *testing.T) {
+	t.Run("a survival on a line the test ran only at start-up changes no class and creates no route [verifies SP-2133~2]", func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
 			input := inputGenerator().Draw(t, "input")
 			test := rapid.SampledFrom(testPool()).Draw(t, "test")
@@ -489,7 +489,7 @@ func TestStartUpProperties(t *testing.T) {
 		})
 	})
 
-	t.Run("runs that did not start change no class and create no route [verifies SP-2133~1]", func(t *testing.T) {
+	t.Run("runs that did not start change no class and create no route [verifies SP-2133~2]", func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
 			input := inputGenerator().Draw(t, "input")
 			test := rapid.SampledFrom(testPool()).Draw(t, "test")
@@ -508,7 +508,7 @@ func TestStartUpProperties(t *testing.T) {
 		})
 	})
 
-	t.Run("no survival on a line a test does not own is one of its changes [verifies SP-2133~1]", func(t *testing.T) {
+	t.Run("no survival on a line a test does not own is one of its changes [verifies SP-2133~2]", func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
 			input := inputGenerator().Draw(t, "input")
 			byID := map[string]vacuity.Mutant{}
@@ -525,7 +525,7 @@ func TestStartUpProperties(t *testing.T) {
 		})
 	})
 
-	t.Run("the changes of a test that verifies nothing are its survivals on the lines it owns [verifies SP-2133~1]", func(t *testing.T) {
+	t.Run("the changes of a test that verifies nothing are its survivals on the lines it owns [verifies SP-2133~2]", func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
 			input := inputGenerator().Draw(t, "input")
 			result := mustClassify(t, input)

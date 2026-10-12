@@ -30,8 +30,7 @@ const (
 	compileOnlyFlag = "-c"
 	coverFlag       = "-cover"
 	// coverModeFlag counts how often each block runs, exactly across
-	// goroutines, so that a test's count can be told from its binary's
-	// start-up.
+	// goroutines, so that a test's count can be told from its baselines'.
 	coverModeFlag     = "-covermode=atomic"
 	coverPackagesFlag = "-coverpkg=" + allPackages
 	binaryExtension   = ".test"
@@ -48,25 +47,30 @@ const (
 	positionSeparator = ":"
 	rangeSeparator    = ","
 	columnSeparator   = "."
+	// noSubtest is the name of a level that matches no subtest.
+	noSubtest = ""
+	// lineSeparator ends a line of a Go source file.
+	lineSeparator = "\n"
 )
 
 // CoverageOfOneRun is false: each test runs alone under coverage.
 func (scanSuite) CoverageOfOneRun() bool { return false }
 
 // LineCoverage builds the test binary of each package once, with coverage of
-// every package of the module in atomic mode, and runs it once with no test to
-// count the blocks its start-up runs, the packages on the workers of the
-// request; then runs each test alone, on the same workers and within the
-// request's timeout, and reads the lines of the blocks it ran and, among them,
-// the lines of the blocks it ran more often than the start-up did: the lines
-// it owns. A test whose binary gives no start-up count owns no line. Only the
-// workspace's build cache and results receive the instrumented binaries.
+// every package of the module in atomic mode, on the workers of the request;
+// then runs, on the same workers and within the request's timeout, the
+// baselines of each binary three times each: its start-up, with no test, and
+// each distinct ancestor of a leaf it records, with that ancestor alone and no
+// subtest; and each test alone. It reads the lines of the blocks each test ran
+// and, among them, the lines it owns against its baselines (see leafCoverage).
+// Only the workspace's build cache and results receive the instrumented
+// binaries.
 func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanCoverageRequest) (map[ecosystem.TestID]vacuity.Coverage, error) {
 	module, err := modulePath(os.DirFS(workspace.Dir))
 	if err != nil {
 		return nil, err
 	}
-	var runs []coveredRun
+	var leaves []coveredRun
 	var dirs []string
 	for _, test := range request.Tests {
 		file, testPath, found := strings.Cut(string(test.ID), testCaseSeparator)
@@ -76,12 +80,12 @@ func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspa
 		if dir := path.Dir(file); !slices.Contains(dirs, dir) {
 			dirs = append(dirs, dir)
 		}
-		runs = append(runs, coveredRun{test: test.ID, dir: path.Dir(file), testPath: testPath})
+		leaves = append(leaves, coveredRun{test: test.ID, dir: path.Dir(file), elements: strings.Split(testPath, subtestSeparator)})
 	}
 	binaries := make([]*coverageBinary, len(dirs))
 	err = onWorkers(ctx, request.Workers, len(dirs), func(ctx context.Context, index int) error {
-		binary, err := s.prepareCoverageBinary(ctx, workspace, toolchain, dirs[index], request.Timeout)
-		binaries[index] = binary
+		built, err := s.buildCoverageBinary(ctx, workspace, toolchain, dirs[index])
+		binaries[index] = &coverageBinary{path: built, dir: dirs[index]}
 		return err
 	})
 	if err == nil {
@@ -90,62 +94,141 @@ func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspa
 	if err != nil {
 		return nil, err
 	}
-	for index := range runs {
-		runs[index].binary = binaries[slices.Index(dirs, runs[index].dir)]
+	for index := range leaves {
+		leaves[index].binary = binaries[slices.Index(dirs, leaves[index].dir)]
 	}
-	return s.runAllCovered(ctx, workspace, module, runs, request)
+	plan := planCoverageRuns(binaries, leaves)
+	if err := s.runCoveragePlan(ctx, workspace, plan, request); err != nil {
+		return nil, err
+	}
+	source := newSourceReader(workspace.Dir)
+	byTest := make(map[ecosystem.TestID]vacuity.Coverage, len(leaves))
+	for index, leaf := range leaves {
+		byTest[leaf.test] = vacuity.Coverage{}
+		if profile := plan.leafProfiles[index]; profile != nil {
+			byTest[leaf.test] = leafCoverage(profile, plan.chainOf(leaf), source.line, module)
+		}
+	}
+	return byTest, nil
 }
 
-// coverageBinary is the coverage binary of one package, with the counts of the
-// blocks its start-up runs; nil counts when the start-up left no profile.
+// coverageBinary is the coverage binary of one package.
 type coverageBinary struct {
 	path, dir string
-	startUp   blockCounts
 }
 
-// coveredRun is one test to run alone from its package's coverage binary.
+// coveredRun is one test to run alone from its package's coverage binary, by
+// the elements of its subtest path.
 type coveredRun struct {
 	test     ecosystem.TestID
 	dir      string
 	binary   *coverageBinary
-	testPath string
+	elements []string
 }
 
-// prepareCoverageBinary builds the coverage binary of a package and counts the
-// blocks its start-up runs, within the timeout of one run under coverage.
-func (s scanSuite) prepareCoverageBinary(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, dir string, timeout time.Duration) (*coverageBinary, error) {
-	built, err := s.buildCoverageBinary(ctx, workspace, toolchain, dir)
-	if err != nil {
-		return nil, err
-	}
-	binary := &coverageBinary{path: built, dir: dir}
-	profile, err := s.runBinary(ctx, workspace, binary, startUpOnly, timeout)
-	if err != nil {
-		return nil, err
-	}
-	if profile != nil {
-		binary.startUp = readBlockCounts(profile)
-	}
-	return binary, nil
+// baselineKey names a baseline: the package directory of its binary and the
+// subtest path of the ancestor it runs, empty for the start-up.
+type baselineKey struct {
+	dir, ancestor string
 }
 
-// runAllCovered runs the tests on at most the requested workers and stops at
-// the first error.
-func (s scanSuite) runAllCovered(ctx context.Context, workspace ecosystem.Workspace, module string, runs []coveredRun, request ports.ScanCoverageRequest) (map[ecosystem.TestID]vacuity.Coverage, error) {
-	covered := make([]vacuity.Coverage, len(runs))
-	err := onWorkers(ctx, request.Workers, len(runs), func(ctx context.Context, index int) error {
-		coverage, err := s.runCovered(ctx, workspace, runs[index], module, request.Timeout)
-		covered[index] = coverage
-		return err
+// baselineKeys are the baselines of a leaf, from the start-up of its binary
+// down to its immediate baseline, its parent's.
+func (r coveredRun) baselineKeys() []baselineKey {
+	keys := []baselineKey{{dir: r.dir}}
+	for depth := 1; depth < len(r.elements); depth++ {
+		keys = append(keys, baselineKey{dir: r.dir, ancestor: strings.Join(r.elements[:depth], subtestSeparator)})
+	}
+	return keys
+}
+
+// selection is the `-test.run` expression of a baseline: no test for the
+// start-up, the ancestor alone with no subtest otherwise.
+func (k baselineKey) selection() string {
+	if k.ancestor == "" {
+		return startUpOnly
+	}
+	return expression([][]string{append(strings.Split(k.ancestor, subtestSeparator), noSubtest)})
+}
+
+// coveragePlan is every run of a recording: the runs of each distinct
+// baseline, then each leaf, with what each left.
+type coveragePlan struct {
+	baselineKeys []baselineKey
+	binaryOf     map[baselineKey]*coverageBinary
+	baselineRuns map[baselineKey][]baselineRun
+	leaves       []coveredRun
+	leafProfiles []blockCounts
+}
+
+// planCoverageRuns lists the start-up of each binary, then each other distinct
+// baseline of the leaves once, in the order of the leaves.
+func planCoverageRuns(binaries []*coverageBinary, leaves []coveredRun) *coveragePlan {
+	plan := &coveragePlan{
+		binaryOf: map[baselineKey]*coverageBinary{}, baselineRuns: map[baselineKey][]baselineRun{},
+		leaves: leaves, leafProfiles: make([]blockCounts, len(leaves)),
+	}
+	add := func(key baselineKey, binary *coverageBinary) {
+		if _, planned := plan.binaryOf[key]; !planned {
+			plan.baselineKeys = append(plan.baselineKeys, key)
+			plan.binaryOf[key] = binary
+			plan.baselineRuns[key] = make([]baselineRun, baselineRunsPerPath)
+		}
+	}
+	for _, binary := range binaries {
+		add(baselineKey{dir: binary.dir}, binary)
+	}
+	for _, leaf := range leaves {
+		for _, key := range leaf.baselineKeys() {
+			add(key, leaf.binary)
+		}
+	}
+	return plan
+}
+
+// baselineJobs is the number of baseline runs of the plan.
+func (p *coveragePlan) baselineJobs() int { return len(p.baselineKeys) * baselineRunsPerPath }
+
+// chainOf is the baseline chain of a leaf.
+func (p *coveragePlan) chainOf(leaf coveredRun) baselineChain {
+	keys := leaf.baselineKeys()
+	chain := make(baselineChain, 0, len(keys))
+	for _, key := range keys {
+		chain = append(chain, baselineOf(p.baselineRuns[key]))
+	}
+	return chain
+}
+
+// runCoveragePlan runs every run of the plan on at most the requested workers,
+// the baselines first, and stops at the first error. A leaf run past the
+// request's timeout is an error; a baseline run that times out is only not
+// usable.
+func (s scanSuite) runCoveragePlan(ctx context.Context, workspace ecosystem.Workspace, plan *coveragePlan, request ports.ScanCoverageRequest) error {
+	baselineJobs := plan.baselineJobs()
+	return onWorkers(ctx, request.Workers, baselineJobs+len(plan.leaves), func(ctx context.Context, index int) error {
+		if index < baselineJobs {
+			key := plan.baselineKeys[index/baselineRunsPerPath]
+			ran, err := s.runBinary(ctx, workspace, plan.binaryOf[key], key.selection(), request.Timeout)
+			if err != nil {
+				return err
+			}
+			plan.baselineRuns[key][index%baselineRunsPerPath] = baselineRun{counts: readBlockCounts(ran.profile), usable: ran.usable()}
+			return nil
+		}
+		leaf := plan.leaves[index-baselineJobs]
+		selection := expression([][]string{leaf.elements})
+		ran, err := s.runBinary(ctx, workspace, leaf.binary, selection, request.Timeout)
+		if err != nil {
+			return err
+		}
+		if ran.timedOut {
+			return fmt.Errorf("%w: %s of %s ran past %s", ports.ErrCoverageTimedOut, selection, leaf.dir, request.Timeout)
+		}
+		if ran.profile != nil {
+			plan.leafProfiles[index-baselineJobs] = readBlockCounts(ran.profile)
+		}
+		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	byTest := make(map[ecosystem.TestID]vacuity.Coverage, len(runs))
-	for index, run := range runs {
-		byTest[run.test] = covered[index]
-	}
-	return byTest, nil
 }
 
 // onWorkers does each of count jobs, by index, on at most the given number of
@@ -197,41 +280,70 @@ func (s scanSuite) buildCoverageBinary(ctx context.Context, workspace ecosystem.
 	return binary, nil
 }
 
-// runCovered runs one test of a built binary and reads what it ran and what it
-// owns. A test that fails still reports what it ran.
-func (s scanSuite) runCovered(ctx context.Context, workspace ecosystem.Workspace, run coveredRun, module string, timeout time.Duration) (vacuity.Coverage, error) {
-	profile, err := s.runBinary(ctx, workspace, run.binary, expression([][]string{strings.Split(run.testPath, subtestSeparator)}), timeout)
-	if err != nil || profile == nil {
-		return vacuity.Coverage{}, err
-	}
-	return profileCoverage(profile, run.binary.startUp, module), nil
+// binaryRun is what one run of a coverage binary left: its cover profile, nil
+// when it left none, and how it ended.
+type binaryRun struct {
+	profile  []byte
+	exitCode int
+	timedOut bool
+}
+
+// usable reports whether the run counts as a baseline: it left a profile,
+// exited zero and did not time out.
+func (r binaryRun) usable() bool {
+	return r.profile != nil && r.exitCode == 0 && !r.timedOut
 }
 
 // runBinary runs the tests of a coverage binary that the expression selects,
-// once, from its package directory, as `go test` does, within the timeout, and
-// returns its cover profile; nil when it left none.
-func (s scanSuite) runBinary(ctx context.Context, workspace ecosystem.Workspace, binary *coverageBinary, selection string, timeout time.Duration) ([]byte, error) {
+// once, from its package directory, as `go test` does, within the timeout. A
+// test that fails still leaves what it ran.
+func (s scanSuite) runBinary(ctx context.Context, workspace ecosystem.Workspace, binary *coverageBinary, selection string, timeout time.Duration) (binaryRun, error) {
 	profile := suiterun.ResultsFile(workspace, profileExtension)
 	argv := []string{binary.path, binaryRunFlag, selection, binaryCountFlag, binaryProfileFlag + profile}
 	executed, err := s.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: filepath.Join(workspace.Dir, filepath.FromSlash(binary.dir)), Timeout: timeout})
 	if err != nil {
-		return nil, fmt.Errorf("run %s of %s with coverage: %w", selection, binary.dir, err)
+		return binaryRun{}, fmt.Errorf("run %s of %s with coverage: %w", selection, binary.dir, err)
 	}
-	if executed.TimedOut {
-		return nil, fmt.Errorf("%w: %s of %s ran past %s", ports.ErrCoverageTimedOut, selection, binary.dir, timeout)
+	ran := binaryRun{exitCode: executed.ExitCode, timedOut: executed.TimedOut}
+	if content, err := os.ReadFile(profile); err == nil {
+		ran.profile = content
 	}
-	content, err := os.ReadFile(profile)
-	if err != nil {
-		return nil, nil
-	}
-	return content, nil
+	return ran, nil
 }
 
-// profileBlock is one block of a cover profile: its file and its first and
-// last line.
+// sourceReader reads the lines of the module's files, each file once.
+type sourceReader struct {
+	root  string
+	files map[string][]string
+}
+
+func newSourceReader(root string) *sourceReader {
+	return &sourceReader{root: root, files: map[string][]string{}}
+}
+
+// line gives the text of a line of a file relative to the module root, and
+// whether it could be read.
+func (r *sourceReader) line(file string, line int) (string, bool) {
+	lines, read := r.files[file]
+	if !read {
+		if content, err := os.ReadFile(filepath.Join(r.root, filepath.FromSlash(file))); err == nil {
+			lines = strings.Split(string(content), lineSeparator)
+		}
+		r.files[file] = lines
+	}
+	if line < 1 || line > len(lines) {
+		return "", false
+	}
+	return lines[line-1], true
+}
+
+// profileBlock is one block of a cover profile: its file, its first and last
+// line, the column it starts at on its first line and the column it ends
+// before on its last.
 type profileBlock struct {
-	file        string
-	first, last int
+	file                    string
+	first, last             int
+	firstColumn, lastColumn int
 }
 
 // countedBlock is a block and how often it ran.
@@ -266,26 +378,6 @@ func readBlockCounts(profile []byte) blockCounts {
 	return counts
 }
 
-// profileCoverage reads a test's cover profile against its binary's start-up:
-// the lines of every block it ran, and the lines of every block it ran more
-// often than the start-up did, as paths relative to the module root. A block of
-// a file outside the module is left out; with no start-up counts the test owns
-// no line.
-func profileCoverage(profile []byte, startUp blockCounts, module string) vacuity.Coverage {
-	var coverage vacuity.Coverage
-	for position, entry := range readBlockCounts(profile) {
-		if entry.count == 0 {
-			continue
-		}
-		lines := entry.block.lines(module)
-		coverage.Lines = append(coverage.Lines, lines...)
-		if startUp != nil && entry.count > startUp[position].count {
-			coverage.Owned = append(coverage.Owned, lines...)
-		}
-	}
-	return vacuity.Coverage{Lines: sortedLines(coverage.Lines), Owned: sortedLines(coverage.Owned)}
-}
-
 // lines are the lines of the block, relative to the module root; none for a
 // file outside the module.
 func (b profileBlock) lines(module string) []vacuity.Line {
@@ -306,7 +398,7 @@ func sortedLines(lines []vacuity.Line) []vacuity.Line {
 }
 
 // parseBlock reads `file.go:12.5,14.2 2 1`: the position, the file with the
-// first and last line of the block, and its count.
+// first and last line and column of the block, and its count.
 func parseBlock(text string) (string, profileBlock, int64, bool) {
 	fields := strings.Fields(text)
 	if len(fields) != profileFields {
@@ -321,12 +413,13 @@ func parseBlock(text string) (string, profileBlock, int64, bool) {
 	if !found {
 		return "", profileBlock{}, 0, false
 	}
-	first, firstErr := lineOf(start)
-	last, lastErr := lineOf(end)
+	first, firstColumn, firstErr := positionOf(start)
+	last, lastColumn, lastErr := positionOf(end)
 	if firstErr != nil || lastErr != nil || last < first {
 		return "", profileBlock{}, 0, false
 	}
-	return fields[0], profileBlock{file: fields[0][:separator], first: first, last: last}, count, true
+	block := profileBlock{file: fields[0][:separator], first: first, last: last, firstColumn: firstColumn, lastColumn: lastColumn}
+	return fields[0], block, count, true
 }
 
 // The count of a block is a decimal 64-bit integer.
@@ -335,7 +428,19 @@ const (
 	countBits   = 64
 )
 
-func lineOf(position string) (int, error) {
-	line, _, _ := strings.Cut(position, columnSeparator)
-	return strconv.Atoi(line)
+// positionOf reads `12.5`: a line and a column.
+func positionOf(position string) (int, int, error) {
+	lineText, columnText, found := strings.Cut(position, columnSeparator)
+	if !found {
+		return 0, 0, strconv.ErrSyntax
+	}
+	line, err := strconv.Atoi(lineText)
+	if err != nil {
+		return 0, 0, err
+	}
+	column, err := strconv.Atoi(columnText)
+	if err != nil {
+		return 0, 0, err
+	}
+	return line, column, nil
 }

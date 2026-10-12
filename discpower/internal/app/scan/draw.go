@@ -130,7 +130,7 @@ func sampledLines(ref reference, plan plan) map[ecosystem.TestID]scanscope.LineS
 	lines := make(map[ecosystem.TestID]scanscope.LineSet, len(plan.sampled))
 	for _, test := range plan.sampled {
 		set := scanscope.LineSet{}
-		for _, line := range ref.coverage[test].Owned {
+		for _, line := range ref.coverage[test].OwnedLines() {
 			if plan.targets[line] {
 				set[line] = true
 			}

@@ -81,6 +81,23 @@ func expression(paths [][]string) string {
 	return strings.Join(levels, subtestSeparator)
 }
 
+// exactExpression selects exactly the given subtest paths: one alternative per
+// path, each level of it anchored, so that no other test of a selected level
+// runs.
+func exactExpression(paths [][]string) string {
+	alternatives := make([]string, 0, len(paths))
+	for _, elements := range paths {
+		levels := make([]string, len(elements))
+		for level, element := range elements {
+			levels[level] = fmt.Sprintf(anchoredOne, regexp.QuoteMeta(element))
+		}
+		if alternative := strings.Join(levels, subtestSeparator); !slices.Contains(alternatives, alternative) {
+			alternatives = append(alternatives, alternative)
+		}
+	}
+	return strings.Join(alternatives, alternation)
+}
+
 func anchor(names []string) string {
 	if len(names) == 1 {
 		return fmt.Sprintf(anchoredOne, names[0])
