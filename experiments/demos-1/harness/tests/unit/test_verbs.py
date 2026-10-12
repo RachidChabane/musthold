@@ -157,7 +157,10 @@ def test_the_summary_reports_every_count_over_its_denominator_and_passes_its_own
     assert "file not changed by the pull request" in markdown
     assert "1/2 picks" in markdown
     assert "#1` of the scan `change-full`" in markdown
-    assert "11/134 drawn" in markdown
+    assert (
+        "- Mutants, as printed: 120 ran, 64 proven, 0 identical when compiled, 3 did not build or start, 11 not run within the budget"
+        in markdown
+    )
     fractions = summary.document["fractions"]
     assert isinstance(fractions, list)
     assert lint(markdown, [str(value) for value in fractions]) == []

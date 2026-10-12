@@ -15,7 +15,7 @@ class TestScanOutputs:
         assert (headline.depth, headline.budget, headline.workers) == ("full", "1h0m0s", 2)
         assert (headline.sampled, headline.green) == (30, 38)
         assert (headline.mutants_ran, headline.mutants_proven) == (120, 64)
-        assert (headline.mutants_not_run, headline.mutants_did_not_build, headline.mutants_drawn) == (11, 3, 134)
+        assert (headline.mutants_identical, headline.mutants_did_not_build, headline.mutants_not_run) == (0, 3, 11)
         assert headline.no_model and headline.promises_not_checked
         first, second = headline.findings
         assert first.test == "tests/test_totals.py::test_total_accepts_any_rate"

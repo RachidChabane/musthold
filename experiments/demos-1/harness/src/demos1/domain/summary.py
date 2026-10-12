@@ -26,6 +26,15 @@ UNJUDGED_NOTE: Final = "unproven and unsampled tests are unjudged"
 STRIPPED_RUN_FIELDS: Final = ("client_stderr",)
 STRIPPED_SCAN_FIELDS: Final = ("stderr_tail",)
 
+MUTANT_LINE_LABELS: Final = (
+    ("mutants_ran", "ran"),
+    ("mutants_proven", "proven"),
+    ("mutants_identical", "identical when compiled"),
+    ("mutants_did_not_build", "did not build or start"),
+    ("mutants_not_run", "not run within the budget"),
+)
+"""The counts of a scan's mutant line, in the order and words the headline prints them."""
+
 
 @dataclass
 class Fractions:
@@ -267,9 +276,9 @@ class _Renderer:
             f"- Depth: `{headline.get('depth')}`, budget: `{headline.get('budget')}`, workers: `{headline.get('workers')}`"
             + (", `partial`" if partial else "")
         )
-        drawn, not_run = headline.get("mutants_drawn"), headline.get("mutants_not_run")
-        if isinstance(drawn, int) and isinstance(not_run, int):
-            self.add(f"- Mutants left unrun: {self.fractions.of(not_run, drawn)} drawn")
+        counts = [(headline.get(key), label) for key, label in MUTANT_LINE_LABELS]
+        if all(isinstance(value, int) for value, _ in counts):
+            self.add("- Mutants, as printed: " + ", ".join(f"{value} {label}" for value, label in counts))
         self.add("")
 
     def _findings(self, record: AttemptRecord, scan: ScanRecord) -> None:

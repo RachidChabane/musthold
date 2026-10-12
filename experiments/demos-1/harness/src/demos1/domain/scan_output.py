@@ -32,6 +32,7 @@ _WORKERS = re.compile(r"^(\d+) workers?\b")
 _FOOTER = re.compile(r"^(\d+) mutants \((\d+) proven(.*?)\)" + re.escape(SEPARATOR))
 _NOT_RUN = re.compile(r", (\d+) not run within the budget")
 _DID_NOT_BUILD = re.compile(r", (\d+) did not build or start")
+_IDENTICAL = re.compile(r", (\d+) identical when compiled")
 _SITE = re.compile(r"^(.+):(\d+)$")
 
 
@@ -124,7 +125,7 @@ class HeadlineFinding:
 
 @dataclass(frozen=True)
 class Headline:
-    """What the printed headline states that `scan.json` does not hold: depth, budget, workers and the draw."""
+    """What the printed headline states that `scan.json` does not hold: depth, budget, workers and the mutant line, as printed."""
 
     depth: str | None
     budget: str | None
@@ -134,17 +135,12 @@ class Headline:
     partial: bool
     mutants_ran: int | None
     mutants_proven: int | None
-    mutants_not_run: int | None
+    mutants_identical: int | None
     mutants_did_not_build: int | None
+    mutants_not_run: int | None
     no_model: bool
     promises_not_checked: bool
     findings: tuple[HeadlineFinding, ...]
-
-    @property
-    def mutants_drawn(self) -> int | None:
-        if self.mutants_ran is None:
-            return None
-        return self.mutants_ran + (self.mutants_not_run or 0) + (self.mutants_did_not_build or 0)
 
     def to_json(self) -> JsonObject:
         return {
@@ -154,11 +150,11 @@ class Headline:
             "sampled": self.sampled,
             "green": self.green,
             "partial": self.partial,
-            "mutants_drawn": self.mutants_drawn,
             "mutants_ran": self.mutants_ran,
             "mutants_proven": self.mutants_proven,
-            "mutants_not_run": self.mutants_not_run,
+            "mutants_identical": self.mutants_identical,
             "mutants_did_not_build": self.mutants_did_not_build,
+            "mutants_not_run": self.mutants_not_run,
             "no_model": self.no_model,
             "promises_not_checked": self.promises_not_checked,
         }
@@ -195,7 +191,7 @@ def parse_headline(output: str) -> Headline:
     workers = sampled = green = None
     partial = False
     findings: list[HeadlineFinding] = []
-    ran = proven = not_run = did_not_build = None
+    ran = proven = identical = not_run = did_not_build = None
     no_model = promises = False
     for index, line in enumerate(lines):
         stripped = line.strip()
@@ -216,6 +212,7 @@ def parse_headline(output: str) -> Headline:
             inner = match.group(3)
             not_run = int(found.group(1)) if (found := _NOT_RUN.search(inner)) else 0
             did_not_build = int(found.group(1)) if (found := _DID_NOT_BUILD.search(inner)) else 0
+            identical = int(found.group(1)) if (found := _IDENTICAL.search(inner)) else 0
             no_model = NO_MODEL in line
             promises = PROMISES_NOT_CHECKED in line
     return Headline(
@@ -227,8 +224,9 @@ def parse_headline(output: str) -> Headline:
         partial=partial,
         mutants_ran=ran,
         mutants_proven=proven,
-        mutants_not_run=not_run,
+        mutants_identical=identical,
         mutants_did_not_build=did_not_build,
+        mutants_not_run=not_run,
         no_model=no_model,
         promises_not_checked=promises,
         findings=tuple(findings),
