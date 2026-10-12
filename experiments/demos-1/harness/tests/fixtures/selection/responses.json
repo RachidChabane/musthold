@@ -1,0 +1,254 @@
+[
+  {
+    "request": {"path": "search/issues", "params": {"per_page": "100", "page": "1", "q": "is:pr is:merged is:public author:app/copilot-swe-agent language:Python merged:2026-09-30T00:00:00Z..2026-09-30T23:59:59Z"}},
+    "status": 200,
+    "body": {
+      "total_count": 2,
+      "incomplete_results": false,
+      "items": [
+        {
+          "html_url": "https://github.com/northwind/ledger-py/pull/42",
+          "number": 42,
+          "repository_url": "https://api.github.com/repos/northwind/ledger-py",
+          "user": {"login": "Copilot", "type": "Bot"},
+          "body": "Adds rounding to the invoice totals.",
+          "pull_request": {"merged_at": "2026-09-30T17:00:00Z"}
+        },
+        {
+          "html_url": "https://github.com/northwind/ledger-py/pull/41",
+          "number": 41,
+          "repository_url": "https://api.github.com/repos/northwind/ledger-py",
+          "user": {"login": "Copilot", "type": "Bot"},
+          "body": "Fixes the tax rate of credit notes.",
+          "pull_request": {"merged_at": "2026-09-30T18:00:00Z"}
+        }
+      ]
+    }
+  },
+  {
+    "request": {"path": "search/issues", "params": {"per_page": "100", "page": "1", "q": "is:pr is:merged is:public author:app/claude language:Python merged:2026-09-29T00:00:00Z..2026-09-29T23:59:59Z"}},
+    "status": 200,
+    "body": {
+      "total_count": 1,
+      "incomplete_results": false,
+      "items": [
+        {
+          "html_url": "https://github.com/acme-labs/forms/pull/5",
+          "number": 5,
+          "repository_url": "https://api.github.com/repos/acme-labs/forms",
+          "user": {"login": "claude[bot]", "type": "Bot"},
+          "body": "Validates empty choice fields.",
+          "pull_request": {"merged_at": "2026-09-29T10:00:00Z"}
+        }
+      ]
+    }
+  },
+  {
+    "request": {"path": "search/issues", "params": {"per_page": "100", "page": "1", "q": "is:pr is:merged is:public \"chatgpt.com/codex/tasks\" in:body language:Python merged:2026-07-01T00:00:00Z..2026-09-30T23:59:59Z"}},
+    "status": 200,
+    "body": {
+      "total_count": 2,
+      "incomplete_results": false,
+      "items": [
+        {
+          "html_url": "https://github.com/harbor-dev/tide/pull/7",
+          "number": 7,
+          "repository_url": "https://api.github.com/repos/harbor-dev/tide",
+          "user": {"login": "mkowalski", "type": "User"},
+          "body": "Follow-up to the review of chatgpt.com/codex/tasks support in our docs.",
+          "pull_request": {"merged_at": "2026-09-30T12:00:00Z"}
+        },
+        {
+          "html_url": "https://github.com/kiln-io/glaze/pull/9",
+          "number": 9,
+          "repository_url": "https://api.github.com/repos/kiln-io/glaze",
+          "user": {"login": "rsato", "type": "User"},
+          "body": "Speeds up palette lookups.\n\nhttps://chatgpt.com/codex/tasks/task_e_68d2a1f0c5",
+          "pull_request": {"merged_at": "2026-09-28T09:00:00Z"}
+        }
+      ]
+    }
+  },
+  {
+    "request": {"path": "repos/northwind/ledger-py", "params": {}},
+    "status": 200,
+    "body": {"full_name": "northwind/ledger-py", "fork": false, "archived": false, "private": false, "stargazers_count": 2400, "default_branch": "main", "license": {"spdx_id": "MIT"}}
+  },
+  {
+    "request": {"path": "repos/northwind/ledger-py/pulls/41", "params": {}},
+    "status": 200,
+    "body": {"number": 41, "merged": true, "merge_commit_sha": "4f1c2e8a9b0d3c5e7f6a1b2c3d4e5f60718293a4", "changed_files": 3}
+  },
+  {
+    "request": {"path": "repos/northwind/ledger-py/pulls/41/files", "params": {"per_page": "100"}},
+    "status": 200,
+    "body": [
+      {"filename": "ledger/totals.py", "status": "modified"},
+      {"filename": "tests/test_totals.py", "status": "added"},
+      {"filename": "README.md", "status": "modified"}
+    ]
+  },
+  {
+    "request": {"path": "repos/northwind/ledger-py/commits/4f1c2e8a9b0d3c5e7f6a1b2c3d4e5f60718293a4", "params": {}},
+    "status": 200,
+    "body": {
+      "sha": "4f1c2e8a9b0d3c5e7f6a1b2c3d4e5f60718293a4",
+      "parents": [{"sha": "a0b1c2d3e4f5061728394a5b6c7d8e9f00112233"}, {"sha": "b9a8c7d6e5f4031322110f0e0d0c0b0a09080706"}],
+      "files": [{"filename": "ledger/totals.py"}, {"filename": "tests/test_totals.py"}, {"filename": "README.md"}]
+    }
+  },
+  {
+    "request": {"path": "repos/northwind/ledger-py/contents", "params": {"ref": "4f1c2e8a9b0d3c5e7f6a1b2c3d4e5f60718293a4"}},
+    "status": 200,
+    "body": [
+      {"name": "README.md", "type": "file"},
+      {"name": "ledger", "type": "dir"},
+      {"name": "pyproject.toml", "type": "file"},
+      {"name": "tests", "type": "dir"}
+    ]
+  },
+  {
+    "request": {"path": "repos/northwind/ledger-py/contents/pyproject.toml", "params": {"ref": "4f1c2e8a9b0d3c5e7f6a1b2c3d4e5f60718293a4"}},
+    "status": 200,
+    "body": {"name": "pyproject.toml", "encoding": "base64", "content": "W3Byb2plY3RdCm5hbWUgPSAibGVkZ2VyLXB5IgoKW3Rvb2wucHl0ZXN0LmluaV9vcHRpb25zXQp0ZXN0cGF0aHMgPSBbInRlc3RzIl0K"}
+  },
+  {
+    "request": {"path": "repos/acme-labs/forms", "params": {}},
+    "status": 200,
+    "body": {"full_name": "acme-labs/forms", "fork": false, "archived": false, "private": false, "stargazers_count": 512, "default_branch": "main", "license": {"spdx_id": "MIT"}}
+  },
+  {
+    "request": {"path": "repos/kiln-io/glaze", "params": {}},
+    "status": 200,
+    "body": {"full_name": "kiln-io/glaze", "fork": false, "archived": false, "private": false, "stargazers_count": 1830, "default_branch": "main", "license": {"spdx_id": "BSD-3-Clause"}}
+  },
+  {
+    "request": {"path": "repos/kiln-io/glaze/pulls/9", "params": {}},
+    "status": 200,
+    "body": {"number": 9, "merged": true, "merge_commit_sha": "d4c3b2a1f0e9d8c7b6a5948372615049382716ff", "changed_files": 1}
+  },
+  {
+    "request": {"path": "repos/kiln-io/glaze/pulls/9/files", "params": {"per_page": "100"}},
+    "status": 200,
+    "body": [{"filename": "glaze/palette.py", "status": "modified"}]
+  },
+  {
+    "request": {"path": "search/issues", "params": {"per_page": "100", "page": "1", "q": "is:pr is:merged is:public author:app/copilot-swe-agent language:Go merged:2026-09-30T00:00:00Z..2026-09-30T23:59:59Z"}},
+    "status": 200,
+    "body": {
+      "total_count": 2,
+      "incomplete_results": false,
+      "items": [
+        {
+          "html_url": "https://github.com/northwind/ledger-py/pull/43",
+          "number": 43,
+          "repository_url": "https://api.github.com/repos/northwind/ledger-py",
+          "user": {"login": "Copilot", "type": "Bot"},
+          "body": "Adds the Go exporter.",
+          "pull_request": {"merged_at": "2026-09-30T20:00:00Z"}
+        },
+        {
+          "html_url": "https://github.com/pebble-sys/queue/pull/88",
+          "number": 88,
+          "repository_url": "https://api.github.com/repos/Pebble-Sys/Queue",
+          "user": {"login": "Copilot", "type": "Bot"},
+          "body": "Bounds the retry backoff.",
+          "pull_request": {"merged_at": "2026-09-30T08:00:00Z"}
+        }
+      ]
+    }
+  },
+  {
+    "request": {"path": "repos/Pebble-Sys/Queue", "params": {}},
+    "status": 200,
+    "body": {"full_name": "pebble-sys/queue", "fork": false, "archived": false, "private": false, "stargazers_count": 5100, "default_branch": "main", "license": {"spdx_id": "Apache-2.0"}}
+  },
+  {
+    "request": {"path": "repos/pebble-sys/queue/pulls/88", "params": {}},
+    "status": 200,
+    "body": {"number": 88, "merged": true, "merge_commit_sha": "7e6d5c4b3a2918070f1e2d3c4b5a69788796a5b4", "changed_files": 2}
+  },
+  {
+    "request": {"path": "repos/pebble-sys/queue/pulls/88/files", "params": {"per_page": "100"}},
+    "status": 200,
+    "body": [
+      {"filename": "queue/backoff.go", "status": "modified"},
+      {"filename": "queue/backoff_test.go", "status": "modified"}
+    ]
+  },
+  {
+    "request": {"path": "repos/pebble-sys/queue/commits/7e6d5c4b3a2918070f1e2d3c4b5a69788796a5b4", "params": {}},
+    "status": 200,
+    "body": {
+      "sha": "7e6d5c4b3a2918070f1e2d3c4b5a69788796a5b4",
+      "parents": [{"sha": "c3b2a1908f7e6d5c4b3a29180716253443526170"}],
+      "files": [{"filename": "queue/backoff.go"}, {"filename": "queue/backoff_test.go"}]
+    }
+  },
+  {
+    "request": {"path": "repos/pebble-sys/queue/contents", "params": {"ref": "7e6d5c4b3a2918070f1e2d3c4b5a69788796a5b4"}},
+    "status": 200,
+    "body": [{"name": "go.mod", "type": "file"}, {"name": "go.sum", "type": "file"}, {"name": "queue", "type": "dir"}]
+  },
+  {
+    "request": {"path": "search/repositories", "params": {"sort": "stars", "order": "desc", "per_page": "100", "page": "1", "q": "language:Python stars:>=1000 archived:false fork:false is:public"}},
+    "status": 200,
+    "body": {
+      "total_count": 3,
+      "incomplete_results": false,
+      "items": [
+        {"full_name": "birch-dev/forms", "stargazers_count": 50210, "fork": false, "archived": false, "private": false, "default_branch": "main", "license": {"spdx_id": "MIT"}},
+        {"full_name": "oak-org/sheets", "stargazers_count": 90120, "fork": false, "archived": false, "private": false, "default_branch": "main", "license": {"spdx_id": "GPL-3.0"}},
+        {"full_name": "northwind/ledger-py", "stargazers_count": 2400, "fork": false, "archived": false, "private": false, "default_branch": "main", "license": {"spdx_id": "MIT"}}
+      ]
+    }
+  },
+  {
+    "request": {"path": "repos/birch-dev/forms/commits", "params": {"sha": "main", "until": "2026-09-30T23:59:59Z", "per_page": "1"}},
+    "status": 200,
+    "body": [{"sha": "5d4c3b2a19087f6e5d4c3b2a1908f7e6d5c4b3a2", "commit": {"committer": {"date": "2026-09-30T21:14:03Z"}}}]
+  },
+  {
+    "request": {"path": "repos/birch-dev/forms/contents", "params": {"ref": "5d4c3b2a19087f6e5d4c3b2a1908f7e6d5c4b3a2"}},
+    "status": 200,
+    "body": [{"name": "birch", "type": "dir"}, {"name": "setup.cfg", "type": "file"}, {"name": "setup.py", "type": "file"}]
+  },
+  {
+    "request": {"path": "repos/birch-dev/forms/contents/setup.cfg", "params": {"ref": "5d4c3b2a19087f6e5d4c3b2a1908f7e6d5c4b3a2"}},
+    "status": 200,
+    "body": {"name": "setup.cfg", "encoding": "base64", "content": "W21ldGFkYXRhXQpuYW1lID0gYmlyY2gtZm9ybXMKClt0b29sOnB5dGVzdF0KdGVzdHBhdGhzID0gdGVzdHMK"}
+  },
+  {
+    "request": {"path": "search/repositories", "params": {"sort": "stars", "order": "desc", "per_page": "100", "page": "1", "q": "language:Go stars:>=1000 archived:false fork:false is:public"}},
+    "status": 200,
+    "body": {
+      "total_count": 3,
+      "incomplete_results": false,
+      "items": [
+        {"full_name": "pebble-sys/queue", "stargazers_count": 5100, "fork": false, "archived": false, "private": false, "default_branch": "main", "license": {"spdx_id": "Apache-2.0"}},
+        {"full_name": "willow-hq/cli", "stargazers_count": 30044, "fork": false, "archived": false, "private": false, "default_branch": "trunk", "license": {"spdx_id": "MIT"}},
+        {"full_name": "cedar-run/log", "stargazers_count": 20311, "fork": false, "archived": false, "private": false, "default_branch": "main", "license": {"spdx_id": "ISC"}}
+      ]
+    }
+  },
+  {
+    "request": {"path": "repos/willow-hq/cli/commits", "params": {"sha": "trunk", "until": "2026-09-30T23:59:59Z", "per_page": "1"}},
+    "status": 200,
+    "body": [{"sha": "e1d2c3b4a5968778695a4b3c2d1e0f1a2b3c4d5e", "commit": {"committer": {"date": "2026-09-29T08:00:00Z"}}}]
+  },
+  {
+    "request": {"path": "repos/willow-hq/cli/contents", "params": {"ref": "e1d2c3b4a5968778695a4b3c2d1e0f1a2b3c4d5e"}},
+    "status": 200,
+    "body": [{"name": "conftest.py", "type": "file"}, {"name": "go.mod", "type": "file"}, {"name": "cmd", "type": "dir"}]
+  },
+  {
+    "request": {"path": "repos/cedar-run/log/commits", "params": {"sha": "main", "until": "2026-09-30T23:59:59Z", "per_page": "1"}},
+    "status": 200,
+    "body": [{"sha": "0a1b2c3d4e5f60718293a4b5c6d7e8f901234567", "commit": {"committer": {"date": "2026-09-30T11:30:00Z"}}}]
+  },
+  {
+    "request": {"path": "repos/cedar-run/log/contents", "params": {"ref": "0a1b2c3d4e5f60718293a4b5c6d7e8f901234567"}},
+    "status": 200,
+    "body": [{"name": "go.mod", "type": "file"}, {"name": "log.go", "type": "file"}]
+  }
+]
