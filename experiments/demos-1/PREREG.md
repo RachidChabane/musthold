@@ -749,7 +749,7 @@ inline code spans and lines starting with `>`. It fails on:
     scans and replays, `<stage>` is the name §9.1 and §9.2 give;
   - `--user <host uid>:<host gid>`, `--cap-drop ALL` and
     `--security-opt no-new-privileges`;
-  - `--cpus 2`, `--memory 3g` and `--memory-swap 3g`;
+  - `--cpus 2`, `--memory 2560m` and `--memory-swap 2560m` (2.5 GiB);
   - two mounts and no other host path:
     - the attempt directory, read-write, at the same path;
     - the product binaries, read-only, at `/opt/spec-proof/bin`.
@@ -788,7 +788,7 @@ inline code spans and lines starting with `>`. It fails on:
   container command. One container runs at a time: the verb runs attempts, stages
   and scans strictly one after another.
 - **Engine.** The engine is a colima virtual machine of its own profile,
-  `spec-proof-demos`, started with 2 CPUs, 4 GiB of memory and a 40 GiB disk. Its
+  `spec-proof-demos`, started with 2 CPUs, 3 GiB of memory and a 40 GiB disk. Its
   only mounts are `$DEMOS1_WORK`, read-write, and the directory of the product
   binaries, read-only; no other host directory is visible to it. Every docker
   command of the tooling names that profile's socket through `DOCKER_HOST`; the
