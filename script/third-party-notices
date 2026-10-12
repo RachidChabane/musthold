@@ -40,6 +40,7 @@ REPOSITORY_MODULE_PREFIX = "github.com/RachidChabane/spec-proof"
 PYTHON_LOCK_FILES = (
     "bench/uv.lock",
     "experiments/calibration/harness/uv.lock",
+    "experiments/demos-1/harness/uv.lock",
     "experiments/limits-1-3/harness/uv.lock",
 )
 UNKNOWN = "UNKNOWN"

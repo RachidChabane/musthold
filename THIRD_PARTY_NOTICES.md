@@ -132,21 +132,21 @@ uses them unmodified.
 | `k8s.io/klog/v2` | `v2.140.0` | Apache-2.0 | binary |
 | `pgregory.net/rapid` | `v1.3.0` | MPL-2.0 | tests and tools |
 
-## Python licence classes (44 packages)
+## Python licence classes (47 packages)
 
 | Licence | Count |
 |---|---|
-| MIT | 15 |
+| MIT | 16 |
 | BSD License | 7 |
 | MIT License | 7 |
 | Apache-2.0 | 4 |
 | Apache Software License | 2 |
 | BSD-2-Clause | 2 |
 | BSD-3-Clause | 2 |
+| BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | 2 |
+| MPL-2.0 | 2 |
 | Apache Software License; BSD License | 1 |
 | Apache-2.0 OR BSD-2-Clause | 1 |
-| BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | 1 |
-| MPL-2.0 | 1 |
 | PSF-2.0 | 1 |
 
 These packages are the locked dependencies of the benchmark core (`bench`) and of the
@@ -157,47 +157,50 @@ the one the package declares, as an SPDX expression or as its trove classifiers.
 
 | Package | Version | Licence | Locked in |
 |---|---|---|---|
-| `attrs` | `26.1.0` | MIT | bench, experiments/limits-1-3/harness |
-| `click` | `8.5.0` | BSD-3-Clause | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
-| `colorama` | `0.4.6` | BSD License | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
+| `attrs` | `26.1.0` | MIT | bench, experiments/demos-1/harness, experiments/limits-1-3/harness |
+| `click` | `8.5.0` | BSD-3-Clause | bench, experiments/calibration/harness, experiments/demos-1/harness, experiments/limits-1-3/harness |
+| `colorama` | `0.4.6` | BSD License | bench, experiments/calibration/harness, experiments/demos-1/harness, experiments/limits-1-3/harness |
 | `coverage` | `7.16.2` | Apache-2.0 | experiments/limits-1-3/harness |
 | `formulaic` | `1.2.2` | MIT | experiments/limits-1-3/harness |
-| `grimp` | `3.17` | BSD License | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
+| `grimp` | `3.17` | BSD License | bench, experiments/calibration/harness, experiments/demos-1/harness, experiments/limits-1-3/harness |
 | `hypothesis` | `6.168.5` | MPL-2.0 | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
-| `import-linter` | `2.15` | BSD License | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
+| `hypothesis` | `6.169.0` | MPL-2.0 | experiments/demos-1/harness |
+| `import-linter` | `2.15` | BSD License | bench, experiments/calibration/harness, experiments/demos-1/harness, experiments/limits-1-3/harness |
 | `iniconfig` | `2.3.0` | MIT | experiments/limits-1-3/harness |
-| `iniconfig` | `2.3.1` | MIT | bench, experiments/calibration/harness |
+| `iniconfig` | `2.3.1` | MIT | bench, experiments/calibration/harness, experiments/demos-1/harness |
 | `interface-meta` | `2.0.1` | MIT | experiments/limits-1-3/harness |
-| `jsonschema` | `4.26.0` | MIT | bench, experiments/limits-1-3/harness |
-| `jsonschema-specifications` | `2025.9.1` | MIT | bench, experiments/limits-1-3/harness |
-| `markdown-it-py` | `4.2.0` | MIT License | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
-| `mdurl` | `0.1.2` | MIT License | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
+| `jsonschema` | `4.26.0` | MIT | bench, experiments/demos-1/harness, experiments/limits-1-3/harness |
+| `jsonschema-specifications` | `2025.9.1` | MIT | bench, experiments/demos-1/harness, experiments/limits-1-3/harness |
+| `markdown-it-py` | `4.2.0` | MIT License | bench, experiments/calibration/harness, experiments/demos-1/harness, experiments/limits-1-3/harness |
+| `mdurl` | `0.1.2` | MIT License | bench, experiments/calibration/harness, experiments/demos-1/harness, experiments/limits-1-3/harness |
 | `narwhals` | `2.26.0` | MIT | experiments/limits-1-3/harness |
-| `nodeenv` | `1.11.0` | BSD License | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
+| `nodeenv` | `1.11.0` | BSD License | bench, experiments/calibration/harness, experiments/demos-1/harness, experiments/limits-1-3/harness |
 | `numpy` | `2.5.3` | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
-| `packaging` | `26.3` | Apache-2.0 OR BSD-2-Clause | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
+| `numpy` | `2.5.4` | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | experiments/demos-1/harness |
+| `packaging` | `26.3` | Apache-2.0 OR BSD-2-Clause | bench, experiments/calibration/harness, experiments/demos-1/harness, experiments/limits-1-3/harness |
 | `pandas` | `3.0.6` | BSD License | experiments/limits-1-3/harness |
 | `patsy` | `1.0.3` | BSD License | experiments/limits-1-3/harness |
-| `pluggy` | `1.6.0` | MIT License | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
-| `pygments` | `2.21.0` | BSD-2-Clause | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
-| `pyrage` | `1.4.0` | MIT | bench |
-| `pyright` | `1.1.414` | MIT | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
-| `pytest` | `9.1.1` | MIT | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
+| `pluggy` | `1.6.0` | MIT License | bench, experiments/calibration/harness, experiments/demos-1/harness, experiments/limits-1-3/harness |
+| `pygments` | `2.21.0` | BSD-2-Clause | bench, experiments/calibration/harness, experiments/demos-1/harness, experiments/limits-1-3/harness |
+| `pyrage` | `1.4.0` | MIT | bench, experiments/demos-1/harness |
+| `pyright` | `1.1.414` | MIT | bench, experiments/calibration/harness, experiments/demos-1/harness, experiments/limits-1-3/harness |
+| `pytest` | `9.1.1` | MIT | bench, experiments/calibration/harness, experiments/demos-1/harness, experiments/limits-1-3/harness |
 | `pytest-cov` | `7.1.0` | MIT | experiments/limits-1-3/harness |
-| `pytest-timeout` | `2.4.0` | MIT License | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
+| `pytest-timeout` | `2.4.0` | MIT License | bench, experiments/calibration/harness, experiments/demos-1/harness, experiments/limits-1-3/harness |
 | `python-dateutil` | `2.9.0.post0` | Apache Software License; BSD License | experiments/limits-1-3/harness |
 | `pyyaml` | `6.0.3` | MIT License | experiments/calibration/harness, experiments/limits-1-3/harness |
-| `referencing` | `0.37.0` | MIT | bench, experiments/limits-1-3/harness |
+| `referencing` | `0.37.0` | MIT | bench, experiments/demos-1/harness, experiments/limits-1-3/harness |
 | `rfc8785` | `0.1.4` | Apache Software License | experiments/calibration/harness, experiments/limits-1-3/harness |
-| `rich` | `15.0.0` | MIT License | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
-| `rpds-py` | `2026.9.1` | MIT | bench, experiments/limits-1-3/harness |
+| `rich` | `15.0.0` | MIT License | bench, experiments/calibration/harness, experiments/demos-1/harness, experiments/limits-1-3/harness |
+| `rpds-py` | `2026.9.1` | MIT | bench, experiments/demos-1/harness, experiments/limits-1-3/harness |
 | `ruff` | `0.16.10` | MIT | bench, experiments/calibration/harness |
+| `ruff` | `0.17.0` | MIT | experiments/demos-1/harness |
 | `scipy` | `1.18.1` | BSD License | experiments/limits-1-3/harness |
 | `six` | `1.17.0` | MIT License | experiments/limits-1-3/harness |
-| `sortedcontainers` | `2.4.0` | Apache Software License | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
+| `sortedcontainers` | `2.4.0` | Apache Software License | bench, experiments/calibration/harness, experiments/demos-1/harness, experiments/limits-1-3/harness |
 | `statsmodels` | `0.15.0` | BSD-3-Clause | experiments/limits-1-3/harness |
 | `types-jsonschema` | `4.26.0.20261006` | Apache-2.0 | bench, experiments/limits-1-3/harness |
 | `types-pyyaml` | `6.0.12.20260906` | Apache-2.0 | experiments/calibration/harness, experiments/limits-1-3/harness |
-| `typing-extensions` | `4.16.0` | PSF-2.0 | bench, experiments/calibration/harness, experiments/limits-1-3/harness |
+| `typing-extensions` | `4.16.0` | PSF-2.0 | bench, experiments/calibration/harness, experiments/demos-1/harness, experiments/limits-1-3/harness |
 | `tzdata` | `2026.5` | Apache-2.0 | experiments/limits-1-3/harness |
 | `wrapt` | `2.5.0` | BSD-2-Clause | experiments/limits-1-3/harness |
