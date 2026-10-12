@@ -60,10 +60,13 @@ func (r Request) selector() Selector {
 // Stats counts the stages of a run.
 type Stats struct {
 	Enumerated int
-	Screen     operator.ScreenStats
-	Screened   int
-	Strata     int
-	Sampled    int
+	// AmbiguousUnits counts the definitions and module assignments left out
+	// because another unit of their file shares their kind and qualified name.
+	AmbiguousUnits int
+	Screen         operator.ScreenStats
+	Screened       int
+	Strata         int
+	Sampled        int
 	// EnumeratedByFamily counts the screened mutants per family before sampling.
 	EnumeratedByFamily map[operator.Family]int
 	// SampledByFamily counts the sampled mutants per family.
@@ -97,6 +100,10 @@ func (g *Generator) Generate(request Request) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
+	ambiguity, err := g.ambiguityOf(files, scope)
+	if err != nil {
+		return Result{}, err
+	}
 
 	var screened []operator.Mutant
 	var stats Stats
@@ -115,6 +122,7 @@ func (g *Generator) Generate(request Request) (Result, error) {
 		inScope := slices.DeleteFunc(candidates, func(c operator.Candidate) bool {
 			return !scope.allowsEdit(c.Edit) || !request.admits(file, c.Site)
 		})
+		inScope = leaveOut(ambiguity, file.Path, inScope, func(c operator.Candidate) mutation.Edit { return c.Edit })
 		stats.Enumerated += len(inScope)
 		kept, screen, err := operator.Screen(inScope, engine)
 		if err != nil {
@@ -133,13 +141,14 @@ func (g *Generator) Generate(request Request) (Result, error) {
 	stats.EnumeratedByFamily = countFamilies(screened)
 	stats.SampledByFamily = countFamilies(sampled)
 
-	sentinels, err := g.drawSentinels(files, scope, request)
+	sentinels, err := g.drawSentinels(files, scope, ambiguity, request)
 	if err != nil {
 		return Result{}, err
 	}
 	if err := g.verifySplices(files, slices.Concat(sampled, sentinels)); err != nil {
 		return Result{}, err
 	}
+	stats.AmbiguousUnits = ambiguity.skipped()
 	return Result{Operator: sampled, Sentinels: sentinels, Footprint: scope.footprint, Stats: stats}, nil
 }
 
@@ -165,7 +174,7 @@ func (g *Generator) verifySplices(files []mutation.SourceFile, mutants []operato
 	return nil
 }
 
-func (g *Generator) drawSentinels(files []mutation.SourceFile, scope scope, request Request) ([]operator.Mutant, error) {
+func (g *Generator) drawSentinels(files []mutation.SourceFile, scope scope, ambiguity *ambiguity, request Request) ([]operator.Mutant, error) {
 	seed := request.Config.Seed
 	var drawn []operator.Mutant
 	for _, file := range files {
@@ -183,6 +192,7 @@ func (g *Generator) drawSentinels(files []mutation.SourceFile, scope scope, requ
 		allowed := slices.DeleteFunc(candidates, func(c operator.SentinelCandidate) bool {
 			return !scope.allowsEdit(c.Edit) || !request.admits(file, c.Site)
 		})
+		allowed = leaveOut(ambiguity, file.Path, allowed, func(c operator.SentinelCandidate) mutation.Edit { return c.Edit })
 		mutants, err := operator.DrawSentinels(file.Path, allowed, seed)
 		if err != nil {
 			return nil, err

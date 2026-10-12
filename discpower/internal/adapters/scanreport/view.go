@@ -194,6 +194,9 @@ func footer(report scan.Report) string {
 	if mutants.DidNotBuild > 0 {
 		parts[0] += fmt.Sprintf(", %d did not build or start", mutants.DidNotBuild)
 	}
+	if mutants.AmbiguousUnits > 0 {
+		parts[0] += fmt.Sprintf(ambiguousUnitsFormat, mutants.AmbiguousUnits, plural(mutants.AmbiguousUnits, unitNoun, unitsNoun))
+	}
 	if mutants.StoppedSentinels > 0 {
 		parts[0] += fmt.Sprintf(stoppedSentinelsFormat, mutants.StoppedSentinels, plural(mutants.StoppedSentinels, sentinelNoun, sentinelsNoun))
 	}
@@ -207,6 +210,14 @@ func footer(report scan.Report) string {
 
 // notRunFormat counts the drawn mutants the budget left unrun.
 const notRunFormat = ", %d %s"
+
+// Vocabulary of the units a draw left out because their name is defined more
+// than once in their file.
+const (
+	ambiguousUnitsFormat = ", %d %s with a repeated name left out"
+	unitNoun             = "definition"
+	unitsNoun            = "definitions"
+)
 
 // Vocabulary of the sentinels that stopped a test binary.
 const (

@@ -267,6 +267,22 @@ func TestNotStarted(t *testing.T) {
 	})
 }
 
+func TestLeftOutDefinitions(t *testing.T) {
+	left := report(t)
+	left.Mutants.AmbiguousUnits = 2
+	t.Run("the definitions a draw left out for a repeated name are counted in the footer [verifies SP-2146~1]", func(t *testing.T) {
+		want := "2 definitions with a repeated name left out"
+		if text, markdown := scanreport.Text(left), scanreport.Markdown(left); !strings.Contains(text, want) || !strings.Contains(markdown, want) {
+			t.Fatalf("missing %q in\n%s", want, text)
+		}
+	})
+	t.Run("a draw that left none out prints none of it [verifies SP-2146~1]", func(t *testing.T) {
+		if plain := scanreport.Text(report(t)); strings.Contains(plain, "repeated name") {
+			t.Fatalf("text:\n%s", plain)
+		}
+	})
+}
+
 func TestMarkdown(t *testing.T) {
 	markdown := scanreport.Markdown(report(t))
 	t.Run("the report holds the split as a table, the note, each finding with its diff, and no banned word"+verifiesMarkdown, func(t *testing.T) {

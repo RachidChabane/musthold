@@ -170,6 +170,9 @@ type SuiteCounts struct {
 type MutantCounts struct {
 	// Drawn are the operator mutants and sentinels drawn.
 	Drawn int
+	// AmbiguousUnits are the definitions and assignments the draw left out
+	// because their file defines their name more than once.
+	AmbiguousUnits int
 	// Ran are the mutants that built and ran.
 	Ran int
 	// DidNotBuild are the mutants dropped because they did not splice or

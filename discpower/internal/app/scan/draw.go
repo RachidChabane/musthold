@@ -42,6 +42,9 @@ type drawn struct {
 	// first, so that no kill goes unguarded when a budget cuts the scan, then
 	// the operator mutants in the order the allocation drew them.
 	order []int
+	// ambiguousUnits counts the units the draw left out because their file
+	// defines their name more than once.
+	ambiguousUnits int
 }
 
 // draw generates the operator mutants and sentinels of the files the targets
@@ -69,7 +72,7 @@ func (s *Service) draw(ref reference, plan plan, request Request) (drawn, error)
 	if err != nil {
 		return drawn{}, fmt.Errorf("draw the mutants: %w", err)
 	}
-	result := drawn{sources: sources}
+	result := drawn{sources: sources, ambiguousUnits: generated.Stats.AmbiguousUnits}
 	sentinels := scanscope.KeepSentinels(generated.Sentinels, scanscope.SentinelCap, request.Seed)
 	seen := map[string]bool{}
 	var drawOrder []string

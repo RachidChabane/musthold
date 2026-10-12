@@ -1491,3 +1491,9 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   that verifies nothing alone and print the time of the confirmation; and
   SHALL write a statement the format accepts and replay its findings with
   every claim held.
+- **SP-2146~1**: WHEN mutants are generated for a file in which another unit of
+  the same kind shares the qualified name of a definition or module assignment
+  THE SYSTEM SHALL draw no operator mutant and no sentinel on that unit, for
+  every engine, count the units left out of the run, report that count in the
+  footer of a scan, and still fail the run on any other mutant that does not
+  splice.

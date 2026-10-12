@@ -206,10 +206,10 @@ func declares(units []ecosystem.Definition, qualname string) bool {
 
 // unique finds the single unit of the edit's target kind with its qualname.
 func unique(units []ecosystem.Definition, edit Edit) (ecosystem.Definition, error) {
-	wantAssignment := edit.Kind() == TargetModuleAssignment
+	target, _ := edit.Targets()
 	var found []ecosystem.Definition
 	for _, u := range units {
-		if (u.Kind == ecosystem.KindAssignment) == wantAssignment && u.Qualname == edit.Qualname {
+		if keyOf(u) == target {
 			found = append(found, u)
 		}
 	}

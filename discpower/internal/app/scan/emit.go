@@ -117,7 +117,7 @@ func (e emission) partial() bool {
 }
 
 func (e emission) mutantCounts(result vacuity.Result) MutantCounts {
-	counts := MutantCounts{Drawn: len(e.drawn.candidates), Proven: len(result.Routes), StoppedSentinels: e.stoppedSentinels()}
+	counts := MutantCounts{Drawn: len(e.drawn.candidates), AmbiguousUnits: e.drawn.ambiguousUnits, Proven: len(result.Routes), StoppedSentinels: e.stoppedSentinels()}
 	for _, executed := range e.executed {
 		switch {
 		case executed.state == stateNotRun:
