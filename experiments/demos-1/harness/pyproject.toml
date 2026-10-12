@@ -1,0 +1,103 @@
+[project]
+name = "demos1"
+version = "0.1.0"
+description = "Tooling of the first scan demos (demos-1): selection, attempts, summary and report lint"
+requires-python = "==3.13.14"
+dependencies = [
+    "packaging",
+    "specbench",
+]
+
+[dependency-groups]
+dev = [
+    "hypothesis",
+    "import-linter",
+    "pyright",
+    "pytest",
+    "pytest-timeout",
+    "ruff",
+]
+
+[project.scripts]
+demos1 = "demos1.cli.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/demos1"]
+
+[tool.uv]
+python-downloads = "never"
+python-preference = "only-system"
+
+[tool.uv.sources]
+specbench = { path = "../../../bench", editable = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider -m 'not docker'"
+norecursedirs = ["fixtures", ".*"]
+pythonpath = ["src", "tests"]
+timeout = 600
+markers = [
+    "docker: runs real containers on the Docker engine (script/test-containers)",
+]
+
+[tool.pyright]
+include = ["src", "tests"]
+exclude = ["tests/fixtures"]
+typeCheckingMode = "strict"
+pythonVersion = "3.13"
+venvPath = "."
+venv = ".venv"
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+src = ["src", "tests"]
+extend-exclude = ["tests/fixtures"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "PL", "RUF", "N", "C4", "PT"]
+ignore = ["PLR2004", "PLR0913", "PLR0917", "E501", "N818", "UP047"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PLR0915", "PLR0912", "PT011", "PT018", "RUF005", "PLC0415"]
+
+[tool.importlinter]
+root_package = "demos1"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "domain imports nothing from other layers"
+type = "forbidden"
+source_modules = ["demos1.domain"]
+forbidden_modules = ["demos1.application", "demos1.adapters", "demos1.cli"]
+
+[[tool.importlinter.contracts]]
+name = "application imports only domain"
+type = "forbidden"
+source_modules = ["demos1.application"]
+forbidden_modules = ["demos1.adapters", "demos1.cli"]
+
+[[tool.importlinter.contracts]]
+name = "adapters do not import the cli"
+type = "forbidden"
+source_modules = ["demos1.adapters"]
+forbidden_modules = ["demos1.cli"]
+
+[[tool.importlinter.contracts]]
+name = "domain and application are free of I/O frameworks"
+type = "forbidden"
+source_modules = ["demos1.domain", "demos1.application"]
+forbidden_modules = ["subprocess", "urllib", "http", "socket", "shutil", "signal"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "the tooling never imports the pilot or a product package by name"
+type = "forbidden"
+source_modules = ["demos1"]
+forbidden_modules = ["experiments", "pilot", "calibration"]
+allow_indirect_imports = true
