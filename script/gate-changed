@@ -15,7 +15,11 @@
 # recorded parcel answers; it first builds the product from the work tree
 # (script/product-build), so those checks never drive a stale build. The gate
 # runs under nice with GOMAXPROCS=2, and waits for script/mem-guard to allow the
-# benchmark core's tests rather than failing on a busy machine.
+# benchmark core's tests rather than failing on a busy machine. When both the Go
+# gates and the benchmark core's checks run and memory allows it at the start, the
+# two run at the same time, unless another gate-changed runs on the machine, and
+# the benchmark core's output follows the Go gates' output; GATE_SERIAL=1 runs
+# them one after the other.
 #
 # Exit 0: every selected gate passed, or nothing to gate. 1: a gate failed.
 # 2: usage error.
@@ -38,6 +42,7 @@ readonly BENCH_PSEUDO_MODULE="bench"
 readonly MEMORY_WAIT_SECONDS=1800
 readonly MEMORY_POLL_SECONDS=30
 readonly EXIT_GATE_FAILED=1
+readonly SERIAL_FLAG="${GATE_SERIAL:-0}"
 
 # wait_for_memory waits until script/mem-guard allows heavy work, so a busy
 # machine delays the gate instead of failing it; it fails once the wait is over.
@@ -126,13 +131,60 @@ if ((list_only)); then
   fi
   exit 0
 fi
-if ((${#selected[@]} > 0)); then
+# gate_modules runs the self-gate of the selected Go modules.
+gate_modules() {
   echo "gate-changed: gating ${selected[*]}"
   GOMAXPROCS="${GATE_PROCS}" nice -n "${NICE_LEVEL}" script/ci "${selected[@]/#/./}"
-fi
-if ((bench_needed)); then
+}
+
+# check_bench runs the benchmark core's checks against the product already built.
+check_bench() {
   echo "gate-changed: checking the benchmark core"
   wait_for_memory
-  GOMAXPROCS="${GATE_PROCS}" nice -n "${NICE_LEVEL}" script/product-build
   GOMAXPROCS="${GATE_PROCS}" nice -n "${NICE_LEVEL}" bench/script/check
+}
+
+# other_gate_running tells whether another gate-changed runs on this machine, so
+# the two heavy jobs of a parallel gate are never added to another gate's.
+other_gate_running() {
+  local pid
+  for pid in $(pgrep -f "script/gate-changed" 2>/dev/null); do
+    [[ "${pid}" != "$$" ]] && return 0
+  done
+  return 1
+}
+
+# stop_bench stops the benchmark core's checks started in the background and the
+# processes they started, by their parent's PID.
+stop_bench() {
+  if [[ -n "${bench_pid:-}" ]] && kill -0 "${bench_pid}" 2>/dev/null; then
+    pkill -TERM -P "${bench_pid}" 2>/dev/null || true
+    kill -TERM "${bench_pid}" 2>/dev/null || true
+  fi
+}
+
+if ((bench_needed)); then
+  GOMAXPROCS="${GATE_PROCS}" nice -n "${NICE_LEVEL}" script/product-build
+fi
+if ((${#selected[@]} > 0 && bench_needed)) && [[ "${SERIAL_FLAG}" != "1" ]] &&
+  ! other_gate_running && script/mem-guard check >/dev/null 2>&1; then
+  bench_log="$(mktemp)"
+  trap 'stop_bench; rm -f "${bench_log}"' EXIT
+  check_bench >"${bench_log}" 2>&1 &
+  bench_pid=$!
+  modules_status=0
+  gate_modules || modules_status=$?
+  bench_status=0
+  wait "${bench_pid}" || bench_status=$?
+  cat "${bench_log}"
+  if ((modules_status != 0 || bench_status != 0)); then
+    exit "${EXIT_GATE_FAILED}"
+  fi
+  exit 0
+fi
+if ((${#selected[@]} > 0)); then
+  gate_modules
+fi
+if ((bench_needed)); then
+  check_bench
 fi
