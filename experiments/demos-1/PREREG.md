@@ -588,13 +588,14 @@ one starts:
 - **Setup:** the stages reached, and the outcome of the first failing stage, if any;
 - **Suite:** the passing, failing, erroring and skipped counts of both runs, and the
   suite runtime;
-- **Per scan:** the SHA-256 of `scan.json`, and from `scan.json`:
-  - the five class counts: verifies nothing, caught at least one change, unproven,
-    not sampled and not green;
-  - the sampled green total and the total number of tests;
-  - the depth, the budget, and whether the scan is partial;
-  - the mutants drawn, proven and left unrun;
-  - the seed and the workers;
+- **Per scan:** the SHA-256 of `scan.json`, and:
+  - from `scan.json`: the five class counts (verifies nothing, caught at least
+    one change, unproven, not sampled and not green), the sampled green total,
+    the total number of tests, the seed and the mutants it lists;
+  - from the scan's printed headline (§12.1), as printed: the depth, the budget,
+    the workers, whether the scan is partial, and the mutant line's counts (ran,
+    proven, identical when compiled, did not build or start, not run within the
+    budget). No count the headline does not print is derived from the others;
 - **Per finding** (each test that verifies nothing):
   - the test id;
   - the scan's literal sentence;
@@ -686,7 +687,9 @@ After the last attempt, `summarize` writes two files from `$DEMOS1_WORK`:
 
 - `notes/demos-1/summary.json`, which holds:
   - the lists;
-  - every attempt record, without logs, mutant patches or third-party source;
+  - every attempt record, without logs or mutant patches; the only third-party
+    text it holds is what the headlines of §12.1 print verbatim (test ids, file
+    paths, the changed token and a differential input and its results);
   - the digests of `manifest.json`, `lists.json` and every `scan.json`;
   - every fraction the summary prints;
 - `notes/demos-1/SUMMARY.md`: the same, rendered.
