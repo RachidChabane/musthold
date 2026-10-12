@@ -98,16 +98,16 @@ func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspa
 		leaves[index].binary = binaries[slices.Index(dirs, leaves[index].dir)]
 	}
 	plan := planCoverageRuns(binaries, leaves)
-	if err := s.runCoveragePlan(ctx, workspace, plan, request); err != nil {
+	if err := s.runBaselines(ctx, workspace, plan, request); err != nil {
 		return nil, err
 	}
-	source := newSourceReader(workspace.Dir)
+	covered, err := s.runLeaves(ctx, workspace, plan, module, request)
+	if err != nil {
+		return nil, err
+	}
 	byTest := make(map[ecosystem.TestID]vacuity.Coverage, len(leaves))
 	for index, leaf := range leaves {
-		byTest[leaf.test] = vacuity.Coverage{}
-		if profile := plan.leafProfiles[index]; profile != nil {
-			byTest[leaf.test] = leafCoverage(profile, plan.chainOf(leaf), source.line, module)
-		}
+		byTest[leaf.test] = covered[index]
 	}
 	return byTest, nil
 }
@@ -152,13 +152,13 @@ func (k baselineKey) selection() string {
 }
 
 // coveragePlan is every run of a recording: the runs of each distinct
-// baseline, then each leaf, with what each left.
+// baseline, with what each left, then each leaf.
 type coveragePlan struct {
 	baselineKeys []baselineKey
 	binaryOf     map[baselineKey]*coverageBinary
 	baselineRuns map[baselineKey][]baselineRun
+	baselines    map[baselineKey]baseline
 	leaves       []coveredRun
-	leafProfiles []blockCounts
 }
 
 // planCoverageRuns lists the start-up of each binary, then each other distinct
@@ -166,7 +166,7 @@ type coveragePlan struct {
 func planCoverageRuns(binaries []*coverageBinary, leaves []coveredRun) *coveragePlan {
 	plan := &coveragePlan{
 		binaryOf: map[baselineKey]*coverageBinary{}, baselineRuns: map[baselineKey][]baselineRun{},
-		leaves: leaves, leafProfiles: make([]blockCounts, len(leaves)),
+		baselines: map[baselineKey]baseline{}, leaves: leaves,
 	}
 	add := func(key baselineKey, binary *coverageBinary) {
 		if _, planned := plan.binaryOf[key]; !planned {
@@ -189,33 +189,49 @@ func planCoverageRuns(binaries []*coverageBinary, leaves []coveredRun) *coverage
 // baselineJobs is the number of baseline runs of the plan.
 func (p *coveragePlan) baselineJobs() int { return len(p.baselineKeys) * baselineRunsPerPath }
 
-// chainOf is the baseline chain of a leaf.
+// chainOf is the baseline chain of a leaf, once the baselines have run.
 func (p *coveragePlan) chainOf(leaf coveredRun) baselineChain {
 	keys := leaf.baselineKeys()
 	chain := make(baselineChain, 0, len(keys))
 	for _, key := range keys {
-		chain = append(chain, baselineOf(p.baselineRuns[key]))
+		chain = append(chain, p.baselines[key])
 	}
 	return chain
 }
 
-// runCoveragePlan runs every run of the plan on at most the requested workers,
-// the baselines first, and stops at the first error. A leaf run past the
-// request's timeout is an error; a baseline run that times out is only not
-// usable.
-func (s scanSuite) runCoveragePlan(ctx context.Context, workspace ecosystem.Workspace, plan *coveragePlan, request ports.ScanCoverageRequest) error {
-	baselineJobs := plan.baselineJobs()
-	return onWorkers(ctx, request.Workers, baselineJobs+len(plan.leaves), func(ctx context.Context, index int) error {
-		if index < baselineJobs {
-			key := plan.baselineKeys[index/baselineRunsPerPath]
-			ran, err := s.runBinary(ctx, workspace, plan.binaryOf[key], key.selection(), request.Timeout)
-			if err != nil {
-				return err
-			}
-			plan.baselineRuns[key][index%baselineRunsPerPath] = baselineRun{counts: readBlockCounts(ran.profile), usable: ran.usable()}
-			return nil
+// runBaselines runs every run of every baseline of the plan on at most the
+// requested workers, stops at the first error, and reads each baseline. A
+// baseline run that times out is not usable, never an error.
+func (s scanSuite) runBaselines(ctx context.Context, workspace ecosystem.Workspace, plan *coveragePlan, request ports.ScanCoverageRequest) error {
+	err := onWorkers(ctx, request.Workers, plan.baselineJobs(), func(ctx context.Context, index int) error {
+		key := plan.baselineKeys[index/baselineRunsPerPath]
+		ran, err := s.runBinary(ctx, workspace, plan.binaryOf[key], key.selection(), request.Timeout)
+		if err != nil {
+			return err
 		}
-		leaf := plan.leaves[index-baselineJobs]
+		plan.baselineRuns[key][index%baselineRunsPerPath] = baselineRun{counts: countsRun(readBlockCounts(ran.profile)), usable: ran.usable()}
+		return nil
+	})
+	if err == nil {
+		err = ctx.Err()
+	}
+	if err != nil {
+		return err
+	}
+	for _, key := range plan.baselineKeys {
+		plan.baselines[key] = baselineOf(plan.baselineRuns[key])
+	}
+	return nil
+}
+
+// runLeaves runs each leaf of the plan alone on at most the requested workers,
+// reads its coverage against its baselines as soon as it ends, and stops at the
+// first error; a leaf run past the request's timeout is one.
+func (s scanSuite) runLeaves(ctx context.Context, workspace ecosystem.Workspace, plan *coveragePlan, module string, request ports.ScanCoverageRequest) ([]vacuity.Coverage, error) {
+	source := newSourceReader(workspace.Dir)
+	covered := make([]vacuity.Coverage, len(plan.leaves))
+	err := onWorkers(ctx, request.Workers, len(plan.leaves), func(ctx context.Context, index int) error {
+		leaf := plan.leaves[index]
 		selection := expression([][]string{leaf.elements})
 		ran, err := s.runBinary(ctx, workspace, leaf.binary, selection, request.Timeout)
 		if err != nil {
@@ -225,10 +241,11 @@ func (s scanSuite) runCoveragePlan(ctx context.Context, workspace ecosystem.Work
 			return fmt.Errorf("%w: %s of %s ran past %s", ports.ErrCoverageTimedOut, selection, leaf.dir, request.Timeout)
 		}
 		if ran.profile != nil {
-			plan.leafProfiles[index-baselineJobs] = readBlockCounts(ran.profile)
+			covered[index] = leafCoverage(readBlockCounts(ran.profile), plan.chainOf(leaf), source.line, module)
 		}
 		return nil
 	})
+	return covered, err
 }
 
 // onWorkers does each of count jobs, by index, on at most the given number of
@@ -311,9 +328,11 @@ func (s scanSuite) runBinary(ctx context.Context, workspace ecosystem.Workspace,
 	return ran, nil
 }
 
-// sourceReader reads the lines of the module's files, each file once.
+// sourceReader reads the lines of the module's files, each file once, for any
+// number of goroutines.
 type sourceReader struct {
 	root  string
+	mutex sync.Mutex
 	files map[string][]string
 }
 
@@ -324,6 +343,8 @@ func newSourceReader(root string) *sourceReader {
 // line gives the text of a line of a file relative to the module root, and
 // whether it could be read.
 func (r *sourceReader) line(file string, line int) (string, bool) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	lines, read := r.files[file]
 	if !read {
 		if content, err := os.ReadFile(filepath.Join(r.root, filepath.FromSlash(file))); err == nil {

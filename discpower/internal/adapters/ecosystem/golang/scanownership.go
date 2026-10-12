@@ -12,43 +12,53 @@ import (
 // runs: a block is stable only when every run gives it the same count.
 const baselineRunsPerPath = vacuity.RunsPerOutcome
 
-// baselineRun is what one run of a baseline left: the counts of its profile,
-// and whether it is usable, which it is not when it left no profile, exited
+// runCounts maps the position of each block a run counted at least once to its
+// count; a block it does not list counted zero.
+type runCounts map[string]int64
+
+// countsRun keeps the blocks of a profile that ran.
+func countsRun(profile blockCounts) runCounts {
+	counts := runCounts{}
+	for position, entry := range profile {
+		if entry.count > 0 {
+			counts[position] = entry.count
+		}
+	}
+	return counts
+}
+
+// baselineRun is what one run of a baseline left: the blocks it ran, and
+// whether it is usable, which it is not when it left no profile, exited
 // non-zero or timed out.
 type baselineRun struct {
-	counts blockCounts
+	counts runCounts
 	usable bool
 }
 
 // baseline is what the runs of a coverage binary that start no test, or that
 // start an ancestor of a leaf and none of its subtests, count: the count of
-// each block that every run gave the same count, and the blocks they did not
-// agree on. A missing baseline had a run that is not usable.
+// each block every run gave the same count, zero for a block none ran, and the
+// blocks they did not agree on. A missing baseline had a run that is not
+// usable.
 type baseline struct {
-	counts   map[string]int64
+	counts   runCounts
 	unstable map[string]bool
 	missing  bool
 }
 
-// baselineOf reads the runs of one baseline; a block one run lists and
-// another does not counts zero in the other.
+// baselineOf reads the runs of one baseline.
 func baselineOf(runs []baselineRun) baseline {
-	if len(runs) == 0 {
+	if len(runs) == 0 || slices.ContainsFunc(runs, func(run baselineRun) bool { return !run.usable }) {
 		return baseline{missing: true}
 	}
-	for _, run := range runs {
-		if !run.usable {
-			return baseline{missing: true}
-		}
-	}
-	result := baseline{counts: map[string]int64{}, unstable: map[string]bool{}}
+	result := baseline{counts: runCounts{}, unstable: map[string]bool{}}
 	for _, run := range runs {
 		for position := range run.counts {
 			if _, read := result.counts[position]; read || result.unstable[position] {
 				continue
 			}
-			count := runs[0].counts[position].count
-			if slices.ContainsFunc(runs, func(other baselineRun) bool { return other.counts[position].count != count }) {
+			count := runs[0].counts[position]
+			if slices.ContainsFunc(runs, func(other baselineRun) bool { return other.counts[position] != count }) {
 				result.unstable[position] = true
 				continue
 			}

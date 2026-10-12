@@ -49,9 +49,12 @@ func profileOf(lines ...string) blockCounts {
 	return readBlockCounts([]byte(strings.Join(append([]string{"mode: atomic"}, lines...), "\n")))
 }
 
+// runOf is what a run that counted the profile ran.
+func runOf(lines ...string) runCounts { return countsRun(profileOf(lines...)) }
+
 // stableBaseline is a baseline whose runs all counted the profile.
 func stableBaseline(lines ...string) baseline {
-	run := baselineRun{counts: profileOf(lines...), usable: true}
+	run := baselineRun{counts: countsRun(profileOf(lines...)), usable: true}
 	return baselineOf(slices.Repeat([]baselineRun{run}, baselineRunsPerPath))
 }
 
@@ -114,9 +117,9 @@ func TestLeafCoverage(t *testing.T) {
 	})
 	t.Run("a block a run of a baseline counted differently is owned by no test under it, and the immediate baseline sets the count to beat"+verifiesOwnership, func(t *testing.T) {
 		unsteady := baselineOf([]baselineRun{
-			{counts: profileOf("example.com/tally/tally.go:8.2,8.10 1 0", "example.com/tally/tally.go:5.2,5.7 1 0"), usable: true},
-			{counts: profileOf("example.com/tally/tally.go:8.2,8.10 1 1", "example.com/tally/tally.go:5.2,5.7 1 0"), usable: true},
-			{counts: profileOf("example.com/tally/tally.go:8.2,8.10 1 0"), usable: true},
+			{counts: runOf("example.com/tally/tally.go:8.2,8.10 1 0", "example.com/tally/tally.go:5.2,5.7 1 0"), usable: true},
+			{counts: runOf("example.com/tally/tally.go:8.2,8.10 1 1", "example.com/tally/tally.go:5.2,5.7 1 0"), usable: true},
+			{counts: runOf("example.com/tally/tally.go:8.2,8.10 1 0"), usable: true},
 		})
 		parent := stableBaseline("example.com/tally/tally.go:5.2,5.7 1 2", "example.com/tally/tally.go:8.2,8.10 1 3")
 		chain := baselineChain{unsteady, parent}
@@ -129,7 +132,7 @@ func TestLeafCoverage(t *testing.T) {
 		}
 	})
 	t.Run("a test with a missing baseline above it owns no line"+verifiesOwnership, func(t *testing.T) {
-		failing := baselineOf([]baselineRun{{counts: profileOf(), usable: true}, {counts: profileOf()}, {counts: profileOf(), usable: true}})
+		failing := baselineOf([]baselineRun{{counts: runOf(), usable: true}, {counts: countsRun(profileOf())}, {counts: runOf(), usable: true}})
 		profile := profileOf("example.com/tally/tally.go:8.2,8.10 1 1")
 		coverage := leafCoverage(profile, baselineChain{startUp, failing}, tallyLines, tallyModule)
 		if len(coverage.Lines) == 0 || coverage.Owned != nil {
