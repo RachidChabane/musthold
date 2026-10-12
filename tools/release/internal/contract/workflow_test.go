@@ -263,13 +263,23 @@ func TestToolchainPinMatchesTheWorkspace(t *testing.T) {
 	})
 }
 
+// ciPushBranches are the branches whose pushes run CI: main, and the gate branches
+// that run the whole CI before a merge.
+var ciPushBranches = []string{"main", "gate/**"}
+
 func TestCIWorkflowKeepsItsTriggers(t *testing.T) {
 	parsed := parseWorkflow(t, ciWorkflow)
 
-	t.Run("CI still runs on pushes to main and on pull requests, and can be called with a modules input"+verifiesWorkflow, func(t *testing.T) {
+	t.Run("CI still runs on pushes to main and to gate branches, on pull requests, and can be called with a modules input"+verifiesWorkflow, func(t *testing.T) {
 		push, _ := parsed.On["push"].(map[string]any)
-		if branches, _ := push["branches"].([]any); len(branches) != 1 || branches[0] != "main" {
-			t.Errorf("push = %v", push)
+		branches, _ := push["branches"].([]any)
+		if len(branches) != len(ciPushBranches) {
+			t.Fatalf("push = %v", push)
+		}
+		for index, branch := range ciPushBranches {
+			if branches[index] != branch {
+				t.Errorf("push branch %d = %v, want %q", index, branches[index], branch)
+			}
 		}
 		if _, present := parsed.On["pull_request"]; !present {
 			t.Error("CI no longer runs on pull requests")
