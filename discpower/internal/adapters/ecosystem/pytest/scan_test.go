@@ -47,6 +47,12 @@ type scanProject struct {
 
 func openScanProject(t *testing.T) scanProject {
 	t.Helper()
+	return openScanFixture(t, scanFixture)
+}
+
+// openScanFixture prepares a workspace of the pytest project in the directory.
+func openScanFixture(t *testing.T, dir string) scanProject {
+	t.Helper()
 	manager, err := workspace.New(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -54,7 +60,7 @@ func openScanProject(t *testing.T) scanProject {
 	t.Cleanup(func() { _ = manager.Close() })
 	strategy := pytest.New(pytest.Dependencies{Process: process.New(), Reader: junitxml.NewReader(), Locator: treesitter.NewLocator()})
 	ctx := context.Background()
-	prepared, err := manager.Prepare(ctx, filepath.Clean(scanFixture), strategy.Layout())
+	prepared, err := manager.Prepare(ctx, filepath.Clean(dir), strategy.Layout())
 	if err != nil {
 		t.Fatal(err)
 	}

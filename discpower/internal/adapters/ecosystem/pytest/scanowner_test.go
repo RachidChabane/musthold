@@ -2,15 +2,9 @@ package pytest_test
 
 import (
 	"context"
-	"path/filepath"
 	"slices"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/pytest"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/junitxml"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/treesitter"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/workspace"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
@@ -49,22 +43,7 @@ var (
 
 func openLedgerProject(t *testing.T) scanProject {
 	t.Helper()
-	manager, err := workspace.New(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = manager.Close() })
-	strategy := pytest.New(pytest.Dependencies{Process: process.New(), Reader: junitxml.NewReader(), Locator: treesitter.NewLocator()})
-	ctx := context.Background()
-	prepared, err := manager.Prepare(ctx, filepath.Clean(ledgerFixture), strategy.Layout())
-	if err != nil {
-		t.Fatal(err)
-	}
-	toolchain, err := strategy.Toolchain().Resolve(ctx, prepared)
-	if err != nil {
-		t.Skipf("no python interpreter: %v", err)
-	}
-	return scanProject{manager: manager, suite: strategy.Scan(), workspace: prepared, toolchain: toolchain, layout: strategy.Layout()}
+	return openScanFixture(t, ledgerFixture)
 }
 
 func TestScanLineCoverageOwnership(t *testing.T) {
