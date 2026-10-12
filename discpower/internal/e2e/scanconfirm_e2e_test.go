@@ -2,9 +2,11 @@ package e2e_test
 
 import (
 	"os/exec"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
 	"github.com/RachidChabane/spec-proof/format"
 )
 
@@ -15,14 +17,64 @@ const (
 	goQuotesFixture         = "fixtures/scan/go-quotes"
 	verifiesConfirmationE2E = " [verifies SP-2145~1]"
 	confirmationPhase       = "confirmation "
+	alertsLevels            = "alerts/levels.py"
+	quietCondition          = 22
+	quietLowered            = 23
 )
 
 // confirmationCase is a project of the confirmation fixtures: the test that
-// verifies nothing alone, and the test whose survivals hold only beside
-// another test.
+// verifies nothing alone, the test whose survivals hold only beside another
+// test, and why the confirmation leaves that test unproven.
 type confirmationCase struct {
 	name, fixture, tool string
 	vacuous, dependent  string
+	reason              format.ScanUnprovenReason
+	// premise checks that the scan proved what a claim on the dependent test
+	// would have cited.
+	premise func(t *testing.T, statement format.ScanStatement, dependent format.ScanTest)
+}
+
+// sitesOf are the distinct sites, the first mutated lines, of the mutants.
+func sitesOf(mutants []format.ScanMutant) map[format.ScanLine]bool {
+	sites := map[format.ScanLine]bool{}
+	for _, mutant := range mutants {
+		sites[mutant.Lines[0]] = true
+	}
+	return sites
+}
+
+// provenOnQuietLevel requires the proven mutants of the lines the routing test
+// owns only once the ops channel is muted: enough of them, on enough sites, for
+// a claim.
+func provenOnQuietLevel(t *testing.T, statement format.ScanStatement, _ format.ScanTest) {
+	t.Helper()
+	var proven []format.ScanMutant
+	for _, mutant := range statement.Predicate.Mutants {
+		onQuiet := slices.ContainsFunc(mutant.Lines, func(line format.ScanLine) bool {
+			return line.File == alertsLevels && (line.Line == quietCondition || line.Line == quietLowered)
+		})
+		if onQuiet && mutant.Proven() && !mutant.Sentinel {
+			proven = append(proven, mutant)
+		}
+	}
+	if len(proven) < vacuity.MinChanges || len(sitesOf(proven)) < vacuity.MinSites {
+		t.Fatalf("%d proven mutants on %d sites of quiet_level", len(proven), len(sitesOf(proven)))
+	}
+}
+
+// citesItsChanges requires the dependent test to cite enough changes, on
+// enough sites, for a claim, one of them inconclusive alone.
+func citesItsChanges(t *testing.T, statement format.ScanStatement, dependent format.ScanTest) {
+	t.Helper()
+	var cited []format.ScanMutant
+	for _, change := range dependent.Changes {
+		index := slices.IndexFunc(statement.Predicate.Mutants, func(mutant format.ScanMutant) bool { return mutant.ID == change.Mutant })
+		cited = append(cited, statement.Predicate.Mutants[index])
+	}
+	inconclusive := slices.ContainsFunc(dependent.Changes, func(change format.ScanChange) bool { return change.Outcome == format.ScanInconclusive })
+	if len(cited) < vacuity.MinChanges || len(sitesOf(cited)) < vacuity.MinSites || !inconclusive {
+		t.Fatalf("changes %+v", dependent.Changes)
+	}
 }
 
 func TestScanConfirmsEachClaimAlone(t *testing.T) {
@@ -30,10 +82,12 @@ func TestScanConfirmsEachClaimAlone(t *testing.T) {
 		{
 			name: "pytest", fixture: pytestAlertsFixture, tool: "python3",
 			vacuous: "tests/test_escalation.py::test_escalate_accepts_any_repeat", dependent: "tests/test_routing.py::test_route_never_raises_a_level",
+			reason: format.ScanTooFewChanges, premise: provenOnQuietLevel,
 		},
 		{
 			name: "go", fixture: goQuotesFixture, tool: "go",
 			vacuous: "quotes_test.go::TestQuotesAcceptAnySku", dependent: "quotes_test.go::TestPriceOfThePremiumRange",
+			reason: format.ScanInconclusiveOutcome, premise: citesItsChanges,
 		},
 	} {
 		t.Run(c.name, func(t *testing.T) {
@@ -49,9 +103,10 @@ func TestScanConfirmsEachClaimAlone(t *testing.T) {
 
 			t.Run("a test whose survivals hold only beside another test makes no claim"+verifiesConfirmationE2E, func(t *testing.T) {
 				dependent := testNamed(statement, c.dependent)
-				if dependent.ID == "" || dependent.Class == format.ScanVerifiesNothing || strings.Contains(scan.stdout, c.dependent+" passes on all") {
-					t.Fatalf("%s is judged %q:\n%s", c.dependent, dependent.Class, scan.stdout)
+				if dependent.Class != format.ScanUnproven || dependent.Reason != c.reason || strings.Contains(scan.stdout, c.dependent+" passes on all") {
+					t.Fatalf("%s is judged %q (%s):\n%s", c.dependent, dependent.Class, dependent.Reason, scan.stdout)
 				}
+				c.premise(t, statement, dependent)
 			})
 			t.Run("a test that verifies nothing alone keeps its claim, and the confirmation is timed"+verifiesConfirmationE2E, func(t *testing.T) {
 				if testNamed(statement, c.vacuous).Class != format.ScanVerifiesNothing || !strings.Contains(scan.stdout, confirmationPhase) {

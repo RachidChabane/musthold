@@ -145,7 +145,7 @@ func TestConfirmationRunsATestAlone(t *testing.T) {
 			t.Fatalf("%+v", scanTestNamed(report.Statement.Predicate.Tests, seedsTable))
 		}
 	})
-	t.Run("every run of a confirmation selects one test"+verifiesConfirmation, func(t *testing.T) {
+	t.Run("a selection that holds the test without the test that sets its state holds it alone"+verifiesConfirmation, func(t *testing.T) {
 		for _, selection := range f.suite.selections {
 			if slices.Contains(selection, readsTable) && len(selection) > 1 && !slices.Contains(selection, seedsTable) {
 				t.Fatalf("selection %v", selection)

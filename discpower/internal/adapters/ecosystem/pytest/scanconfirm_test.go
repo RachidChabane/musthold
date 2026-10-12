@@ -78,3 +78,26 @@ func TestScanLineCoverageAlone(t *testing.T) {
 		})
 	}
 }
+
+func TestScanLineCoverageAloneOfASharedFixture(t *testing.T) {
+	project := openLedgerProject(t)
+	cases := []ports.ScanCase{{ID: postAddsTheAmount, File: ledgerTests}, {ID: ledgerIsNamed, File: ledgerTests}}
+	recordings := make([]map[ecosystem.TestID]vacuity.Coverage, 0, sessionAndAloneRuns)
+	for _, alone := range []bool{false, true} {
+		covered, err := project.suite.LineCoverage(context.Background(), project.workspace, project.toolchain, ports.ScanCoverageRequest{Tests: cases, Timeout: scanRunTimeout, Alone: alone})
+		if err != nil {
+			t.Fatal(err)
+		}
+		recordings = append(recordings, covered)
+	}
+	session, alone := recordings[0][postAddsTheAmount], recordings[1][postAddsTheAmount]
+
+	t.Run("alone a test runs the teardown of a module fixture it shares, owns none of it, and owns what it owns in the session"+verifiesConfirmed, func(t *testing.T) {
+		if slices.Contains(session.Lines, ledgerCloses) || !slices.Contains(alone.Lines, ledgerCloses) || slices.Contains(alone.Owned, ledgerCloses) {
+			t.Fatalf("session %+v, alone %+v", session, alone)
+		}
+		if !slices.Equal(alone.Owned, session.Owned) {
+			t.Fatalf("owned in the session %v, alone %v", session.Owned, alone.Owned)
+		}
+	})
+}
