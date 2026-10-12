@@ -10,6 +10,7 @@ import (
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
 	"github.com/RachidChabane/spec-proof/format"
 )
 
@@ -63,7 +64,7 @@ func TestConfirmationRecordsATestAlone(t *testing.T) {
 	report := run(t, f, request())
 
 	t.Run("a test that owns lines only once another test ran is recorded alone and makes no claim on them"+verifiesConfirmation, func(t *testing.T) {
-		if proven, _ := provenOn(report, []int{2, 3, 4}, ""); proven < 5 {
+		if proven, _ := provenOn(report, []int{2, 3, 4}, ""); proven < vacuity.MinChanges {
 			t.Fatalf("%d proven mutants on the lines the test owns beside its setter", proven)
 		}
 		test := scanTestNamed(report.Statement.Predicate.Tests, loadedTable)
@@ -112,7 +113,7 @@ func TestConfirmationPrintsTheConfirmedCount(t *testing.T) {
 			}
 		}
 		finding, found := findingOf(report, vacuousTest)
-		if test.Class != format.ScanVerifiesNothing || !found || finding.Changes != len(test.Changes) || finding.Changes < 5 {
+		if test.Class != format.ScanVerifiesNothing || !found || finding.Changes != len(test.Changes) || finding.Changes < vacuity.MinChanges {
 			t.Fatalf("%+v, finding %+v", test, finding)
 		}
 	})
@@ -175,7 +176,7 @@ func TestConfirmationOfKillers(t *testing.T) {
 	report := run(t, f, request())
 
 	t.Run("a change only a killer that fails alone proves leaves the test's changes"+verifiesConfirmation, func(t *testing.T) {
-		if _, killed := provenOn(report, []int{9, 10}, loadedRates); killed < 5 {
+		if _, killed := provenOn(report, []int{9, 10}, loadedRates); killed < vacuity.MinChanges {
 			t.Fatalf("%d changes %s kills on the lines %s owns", killed, loadedRates, anyTotal)
 		}
 		test := scanTestNamed(report.Statement.Predicate.Tests, anyTotal)
