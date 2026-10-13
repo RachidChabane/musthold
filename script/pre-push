@@ -12,6 +12,14 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
+# Git hands a hook GIT_DIR and its siblings. The gates run tests that build
+# repositories of their own, and with these set every such git command would
+# write into this repository instead: commits on the pushed branch, its index,
+# its refs and core.bare. Each command finds the repository from its directory.
+for git_variable in $(git rev-parse --local-env-vars); do
+  unset "${git_variable}"
+done
+
 readonly ZERO_SHA="0000000000000000000000000000000000000000"
 readonly DEFAULT_BASE="origin/main"
 readonly MAIN_REF="refs/heads/main"
