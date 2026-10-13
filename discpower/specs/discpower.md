@@ -754,6 +754,46 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   by given tests as entry functions, sorted and without duplicates, and the tests
   that executed a unit or a definition nested in it.
 
+## Reading a pull request
+
+- **SP-2200~1**: WHEN `scan <PR>` reads a pull request THE SYSTEM SHALL ask `gh`
+  for its number, title, body, URL, base commit and head commit, and for each
+  issue it closes the number, title, body, URL and state, and SHALL give them as
+  data of the application layer that names no `gh` detail.
+- **SP-2201~1**: WHEN the title or body of a pull request or an issue is read
+  THE SYSTEM SHALL keep their bytes exactly as `gh` returned them, line endings,
+  trailing spaces, non-ASCII text and text that reads as an instruction
+  included.
+- **SP-2202~1**: WHEN a pull request is read THE SYSTEM SHALL run only
+  `gh pr view` and `gh issue view`, and SHALL read no diff from `gh`.
+- **SP-2203~1**: WHEN the work tree is not at the head commit of the pull request
+  THE SYSTEM SHALL refuse with a typed error that names both commits and
+  `gh pr checkout <n>`, and SHALL neither fetch nor check anything out.
+- **SP-2204~1**: WHEN the pull request is read in a work tree at its head THE
+  SYSTEM SHALL give as the scan base the merge base of the head and the base
+  commit of the pull request.
+- **SP-2205~1**: WHEN the base commit of the pull request is not in the local
+  repository THE SYSTEM SHALL refuse with a typed error that names the commit and
+  `git fetch`.
+- **SP-2206~1**: WHEN `gh` cannot be run THE SYSTEM SHALL refuse with a typed
+  error that tells to install it, and WHEN `gh` is not signed in a typed error
+  that names `gh auth login`.
+- **SP-2207~1**: WHEN `gh` exits with a failure or prints an answer that is not
+  the JSON asked for THE SYSTEM SHALL refuse with a typed error that carries
+  `gh`'s message.
+- **SP-2208~1**: WHEN a file is read from the head commit THE SYSTEM SHALL read
+  it from the committed tree and not from the work tree, and SHALL report a path
+  that is not a file of that tree as a typed error.
+- **SP-2209~1**: WHEN named sources are saved THE SYSTEM SHALL write each one's
+  exact bytes under `.spec-proof/scan/<commit>/sources/` of the repository, give
+  its SHA-256 digest as the format computes it, and read the same bytes back.
+- **SP-2210~1**: WHEN a source name is turned into a file name THE SYSTEM SHALL
+  do it deterministically and without two names sharing a file, keeping every
+  name that is safe, whatever characters it holds.
+- **SP-2211~1**: WHEN a source name is empty, holds a NUL or has a `.` or `..`
+  element, or the commit is not a full hexadecimal id THE SYSTEM SHALL refuse
+  with a typed error and write nothing outside the sources folder.
+
 ## Prompts
 
 - **SP-173~2**: WHEN a request prompt is built THE SYSTEM SHALL name no criterion

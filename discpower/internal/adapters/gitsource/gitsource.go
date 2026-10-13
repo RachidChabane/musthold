@@ -33,6 +33,13 @@ const (
 	noColorFlag        = "--no-color"
 	noExternalDiffFlag = "--no-ext-diff"
 	renamesFlag        = "-M"
+	mergeBaseCommand   = "merge-base"
+	catFileCommand     = "cat-file"
+	existsFlag         = "-e"
+	blobType           = "blob"
+	lsTreeCommand      = "ls-tree"
+	blobEntry          = " blob "
+	entrySeparator     = "\t"
 	remoteCommand      = "remote"
 	getURL             = "get-url"
 	originRemote       = "origin"
@@ -54,8 +61,15 @@ const (
 	namePartsCount = 2
 )
 
-// ErrGit is returned when a git command fails.
-var ErrGit = errors.New("git failed")
+// Errors of the adapter.
+var (
+	// ErrGit is returned when a git command fails.
+	ErrGit = errors.New("git failed")
+	// ErrNoMergeBase is returned when two commits share no ancestor.
+	ErrNoMergeBase = errors.New("the commits share no ancestor")
+	// ErrNotInTree is returned when a path names no file of the head commit.
+	ErrNotInTree = errors.New("file is not in the head commit")
+)
 
 var _ ports.SourceControl = Repository{}
 
@@ -66,15 +80,71 @@ type Repository struct {
 	Root string
 }
 
-func (r Repository) git(ctx context.Context, args ...string) (string, error) {
+func (r Repository) run(ctx context.Context, args ...string) (ports.CommandResult, error) {
 	result, err := r.Process.Run(ctx, ports.Command{Argv: append([]string{gitBinary}, args...), Dir: r.Root})
+	if err != nil {
+		return result, fmt.Errorf("run git: %w", err)
+	}
+	return result, nil
+}
+
+func (r Repository) git(ctx context.Context, args ...string) (string, error) {
+	result, err := r.run(ctx, args...)
 	switch {
 	case err != nil:
-		return "", fmt.Errorf("run git: %w", err)
+		return "", err
 	case result.ExitCode != 0:
-		return "", fmt.Errorf("%w: git %s: %s", ErrGit, strings.Join(args, " "), strings.TrimSpace(string(result.Stderr)))
+		return "", failure(args, result)
 	}
 	return string(result.Stdout), nil
+}
+
+func failure(args []string, result ports.CommandResult) error {
+	return fmt.Errorf("%w: git %s: %s", ErrGit, strings.Join(args, " "), strings.TrimSpace(string(result.Stderr)))
+}
+
+// MergeBase is the best common ancestor of the head commit and a revision, as a
+// full commit id. found is false when the revision names no commit of the local
+// object database; the repository is never fetched into.
+func (r Repository) MergeBase(ctx context.Context, revision string) (base string, found bool, err error) {
+	probe := []string{catFileCommand, existsFlag, revision + commitSuffix}
+	result, err := r.run(ctx, probe...)
+	switch {
+	case err != nil:
+		return "", false, err
+	case result.ExitCode != 0:
+		return "", false, nil
+	}
+	args := []string{mergeBaseCommand, headRevision, revision + commitSuffix}
+	result, err = r.run(ctx, args...)
+	switch {
+	case err != nil:
+		return "", true, err
+	case result.ExitCode != 0 && strings.TrimSpace(string(result.Stderr)) == "":
+		return "", true, fmt.Errorf("%w: %s", ErrNoMergeBase, revision)
+	case result.ExitCode != 0:
+		return "", true, failure(args, result)
+	}
+	return strings.TrimSpace(string(result.Stdout)), true, nil
+}
+
+// ReadAtHead reads a file, relative POSIX, from the tree of the head commit,
+// not from the work tree. A path that is not a file of that tree gives
+// ErrNotInTree.
+func (r Repository) ReadAtHead(ctx context.Context, path string) ([]byte, error) {
+	listing, err := r.git(ctx, lsTreeCommand, nulFlag, headRevision, pathspecSeparator, path)
+	if err != nil {
+		return nil, err
+	}
+	description, name, _ := strings.Cut(strings.TrimSuffix(listing, "\x00"), entrySeparator)
+	if name != path || !strings.Contains(description, blobEntry) {
+		return nil, fmt.Errorf("%w: %s", ErrNotInTree, path)
+	}
+	content, err := r.git(ctx, catFileCommand, blobType, headRevision+scpSeparator+path)
+	if err != nil {
+		return nil, err
+	}
+	return []byte(content), nil
 }
 
 // Head is the commit the work tree is at.

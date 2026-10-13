@@ -2,6 +2,7 @@ package gitsource_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/gitsource"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
+	"github.com/RachidChabane/spec-proof/discpower/internal/testkit/gitrepo"
 )
 
 const (
@@ -132,6 +134,63 @@ func TestRepository(t *testing.T) {
 	t.Run("a repository without an origin is named after its directory [verifies SP-2120~1]", func(t *testing.T) {
 		if name := repository.Name(ctx); name != filepath.Base(dir) {
 			t.Fatalf("name = %q", name)
+		}
+	})
+}
+
+func TestMergeBaseAndReadAtHead(t *testing.T) {
+	repo := gitrepo.New(t)
+	repo.Write("README.md", "# committed\r\ntrailing  \n")
+	repo.Write("src/a.py", "a = 1\n")
+	root := repo.Commit("root")
+	repo.Git("checkout", "-qb", "feature")
+	repo.Write("src/a.py", "a = 2\n")
+	feature := repo.Commit("feature")
+	repo.Git("checkout", "-q", "main", "--force")
+	repo.Write("src/b.py", "b = 1\n")
+	mainTip := repo.Commit("main moves")
+	repo.Git("checkout", "-q", "feature")
+	repository := gitsource.Repository{Process: process.New(), Root: repo.Dir}
+	ctx := context.Background()
+
+	t.Run("the merge base is the common ancestor of the head and a revision [verifies SP-2204~1]", func(t *testing.T) {
+		base, found, err := repository.MergeBase(ctx, mainTip)
+		if err != nil || !found || base != root {
+			t.Fatalf("base = %q, %v, %v (feature %s)", base, found, err, feature)
+		}
+	})
+	t.Run("a revision that is no local commit is reported missing, not fetched [verifies SP-2205~1]", func(t *testing.T) {
+		_, found, err := repository.MergeBase(ctx, strings.Repeat("ab", 20))
+		if err != nil || found {
+			t.Fatalf("found = %v, %v", found, err)
+		}
+	})
+	t.Run("unrelated histories are an error [verifies SP-2204~1]", func(t *testing.T) {
+		repo.Git("checkout", "-q", "--orphan", "unrelated")
+		repo.Write("other.txt", "x\n")
+		other := repo.Commit("orphan")
+		repo.Git("checkout", "-q", "feature")
+		if _, _, err := repository.MergeBase(ctx, other); !errors.Is(err, gitsource.ErrNoMergeBase) {
+			t.Fatalf("error = %v", err)
+		}
+	})
+	t.Run("a file is read from the committed tree, not the work tree, byte for byte [verifies SP-2208~1]", func(t *testing.T) {
+		repo.Write("README.md", "# edited, uncommitted\n")
+		content, err := repository.ReadAtHead(ctx, "README.md")
+		if err != nil || string(content) != "# committed\r\ntrailing  \n" {
+			t.Fatalf("content = %q, %v", content, err)
+		}
+		nested, err := repository.ReadAtHead(ctx, "src/a.py")
+		if err != nil || string(nested) != "a = 2\n" {
+			t.Fatalf("nested = %q, %v", nested, err)
+		}
+	})
+	t.Run("a path outside the committed tree is a typed error [verifies SP-2208~1]", func(t *testing.T) {
+		repo.Write("untracked.md", "new\n")
+		for _, path := range []string{"untracked.md", "missing.md", "src"} {
+			if _, err := repository.ReadAtHead(ctx, path); !errors.Is(err, gitsource.ErrNotInTree) {
+				t.Errorf("%s: error = %v", path, err)
+			}
 		}
 	})
 }
