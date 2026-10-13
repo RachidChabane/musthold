@@ -7,7 +7,7 @@ agent, no command and no server, and the `spec-proof` dispatcher.
 ## The `spec-proof` dispatcher
 
 ```
-spec-proof scan [flags]
+spec-proof scan [--host [--resume]] [flags] [<PR>]
 spec-proof scan replay <dir>
 ```
 
@@ -47,7 +47,7 @@ repository.
 ```
 
 The plugin depends on `shallnot`, `spec-proof-dp`, `spec-proof-alignment`,
-`spec-proof-completeness` and `spec-proof-s1`, and holds one skill, `prove-all`.
+`spec-proof-completeness` and `spec-proof-s1`, and holds two skills, `prove-all` and `scan`.
 Plugins install no binary: each binary must be on `PATH` (see
 [getting started](getting-started.md#1-install-the-binaries)).
 
@@ -79,6 +79,27 @@ The skill pre-approves only each module's `doctor`, `prove` and `request list --
 relay's `drain` and the exact verifier command above. It never answers a request
 itself.
 
+## The `scan` skill
+
+`/spec-proof:scan` runs a scan with a host: the promises, witnesses, model
+mutants and labels of [scan](discpower.md#scan-with-a-host) are answered by
+blind executors. The skill:
+
+1. runs `spec-proof scan --host`, with the pull request number and the flags the
+   user gave;
+2. on exit code 3, takes the session from the `session scan:<key>` line of the
+   output, runs the relay's `drain --module dp --session scan:<key>` when
+   `spec-proof-s1` is on `PATH` and an endpoint is configured, lists
+   `spec-proof-dp request list --session scan:<key>` and launches one
+   foreground blind executor per ticket, then runs `spec-proof scan --host
+   --resume` with the same number and flags and starts again;
+3. on exit code 0, shows the report and stops; on exit code 2, shows the refusal
+   and stops.
+
+It lists no session but its own and never answers a ticket itself. It
+pre-approves only `spec-proof scan`, `spec-proof-dp request list` and the relay's
+`drain`.
+
 ## Without the umbrella
 
 Each module plugin works alone. Install `spec-proof-dp@spec-proof` and run its
@@ -92,7 +113,7 @@ Copilot CLI, Codex, Cursor, Kiro and the other clients of
 [Agent Plugins 1.0](https://agent-plugins.org) load the portable tree of each plugin:
 `discpower/plugin/portable`, `alignment/plugin/portable`,
 `completeness/plugin/portable`, `s1relay/plugin/portable` and
-`umbrella/plugin/portable`. A tree holds `plugin.json`, the fulfil skill and, for a
+`umbrella/plugin/portable`. A tree holds `plugin.json`, the fulfil skill (`prove-all` and `scan` for the umbrella) and, for a
 proof module, an `mcp.json` that launches `<binary> mcp --role executor`. With
 Copilot CLI, `copilot --plugin-dir discpower/plugin/portable` loads one; its
 `com.github.copilot/` directory adds the restricted executor agents and the hooks.

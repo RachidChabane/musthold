@@ -191,6 +191,10 @@ the session `prove`, and one session `scan:<key>` per scan (ADR 0014).
   session may have an emission cap, counted over the journaled emissions of the
   session, reissues and re-emissions included. Once the cap is reached the
   session emits nothing more and names what it left unasked. `prove` has no cap.
+- A scan session journals `session_bound` once, with the session and, as its
+  detail, the canonical binding its session key digests (ADR 0014). A resume
+  reads the binding of the open session from this event and names each field
+  that differs.
 
 #### Lifecycle
 
@@ -846,6 +850,8 @@ of the benchmark's arms.
   that a session wants again is issued as a new emission (section "Lifecycle").
 - Pending tickets, `request list`, `systemone export`, `host push` and CI-issued
   requests are read per session, with `--session` on the command line.
+- The journal event `session_bound` records, once per scan session, the binding
+  the session key digests.
 
 **Request kinds of the scan**
 

@@ -53,7 +53,7 @@ In Claude Code:
 ```
 
 The `spec-proof` plugin declares Shallnot, the three module plugins and the
-System One relay as dependencies and holds one skill, `prove-all`. To install
+System One relay as dependencies and holds two skills, `prove-all` and `scan`. To install
 modules one at a time use `/plugin install spec-proof-dp@spec-proof`,
 `spec-proof-alignment@spec-proof` or `spec-proof-completeness@spec-proof`. A
 module installed alone works with Shallnot alone.

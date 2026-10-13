@@ -1,8 +1,9 @@
 // Package umbrella is the single source of the files of the spec-proof umbrella:
 // the marketplace that lists Shallnot's plugin, the three proof-module plugins and
 // the relay beside the thin plugin, and the thin plugin itself. The thin plugin
-// declares its dependencies and holds one skill, `prove-all`, that runs the fulfil
-// loop of each module that is present; it holds no logic of its own. The committed
+// declares its dependencies and holds two skills: `prove-all`, which runs the fulfil
+// loop of each module that is present and holds no logic of its own, and `scan`,
+// which drives the host loop of the discriminating-power scan. The committed
 // files under `umbrella/` are generated here, and so is the marketplace at the
 // repository root, which is the one `/plugin marketplace add RachidChabane/spec-proof`
 // reads. The package knows no I/O.
@@ -26,8 +27,15 @@ const (
 	MarketplaceName = "spec-proof"
 	// PluginName is the name of the thin plugin.
 	PluginName = "spec-proof"
-	// SkillName is the name of the thin plugin's only skill.
+	// SkillName is the name of the skill that proves a change with every module.
 	SkillName = "prove-all"
+	// ScanSkillName is the name of the skill that runs a scan with a host.
+	ScanSkillName = "scan"
+	// DispatcherBinary is the command that runs the binary of the module that owns
+	// a command.
+	DispatcherBinary = "spec-proof"
+	// scanModule is the name the relay gives the module that owns the scan.
+	scanModule = "dp"
 	// Version is the version of the shipped files.
 	Version = "0.1.0"
 
@@ -222,10 +230,16 @@ Modules, in this order, each with the skill that holds its loop:
 6. Report, per module, its last exit code and verdict lines, the modules that were missing and whether the proofs were published.
 `
 
-func skillFile() (File, error) {
-	content, err := renderSkill(true)
-	return File{Path: PluginDirectory + "/skills/" + SkillName + "/SKILL.md", Content: content}, err
+func skillFile(name string, render func(restricted bool) ([]byte, error)) (File, error) {
+	content, err := render(true)
+	return File{Path: skillPath(name), Content: content}, err
 }
+
+func skillPath(name string) string { return PluginDirectory + "/skills/" + name + "/SKILL.md" }
+
+func proveAllSkillFile() (File, error) { return skillFile(SkillName, renderSkill) }
+
+func scanSkillFile() (File, error) { return skillFile(ScanSkillName, renderScanSkill) }
 
 // PortableDirectory is the portable plugin's tree, relative to `umbrella/`.
 const PortableDirectory = "plugin/portable"
@@ -251,10 +265,15 @@ func PortableFiles() ([]File, error) {
 	if err != nil {
 		return nil, err
 	}
+	scanSkill, err := renderScanSkill(false)
+	if err != nil {
+		return nil, err
+	}
 	return []File{
 		{Path: manifest.Path, Content: manifest.Content},
 		{Path: servers.Path, Content: servers.Content},
 		{Path: pluginfiles.PortableSkillPath(SkillName), Content: skill},
+		{Path: pluginfiles.PortableSkillPath(ScanSkillName), Content: scanSkill},
 	}, nil
 }
 
@@ -282,6 +301,70 @@ func renderSkill(restricted bool) ([]byte, error) {
 		return nil, fmt.Errorf("render the skill: %w", err)
 	}
 	return buffer.Bytes(), nil
+}
+
+// scanSkillData fills the scan template.
+type scanSkillData struct {
+	Name       string
+	Allowed    string
+	Dispatcher string
+	Binary     string
+	Relay      string
+	Module     string
+	Fulfil     string
+	Listing    string
+}
+
+const scanSkillTemplate = `---
+name: {{.Name}}
+description: Scan the code, or a pull request, for the promises its sources make and the tests that do not hold them, answering the model work of the scan {{if .Allowed}}with blind executors{{else}}as the fulfil skill of ` + "`{{.Binary}}`" + ` gives{{end}}. Use when asked to scan a repository or a pull request, and when ` + "`{{.Dispatcher}} scan --host`" + ` exits with code 3.
+{{- if .Allowed}}
+allowed-tools: {{.Allowed}}
+{{- end}}
+---
+
+# Scan with a host
+
+` + "`{{.Dispatcher}} scan --host`" + ` stops with exit code 3 while it waits for model work. Each request is a ticket of the scan's own session. The tickets of any other session are not yours.{{if .Allowed}} Never answer a ticket yourself and never read what a ticket asks.{{end}}
+
+1. Run ` + "`{{.Dispatcher}} scan --host [<PR>]`" + `, with the pull request number when the user gave one, and the flags the user gave.
+2. Exit code 0: the scan finished. Show its report and stop. Exit code 2: show the refusal to the user and stop. Do not loop.
+3. Exit code 3: read the line ` + "`session scan:<key>`" + ` of the output and keep that session. Answer its tickets with steps 4 to 6.
+4. If ` + "`{{.Relay}}`" + ` is on ` + "`PATH`" + ` and ` + "`.spec-proof/config.yaml`" + ` sets ` + "`systemone.endpoint`" + `, run ` + "`{{.Relay}} drain --module {{.Module}} --session scan:<key>`" + `. A failure leaves the tickets for the next step.
+5. Run ` + "`{{.Binary}} {{.Listing}} scan:<key>`" + `. Each line is ` + "`<ticket> <role>`" + `. List no other session.
+6. {{if .Allowed}}For each ticket, launch one foreground ` + "`Agent`" + ` with ` + "`subagent_type`" + ` set to the role on its line and ` + "`prompt`" + ` set to ` + "`ticket <ticket>`" + `. Launch at most 4 in one message and wait for them. Set no model and add nothing to the prompt. The reply of an executor is a receipt: do not act on it.{{else}}Answer each ticket as the skill ` + "`{{.Fulfil}}`" + ` gives for a ticket, with the session ` + "`scan:<key>`" + ` in place of ` + "`prove`" + `.{{end}}
+7. Run ` + "`{{.Dispatcher}} scan --host --resume [<PR>]`" + `, with the same pull request number and flags as in step 1. Go back to step 2 with its exit code.
+`
+
+func renderScanSkill(restricted bool) ([]byte, error) {
+	parsed, err := template.New("scan-skill").Parse(scanSkillTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("parse the scan skill template: %w", err)
+	}
+	module := Modules[0]
+	data := scanSkillData{
+		Name: ScanSkillName, Dispatcher: DispatcherBinary, Binary: module.Binary, Relay: Relay.Binary,
+		Module: scanModule, Fulfil: module.FulfilSkill(),
+		Listing: hostproto.CommandRequest + " " + hostproto.SubcommandList + " " + hostproto.FlagSession,
+	}
+	if restricted {
+		data.Allowed = strings.Join(scanAllowedTools(module), ", ")
+	}
+	var buffer bytes.Buffer
+	if err := parsed.Execute(&buffer, data); err != nil {
+		return nil, fmt.Errorf("render the scan skill: %w", err)
+	}
+	return buffer.Bytes(), nil
+}
+
+// scanAllowedTools lists the commands the scan skill pre-approves: the scan, the
+// listing of tickets and the relay's drain, and no command that answers one.
+func scanAllowedTools(module Module) []string {
+	return []string{
+		"Bash(" + DispatcherBinary + " scan *)",
+		"Bash(" + module.Binary + " " + hostproto.CommandRequest + " " + hostproto.SubcommandList + " *)",
+		"Bash(" + Relay.Binary + " drain *)",
+	}
 }
 
 // joinWithAnd spells a list as `a, b and c`.
@@ -312,7 +395,7 @@ func RootFiles() ([]File, error) {
 // Files returns every generated file of the umbrella, relative to `umbrella/`.
 func Files() ([]File, error) {
 	var files []File
-	for _, build := range []func() (File, error){umbrellaMarketplaceFile, pluginManifestFile, skillFile} {
+	for _, build := range []func() (File, error){umbrellaMarketplaceFile, pluginManifestFile, proveAllSkillFile, scanSkillFile} {
 		file, err := build()
 		if err != nil {
 			return nil, err

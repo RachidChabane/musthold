@@ -17,7 +17,7 @@ Flags are accepted as `--flag` or `-flag`. The other binaries (`spec-proof-ledge
 `spec-proof-verify`, `spec-proof-s1`) answer the same help forms.
 
 ```
-spec-proof-dp <version|prove|request|systemone|doctor|init|enable|disable|mcp|hook|host|facts>
+spec-proof-dp <version|prove|scan|request|systemone|doctor|init|enable|disable|mcp|hook|host|facts>
 ```
 
 Every command that works on a project takes `--root DIR` (default: the working

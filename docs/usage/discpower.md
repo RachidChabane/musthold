@@ -152,7 +152,7 @@ and no configuration, which tests still pass when the code they run is broken
 (ADR 0014). `spec-proof scan` runs it through the [umbrella](umbrella.md).
 
 ```
-spec-proof-dp scan [--full] [--base REV] [--seed N] [--sample N] [--mutants N] [--budget DURATION] [--workers N] [--coverage-timeout DURATION] [--format text|md|json] [--root DIR]
+spec-proof-dp scan [--full] [--host [--resume]] [--base REV] [--seed N] [--sample N] [--mutants N] [--budget DURATION] [--workers N] [--coverage-timeout DURATION] [--format text|md|json] [--root DIR] [<PR>]
 ```
 
 The work tree must have no uncommitted change to a tracked file: a scan names
@@ -276,6 +276,36 @@ proofs admits.
 `spec-proof scan replay <dir>` re-executes, with no model, the finding of a
 finding folder or every finding of a scan folder, and exits 1 when a claim no
 longer holds.
+
+### Scan with a host
+
+`--host` asks the host, through the exit-3 loop of the `/spec-proof:scan` skill
+([umbrella](umbrella.md#the-scan-skill)), for the promises of the code. A scan
+without it calls no model. `<PR>` scans a pull request: its head must be the
+checked-out commit, and the scan takes the merge base with its base commit.
+`--base` and `<PR>` exclude each other.
+
+The quotable sources are the README at head and, for a pull request, its title
+and body and each issue it closes. Their bytes are saved under
+`.spec-proof/scan/<commit>/sources/`. A change's code is never a source. A scan
+with no quotable source prints "no quotable promise in the README, description or
+closing issues" beside its headline.
+
+Each invocation runs the stages (sources, writers, admission, final) as far as
+the answers go:
+
+| Exit code | Meaning |
+|---|---|
+| 0 | the scan finished and wrote its reports |
+| 2 | a refusal, such as a `--resume` whose commit, tree, mode, base, pull request, seed, counts, budget, module version or sources differ from the open session's, each difference named |
+| 3 | tickets wait: the scan prints `wave N`, `session scan:<key>` and `awaiting_host N tickets` |
+
+The tickets of the session are listed with
+`spec-proof-dp request list --session scan:<key>`. `--resume` continues the open
+session of the same scan and implies `--host`. A scan asks at most 18 calls: 4
+for each of at most 3 promises, 1 for the promises and 1 for the labels; a promise
+the budget cannot cover is reported unchecked. A finding folder also holds the
+test that kills the mutant by its route, which `repro.sh` runs.
 
 ## Configuration
 

@@ -49,7 +49,7 @@ func portableCommitted(t *testing.T) map[string]string {
 }
 
 func TestPortableTreeIsGenerated(t *testing.T) {
-	t.Run("the committed portable tree is what the generator produces, byte for byte [verifies SP-1706~1]", func(t *testing.T) {
+	t.Run("the committed portable tree is what the generator produces, byte for byte [verifies SP-1706~2]", func(t *testing.T) {
 		want := portableGenerated(t)
 		if *update {
 			if err := os.RemoveAll(portableTree); err != nil {
@@ -78,14 +78,14 @@ func TestPortableTreeIsGenerated(t *testing.T) {
 		}
 	})
 
-	t.Run("the portable umbrella holds a manifest, an empty server list and the prove-all skill [verifies SP-1706~1]", func(t *testing.T) {
+	t.Run("the portable umbrella holds a manifest, an empty server list and the prove-all and scan skills [verifies SP-1706~2]", func(t *testing.T) {
 		files := portableGenerated(t)
 		var paths []string
 		for path := range files {
 			paths = append(paths, path)
 		}
 		slices.Sort(paths)
-		want := []string{pluginfiles.PortableMCPPath, pluginfiles.PortableManifestPath, pluginfiles.PortableSkillPath(umbrella.SkillName)}
+		want := []string{pluginfiles.PortableMCPPath, pluginfiles.PortableManifestPath, pluginfiles.PortableSkillPath(umbrella.SkillName), pluginfiles.PortableSkillPath(umbrella.ScanSkillName)}
 		slices.Sort(want)
 		if !slices.Equal(paths, want) {
 			t.Fatalf("files = %v, want %v", paths, want)
@@ -100,6 +100,15 @@ func TestPortableTreeIsGenerated(t *testing.T) {
 		for _, module := range umbrella.Modules {
 			if !strings.Contains(skill, module.FulfilSkill()) {
 				t.Errorf("the skill does not name the loop %s", module.FulfilSkill())
+			}
+		}
+		scan := files[pluginfiles.PortableSkillPath(umbrella.ScanSkillName)]
+		if strings.Contains(scan, "allowed-tools") || strings.Contains(scan, "Agent") {
+			t.Errorf("scan skill:\n%s", scan)
+		}
+		for _, want := range []string{"`spec-proof-dp request list --session scan:<key>`", umbrella.Modules[0].FulfilSkill()} {
+			if !strings.Contains(scan, want) {
+				t.Errorf("the portable scan skill does not say %q", want)
 			}
 		}
 	})
