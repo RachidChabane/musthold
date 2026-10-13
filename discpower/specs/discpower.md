@@ -748,6 +748,59 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   the simplest inputs on which the reference returns and the mutant differs, at
   most three.
 
+## Scan promises
+
+- **SP-2180~1**: WHEN the promises a host extracted are checked against the saved
+  sources THE SYSTEM SHALL keep a promise only when its source was saved, still
+  has the digest recorded for it, and holds its quote byte for byte, and SHALL
+  report every other promise with the reason it was dropped: an unknown source,
+  a source with another digest, a quote absent from its source, or a quote
+  already kept.
+- **SP-2181~1**: WHEN a promise is kept THE SYSTEM SHALL give it an id derived
+  from its source name and its quote alone, so that the same promise has the
+  same id in every invocation.
+- **SP-2182~1**: WHEN at most three promises are chosen among the kept ones THE
+  SYSTEM SHALL prefer those quoted from the change's description or a closing
+  issue over those quoted from the README, then take the extraction order, and
+  SHALL report each promise left out as unchecked.
+- **SP-2183~1**: WHEN the calls of a scan are planned THE SYSTEM SHALL spend at
+  most 18 of them in all, whatever the emissions already used and the asks the
+  stage wants, and SHALL count a reissue like any other emission.
+- **SP-2184~1**: WHEN the calls of a promise are planned THE SYSTEM SHALL
+  reserve its two writers and its two scope votes before it emits any of them,
+  and SHALL drop a promise the remaining budget cannot cover and report it as
+  unchecked.
+- **SP-2185~1**: WHEN reissues overrun the budget THE SYSTEM SHALL cut the
+  labels ticket first, and SHALL keep the two scope votes of every promise it
+  keeps.
+- **SP-2186~1**: WHEN reissues overrun the budget beyond the labels ticket THE
+  SYSTEM SHALL cut the generation tickets in the reverse of the order they were
+  assigned, and SHALL name every cut ask and the reason.
+- **SP-2187~1**: WHEN the generation tickets are assigned THE SYSTEM SHALL give
+  them to the kept promises round-robin in their kept order, and none when no
+  promise is kept.
+- **SP-2188~1**: WHEN the planner is given the same emissions and asks in any
+  order THE SYSTEM SHALL return the same plan, listed in a fixed order.
+- **SP-2189~1**: WHEN a set of witnesses is admitted THE SYSTEM SHALL admit it
+  only when it passes the reference on all three admission runs, and SHALL turn
+  a set the reference fails into a question about the promise, never a finding.
+- **SP-2190~1**: WHEN an admitted set runs again in the final stage THE SYSTEM
+  SHALL let it back a claim only when all six runs passed, and otherwise turn it
+  into a question that it is unstable on the reference and withhold its routes.
+- **SP-2191~1**: WHEN a witness is judged for a promise THE SYSTEM SHALL hold it
+  block-bearing only when it is admitted, stable on the reference, and both
+  scope votes held its output fixed by the quote alone.
+- **SP-2192~1**: WHEN a mutant is read against the witnesses of the promises THE
+  SYSTEM SHALL call it a broken promise of a promise only when it is no
+  sentinel, a block-bearing witness of the promise fails on it and the failure
+  reproduced, and the whole suite passes on it three times out of three.
+- **SP-2193~1**: WHEN labels map promises to functions THE SYSTEM SHALL label a
+  test with a promise when one of the settled changes of the test sits in a
+  function labeled with it, and SHALL ignore a label that names a promise not
+  kept or a function outside the generation view.
+- **SP-2194~1**: WHEN a test is labeled THE SYSTEM SHALL change nothing of it but
+  its labels: no class, no reason, no change and no count.
+
 ## Coverage
 
 - **SP-172~1**: WHEN coverage is queried THE SYSTEM SHALL list the units executed
