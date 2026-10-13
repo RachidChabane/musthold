@@ -462,12 +462,19 @@ func newFixture() *fixture {
 	}
 }
 
-func (f *fixture) service(t *testing.T) *scan.Service {
+// enginesFor registers the Python engine the fake project needs.
+func enginesFor(t *testing.T) *operatorgen.Registry {
 	t.Helper()
 	engines := operatorgen.NewRegistry()
 	if err := engines.Register(pythonmutation.New(), treesitter.NewLocator()); err != nil {
 		t.Fatal(err)
 	}
+	return engines
+}
+
+func (f *fixture) service(t *testing.T) *scan.Service {
+	t.Helper()
+	engines := enginesFor(t)
 	deps := scan.Deps{
 		Ecosystem: fakeEcosystem{workspaces: f.workspaces, broken: f.broken}, Suite: f.suite, Workspaces: f.workspaces,
 		Engines: engines, Prober: f.prober, Source: f.source, Project: f.workspaces.project, Clock: f.clock.read,

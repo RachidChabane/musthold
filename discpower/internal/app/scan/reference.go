@@ -3,7 +3,6 @@ package scan
 import (
 	"context"
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/mutantrun"
@@ -70,21 +69,16 @@ func (r reference) referenceOf() mutantrun.Reference {
 	return mutantrun.Reference{Workspace: r.workspace, Toolchain: r.toolchain}
 }
 
-// prepareReference copies the work tree into a workspace outside it, builds it
-// and runs the whole suite three times.
-func (s *Service) prepareReference(ctx context.Context, request Request) (reference, error) {
-	copied := s.deps.Clock()
-	ref, err := s.buildReference(ctx, request.Root)
-	if err != nil {
-		return reference{}, err
-	}
+// runReference runs the whole suite three times on the built reference, which
+// was copied at the given time.
+func (s *Service) runReference(ctx context.Context, ref *reference, copied time.Time) error {
 	started := s.deps.Clock()
 	ran, err := s.deps.Suite.Run(ctx, ref.workspace, ref.toolchain, ports.ScanRunRequest{Runs: vacuity.RunsPerOutcome, Timeout: ReferenceTimeout})
 	if err != nil {
-		return reference{}, fmt.Errorf("run the suite on the reference: %w", err)
+		return fmt.Errorf("run the suite on the reference: %w", err)
 	}
 	if len(ran.Cases) == 0 {
-		return reference{}, ErrNoTests
+		return ErrNoTests
 	}
 	finished := s.deps.Clock()
 	ref.referenceRuns = finished.Sub(started)
@@ -96,7 +90,7 @@ func (s *Service) prepareReference(ctx context.Context, request Request) (refere
 			ref.green = append(ref.green, scanCase.ID)
 		}
 	}
-	return ref, nil
+	return nil
 }
 
 // recordCoverage records the line coverage of the given green tests, each run
@@ -127,8 +121,7 @@ func (s *Service) recordCoverage(ctx context.Context, ref *reference, tests []ec
 // buildReference copies the work tree, scan reports aside, into a workspace
 // outside it and builds it.
 func (s *Service) buildReference(ctx context.Context, root string) (reference, error) {
-	layout := s.deps.Ecosystem.Layout()
-	layout.ExcludedDirs = append(slices.Clone(layout.ExcludedDirs), outputDirectory)
+	layout := s.scanLayout()
 	executor := mutantrun.Executor{
 		Ecosystem:  layoutOverride{Ecosystem: s.deps.Ecosystem, layout: layout},
 		Workspaces: s.deps.Workspaces,

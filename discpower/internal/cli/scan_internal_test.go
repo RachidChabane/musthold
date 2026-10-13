@@ -9,6 +9,7 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/scanscope"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
 
 func TestDepthRequest(t *testing.T) {
@@ -45,6 +46,48 @@ func TestScanFailure(t *testing.T) {
 		cause := errors.New("the reference does not build")
 		if err := scanFailure(cause); err != cause {
 			t.Fatalf("error %v", err)
+		}
+	})
+}
+
+const verifiesHostCommandLine = " [verifies SP-2244~1]"
+
+func TestPullRequestArgument(t *testing.T) {
+	t.Run("a scan takes no positional argument, or one pull request number"+verifiesHostCommandLine, func(t *testing.T) {
+		cases := []struct {
+			args []string
+			want int
+			fail bool
+		}{
+			{nil, 0, false},
+			{[]string{"42"}, 42, false},
+			{[]string{"0"}, 0, true},
+			{[]string{"-3"}, 0, true},
+			{[]string{"main"}, 0, true},
+			{[]string{"1", "2"}, 0, true},
+		}
+		for _, c := range cases {
+			got, err := pullRequestOf(c.args)
+			if (err != nil) != c.fail || got != c.want {
+				t.Fatalf("%v gives %d, %v", c.args, got, err)
+			}
+			if err != nil && !errors.Is(err, errUnexpectedParams) {
+				t.Fatalf("%v: %v is no usage error", c.args, err)
+			}
+		}
+	})
+}
+
+func TestPrintAwaiting(t *testing.T) {
+	t.Run("a scan that waits prints its wave, its session and how many tickets wait, as prove does [verifies SP-2245~1]", func(t *testing.T) {
+		var out strings.Builder
+		session := hostproto.ScanSession("abc")
+		printAwaiting(&out, scan.HostResult{Session: session, Wave: 2, Pending: make([]hostproto.Ticket, 3)})
+		if want := "wave 2\nsession scan:abc\nawaiting_host 3 tickets\n"; out.String() != want {
+			t.Fatalf("printed %q", out.String())
+		}
+		if (scan.HostResult{}).ExitCode() != scan.ExitAwaitingHost || (scan.HostResult{Finished: true}).ExitCode() != ExitClean {
+			t.Fatal("exit codes")
 		}
 	})
 }

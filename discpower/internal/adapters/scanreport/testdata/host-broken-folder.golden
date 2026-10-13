@@ -1,0 +1,105 @@
+=== .spec-proof/scan/3f2a9c1/promise-1/mutant.patch (executable: false)
+--- a/src/invoicing/parse.py
++++ b/src/invoicing/parse.py
+@@ -1,5 +1,5 @@
+ def split_fields(line):
+     fields = []
+-    if len(line) >= 2:
++    if len(line) > 2:
+         fields.append(line)
+     return fields
+=== .spec-proof/scan/3f2a9c1/promise-1/finding.json (executable: false)
+{
+  "commit": "3f2a9c1d0b8e7f6a5c4d3e2f1a0b9c8d7e6f5a4b",
+  "runner": "pytest",
+  "test": "",
+  "mutant": {
+    "id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "origin": "",
+    "edits": [
+      {
+        "file": "src/invoicing/parse.py",
+        "qualname": "split_fields",
+        "new_source": "def split_fields(line):\n    fields = []\n    if len(line) > 2:\n        fields.append(line)\n    return fields\n"
+      }
+    ],
+    "lines": null
+  },
+  "route": {
+    "kind": "witness_failure",
+    "witness": "9d1c0e77a4b25f6803aa11bc22dd33ee44ff5566778899aabbccddeeff001122"
+  },
+  "promise": {
+    "id": "P1",
+    "quote": "split_fields keeps a trailing field",
+    "source": {
+      "name": "README.md",
+      "digest": {
+        "sha256": ""
+      }
+    }
+  },
+  "witnesses": [
+    {
+      "id": "9d1c0e77a4b25f6803aa11bc22dd33ee44ff5566778899aabbccddeeff001122",
+      "promise": "P1",
+      "name": "test_keeps_trailing_field",
+      "imports": "",
+      "code": "from invoicing.parse import split_fields\n\n\ndef test_keeps_trailing_field():\n    assert split_fields('a,') == ['a,']\n",
+      "admitted": true,
+      "blockBearing": true
+    }
+  ],
+  "promises": [
+    {
+      "id": "P1",
+      "quote": "split_fields keeps a trailing field",
+      "source": {
+        "name": "README.md",
+        "digest": {
+          "sha256": ""
+        }
+      }
+    },
+    {
+      "id": "P2",
+      "quote": "lines shorter than two characters are skipped",
+      "source": {
+        "name": "description",
+        "digest": {
+          "sha256": ""
+        }
+      }
+    }
+  ]
+}
+=== .spec-proof/scan/3f2a9c1/promise-1/killers.md (executable: false)
+# Tests that fail on this mutant
+
+## 1. witness_failure
+
+A test that fails on this mutant: witness 9d1c0e77a4b2, in `witness/tests/test_promise_witness.py`. Run it with `sh killer.sh`.
+=== .spec-proof/scan/3f2a9c1/promise-1/killer.sh (executable: true)
+#!/bin/sh
+# Runs witness 9d1c0e77a4b2 on 3f2a9c1 with mutant.patch applied; the exit status is non-zero when the test fails on the mutant.
+set -eu
+finding="$(cd "$(dirname "$0")" && pwd)"
+root="$(git -C "$finding" rev-parse --show-toplevel)"
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+git -C "$root" archive 3f2a9c1d0b8e7f6a5c4d3e2f1a0b9c8d7e6f5a4b | tar -x -C "$work"
+for dependencies in .venv node_modules; do
+  if [ -e "$root/$dependencies" ]; then ln -s "$root/$dependencies" "$work/$dependencies"; fi
+done
+if [ -d "$work/.venv/bin" ]; then PATH="$work/.venv/bin:$PATH"; export PATH; fi
+cd "$work"
+git apply "$finding/mutant.patch"
+mkdir -p "$(dirname 'tests/test_promise_witness.py')"
+cp "$finding"/'witness/tests/test_promise_witness.py' 'tests/test_promise_witness.py'
+'python3' '-m' 'pytest' 'tests/test_promise_witness.py::test_keeps_trailing_field'
+=== .spec-proof/scan/3f2a9c1/promise-1/witness/tests/test_promise_witness.py (executable: false)
+from invoicing.parse import split_fields
+
+
+def test_keeps_trailing_field():
+    assert split_fields('a,') == ['a,']

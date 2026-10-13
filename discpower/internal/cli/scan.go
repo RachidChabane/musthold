@@ -5,17 +5,24 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/capacity"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem"
+	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ghpr"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/gitsource"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/junitxml"
+	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/localcache"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/niceness"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/scanreport"
+	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/scansources"
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/workspace"
+	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/xdg"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/scanscope"
@@ -28,7 +35,7 @@ const (
 	commandScan  = "scan"
 	verbReplay   = "replay"
 	argumentDir  = "<dir>"
-	scanSynopsis = "usage: spec-proof-dp scan [--full] [flags]\n       spec-proof-dp scan replay <dir> [--root <dir>]\n"
+	scanSynopsis = "usage: spec-proof-dp scan [--full] [--host [--resume]] [flags] [<PR>]\n       spec-proof-dp scan replay <dir> [--root <dir>]\n"
 )
 
 // Flags of `scan`.
@@ -44,6 +51,14 @@ const (
 	flagCoverageTimeout = "coverage-timeout"
 	// flagFull asks for the full scan in place of the quick one.
 	flagFull = "full"
+	// flagHost asks the host for the promises of the code.
+	flagHost = "host"
+)
+
+// Usage of the flags of a scan that asks a host.
+const (
+	hostUsage   = "ask the host for the promises of the code, through the exit-3 loop of the scan skill (a scan without it calls no model)"
+	resumeUsage = "continue the scan session that awaits the host; implies --host and fails when no open session has this scan's binding"
 )
 
 // Output formats of `scan`.
@@ -76,6 +91,8 @@ var (
 	errScanFormat    = errors.New("--format is one of text, md or json")
 	errReplayDir     = errors.New("replay takes one directory: a finding folder or the folder of a scan")
 	errNoFinding     = errors.New("no finding.json in the directory or its folders")
+	errPullArgument  = fmt.Errorf("%w: scan takes at most one pull request number", errUnexpectedParams)
+	errBaseAndPull   = errors.New("--base and a pull request number exclude each other: a pull request gives its own base")
 )
 
 func (e Env) scan(args []string) outcome {
@@ -93,16 +110,23 @@ func (e Env) scan(args []string) outcome {
 	coverageTimeout := set.Duration(flagCoverageTimeout, 0, coverageTimeoutUsage)
 	outputFormat := set.String(flagFormat, formatText, "output: text, md (a pull-request comment) or json (the scan statement)")
 	root := set.String(flagRoot, "", usageRoot)
-	rest, err := set.ParseArguments(args)
+	host := set.Bool(flagHost, false, hostUsage)
+	resume := set.Bool(flagResume, false, resumeUsage)
+	rest, err := parseInterleaved(set, args)
+	if err != nil {
+		return outcome{err: err}
+	}
+	pull, err := pullRequestOf(rest)
 	switch {
 	case err != nil:
 		return outcome{err: err}
-	case len(rest) > 0:
-		return outcome{err: errUnexpectedParams}
+	case pull > 0 && *base != "":
+		return outcome{err: errBaseAndPull}
 	case *outputFormat != formatText && *outputFormat != formatMarkdown && *outputFormat != formatJSON:
 		return outcome{err: errScanFormat}
 	}
-	wired, err := e.openScan(*root)
+	asksHost := *host || *resume
+	wired, err := e.openScan(*root, asksHost)
 	if err != nil {
 		return outcome{err: err}
 	}
@@ -110,19 +134,68 @@ func (e Env) scan(args []string) outcome {
 	niceness.Lower(scanNiceness)
 	request := depthRequest(*full, givenFlags(set.FlagSet), scan.Preset{SampleSize: *sample, Mutants: *mutants, Budget: *budget})
 	request.Root, request.Base, request.Seed, request.Workers, request.CoverageTimeout = wired.root, *base, *seed, *workers, *coverageTimeout
+	request.PullRequest, request.Resume = pull, *resume
 	request.Module = format.Module{Name: moduleName, Version: version.Version}
+	if asksHost {
+		return e.hostScan(wired, request, *outputFormat)
+	}
 	report, err := wired.service.Run(context.Background(), request)
 	if err != nil {
 		return outcome{err: scanFailure(err)}
 	}
+	return e.reportScan(wired.root, report, *outputFormat)
+}
+
+// pullRequestOf reads the one positional argument a scan takes: the number of
+// a pull request, or none.
+func pullRequestOf(positionals []string) (int, error) {
+	switch {
+	case len(positionals) == 0:
+		return 0, nil
+	case len(positionals) > 1:
+		return 0, errPullArgument
+	}
+	number, err := strconv.Atoi(positionals[0])
+	if err != nil || number <= 0 {
+		return 0, errPullArgument
+	}
+	return number, nil
+}
+
+// hostScan runs one invocation of a scan that asks the host: while tickets
+// wait it prints the wave, the session and the tickets and exits 3; once the
+// scan finished it prints its only headline and writes its reports.
+func (e Env) hostScan(wired scanProject, request scan.Request, outputFormat string) outcome {
+	result, err := wired.service.RunHost(context.Background(), request)
+	if err != nil {
+		return outcome{err: scanFailure(err)}
+	}
+	if !result.Finished {
+		printAwaiting(e.Stdout, result)
+		return outcome{code: result.ExitCode()}
+	}
+	return e.reportScan(wired.root, result.Report, outputFormat)
+}
+
+// printAwaiting prints what a scan waits for, as `prove` does: the wave, the
+// session whose tickets the skill relays, and how many tickets wait.
+func printAwaiting(out io.Writer, result scan.HostResult) {
+	fmt.Fprintf(out, "wave %d\n", result.Wave)
+	fmt.Fprintf(out, "session %s\n", result.Session)
+	fmt.Fprintf(out, "awaiting_host %d tickets\n", len(result.Pending))
+}
+
+// reportScan writes the reports of a finished scan and prints it in the
+// chosen format.
+func (e Env) reportScan(root string, report scan.Report, outputFormat string) outcome {
 	files, err := scanreport.Files(report)
 	if err != nil {
 		return outcome{err: err}
 	}
-	if err := scanreport.Write(wired.root, report, files); err != nil {
+	if err := scanreport.Write(root, report, files); err != nil {
 		return outcome{err: err}
 	}
-	switch *outputFormat {
+	switch outputFormat {
 	case formatMarkdown:
 		fmt.Fprint(e.Stdout, scanreport.Markdown(report))
 	case formatJSON:
@@ -185,7 +258,7 @@ func (e Env) scanReplay(args []string) outcome {
 	if err != nil {
 		return outcome{err: err}
 	}
-	wired, err := e.openScan(*root)
+	wired, err := e.openScan(*root, false)
 	if err != nil {
 		return outcome{err: err}
 	}
@@ -260,9 +333,11 @@ type scanProject struct {
 func (p scanProject) close() { _ = p.workspaces.Close() }
 
 // openScan wires a scan of the work tree: the first detected ecosystem a scan
-// runs, its prober and form compiler when it has them, git, and workspaces
-// outside the tree.
-func (e Env) openScan(rootFlag string) (scanProject, error) {
+// runs, its prober, form compiler and witness host when it has them, git, the
+// pull requests through gh, and workspaces outside the tree; a scan that asks
+// the host also gets the host store, the memo of its witness facts and the
+// store of its sources. A replay asks no host and holds neither.
+func (e Env) openScan(rootFlag string, asksHost bool) (scanProject, error) {
 	root, err := e.rootOf(rootFlag)
 	if err != nil {
 		return scanProject{}, err
@@ -284,10 +359,13 @@ func (e Env) openScan(rootFlag string) (scanProject, error) {
 	if err != nil {
 		return scanProject{}, fmt.Errorf("create the workspace manager: %w", err)
 	}
+	repository := gitsource.Repository{Process: runner, Root: root}
+	project := os.DirFS(root)
 	deps := scan.Deps{
 		Ecosystem: strategy, Suite: suite, Workspaces: workspaces, Engines: engines,
-		Source: gitsource.Repository{Process: runner, Root: root}, Project: os.DirFS(root), Clock: e.Now,
-		Capacity: capacity.New(),
+		Source: repository, Project: project, Clock: e.Now,
+		Capacity:     capacity.New(),
+		PullRequests: ghpr.Client{Process: runner, Repository: repository, Dir: root},
 	}
 	if compiling, ok := strategy.(ports.Compiling); ok {
 		deps.Compiler = compiling.Compiler()
@@ -295,7 +373,42 @@ func (e Env) openScan(rootFlag string) (scanProject, error) {
 	if probing, ok := strategy.(ports.Probing); ok {
 		deps.Prober = probing.Prober()
 	}
+	wireWitnesses(&deps, strategy, project)
+	if asksHost {
+		if deps.Host, err = e.scanHost(root, repository); err != nil {
+			return scanProject{}, err
+		}
+	}
 	return scanProject{root: root, service: scan.New(deps), workspaces: workspaces}, nil
+}
+
+// wireWitnesses gives the scan the ecosystem's witness host and the runner of
+// its witnesses, with the coverage recorder when the ecosystem has one.
+func wireWitnesses(deps *scan.Deps, strategy ports.Ecosystem, project fs.FS) {
+	witnessing, ok := strategy.(ports.Witnessing)
+	if !ok {
+		return
+	}
+	deps.WitnessHost = witnessing.Witnesses()
+	witnesses := scan.ExecutionWitnesses{Host: deps.WitnessHost, Project: project}
+	if covering, ok := strategy.(ports.Covering); ok {
+		witnesses.Recorder = covering.Coverage()
+	}
+	deps.Witnesses = witnesses
+}
+
+// scanHost wires the ports of a scan that asks the host: the repository's host
+// store, shared with `prove`, the memo of the witness facts, the sources
+// folder and the README of the head commit.
+func (e Env) scanHost(root string, repository gitsource.Repository) (*scan.HostDeps, error) {
+	store, err := e.hostStore(root)
+	if err != nil {
+		return nil, err
+	}
+	return &scan.HostDeps{
+		Store: store, Memo: localcache.NewMemo(xdg.CacheDir(e.lookupEnv, e.HomeDir, root)),
+		Sources: scansources.Store{Root: root}, Head: repository, Entropy: e.Entropy, Plugin: pluginName,
+	}, nil
 }
 
 // scanStrategy is the first ecosystem detected in the tree that a scan runs.

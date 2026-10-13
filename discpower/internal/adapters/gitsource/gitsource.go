@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
+	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
 )
 
 // Git command line.
@@ -67,8 +68,9 @@ var (
 	ErrGit = errors.New("git failed")
 	// ErrNoMergeBase is returned when two commits share no ancestor.
 	ErrNoMergeBase = errors.New("the commits share no ancestor")
-	// ErrNotInTree is returned when a path names no file of the head commit.
-	ErrNotInTree = errors.New("file is not in the head commit")
+	// ErrNotInTree is returned when a path names no file of the head commit: the
+	// error the scan's port names for it.
+	ErrNotInTree = scan.ErrNotAtHead
 )
 
 var _ ports.SourceControl = Repository{}

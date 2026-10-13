@@ -73,6 +73,10 @@ const (
 	// digest of a witness set a writer returned: the detail is
 	// `<criterion> <draw> <set digest>`.
 	EventWitnessSetCommitted EventKind = "witness_set_committed"
+	// EventSessionBound records, once per session, what a scan session is bound
+	// to: the detail is the canonical binding the session key digests, so that a
+	// resume whose binding differs can name what changed.
+	EventSessionBound EventKind = "session_bound"
 )
 
 // Event is one journaled fact. Only the fields that apply are set.

@@ -101,3 +101,37 @@ func DefinitionLines(file string, definitions []ecosystem.Definition, changed []
 	}
 	return set.Sorted()
 }
+
+// MutatedLines lists the lines of the reference content a change of the file
+// edits: the lines between the first and the last line that differ from the
+// changed content. A change that only inserts lines edits the line it inserts
+// them before, or the last line when it appends; content that does not change
+// edits nothing.
+func MutatedLines(file string, before, after []byte) []vacuity.Line {
+	old, updated := bytes.SplitAfter(before, []byte{lineBreak}), bytes.SplitAfter(after, []byte{lineBreak})
+	prefix := 0
+	for prefix < len(old) && prefix < len(updated) && bytes.Equal(old[prefix], updated[prefix]) {
+		prefix++
+	}
+	if prefix == len(old) && prefix == len(updated) {
+		return nil
+	}
+	suffix := 0
+	for suffix < len(old)-prefix && suffix < len(updated)-prefix && bytes.Equal(old[len(old)-1-suffix], updated[len(updated)-1-suffix]) {
+		suffix++
+	}
+	count := len(old)
+	if len(old[count-1]) == 0 {
+		count--
+	}
+	first, last := prefix+1, min(len(old)-suffix, count)
+	if last < first {
+		first = min(prefix+1, count)
+		last = first
+	}
+	var lines []vacuity.Line
+	for line := max(first, 1); line <= last; line++ {
+		lines = append(lines, vacuity.Line{File: file, Line: line})
+	}
+	return lines
+}

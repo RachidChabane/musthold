@@ -847,6 +847,160 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   element, or the commit is not a full hexadecimal id THE SYSTEM SHALL refuse
   with a typed error and write nothing outside the sources folder.
 
+## Scan with a host
+
+- **SP-2220~1**: WHEN `spec-proof-dp scan` runs without `--host` THE SYSTEM SHALL
+  call no model, open no host store and exit 0 once it wrote its reports, and
+  SHALL write the same statement, headline, Markdown report, patches,
+  reproduction scripts and finding records as a scan that has no host mode,
+  the route killers of its finding folders being files of their own.
+- **SP-2221~1**: WHEN a scan asks its host THE SYSTEM SHALL take as its
+  quotable sources the README of the head commit and, for `scan <PR>`, the
+  title and body of the pull request and of each issue it closes, byte for
+  byte, save them under `.spec-proof/scan/<commit>/sources/`, which no
+  reference copy holds, and SHALL never take the change's diff as a source.
+- **SP-2222~1**: WHEN a scan asks its host for its promises THE SYSTEM SHALL ask
+  one extraction ticket that shows each source under its name with its exact
+  text and, for a change, the paths of its changed files and the public
+  signatures of its changed functions, never a hunk or a body, and SHALL wait
+  with exit 3 until it is answered.
+- **SP-2223~1**: WHEN a scan that asks its host has no quotable source THE
+  SYSTEM SHALL ask no extraction ticket, hold its promises checked with none
+  kept, and finish in the same invocation.
+- **SP-2224~1**: WHEN the extraction is answered THE SYSTEM SHALL check each
+  quote on the saved bytes, keep at most three promises, ask two blind writers
+  for each as the budget allows, journal the digest of each set a writer
+  returns before it runs anywhere, and reject and ask again a set that is not 3
+  to 6 examples and 1 to 3 properties.
+- **SP-2225~1**: WHEN the writers of a promise answered THE SYSTEM SHALL build
+  the reference, run each witness set alone on it three times, admit the
+  witnesses that pass every run, make each witness the reference fails a
+  question, and remember the admission and the coverage of the witnesses in a
+  memo keyed by the file-set digest of the tracked files and the ecosystem.
+- **SP-2226~1**: WHEN the witnesses of the promises are admitted THE SYSTEM
+  SHALL ask, as the budget allows, two scope votes per promise about its
+  admitted witnesses, four generation tickets round-robin over the promises,
+  each showing the quote and the code the promise's admitted witnesses run,
+  narrowed in a change to the functions it touches, and one labels ticket
+  that shows the promises and every function of those views.
+- **SP-2227~1**: WHEN a stage of a scan that asks its host has nothing to ask
+  THE SYSTEM SHALL go on to the next stage in the same invocation.
+- **SP-2228~1**: WHEN an invocation of a scan that asks its host leaves tickets
+  waiting THE SYSTEM SHALL finish the wave of its session once, retire what
+  the session no longer wants, print the wave, the session and how many of
+  its own tickets wait, and exit 3.
+- **SP-2229~1**: WHEN the final stage reads a generation answer none of whose
+  mutants splices, changes the code, calls no sink and builds THE SYSTEM SHALL
+  reject it, ask it again and exit 3 before any run of the suite.
+- **SP-2230~1**: WHEN a scan that asks its host finishes THE SYSTEM SHALL run
+  the suite, its coverage, the draw, the mutants and their evidence, the
+  classification and the confirmation in that one invocation, and in no
+  earlier one.
+- **SP-2231~1**: WHEN model mutants join the draw THE SYSTEM SHALL add at most
+  20 of them, with origin model, after the sentinels and the operator mutants,
+  each mutating the lines of the reference its splice changes, and keep a
+  mutant the operators already drew as theirs.
+- **SP-2232~1**: WHEN a mutant no test killed ran THE SYSTEM SHALL run the
+  witness sets that hold a stable witness on it in a workspace of their own and
+  prove it by a `witness_failure` route of each stable witness that fails on
+  it, reproduced.
+- **SP-2233~1**: WHEN the final stage starts THE SYSTEM SHALL run each admitted
+  set three more times on the reference with no memo, and SHALL make a witness
+  that fails any of those runs a question that it is unstable on the
+  reference, with no route and no block.
+- **SP-2234~1**: WHEN the lines a change of a file mutates are read THE SYSTEM
+  SHALL give the reference lines between the first and the last that differ,
+  the line an insertion comes before or the last line for an append, and none
+  for an unchanged file.
+- **SP-2235~1**: WHEN a mutant that is no sentinel, that no test killed and
+  that fails a block-bearing witness ran THE SYSTEM SHALL run the whole suite
+  on it three times, a run passing when every test green on the reference
+  passed it, and record the promise it breaks when every run passed.
+- **SP-2236~1**: WHEN the labels are answered THE SYSTEM SHALL label each test
+  with the promises labelling the function of a mutant among its settled
+  changes and change no class, reason, change or count.
+- **SP-2237~1**: WHEN a scan that asks its host writes its statement THE SYSTEM
+  SHALL end its session, and WHEN a scan opens a session without `--resume` it
+  SHALL end every other open scan session and never the prove session.
+- **SP-2238~1**: WHEN a scan that asks its host opens its session THE SYSTEM
+  SHALL key it by a digest of its commit, tree digest, mode, base, pull
+  request, seed, counts, budgets, module version and source digests.
+- **SP-2239~1**: WHEN `--resume` finds no open scan session with the binding of
+  the scan THE SYSTEM SHALL exit 2 naming, field by field, what differs from the
+  binding of the open scan session, sources added, removed or changed
+  included, and with no open scan session SHALL say there is nothing to
+  resume.
+- **SP-2240~1**: WHEN the reference behaves differently from one invocation to
+  the next THE SYSTEM SHALL ask the same requests of the extraction, the
+  writers, the scope votes, the generation and the labels in every invocation
+  of a session whose memo holds.
+- **SP-2241~1**: WHEN the memo of the witness facts is lost in the middle of a
+  session THE SYSTEM SHALL only ask again the requests the new admission
+  changes, never the extraction or the writers, and finish the scan.
+- **SP-2242~1**: WHEN `prove` and a scan that asks its host share one file host
+  store THE SYSTEM SHALL keep each session's tickets out of the other's
+  pending tickets and retire none of the other session's tickets.
+- **SP-2243~1**: WHEN a scan that asks its host plans its asks THE SYSTEM SHALL
+  read the emissions of its session from the journal, each as the ask its
+  queue tag names, let the budget planner decide what to issue, cap the
+  session at 18 emissions as a backstop, and report the asks it cut and the
+  model calls it used.
+- **SP-2244~1**: WHEN `spec-proof-dp scan` is given `--host`, `--resume` or a
+  pull request number THE SYSTEM SHALL ask the host with either flag, take at
+  most one positive number, refuse a number beside `--base`, and refuse
+  anything else as a usage error.
+- **SP-2245~1**: WHEN a scan that asks its host waits THE SYSTEM SHALL print
+  only the wave, the session and the count of waiting tickets, and print its
+  headline only once it finished.
+- **SP-2247~1**: WHEN a scan that asked its host is rendered THE SYSTEM SHALL
+  list each checked promise with its quote and source.
+- **SP-2248~1**: WHEN a scan that asked its host broke a promise THE SYSTEM
+  SHALL render the broken promise with its quote, its change, the witness that
+  fails on it and the path of the script that runs that witness.
+- **SP-2249~1**: WHEN a witness is a question THE SYSTEM SHALL render it with the
+  quote of its promise and whether the reference fails it or it is unstable on
+  the reference.
+- **SP-2250~1**: WHEN asks went unanswered THE SYSTEM SHALL render each promise
+  left out over the cap or the budget, each ask the planner cut, each ask the
+  call cap left unasked and how many extracted quotes the check dropped.
+- **SP-2251~1**: WHEN a scan that asked its host found no quotable promise THE
+  SYSTEM SHALL print "no quotable promise in the README, description or
+  closing issues", and when the host never answered the extraction that the
+  promises were not checked.
+- **SP-2252~1**: WHEN a scan is rendered THE SYSTEM SHALL end its footer with
+  "no model used · promises not checked" without a host, and with the model
+  calls used out of the budget and whether promises were checked with one.
+- **SP-2253~1**: WHEN a test that verifies nothing carries labels THE SYSTEM
+  SHALL render under its finding the quotes of the promises it may break.
+- **SP-2254~1**: WHEN a finding folder is written THE SYSTEM SHALL offer each
+  route's killer as a test that fails on the mutant: the killing test of the
+  suite with a script that runs it on the mutant, the admitted witness laid
+  out as a test file with such a script, and the operation, input and results
+  of a differential route for `scan replay`; never a test a host wrote for
+  the mutant.
+- **SP-2255~1**: WHEN a scan broke a promise THE SYSTEM SHALL write its folder
+  with the patch, the witness laid out as a test file, the script that runs it
+  on the mutant and the record a replay reads.
+- **SP-2256~1**: WHEN a `witness_failure` route is replayed THE SYSTEM SHALL lay
+  out the recorded witnesses through the ecosystem's witness host, briefed
+  with the recorded promises, and hold the route only when the witness passes
+  the reference and fails the mutant three runs out of three.
+- **SP-2257~1**: WHEN a broken promise is replayed THE SYSTEM SHALL hold it only
+  when its witness passes the reference and fails the mutant three runs out of
+  three, the mutant builds and the whole suite passes it three times.
+- **SP-2258~1**: WHEN a finding is replayed THE SYSTEM SHALL use no host store
+  and no memo, so that a replay holds with the host directory and the memo
+  deleted.
+- **SP-2259~1**: WHEN a scan session opens THE SYSTEM SHALL journal its binding
+  once, in the session's name, so that a later resume can name what changed.
+- **SP-2261~1**: WHEN `scan <PR>` runs, with or without a host, THE SYSTEM SHALL
+  scan the change from the merge base of the head and the pull request's base
+  commit.
+- **SP-2262~1**: WHEN `prove` or a scan assembles a host request THE SYSTEM SHALL
+  build it the one same way, the prompt template and the decision policy among
+  its sorted, distinct inputs, so that the same work always has the same
+  request id.
+
 ## Prompts
 
 - **SP-173~2**: WHEN a request prompt is built THE SYSTEM SHALL name no criterion

@@ -12,6 +12,10 @@ const (
 	CategoryScope      Category = "scope"
 	CategoryGeneration Category = "generation"
 	CategoryLabels     Category = "labels"
+	// CategoryOther is an emission of the session that no ask of the scan names
+	// any more, such as a request whose inputs changed: it spends the budget and
+	// is never wanted.
+	CategoryOther Category = "other"
 )
 
 // categoryOrder ranks the categories by the order a scan makes them.
@@ -21,6 +25,7 @@ var categoryOrder = map[Category]int{
 	CategoryScope:      2,
 	CategoryGeneration: 3,
 	CategoryLabels:     4,
+	CategoryOther:      5,
 }
 
 // Ask is one call a scan makes, or made, to its host. A reissue of a ticket is
@@ -55,6 +60,9 @@ func Generation(promise string, ticket int) Ask {
 
 // LabelTicket is the one call that labels the tests with promises.
 func LabelTicket() Ask { return Ask{Category: CategoryLabels} }
+
+// Other is an emission of the session that no ask of the scan names any more.
+func Other() Ask { return Ask{Category: CategoryOther} }
 
 // Calls of the budget.
 const (

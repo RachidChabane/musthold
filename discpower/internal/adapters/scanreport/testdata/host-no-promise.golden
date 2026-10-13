@@ -1,0 +1,20 @@
+acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled · seed 7
+  quick scan · 1m30s budget · 4m12s · 40 of 409 green tests sampled · 2 workers — run with --full for the whole suite
+  7/40 verify nothing   21/40 caught ≥ 1 change   12/40 unproven   369/409 not sampled
+  unproven: 2 with < 5 proven changes or < 2 sites, 1 with an inconclusive outcome
+  they lack: 1 ran no drawn mutant · 2 unproven mutants on their lines: 1 searched without a difference, 1 with no function to call · no witness without a host
+  Not a pass: unproven and unsampled tests are unjudged.
+
+#1 tests/test_parse.py::test_parse_ok passes on all 9 proven changes in lines it ran
+   src/invoicing/parse.py:3  >= → >   input line="a,": reference "['a,']", mutant raises IndexError
+   proven by: a differential run of invoicing.parse:split_fields, reproduced, on a reference that agrees with itself
+   repro: .spec-proof/scan/3f2a9c1/1/repro.sh
+
+#2 tests/test_parse.py::test_it's_fine passes on all 5 proven changes in lines it ran
+   src/invoicing/parse.py:3  >= → >
+   proven by: tests/test_split.py::test_trailing_comma kills it 3/3
+   repro: .spec-proof/scan/3f2a9c1/2/repro.sh
+
+no quotable promise in the README, description or closing issues
+150 mutants (61 proven, 4 identical when compiled, 2 did not build or start) · 4m12s (reference 1m0s, coverage 30s, draw 2s, mutants 2m30s, confirmation 10s) · 1 of 18 model calls · promises checked
+7/40 sampled tests stay green on every proven change in lines they ran: on those lines, their green is no evidence the code is right.

@@ -73,7 +73,8 @@ var gapOfSearch = map[SearchOutcome]Gap{
 type UnprovenTest struct {
 	Test   ecosystem.TestID
 	Reason format.ScanUnprovenReason
-	// Drawn counts the drawn operator mutants on the lines it ran.
+	// Drawn counts the drawn mutants on the lines it ran, sentinels aside: the
+	// operator mutants, and the model mutants of a scan that asked its host.
 	Drawn int
 	// Proven counts its changes: the pairs with proven mutants that count.
 	Proven int

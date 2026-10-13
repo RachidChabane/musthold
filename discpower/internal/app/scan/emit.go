@@ -30,6 +30,8 @@ type emission struct {
 	// once its claims are confirmed.
 	ran       []Candidate
 	confirmed confirmed
+	// promises is what a scan that asked its host adds; nil otherwise.
+	promises *promiseOutcome
 }
 
 // classify classifies every test on what the scan executed.
@@ -59,6 +61,9 @@ func (s *Service) emit(ctx context.Context, e emission) (Report, error) {
 		Mutants:    mutants,
 		Tests:      result.ScanTests(),
 	}
+	if e.promises != nil {
+		recordPromises(&predicate, e.promises)
+	}
 	tree, err := s.treeDigest(ctx)
 	if err != nil {
 		return Report{}, err
@@ -68,11 +73,16 @@ func (s *Service) emit(ctx context.Context, e emission) (Report, error) {
 	if err != nil {
 		return Report{}, fmt.Errorf("encode the scan statement: %w", err)
 	}
-	findings, err := s.findings(result, mutants, e.drawn, e.confirmed.killers)
+	findings, err := s.findings(ctx, result, mutants, e.drawn, e.confirmed.killers, e.promises)
+	if err != nil {
+		return Report{}, err
+	}
+	promises, err := s.promiseReport(ctx, e.promises, predicate, e.drawn)
 	if err != nil {
 		return Report{}, err
 	}
 	return Report{
+		Promises:  promises,
 		Statement: statement, Encoded: encoded,
 		Repository: s.deps.Source.Name(ctx), Commit: e.commit, Runner: s.deps.Ecosystem.Name(),
 		Mode: e.plan.mode, Base: e.base, Seed: e.request.Seed,
@@ -176,7 +186,7 @@ func (s *Service) treeDigest(ctx context.Context) (string, error) {
 // findings gives each test that verifies nothing, in rank order, with the first
 // of its changes that a differential difference proves, else its first change,
 // and the route its confirmation upheld.
-func (s *Service) findings(result vacuity.Result, mutants []format.ScanMutant, drawn drawn, killers map[string][]ecosystem.TestID) ([]Finding, error) {
+func (s *Service) findings(ctx context.Context, result vacuity.Result, mutants []format.ScanMutant, drawn drawn, killers map[string][]ecosystem.TestID, promises *promiseOutcome) ([]Finding, error) {
 	byID := map[string]format.ScanMutant{}
 	for _, mutant := range mutants {
 		byID[mutant.ID] = mutant
@@ -192,11 +202,18 @@ func (s *Service) findings(result vacuity.Result, mutants []format.ScanMutant, d
 		if err != nil {
 			return nil, err
 		}
-		findings = append(findings, Finding{
+		finding := Finding{
 			Rank: len(findings) + 1, Test: verdict.Test, Changes: len(verdict.Changes), NotStarted: len(verdict.NotStarted),
 			Mutant: mutant, Site: change.Site, Route: shownRoute(mutant.Routes, killers[mutant.ID]),
 			Files: files, Repro: s.deps.Suite.Repro(verdict.Test),
-		})
+		}
+		if finding.Killers, err = s.killersOf(ctx, mutant, promises); err != nil {
+			return nil, err
+		}
+		if finding.Route.Kind == format.ScanRouteWitness && promises != nil {
+			finding.Witnesses, finding.Spec = promises.files[finding.Route.Witness], promises.spec
+		}
+		findings = append(findings, finding)
 	}
 	return findings, nil
 }

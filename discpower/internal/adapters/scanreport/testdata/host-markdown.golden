@@ -1,0 +1,106 @@
+## spec-proof scan
+
+acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled · seed 7
+
+quick scan · 1m30s budget · 4m12s · 40 of 409 green tests sampled · 2 workers — run with --full for the whole suite
+
+| Tests | Count |
+| --- | --- |
+| verify nothing | 7/40 |
+| caught ≥ 1 change | 21/40 |
+| unproven | 12/40 |
+| not sampled | 369/409 |
+
+Unproven: 2 with < 5 proven changes or < 2 sites, 1 with an inconclusive outcome.
+
+They lack: 1 ran no drawn mutant · 2 unproven mutants on their lines: 1 searched without a difference, 1 with no function to call · no witness without a host.
+
+| Unproven test | Reason | Proven changes | Unproven mutants on its lines |
+| --- | --- | --- | --- |
+| `tests/test_parse.py::test_three` | with < 5 proven changes or < 2 sites | 0 | none |
+| `tests/test_parse.py::test_two` | with < 5 proven changes or < 2 sites | 1 | 1 searched without a difference, 1 with no function to call |
+| `tests/test_split.py::test_slow` | with an inconclusive outcome | 6 | 1 searched without a difference |
+
+Not a pass: unproven and unsampled tests are unjudged.
+
+### 1. `tests/test_parse.py::test_parse_ok` passes on all 9 proven changes in lines it ran
+
+- Change: `src/invoicing/parse.py:3  >= → >   input line="a,": reference "['a,']", mutant raises IndexError`
+- Proven by: a differential run of invoicing.parse:split_fields, reproduced, on a reference that agrees with itself
+- Reproduce: `.spec-proof/scan/3f2a9c1/1/repro.sh`
+- May break: "split_fields keeps a trailing field", "lines shorter than two characters are skipped"
+
+```diff
+--- a/src/invoicing/parse.py
++++ b/src/invoicing/parse.py
+@@ -1,5 +1,5 @@
+ def split_fields(line):
+     fields = []
+-    if len(line) >= 2:
++    if len(line) > 2:
+         fields.append(line)
+     return fields
+```
+
+### 2. `tests/test_parse.py::test_it's_fine` passes on all 5 proven changes in lines it ran
+
+- Change: `src/invoicing/parse.py:3  >= → >`
+- Proven by: tests/test_split.py::test_trailing_comma kills it 3/3
+- Reproduce: `.spec-proof/scan/3f2a9c1/2/repro.sh`
+
+```diff
+--- a/src/invoicing/parse.py
++++ b/src/invoicing/parse.py
+@@ -1,5 +1,5 @@
+ def split_fields(line):
+     fields = []
+-    if len(line) >= 2:
++    if len(line) > 2:
+         fields.append(line)
+     return fields
+```
+
+### Promises
+
+- "split_fields keeps a trailing field" (README.md)
+- "lines shorter than two characters are skipped" (description)
+
+### Broken promises
+
+#### P1. "split_fields keeps a trailing field" (README.md) a change that passes the whole suite 3/3 fails a block-bearing witness written for it
+
+- Change: `src/invoicing/parse.py:3  >= → >`
+- Proven by: witness 9d1c0e77a4b2 fails on it, reproduced
+- Reproduce: `.spec-proof/scan/3f2a9c1/promise-1/killer.sh`
+
+```diff
+--- a/src/invoicing/parse.py
++++ b/src/invoicing/parse.py
+@@ -1,5 +1,5 @@
+ def split_fields(line):
+     fields = []
+-    if len(line) >= 2:
++    if len(line) > 2:
+         fields.append(line)
+     return fields
+```
+
+### Questions
+
+- "split_fields keeps a trailing field" (README.md): witness 1a2b3c4d5e6f, the reference fails it
+- "lines shorter than two characters are skipped" (description): witness 9d1c0e77a4b2, unstable on the reference
+
+### Unchecked
+
+- "parsing never allocates twice" (README.md): over the cap of 3 promises
+- "headers are case insensitive" (issue #12): the budget of 18 calls could not cover it
+- the labels ticket not asked: the budget could not cover it
+- generation ticket 3 for "lines shorter than two characters are skipped" not asked: the budget could not cover it
+- writer 2 of "headers are case insensitive" not asked: its promise is not kept
+- scope vote 1 of "split_fields keeps a trailing field" left unasked: the session reached its call cap
+- 2 extracted quotes not found byte for byte in their source
+- this ecosystem writes no witness
+
+150 mutants (61 proven, 4 identical when compiled, 2 did not build or start) · 4m12s (reference 1m0s, coverage 30s, draw 2s, mutants 2m30s, confirmation 10s) · 11 of 18 model calls · promises checked
+
+7/40 sampled tests stay green on every proven change in lines they ran: on those lines, their green is no evidence the code is right.

@@ -41,6 +41,26 @@ func TestScanCommandLine(t *testing.T) {
 			t.Fatalf("exit %d, stderr %q", code, stderr)
 		}
 	})
+	t.Run("a pull request number and --base exclude each other, and a second number is refused [verifies SP-2244~1]", func(t *testing.T) {
+		if code, _, stderr := runScan(t, t.TempDir(), "scan", "12", "--base", "main"); code != cli.ExitToolFailure || !strings.Contains(stderr, "--base and a pull request number exclude each other") {
+			t.Fatalf("exit %d, stderr %q", code, stderr)
+		}
+		if code, _, stderr := runScan(t, t.TempDir(), "scan", "--host", "12", "13"); code != cli.ExitToolFailure || !strings.Contains(stderr, "at most one pull request number") {
+			t.Fatalf("exit %d, stderr %q", code, stderr)
+		}
+	})
+	t.Run("--host and --resume are flags of scan, and a tree with no suite fails before any session [verifies SP-2244~1]", func(t *testing.T) {
+		code, stdout, stderr := runScan(t, t.TempDir(), "scan", "--resume", "7")
+		if code != cli.ExitToolFailure || stdout != "" || !strings.Contains(stderr, "a scan runs pytest and Go test suites") {
+			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
+		}
+		_, stdout, stderr = runScan(t, t.TempDir(), "scan", "--help")
+		for _, want := range []string{"-host", "-resume", "<PR>"} {
+			if !strings.Contains(stdout+stderr, want) {
+				t.Fatalf("the help of scan lacks %q:\n%s%s", want, stdout, stderr)
+			}
+		}
+	})
 	t.Run("a replay takes one directory that holds a finding"+verifiesScanCommand, func(t *testing.T) {
 		if code, _, stderr := runScan(t, t.TempDir(), "scan", "replay"); code != cli.ExitToolFailure || !strings.Contains(stderr, "replay takes one directory") {
 			t.Fatalf("exit %d, stderr %q", code, stderr)

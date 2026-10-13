@@ -1,6 +1,13 @@
 package scan
 
-import "context"
+import (
+	"context"
+	"errors"
+)
+
+// ErrNotAtHead is returned by a HeadFileReader for a path that is not a file of
+// the head commit's tree.
+var ErrNotAtHead = errors.New("file is not in the head commit")
 
 // Source is a named quotable document: a name the statement cites and the exact
 // bytes a quote is checked against.
@@ -27,7 +34,8 @@ type SourceStore interface {
 }
 
 // HeadFileReader reads a file from the tree of the head commit, not from the work
-// tree, so the bytes are those of the commit the scan names.
+// tree, so the bytes are those of the commit the scan names. A path that is not
+// a file of that tree gives ErrNotAtHead.
 type HeadFileReader interface {
 	ReadAtHead(ctx context.Context, path string) ([]byte, error)
 }
