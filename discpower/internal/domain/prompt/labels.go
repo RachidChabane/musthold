@@ -45,6 +45,8 @@ type LabelFunction struct {
 type LabelsInput struct {
 	Promises  []LabelPromise
 	Functions []LabelFunction
+	// Omitted counts the functions of the view a size bound left out.
+	Omitted int
 }
 
 // PromiseID is the opaque id of the promise at index in a labels request.
@@ -64,6 +66,7 @@ func BuildLabels(input LabelsInput) Built {
 	for _, function := range input.Functions {
 		fmt.Fprintf(&user, "Function %s, %s, %s:\n%s\n%s\n%s\n\n", function.ID, function.Path, function.Signature, codeFence, strings.TrimRight(function.Code, "\n"), codeFence)
 	}
+	user.WriteString(omittedNote(input.Omitted))
 	user.WriteString(embedded(labelsInstructions))
 	return build(embedded(labelsSystem), user.String(), embedded(labelsSchema), nil, embedded(labelsInstructions))
 }

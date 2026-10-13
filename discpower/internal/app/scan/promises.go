@@ -43,6 +43,9 @@ type PromiseReport struct {
 	Budget int
 	// WitnessesUnavailable is set for an ecosystem that writes no witness.
 	WitnessesUnavailable bool
+	// Truncated are the code views the size bound cut, the generation views
+	// in promise order, then the labels view.
+	Truncated []TruncatedView
 }
 
 // NoPromise reports whether no quotable promise was found: no source, or no
@@ -212,7 +215,7 @@ func (h *hostScan) report(out *promiseOutcome) PromiseReport {
 	report := PromiseReport{
 		Checked: out.checked, NoSource: state.noSources, Promises: out.promises, Dropped: state.quotes.Dropped,
 		Cut: asker.cuts, Unasked: asker.unasked, Questions: out.questions, ModelMutants: len(h.models.candidates),
-		Calls: h.calls, Budget: promise.Budget, WitnessesUnavailable: state.witnessesUnavailable,
+		Calls: h.calls, Budget: promise.Budget, WitnessesUnavailable: state.witnessesUnavailable, Truncated: state.truncated,
 	}
 	byID := map[string]format.ScanPromise{}
 	for _, kept := range state.choice.Chosen {

@@ -3,9 +3,12 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
+	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/junitxml"
+	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/scanscope"
@@ -91,3 +94,52 @@ func TestPrintAwaiting(t *testing.T) {
 		}
 	})
 }
+
+func TestWitnessRecorder(t *testing.T) {
+	strategies, err := newStrategies(process.New(), junitxml.NewReader())
+	if err != nil {
+		t.Fatal(err)
+	}
+	strategyOf := func(t *testing.T, fixture string) ports.Ecosystem {
+		t.Helper()
+		strategy, _, err := scanStrategy(strategies, fixture)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return strategy
+	}
+	goStrategy, pytestStrategy := strategyOf(t, goScanFixture), strategyOf(t, pytestScanFixture)
+	t.Run("a Go module records the coverage of its witnesses running them alone [verifies SP-2271~1]", func(t *testing.T) {
+		got, want := witnessRecorder(goStrategy), goStrategy.(ports.WitnessCovering).WitnessCoverage()
+		if got == nil || fmt.Sprintf("%T", got) != fmt.Sprintf("%T", want) {
+			t.Fatalf("recorder %T, want %T", got, want)
+		}
+	})
+	t.Run("a pytest project records the coverage of its witnesses with the whole suite's recorder [verifies SP-2271~1]", func(t *testing.T) {
+		got, want := witnessRecorder(pytestStrategy), pytestStrategy.(ports.Covering).Coverage()
+		if got == nil || fmt.Sprintf("%T", got) != fmt.Sprintf("%T", want) {
+			t.Fatalf("recorder %T, want %T", got, want)
+		}
+	})
+	t.Run("a Go module runs the witnesses of a scan with its own runner, a pytest project with its suite runner [verifies SP-2273~1]", func(t *testing.T) {
+		for strategy, own := range map[ports.Ecosystem]bool{goStrategy: true, pytestStrategy: false} {
+			var deps scan.Deps
+			wireWitnesses(&deps, strategy, os.DirFS(t.TempDir()))
+			witnesses, wired := deps.Witnesses.(scan.ExecutionWitnesses)
+			if !wired || (witnesses.Runner != nil) != own {
+				t.Errorf("%s: witnesses %+v", strategy.Name(), deps.Witnesses)
+			}
+		}
+	})
+	t.Run("prove records coverage only through the whole suite's recorder, which a Go module does not offer [verifies SP-2271~1]", func(t *testing.T) {
+		if _, covering := goStrategy.(ports.Covering); covering {
+			t.Fatal("the Go strategy records the whole suite's coverage, which prove would use")
+		}
+	})
+}
+
+// Scan fixtures whose ecosystem the scan detects.
+const (
+	goScanFixture     = "../../fixtures/scan/go"
+	pytestScanFixture = "../../fixtures/scan/pytest"
+)

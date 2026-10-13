@@ -107,7 +107,7 @@ func (r *hostRun) intake(ctx context.Context, built *reference, output []byte, s
 	}
 	usable := 0
 	for _, proposal := range generated {
-		candidate, files, ok, err := r.modelCandidate(ctx, built, proposal.Edits)
+		candidate, files, ok, err := r.modelCandidate(ctx, built, unitTexts(proposal.Edits))
 		if err != nil {
 			return 0, err
 		}
@@ -123,6 +123,21 @@ func (r *hostRun) intake(ctx context.Context, built *reference, output []byte, s
 		maps.Copy(set.sources, files)
 	}
 	return usable, nil
+}
+
+// lineBreaks are the characters a unit's text never ends with.
+const lineBreaks = "\r\n"
+
+// unitTexts reads each proposed source as the text of its unit, which ends
+// with its last character: the line breaks a model ends its code with are no
+// part of the unit, and a splice of them would never match it.
+func unitTexts(edits mutation.EditSet) mutation.EditSet {
+	trimmed := mutation.EditSet{Edits: make([]mutation.Edit, len(edits.Edits))}
+	for index, edit := range edits.Edits {
+		edit.NewSource = strings.TrimRight(edit.NewSource, lineBreaks)
+		trimmed.Edits[index] = edit
+	}
+	return trimmed
 }
 
 // modelCandidate checks a proposed edit set: known target kinds, a file a scan

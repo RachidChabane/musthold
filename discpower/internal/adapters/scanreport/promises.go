@@ -1,6 +1,7 @@
 package scanreport
 
 import (
+	"cmp"
 	"fmt"
 	"strings"
 
@@ -52,6 +53,9 @@ const (
 	questionsHeading     = "### Questions"
 	uncheckedHeading     = "### Unchecked"
 	itemPrefix           = "- "
+	truncatedFormat      = "the code shown to %s cut to %d of %d functions by the size bound of %d KiB"
+	truncatedGeneration  = "the generation tickets for %s"
+	kibibyte             = 1 << 10
 )
 
 // questionReasons say why a witness is a question about its promise.
@@ -138,6 +142,24 @@ func uncheckedLines(promises *scan.PromiseReport) []string {
 	}
 	if promises.WitnessesUnavailable {
 		lines = append(lines, witnessesUnavailable)
+	}
+	return append(lines, truncatedLines(promises)...)
+}
+
+// truncatedLines say which code views the size bound cut, and to how many of
+// their functions.
+func truncatedLines(promises *scan.PromiseReport) []string {
+	quotes := map[string]string{}
+	for _, one := range promises.Promises {
+		quotes[one.ID] = fmt.Sprintf("%q", one.Quote)
+	}
+	lines := make([]string, 0, len(promises.Truncated))
+	for _, truncated := range promises.Truncated {
+		shownTo := labelsAsk
+		if !truncated.OfLabels() {
+			shownTo = fmt.Sprintf(truncatedGeneration, cmp.Or(quotes[truncated.Promise], truncated.Promise))
+		}
+		lines = append(lines, fmt.Sprintf(truncatedFormat, shownTo, truncated.Shown, truncated.Total, scan.ViewSourceCap/kibibyte))
 	}
 	return lines
 }

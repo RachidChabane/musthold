@@ -390,6 +390,8 @@ func (c fakeCompiler) Forms(_ context.Context, workspace ecosystem.Workspace, _ 
 type fakeSource struct {
 	dirty   bool
 	changed map[string][]int
+	// tracked are files tracked besides the module and its tests.
+	tracked []string
 }
 
 func (s fakeSource) Head(context.Context) (string, error) { return headCommit, nil }
@@ -398,7 +400,7 @@ func (s fakeSource) Resolve(_ context.Context, revision string) (string, error) 
 }
 func (s fakeSource) Dirty(context.Context) (bool, error) { return s.dirty, nil }
 func (s fakeSource) TrackedFiles(context.Context) ([]string, error) {
-	return []string{totals, "tests/test_discount.py", "tests/test_shipping.py", ".spec-proof/scan/old/report.md"}, nil
+	return append([]string{totals, "tests/test_discount.py", "tests/test_shipping.py", ".spec-proof/scan/old/report.md"}, s.tracked...), nil
 }
 func (s fakeSource) ChangedLines(context.Context, string) (map[string][]int, error) {
 	return s.changed, nil

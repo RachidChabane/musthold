@@ -32,6 +32,28 @@ const (
 	unitKeySeparator = "::"
 )
 
+// ViewSourceCap bounds the code a generation or labels request shows: the
+// most bytes of unit source one view holds, whatever the witnesses run. A view
+// keeps its units whole, in the order of the code, and leaves out each unit
+// that would take it past the bound; the report names every view the bound
+// cut and the request says how many units it leaves out.
+const ViewSourceCap = 48 << 10
+
+// boundedView keeps the units of a view within ViewSourceCap and counts the
+// units it leaves out.
+func boundedView(units []viewUnit) ([]viewUnit, int) {
+	kept := make([]viewUnit, 0, len(units))
+	size := 0
+	for _, unit := range units {
+		if size+len(unit.source) > ViewSourceCap {
+			continue
+		}
+		size += len(unit.source)
+		kept = append(kept, unit)
+	}
+	return kept, len(units) - len(kept)
+}
+
 // hostRun is one invocation of a scan that asks its host: what it is bound
 // to, the bridge of its session and what its stages established.
 type hostRun struct {

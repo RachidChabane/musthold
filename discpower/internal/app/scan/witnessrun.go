@@ -47,9 +47,13 @@ type WitnessRunners interface {
 }
 
 // ExecutionWitnesses runs witnesses with the module's execution runner, the
-// ecosystem's witness host and, when it has one, its coverage recorder.
+// ecosystem's witness host and, when it has them, its runner of witnesses and
+// its coverage recorder.
 type ExecutionWitnesses struct {
 	Host ports.WitnessHost
+	// Runner runs the witnesses; nil runs them with the ecosystem's suite
+	// runner.
+	Runner ports.SuiteRunner
 	// Recorder records the coverage of the witnesses; nil for an ecosystem that
 	// records none, whose generation view is then every unit of the code.
 	Recorder ports.CoverageRecorder
@@ -60,8 +64,12 @@ var _ WitnessRunners = ExecutionWitnesses{}
 
 // For is the execution runner of the reference, as a witness runner.
 func (w ExecutionWitnesses) For(reference WitnessReference, memo ports.ExecutionMemo, suiteKey string) WitnessRunner {
+	executor := reference.Executor
+	if w.Runner != nil {
+		executor.Ecosystem = witnessEcosystem{Ecosystem: executor.Ecosystem, runner: w.Runner}
+	}
 	runner := execution.Runner{
-		Executor: reference.Executor, Reference: reference.Reference, SuiteKey: suiteKey,
+		Executor: executor, Reference: reference.Reference, SuiteKey: suiteKey,
 		Witnesses: execution.Witnesses{Host: w.Host, Project: w.Project}, Recorder: w.Recorder,
 	}
 	if memo != nil {
@@ -100,3 +108,13 @@ func (r executionWitnessRunner) Entries(ctx context.Context, sets []witness.Set)
 func (r executionWitnessRunner) OnMutant(ctx context.Context, program string, edits mutation.EditSet, sets []witness.Set) (map[string]witness.Outcome, error) {
 	return r.fresh.EditWitnesses(ctx, program, edits, sets)
 }
+
+// witnessEcosystem is the Decorator of an ecosystem whose witnesses run with a
+// runner of their own.
+type witnessEcosystem struct {
+	ports.Ecosystem
+	runner ports.SuiteRunner
+}
+
+// Runner is the runner of the witnesses.
+func (e witnessEcosystem) Runner() ports.SuiteRunner { return e.runner }

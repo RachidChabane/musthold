@@ -61,6 +61,8 @@ type promiseState struct {
 	// code of every promise, which the labels name.
 	views map[string][]viewUnit
 	view  []viewUnit
+	// truncated are the views the size bound cut.
+	truncated []TruncatedView
 	// generation are the generation tickets with their answers.
 	generation []generationTicket
 	labels     promise.Labels

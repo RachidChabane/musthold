@@ -152,28 +152,66 @@ func (r *hostRun) admitWitnesses(ctx context.Context) error {
 func admitted(record *witnessRecord) bool { return record != nil && record.admitted }
 
 // buildViews takes, for each promise, the code its admitted witnesses run on
-// the reference, and the code of every promise together.
+// the reference, and the code of every promise together, each bounded on its
+// own by the size bound of a view.
 func (r *hostRun) buildViews(ctx context.Context) error {
 	seen := map[string]bool{}
-	r.state.view = nil
+	var union []viewUnit
+	r.state.view, r.state.truncated = nil, nil
 	for _, kept := range r.state.checking {
 		entries, err := r.entriesOf(ctx, kept.Promise.ID)
 		if err != nil {
 			return err
 		}
-		view, err := r.viewOf(ctx, entries)
+		full, err := r.viewOf(ctx, entries)
 		if err != nil {
 			return err
 		}
-		r.state.views[kept.Promise.ID] = view
-		for _, unit := range view {
+		r.state.views[kept.Promise.ID] = r.state.bound(kept.Promise.ID, full)
+		for _, unit := range full {
 			if !seen[unit.key()] {
 				seen[unit.key()] = true
-				r.state.view = append(r.state.view, unit)
+				union = append(union, unit)
 			}
 		}
 	}
+	r.state.view = r.state.bound(labelsView, union)
 	return nil
+}
+
+// labelsView names the view of the labels ticket among the truncated views.
+const labelsView = ""
+
+// TruncatedView is a view the size bound cut: the promise whose generation
+// tickets show it, empty for the view the labels ticket shows, and how many
+// of its units it shows out of how many.
+type TruncatedView struct {
+	Promise string
+	Shown   int
+	Total   int
+}
+
+// OfLabels reports whether the view is the one the labels ticket shows.
+func (v TruncatedView) OfLabels() bool { return v.Promise == labelsView }
+
+// bound keeps a view within the size bound and records it when the bound cut
+// it.
+func (s *promiseState) bound(promiseID string, full []viewUnit) []viewUnit {
+	view, omitted := boundedView(full)
+	if omitted > 0 {
+		s.truncated = append(s.truncated, TruncatedView{Promise: promiseID, Shown: len(view), Total: len(full)})
+	}
+	return view
+}
+
+// omittedFrom counts the units the size bound left out of a view.
+func (s *promiseState) omittedFrom(promiseID string) int {
+	for _, truncated := range s.truncated {
+		if truncated.Promise == promiseID {
+			return truncated.Total - truncated.Shown
+		}
+	}
+	return 0
 }
 
 // entriesOf are the units the admitted witnesses of a promise run on the
@@ -297,7 +335,7 @@ func (r *hostRun) generationAsks() ([]hostAsk, error) {
 	for _, ticket := range promise.AssignGeneration(r.state.checkingIDs()) {
 		view := r.state.views[ticket.Promise]
 		round := ticket.Slot + 1
-		built := prompt.BuildGeneration(prompt.GenerationInput{Statement: quotes[ticket.Promise], Slice: sliceOf(view)})
+		built := prompt.BuildGeneration(prompt.GenerationInput{Statement: quotes[ticket.Promise], Slice: sliceOf(view), Omitted: r.state.omittedFrom(ticket.Promise)})
 		inputs := []hostproto.Input{
 			{Role: format.RoleSpec, Digest: digestLines([]string{quotes[ticket.Promise]})},
 			{Role: format.RoleCodeTree, Digest: digestUnits(view)},
@@ -327,7 +365,7 @@ func (r *hostRun) labelsAsk() ([]hostAsk, labelling, error) {
 	if len(r.state.view) == 0 {
 		return nil, shown, nil
 	}
-	input := prompt.LabelsInput{}
+	input := prompt.LabelsInput{Omitted: r.state.omittedFrom(labelsView)}
 	for index, kept := range r.state.checking {
 		id := prompt.PromiseID(index)
 		shown.promises[id] = kept.Promise.ID

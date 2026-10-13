@@ -383,18 +383,32 @@ func (e Env) openScan(rootFlag string, asksHost bool) (scanProject, error) {
 }
 
 // wireWitnesses gives the scan the ecosystem's witness host and the runner of
-// its witnesses, with the coverage recorder when the ecosystem has one.
+// its witnesses, with the ecosystem's own runner of witnesses and its coverage
+// recorder when it has them.
 func wireWitnesses(deps *scan.Deps, strategy ports.Ecosystem, project fs.FS) {
 	witnessing, ok := strategy.(ports.Witnessing)
 	if !ok {
 		return
 	}
 	deps.WitnessHost = witnessing.Witnesses()
-	witnesses := scan.ExecutionWitnesses{Host: deps.WitnessHost, Project: project}
-	if covering, ok := strategy.(ports.Covering); ok {
-		witnesses.Recorder = covering.Coverage()
+	witnesses := scan.ExecutionWitnesses{Host: deps.WitnessHost, Project: project, Recorder: witnessRecorder(strategy)}
+	if running, ok := strategy.(ports.WitnessRunning); ok {
+		witnesses.Runner = running.WitnessRunner()
 	}
 	deps.Witnesses = witnesses
+}
+
+// witnessRecorder is the recorder of the coverage of the witnesses: the one
+// that runs the witnesses alone when the ecosystem has it, else the one that
+// records the whole suite, nil for an ecosystem with neither.
+func witnessRecorder(strategy ports.Ecosystem) ports.CoverageRecorder {
+	if covering, ok := strategy.(ports.WitnessCovering); ok {
+		return covering.WitnessCoverage()
+	}
+	if covering, ok := strategy.(ports.Covering); ok {
+		return covering.Coverage()
+	}
+	return nil
 }
 
 // scanHost wires the ports of a scan that asks the host: the repository's host

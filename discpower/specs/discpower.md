@@ -1000,6 +1000,63 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   build it the one same way, the prompt template and the decision policy among
   its sorted, distinct inputs, so that the same work always has the same
   request id.
+- **SP-2270~1**: WHEN a scan records the coverage of the witnesses of a Go
+  module THE SYSTEM SHALL build the coverage binary of each package that holds
+  a witness, run its start-up once with no test and each witness alone, and
+  name for each witness the innermost definitions of the module holding a
+  block it ran more often than the start-up did, a witness the reference
+  fails included.
+- **SP-2271~1**: WHEN a scan wires the runner of its witnesses THE SYSTEM SHALL
+  record their coverage with the ecosystem's recorder of tests run alone when
+  it has one, else with its recorder of the whole suite, and `prove` SHALL
+  record coverage with the recorder of the whole suite only.
+- **SP-2272~1**: WHEN a generation or labels request of a scan shows code THE
+  SYSTEM SHALL keep its view within 48 KiB of unit source, whole units in the
+  order of the code, leaving out each unit that would take it past the bound,
+  SHALL say in the request how many units it leaves out, and SHALL name in the
+  report each view the bound cut with how many of its functions it shows.
+- **SP-2273~1**: WHEN a scan runs the witnesses of a Go module THE SYSTEM SHALL
+  run them with `go test -json`, which needs no tool the module declares, read
+  each witness's outcome by its package and test name, and fail the
+  collection when a witness file does not compile; an ecosystem without a
+  runner of witnesses runs them with its suite runner.
+- **SP-2274~1**: WHEN `spec-proof-dp scan --host` runs on a pytest or a Go
+  project committed in its own repository, whose README holds a promise the
+  suite runs and never asserts and a promise the code does not keep, and a
+  host answers each ticket the scan lists for its session THE SYSTEM SHALL
+  exit 3 until every answer is in and then exit 0, print the broken promise
+  with its quote, a change the whole suite passes 3/3 and the script whose
+  witness fails on that change, print each witness the reference fails as a
+  question, count a quote its source does not hold as dropped, and write a
+  statement the scan format admits with its promises checked.
+- **SP-2275~1**: WHEN the host directory and the memo of a scan that asked its
+  host are deleted THE SYSTEM SHALL still hold, on `scan replay`, the
+  `witness_failure` route of a finding and the broken promise.
+- **SP-2276~1**: WHEN a scan of a whole repository that asks its host shows a
+  generation ticket of a promise whose witnesses were admitted, in a pytest or
+  a Go project THE SYSTEM SHALL show the functions those witnesses run and no
+  other.
+- **SP-2277~1**: WHEN `spec-proof-dp scan --resume` runs with a flag that
+  differs from the open scan session's THE SYSTEM SHALL exit 2 naming the
+  field, its old value and its new one.
+- **SP-2278~1**: WHEN the host of a scan of a pytest or a Go project answers
+  every ticket with an answer its schema accepts and the scan rejects THE
+  SYSTEM SHALL ask the rejected tickets again while the session's emissions
+  allow, make at most 18 emissions in the session, report the asks the cap
+  left out and the calls used, and finish with exit 0.
+- **SP-2279~1**: WHEN a scan that asks its host and `prove` wait for the host
+  in one pytest or Go repository at the same time, each answered between its
+  own invocations THE SYSTEM SHALL finish both, and no invocation of the scan
+  SHALL retire a ticket `prove` waits for.
+- **SP-2280~1**: WHEN `spec-proof-dp scan --host <PR>` runs with gh answering
+  for the pull request and the issue it closes THE SYSTEM SHALL read both
+  through gh, show the description and the issue byte for byte as sources
+  of the extraction, save the sources of the head commit, scan the change
+  from the merge base and check a promise of each source.
+- **SP-2281~1**: WHEN a generation answer of a scan proposes a source that ends
+  with line breaks THE SYSTEM SHALL read it as the text of its unit, which
+  ends with its last character, so that the line breaks alone never make a
+  proposal unusable.
 
 ## Prompts
 
