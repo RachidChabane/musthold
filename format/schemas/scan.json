@@ -40,7 +40,7 @@
             "type": "object",
             "required": ["name", "digest"],
             "properties": {
-              "name": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/nonEmptyString" },
+              "name": { "type": "string", "pattern": "^(README\\.md|description|issue #[1-9][0-9]*)$" },
               "digest": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/digest" }
             }
           }

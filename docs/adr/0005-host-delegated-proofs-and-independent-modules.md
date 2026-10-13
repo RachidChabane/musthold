@@ -141,7 +141,7 @@ in JCS.
 | Field | Content |
 |---|---|
 | `module` | `{name, version}` |
-| `kind` | `generate.targeted`, `generate.witnessStrategy`, `judge.validity`, `judge.equivalent`, `judge.alignment`, `decide.closed` |
+| `kind` | `generate.targeted`, `generate.witnessStrategy`, `generate.witness`, `generate.promises`, `judge.validity`, `judge.equivalent`, `judge.alignment`, `judge.scope`, `judge.labels`, `decide.closed` |
 | `role` | plugin-scoped executor role, e.g. `spec-proof-dp:judge` |
 | `shape` | `open`, or `closed` (`/v1/systemone` question types) |
 | `prompt` | `{system, user, templateDigest}`, built by ADR 0003's pure blind builders: generation never sees tests; alignment is name-masked |
@@ -793,8 +793,8 @@ gate-host session and for the in-session sample (ADR 0007).
 ## Revisions
 
 The ADR 0001, 0002 and 0003 texts stay as written; the revisions below apply on
-top of them. The last revision, "Sessions in the host store", applies to the host
-protocol of this record.
+top of them. The last two revisions, "Sessions in the host store" and "Request
+kinds of the scan", apply to the host protocol of this record.
 
 **ADR 0001**
 
@@ -846,6 +846,27 @@ of the benchmark's arms.
   that a session wants again is issued as a new emission (section "Lifecycle").
 - Pending tickets, `request list`, `systemone export`, `host push` and CI-issued
   requests are read per session, with `--session` on the command line.
+
+**Request kinds of the scan**
+
+- `generate.promises` is served by the generator agent and, like every
+  generation kind, carries a round and a seed. `judge.labels` is served by the
+  judge agent and carries neither.
+- A promises request shows the quotable sources, a closed set: the README at
+  head, the title and body of the change as the forge returned them, and each
+  closing issue, every source under its name with its exact text. A change adds
+  the paths of its changed files and the public signatures of its changed
+  functions. A hunk, a diff line and a function body are never shown.
+- A promises response is a list of `{quote, source}`; `source` names a source of
+  the request and a promise carries no paraphrase. The binary keeps a promise
+  only when its quote is a byte-exact part of the saved source.
+- A labels request shows the kept promises, each under an opaque id with its
+  quote, and the functions of the generation view, each under an opaque id with
+  its path, signature and code. A labels response maps promise ids to function
+  ids; an id the request did not show is refused, and a promise left out labels
+  no function. A label never creates, removes or changes a verdict.
+- The names of the quotable sources are the README, the description and
+  `issue #N`; the scan statement admits no other source name.
 
 ## Consequences
 

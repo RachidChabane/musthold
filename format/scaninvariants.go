@@ -284,6 +284,15 @@ func checkScanTest(sink *collector, path string, test ScanTest, index scanIndex)
 	}
 }
 
+func checkScanSourceName(sink *collector, path, name string) {
+	switch {
+	case name == "":
+		sink.add(CodeMissingField, path, "must not be empty")
+	case !IsScanSourceName(name):
+		sink.add(CodeUnknownValue, path, "%q is not a quotable source: the README, the description or a closing issue", name)
+	}
+}
+
 func checkScanPromises(sink *collector, path string, p Scan, index scanIndex) {
 	if !p.PromisesChecked && (len(p.Promises) > 0 || len(p.Witnesses) > 0 || len(p.BrokenPromises) > 0 || len(p.Questions) > 0) {
 		sink.add(CodeScanReference, path+".promisesChecked", "a scan that checked no promise holds no promise, witness, broken promise or question")
@@ -293,7 +302,7 @@ func checkScanPromises(sink *collector, path string, p Scan, index scanIndex) {
 		promisePath := fmt.Sprintf("%s.promises[%d]", path, position)
 		checkNotEmpty(sink, promisePath+".id", promise.ID)
 		checkNotEmpty(sink, promisePath+".quote", promise.Quote)
-		checkNotEmpty(sink, promisePath+".source.name", promise.Source.Name)
+		checkScanSourceName(sink, promisePath+".source.name", promise.Source.Name)
 		checkDigest(sink, promisePath+".source.digest.sha256", promise.Source.Digest.SHA256)
 	}
 	checkAscending(sink, path+".witnesses", p.Witnesses, func(a, b ScanWitness) int { return strings.Compare(a.ID, b.ID) })

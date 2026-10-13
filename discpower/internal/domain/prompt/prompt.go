@@ -310,5 +310,7 @@ func TemplateDigests() map[hostproto.Kind]string {
 		hostproto.KindDecideClosed:     screen.Prompt.TemplateDigest,
 		hostproto.KindGenerateWitness:  BuildWitness(WitnessInput{}).Prompt.TemplateDigest,
 		hostproto.KindJudgeScope:       BuildScope(ScopeInput{}).Prompt.TemplateDigest,
+		hostproto.KindGeneratePromises: BuildPromises(PromisesInput{}).Prompt.TemplateDigest,
+		hostproto.KindJudgeLabels:      BuildLabels(LabelsInput{}).Prompt.TemplateDigest,
 	}
 }

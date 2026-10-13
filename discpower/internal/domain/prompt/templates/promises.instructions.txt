@@ -1,0 +1,6 @@
+List the promises worth checking against the code, at most 8, the most specific and the most testable first.
+A promise is one sentence or clause that states observable behaviour: what a call returns, raises, stores or refuses.
+Give each promise as "quote", copied from its source character for character with the same whitespace and punctuation, and "source", the name of the source the quote is copied from, exactly as it is written above.
+Quote only the sources above. Never paraphrase, join two passages or quote text that is not in a source.
+Prefer promises that concern the changed files and functions when they are listed; skip marketing, installation steps and promises no test could check.
+Reply with an empty list when no source states a promise.

@@ -770,6 +770,28 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   1 to 3 properties with distinct names, and the scope verdicts only when every
   witness shown is answered, and a vote that states no confidence SHALL count as
   full confidence.
+- **SP-2162~1**: WHEN a `generate.promises` prompt is built THE SYSTEM SHALL show
+  each source under its name with its exact text, show a change the paths of its
+  changed files and the public signatures of its changed functions and nothing
+  else of its code, never a hunk or a body, change the template digest exactly
+  when the prompt text or the response schema changes, and give a response
+  schema that requires a non-empty quote and a source of the closed set of
+  source names for each of at most 8 promises, with no other member.
+- **SP-2163~1**: WHEN the output of a `generate.promises` request is read THE
+  SYSTEM SHALL give the promises as quote and source in the order stated, and
+  refuse a promise whose source the request did not show, a promise with an empty
+  quote and a list of more than 8 promises.
+- **SP-2164~1**: WHEN a `judge.labels` prompt is built THE SYSTEM SHALL show each
+  promise under its opaque id with its quote and each function of the generation
+  view under its opaque id with its path, signature and code, change the template
+  digest exactly when the prompt text or the response schema changes, and give a
+  response schema that maps promise ids to lists of distinct function ids, with
+  no other member.
+- **SP-2165~1**: WHEN the output of a `judge.labels` request is read THE SYSTEM
+  SHALL refuse a function id outside the view and a promise id outside the input,
+  and otherwise give for every promise of the input the functions it labels, each
+  once and in the order of the view, a promise the response leaves out labelling
+  none.
 
 ## Execution of mutants
 

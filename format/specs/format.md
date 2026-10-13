@@ -261,6 +261,11 @@ Go tests of the module in CI.
 - **SP-1983~1**: WHEN a `generate.witness` or `judge.scope` request is validated THE
   SYSTEM SHALL require the generator role, a round and a seed of a witness
   request, and the judge role and neither a round nor a seed of a scope request.
+- **SP-2160~1**: WHEN a `generate.promises` or `judge.labels` request is validated
+  THE SYSTEM SHALL require the generator role, a round and a seed of a promises
+  request, and the judge role and neither a round nor a seed of a labels
+  request, the request schema SHALL list both kinds with the same rules, and
+  the id of either kind SHALL ignore the module version.
 - **SP-1984~1**: WHEN a discriminating-power Statement carries the witness summary
   and the fault classes of its pool, or the class, route, witnesses and
   collateral criteria of a mutant, THE SYSTEM SHALL validate them against the
@@ -681,6 +686,11 @@ Go tests of the module in CI.
 - **SP-2009~1**: WHEN the quote of a promise is checked against its source THE
   SYSTEM SHALL accept it only when the source has the digest the promise records
   and contains the non-empty quote byte for byte.
+- **SP-2161~1**: WHEN the source of a promise is named THE SYSTEM SHALL accept only
+  the README, the description of the change or a closing issue written
+  `issue #N` with N a positive decimal number without a leading zero, and report
+  `unknown_value` for any other name and `missing_field` for an empty one, the
+  scan schema refusing the same names.
 - **SP-2010~1**: WHEN a scan statement is encoded THE SYSTEM SHALL validate it and
   produce its RFC 8785 canonical bytes, which admit back to the same statement;
   and WHEN scan statement bytes are admitted THE SYSTEM SHALL refuse bytes that do

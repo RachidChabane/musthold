@@ -327,7 +327,7 @@ func TestEmbeddedSchemas(t *testing.T) {
 }
 
 func TestTemplateDigests(t *testing.T) {
-	kinds := []hostproto.Kind{hostproto.KindGenerateTargeted, hostproto.KindJudgeValidity, hostproto.KindJudgeEquivalent, hostproto.KindDecideClosed, hostproto.KindGenerateWitness, hostproto.KindJudgeScope}
+	kinds := []hostproto.Kind{hostproto.KindGenerateTargeted, hostproto.KindJudgeValidity, hostproto.KindJudgeEquivalent, hostproto.KindDecideClosed, hostproto.KindGenerateWitness, hostproto.KindJudgeScope, hostproto.KindGeneratePromises, hostproto.KindJudgeLabels}
 	t.Run("every kind of request has a digest"+verifiesSP173, func(t *testing.T) {
 		digests := prompt.TemplateDigests()
 		if len(digests) != len(kinds) {
@@ -370,6 +370,8 @@ func TestTemplateDigests(t *testing.T) {
 			hostproto.KindDecideClosed:     screen.Prompt.TemplateDigest,
 			hostproto.KindGenerateWitness:  prompt.BuildWitness(prompt.WitnessInput{Spec: "Anything", Interface: []string{"def f(): ..."}}).Prompt.TemplateDigest,
 			hostproto.KindJudgeScope:       prompt.BuildScope(prompt.ScopeInput{Statement: "Anything", Witnesses: []prompt.ScopeWitness{{Clause: "c", Code: "def t(): pass"}}}).Prompt.TemplateDigest,
+			hostproto.KindGeneratePromises: prompt.BuildPromises(prompt.PromisesInput{Sources: []prompt.PromiseSource{{Name: "README.md", Text: "Anything"}}}).Prompt.TemplateDigest,
+			hostproto.KindJudgeLabels:      prompt.BuildLabels(prompt.LabelsInput{Promises: []prompt.LabelPromise{{ID: "p1", Quote: "Anything"}}}).Prompt.TemplateDigest,
 		}
 		for _, kind := range kinds {
 			if got[kind] != digests[kind] {
