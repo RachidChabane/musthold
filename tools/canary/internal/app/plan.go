@@ -209,7 +209,10 @@ func versionOfBinaryArgv(path string) []string { return []string{path, "version"
 // proveArgv runs the primary module's proof until it asks the host.
 func proveArgv(l layout) []string { return []string{l.primary(), "prove", "--all"} }
 
-func listArgv(l layout) []string { return []string{l.primary(), "request", "list", "--json"} }
+// listArgv lists the tickets of the prove session, which the canary drives.
+func listArgv(l layout) []string {
+	return append([]string{l.primary()}, hostproto.ListArgs(hostproto.SessionProve)...)
+}
 
 func initArgv(l layout, module modules.Module) []string {
 	return []string{l.binary(module.Binary), "init", "--hooks", harness.FlagCodex}

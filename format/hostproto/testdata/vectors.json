@@ -649,7 +649,7 @@
     {
       "from": "superseded",
       "to": "emitted",
-      "legal": false
+      "legal": true
     },
     {
       "from": "superseded",

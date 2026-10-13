@@ -168,7 +168,7 @@ You can run a module by hand at any time:
 
 ```
 spec-proof-dp prove --changed
-spec-proof-dp request list
+spec-proof-dp request list --session prove
 spec-proof-dp prove --resume
 ```
 
@@ -223,7 +223,7 @@ installs none.
   `.github/hooks/<module>.json` and `.github/skills/<module>-fulfil/SKILL.md`.
   Isolation is `restricted-unverified`.
 - **Any other harness.** The main agent answers each ticket itself:
-  `spec-proof-dp request list`, `spec-proof-dp request show <ticket>`, then
+  `spec-proof-dp request list --session prove`, `spec-proof-dp request show <ticket>`, then
   `spec-proof-dp request submit <ticket> --nonce <nonce>` with the JSON answer on
   standard input, then `spec-proof-dp prove --resume`. Such answers have the
   isolation `inline`.

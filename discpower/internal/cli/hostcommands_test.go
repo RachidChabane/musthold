@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -120,7 +121,7 @@ func TestRequestList(t *testing.T) {
 	t.Run("list --json prints the emitted tickets with the view an executor sees [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		ticket := f.emit(hostprototest.Request(), 0)
-		code, stdout, stderr := f.run(nil, hostproto.ListArgs()...)
+		code, stdout, stderr := f.run(nil, hostproto.ListArgs(hostproto.SessionProve)...)
 		if code != cli.ExitClean {
 			t.Fatalf("exit %d: %s", code, stderr)
 		}
@@ -142,9 +143,45 @@ func TestRequestList(t *testing.T) {
 		}
 	})
 
+	t.Run("--session lists the tickets of one session with their sessions, and no flag lists every session's [verifies SP-2153~1]", func(t *testing.T) {
+		f := newHostFixture(t)
+		proved := f.emit(hostprototest.Request(), 0)
+		scanRequest := hostprototest.Request(func(r *hostproto.Request) { r.Prompt.User = "scan" })
+		scanned := f.emit(scanRequest, 0)
+		scan := hostproto.ScanSession("3f5a9c")
+		if err := f.store.Record(hostproto.QueueItem{RequestID: hostprototest.MustID(scanRequest), Sessions: []hostproto.Session{scan}}); err != nil {
+			t.Fatal(err)
+		}
+		listed := func(args ...string) []hostproto.ListingItem {
+			code, stdout, stderr := f.run(nil, args...)
+			var listing hostproto.Listing
+			if err := json.Unmarshal([]byte(stdout), &listing); code != cli.ExitClean || err != nil {
+				t.Fatalf("exit %d, %v: %s", code, err, stderr)
+			}
+			return listing.Items
+		}
+		if items := listed(hostproto.ListArgs(hostproto.SessionProve)...); len(items) != 1 || items[0].Ticket != proved || !slices.Equal(items[0].Sessions, []hostproto.Session{hostproto.SessionProve}) {
+			t.Fatalf("prove lists %+v", items)
+		}
+		if items := listed(hostproto.ListArgs(scan)...); len(items) != 1 || items[0].Ticket != scanned || !slices.Equal(items[0].Sessions, []hostproto.Session{scan}) {
+			t.Fatalf("the scan lists %+v", items)
+		}
+		if items := listed(hostproto.CommandRequest, hostproto.SubcommandList, hostproto.FlagJSON); len(items) != 2 {
+			t.Fatalf("every session lists %+v", items)
+		}
+		for _, verb := range [][]string{{hostproto.CommandRequest, hostproto.SubcommandList}, {"systemone", "export"}} {
+			if code, _, stderr := f.run(nil, append(verb, hostproto.FlagSession, "scan")...); code != refusalExit || stderr == "" {
+				t.Fatalf("%v with a bad session: exit %d, stderr %q", verb, code, stderr)
+			}
+		}
+		if code, stdout, stderr := f.run(nil, "systemone", "export", hostproto.FlagSession, string(scan)); code != cli.ExitClean || strings.TrimSpace(stdout) != "[]" {
+			t.Fatalf("export of the scan: exit %d, %s %s", code, stdout, stderr)
+		}
+	})
+
 	t.Run("an empty store lists an empty array of items [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
-		code, stdout, _ := f.run(nil, hostproto.ListArgs()...)
+		code, stdout, _ := f.run(nil, hostproto.ListArgs(hostproto.SessionProve)...)
 		if code != cli.ExitClean || strings.TrimSpace(stdout) != `{"items":[]}` {
 			t.Fatalf("exit %d, stdout %q", code, stdout)
 		}
@@ -166,7 +203,7 @@ func TestRequestShow(t *testing.T) {
 		if f.stateOf(ticket) != hostproto.StateFetched {
 			t.Fatalf("state %s", f.stateOf(ticket))
 		}
-		if _, listed, _ := f.run(nil, hostproto.ListArgs()...); !strings.Contains(listed, `"items":[]`) {
+		if _, listed, _ := f.run(nil, hostproto.ListArgs(hostproto.SessionProve)...); !strings.Contains(listed, `"items":[]`) {
 			t.Fatalf("listing after show: %s", listed)
 		}
 	})
@@ -303,7 +340,7 @@ func TestRequestVerbs(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(f.store.Dir(), hoststore.TicketsDir, tickets[0].Name()), []byte("{"), fileMode); err != nil {
 			t.Fatal(err)
 		}
-		if code, _, stderr := f.run(nil, hostproto.ListArgs()...); code != toolFailureExit || stderr == "" {
+		if code, _, stderr := f.run(nil, hostproto.ListArgs(hostproto.SessionProve)...); code != toolFailureExit || stderr == "" {
 			t.Fatalf("exit %d, stderr %q", code, stderr)
 		}
 	})
@@ -451,6 +488,20 @@ func TestDoctor(t *testing.T) {
 		f := newHostFixture(t)
 		if code, _, stderr := f.run(nil, "doctor", "extra"); code != toolFailureExit || stderr == "" {
 			t.Fatalf("exit %d, stderr %q", code, stderr)
+		}
+	})
+}
+
+func TestProveResumeOfAnotherSession(t *testing.T) {
+	t.Run("--resume is refused while only a scan holds requests [verifies SP-2153~1]", func(t *testing.T) {
+		f := newHostFixture(t)
+		scanned := hostproto.QueueItem{RequestID: hostprototest.MustID(hostprototest.Request()), Sessions: []hostproto.Session{hostproto.ScanSession("3f5a9c")}}
+		if err := f.store.Record(scanned); err != nil {
+			t.Fatal(err)
+		}
+		code, stdout, stderr := f.run(nil, "prove", "--resume")
+		if code != toolFailureExit || !strings.Contains(stderr, "nothing to resume") || stdout != "" || len(f.statements()) != 0 {
+			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
 		}
 	})
 }

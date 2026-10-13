@@ -31,7 +31,7 @@ func TestReadSets(t *testing.T) {
 	t.Run("each set's digest is journaled once and two writers' identical sets count once"+verifiesSP1963, func(t *testing.T) {
 		f := newFixture()
 		store := hostprototest.NewMemoryHostStore()
-		f.run.bridge = hostbridge.New(store, time.Now, rand.Reader, 1)
+		f.run.bridge = hostbridge.New(store, time.Now, rand.Reader, hostproto.SessionProve, 1)
 		answer := hostbridge.Answer{ID: sharedRequest, Votes: []hostbridge.VoteState{
 			{Ticket: hostproto.TicketID{RequestID: sharedRequest, Vote: 0}, Output: []byte(writerOutput)},
 			{Ticket: hostproto.TicketID{RequestID: sharedRequest, Vote: 1}, Output: []byte(writerOutput)},

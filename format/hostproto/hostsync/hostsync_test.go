@@ -76,7 +76,7 @@ func answerAsExecutor(t *testing.T, store *hostprototest.MemoryHostStore, ticket
 }
 
 func TestCollect(t *testing.T) {
-	t.Run("the bundle holds the answered tickets with the profile they are credited with and the marks against them [verifies SP-715~1]", func(t *testing.T) {
+	t.Run("the bundle holds the answered tickets with the profile they are credited with and the marks against them [verifies SP-715~2]", func(t *testing.T) {
 		store := newStore(t)
 		judge := hostprototest.Request()
 		answered := emit(t, store, judge, 0)
@@ -98,7 +98,7 @@ func TestCollect(t *testing.T) {
 		}
 		emit(t, store, hostprototest.Request(func(r *hostproto.Request) { r.Prompt.User = "never answered" }), 0)
 
-		bundle, err := hostsync.Collect(store, module, headSHA)
+		bundle, err := hostsync.Collect(store, hostproto.SessionProve, module, headSHA)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -119,20 +119,20 @@ func TestCollect(t *testing.T) {
 		}
 	})
 
-	t.Run("an empty store gives an empty bundle at the genesis digest [verifies SP-715~1]", func(t *testing.T) {
-		bundle, err := hostsync.Collect(newStore(t), module, headSHA)
+	t.Run("an empty store gives an empty bundle at the genesis digest [verifies SP-715~2]", func(t *testing.T) {
+		bundle, err := hostsync.Collect(newStore(t), hostproto.SessionProve, module, headSHA)
 		if err != nil || len(bundle.Responses) != 0 || bundle.Manifest.JournalDigest != hostproto.GenesisDigest {
 			t.Fatalf("bundle = %+v, %v", bundle.Manifest, err)
 		}
 	})
 
-	t.Run("a store whose journal chain is broken is not pushed [verifies SP-715~1]", func(t *testing.T) {
+	t.Run("a store whose journal chain is broken is not pushed [verifies SP-715~2]", func(t *testing.T) {
 		store := newStore(t)
 		emit(t, store, hostprototest.Request(), 0)
 		if _, err := store.Append(hostproto.Event{Kind: hostproto.EventEmitted}); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := hostsync.Collect(tamperedJournal{store}, module, headSHA); !errors.Is(err, hostproto.ErrChainBroken) {
+		if _, err := hostsync.Collect(tamperedJournal{store}, hostproto.SessionProve, module, headSHA); !errors.Is(err, hostproto.ErrChainBroken) {
 			t.Fatalf("error = %v", err)
 		}
 	})
@@ -165,7 +165,7 @@ func TestImporter(t *testing.T) {
 	if _, err := laptop.Append(hostproto.Event{Kind: hostproto.EventLeaked, Ticket: hostprototest.Ticket(second, 0, 1).TicketID.String()}); err != nil {
 		t.Fatal(err)
 	}
-	bundle, err := hostsync.Collect(laptop, module, headSHA)
+	bundle, err := hostsync.Collect(laptop, hostproto.SessionProve, module, headSHA)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,7 +179,7 @@ func TestImporter(t *testing.T) {
 		tickets = append(tickets, requests.PendingTicket{Ticket: ticket.TicketID.String(), Nonce: ticket.Nonce})
 	}
 
-	t.Run("a ticket the bundle answers is answered with the executor it had, and the others stay pending [verifies SP-715~1]", func(t *testing.T) {
+	t.Run("a ticket the bundle answers is answered with the executor it had, and the others stay pending [verifies SP-715~2]", func(t *testing.T) {
 		if err := importer.Serve(tickets); err != nil {
 			t.Fatal(err)
 		}
@@ -196,7 +196,7 @@ func TestImporter(t *testing.T) {
 		}
 	})
 
-	t.Run("a response marked on the host is marked again in CI's journal [verifies SP-715~1]", func(t *testing.T) {
+	t.Run("a response marked on the host is marked again in CI's journal [verifies SP-715~2]", func(t *testing.T) {
 		marked := ticketText(second)
 		found := slices.ContainsFunc(journal(t, ci), func(e hostproto.Event) bool { return e.Kind == hostproto.EventExposed && e.Ticket == marked })
 		unmarked := slices.ContainsFunc(journal(t, ci), func(e hostproto.Event) bool { return e.Kind == hostproto.EventExposed && e.Ticket == ticketText(first) })
@@ -205,7 +205,7 @@ func TestImporter(t *testing.T) {
 		}
 	})
 
-	t.Run("a bundle that answers nothing ends the replay instead of asking again [verifies SP-715~1]", func(t *testing.T) {
+	t.Run("a bundle that answers nothing ends the replay instead of asking again [verifies SP-715~2]", func(t *testing.T) {
 		empty := &hostsync.Importer{Service: service(ci, false), Store: ci}
 		err := empty.Serve([]requests.PendingTicket{tickets[2]})
 		if !errors.Is(err, requests.ErrNothingServed) || empty.Unanswered != 1 {
@@ -213,7 +213,7 @@ func TestImporter(t *testing.T) {
 		}
 	})
 
-	t.Run("an answer that breaks the response schema is refused on import [verifies SP-715~1]", func(t *testing.T) {
+	t.Run("an answer that breaks the response schema is refused on import [verifies SP-715~2]", func(t *testing.T) {
 		broken := bundle
 		broken.Responses = slices.Clone(bundle.Responses)
 		broken.Responses[0].Output = []byte(`{"verdict":"VALID"}`)
@@ -229,7 +229,7 @@ func TestImporter(t *testing.T) {
 		}
 	})
 
-	t.Run("a ticket that is not an identifier is an error [verifies SP-715~1]", func(t *testing.T) {
+	t.Run("a ticket that is not an identifier is an error [verifies SP-715~2]", func(t *testing.T) {
 		if err := importer.Serve([]requests.PendingTicket{{Ticket: "latest"}}); err == nil {
 			t.Fatal("a bad ticket was served")
 		}
@@ -254,7 +254,7 @@ func journal(t *testing.T, store *hostprototest.MemoryHostStore) []hostproto.Eve
 }
 
 func TestIssuedRequests(t *testing.T) {
-	t.Run("the requests that wait are exported in full and imported as tickets on another machine [verifies SP-716~1]", func(t *testing.T) {
+	t.Run("the requests that wait are exported in full and imported as tickets on another machine [verifies SP-716~2]", func(t *testing.T) {
 		ci := newStore(t)
 		pending := hostprototest.Request()
 		answered := hostprototest.Request(func(r *hostproto.Request) { r.Prompt.User = "already answered" })
@@ -265,7 +265,7 @@ func TestIssuedRequests(t *testing.T) {
 		emit(t, ci, pending, 1)
 		answerAsExecutor(t, ci, emit(t, ci, answered, 0))
 
-		issued, err := hostsync.ExportIssued(ci)
+		issued, err := hostsync.ExportIssued(ci, hostproto.SessionProve)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -274,7 +274,7 @@ func TestIssuedRequests(t *testing.T) {
 		}
 
 		developer := newStore(t)
-		imported, err := hostsync.ImportIssued(developer, issued, clock, &counter{})
+		imported, err := hostsync.ImportIssued(developer, hostproto.SessionProve, issued, clock, &counter{})
 		if err != nil || imported != 1 {
 			t.Fatalf("imported = %d, %v", imported, err)
 		}
@@ -282,7 +282,7 @@ func TestIssuedRequests(t *testing.T) {
 		if len(entries) != 2 || entries[0].State != hostproto.StateEmitted || entries[0].Ticket.RequestID != hostprototest.MustID(pending) {
 			t.Fatalf("entries = %+v", entries)
 		}
-		if again, err := hostsync.ImportIssued(developer, issued, clock, &counter{}); err != nil || again != 1 {
+		if again, err := hostsync.ImportIssued(developer, hostproto.SessionProve, issued, clock, &counter{}); err != nil || again != 1 {
 			t.Fatalf("a second import: %d, %v", again, err)
 		}
 		if after, _ := developer.ListEntries(); len(after) != 2 {
@@ -290,16 +290,16 @@ func TestIssuedRequests(t *testing.T) {
 		}
 	})
 
-	t.Run("a store with nothing pending issues nothing [verifies SP-716~1]", func(t *testing.T) {
-		issued, err := hostsync.ExportIssued(newStore(t))
+	t.Run("a store with nothing pending issues nothing [verifies SP-716~2]", func(t *testing.T) {
+		issued, err := hostsync.ExportIssued(newStore(t), hostproto.SessionProve)
 		if err != nil || len(issued.Requests) != 0 {
 			t.Fatalf("issued = %+v, %v", issued, err)
 		}
 	})
 
-	t.Run("a request the manifest does not list is refused on import [verifies SP-716~1]", func(t *testing.T) {
+	t.Run("a request the manifest does not list is refused on import [verifies SP-716~2]", func(t *testing.T) {
 		issued := hostbundle.IssuedBundle{Requests: []hostproto.Request{hostprototest.Request()}}
-		if _, err := hostsync.ImportIssued(newStore(t), issued, clock, &counter{}); !errors.Is(err, hostbundle.ErrBadBundle) {
+		if _, err := hostsync.ImportIssued(newStore(t), hostproto.SessionProve, issued, clock, &counter{}); !errors.Is(err, hostbundle.ErrBadBundle) {
 			t.Fatalf("error = %v", err)
 		}
 	})

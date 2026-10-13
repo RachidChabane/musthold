@@ -218,16 +218,17 @@ Go tests of the module in CI.
 
 ## Host protocol: lifecycle and binding
 
-- **SP-120~1**: WHEN a ticket changes state THE SYSTEM SHALL allow only the moves
+- **SP-120~2**: WHEN a ticket changes state THE SYSTEM SHALL allow only the moves
   of the lifecycle table (`emitted` to `fetched` or `superseded`; `fetched` to
   `accepted`, `expired` or `rejected`; `accepted` to `validated` or `rejected`;
   `rejected` and `expired` to `emitted` or `abandoned`; `validated` to
-  `consumed`), refuse every other move without changing the entry, and treat
-  `consumed`, `superseded` and `abandoned` as terminal.
-- **SP-121~1**: WHEN a ticket is fetched, answered, expired or reissued THE SYSTEM
+  `consumed`; `superseded` to `emitted`), refuse every other move without
+  changing the entry, and treat `consumed` and `abandoned` as terminal.
+- **SP-121~2**: WHEN a ticket is fetched, answered, expired or reissued THE SYSTEM
   SHALL bind a fetch to one capability, allow one schema correction before it
   rejects, expire a fetched ticket after 20 minutes, reissue a rejected or expired
-  ticket with a new nonce while fewer than three emissions were made and abandon
+  ticket with a new nonce while fewer than three emissions were made for the
+  host, not counting re-emissions after a supersession, and abandon
   it as `host_unresponsive` after that, and make only a validated answer
   consumable.
 - **SP-122~1**: WHEN a submission is checked THE SYSTEM SHALL require the ticket
@@ -343,8 +344,8 @@ Go tests of the module in CI.
 - **SP-141~1**: WHEN the golden JSON-RPC transcripts are replayed against the
   fake executor service THE SYSTEM SHALL write the server lines the transcripts
   commit, and the committed transcripts SHALL be those the scripts record.
-- **SP-142~1**: WHEN a fake host drives a module through its command line THE
-  SYSTEM SHALL list the pending tickets, show each ticket before it answers
+- **SP-142~2**: WHEN a fake host drives a module through its command line THE
+  SYSTEM SHALL list the pending tickets of the prove session, show each ticket before it answers
   except for the forger, submit the output its persona gives, report each
   submission, reach nothing a hook is needed for, and fail on a module whose
   listing is unreadable.
@@ -414,12 +415,14 @@ Go tests of the module in CI.
 - **SP-710~1**: WHEN a hook is not about the module's executors THE SYSTEM SHALL
   leave the call alone without opening any state, deny a call of the module's own
   tools that it cannot check, and accept a receipt with whitespace around it.
-- **SP-711~3**: WHEN the host files of a module are generated for a harness THE
+- **SP-711~4**: WHEN the host files of a module are generated for a harness THE
   SYSTEM SHALL give the Claude Code plugin its manifest, its executor server, one
   agent per executor role of the module holding exactly the two executor tools
   with the inherited model, a blind context and four turns, its four hooks under
   matchers that select the executor alone, and a skill that pre-approves what its
-  loop runs and, once the loop ended with a verdict, publishes the local proofs by
+  loop runs, relays and lists the tickets of the prove session alone
+  (`spec-proof-s1 drain --module <module> --session prove`, `request list
+  --session prove`) and, once the loop ended with a verdict, publishes the local proofs by
   running `spec-proof-verify --accept-local .spec-proof/cache --out
   .spec-proof/verified`; give Codex read-only agents, the executor server in the
   project's `config.toml`, hook entries and a skill that ends the same way; give Copilot agents naming
@@ -443,23 +446,55 @@ Go tests of the module in CI.
   when requests found no answer and name both versions, derive the CI seed from
   the commit and the first run only, and carry CI-issued requests in full so that
   their ids can be recomputed.
-- **SP-714~1**: WHEN a proof asks for tickets through the bridge THE SYSTEM SHALL
-  emit the missing tickets of a request, retire a fetched ticket past its time to
-  live, reissue a rejected or expired one with a new nonce until its emissions run
-  out, read the answers the lifecycle lets a proof consume with the profile they
-  are credited with, move votes through validation, rejection and consumption,
-  and supersede the tickets of requests no proof of the wave asked for.
-- **SP-715~1**: WHEN the host answers are collected and imported THE SYSTEM SHALL
-  put every answered ticket in the bundle with the profile it is credited with and
-  the marks against it, refuse a store whose journal chain is broken, serve the
-  tickets a run asks for from a pushed bundle through the same checks as any
-  answer, leave the others pending, mark again what the pushing host marked, end
-  the replay when the bundle answers nothing, and refuse an answer that breaks the
-  schema.
-- **SP-716~1**: WHEN the requests CI left for the host are exported and imported
-  THE SYSTEM SHALL export the requests whose tickets wait, in full, with their
-  votes, criteria and purpose, import each once as tickets on another machine,
-  and refuse a request the manifest does not list.
+- **SP-714~2**: WHEN a proof asks for tickets through the bridge of its session
+  THE SYSTEM SHALL tag the request with the session, emit the missing tickets of
+  the request, retire a fetched ticket past its time to live, reissue a rejected
+  or expired one with a new nonce until its emissions run out, read the answers
+  the lifecycle lets a proof consume with the profile they are credited with,
+  move votes through validation, rejection and consumption, and supersede the
+  emitted tickets of requests no live session wants any more.
+- **SP-715~2**: WHEN the host answers of a session are collected and imported THE
+  SYSTEM SHALL put every answered ticket of the session's requests in the bundle
+  with the profile it is credited with and the marks against it, refuse a store
+  whose journal chain is broken, serve the tickets a run asks for from a pushed
+  bundle through the same checks as any answer, leave the others pending, mark
+  again what the pushing host marked, end the replay when the bundle answers
+  nothing, and refuse an answer that breaks the schema.
+- **SP-716~2**: WHEN the requests CI left for the host are exported and imported
+  for a session THE SYSTEM SHALL export the session's requests whose tickets
+  wait, in full, with their votes, criteria and purpose, import each once as
+  tickets of the session on another machine, and refuse a request the manifest
+  does not list.
+- **SP-2147~1**: WHEN a request is recorded in the queue of a host store THE
+  SYSTEM SHALL tag it with the sessions that want it, `prove` or `scan:<key>`,
+  merged as a sorted union like its criteria and `prove` for a record that names
+  none, count the waves of each session apart, mark a session live when it
+  advances a wave and ended when it ends, withdraw one session from a request
+  while keeping the others, and read a queue written without sessions as the
+  prove session's, its wave counter and every item included; and THE SYSTEM
+  SHALL provide a contract suite and a reference store that satisfy it.
+- **SP-2148~1**: WHEN the bridge of a session retires requests THE SYSTEM SHALL
+  withdraw only its own session from an emitted request it no longer wants and
+  supersede that request's emitted tickets only when no live session holds it;
+  WHEN a session ends, as it does in the wave that leaves none of its tickets
+  waiting, THE SYSTEM SHALL supersede the emitted tickets of the requests it held
+  that no live session holds; WHEN a new scan starts THE SYSTEM SHALL end every
+  other scan session and never the prove session; and a ticket another run
+  sharing the store emitted or moved first SHALL be read as that run left it.
+- **SP-2149~1**: WHEN a superseded request is wanted again THE SYSTEM SHALL issue
+  it again as a new emission with a new nonce and the next emission number, and
+  SHALL never count that emission toward the emissions after which a ticket is
+  abandoned as `host_unresponsive`.
+- **SP-2150~1**: WHEN the bridge of a session has an emission cap THE SYSTEM SHALL
+  count the emissions the journal records for that session across invocations,
+  reissues and re-emissions included, emit nothing once the cap is reached,
+  leave the votes it refused unasked, name the requests left unasked, still
+  abandon a ticket whose emissions ran out, and apply no cap when it is zero.
+- **SP-2151~1**: WHEN the tickets of a host store are listed, collected or
+  exported for a session THE SYSTEM SHALL show only the requests the session
+  holds, a request with no queue item being the prove session's, list each
+  pending ticket with the sessions that hold its request, and show every
+  session's tickets when no session is named.
 - **SP-1602~1**: WHEN a module's CI run leaves the requests it issues THE SYSTEM
   SHALL name one directory per module below `.spec-proof/ci-issued`, so that no
   module overwrites the requests of another, and WHEN the artifact a CI job

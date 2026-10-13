@@ -65,7 +65,7 @@ func TestCommandLineHost(t *testing.T) {
 	answers := hostprototest.SchemaAnswers{}
 	noSleep := func(time.Duration) {}
 
-	t.Run("an honest host lists, shows and submits through the command line [verifies SP-142~1]", func(t *testing.T) {
+	t.Run("an honest host lists, shows and submits through the command line [verifies SP-142~2]", func(t *testing.T) {
 		module := newFakeModule(t)
 		results, err := hostprototest.PlayCLI(module, hostprototest.PersonaHonest, answers, noSleep)
 		if err != nil || len(results) != 1 || !results[0].Submitted {
@@ -84,7 +84,7 @@ func TestCommandLineHost(t *testing.T) {
 		}
 	})
 
-	t.Run("a forger submits without showing the ticket and is refused [verifies SP-142~1]", func(t *testing.T) {
+	t.Run("a forger submits without showing the ticket and is refused [verifies SP-142~2]", func(t *testing.T) {
 		module := newFakeModule(t)
 		results, err := hostprototest.PlayCLI(module, hostprototest.PersonaForger, answers, noSleep)
 		if err != nil || len(results) != 1 || results[0].Submitted || results[0].Error == "" {
@@ -95,7 +95,7 @@ func TestCommandLineHost(t *testing.T) {
 		}
 	})
 
-	t.Run("an omitter submits nothing [verifies SP-142~1]", func(t *testing.T) {
+	t.Run("an omitter submits nothing [verifies SP-142~2]", func(t *testing.T) {
 		module := newFakeModule(t)
 		results, err := hostprototest.PlayCLI(module, hostprototest.PersonaOmitter, answers, noSleep)
 		if err != nil || len(results) != 0 || module.current(t).State != hostproto.StateEmitted {
@@ -103,7 +103,7 @@ func TestCommandLineHost(t *testing.T) {
 		}
 	})
 
-	t.Run("a stale host is refused for its nonce and a breaker is rejected after its correction [verifies SP-142~1]", func(t *testing.T) {
+	t.Run("a stale host is refused for its nonce and a breaker is rejected after its correction [verifies SP-142~2]", func(t *testing.T) {
 		stale := newFakeModule(t)
 		results, err := hostprototest.PlayCLI(stale, hostprototest.PersonaStale, answers, noSleep)
 		if err != nil || len(results) != 1 || results[0].Submitted {
@@ -116,7 +116,7 @@ func TestCommandLineHost(t *testing.T) {
 		}
 	})
 
-	t.Run("a slow host waits past the time to live before it submits [verifies SP-142~1]", func(t *testing.T) {
+	t.Run("a slow host waits past the time to live before it submits [verifies SP-142~2]", func(t *testing.T) {
 		var waited []time.Duration
 		_, err := hostprototest.PlayCLI(newFakeModule(t), hostprototest.PersonaSlow, answers, func(d time.Duration) { waited = append(waited, d) })
 		if err != nil || len(waited) != 1 || waited[0] <= hostproto.FetchTTL {
@@ -124,7 +124,7 @@ func TestCommandLineHost(t *testing.T) {
 		}
 	})
 
-	t.Run("a churner keeps submitting content that breaks the schema, in bounded rounds [verifies SP-142~1]", func(t *testing.T) {
+	t.Run("a churner keeps submitting content that breaks the schema, in bounded rounds [verifies SP-142~2]", func(t *testing.T) {
 		module := newFakeModule(t)
 		results, err := hostprototest.PlayCLI(module, hostprototest.PersonaChurner, answers, noSleep)
 		if err != nil || len(results) == 0 || len(results) > hostproto.DefaultMaxEmissions*(hostproto.MaxCorrections+1) {
@@ -132,7 +132,7 @@ func TestCommandLineHost(t *testing.T) {
 		}
 	})
 
-	t.Run("a persona that needs hooks has no command-line behaviour [verifies SP-142~1]", func(t *testing.T) {
+	t.Run("a persona that needs hooks has no command-line behaviour [verifies SP-142~2]", func(t *testing.T) {
 		for _, name := range []string{hostprototest.PersonaLeaker, hostprototest.PersonaPadder, hostprototest.PersonaModelSwapper, hostprototest.PersonaHookless, hostprototest.PersonaUnrestricted} {
 			if _, err := hostprototest.PlayCLI(newFakeModule(t), name, answers, noSleep); !errors.Is(err, hostprototest.ErrUnsupported) {
 				t.Errorf("%s: error = %v", name, err)
@@ -145,7 +145,7 @@ func TestCommandLineHost(t *testing.T) {
 		}
 	})
 
-	t.Run("a module that prints something else than a listing is an error [verifies SP-142~1]", func(t *testing.T) {
+	t.Run("a module that prints something else than a listing is an error [verifies SP-142~2]", func(t *testing.T) {
 		broken := runnerFunc(func([]string, []byte) ([]byte, error) { return []byte("not json"), nil })
 		if _, err := hostprototest.PlayCLI(broken, hostprototest.PersonaHonest, answers, noSleep); err == nil {
 			t.Fatal("an unreadable listing was accepted")
@@ -156,7 +156,7 @@ func TestCommandLineHost(t *testing.T) {
 		}
 	})
 
-	t.Run("recorded answers are found by request id and a missing one is reported [verifies SP-142~1]", func(t *testing.T) {
+	t.Run("recorded answers are found by request id and a missing one is reported [verifies SP-142~2]", func(t *testing.T) {
 		request := hostprototest.Request()
 		ticket := hostprototest.Ticket(request, 0, 1)
 		view := request.ViewFor(ticket)
@@ -170,7 +170,7 @@ func TestCommandLineHost(t *testing.T) {
 		}
 	})
 
-	t.Run("a forged answer satisfies the schema and takes VALID wherever it is offered [verifies SP-142~1]", func(t *testing.T) {
+	t.Run("a forged answer satisfies the schema and takes VALID wherever it is offered [verifies SP-142~2]", func(t *testing.T) {
 		if got := hostprototest.ForgedAnswer([]byte(hostprototest.ResponseSchema)); got != `{"validity":"VALID"}` {
 			t.Fatalf("forged = %s", got)
 		}

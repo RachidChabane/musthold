@@ -263,7 +263,7 @@ func newWorld(t *testing.T, flag string, now time.Time) *world {
 			return app.Output{Stdout: copilotListing(argv[len(argv)-3])}
 		case strings.HasSuffix(joined, "prove --all"):
 			return app.Output{Stdout: "awaiting_host 9 tickets\n", ExitCode: 3}
-		case strings.HasSuffix(joined, "request list --json"):
+		case strings.HasSuffix(joined, "request list --json --session prove"):
 			return app.Output{Stdout: listing([2]string{ticketA, decider}, [2]string{ticketB, decider})}
 		case len(argv) > 1 && argv[1] == "version":
 			return app.Output{Stdout: argv[0] + " 0.1.0\n"}
@@ -486,7 +486,7 @@ func TestPrepareOnly(t *testing.T) {
 		w := newWorld(t, "claude", night)
 		inner := w.processes.answer
 		w.processes.answer = func(argv []string) app.Output {
-			if strings.HasSuffix(strings.Join(argv, " "), "request list --json") {
+			if strings.HasSuffix(strings.Join(argv, " "), "request list --json --session prove") {
 				return app.Output{Stdout: `{"items":[]}`}
 			}
 			return inner(argv)
@@ -592,7 +592,7 @@ func TestSyntheticSessionOfClaudeCode(t *testing.T) {
 
 	t.Run("the preparation commands run before the session and without the shims, so the hook log holds the session only [verifies SP-1506~1]", func(t *testing.T) {
 		proveAt := slices.IndexFunc(w.processes.calls, func(argv []string) bool { return slices.Contains(argv, "prove") })
-		if proveAt < 0 || !w.processes.ran("request list --json") || !w.processes.ran("plugin validate") {
+		if proveAt < 0 || !w.processes.ran("request list --json --session prove") || !w.processes.ran("plugin validate") {
 			t.Fatalf("calls = %v", w.processes.calls)
 		}
 		if len(w.prober.specs) != 1 || strings.Contains(strings.Join(w.prober.specs[0].Env, "\n"), "/shim") {

@@ -61,8 +61,8 @@ The `shallnot` on `PATH` predates report schema 1.2. Install a Shallnot that has
 or point `SPEC_PROOF_SHALLNOT` at one. `doctor` shows the `shallnot` path and the
 `shallnot-schema` check.
 
-**`prove` stays at exit 3.** Tickets are unanswered. `spec-proof-dp request list`
-shows them. Each run of `prove`, including `--resume`, advances one wave; answers
+**`prove` stays at exit 3.** Tickets are unanswered. `spec-proof-dp request list
+--session prove` shows them. Each run of `prove`, including `--resume`, advances one wave; answers
 must exist before `--resume` can consume them.
 
 **The executor server refuses every answer, or tickets never leave `awaiting_host`.**
@@ -79,7 +79,7 @@ executor must start with none of the main agent's history: spawn it with
 its ticket, and `blindness_unproven` when the rollout cannot be read or does not show
 the message that carried the ticket.
 
-**`prove --resume` says "nothing to resume: no request was ever emitted".** Run
+**`prove --resume` says "nothing to resume: the prove session holds no request".** Run
 `prove` first.
 
 **`--ci needs the CI run`.** Set `SPEC_PROOF_CI_RUN_ID` or `GITHUB_RUN_ID`.
@@ -105,7 +105,9 @@ stale.
 
 - `spec-proof-dp doctor` checks Shallnot, the ecosystem, the host store and the
   journal chain.
-- `spec-proof-dp request list --json` shows every pending ticket with its role.
+- `spec-proof-dp request list --json` shows every pending ticket with its role
+  and the sessions that want it: `prove`, or `scan:<key>` for a scan. Add
+  `--session prove` to see the tickets `prove` waits for.
 - `.spec-proof/cache/` holds the statements and nothing else,
   `.spec-proof/verified/manifest.json` the verified set, `.spec-proof/pending/` the
   pending files, `.spec-proof/seeds/` the CI seed records of discriminating power

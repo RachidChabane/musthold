@@ -29,7 +29,7 @@ const (
 // fixture is a host store holding one emitted ticket of the fixture request.
 type fixture struct {
 	t       testing.TB
-	store   *hostprototest.MemoryStore
+	store   *hostprototest.MemoryHostStore
 	service Service
 	request hostproto.Request
 	ticket  hostproto.Ticket
@@ -37,7 +37,7 @@ type fixture struct {
 
 func newFixture(t testing.TB) *fixture {
 	t.Helper()
-	store := hostprototest.NewMemoryStore()
+	store := hostprototest.NewMemoryHostStore()
 	f := &fixture{t: t, store: store, service: Service{Plugin: samplePlugin, Store: store, Validator: hostprototest.MemberValidator{}, Clock: func() time.Time { return hostprototest.Epoch }}}
 	f.request, f.ticket = f.emit(hostprototest.Request(), 0)
 	return f
@@ -122,7 +122,7 @@ func TestList(t *testing.T) {
 		}
 		_, secondVote := f.emit(f.request, 1)
 
-		listing, err := f.service.List()
+		listing, err := f.service.List(hostproto.EverySession)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -139,9 +139,44 @@ func TestList(t *testing.T) {
 		}
 	})
 
+	t.Run("a session lists the tickets of the requests it holds, each with its sessions, and no filter lists them all [verifies SP-2151~1]", func(t *testing.T) {
+		f := newFixture(t)
+		scan := hostproto.ScanSession("3f5a9c")
+		scanRequest, scanTicket := f.emit(hostprototest.Request(func(r *hostproto.Request) { r.Prompt.User = "scan" }), 0)
+		sharedRequest, sharedTicket := f.emit(hostprototest.Request(func(r *hostproto.Request) { r.Prompt.User = "shared" }), 0)
+		for request, sessions := range map[*hostproto.Request][]hostproto.Session{&scanRequest: {scan}, &sharedRequest: {hostproto.SessionProve, scan}} {
+			if err := f.store.Record(hostproto.QueueItem{RequestID: hostprototest.MustID(*request), Sessions: sessions}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		listedFor := func(filter hostproto.SessionFilter) map[hostproto.TicketID][]hostproto.Session {
+			listing, err := f.service.List(filter)
+			if err != nil {
+				t.Fatal(err)
+			}
+			listed := map[hostproto.TicketID][]hostproto.Session{}
+			for _, item := range listing.Items {
+				listed[item.Ticket.TicketID] = item.Sessions
+			}
+			return listed
+		}
+		prove := listedFor(hostproto.OnlySession(hostproto.SessionProve))
+		if len(prove) != 2 || prove[f.ticket.TicketID] == nil || prove[sharedTicket.TicketID] == nil {
+			t.Fatalf("prove lists %v", prove)
+		}
+		scanned := listedFor(hostproto.OnlySession(scan))
+		if len(scanned) != 2 || !slices.Equal(scanned[scanTicket.TicketID], []hostproto.Session{scan}) ||
+			!slices.Equal(scanned[sharedTicket.TicketID], []hostproto.Session{hostproto.SessionProve, scan}) {
+			t.Fatalf("the scan lists %v", scanned)
+		}
+		if every := listedFor(hostproto.EverySession); len(every) != 3 || !slices.Equal(every[f.ticket.TicketID], []hostproto.Session{hostproto.SessionProve}) {
+			t.Fatalf("every session lists %v", every)
+		}
+	})
+
 	t.Run("an empty store lists no items, not null [verifies SP-702~1]", func(t *testing.T) {
-		store := hostprototest.NewMemoryStore()
-		listing, err := Service{Store: store}.List()
+		store := hostprototest.NewMemoryHostStore()
+		listing, err := Service{Store: store}.List(hostproto.EverySession)
 		encoded, _ := json.Marshal(listing)
 		if err != nil || string(encoded) != `{"items":[]}` {
 			t.Fatalf("listing %s, error %v", encoded, err)
@@ -162,7 +197,7 @@ func TestShow(t *testing.T) {
 		if kinds := f.journalKinds(); !slices.Equal(kinds, []hostproto.EventKind{hostproto.EventFetched}) {
 			t.Fatalf("journal %v", kinds)
 		}
-		listing, _ := f.service.List()
+		listing, _ := f.service.List(hostproto.EverySession)
 		if len(listing.Items) != 0 {
 			t.Fatalf("a fetched ticket is still listed: %+v", listing)
 		}

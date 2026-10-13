@@ -1,8 +1,6 @@
 package hostprototest
 
 import (
-	"cmp"
-	"slices"
 	"sync"
 
 	"github.com/RachidChabane/spec-proof/format/hostproto"
@@ -14,8 +12,7 @@ import (
 type MemoryHostStore struct {
 	*MemoryStore
 	mutex sync.Mutex
-	items []hostproto.QueueItem
-	wave  int
+	queue hostproto.QueueState
 }
 
 var _ hostproto.HostStore = (*MemoryHostStore)(nil)
@@ -25,38 +22,52 @@ func NewMemoryHostStore() *MemoryHostStore {
 	return &MemoryHostStore{MemoryStore: NewMemoryStore()}
 }
 
-// Record implements hostproto.Queue.
-func (s *MemoryHostStore) Record(item hostproto.QueueItem) error {
+// inQueue runs fn on the queue while holding the queue's lock.
+func inQueue[T any](s *MemoryHostStore, fn func(queue *hostproto.QueueState) (T, error)) (T, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	for index := range s.items {
-		if s.items[index].RequestID == item.RequestID {
-			s.items[index].Criteria = append(s.items[index].Criteria, item.Criteria...)
-			return nil
-		}
-	}
-	s.items = append(s.items, item)
-	return nil
+	return fn(&s.queue)
+}
+
+// Record implements hostproto.Queue.
+func (s *MemoryHostStore) Record(item hostproto.QueueItem) error {
+	_, err := inQueue(s, func(queue *hostproto.QueueState) (struct{}, error) {
+		queue.Record(item)
+		return struct{}{}, nil
+	})
+	return err
 }
 
 // Items implements hostproto.Queue.
 func (s *MemoryHostStore) Items() ([]hostproto.QueueItem, error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	return slices.SortedFunc(slices.Values(s.items), func(a, b hostproto.QueueItem) int { return cmp.Compare(a.RequestID, b.RequestID) }), nil
+	return inQueue(s, func(queue *hostproto.QueueState) ([]hostproto.QueueItem, error) { return queue.Items(), nil })
 }
 
 // Wave implements hostproto.Queue.
-func (s *MemoryHostStore) Wave() (int, error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	return s.wave, nil
+func (s *MemoryHostStore) Wave(session hostproto.Session) (int, error) {
+	return inQueue(s, func(queue *hostproto.QueueState) (int, error) { return queue.Wave(session), nil })
 }
 
 // AdvanceWave implements hostproto.Queue.
-func (s *MemoryHostStore) AdvanceWave() (int, error) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.wave++
-	return s.wave, nil
+func (s *MemoryHostStore) AdvanceWave(session hostproto.Session) (int, error) {
+	return inQueue(s, func(queue *hostproto.QueueState) (int, error) { return queue.AdvanceWave(session), nil })
+}
+
+// Sessions implements hostproto.Queue.
+func (s *MemoryHostStore) Sessions() ([]hostproto.SessionState, error) {
+	return inQueue(s, func(queue *hostproto.QueueState) ([]hostproto.SessionState, error) { return queue.Sessions(), nil })
+}
+
+// EndSession implements hostproto.Queue.
+func (s *MemoryHostStore) EndSession(session hostproto.Session) error {
+	_, err := inQueue(s, func(queue *hostproto.QueueState) (struct{}, error) {
+		queue.EndSession(session)
+		return struct{}{}, nil
+	})
+	return err
+}
+
+// Withdraw implements hostproto.Queue.
+func (s *MemoryHostStore) Withdraw(id hostproto.RequestID, session hostproto.Session) (hostproto.QueueItem, error) {
+	return inQueue(s, func(queue *hostproto.QueueState) (hostproto.QueueItem, error) { return queue.Withdraw(id, session) })
 }

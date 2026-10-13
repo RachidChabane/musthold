@@ -13,6 +13,7 @@ import (
 	"github.com/RachidChabane/spec-proof/alignment/internal/version"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/cliconv"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostsync"
 )
@@ -118,7 +119,7 @@ func (e Env) push(root, remote string) outcome {
 	if err != nil {
 		return outcome{err: err}
 	}
-	bundle, err := hostsync.Collect(store, e.module(), head)
+	bundle, err := hostsync.Collect(store, hostproto.SessionProve, e.module(), head)
 	if err != nil {
 		return outcome{err: err}
 	}
@@ -168,7 +169,7 @@ func (e Env) pull(root, run, repository, artifact string) outcome {
 	if err != nil {
 		return outcome{err: err}
 	}
-	imported, err := hostsync.ImportIssued(store, issued, e.Now, e.Entropy)
+	imported, err := hostsync.ImportIssued(store, hostproto.SessionProve, issued, e.Now, e.Entropy)
 	if err != nil {
 		return outcome{err: err}
 	}

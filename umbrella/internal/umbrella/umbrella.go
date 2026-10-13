@@ -15,6 +15,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/pluginfiles"
 )
 
@@ -261,7 +262,7 @@ func renderSkill(restricted bool) ([]byte, error) {
 	allowed := make([]string, 0, 3*len(Modules)+1)
 	names := make([]string, 0, len(Modules))
 	for _, module := range Modules {
-		allowed = append(allowed, "Bash("+module.Binary+" doctor)", "Bash("+module.Binary+" prove *)", "Bash("+module.Binary+" request list)")
+		allowed = append(allowed, "Bash("+module.Binary+" doctor)", "Bash("+module.Binary+" prove *)", "Bash("+module.Binary+" "+hostproto.ProveListCommand+")")
 		names = append(names, "`"+module.Binary+" doctor`")
 	}
 	allowed = append(allowed, "Bash("+Relay.Binary+" drain *)", "Bash("+pluginfiles.VerifyLocalCommand+")")

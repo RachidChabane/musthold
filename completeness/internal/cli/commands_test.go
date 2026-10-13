@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
 
@@ -42,6 +43,20 @@ func TestProveExitCodes(t *testing.T) {
 
 	t.Run("prove --resume is refused when no request was ever emitted [verifies SP-543~1]", func(t *testing.T) {
 		fresh := newHarness(t, testkit.PythonLedger)
+		code, _, stderr := fresh.run(nil, proveCommand, resumeFlag)
+		if code != cli.ExitToolFailure || !strings.Contains(stderr, "nothing to resume") {
+			t.Fatalf("exit code %d: %s", code, stderr)
+		}
+	})
+}
+
+func TestProveResumeOfAnotherSession(t *testing.T) {
+	t.Run("prove --resume is refused while only a scan holds requests [verifies SP-2154~1]", func(t *testing.T) {
+		fresh := newHarness(t, testkit.PythonLedger)
+		scanned := hostproto.QueueItem{RequestID: hostprototest.MustID(hostprototest.Request()), Sessions: []hostproto.Session{hostproto.ScanSession("3f5a9c")}}
+		if err := fresh.store().Record(scanned); err != nil {
+			t.Fatal(err)
+		}
 		code, _, stderr := fresh.run(nil, proveCommand, resumeFlag)
 		if code != cli.ExitToolFailure || !strings.Contains(stderr, "nothing to resume") {
 			t.Fatalf("exit code %d: %s", code, stderr)
@@ -93,6 +108,32 @@ func TestRequestCommands(t *testing.T) {
 		code, text, _ := h.run(nil, "request", "list")
 		if code != cli.ExitClean || !strings.Contains(text, ticket) {
 			t.Fatalf("exit code %d:\n%s", code, text)
+		}
+	})
+
+	t.Run("request list --session lists the tickets prove emitted with their sessions, a scan none, and a text that names no session is refused [verifies SP-2154~1]", func(t *testing.T) {
+		listed := func(args ...string) []hostproto.ListingItem {
+			code, output, stderr := h.run(nil, append([]string{"request", "list", "--json"}, args...)...)
+			var listing hostproto.Listing
+			if err := json.Unmarshal([]byte(output), &listing); code != cli.ExitClean || err != nil {
+				t.Fatalf("exit code %d, %v: %s", code, err, stderr)
+			}
+			return listing.Items
+		}
+		every, prove := listed(), listed("--session", "prove")
+		if len(prove) == 0 || len(prove) != len(every) || !slices.Equal(prove[0].Sessions, []hostproto.Session{hostproto.SessionProve}) {
+			t.Fatalf("prove lists %d of %d tickets, the first held by %v", len(prove), len(every), prove[0].Sessions)
+		}
+		if scan := listed("--session", "scan:3f5a9c"); len(scan) != 0 {
+			t.Fatalf("a scan that asked nothing lists %d tickets", len(scan))
+		}
+		if code, output, stderr := h.run(nil, "systemone", "export", "--session", "scan:3f5a9c"); code != cli.ExitClean || strings.TrimSpace(output) != "[]" {
+			t.Fatalf("export of a scan that asked nothing: exit code %d, %s %s", code, output, stderr)
+		}
+		for _, verb := range [][]string{{"request", "list"}, {"systemone", "export"}} {
+			if code, _, stderr := h.run(nil, append(verb, "--session", "scan")...); code == cli.ExitClean || code == cli.ExitToolFailure || stderr == "" {
+				t.Fatalf("%v with a bad session: exit code %d, stderr %q", verb, code, stderr)
+			}
 		}
 	})
 

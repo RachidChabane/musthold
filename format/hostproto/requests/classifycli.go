@@ -52,7 +52,7 @@ func (c ClassifyCommands) Plan(model, voters, sessionModel string) error {
 	if sessionModel == "" {
 		sessionModel = model
 	}
-	listing, err := c.Service.List()
+	listing, err := c.Service.List(hostproto.EverySession)
 	if err != nil {
 		return err
 	}

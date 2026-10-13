@@ -75,7 +75,7 @@ Plugins install no binary: each binary must be on `PATH` (see
 6. reports, per module, the last exit code, the verdict lines, the modules that
    were missing and whether the proofs were published.
 
-The skill pre-approves only each module's `doctor`, `prove` and `request list`, the
+The skill pre-approves only each module's `doctor`, `prove` and `request list --session prove`, the
 relay's `drain` and the exact verifier command above. It never answers a request
 itself.
 

@@ -10,6 +10,7 @@ import (
 	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/responsecheck"
 	"github.com/RachidChabane/spec-proof/completeness/internal/app/prove"
 	"github.com/RachidChabane/spec-proof/format/cliconv"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
 
@@ -31,7 +32,7 @@ const (
 var (
 	errChangedAndAll    = errors.New("--changed and --all exclude each other")
 	errRecordAndReplay  = errors.New("--record and --replay exclude each other")
-	errNothingToResume  = errors.New("nothing to resume: no request was ever emitted")
+	errNothingToResume  = errors.New("nothing to resume: the prove session holds no request")
 	errUnexpectedParams = errors.New("unexpected arguments")
 	errImportWithoutCI  = errors.New("--import-host needs --ci")
 	errCIAndReplay      = errors.New("--ci excludes --record and --replay")
@@ -104,7 +105,7 @@ func (e Env) runProve(rootFlag string, options prove.Options, record, replay str
 		if err != nil {
 			return outcome{err: err}
 		}
-		if len(items) == 0 {
+		if !hostproto.SessionProve.HoldsAny(items) {
 			return outcome{err: errNothingToResume}
 		}
 	}

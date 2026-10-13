@@ -213,7 +213,7 @@ func (h *commandHost) Emit(request hostproto.Request) (hostproto.Ticket, error) 
 }
 
 func (h *commandHost) bridge() *hostbridge.Bridge {
-	return hostbridge.New(h.store, func() time.Time { return h.now }, h.entropy, 0)
+	return hostbridge.New(h.store, func() time.Time { return h.now }, h.entropy, hostproto.SessionProve, 0)
 }
 
 // want asks for the request's ticket the way a proof does, which emits, expires

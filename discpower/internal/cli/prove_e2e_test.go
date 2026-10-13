@@ -126,7 +126,7 @@ type reversing struct{ *harness }
 // Run implements hostprototest.ModuleRunner.
 func (r reversing) Run(args []string, stdin []byte) ([]byte, error) {
 	output, err := r.harness.Run(args, stdin)
-	if err != nil || !slices.Equal(args, hostproto.ListArgs()) {
+	if err != nil || !slices.Equal(args, hostproto.ListArgs(hostproto.SessionProve)) {
 		return output, err
 	}
 	var listing hostproto.Listing
@@ -214,9 +214,9 @@ func TestProveEndToEnd(t *testing.T) {
 			t.Errorf("--resume before any request exited %d, want %d", code, cli.ExitToolFailure)
 		}
 		code, first, _ := h.run(nil, proveCommand, allFlag)
-		_, listed, _ := h.run(nil, hostproto.ListArgs()...)
+		_, listed, _ := h.run(nil, hostproto.ListArgs(hostproto.SessionProve)...)
 		code2, second, _ := h.run(nil, proveCommand, allFlag, resumeFlag)
-		_, listedAgain, _ := h.run(nil, hostproto.ListArgs()...)
+		_, listedAgain, _ := h.run(nil, hostproto.ListArgs(hostproto.SessionProve)...)
 		if code != cli.ExitAwaitingHost || code2 != cli.ExitAwaitingHost {
 			t.Fatalf("exit codes %d and %d, want %d", code, code2, cli.ExitAwaitingHost)
 		}

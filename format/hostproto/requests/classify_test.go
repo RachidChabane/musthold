@@ -38,7 +38,7 @@ func newClassifyFixture(t testing.TB) *classifyFixture {
 // plan lists the calls of the fixture's ticket.
 func (f *classifyFixture) plan(mode hostproto.ClassifyMode) hostproto.ClassifyPlanItem {
 	f.t.Helper()
-	listing, err := f.service.List()
+	listing, err := f.service.List(hostproto.EverySession)
 	if err != nil {
 		f.t.Fatal(err)
 	}

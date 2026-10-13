@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	verifiesShipped    = " [verifies SP-711~3]"
+	verifiesShipped    = " [verifies SP-711~4]"
 	verifiesGeneration = " [verifies SP-712~1]"
 	versionPattern     = `^\d+\.\d+\.\d+$`
 	hookTypeCommand    = "command"
@@ -171,7 +171,7 @@ func TestClaudePlugin(t *testing.T) {
 			members, body := frontMatter(t, files[skillPath(claude.Flag, module)])
 			allowed, _ := members["allowed-tools"].(string)
 			for _, rule := range []string{
-				"Bash(" + module.Binary + " prove *)", "Bash(" + module.Binary + " request list)", "Bash(" + pluginfiles.RelayBinary + " drain *)",
+				"Bash(" + module.Binary + " prove *)", "Bash(" + module.Binary + " request list --session prove)", "Bash(" + pluginfiles.RelayBinary + " drain *)",
 				"Bash(spec-proof-verify --accept-local .spec-proof/cache --out .spec-proof/verified)",
 			} {
 				if !strings.Contains(allowed, rule) {
@@ -183,7 +183,7 @@ func TestClaudePlugin(t *testing.T) {
 				t.Errorf("members = %v", members)
 			}
 			for _, step := range []string{
-				pluginfiles.RelayBinary + " drain --module " + module.RelayName(), module.Binary + " request list", "`Agent`", "ticket <ticket>",
+				pluginfiles.RelayBinary + " drain --module " + module.RelayName() + " --session prove", module.Binary + " request list --session prove", "`Agent`", "ticket <ticket>",
 				module.Binary + " prove --resume", "exit code 3", "host_unresponsive", "at most 4", "`" + pluginfiles.VerifyLocalCommand + "`",
 			} {
 				if !strings.Contains(body, step) {

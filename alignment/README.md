@@ -31,7 +31,7 @@ Run from the repository root; the binary lands in `$GOBIN`, or
 spec-proof-alignment init
 spec-proof-alignment enable
 spec-proof-alignment prove --changed
-spec-proof-alignment request list
+spec-proof-alignment request list --session prove
 spec-proof-alignment prove --resume
 spec-proof-alignment doctor
 ```

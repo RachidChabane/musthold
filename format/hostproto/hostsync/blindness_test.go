@@ -24,7 +24,7 @@ func TestCollectBlindness(t *testing.T) {
 			if _, err := store.Append(event); err != nil {
 				t.Fatal(err)
 			}
-			bundle, err := hostsync.Collect(store, module, headSHA)
+			bundle, err := hostsync.Collect(store, hostproto.SessionProve, module, headSHA)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -42,7 +42,7 @@ func TestCollectBlindness(t *testing.T) {
 		if _, err := store.Append(hostproto.Event{Kind: hostproto.EventBlindnessUnproven, AgentID: "agent-0009"}); err != nil {
 			t.Fatal(err)
 		}
-		bundle, err := hostsync.Collect(store, module, headSHA)
+		bundle, err := hostsync.Collect(store, hostproto.SessionProve, module, headSHA)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/modulecli"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/failure"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/question"
@@ -80,6 +81,26 @@ func TestExport(t *testing.T) {
 		}
 		if len(exported) != 2 || exported[0].Ticket != "aa.0.1" || exported[0].Nonce != "n1" || exported[0].Problem != nil || exported[0].Set.Questions[0].Options[1].Name != "B" {
 			t.Fatalf("exported %+v", exported)
+		}
+	})
+
+	t.Run("a gateway scoped to a session exports that session's closed requests only [verifies SP-2156~1]", func(t *testing.T) {
+		runner := &fakeRunner{stdout: exportOutput}
+		gateway, err := modulecli.NewGateway("dp", "/project", runner)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := gateway.ForSessions(hostproto.OnlySession(hostproto.SessionProve)).Export(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := gateway.Export(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		if got := strings.Join(runner.calls[0].args, " "); got != "systemone export --session prove" {
+			t.Fatalf("the scoped gateway ran %q", got)
+		}
+		if got := strings.Join(runner.calls[1].args, " "); got != "systemone export" {
+			t.Fatalf("the gateway of every session ran %q", got)
 		}
 	})
 

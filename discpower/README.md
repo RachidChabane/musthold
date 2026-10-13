@@ -29,7 +29,7 @@ Run from the repository root; the binary lands in `$GOBIN`, or
 spec-proof-dp init
 spec-proof-dp enable
 spec-proof-dp prove --changed
-spec-proof-dp request list
+spec-proof-dp request list --session prove
 spec-proof-dp prove --resume
 spec-proof-dp doctor
 spec-proof-dp scan

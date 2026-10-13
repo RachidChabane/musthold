@@ -158,8 +158,8 @@ in JCS.
   0003 are `requestId`.
 - **Ticket**: `{requestId, vote, emission, nonce}`. The nonce is 128 bits from
   `crypto/rand` and stays outside the id. Votes are separate tickets.
-- **Queue-only metadata**: `meta` (criterion, wave) lives only in queue state and
-  is never shown to an executor.
+- **Queue-only metadata**: `meta` (criterion, sessions, wave) lives only in queue
+  state and is never shown to an executor.
 - **Response**: `{requestId, vote, nonce, output, executor}`, where `executor` is
   `{channel, harness{name,version}, isolation, attestation{agentId, capDigest,
   transcriptDigest}, model{name, source: resolved|declared|unknown}}`.
@@ -171,18 +171,39 @@ in JCS.
 per-install `secret` (mode 0600). A location outside the work tree is hygiene, not
 a security boundary.
 
+**Sessions.** One store serves every run of the repository that asks the host:
+the session `prove`, and one session `scan:<key>` per scan (ADR 0014).
+- A queue item carries the sessions that want its request, merged as a sorted
+  union like its criteria. A request two sessions want has one set of tickets and
+  one answer for both.
+- The queue keeps, per session, its wave counter and whether it ended. A session
+  is live from the wave it advances until it ends. It ends in the wave that leaves
+  none of its tickets waiting, the one in which it writes its statement. A new
+  scan ends the older scan sessions; no scan ends `prove`.
+- A queue written without sessions is the prove session's: its single wave
+  counter is the prove wave, and every item belongs to `prove`.
+- Every view is per session: the pending tickets of a wave, `request list`,
+  `systemone export`, the bundle `host push` collects and the requests CI issues.
+  Each fulfil skill lists and relays the tickets of its own session. Whatever
+  answers by ticket alone serves every session: the relay's own skill, the MCP
+  `drain` tool and `systemone classify-plan`.
+- The journal records the session of every ticket event a module makes. A
+  session may have an emission cap, counted over the journaled emissions of the
+  session, reissues and re-emissions included. Once the cap is reached the
+  session emits nothing more and names what it left unasked. `prove` has no cap.
+
 #### Lifecycle
 
 The state machine lives in `hostproto`.
 
 | State | Entered by | Next |
 |---|---|---|
-| `emitted` | `prove` reaches a model step with no cached response | `fetched`, `superseded` |
+| `emitted` | a session reaches a model step with no cached response | `fetched`, `superseded` |
 | `fetched` | `fetch_request(ticket, cap)` | `accepted`, or `expired` after 20 min |
 | `accepted` | `submit_response`: known ticket, unused nonce, valid cap, output valid against the schema. A schema error is returned to the executor; one correction is allowed. | `validated`, `rejected` |
 | `rejected` | execution contradicts the answer, or the schema still fails | re-`emitted` with a new nonce while emissions remain (default 3), else `abandoned` |
 | `validated` | at `--resume`: EditSet splice and post-splice invariant, build inside the footprint slice, kill vectors, other criteria's tests, examples, F3, F4 (ADR 0003) | `consumed` |
-| `superseded` | an input changed, giving a new id | terminal |
+| `superseded` | no live session wants the request any more: an input changed, giving a new id, or the sessions that wanted it ended. A session withdraws only itself from a request it no longer wants. | re-`emitted` as a new emission with a new nonce when a session wants the request again; such a re-emission never counts toward the emissions that abandon a ticket |
 | `abandoned` | emissions exhausted | the claim is UNDETERMINED with reason `host_unresponsive` |
 
 A second, different output for an accepted `(requestId, vote, nonce)` is refused
@@ -192,7 +213,7 @@ and journaled as `resubmission_conflict`.
 
 **Waves.** `prove` is a resumable state machine (deterministic stages, a wave,
 exit 3). `--resume` runs the next wave, and the skill loops in-turn until the exit
-code is not 3.
+code is not 3. Waves are counted per session.
 
 **Versioning.** The major version is in the URI and minors are additive. Unknown
 fields are ignored and unknown majors refused. Template digests enter `cacheKey`
@@ -201,13 +222,14 @@ through the role `prompt_template`.
 **CLI, per module:**
 
 - `prove [--changed|--all] [--resume] [--ci --import-host DIR]`;
-- `request list --json`;
+- `request list --json [--session prove|scan:<key>]` (every session's tickets
+  without `--session`);
 - `request show|submit <ticket>` (scripts, relay, fake host; it journals `exposed`
   when used outside an executor);
 - `mcp --role executor`;
 - `hook <pre-tool|subagent-start|subagent-stop|post-tool> --harness H`;
 - `host push|pull [--ci-run ID]`;
-- `systemone export|import`;
+- `systemone export [--session prove|scan:<key>]|import`;
 - `doctor`;
 - `--record|--replay DIR` (a replay miss is a hard error).
 
@@ -286,7 +308,7 @@ pinned binary with automatic updates off (ADR 0011).
 - **`skills/spec-proof-dp-fulfil/SKILL.md`**, with `allowed-tools` pre-approving
   `Bash(spec-proof-dp prove *)` and `Bash(spec-proof-s1 drain *)`. Its steps:
   1. relay closed requests if an endpoint is configured;
-  2. `request list --json`;
+  2. `request list --session prove`;
   3. one foreground `Agent` call per ticket, at most 4 in one message;
   4. `prove --resume`, repeated while the exit code is 3.
 
@@ -771,7 +793,8 @@ gate-host session and for the in-session sample (ADR 0007).
 ## Revisions
 
 The ADR 0001, 0002 and 0003 texts stay as written; the revisions below apply on
-top of them.
+top of them. The last revision, "Sessions in the host store", applies to the host
+protocol of this record.
 
 **ADR 0001**
 
@@ -812,6 +835,17 @@ top of them.
 
 ADR 0004 is superseded in part by ADR 0007, which also fixes the host execution
 of the benchmark's arms.
+
+**Sessions in the host store**
+
+- One host store serves every session of a repository: `prove`, and the scan
+  sessions of ADR 0014 (section "Store", "Sessions").
+- The queue tags each request with the sessions that want it and counts waves per
+  session.
+- A session supersedes only what no live session wants, and a superseded request
+  that a session wants again is issued as a new emission (section "Lifecycle").
+- Pending tickets, `request list`, `systemone export`, `host push` and CI-issued
+  requests are read per session, with `--session` on the command line.
 
 ## Consequences
 

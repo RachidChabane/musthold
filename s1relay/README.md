@@ -25,7 +25,7 @@ Run from the repository root; the binary lands in `$GOBIN`, or
 ## Commands
 
 ```
-spec-proof-s1 drain --module dp
+spec-proof-s1 drain --module dp --session prove
 spec-proof-s1 drain --module alignment --max-requests 10 --mem-guard
 spec-proof-s1 version
 ```

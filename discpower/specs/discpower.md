@@ -278,10 +278,25 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-150~1**: WHEN a store is opened again THE SYSTEM SHALL return the requests,
   entries, responses, journal chain and secret it held, and SHALL write each
   record atomically so that a reader never sees a partial file.
-- **SP-151~1**: WHEN a request is recorded in the queue THE SYSTEM SHALL keep the
-  wave of its first record, merge the criteria it serves without duplicates and
-  list the items ordered by request id, and WHEN the wave advances THE SYSTEM
-  SHALL return consecutive numbers starting at one.
+- **SP-151~2**: WHEN a request is recorded in the queue THE SYSTEM SHALL keep the
+  wave of its first record, merge the criteria and the sessions it serves
+  without duplicates and list the items ordered by request id, WHEN the wave of
+  a session advances THE SYSTEM SHALL return consecutive numbers starting at one
+  for that session alone, SHALL satisfy the queue contract suite of the host
+  protocol, and SHALL read a `queue.json` written without sessions as the prove
+  session's.
+- **SP-2153~1**: WHEN `request list` or `systemone export` is given `--session`
+  with `prove` or `scan:<key>` THE SYSTEM SHALL list only the tickets of the
+  requests that session holds, give with each ticket `request list --json`
+  prints the sessions that hold its request, list the tickets of every session
+  without the flag, and refuse a text that names no session; and WHEN `prove
+  --resume` runs while the prove session holds no request THE SYSTEM SHALL
+  refuse it, whatever requests other sessions hold.
+- **SP-2152~1**: WHEN the prove session and a scan session use the filesystem
+  store of one project at the same time THE SYSTEM SHALL issue one ticket per
+  request whichever session asks first, show each session its own tickets and
+  the shared ones, and leave the tickets of one session emitted through the
+  waves and the end of the other.
 - **SP-152~1**: WHEN the state and cache locations are resolved THE SYSTEM SHALL
   use `$XDG_STATE_HOME` and `$XDG_CACHE_HOME` when they are absolute paths and
   the defaults under the home directory otherwise.

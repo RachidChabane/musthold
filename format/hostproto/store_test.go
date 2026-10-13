@@ -60,6 +60,10 @@ func TestStoreContract(t *testing.T) {
 	t.Run("the reference store satisfies the discard contract [verifies SP-195~1]", func(t *testing.T) {
 		hostprototest.RunDiscardContract(t, func(*testing.T) hostprototest.DiscardableStore { return hostprototest.NewMemoryStore() })
 	})
+
+	t.Run("the reference host store satisfies the queue contract, sessions and waves per session included [verifies SP-2147~1]", func(t *testing.T) {
+		hostprototest.RunQueueContract(t, func(*testing.T) hostproto.HostStore { return hostprototest.NewMemoryHostStore() })
+	})
 }
 
 func canonical(t *testing.T, document []byte) string {

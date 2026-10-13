@@ -160,6 +160,22 @@ func TestDrainCommand(t *testing.T) {
 		}
 	})
 
+	t.Run("--session relays the closed requests of that session only, and a text that names no session runs nothing [verifies SP-2156~1]", func(t *testing.T) {
+		stub := stubendpoint.New(stubendpoint.Ollama, nil)
+		defer stub.Close()
+		h := newHarness(t)
+		if got := h.run("--module", "dp", "--endpoint", stub.URL, "--session", "prove"); got.code != cli.ExitClean {
+			t.Fatalf("exit %d, stderr %s", got.code, got.stderr)
+		}
+		if h.runner.calls[0].args != "systemone export --session prove" {
+			t.Fatalf("the export ran %q", h.runner.calls[0].args)
+		}
+		refused := newHarness(t)
+		if got := refused.run("--module", "dp", "--endpoint", stub.URL, "--session", "scan"); got.code != cli.ExitToolFailure || len(refused.runner.calls) != 0 {
+			t.Fatalf("exit %d with %d module runs, stderr %s", got.code, len(refused.runner.calls), got.stderr)
+		}
+	})
+
 	t.Run("the report names the digest, never the address with its credentials, and counts the outcomes [verifies SP-613~1]", func(t *testing.T) {
 		stub := stubendpoint.New(stubendpoint.Ollama, nil)
 		defer stub.Close()

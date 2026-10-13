@@ -485,7 +485,7 @@ func TestProveAllSkill(t *testing.T) {
 		allowed := strings.Split(members["allowed-tools"], ", ")
 		var want []string
 		for _, module := range umbrella.Modules {
-			want = append(want, "Bash("+module.Binary+" doctor)", "Bash("+module.Binary+" prove *)", "Bash("+module.Binary+" request list)")
+			want = append(want, "Bash("+module.Binary+" doctor)", "Bash("+module.Binary+" prove *)", "Bash("+module.Binary+" request list --session prove)")
 		}
 		want = append(want, "Bash(spec-proof-s1 drain *)", "Bash(spec-proof-verify --accept-local .spec-proof/cache --out .spec-proof/verified)")
 		for _, rule := range allowed {

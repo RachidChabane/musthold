@@ -215,14 +215,14 @@ func TestHostPull(t *testing.T) {
 		if code != cli.ExitClean || !strings.Contains(stdout, "imported 1 requests") {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
 		}
-		_, listed, _ := f.run(nil, hostproto.ListArgs()...)
+		_, listed, _ := f.run(nil, hostproto.ListArgs(hostproto.SessionProve)...)
 		if !strings.Contains(listed, string(hostprototest.MustID(request))) || strings.Count(listed, `"vote"`) != 2 {
 			t.Fatalf("listing = %s", listed)
 		}
 		if code, _, _ := f.run(nil, "host", "pull", "--ci-run", "4242"); code != cli.ExitClean {
 			t.Fatalf("a second pull exit = %d", code)
 		}
-		if _, again, _ := f.run(nil, hostproto.ListArgs()...); strings.Count(again, `"vote"`) != 2 {
+		if _, again, _ := f.run(nil, hostproto.ListArgs(hostproto.SessionProve)...); strings.Count(again, `"vote"`) != 2 {
 			t.Fatalf("a second pull added tickets: %s", again)
 		}
 	})

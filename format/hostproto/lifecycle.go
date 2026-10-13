@@ -11,7 +11,8 @@ import (
 const (
 	// FetchTTL is how long a fetched ticket stays answerable.
 	FetchTTL = 20 * time.Minute
-	// DefaultMaxEmissions is how many times a ticket is issued before it is abandoned.
+	// DefaultMaxEmissions is how many times a ticket is issued for the host before
+	// it is abandoned; a re-emission after a supersession is not counted.
 	DefaultMaxEmissions = 3
 	// MaxCorrections is how many schema corrections an executor is allowed.
 	MaxCorrections = 1
@@ -52,7 +53,7 @@ var transitions = map[State][]State{
 	StateExpired:    {StateEmitted, StateAbandoned},
 	StateValidated:  {StateConsumed},
 	StateConsumed:   nil,
-	StateSuperseded: nil,
+	StateSuperseded: {StateEmitted},
 	StateAbandoned:  nil,
 }
 
@@ -83,13 +84,16 @@ var (
 // moves. Its methods return the next entry and never change the receiver, so an
 // illegal call leaves the stored record untouched.
 type Entry struct {
-	Ticket       Ticket    `json:"ticket"`
-	Role         string    `json:"role"`
-	SchemaDigest string    `json:"schemaDigest"`
-	State        State     `json:"state"`
-	MaxEmissions int       `json:"maxEmissions"`
-	Corrections  int       `json:"corrections"`
-	FetchedAt    time.Time `json:"fetchedAt"`
+	Ticket       Ticket `json:"ticket"`
+	Role         string `json:"role"`
+	SchemaDigest string `json:"schemaDigest"`
+	State        State  `json:"state"`
+	MaxEmissions int    `json:"maxEmissions"`
+	// Reemissions counts the emissions made because a superseded ticket was wanted
+	// again; they are not the host's doing, so MaxEmissions does not count them.
+	Reemissions int       `json:"reemissions,omitempty"`
+	Corrections int       `json:"corrections"`
+	FetchedAt   time.Time `json:"fetchedAt"`
 	// EmittedAt is when the ticket was first emitted; the raw API log of a
 	// classification is read from this time on.
 	EmittedAt      time.Time `json:"emittedAt,omitzero"`
@@ -178,7 +182,7 @@ func (e Entry) MarkValidated() (Entry, error) { return e.move(StateValidated) }
 // Consume records that a proof used the validated answer.
 func (e Entry) Consume() (Entry, error) { return e.move(StateConsumed) }
 
-// Supersede retires an emitted ticket whose inputs changed.
+// Supersede retires an emitted ticket no live session wants any more.
 func (e Entry) Supersede() (Entry, error) { return e.move(StateSuperseded) }
 
 // Expire retires a fetched ticket that was not answered within FetchTTL.
@@ -195,11 +199,36 @@ func (e Entry) Reissue(nonce string) (Entry, error) {
 	if e.State != StateRejected && e.State != StateExpired {
 		return e, fmt.Errorf("%w: reissue in state %s", ErrIllegalTransition, e.State)
 	}
-	if e.Ticket.Emission >= e.MaxEmissions {
+	if e.Exhausted() {
 		next, err := e.move(StateAbandoned)
 		next.Reason = ReasonHostUnresponsive
 		return next, err
 	}
+	return e.nextEmission(nonce)
+}
+
+// Reemit turns a superseded ticket whose request is wanted again into a new
+// emission with the given nonce. The supersession was not the host's doing, so
+// the re-emission never counts toward MaxEmissions and never abandons the ticket.
+func (e Entry) Reemit(nonce string) (Entry, error) {
+	if e.State != StateSuperseded {
+		return e, fmt.Errorf("%w: re-emission in state %s", ErrIllegalTransition, e.State)
+	}
+	next, err := e.nextEmission(nonce)
+	if err != nil {
+		return e, err
+	}
+	next.Reemissions++
+	return next, nil
+}
+
+// Exhausted reports whether the host was given every emission MaxEmissions
+// allows, so that a reissue abandons the ticket.
+func (e Entry) Exhausted() bool { return e.Ticket.Emission-e.Reemissions >= e.MaxEmissions }
+
+// nextEmission moves the entry to a new emission of its ticket with the nonce and
+// clears what the previous emission held.
+func (e Entry) nextEmission(nonce string) (Entry, error) {
 	next, err := e.move(StateEmitted)
 	if err != nil {
 		return e, err
@@ -211,6 +240,10 @@ func (e Entry) Reissue(nonce string) (Entry, error) {
 	next.AcceptedOutput = ""
 	return next, nil
 }
+
+// Waits reports whether a ticket in the state still waits for its answer: it is
+// emitted or fetched.
+func Waits(state State) bool { return state == StateEmitted || state == StateFetched }
 
 // Consumable reports whether a proof may use the entry's answer.
 func (e Entry) Consumable() bool { return e.State == StateValidated }

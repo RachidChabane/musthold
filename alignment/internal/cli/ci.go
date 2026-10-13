@@ -8,6 +8,7 @@ import (
 	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/responsecheck"
 	"github.com/RachidChabane/spec-proof/alignment/internal/app/prove"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostsync"
 	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
@@ -68,7 +69,7 @@ func (e Env) importer(project *project, dir string) (*hostsync.Importer, error) 
 // writeIssued leaves the requests that still wait for an answer where the CI job
 // uploads them from.
 func (e Env) writeIssued(project *project) error {
-	issued, err := hostsync.ExportIssued(project.store)
+	issued, err := hostsync.ExportIssued(project.store, hostproto.SessionProve)
 	if err != nil {
 		return err
 	}

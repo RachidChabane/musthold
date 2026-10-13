@@ -79,7 +79,7 @@ func (s Service) Drain(ctx context.Context, args mcpstdio.DrainArgs, sampler mcp
 		return mcpstdio.DrainResult{}, ErrUnknownModule
 	}
 	sampling := s.Requests.ForSampling()
-	listing, err := sampling.List()
+	listing, err := sampling.List(hostproto.EverySession)
 	if err != nil {
 		return mcpstdio.DrainResult{}, err
 	}

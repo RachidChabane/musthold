@@ -21,6 +21,11 @@ to the Go tests of the module in CI.
   closed request to the endpoint, and run `spec-proof-M systemone import` with the
   reply of the endpoint for each usable answer, with the ticket, its nonce and the source
   `system-one:<model>@<endpointDigest>`, the confidence source a proof records.
+- **SP-2156~1**: WHEN `drain --module M --session S` runs THE SYSTEM SHALL run
+  `spec-proof-M systemone export --session S` so that only the closed requests
+  of the session `S` are relayed, relay those of every session when `drain` is
+  given no `--session`, and WHEN `S` names neither
+  `prove` nor `scan:<key>` THE SYSTEM SHALL exit 2 without running a module.
 - **SP-601~1**: WHEN `drain` runs THE SYSTEM SHALL take the endpoint and the
   model from `--endpoint` and `--model`, else from `systemone.endpoint` and
   `systemone.model` of `.spec-proof/config.yaml`, and WHEN no usable endpoint is
