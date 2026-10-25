@@ -69,9 +69,6 @@ type Config struct {
 	// Model is the model every session runs on.
 	Model string `json:"model"`
 	Caps  Caps   `json:"caps"`
-	// Toolchain names the tools whose install directories lead the PATH of the
-	// session, so that the project's test runner is the one the owner installed.
-	Toolchain []string `json:"toolchain"`
 	// AllowedTools are the permission rules of the session, in Claude Code's
 	// `permissions.allow` syntax.
 	AllowedTools []string `json:"allowed_tools"`

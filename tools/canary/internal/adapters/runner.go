@@ -99,6 +99,9 @@ func (Sessions) Run(spec app.SessionSpec) (app.SessionOutcome, error) {
 	command.Dir, command.Env = spec.Dir, spec.Env
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	command.Stderr = stderrFile
+	if spec.Stdin != nil {
+		command.Stdin = bytes.NewReader(spec.Stdin)
+	}
 	pipe, err := command.StdoutPipe()
 	if err != nil {
 		return app.SessionOutcome{}, err
