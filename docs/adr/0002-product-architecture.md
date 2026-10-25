@@ -538,9 +538,8 @@ and the verifier reads the exported files.
 `script/shallnot-build` builds `shallnot` from:
 
 - `$SHALLNOT_SRC` (a local checkout) on the laptop, or
-- in CI, the private mirror repository `RachidChabane/shallnot-proof-gate`,
-  checked out with a read-only fine-grained token at the SHA recorded in
-  `script/shallnot.pin`.
+- in CI, the public repository `RachidChabane/shallnot`, checked out at the SHA
+  recorded in `script/shallnot.pin`, with no token.
 
 No Shallnot source, report-1.2 schema copy or full Shallnot report is committed to
 this repository, and nothing is pushed to any ref of it. Golden subject digests
