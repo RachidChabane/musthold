@@ -42,3 +42,18 @@ func (w Window) Allows(instant time.Time) bool {
 func (w Window) Describe() string {
 	return fmt.Sprintf("%02d:%02d-%02d:%02d local time", OpensHour, OpensMinute, ClosesHour, ClosesMinute)
 }
+
+// Holds reports whether a span that starts at the instant and lasts the length
+// fits in the window: it starts inside the window and ends before the window
+// next closes.
+func (w Window) Holds(start time.Time, length time.Duration) bool {
+	if !w.Allows(start) {
+		return false
+	}
+	midnight := time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, start.Location())
+	closing := midnight.Add(w.closes)
+	if !start.Before(closing) {
+		closing = closing.AddDate(0, 0, 1)
+	}
+	return start.Add(length).Before(closing)
+}

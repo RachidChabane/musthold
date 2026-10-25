@@ -20,7 +20,6 @@
     "seconds": 7200,
     "budget_usd": "40.00"
   },
-  "toolchain": ["python3"],
   "allowed_tools": [
     "Bash(pytest *)",
     "Bash(python3 -m pytest *)",

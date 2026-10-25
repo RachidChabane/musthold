@@ -20,6 +20,7 @@ import (
 	canary "github.com/RachidChabane/spec-proof/tools/canary/internal/app"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/app"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/config"
+	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/container"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/window"
@@ -86,6 +87,12 @@ func Run(env Env) int {
 		return env.keep(rest)
 	case commandShim:
 		return env.shim(rest)
+	case container.EntrySubcommand:
+		return env.entry(rest)
+	case container.ProxySubcommand:
+		return env.egressProxy(rest)
+	case container.ProbeSubcommand:
+		return env.probeIsolation(rest)
 	default:
 		return env.usage()
 	}
@@ -111,8 +118,9 @@ func (e Env) run(args []string) int {
 	set := e.flags(commandRun)
 	configPath := set.String("config", "", "the configuration file of the runs")
 	repo := set.String("repo", ".", "the repository root")
-	out := set.String("out", os.TempDir(), "the directory the run directories are created in")
-	claude := set.String("claude", "", "the pinned Claude Code binary (default: the one script/claude-code-install installs)")
+	work := set.String("work", "", "the directory the run directories are created in (default: <repo>/"+app.WorkRelative+")")
+	product := set.String("product", "", "the Linux product tree the containers mount read-only (default: <repo>/"+app.ProductRelative+")")
+	docker := set.String("docker", "", "the docker command that names the demonstration's engine (default: <repo>/"+dockerRelative+")")
 	dryRun := set.Bool("dry-run", false, "print what a run would do and start nothing")
 	force := set.Bool("force-window", false, "run outside the nightly window")
 	if err := set.Parse(args); err != nil || set.NArg() > 0 || *configPath == "" {
@@ -135,11 +143,18 @@ func (e Env) run(args []string) int {
 		return e.fail(err)
 	}
 	options := app.Options{
-		RepoRoot: root, Config: parsed, OutDir: *out, Executable: e.Executable,
-		Claude: *claude, ClaudePin: strings.TrimSpace(string(pin)), DryRun: *dryRun, ForceWindow: *force,
+		RepoRoot: root, Config: parsed, Work: orDefault(*work, root, app.WorkRelative), Product: orDefault(*product, root, app.ProductRelative),
+		Docker: []string{orDefault(*docker, root, dockerRelative)}, UID: os.Getuid(), GID: os.Getgid(),
+		ClaudePin: strings.TrimSpace(string(pin)), DryRun: *dryRun, ForceWindow: *force,
 	}
-	if options.Claude == "" {
-		options.Claude = filepath.Join(root, plan.ClaudeToolsRelative, options.ClaudePin, "bin", plan.ClaudeBinary)
+	image, err := os.ReadFile(filepath.Join(options.Product, app.ImageFile))
+	switch {
+	case err == nil:
+		options.Image = strings.TrimSpace(string(image))
+	case options.DryRun:
+		options.Image = "<image: run demo/loop/run build>"
+	default:
+		return e.fail(fmt.Errorf("%w: %v", app.ErrNoProduct, err))
 	}
 	if !options.DryRun {
 		if err := adapters.Lower(); err != nil {
@@ -156,6 +171,20 @@ func (e Env) run(args []string) int {
 		return e.fail(err)
 	}
 	return ExitOK
+}
+
+// dockerRelative is the docker command that names the demonstration's engine.
+const dockerRelative = "demo/loop/container/docker"
+
+// orDefault is the value, made absolute, or the path below the repository.
+func orDefault(value, root, relative string) string {
+	if value == "" {
+		return filepath.Join(root, relative)
+	}
+	if absolute, err := filepath.Abs(value); err == nil {
+		return absolute
+	}
+	return value
 }
 
 func (e Env) runner() app.Runner {
@@ -205,10 +234,25 @@ func (e Env) keep(args []string) int {
 	if err != nil {
 		return e.fail(err)
 	}
-	if err := (app.Keeper{Files: adapters.OSFiles{}}).Keep(runDir, root, variable(e.Environ, homeVariable), *to); err != nil {
+	if err := (app.Keeper{Files: adapters.OSFiles{}}).Keep(runDir, root, variable(e.Environ, homeVariable), *to, e.knownToken()); err != nil {
 		return e.fail(err)
 	}
 	return ExitOK
+}
+
+// knownToken is the token a credential source holds, to scan the records for its
+// exact value, or empty when none holds one; the scan then looks for a token's shape.
+func (e Env) knownToken() string {
+	ctx := context.Background()
+	source, err := canary.FirstCredential(ctx, e.runner().Credentials)
+	if err != nil || source == nil {
+		return ""
+	}
+	token, err := source.Token(ctx)
+	if err != nil {
+		return ""
+	}
+	return token
 }
 
 // shim is what the session's PATH runs in place of a binary: it records the hook

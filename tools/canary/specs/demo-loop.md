@@ -2,17 +2,19 @@
 
 The runner of the agent-loop demonstration, in Shallnot's Markdown spec format. It
 equips a small project with Shallnot and the proof modules the documented way,
-runs one headless Claude Code session on a task, records what the session and
-the gate did, and renders the record as a transcript. These requirements trace
-to the Go tests of this module, which replace the session by a recorded stream
-and make no model call.
+runs one headless Claude Code session on a task in containers that hold no
+credential but the model token and reach no host but the model endpoints, records
+what the session and the gate did, and renders the record as a transcript. These
+requirements trace to the Go tests of this module, which replace the session by a
+recorded stream or a simulated Claude Code and make no model call; the container
+tests run on the demonstration's own engine and skip where it is not running.
 
 ## Configuration
 
-- **SP-2400~1**: WHEN a configuration is read THE SYSTEM SHALL take from it the
+- **SP-2400~2**: WHEN a configuration is read THE SYSTEM SHALL take from it the
   tasks with their fixture, prompt and operation bindings, the arms among
   traceability and four-proofs, the repetitions, the seed, the model, the caps on
-  assistant messages, time and spend, the toolchain and the permission rules;
+  assistant messages, time and spend, and the permission rules;
   SHALL refuse a document with an unknown member or more than one document, and
   an invalid value, naming every member at fault; and SHALL list every run of
   each task in each arm for each repetition in an order that the seed alone
@@ -28,31 +30,72 @@ and make no model call.
   commit the equipped project, run the gate on it, and record the command, the
   purpose, the exit code and the output of every step, stopping at the first
   step that fails.
-- **SP-2402~1**: WHEN the session of a run is built THE SYSTEM SHALL launch the
-  pinned Claude Code non-interactively on the task's prompt and the configured
-  model, with its events streamed as JSON with the hook events, the project's
-  settings and a session settings file that holds the configured permission
-  rules and nothing else, edits accepted, the configured spend cap, the plugin
-  tree of each proof module and the umbrella plugin for the four-proofs arm, an
-  isolated configuration directory in which the project is trusted, and on its
-  PATH first the shims that record the hook calls of Shallnot and of each module,
-  then the product's binaries, the configured toolchain and the pinned CLI; and
-  SHALL give the token to the session's environment only.
-- **SP-2403~1**: WHEN a live run is started THE SYSTEM SHALL refuse to start it
-  outside the nightly window unless the window is forced, without a credential
-  source, on a machine the memory guard refuses, or with a Claude Code binary
-  that does not report the pinned version, SHALL hold the session lock the
-  canary holds, SHALL end the whole process group of a session that reaches its
-  assistant-message cap or its time limit and record why, and WHEN a dry run is
-  requested SHALL print the window, the credential source with a placeholder in
-  place of the token, and every command of every run in order, and start
+- **SP-2402~2**: WHEN the session of a run is built THE SYSTEM SHALL launch the
+  pinned Linux Claude Code of the product tree non-interactively on the task's
+  prompt and the configured model, with its events streamed as JSON with the hook
+  events, the project's settings and a session settings file that holds the
+  configured permission rules and nothing else, edits accepted, the configured
+  spend cap, the plugin tree of each proof module and the umbrella plugin for the
+  four-proofs arm, an isolated configuration directory in which the project is
+  trusted, `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` set, and on its PATH first the
+  shims that record the hook calls of Shallnot and of each module, then the
+  product's binaries and the pinned CLI.
+- **SP-2403~2**: WHEN a live run is started THE SYSTEM SHALL refuse a session
+  whose time cap would end after the nightly window next closes, checked before
+  each session, unless the window is forced, and refuse to start without a
+  credential source, on a machine the memory guard refuses, without a built Linux
+  product, or with a Claude Code binary that does not report the pinned version
+  inside its container; SHALL hold the session lock the canary holds; SHALL end the
+  process group of the session's docker client when the session reaches its
+  assistant-message cap or its time limit, record why, and remove the session's
+  and the proxy's containers and the run's network whatever the session did; and
+  WHEN a dry run is requested SHALL print the window, the credential source, the
+  allowlist and every command of every run in order, each docker command in full
+  with the token shown as reaching the session's standard input, and start
   nothing.
-- **SP-2404~1**: WHEN a session has ended THE SYSTEM SHALL write into the run's
-  records the description of the run, the stream with the time each line
-  arrived, what the CLI printed to its error stream, every hook call the shims
-  recorded, the session's change as a diff against the equipped commit with new
-  files included and the gate's report on the project the session left, and SHALL
-  write the token into none of them.
+- **SP-2404~2**: WHEN a session has ended THE SYSTEM SHALL write into the run's
+  records the description of the run with the session image, the SHA-256 of the
+  Linux Claude Code binary and the egress allowlist, the stream with the time each
+  line arrived, what the CLI printed to its error stream, every hook call the shims
+  recorded, the egress proxy's log, the session's change as a diff against the
+  equipped commit with new files included and the gate's report on the project the
+  session left; SHALL then scan every record for the token and for any text of a
+  token's shape; and SHALL fail the run on a hit, naming the files and not what
+  they hold.
+
+## Isolation
+
+- **SP-2410~1**: WHEN a step of a live run touches the project THE SYSTEM SHALL run
+  it in a container of the demonstration's engine, removed once it ends, as the
+  user's uid with no capability and no new privilege, a read-only root file
+  system, an empty scratch HOME on tmpfs, two CPUs and 2.5 GiB of memory, no
+  network, the run directory mounted read-write at its own path and the product
+  tree read-only, no docker socket, no engine log, and an environment emptied by
+  `env -i` and refilled from a fixed list that names nothing of the host but the
+  run directory.
+- **SP-2411~1**: WHEN the session of a live run starts THE SYSTEM SHALL run it in a
+  container with the same bounds on an internal network with no route out, behind
+  an egress proxy whose own container joins that network, and SHALL hand the token
+  to the container's entry on its standard input only, which starts the session's
+  command with the token in that command's environment and its standard input
+  closed; the token SHALL be in no command line, no environment of the docker
+  client and no option of any container.
+- **SP-2415~1**: WHEN the session's container is looked at from inside THE SYSTEM
+  SHALL show an empty HOME, no `SSH_AUTH_SOCK`, no `/var/run/docker.sock` and no
+  socket file, no host reachable without the proxy, and a proxy that forwards a
+  CONNECT to the model endpoints alone, refuses every other host and every other
+  request, and logs each request with its decision; and every docker command
+  SHALL reach the demonstration's own engine, never the user's current context.
+- **SP-2416~1**: WHEN a session's container runs with a token THE SYSTEM SHALL keep
+  the token out of what `docker inspect` and `docker logs` report and out of every
+  file of the run directory, while the session's command receives it.
+- **SP-2417~1**: WHEN the fixture's gate test runs inside a container of the
+  session image with no network, the Linux product and the recorded answers of
+  the project's honest host THE SYSTEM SHALL block the gate on the weak test of
+  BOX-2 with the example the tests miss and pass it once the test is strengthened.
+- **SP-2418~1**: WHEN no work area is named THE SYSTEM SHALL create the run
+  directories under `.tools/demo-loop/work` of the repository, never in the
+  system's temporary directory.
 
 ## Transcript
 
@@ -72,11 +115,12 @@ and make no model call.
   and start no process, give the same bytes on every rendering, and WHEN a check
   is requested SHALL write nothing and fail when a transcript beside the
   recording differs from what it renders.
-- **SP-2409~1**: WHEN the records of a run are kept as a recording THE SYSTEM
+- **SP-2409~2**: WHEN the records of a run are kept as a recording THE SYSTEM
   SHALL copy them with the run directory, the repository root and the home
   directory written as `<run>`, `<repo>` and `~`, in their resolved and their
-  `/private`-less forms, and SHALL refuse a destination that already holds a
-  recording.
+  `/private`-less forms, SHALL refuse a destination that already holds a
+  recording, and SHALL refuse, keeping nothing, records that hold the token a
+  credential source holds or any text of a token's shape.
 
 ## Fixture
 

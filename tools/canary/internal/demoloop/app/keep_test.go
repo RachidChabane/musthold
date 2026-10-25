@@ -40,11 +40,11 @@ func TestKeep(t *testing.T) {
 		return root
 	}
 
-	t.Run("the records are kept with the run directory, the repository and the home written as placeholders [verifies SP-2409~1]", func(t *testing.T) {
+	t.Run("the records are kept with the run directory, the repository and the home written as placeholders [verifies SP-2409~2]", func(t *testing.T) {
 		root := runOn(t)
 		run := root
 		to := filepath.Join(t.TempDir(), "recording")
-		if err := keeper.Keep(root, repo, home, to); err != nil {
+		if err := keeper.Keep(root, repo, home, to, ""); err != nil {
 			t.Fatal(err)
 		}
 		for name, want := range map[string]string{
@@ -68,13 +68,33 @@ func TestKeep(t *testing.T) {
 		}
 	})
 
-	t.Run("a destination that holds a recording is refused [verifies SP-2409~1]", func(t *testing.T) {
+	t.Run("records that hold the token, exactly or by its shape, are refused and nothing is kept [verifies SP-2409~2]", func(t *testing.T) {
+		for name, leak := range map[string]struct{ content, exact string }{
+			"by shape": {content: "sk-ant-oat01-" + strings.Repeat("x", 40), exact: ""},
+			"exactly":  {content: "the value is correct-horse-battery-staple-42", exact: "correct-horse-battery-staple-42"},
+		} {
+			root := runOn(t)
+			if err := (adapters.OSFiles{}).Write(filepath.Join(root, plan.RecordsDir, record.StderrFile), []byte(leak.content), false); err != nil {
+				t.Fatal(err)
+			}
+			to := filepath.Join(t.TempDir(), "recording")
+			err := keeper.Keep(root, repo, home, to, leak.exact)
+			if !errors.Is(err, app.ErrTokenInRecord) || !strings.Contains(err.Error(), record.StderrFile) || strings.Contains(err.Error(), leak.content) {
+				t.Errorf("%s: error %v", name, err)
+			}
+			if _, statErr := os.Stat(to); !os.IsNotExist(statErr) {
+				t.Errorf("%s: something was kept", name)
+			}
+		}
+	})
+
+	t.Run("a destination that holds a recording is refused [verifies SP-2409~2]", func(t *testing.T) {
 		root := runOn(t)
 		to := filepath.Join(t.TempDir(), "recording")
-		if err := keeper.Keep(root, repo, home, to); err != nil {
+		if err := keeper.Keep(root, repo, home, to, ""); err != nil {
 			t.Fatal(err)
 		}
-		if err := keeper.Keep(root, repo, home, to); !errors.Is(err, app.ErrRecordingExists) {
+		if err := keeper.Keep(root, repo, home, to, ""); !errors.Is(err, app.ErrRecordingExists) {
 			t.Errorf("error = %v", err)
 		}
 	})

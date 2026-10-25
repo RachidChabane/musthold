@@ -23,12 +23,11 @@ const valid = `{
   "seed": 7,
   "model": "claude-sonnet-5-5",
   "caps": {"assistant_messages": 100, "seconds": 600, "budget_usd": "2.50"},
-  "toolchain": ["python3"],
   "allowed_tools": ["Bash(pytest *)"]
 }`
 
 func TestParse(t *testing.T) {
-	t.Run("every parameter of the runs comes from the document [verifies SP-2400~1]", func(t *testing.T) {
+	t.Run("every parameter of the runs comes from the document [verifies SP-2400~2]", func(t *testing.T) {
 		parsed, err := config.Parse([]byte(valid))
 		if err != nil {
 			t.Fatal(err)
@@ -42,12 +41,12 @@ func TestParse(t *testing.T) {
 		if parsed.Model != "claude-sonnet-5-5" || parsed.Caps != (config.Caps{AssistantMessages: 100, Seconds: 600, BudgetUSD: "2.50"}) {
 			t.Errorf("model %q, caps %+v", parsed.Model, parsed.Caps)
 		}
-		if !slices.Equal(parsed.Toolchain, []string{"python3"}) || !slices.Equal(parsed.AllowedTools, []string{"Bash(pytest *)"}) {
-			t.Errorf("toolchain %v, rules %v", parsed.Toolchain, parsed.AllowedTools)
+		if !slices.Equal(parsed.AllowedTools, []string{"Bash(pytest *)"}) {
+			t.Errorf("rules %v", parsed.AllowedTools)
 		}
 	})
 
-	t.Run("the committed configuration of the demonstration parses [verifies SP-2400~1]", func(t *testing.T) {
+	t.Run("the committed configuration of the demonstration parses [verifies SP-2400~2]", func(t *testing.T) {
 		data, err := os.ReadFile("../../../../../demo/loop/demo.json")
 		if err != nil {
 			t.Fatal(err)
@@ -61,7 +60,7 @@ func TestParse(t *testing.T) {
 		}
 	})
 
-	t.Run("an unknown member, a second document and a broken document are refused [verifies SP-2400~1]", func(t *testing.T) {
+	t.Run("an unknown member, a second document and a broken document are refused [verifies SP-2400~2]", func(t *testing.T) {
 		for name, document := range map[string]string{
 			"unknown cap":     strings.Replace(valid, `"seconds": 600`, `"seconds": 600, "minutes": 10`, 1),
 			"second document": valid + "\n{}",
@@ -73,7 +72,7 @@ func TestParse(t *testing.T) {
 		}
 	})
 
-	t.Run("every invalid member is named [verifies SP-2400~1]", func(t *testing.T) {
+	t.Run("every invalid member is named [verifies SP-2400~2]", func(t *testing.T) {
 		document := `{"tasks": [{"name": "Bad Name", "fixture": "", "prompt": "", "operations": {"op": {}}}, {"name": "Bad Name", "fixture": "f", "prompt": "p"}],
 		  "arms": ["everything"], "repetitions": 0, "model": "", "caps": {"assistant_messages": 0, "seconds": 0, "budget_usd": "2"}, "allowed_tools": [""]}`
 		_, err := config.Parse([]byte(document))
@@ -87,7 +86,7 @@ func TestParse(t *testing.T) {
 		}
 	})
 
-	t.Run("a document without tasks or arms is refused [verifies SP-2400~1]", func(t *testing.T) {
+	t.Run("a document without tasks or arms is refused [verifies SP-2400~2]", func(t *testing.T) {
 		_, err := config.Parse([]byte(`{"repetitions": 1, "model": "m", "caps": {"assistant_messages": 1, "seconds": 1, "budget_usd": "1.00"}}`))
 		if !errors.Is(err, config.ErrInvalid) || !strings.Contains(err.Error(), "tasks") || !strings.Contains(err.Error(), "arms") {
 			t.Fatalf("error %v", err)
@@ -101,7 +100,7 @@ func TestRuns(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Run("each task runs in each arm for each repetition, once [verifies SP-2400~1]", func(t *testing.T) {
+	t.Run("each task runs in each arm for each repetition, once [verifies SP-2400~2]", func(t *testing.T) {
 		runs := parsed.Runs()
 		if len(runs) != 2*2*3 {
 			t.Fatalf("%d runs", len(runs))
@@ -115,7 +114,7 @@ func TestRuns(t *testing.T) {
 		}
 	})
 
-	t.Run("the seed alone decides the order [verifies SP-2400~1]", func(t *testing.T) {
+	t.Run("the seed alone decides the order [verifies SP-2400~2]", func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
 			seeded := parsed
 			seeded.Seed = rapid.Uint64().Draw(t, "seed")

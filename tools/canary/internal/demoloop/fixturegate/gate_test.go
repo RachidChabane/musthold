@@ -52,6 +52,9 @@ const (
 	survivingValidMutant = "surviving_valid_mutant"
 	// missedInput is the example of BOX-2 its weak test does not check.
 	missedInput = "ticket_price(age=65) => 8"
+	// productVariable names the product tree the test runs against, as the
+	// containers of a live run mount it; unset, it runs the repository's binaries.
+	productVariable = "SPEC_PROOF_DEMO_PRODUCT"
 	// claudeExitBlock is the exit code of the end-of-turn hook that holds the turn.
 	claudeExitBlock = 2
 	stopPayload     = `{"hook_event_name":"Stop","session_id":"fixture-gate","stop_hook_active":false}`
@@ -82,7 +85,7 @@ func gateBlocksThenPasses(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	layout := plan.Layout{Repo: repo, Run: runDir(t)}
+	layout := plan.Layout{Repo: repo, Run: runDir(t), Product: os.Getenv(productVariable)}
 	for _, binary := range []string{plan.ShallnotBinary, plan.VerifyBinary, "spec-proof-dp", "spec-proof-alignment", "spec-proof-completeness"} {
 		if _, err := os.Stat(layout.Bin(binary)); err != nil {
 			t.Skipf("%s is not built: run script/product-build", layout.Bin(binary))
@@ -94,7 +97,7 @@ func gateBlocksThenPasses(t *testing.T) {
 	}
 	run := demoRun(t, repo)
 	preparer := app.Preparer{Processes: adapters.Exec{}, Files: adapters.OSFiles{}, Env: os.Environ()}
-	prepared, err := preparer.Prepare(context.Background(), layout, run, []string{layout.Bin(""), filepath.Dir(python)})
+	prepared, err := preparer.Prepare(context.Background(), layout, run, []string{layout.BinDir(), filepath.Dir(python)})
 	if err != nil {
 		t.Fatal(err)
 	}

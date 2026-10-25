@@ -24,6 +24,9 @@ const (
 	TimesFile = "stream-times.jsonl"
 	// StderrFile is what the CLI printed to its error stream.
 	StderrFile = "stderr.txt"
+	// EgressFile is the log of the egress proxy: one JSON line per request the
+	// session's network made.
+	EgressFile = "egress.log"
 	// HooksFile holds every hook call the recording shims saw.
 	HooksFile = evidence.HooksFile
 	// InitialGateFile is the gate's JSON report on the equipped project, before the session.
@@ -54,8 +57,14 @@ type Meta struct {
 	Repetition int    `json:"repetition"`
 	Model      string `json:"model"`
 	Prompt     string `json:"prompt"`
-	// Argv is the session's command line. It never holds the credential.
+	// Argv is the docker command of the session. It never holds the credential,
+	// which reaches the session's entry on its standard input.
 	Argv []string `json:"argv"`
+	// Image is the session image, by id; ClaudeSHA256 the SHA-256 of the Linux
+	// Claude Code binary; Egress the endpoints the proxy forwards to.
+	Image        string   `json:"image,omitempty"`
+	ClaudeSHA256 string   `json:"claudeSha256,omitempty"`
+	Egress       []string `json:"egress,omitempty"`
 	// Caps are the bounds the runner enforced.
 	EventCap       int    `json:"eventCap"`
 	TimeoutSeconds int    `json:"timeoutSeconds"`
