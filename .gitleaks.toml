@@ -14,3 +14,7 @@ regexes = ['''(?i)"?(cacheKey|api_base_sha|apiCallId|goldenKey)"?\s*[:=]''']
 description = "The fixed per-install secret of the host-protocol test fixtures"
 regexTarget = "line"
 regexes = ['''fixture-secret-0123456789abcdef''']
+
+[[allowlists]]
+description = "The bait and run tokens the canary generates for its sandbox probes, in its tests and recorded sessions"
+paths = ['''^tools/canary/.*(testdata/|_test\.go$)''']
