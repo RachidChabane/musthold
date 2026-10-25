@@ -58,6 +58,7 @@ type framework interface {
 	selector() ports.TestSelector
 	runner(deps Dependencies) ports.SuiteRunner
 	witnessFramework
+	scanFramework
 }
 
 var _ ports.Ecosystem = (*Strategy)(nil)
@@ -66,6 +67,8 @@ var _ ports.Ecosystem = (*Strategy)(nil)
 type Strategy struct {
 	deps      Dependencies
 	framework framework
+	// scanCache keeps what a scan reads once of the runner's configuration.
+	scanCache *scanCache
 }
 
 // NewJest builds the Jest strategy over its ports.
@@ -81,7 +84,7 @@ func newStrategy(deps Dependencies, framework framework) *Strategy {
 	if deps.Timeout <= 0 {
 		deps.Timeout = DefaultTimeout
 	}
-	return &Strategy{deps: deps, framework: framework}
+	return &Strategy{deps: deps, framework: framework, scanCache: newScanCache()}
 }
 
 // Name is ecosystem.Jest or ecosystem.Vitest.

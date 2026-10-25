@@ -15,7 +15,14 @@ import (
 const (
 	pytestAlertsFixture     = "fixtures/scan/pytest-alerts"
 	goQuotesFixture         = "fixtures/scan/go-quotes"
-	verifiesConfirmationE2E = " [verifies SP-2145~1]"
+	jestAlertsFixture       = "fixtures/scan/jest-alerts"
+	vitestAlertsFixture     = "fixtures/scan/vitest-alerts"
+	vacuousNodeEscalation   = "test/escalation.test.ts::escalate accepts any repeat"
+	dependentNodeRouting    = "test/channels.test.ts::route never raises a level"
+	nodeLevels              = "src/levels.ts"
+	nodeQuietCondition      = 22
+	nodeQuietLowered        = 23
+	verifiesConfirmationE2E = " [verifies SP-2145~2]"
 	confirmationPhase       = "confirmation "
 	alertsLevels            = "alerts/levels.py"
 	quietCondition          = 22
@@ -28,7 +35,10 @@ const (
 type confirmationCase struct {
 	name, fixture, tool string
 	vacuous, dependent  string
-	reason              format.ScanUnprovenReason
+	// reason is why the dependent test is unproven; empty for a runner that
+	// records the test alone, which may judge it in any class but verifies
+	// nothing.
+	reason format.ScanUnprovenReason
 	// premise checks that the scan proved what a claim on the dependent test
 	// would have cited.
 	premise func(t *testing.T, statement format.ScanStatement, dependent format.ScanTest)
@@ -46,12 +56,40 @@ func sitesOf(mutants []format.ScanMutant) map[format.ScanLine]bool {
 // provenOnQuietLevel requires the proven mutants of the lines the routing test
 // owns only once the ops channel is muted: enough of them, on enough sites, for
 // a claim.
-func provenOnQuietLevel(t *testing.T, statement format.ScanStatement, _ format.ScanTest) {
+func provenOnQuietLevel(t *testing.T, statement format.ScanStatement, dependent format.ScanTest) {
+	t.Helper()
+	provenOn(t, statement, alertsLevels, quietCondition, quietLowered)
+}
+
+// provenOnNodeQuietLevel is provenOnQuietLevel for the TypeScript project, in
+// which the routing test, recorded alone, never runs the quiet level: none of
+// its changes lies there.
+func provenOnNodeQuietLevel(t *testing.T, statement format.ScanStatement, dependent format.ScanTest) {
+	t.Helper()
+	provenOn(t, statement, nodeLevels, nodeQuietCondition, nodeQuietLowered)
+	quiet := map[string]bool{}
+	for _, mutant := range statement.Predicate.Mutants {
+		if slices.ContainsFunc(mutant.Lines, func(line format.ScanLine) bool {
+			return line.File == nodeLevels && (line.Line == nodeQuietCondition || line.Line == nodeQuietLowered)
+		}) {
+			quiet[mutant.ID] = true
+		}
+	}
+	for _, change := range dependent.Changes {
+		if quiet[change.Mutant] {
+			t.Fatalf("%s cites %s, a change of the quiet level it runs only beside the test that mutes", dependent.ID, change.Mutant)
+		}
+	}
+}
+
+// provenOn requires enough proven mutants of the two lines of the file, on
+// enough sites, for a claim.
+func provenOn(t *testing.T, statement format.ScanStatement, file string, condition, lowered int) {
 	t.Helper()
 	var proven []format.ScanMutant
 	for _, mutant := range statement.Predicate.Mutants {
 		onQuiet := slices.ContainsFunc(mutant.Lines, func(line format.ScanLine) bool {
-			return line.File == alertsLevels && (line.Line == quietCondition || line.Line == quietLowered)
+			return line.File == file && (line.Line == condition || line.Line == lowered)
 		})
 		if onQuiet && mutant.Proven() && !mutant.Sentinel {
 			proven = append(proven, mutant)
@@ -89,6 +127,8 @@ func TestScanConfirmsEachClaimAlone(t *testing.T) {
 			vacuous: "quotes_test.go::TestQuotesAcceptAnySku", dependent: "quotes_test.go::TestPriceOfThePremiumRange",
 			reason: format.ScanInconclusiveOutcome, premise: citesItsChanges,
 		},
+		{name: "jest", fixture: jestAlertsFixture, tool: nodeTool, vacuous: vacuousNodeEscalation, dependent: dependentNodeRouting, premise: provenOnNodeQuietLevel},
+		{name: "vitest", fixture: vitestAlertsFixture, tool: nodeTool, vacuous: vacuousNodeEscalation, dependent: dependentNodeRouting, premise: provenOnNodeQuietLevel},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if _, err := exec.LookPath(c.tool); err != nil {
@@ -103,7 +143,11 @@ func TestScanConfirmsEachClaimAlone(t *testing.T) {
 
 			t.Run("a test whose survivals hold only beside another test makes no claim"+verifiesConfirmationE2E, func(t *testing.T) {
 				dependent := testNamed(statement, c.dependent)
-				if dependent.Class != format.ScanUnproven || dependent.Reason != c.reason || strings.Contains(scan.stdout, c.dependent+" passes on all") {
+				judged := dependent.ID != "" && dependent.Class != format.ScanVerifiesNothing
+				if c.reason != "" {
+					judged = dependent.Class == format.ScanUnproven && dependent.Reason == c.reason
+				}
+				if !judged || strings.Contains(scan.stdout, c.dependent+" passes on all") {
 					t.Fatalf("%s is judged %q (%s):\n%s", c.dependent, dependent.Class, dependent.Reason, scan.stdout)
 				}
 				c.premise(t, statement, dependent)

@@ -18,11 +18,15 @@ const (
 	pytestScanFixture = "fixtures/scan/pytest"
 	goScanFixture     = "fixtures/scan/go"
 	goRatesFixture    = "fixtures/scan/go-rates"
+	jestScanFixture   = "fixtures/scan/jest"
+	vitestScanFixture = "fixtures/scan/vitest"
 	vacuousPytest     = "tests/test_discount.py::test_discount_accepts_any_percent"
 	vacuousGo         = "discount_test.go::TestDiscountAcceptsAnyPercent"
-	verifiesScanE2E   = " [verifies SP-2122~2]"
+	vacuousNode       = "test/discount.test.ts::discount accepts any percent"
+	nodeTool          = "node"
+	verifiesScanE2E   = " [verifies SP-2122~3]"
 	verifiesReplay    = " [verifies SP-2114~2]"
-	verifiesCommand   = " [verifies SP-2119~2]"
+	verifiesCommand   = " [verifies SP-2119~3]"
 	verifiesOrder     = " [verifies SP-2140~1]"
 )
 
@@ -47,6 +51,7 @@ func newScanned(t *testing.T, fixture string) *scanned {
 		t.Fatal(err)
 	}
 	copyTree(t, filepath.Join(abs(t, discpowerDir), fixture), s.root)
+	linkNodeModules(t, s.root)
 	for _, args := range [][]string{
 		{"init", "-q"}, {"add", "-A"},
 		{"-c", "user.name=scan", "-c", "user.email=scan@example.com", "-c", "commit.gpgsign=false", "commit", "-qm", "first"},
@@ -91,6 +96,8 @@ func TestScanFindsTheTestThatVerifiesNothing(t *testing.T) {
 	}{
 		{"pytest", pytestScanFixture, vacuousPytest, "python3"},
 		{"go", goScanFixture, vacuousGo, "go"},
+		{"jest", jestScanFixture, vacuousNode, nodeTool},
+		{"vitest", vitestScanFixture, vacuousNode, nodeTool},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if _, err := exec.LookPath(c.tool); err != nil {
@@ -159,20 +166,28 @@ func TestScanIsQuickByDefault(t *testing.T) {
 }
 
 func TestScanStatementOfAnyWorkers(t *testing.T) {
-	if _, err := exec.LookPath("go"); err != nil {
-		t.Skipf("no go: %v", err)
+	for _, c := range []struct{ name, fixture, tool string }{
+		{"go", goRatesFixture, "go"},
+		{"jest", jestScanFixture, nodeTool},
+		{"vitest", vitestScanFixture, nodeTool},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			if _, err := exec.LookPath(c.tool); err != nil {
+				t.Skipf("no %s: %v", c.tool, err)
+			}
+			s := newScanned(t, c.fixture)
+			one := s.run(s.binary, "scan", "--budget", "0", "--workers", "1", "--format", "json")
+			four := s.run(s.binary, "scan", "--budget", "0", "--workers", "4", "--format", "json")
+			t.Run("a scan with no budget writes the same statement on one worker and on four"+verifiesOrder, func(t *testing.T) {
+				if one.code != 0 || four.code != 0 {
+					t.Fatalf("exit %d:\n%s\nexit %d:\n%s", one.code, one.output(), four.code, four.output())
+				}
+				if strings.TrimSpace(one.stdout) == "" || one.stdout != four.stdout {
+					t.Fatalf("one worker:\n%s\nfour workers:\n%s", one.stdout, four.stdout)
+				}
+			})
+		})
 	}
-	s := newScanned(t, goRatesFixture)
-	one := s.run(s.binary, "scan", "--budget", "0", "--workers", "1", "--format", "json")
-	four := s.run(s.binary, "scan", "--budget", "0", "--workers", "4", "--format", "json")
-	t.Run("a scan with no budget writes the same statement on one worker and on four"+verifiesOrder, func(t *testing.T) {
-		if one.code != 0 || four.code != 0 {
-			t.Fatalf("exit %d:\n%s\nexit %d:\n%s", one.code, one.output(), four.code, four.output())
-		}
-		if strings.TrimSpace(one.stdout) == "" || one.stdout != four.stdout {
-			t.Fatalf("one worker:\n%s\nfour workers:\n%s", one.stdout, four.stdout)
-		}
-	})
 }
 
 func TestQuickScanOfAGoProject(t *testing.T) {
@@ -186,6 +201,35 @@ func TestQuickScanOfAGoProject(t *testing.T) {
 			t.Fatalf("exit %d:\n%s", scan.code, scan.output())
 		}
 	})
+}
+
+func TestQuickAndFullScansOfANodeProject(t *testing.T) {
+	if _, err := exec.LookPath(nodeTool); err != nil {
+		t.Skipf("no node: %v", err)
+	}
+	for _, c := range []struct{ name, fixture string }{{"jest", jestScanFixture}, {"vitest", vitestScanFixture}} {
+		t.Run(c.name, func(t *testing.T) {
+			s := newScanned(t, c.fixture)
+			quick := s.run(s.binary, "scan")
+			t.Run("a scan with no flag runs quickly, prints its depth line and names the test that runs code and asserts nothing"+verifiesScanE2E, func(t *testing.T) {
+				for _, want := range []string{"quick scan · 1m30s budget · ", "5 of 5 green tests sampled", "#1 " + vacuousNode + " passes on all "} {
+					if quick.code != 0 || !strings.Contains(quick.stdout, want) {
+						t.Fatalf("exit %d, missing %q:\n%s", quick.code, want, quick.output())
+					}
+				}
+			})
+			full := s.run(s.binary, "scan", "--full", "--sample", "2", "--budget", "0", "--format", "json")
+			t.Run("a full scan records the tests it does not sample by their files' segments and writes a statement the format admits"+verifiesCommand, func(t *testing.T) {
+				admitted, err := format.AdmitScan(bytes.TrimSpace([]byte(full.stdout)))
+				if full.code != 0 || err != nil {
+					t.Fatalf("exit %d, %v:\n%s", full.code, err, full.output())
+				}
+				if counts := admitted.Predicate.Counts; counts.NotSampled != 3 || len(admitted.Predicate.Tests) != 2 {
+					t.Fatalf("counts %+v, %d judged", counts, len(admitted.Predicate.Tests))
+				}
+			})
+		})
+	}
 }
 
 func TestScanRefusesADirtyTree(t *testing.T) {

@@ -47,9 +47,9 @@ broken code:
 spec-proof scan
 ```
 
-It needs no spec, no model and no configuration, runs pytest and Go suites, and
-exits 0 whatever it finds. The default quick scan judges 12 tests within about
-a minute and a half; `spec-proof scan --full` judges 40 against the whole
+It needs no spec, no model and no configuration, runs pytest, Go, Jest and
+Vitest suites, and exits 0 whatever it finds. The default quick scan judges 12
+tests within about a minute and a half; `spec-proof scan --full` judges 40 against the whole
 suite. See [scan](docs/usage/discpower.md#scan).
 
 ## The four proofs

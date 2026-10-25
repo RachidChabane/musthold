@@ -45,6 +45,10 @@ type ScanCoverageRequest struct {
 	// Alone records each requested test in a run that selects it and no other
 	// test, even for a runner whose recording of the suite is one run.
 	Alone bool
+	// Owners are the requested tests whose owned lines the scan reads; nil
+	// stands for every requested test. A runner that records the owned lines
+	// of a test in runs of its own may give each other test its lines only.
+	Owners []ecosystem.TestID
 }
 
 // ScanRuns is what a batch of runs did: the tests the runner collected and,

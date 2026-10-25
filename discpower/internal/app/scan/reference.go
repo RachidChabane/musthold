@@ -93,10 +93,11 @@ func (s *Service) runReference(ctx context.Context, ref *reference, copied time.
 	return nil
 }
 
-// recordCoverage records the line coverage of the given green tests, each run
+// recordCoverage records the line coverage of the given green tests, and the
+// owned lines of the owners among them, nil standing for all of them, each run
 // under coverage bounded by the request's timeout or by one derived from the
 // reference runs, on the request's workers.
-func (s *Service) recordCoverage(ctx context.Context, ref *reference, tests []ecosystem.TestID, request Request) error {
+func (s *Service) recordCoverage(ctx context.Context, ref *reference, tests, owners []ecosystem.TestID, request Request) error {
 	started := s.deps.Clock()
 	wanted := make(map[ecosystem.TestID]bool, len(tests))
 	for _, test := range tests {
@@ -109,7 +110,7 @@ func (s *Service) recordCoverage(ctx context.Context, ref *reference, tests []ec
 		}
 	}
 	limit := coverageTimeout(ref.referenceRuns, request.CoverageTimeout)
-	coverage, err := s.deps.Suite.LineCoverage(ctx, ref.workspace, ref.toolchain, ports.ScanCoverageRequest{Tests: cases, Timeout: limit, Workers: request.Workers})
+	coverage, err := s.deps.Suite.LineCoverage(ctx, ref.workspace, ref.toolchain, ports.ScanCoverageRequest{Tests: cases, Timeout: limit, Workers: request.Workers, Owners: owners})
 	if err != nil {
 		return fmt.Errorf("record the line coverage, each run bounded by %s: %w", limit, err)
 	}

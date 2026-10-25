@@ -11,12 +11,13 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
+	domain "github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/scanscope"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
 
 func TestDepthRequest(t *testing.T) {
-	t.Run("a scan is quick unless --full is given [verifies SP-2119~2]", func(t *testing.T) {
+	t.Run("a scan is quick unless --full is given [verifies SP-2119~3]", func(t *testing.T) {
 		quick := depthRequest(false, nil, scan.Preset{})
 		if quick.Depth != scan.DepthQuick || quick.SampleSize != scan.QuickSampleSize || quick.Mutants != scan.QuickMutants ||
 			quick.Budget != scan.QuickBudget || quick.Coverage != scan.CoverSampled {
@@ -28,7 +29,7 @@ func TestDepthRequest(t *testing.T) {
 			t.Fatalf("full %+v", full)
 		}
 	})
-	t.Run("--sample, --mutants and --budget replace what the depth sets, even with zero [verifies SP-2119~2]", func(t *testing.T) {
+	t.Run("--sample, --mutants and --budget replace what the depth sets, even with zero [verifies SP-2119~3]", func(t *testing.T) {
 		given := map[string]bool{flagSample: true, flagMutants: true, flagBudget: true}
 		request := depthRequest(false, given, scan.Preset{SampleSize: 3, Mutants: 9})
 		if request.SampleSize != 3 || request.Mutants != 9 || request.Budget != 0 || request.Depth != scan.DepthQuick {
@@ -131,6 +132,15 @@ func TestWitnessRecorder(t *testing.T) {
 			}
 		}
 	})
+	t.Run("a Jest or a Vitest project is scanned by its runner and records the coverage of its witnesses running them alone [verifies SP-2296~1]", func(t *testing.T) {
+		for fixture, name := range map[string]domain.Name{jestScanFixture: domain.Jest, vitestScanFixture: domain.Vitest} {
+			strategy := strategyOf(t, fixture)
+			got, want := witnessRecorder(strategy), strategy.(ports.WitnessCovering).WitnessCoverage()
+			if strategy.Name() != name || got == nil || fmt.Sprintf("%T", got) != fmt.Sprintf("%T", want) {
+				t.Errorf("%s: %s, recorder %T, want %T", fixture, strategy.Name(), got, want)
+			}
+		}
+	})
 	t.Run("prove records coverage only through the whole suite's recorder, which a Go module does not offer [verifies SP-2271~1]", func(t *testing.T) {
 		if _, covering := goStrategy.(ports.Covering); covering {
 			t.Fatal("the Go strategy records the whole suite's coverage, which prove would use")
@@ -142,4 +152,6 @@ func TestWitnessRecorder(t *testing.T) {
 const (
 	goScanFixture     = "../../fixtures/scan/go"
 	pytestScanFixture = "../../fixtures/scan/pytest"
+	jestScanFixture   = "../../fixtures/scan/jest"
+	vitestScanFixture = "../../fixtures/scan/vitest"
 )

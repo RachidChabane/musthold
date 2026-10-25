@@ -19,12 +19,12 @@ import (
 )
 
 const (
-	verifiesHostE2E     = " [verifies SP-2274~1]"
+	verifiesHostE2E     = " [verifies SP-2274~2]"
 	verifiesHostReplay  = " [verifies SP-2275~1]"
-	verifiesHostView    = " [verifies SP-2276~1]"
+	verifiesHostView    = " [verifies SP-2276~2]"
 	verifiesHostResume  = " [verifies SP-2277~1]"
-	verifiesHostBudget  = " [verifies SP-2278~1]"
-	verifiesHostProve   = " [verifies SP-2279~1]"
+	verifiesHostBudget  = " [verifies SP-2278~2]"
+	verifiesHostProve   = " [verifies SP-2279~2]"
 	verifiesHostPull    = " [verifies SP-2280~1]"
 	brokenPromiseFolder = "promise-1"
 	routeWitness        = "witness_failure"
@@ -38,7 +38,13 @@ const (
 	// asserts nothing.
 	pytestHostFixture = "fixtures/scan/pytest-host"
 	goHostFixture     = "fixtures/scan/go-host"
+	jestHostFixture   = "fixtures/scan/jest-host"
+	vitestHostFixture = "fixtures/scan/vitest-host"
 )
+
+// nodeHidden are the units of the TypeScript invoice projects the witnesses of
+// the order total never run.
+var nodeHidden = []string{"discount", "lineTotal", "shipping"}
 
 // hostProject is a scan fixture a host drives end to end.
 type hostProject struct {
@@ -63,6 +69,16 @@ func hostProjects() []hostProject {
 			name: "go", fixture: goHostFixture, tool: "go", scenario: tallyScenario(),
 			shown: []string{"tally.OrderTotal"}, hidden: []string{"tally.Discount", "tally.LineTotal", "tally.Shipping"},
 			killerFailure: []string{"--- FAIL: Test_specproof_witness_", "FAIL"},
+		},
+		{
+			name: "jest", fixture: jestHostFixture, tool: nodeTool, scenario: invoiceTypeScriptScenario(""),
+			shown: []string{"orderTotal"}, hidden: nodeHidden,
+			killerFailure: []string{"FAIL test/specproof_", "specproof_witnesses"},
+		},
+		{
+			name: "vitest", fixture: vitestHostFixture, tool: nodeTool, scenario: invoiceTypeScriptScenario(vitestExpect),
+			shown: []string{"orderTotal"}, hidden: nodeHidden,
+			killerFailure: []string{"FAIL", "test/specproof_", "specproof_witnesses"},
 		},
 	}
 }
@@ -309,6 +325,8 @@ func proveProjects() []proveProject {
 	return []proveProject{
 		{name: "pytest", fixture: fixtureProject, report: "fixtures/prove/parcel-report.json", tool: "python3", readme: readmeOf(parcelQuote), scenario: parcelScenario()},
 		{name: "go", fixture: "fixtures/ecosystems/go", report: "fixtures/prove/go-report.json", tool: "go", readme: readmeOf(parcelGoQuote), scenario: parcelGoScenario()},
+		{name: "jest", fixture: "fixtures/ecosystems/jest", report: "fixtures/prove/jest-report.json", tool: nodeTool, readme: readmeOf(parcelQuote), scenario: parcelTypeScriptScenario("")},
+		{name: "vitest", fixture: "fixtures/ecosystems/vitest", report: "fixtures/prove/vitest-report.json", tool: nodeTool, readme: readmeOf(parcelQuote), scenario: parcelTypeScriptScenario(vitestExpect)},
 	}
 }
 

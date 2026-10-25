@@ -166,9 +166,9 @@ and sees only its ticket.
 
 ## Scan
 
-`spec-proof-dp scan` asks of any pytest or Go repository, with no spec, no model
-and no configuration, which tests still pass when the code they run is broken
-(ADR 0014). `spec-proof scan` runs it through the [umbrella](umbrella.md).
+`spec-proof-dp scan` asks of any pytest, Go, Jest or Vitest repository, with no
+spec, no model and no configuration, which tests still pass when the code they
+run is broken (ADR 0014). `spec-proof scan` runs it through the [umbrella](umbrella.md).
 
 ```
 spec-proof-dp scan [--full] [--host [--resume]] [--base REV] [--seed N] [--sample N] [--mutants N] [--budget DURATION] [--workers N] [--coverage-timeout DURATION] [--format text|md|json] [--root DIR] [<PR>]
@@ -186,7 +186,18 @@ is owned when every block holding code on it that the test ran is owned, so a
 `case` condition, which no block holds, is never owned. For pytest, a test owns
 the lines its own thread ran in its setup and call, outside the setup of a
 fixture wider than the function and outside the body of a module it imported;
-a teardown is never owned.
+a teardown is never owned. For Jest and Vitest, a test whose owned lines the
+scan reads runs alone in three processes, each recording V8 coverage mapped to
+the sources through the source maps the runner's transform writes. Its window
+opens before its first `beforeEach` hook and closes when its test function
+settles; a callback scheduled by setup files, module evaluation, describe
+bodies or another hook, and a fake timer set before the window, run in the
+window but are none of its own. A line is owned when every code unit of it the
+test ran counted in that window, with the same counts in the three processes,
+so a line `afterEach` also runs is never owned; a window in which a module is
+evaluated owns nothing. A process that cannot check one of these conditions
+owns less, never more: without an inspector session the test gets the whole
+of each file it ran and owns nothing.
 Without `--base` it samples green tests, stratified by file; with `--base` it
 takes the green tests that run a function changed since that revision. It draws
 operator mutants on the lines the judged tests own, round-robin over those
@@ -197,7 +208,7 @@ to 12 sentinels, one file at a time.
 |---|---|---|
 | Tests sampled | 12 | 40 |
 | Operator mutants | 72, six per test | 150 |
-| Coverage recorded | the sampled tests (every green test for pytest, which records them in one run) | every green test |
+| Coverage recorded | the sampled tests (every green test for pytest, which records them in one run) | every green test; Jest and Vitest record the tests not sampled in one run of their files, each with the lines of its file's segment |
 | Tests run on a mutant | the tests with recorded coverage that ran its lines | every green test that ran its lines |
 | Budget | 90 s, then running mutants stop and count as not run | none |
 
@@ -211,8 +222,10 @@ that killed a mutant on its lines keeps its class whatever else runs, as does a
 test that failed a sentinel; every other judged test is open. A budget that cuts
 the scan therefore spends its time on the open verdicts first, and the mutant
 count names how many mutants it left unrun. It never mutates a test, vendored,
-generated or migration file nor a line that logs, prints or records a metric,
-and runs each mutant against every test that ran one of its lines, three times.
+generated or migration file, a file of a `__tests__`, `__mocks__` or
+`__fixtures__` directory, nor a line that logs, prints, calls `console` or
+records a metric, and runs each mutant against every test that ran one of its
+lines, three times.
 
 A mutant counts only when executed evidence proves it changes behaviour: another
 green test kills it three runs out of three, or a differential run of the
@@ -226,14 +239,16 @@ kill or an inconclusive outcome, never a survival.
 Before a test is named, the scan confirms its claim alone, since a mutant runs
 every test that ran its lines in one selection. The test keeps only the changes
 on lines it also owns when it runs alone, recorded again in a session of its
-own for pytest; a change only kills prove stays only when one of its killers,
+own for pytest and read from the recording alone for Go, Jest and Vitest; a
+change only kills prove stays only when one of its killers,
 run alone, passes the reference and fails the mutant three times; and the test
 runs alone three times on each change left, a change it does not pass three
 times making it unproven. The number it prints is the confirmed one.
 
 A mutant can stop a test's process before any test starts: a Go test binary
-that panics in a package variable or `init`, or a pytest module, `conftest.py`
-or `__init__.py` that raises on import. When every run of a test on a mutant
+that panics in a package variable or `init`, a pytest module, `conftest.py`
+or `__init__.py` that raises on import, a Jest or Vitest test file whose import,
+describe body or setup file throws, or a global setup that throws. When every run of a test on a mutant
 stopped so, the change counts neither for nor against the test: the statement
 lists it apart from the test's changes, under `notStarted`. The other tests of
 the run still run: a pytest session names the test files, keeps the selected
@@ -242,7 +257,12 @@ and runs again without the tests below a `conftest.py` that stopped it. A Go
 process that exits early with tests left unrun counts as one run, and the
 package runs again in fresh processes until each test has three. A Go subtest
 that passes while its parent fails on its own did not pass; when a failing
-sibling may have failed the parent, the subtest runs again without it. The
+sibling may have failed the parent, the subtest runs again without it. Jest
+runs in band and Vitest in one fork, each run one process with coverage,
+bail and retries off; a Jest or Vitest test is named `file::titles`, its
+describe titles and its own joined by ` > `, and a hook failure, a retry, or a
+name another test shares, for Jest ignoring case, gives an error. A Vitest
+project that runs its tests in a browser is refused. The
 headline gives each class over its denominator and never reads as a pass:
 
 ```

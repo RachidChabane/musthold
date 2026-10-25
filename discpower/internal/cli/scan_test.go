@@ -10,7 +10,7 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
 )
 
-const verifiesScanCommand = " [verifies SP-2119~2]"
+const verifiesScanCommand = " [verifies SP-2119~3]"
 
 func runScan(t *testing.T, workDir string, arguments ...string) (code int, stdout, stderr string) {
 	t.Helper()
@@ -26,13 +26,13 @@ func TestScanCommandLine(t *testing.T) {
 			t.Fatalf("exit %d, stderr %q", code, stderr)
 		}
 	})
-	t.Run("a tree without a pytest or Go suite is a tool failure that says what a scan runs"+verifiesScanCommand, func(t *testing.T) {
+	t.Run("a tree without a pytest, Go, Jest or Vitest suite is a tool failure that says what a scan runs"+verifiesScanCommand, func(t *testing.T) {
 		dir := t.TempDir()
 		if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("# notes\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		code, stdout, stderr := runScan(t, dir, "scan")
-		if code != cli.ExitToolFailure || stdout != "" || !strings.Contains(stderr, "a scan runs pytest and Go test suites") {
+		if code != cli.ExitToolFailure || stdout != "" || !strings.Contains(stderr, "a scan runs pytest, Go, Jest and Vitest test suites") {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
 		}
 	})
@@ -51,7 +51,7 @@ func TestScanCommandLine(t *testing.T) {
 	})
 	t.Run("--host and --resume are flags of scan, and a tree with no suite fails before any session [verifies SP-2244~1]", func(t *testing.T) {
 		code, stdout, stderr := runScan(t, t.TempDir(), "scan", "--resume", "7")
-		if code != cli.ExitToolFailure || stdout != "" || !strings.Contains(stderr, "a scan runs pytest and Go test suites") {
+		if code != cli.ExitToolFailure || stdout != "" || !strings.Contains(stderr, "a scan runs pytest, Go, Jest and Vitest test suites") {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
 		}
 		_, stdout, stderr = runScan(t, t.TempDir(), "scan", "--help")

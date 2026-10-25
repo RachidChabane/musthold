@@ -87,7 +87,7 @@ const scanNiceness = 10
 
 // Errors of `scan`.
 var (
-	errScanEcosystem = errors.New("no ecosystem a scan runs was recognized: a scan runs pytest and Go test suites")
+	errScanEcosystem = errors.New("no ecosystem a scan runs was recognized: a scan runs pytest, Go, Jest and Vitest test suites")
 	errScanFormat    = errors.New("--format is one of text, md or json")
 	errReplayDir     = errors.New("replay takes one directory: a finding folder or the folder of a scan")
 	errNoFinding     = errors.New("no finding.json in the directory or its folders")
