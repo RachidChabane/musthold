@@ -61,6 +61,13 @@ type MarketplaceEntry struct {
 	Ref        string
 }
 
+// NoticeFacts is what the NOTICE file at the repository root says.
+type NoticeFacts struct {
+	// Present is false when the repository has no NOTICE file.
+	Present bool
+	Text    string
+}
+
 // Visibility is whether the repository is public.
 type Visibility int
 
@@ -92,6 +99,8 @@ type Facts struct {
 	// ThirdPartyNotices is whether the repository root holds the third-party
 	// notices, read only for a module that ships a binary.
 	ThirdPartyNotices bool
+	// Notice is the NOTICE file of the repository root.
+	Notice NoticeFacts
 	// Visibility is the repository's, read only when RequirePublic is set.
 	Visibility    Visibility
 	RequirePublic bool
@@ -116,6 +125,7 @@ const (
 	RuleMarketplaceRefs  = "marketplace-refs-resolve"
 	RuleRepositoryPublic = "repository-public"
 	RuleNotices          = "third-party-notices"
+	RuleNoticeHolder     = "notice-holder"
 )
 
 // Rules returns the pre-flight rule set that CI and the dry run share.
@@ -124,7 +134,7 @@ func Rules() []Rule {
 		tagAtHead{}, cleanTree{}, goModReleasable{}, formatTagged{},
 		stepPasses{name: RuleBuild, step: func(f Facts) Outcome { return f.Build }, describe: "GOWORK=off go build ./..."},
 		stepPasses{name: RuleTest, step: func(f Facts) Outcome { return f.Test }, describe: "GOWORK=off go test ./..."},
-		pluginVersions{}, pluginGenerated{}, marketplaceRef{}, marketplaceRefsResolve{}, repositoryPublic{}, thirdPartyNotices{},
+		pluginVersions{}, pluginGenerated{}, marketplaceRef{}, marketplaceRefsResolve{}, noticeHolder{}, repositoryPublic{}, thirdPartyNotices{},
 	}
 }
 
@@ -294,4 +304,16 @@ func (thirdPartyNotices) Check(f Facts) []Finding {
 		return nil
 	}
 	return []Finding{{RuleNotices, ScopeAlways, ThirdPartyNoticesFile + " is missing from the repository root: every archive ships it"}}
+}
+
+type noticeHolder struct{}
+
+func (noticeHolder) Check(f Facts) []Finding {
+	switch {
+	case !f.Notice.Present:
+		return []Finding{{RuleNoticeHolder, ScopeRelease, NoticeFile + " is missing: a release names its copyright holder in it"}}
+	case strings.Contains(f.Notice.Text, NoticeHolderPlaceholder):
+		return []Finding{{RuleNoticeHolder, ScopeRelease, fmt.Sprintf("%s still holds the placeholder %s: name the copyright holder", NoticeFile, NoticeHolderPlaceholder)}}
+	}
+	return nil
 }

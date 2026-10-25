@@ -51,6 +51,9 @@ func (p Preflight) collect(tag domain.Tag, options PreflightOptions) (domain.Fac
 	if facts.GoMod, err = p.Files.GoMod(module.Name); err != nil {
 		return facts, fmt.Errorf("read the go.mod of %s: %w", module.Name, err)
 	}
+	if facts.Notice, err = p.Files.Notice(); err != nil {
+		return facts, fmt.Errorf("read %s: %w", domain.NoticeFile, err)
+	}
 	if module.ShipsPlugin() {
 		if facts.Manifests, err = p.Files.Manifests(module.PluginRoots); err != nil {
 			return facts, fmt.Errorf("read the plugin manifests of %s: %w", module.Name, err)

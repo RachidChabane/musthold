@@ -41,11 +41,14 @@ func (f *fakes) CommitsSince(string, []string) ([]domain.Commit, error) { return
 func (f *fakes) GoMod(string) (domain.GoModFacts, error)                { return f.goMod, nil }
 func (f *fakes) Manifests([]string) ([]domain.ManifestFact, error)      { return nil, nil }
 func (f *fakes) Marketplace() ([]domain.MarketplaceEntry, error)        { return nil, nil }
-func (f *fakes) Exists(string) (bool, error)                            { return true, nil }
-func (f *fakes) Build(string) domain.Outcome                            { return f.buildResult }
-func (f *fakes) Test(string) domain.Outcome                             { return domain.Outcome{} }
-func (f *fakes) PluginGenerated(string) domain.Outcome                  { return domain.Outcome{} }
-func (f *fakes) Compile(domain.BuildSpec) error                         { return errors.New("not used") }
+func (f *fakes) Notice() (domain.NoticeFacts, error) {
+	return domain.NoticeFacts{Present: true, Text: "Copyright 2026 Example Holder\n"}, nil
+}
+func (f *fakes) Exists(string) (bool, error)           { return true, nil }
+func (f *fakes) Build(string) domain.Outcome           { return f.buildResult }
+func (f *fakes) Test(string) domain.Outcome            { return domain.Outcome{} }
+func (f *fakes) PluginGenerated(string) domain.Outcome { return domain.Outcome{} }
+func (f *fakes) Compile(domain.BuildSpec) error        { return errors.New("not used") }
 func (f *fakes) Pack(domain.ArchiveFormat, []domain.ArchiveEntry, time.Time) ([]byte, error) {
 	return nil, errors.New("not used")
 }

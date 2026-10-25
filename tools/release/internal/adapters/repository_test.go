@@ -1,6 +1,8 @@
 package adapters_test
 
 import (
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -17,6 +19,7 @@ const (
 	verifiesPluginFacts = " [verifies SP-1814~1]"
 	verifiesMarketFacts = " [verifies SP-1815~1]"
 	verifiesNotesFacts  = " [verifies SP-1809~1]"
+	verifiesNoticeFacts = " [verifies SP-1823~1]"
 )
 
 func parse(t *testing.T, text string) domain.Tag {
@@ -208,6 +211,29 @@ func TestWorkspace(t *testing.T) {
 		}
 		if !slices.Equal(entries, want) {
 			t.Fatalf("entries = %v", entries)
+		}
+	})
+}
+
+func TestWorkspaceNotice(t *testing.T) {
+	repository := testkit.NewReleaseRepository(t)
+	workspace := adapters.NewWorkspace(repository.Root)
+
+	t.Run("the NOTICE file of the root is read"+verifiesNoticeFacts, func(t *testing.T) {
+		repository.Write("NOTICE", "Copyright 2026 "+domain.NoticeHolderPlaceholder+"\n", 0o644)
+		facts, err := workspace.Notice()
+		if err != nil || !facts.Present || !strings.Contains(facts.Text, domain.NoticeHolderPlaceholder) {
+			t.Fatalf("facts = %+v, error %v", facts, err)
+		}
+	})
+
+	t.Run("a missing NOTICE is reported as absent, not as an error"+verifiesNoticeFacts, func(t *testing.T) {
+		if err := os.Remove(filepath.Join(repository.Root, domain.NoticeFile)); err != nil {
+			t.Fatal(err)
+		}
+		facts, err := workspace.Notice()
+		if err != nil || facts.Present {
+			t.Fatalf("facts = %+v, error %v", facts, err)
 		}
 	})
 }

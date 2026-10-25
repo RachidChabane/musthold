@@ -1,0 +1,21 @@
+spec-proof
+Copyright 2026 Rachid Chabane
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+This product includes software developed by third parties under their own licences.
+The licence of every dependency is listed in THIRD_PARTY_NOTICES.md.
+
+The following dependencies are licensed under the Mozilla Public License, Version 2.0
+(https://www.mozilla.org/MPL/2.0/). They are used unmodified, and their source code is
+available from the locations below.
+
+  github.com/hashicorp/go-cleanhttp v0.5.2          https://github.com/hashicorp/go-cleanhttp
+  github.com/hashicorp/go-retryablehttp v0.7.8      https://github.com/hashicorp/go-retryablehttp
+  github.com/letsencrypt/boulder v0.20260309.0      https://github.com/letsencrypt/boulder
+  pgregory.net/rapid v1.3.0                         https://github.com/flyingmutant/rapid
+
+go-cleanhttp and go-retryablehttp are linked into the released binaries. boulder and
+rapid are compiled only by tests and internal tools. The benchmark harnesses under
+bench/ and experiments/ use the Python package hypothesis, also licensed under the
+Mozilla Public License, Version 2.0.

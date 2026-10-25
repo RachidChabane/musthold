@@ -1,6 +1,7 @@
 package domain_test
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -16,6 +17,7 @@ const (
 	verifiesVisibility    = " [verifies SP-1816~1]"
 	verifiesRefusalPolicy = " [verifies SP-1817~1]"
 	verifiesNoticesRule   = " [verifies SP-1824~1]"
+	verifiesNoticeRule    = " [verifies SP-1823~1]"
 	releasedCommit        = "1111111111111111111111111111111111111111"
 	otherCommit           = "2222222222222222222222222222222222222222"
 )
@@ -30,6 +32,7 @@ func releasableFacts(t *testing.T, text string) domain.Facts {
 		Tags:  []string{"format/v0.1.0"},
 		Build: domain.Outcome{Ran: true}, Test: domain.Outcome{Ran: true}, PluginGen: domain.Outcome{Ran: true},
 		Visibility: domain.VisibilityPublic, RequirePublic: true, ThirdPartyNotices: true,
+		Notice: domain.NoticeFacts{Present: true, Text: "Copyright 2026 Example Holder\n"},
 	}
 	if tag.Module.ShipsPlugin() {
 		facts.Manifests = []domain.ManifestFact{{Path: tag.Module.Name + "/plugin/claude/.claude-plugin/plugin.json", Version: tag.Semver()}}
@@ -306,6 +309,49 @@ func TestVisibilityRule(t *testing.T) {
 		facts.RequirePublic, facts.Visibility = false, domain.VisibilityPrivate
 		if findings := findingsOf(facts); len(findings) != 0 {
 			t.Errorf("findings = %v", findings)
+		}
+	})
+}
+
+func TestNoticeRule(t *testing.T) {
+	t.Run("a NOTICE that names a holder is no finding"+verifiesNoticeRule, func(t *testing.T) {
+		if findings := findingsOf(releasableFacts(t, "discpower/v0.2.0")); len(findings) != 0 {
+			t.Errorf("findings = %v", findings)
+		}
+	})
+
+	t.Run("a NOTICE that still holds the holder placeholder is a finding only a real release needs, for every module"+verifiesNoticeRule, func(t *testing.T) {
+		for _, module := range domain.Modules() {
+			facts := releasableFacts(t, module.Name+"/v0.2.0")
+			if module.Name == domain.FormatModuleName {
+				facts.GoMod.FormatRequirement = ""
+			}
+			facts.Notice.Text = "Copyright 2026 " + domain.NoticeHolderPlaceholder + "\n"
+			finding := onlyFinding(t, facts, domain.RuleNoticeHolder, domain.ScopeRelease)
+			if !strings.Contains(finding.Message, domain.NoticeHolderPlaceholder) {
+				t.Errorf("%s: message = %q", module.Name, finding.Message)
+			}
+		}
+	})
+
+	t.Run("a missing NOTICE is a finding only a real release needs"+verifiesNoticeRule, func(t *testing.T) {
+		facts := releasableFacts(t, "discpower/v0.2.0")
+		facts.Notice = domain.NoticeFacts{}
+		finding := onlyFinding(t, facts, domain.RuleNoticeHolder, domain.ScopeRelease)
+		if !strings.Contains(finding.Message, domain.NoticeFile) {
+			t.Errorf("message = %q", finding.Message)
+		}
+	})
+
+	t.Run("a dry run reports the placeholder and goes on, a real release stops"+verifiesNoticeRule, func(t *testing.T) {
+		facts := releasableFacts(t, "discpower/v0.2.0")
+		facts.Notice.Text = domain.NoticeHolderPlaceholder
+		report := domain.Evaluate(domain.Rules(), facts)
+		if got := report.Refusals(true); len(got) != 0 {
+			t.Errorf("dry run refusals = %v", got)
+		}
+		if got := rulesOf(report.Refusals(false)); !slices.Equal(got, []string{domain.RuleNoticeHolder}) {
+			t.Errorf("release refusals = %v", got)
 		}
 	})
 }

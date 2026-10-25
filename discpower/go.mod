@@ -19,7 +19,7 @@ require (
 
 require (
 	filippo.io/hpke v0.4.0 // indirect
-	github.com/RachidChabane/spec-proof/format v0.0.0
+	github.com/RachidChabane/spec-proof/format v0.1.0
 	github.com/bitfield/gotestdox v0.2.2 // indirect
 	github.com/dnephin/pflag v1.0.7 // indirect
 	github.com/fatih/color v1.18.0 // indirect
@@ -38,5 +38,3 @@ require (
 )
 
 tool gotest.tools/gotestsum
-
-replace github.com/RachidChabane/spec-proof/format => ../format

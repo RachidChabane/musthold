@@ -129,6 +129,7 @@ type gitSubdir struct {
 	Source string `json:"source"`
 	URL    string `json:"url"`
 	Path   string `json:"path"`
+	Ref    string `json:"ref,omitempty"`
 }
 
 // marketplaceEntry is one plugin of the marketplace; its source is a relative
@@ -149,23 +150,44 @@ type marketplace struct {
 }
 
 // SubdirSource is the source of a plugin that lives in a subdirectory of a
-// public GitHub repository.
-func SubdirSource(repository, path string) any {
-	return gitSubdir{Source: "git-subdir", URL: repository, Path: path}
+// public GitHub repository, pinned to ref when ref is not empty.
+func SubdirSource(repository, path, ref string) any {
+	return gitSubdir{Source: "git-subdir", URL: repository, Path: path, Ref: ref}
+}
+
+// Versions maps the directory of a module to the version its plugin trees carry.
+// The marketplace pins each module's plugin to the release tag of that version.
+type Versions map[string]string
+
+// ReleaseTag is the tag that releases a module at a version: `<module>/v<version>`.
+func ReleaseTag(directory, version string) string {
+	return directory + "/v" + version
+}
+
+func (v Versions) refOf(directory string) (string, error) {
+	version, found := v[directory]
+	if !found || version == "" {
+		return "", fmt.Errorf("no plugin version for the module %s", directory)
+	}
+	return ReleaseTag(directory, version), nil
 }
 
 // marketplaceFile builds the marketplace at path, whose relative plugin sources
 // are resolved against the directory that holds the marketplace's `.claude-plugin`
 // directory: thinPluginSource is where the thin plugin's tree is from there.
-func marketplaceFile(path, thinPluginSource string) (File, error) {
+func marketplaceFile(path, thinPluginSource string, versions Versions) (File, error) {
 	listing := marketplace{Name: MarketplaceName, Owner: owner{Name: ownerName, URL: ownerURL}}
 	listing.Metadata.Description = "spec-proof: proofs that the tests of a project check what its requirements say, for coding agents."
 	listing.Plugins = append(listing.Plugins, marketplaceEntry{
-		Name: Shallnot.Plugin, Source: SubdirSource(Shallnot.Repository, Shallnot.Path), Description: Shallnot.Summary,
+		Name: Shallnot.Plugin, Source: SubdirSource(Shallnot.Repository, Shallnot.Path, ""), Description: Shallnot.Summary,
 	})
 	for _, module := range append(append([]Module{}, Modules...), Relay) {
+		ref, err := versions.refOf(module.Directory)
+		if err != nil {
+			return File{}, err
+		}
 		listing.Plugins = append(listing.Plugins, marketplaceEntry{
-			Name: module.Plugin, Source: SubdirSource(repositoryID, module.PluginPath()), Description: module.Summary,
+			Name: module.Plugin, Source: SubdirSource(repositoryID, module.PluginPath(), ref), Description: module.Summary,
 		})
 	}
 	listing.Plugins = append(listing.Plugins, marketplaceEntry{
@@ -373,19 +395,19 @@ func joinWithAnd(items []string) string {
 	return strings.Join(items[:last], ", ") + " and " + items[last]
 }
 
-func umbrellaMarketplaceFile() (File, error) {
-	return marketplaceFile(MarketplacePath, "./"+PluginDirectory)
+func umbrellaMarketplaceFile(versions Versions) (File, error) {
+	return marketplaceFile(MarketplacePath, "./"+PluginDirectory, versions)
 }
 
-func rootMarketplaceFile() (File, error) {
-	return marketplaceFile(RootMarketplacePath, "./"+UmbrellaDirectory+"/"+PluginDirectory)
+func rootMarketplaceFile(versions Versions) (File, error) {
+	return marketplaceFile(RootMarketplacePath, "./"+UmbrellaDirectory+"/"+PluginDirectory, versions)
 }
 
 // RootFiles returns every generated file of the repository root, relative to the
 // root: the marketplace that lists the same plugins as the umbrella's own, with the
 // thin plugin's path taken from the root.
-func RootFiles() ([]File, error) {
-	file, err := rootMarketplaceFile()
+func RootFiles(versions Versions) ([]File, error) {
+	file, err := rootMarketplaceFile(versions)
 	if err != nil {
 		return nil, err
 	}
@@ -393,9 +415,12 @@ func RootFiles() ([]File, error) {
 }
 
 // Files returns every generated file of the umbrella, relative to `umbrella/`.
-func Files() ([]File, error) {
+func Files(versions Versions) ([]File, error) {
 	var files []File
-	for _, build := range []func() (File, error){umbrellaMarketplaceFile, pluginManifestFile, proveAllSkillFile, scanSkillFile} {
+	builds := []func() (File, error){
+		func() (File, error) { return umbrellaMarketplaceFile(versions) }, pluginManifestFile, proveAllSkillFile, scanSkillFile,
+	}
+	for _, build := range builds {
 		file, err := build()
 		if err != nil {
 			return nil, err

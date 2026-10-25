@@ -22,7 +22,7 @@ import (
 const (
 	verifiesDryRun         = " [verifies SP-1820~1]"
 	verifiesReproducible   = " [verifies SP-1810~1]"
-	verifiesArchiveContent = " [verifies SP-1805~2]"
+	verifiesArchiveContent = " [verifies SP-1805~3]"
 	verifiesSBOMSchema     = " [verifies SP-1807~1]"
 	verifiesChecksumTool   = " [verifies SP-1806~1]"
 	throwawayTag           = "discpower/v0.0.0-e2e"
@@ -174,7 +174,7 @@ func TestDryRunEndToEnd(t *testing.T) {
 			for _, entry := range facts.Files[name].Entries {
 				got = append(got, entry.Name)
 			}
-			if want := domain.ExpectedEntryNames(target, testkit.FixtureBinary, true); !slices.Equal(got, want) {
+			if want := domain.ExpectedEntryNames(target, testkit.FixtureBinary); !slices.Equal(got, want) {
 				t.Errorf("%s holds %v, want %v", name, got, want)
 			}
 		}

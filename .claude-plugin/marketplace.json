@@ -22,7 +22,8 @@
       "source": {
         "source": "git-subdir",
         "url": "RachidChabane/spec-proof",
-        "path": "discpower/plugin/claude"
+        "path": "discpower/plugin/claude",
+        "ref": "discpower/v0.1.0"
       },
       "description": "Discriminating power: do the tests of a criterion catch a violation of it."
     },
@@ -31,7 +32,8 @@
       "source": {
         "source": "git-subdir",
         "url": "RachidChabane/spec-proof",
-        "path": "alignment/plugin/claude"
+        "path": "alignment/plugin/claude",
+        "ref": "alignment/v0.1.0"
       },
       "description": "Alignment: does each test verify what its criterion states."
     },
@@ -40,7 +42,8 @@
       "source": {
         "source": "git-subdir",
         "url": "RachidChabane/spec-proof",
-        "path": "completeness/plugin/claude"
+        "path": "completeness/plugin/claude",
+        "ref": "completeness/v0.1.0"
       },
       "description": "Completeness: does the spec cover what a change does (advisory)."
     },
@@ -49,7 +52,8 @@
       "source": {
         "source": "git-subdir",
         "url": "RachidChabane/spec-proof",
-        "path": "s1relay/plugin/claude"
+        "path": "s1relay/plugin/claude",
+        "ref": "s1relay/v0.1.0"
       },
       "description": "The relay of closed questions to a System One endpoint."
     },

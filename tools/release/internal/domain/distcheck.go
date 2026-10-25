@@ -48,8 +48,6 @@ type DistFacts struct {
 	Commit     string
 	CommitTime time.Time
 	Targets    []Target
-	// HasNotice is whether the work has a NOTICE file, which every archive then holds.
-	HasNotice bool
 	// Checksums is the content of SHA256SUMS, empty when the file is missing.
 	Checksums string
 	// Files are the files of the directory by name, SHA256SUMS aside.
@@ -150,7 +148,7 @@ func verifyArchive(facts DistFacts, target Target, archive string, file DistFile
 			report("entry %s has time %s, want the commit time %s", entry.Name, entry.ModTime.UTC().Format(time.RFC3339), facts.CommitTime.Format(time.RFC3339))
 		}
 	}
-	if want := ExpectedEntryNames(target, binary, facts.HasNotice); !slices.Equal(names, want) {
+	if want := ExpectedEntryNames(target, binary); !slices.Equal(names, want) {
 		report("entries are %v, want %v in that order", names, want)
 	}
 	if file.Binary == nil {

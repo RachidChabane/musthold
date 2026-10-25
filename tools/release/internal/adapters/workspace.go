@@ -139,6 +139,18 @@ func (w Workspace) Manifests(roots []string) ([]domain.ManifestFact, error) {
 	return manifests, nil
 }
 
+// Notice reads the NOTICE file of the repository root.
+func (w Workspace) Notice() (domain.NoticeFacts, error) {
+	data, err := w.disk.ReadFile(domain.NoticeFile)
+	if errors.Is(err, fs.ErrNotExist) {
+		return domain.NoticeFacts{}, nil
+	}
+	if err != nil {
+		return domain.NoticeFacts{}, err
+	}
+	return domain.NoticeFacts{Present: true, Text: string(data)}, nil
+}
+
 // Marketplace reads the plugins of the root marketplace.
 func (w Workspace) Marketplace() ([]domain.MarketplaceEntry, error) {
 	data, err := w.disk.ReadFile(domain.MarketplaceFile)

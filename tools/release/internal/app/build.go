@@ -155,13 +155,8 @@ func (b Builder) archiveContent(module domain.Module, binary []byte) (domain.Arc
 	if content.ThirdPartyNotices, err = b.Files.ReadFile(domain.ThirdPartyNoticesFile); err != nil {
 		return content, fmt.Errorf("read the third-party notices: %w", err)
 	}
-	if content.HasNotice, err = b.Files.Exists(domain.NoticeFile); err != nil {
-		return content, fmt.Errorf("look for %s: %w", domain.NoticeFile, err)
-	}
-	if content.HasNotice {
-		if content.Notice, err = b.Files.ReadFile(domain.NoticeFile); err != nil {
-			return content, fmt.Errorf("read the notice: %w", err)
-		}
+	if content.Notice, err = b.Files.ReadFile(domain.NoticeFile); err != nil {
+		return content, fmt.Errorf("read the notice: %w", err)
 	}
 	return content, nil
 }

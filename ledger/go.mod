@@ -3,7 +3,7 @@ module github.com/RachidChabane/spec-proof/ledger
 go 1.26.4
 
 require (
-	github.com/RachidChabane/spec-proof/format v0.0.0
+	github.com/RachidChabane/spec-proof/format v0.1.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/secure-systems-lab/go-securesystemslib v0.11.0
 	github.com/sigstore/protobuf-specs v0.5.1
@@ -12,8 +12,6 @@ require (
 	github.com/theupdateframework/go-tuf/v2 v2.4.2
 	pgregory.net/rapid v1.3.0
 )
-
-replace github.com/RachidChabane/spec-proof/format => ../format
 
 require (
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
