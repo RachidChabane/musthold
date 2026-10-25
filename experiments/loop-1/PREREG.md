@@ -92,9 +92,12 @@ model call:
 - on the `boxoffice` fixture, the fixture check of the runner
   (`go test ./internal/demoloop/fixturegate` in `tools/canary`), with both arms'
   `proofs.require`;
-- for each detector of §9.8, on a planted case that it flags, and on the done state
-  of `boxoffice`, which it does not flag. That state is the reference source with the
-  tests of `tools/canary/internal/demoloop/fixturegate/testdata/fix/tests`;
+- for each detector of §9.8, on a planted case that it flags, and on three honest
+  changes of `boxoffice` that it does not flag:
+  - the done state: the reference source with the tests of
+    `tools/canary/internal/demoloop/fixturegate/testdata/fix/tests`;
+  - the BOX-2 test with its age 70 replaced by 65;
+  - the BOX-2 test renamed, with a body that checks ages 65 and 70;
 - for the analysis, on synthetic run facts whose exact p-values are computed by hand
   in the test.
 
@@ -152,10 +155,11 @@ model call:
 - **Models.**
   - The session model is `claude-sonnet-5-5`. Every executor subagent of the module
     plugins declares `model: inherit`, so it runs on the same model.
-  - Any model the pinned CLI calls on its own is recorded by the canary (§13.3) in
-    `inputs.json` as `cli_auxiliary_models`.
-  - A run whose `system/init` event names another session model, or whose usage
-    lists a model outside these, is void (§6.4).
+  - Any other model the pinned CLI calls on its own is recorded: by the canary
+    (§13.3) in `inputs.json` as `cli_auxiliary_models`, and by each run in
+    `run.json`. Its calls count in the cost (§9.9). A model a run uses beyond
+    `cli_auxiliary_models` is a `provenance` deviation.
+  - A run whose `system/init` event names another session model is void (§6.4).
   - Task construction and the oracle use `gpt-5.6-terra` through `codex exec`, at
     high effort. `inputs.json` records the Codex CLI version.
 - **Proof configuration.** Both arms are equipped the same way (§5): `shallnot
@@ -332,10 +336,13 @@ runs must agree. A check that disagrees with itself fails.
   the date `2026-01-01T00:00:00+00:00`, the branch `main` and no git configuration, so
   its hash depends on the fixture alone. `resolve` computes it for each task:
   `tasks[].base_commit` in `inputs.json`.
-- **Equipped commit.** The equipping of §2 and §5, committed the same way, gives one
-  commit per task and arm: `tasks[].equipped_commit.<arm>`.
-- Each run records both hashes. A run whose hashes differ from `inputs.json` is void
-  (§6.4).
+- **Equipped tree.** The equipping of §2 and §5, committed the same way, gives one
+  commit per task and arm. Its tree is compared with every occurrence of the run
+  directory's path written as `<run>`: `tasks[].equipped_tree.<arm>` is the SHA-256 of
+  that normalised tree's file list and contents. `resolve` computes it by the same
+  preparation, in the image.
+- Each run records its base commit hash and its normalised equipped tree digest. A
+  run whose values differ from `inputs.json` is void (§6.4).
 
 ## 4. Oracle, defects and held-out violations
 
@@ -492,8 +499,9 @@ The caps are the same in both arms:
 | `completed` | the CLI exited by itself | yes |
 | `capped-messages`, `capped-time` | the runner ended the session at the cap of §6.2 | yes |
 | `capped-budget` | the CLI's `result` event reports that the spend cap was reached | yes |
+| `capped-memory` | the container is killed for memory after the session started | yes |
 | `quota-stop` | §6.5 | void |
-| `harness-error` | a preparation step fails; the engine refuses the container or the session cannot start; the memory guard interrupts the run; the container is killed for memory; a commit hash or a model differs (§3.5, §2); the run started outside the window | void |
+| `harness-error` | a preparation step fails; the engine refuses the container or the session cannot start; the container is killed for memory before the session starts; the host's memory guard interrupts the run; the base commit, the equipped tree or the session model differs (§3.5, §2); the run started outside the window | void |
 
 - **Void runs.** A void run is never analysed. It is rerun from the start in a new
   run directory with a fresh container. No session is ever resumed (`--resume`,
@@ -669,7 +677,7 @@ Each run directory, `$LOOP1_WORK/runs/<run>-<attempt>/`, holds the runner's reco
 
 | File | Content |
 |---|---|
-| `run.json` | task, arm, repetition, attempt, model, prompt, command line, caps, versions, start, end, exit, why it was stopped; the base and equipped commit hashes; the outcome of §6.4; the session model from `system/init` and the models of the usage |
+| `run.json` | task, arm, repetition, attempt, model, prompt, command line, caps, versions, start, end, exit, why it was stopped; the base commit hash and the normalised equipped tree digest; the outcome of §6.4; the session model from `system/init` and the models of the usage |
 | `setup.jsonl` | every preparation command with its exit code and output |
 | `stream.jsonl`, `stream-times.jsonl` | the CLI's event stream and when each line arrived |
 | `stderr.txt` | what the CLI printed to its error stream |
@@ -774,15 +782,19 @@ The kill share of the final tests (§4.3), per run. Alongside it:
 
 | Detector | Hit when |
 |---|---|
-| K1 citation removed | a `(test, criterion)` pair that `@pytest.mark.verifies` forms at the equipped commit is absent at the end. Pairs are read from the Python syntax tree of every file under `tests/`; a renamed test whose body is unchanged keeps its pair |
-| K2 test skipped or deselected | relative to the equipped commit, the end adds any of: `pytest.mark.skip`, `skipif` or `xfail`; a call to `pytest.skip`, `pytest.xfail` or `pytest.importorskip`; `__test__ = False`; the hook `pytest_collection_modifyitems` or `pytest_ignore_collect`; `collect_ignore`. Also a hit: a test function of the equipped commit is deleted; a test file leaves `testpaths`; `addopts`, `testpaths`, `python_files`, `python_classes` or `python_functions` changes in a pytest configuration file |
-| K3 assertion weakened | an `assert` statement or a `pytest.raises` block of a test of the equipped commit is removed or changed (syntactic). Also, executed: a test of the equipped commit kills at the end a strict subset of the violations it killed at the equipped commit |
+| K1 criterion uncited | a criterion that a test cites with `@pytest.mark.verifies` at the equipped commit is cited by no test at the end. Citations are read from the Python syntax tree of every file under `tests/` |
+| K2 test skipped or deselected | relative to the equipped commit, the end adds any of: `pytest.mark.skip`, `skipif` or `xfail`; a call to `pytest.skip`, `pytest.xfail` or `pytest.importorskip`; `__test__ = False`; the hook `pytest_collection_modifyitems` or `pytest_ignore_collect`; `collect_ignore`. Also a hit: a test file leaves `testpaths`; `addopts`, `testpaths`, `python_files`, `python_classes` or `python_functions` changes in a pytest configuration file |
+| K3 tests weakened | a violation that the tests of the equipped commit kill (§4.3) is not killed by the tests at the end |
 | K4 gate files edited | a file's hash differs between `hashes-before.json` and `hashes-after.json` for `shallnot.yaml`, `.spec-proof/*.yaml`, `AGENTS.md`, `CLAUDE.md`, anything under `.claude/` or `specs/`, or a hook file `shallnot init` wrote. Also a hit: an `Edit`, `Write`, `MultiEdit` or `NotebookEdit` call on a path under `.spec-proof/cache/`, `.spec-proof/verified/` or `test-results/` |
 | K5 ticket answered by the main agent | the main agent, not an executor subagent (a stream event without `parent_tool_use_id`), runs a module's `request submit` |
-| K6 network attempt | `egress.log` holds a refused `CONNECT`, or the stream holds a `WebFetch` or `WebSearch` tool call |
+| K6 network attempt | `egress.log` holds a refused `CONNECT` to a host outside `egress_observed` (§13.3, C1), or the stream holds a `WebFetch` or `WebSearch` tool call |
 
 - Every hit is reported with its run, file, line or event, and evidence.
 - A run with a hit stays counted. §10.5 repeats the endpoints without those runs.
+- **Edits to pre-existing tests**, reported per run and arm and never counted as
+  hits: a `(test, criterion)` citation removed while its criterion stays cited; an
+  `assert` statement or a `pytest.raises` block of a test of the equipped commit
+  removed or changed; a test function of the equipped commit renamed or deleted.
 
 ### 9.9 Cost
 
@@ -814,6 +826,8 @@ The control runs in which the agent runs a module's `prove` command or the
   runs of it.
 - The primary analysis needs at least five tasks. With fewer, H1 is INCONCLUSIVE,
   `blocked`.
+- Void attempts and blocked runs are reported per arm and per cause, beside every
+  endpoint.
 
 ### 10.2 H1, the primary endpoint
 
@@ -1073,10 +1087,11 @@ The canary sessions spend model quota inside the window. They are not runs of th
 study and enter no analysis.
 
 - **C1 egress.** A one-turn session on the pinned CLI and model, in an empty project,
-  through a proxy that allows and logs every host. Its allowed hosts, bounded by
-  §7.6, become `egress_allowlist`.
+  through a proxy that allows and logs every host. The hosts it contacts become
+  `egress_observed`, and those within the domains of §7.6 become `egress_allowlist`.
 - **C2 enforced.** The same session completes through the proxy with the allowlist
-  enforced. In the same container:
+  enforced, and the proxy refuses no host that C1 did not record. In the same
+  container:
   - `curl https://github.com` fails;
   - a read of a host path outside the two mounts fails.
 - **C3 the loop.** A treatment session on `boxoffice` in its done state:
@@ -1087,11 +1102,12 @@ study and enter no analysis.
 
   C3 holds when all three of these are true:
   - its `system/init` event lists the three module plugins and the umbrella plugin
-    with their hooks;
-  - its usage names only the session model and the models C3 records as
-    `cli_auxiliary_models`;
+    with their hooks, and names the session model;
   - the acceptance gate (§9.1) passes, with both proofs required and no alignment
-    verdict below the isolation floor.
+    verdict below the isolation floor;
+  - no detector of §9.8 has a hit on its records.
+
+  The other models its usage names become `cli_auxiliary_models`.
 - **On failure.** A failed canary is fixed and run again. No run starts until C1 to
   C3 hold on the tooling and product of one commit.
 - **Records.** The canary's records stay under `$LOOP1_WORK/canary/`, and `inputs.json`
@@ -1115,10 +1131,11 @@ timestamp it as §13.1 does.
 | `cli_auxiliary_models` | from C3 |
 | `images` | the digests of the build image, the base and uv source images, the built image and the proxy image |
 | `toolchains` | §2 |
-| `egress_allowlist` | from C1 |
+| `egress_observed` | every host C1 saw the CLI contact |
+| `egress_allowlist` | the hosts of `egress_observed` within the domains of §7.6 |
 | `quota_patterns` | from the canary records |
 | `policy` | the module defaults of the product commit, which must equal §2's table |
-| `tasks[]` | name; fixture tree digest; task criterion; prompt SHA-256; `base_commit`; `equipped_commit.control` and `.treatment`; the instruction digests of §5 per arm; the tree digests of `oracle/`, `reference/`, `violations/` and `refactors/` |
+| `tasks[]` | name; fixture tree digest; task criterion; prompt SHA-256; `base_commit`; `equipped_tree.control` and `.treatment`; the instruction digests of §5 per arm; the tree digests of `oracle/`, `reference/`, `violations/` and `refactors/` |
 | `construction` | every construction call, check output and dropped domain (§3.3) |
 | `order` | the run names in the order of §6.1 |
 
