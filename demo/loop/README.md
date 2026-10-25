@@ -113,7 +113,8 @@ and the diff, runs in a container that has:
 - an environment emptied by `env -i` and refilled from a fixed list.
 
 The session's container has the same bounds on an internal network with no route
-out. Its one exit is an egress proxy that forwards a CONNECT to
+out. Its one exit is an egress proxy, which the session reaches by the alias
+`egress-proxy` on that network. The proxy forwards a CONNECT to
 `api.anthropic.com:443` and refuses every other host, logging each request with
 its decision into `records/egress.log`. The session runs with
 `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`. The token is read on the host and
@@ -128,7 +129,16 @@ Each session gets:
 - a fresh copy of the fixture, committed, then equipped with `shallnot init` and
   `init` and `enable` of each module;
 - its own Claude Code configuration directory, in which the project is trusted;
+- for the four-proofs arm, the plugin of each module, Shallnot's plugin from the
+  pinned Shallnot source and the relay's, then the umbrella plugin, which depends
+  on them. Shallnot's plugin leaves the end-of-turn gate to the hook that
+  `shallnot init` wrote into the project, so the gate runs once;
 - the caps of `demo.json`.
+
+The runner reads the session's stream as it arrives. A session whose init event
+reports a plugin error or lacks one of those plugins, or whose first model API
+call reaches no server, is ended at once, and the run fails with the reason; its
+records are kept.
 
 The process group of the session's docker client is ended at a cap, and the
 session's and the proxy's containers are removed whatever the session did. The
@@ -193,6 +203,11 @@ container shows an empty HOME, no SSH agent, no docker socket and no other socke
 reaches no host but through the proxy, and reaches through it the model endpoint
 alone; that the token never shows in `docker inspect`, in the engine's logs or in
 a record; that the fixture's check above blocks and then passes inside a
-container with no network; and that the runner, with a simulated Claude Code in
-place of the CLI, runs a whole session in containers and removes them. The engine
+container with no network; and that the runner runs whole sessions of the pinned
+Claude Code in containers against a stand-in for the model API, a TLS server that
+only the proxy reaches. With the stand-in reachable, Claude Code reaches it through
+the proxy with the token as its bearer, loads every plugin and holds each end of
+turn on the gate once, and the run leaves no container. Without Shallnot's plugin
+the run fails at the init event, and with the stand-in out of reach it fails at
+the first retry. The engine
 stops when they end. Elsewhere these tests skip.

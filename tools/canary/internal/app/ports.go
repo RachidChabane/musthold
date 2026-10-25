@@ -44,7 +44,10 @@ type SessionSpec struct {
 	// closed; without it the CLI reads nothing.
 	Stdin []byte
 	// Counts says whether a stdout line is a step the cap counts.
-	Counts  func(line []byte) bool
+	Counts func(line []byte) bool
+	// Stops, when set, reads each stdout line in order and returns the reason to
+	// end the session at that line, or an empty string.
+	Stops   func(line []byte) string
 	Cap     int
 	Timeout time.Duration
 }

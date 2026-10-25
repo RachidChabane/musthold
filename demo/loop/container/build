@@ -5,7 +5,8 @@
 #   demo/loop/container/build product   the Linux binaries, built in the pinned Go
 #                                       image from the working tree (its tracked and unignored files) and the
 #                                       pinned Shallnot; the Linux Claude Code CLI of
-#                                       script/claude-code.pin; the plugin trees; the
+#                                       script/claude-code.pin; the plugin trees, Shallnot's
+#                                       and the relay's among them; the
 #                                       files of the container test of the fixture
 #   demo/loop/container/build image     the session image, from the pinned base
 #
@@ -54,6 +55,11 @@ product() {
     mkdir -p "${PRODUCT}/plugins/${module}/plugin"
     cp -R "${stage}/src/${module}/plugin/claude" "${PRODUCT}/plugins/${module}/plugin/claude"
   done
+  # The umbrella plugin depends on Shallnot's plugin, from the pinned Shallnot
+  # source, and on the relay's, so that both load beside it.
+  cp -R "${stage}/shallnot/plugin" "${PRODUCT}/plugins/shallnot"
+  mkdir -p "${PRODUCT}/plugins/s1relay/plugin"
+  cp -R "${stage}/src/s1relay/plugin/claude" "${PRODUCT}/plugins/s1relay/plugin/claude"
   cp -R "${stage}/src/umbrella/plugins/spec-proof" "${PRODUCT}/plugins/spec-proof"
   stage_tests "${stage}/src"
   write_build_record "$(git rev-parse HEAD)$(git diff --quiet HEAD -- || echo -dirty)"
