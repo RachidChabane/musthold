@@ -69,7 +69,20 @@ const (
 // Layout is where the parts of one run live.
 type Layout struct {
 	Repo, Run string
+	// Product is the root of the product tree the run's commands see, as the
+	// container mounts it: its binaries, the Claude Code CLI and the plugin
+	// trees. Empty, the binaries and plugins are the repository's own.
+	Product string
 }
+
+// Parts of a product tree.
+const (
+	ProductBinDir     = "bin"
+	ProductPluginsDir = "plugins"
+	ProductClaudeDir  = "claude"
+	// ProductUmbrella is the umbrella plugin among the plugin trees.
+	ProductUmbrella = "spec-proof"
+)
 
 // Path joins a name to the run directory.
 func (l Layout) Path(name ...string) string {
@@ -85,8 +98,35 @@ func (l Layout) Records() string { return l.Path(RecordsDir) }
 // Record is one file of the records.
 func (l Layout) Record(name string) string { return l.Path(RecordsDir, name) }
 
-// Bin is a binary of the repository's tools directory.
-func (l Layout) Bin(name string) string { return filepath.Join(l.Repo, ToolsBinRelative, name) }
+// Bin is a binary of the product tree, or of the repository's tools directory.
+func (l Layout) Bin(name string) string {
+	if l.Product != "" {
+		return filepath.Join(l.Product, ProductBinDir, name)
+	}
+	return filepath.Join(l.Repo, ToolsBinRelative, name)
+}
+
+// BinDir is the directory of the binaries Bin names.
+func (l Layout) BinDir() string { return filepath.Dir(l.Bin(ShallnotBinary)) }
+
+// Claude is the Claude Code CLI of the product tree.
+func (l Layout) Claude() string { return filepath.Join(l.Product, ProductClaudeDir, ClaudeBinary) }
+
+// pluginDir is the Claude Code plugin tree of a module.
+func (l Layout) pluginDir(module modules.Module) string {
+	if l.Product != "" {
+		return filepath.Join(l.Product, ProductPluginsDir, module.PluginDir(harness.FlagClaude))
+	}
+	return filepath.Join(l.Repo, module.PluginDir(harness.FlagClaude))
+}
+
+// umbrellaDir is the tree of the umbrella plugin, which holds prove-all.
+func (l Layout) umbrellaDir() string {
+	if l.Product != "" {
+		return filepath.Join(l.Product, ProductPluginsDir, ProductUmbrella)
+	}
+	return filepath.Join(l.Repo, UmbrellaPluginRelative)
+}
 
 // Dirs lists the directories a run creates before it starts anything.
 func (l Layout) Dirs() []string {
@@ -208,9 +248,9 @@ func PluginDirs(l Layout, arm config.Arm) []string {
 	}
 	var dirs []string
 	for _, module := range modules.All() {
-		dirs = append(dirs, filepath.Join(l.Repo, module.PluginDir(harness.FlagClaude)))
+		dirs = append(dirs, l.pluginDir(module))
 	}
-	return append(dirs, filepath.Join(l.Repo, UmbrellaPluginRelative))
+	return append(dirs, l.umbrellaDir())
 }
 
 // Shimmed lists the binaries whose hook calls the session records: Shallnot,

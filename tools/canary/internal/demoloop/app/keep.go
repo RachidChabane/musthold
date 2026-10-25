@@ -35,14 +35,22 @@ type Keeper struct {
 // Keep copies the records of the run directory into the destination, with the
 // run directory, the repository root and the home directory written as
 // placeholders, so that a recording names no path of the machine it was made on.
-// It refuses a destination that already holds a recording.
-func (k Keeper) Keep(run, repo, home, destination string) error {
+// It refuses a destination that already holds a recording, and records that hold
+// the token, given exactly, or any text of a token's shape.
+func (k Keeper) Keep(run, repo, home, destination, token string) error {
 	if k.Files.Exists(filepath.Join(destination, record.MetaFile)) {
 		return fmt.Errorf("%w: %s; remove it first", ErrRecordingExists, destination)
 	}
 	records := filepath.Join(run, plan.RecordsDir)
 	if !k.Files.Exists(filepath.Join(records, record.MetaFile)) {
 		return fmt.Errorf("%w: %s has no %s", ErrNoRecording, records, record.MetaFile)
+	}
+	files, err := recordFiles(k.Files, records)
+	if err != nil {
+		return err
+	}
+	if hits := record.TokenHits(files, token); len(hits) > 0 {
+		return fmt.Errorf("%w: %s; nothing was kept", ErrTokenInRecord, strings.Join(hits, ", "))
 	}
 	replacements := placeholders(run, repo, home)
 	paths, err := k.Files.Glob(filepath.Join(records, recordingPattern))

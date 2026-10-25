@@ -55,20 +55,24 @@ func TestRender(t *testing.T) {
 }
 
 func TestDryRun(t *testing.T) {
-	t.Run("a dry run of the committed configuration prints the plan with a placeholder for the token [verifies SP-2403~1]", func(t *testing.T) {
+	t.Run("a dry run of the committed configuration prints every docker command with the token shown as standard input [verifies SP-2403~2]", func(t *testing.T) {
 		repo, err := filepath.Abs(repoFromHere)
 		if err != nil {
 			t.Fatal(err)
 		}
 		environ := []string{"PATH=" + os.Getenv("PATH"), "HOME=" + t.TempDir(), launch.OAuthTokenVariable + "=" + token}
-		code, stdout, stderr := run(t, environ, "run", "--config", filepath.Join(repo, "demo/loop/demo.json"), "--repo", repo, "--out", t.TempDir(), "--dry-run")
+		code, stdout, stderr := run(t, environ, "run", "--config", filepath.Join(repo, "demo/loop/demo.json"), "--repo", repo, "--work", t.TempDir(), "--product", t.TempDir(), "--dry-run")
 		if code != cli.ExitOK {
 			t.Fatalf("exit %d: %s", code, stderr)
 		}
 		for _, wanted := range []string{
-			"credentials: source environment (CLAUDE_CODE_OAUTH_TOKEN=<set>, given to the session only)",
-			"/.tools/claude-code/" + strings.TrimSpace(readFile(t, filepath.Join(repo, "script/claude-code.pin"))) + "/bin/claude -p",
-			"/shim/shallnot   (records the hook calls of " + filepath.Join(repo, ".tools/bin/shallnot"),
+			"credentials: source environment, read once per session and written to the entry's standard input (<stdin>)",
+			"egress allowlist: api.anthropic.com:443",
+			"network create --internal",
+			"--rm --network none",
+			"/opt/spec-proof/bin/spec-proof-demo-loop entry -- /opt/spec-proof/claude/claude -p",
+			"(standard input: CLAUDE_CODE_OAUTH_TOKEN=<stdin>)",
+			"/shim/shallnot   (records the hook calls of /opt/spec-proof/bin/shallnot",
 		} {
 			if !strings.Contains(stdout, wanted) {
 				t.Errorf("the plan lacks %q:\n%s", wanted, stdout)
@@ -78,13 +82,23 @@ func TestDryRun(t *testing.T) {
 			t.Error("the plan prints the token")
 		}
 	})
-}
 
-func readFile(t *testing.T, path string) string {
-	t.Helper()
-	content, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return string(content)
+	t.Run("with no work area named, the run directories go under the repository's work area [verifies SP-2418~1]", func(t *testing.T) {
+		repo, err := filepath.Abs(repoFromHere)
+		if err != nil {
+			t.Fatal(err)
+		}
+		environ := []string{"PATH=" + os.Getenv("PATH"), "HOME=" + t.TempDir(), launch.OAuthTokenVariable + "=" + token}
+		code, stdout, stderr := run(t, environ, "run", "--config", filepath.Join(repo, "demo/loop/demo.json"), "--repo", repo, "--product", t.TempDir(), "--dry-run")
+		if code != cli.ExitOK {
+			t.Fatalf("exit %d: %s", code, stderr)
+		}
+		work := filepath.Join(repo, ".tools", "demo-loop", "work")
+		if !strings.Contains(stdout, "work: "+work+"\n") || !strings.Contains(stdout, work+"/spec-proof-demo-loop-boxoffice-four-proofs-1-") {
+			t.Errorf("the plan does not use %s:\n%s", work, stdout)
+		}
+		if tmp := os.TempDir(); strings.Contains(stdout, "work: "+tmp) {
+			t.Errorf("the plan works in the system's temporary directory %s", tmp)
+		}
+	})
 }
