@@ -106,7 +106,6 @@ type ranges map[string][][][3]int
 // recordLine is one line of a record, whichever its kind.
 type recordLine struct {
 	Kind         string        `json:"k"`
-	Runner       string        `json:"runner"`
 	Recording    bool          `json:"recording"`
 	Cumulative   bool          `json:"cumulative"`
 	Capabilities *capabilities `json:"capabilities"`
@@ -118,15 +117,13 @@ type recordLine struct {
 	Prefix int    `json:"prefix"`
 	// A take.
 	At         string `json:"at"`
-	Test       string `json:"t"`
 	TakenFile  string `json:"f"`
 	Counts     ranges `json:"c"`
 	Bounded    bool   `json:"bounded"`
 	Callbacks  bool   `json:"callbacks"`
 	FakeUnseen bool   `json:"fakeUnseen"`
-	// A test, or a file.
+	// A test.
 	Outcome string `json:"outcome"`
-	State   string `json:"state"`
 	// A result of the reporter.
 	FailedToRun bool             `json:"failedToRun"`
 	Tests       []reportedResult `json:"tests"`
@@ -141,14 +138,14 @@ type reportedResult struct {
 
 // scriptRecord is a module of the project a process ran.
 type scriptRecord struct {
-	id, file, source, sourceMap string
-	prefix                      int
+	file, source, sourceMap string
+	prefix                  int
 }
 
 // takeRecord is one take of a process: the counts since the previous one and
 // what it marks.
 type takeRecord struct {
-	at, test, file                 string
+	at, file                       string
 	counts                         ranges
 	bounded, callbacks, fakeUnseen bool
 }
@@ -162,7 +159,6 @@ type testRecord struct {
 
 // processRecord is what one process of a run recorded.
 type processRecord struct {
-	runner    string
 	recording bool
 	// cumulative is whether a take counts from the start of the process
 	// rather than from the previous take.
@@ -178,10 +174,9 @@ type processRecord struct {
 // of the processes that ran tests, the reporter's results and whether the
 // global setup failed.
 type runRecord struct {
-	processes          []processRecord
-	reported           []recordLine
-	globalSetupFailed  bool
-	reporterFailedFile map[string]bool
+	processes         []processRecord
+	reported          []recordLine
+	globalSetupFailed bool
 }
 
 // readRunRecord reads the record directory of one run; a line that cannot be
@@ -194,7 +189,7 @@ func readRunRecord(dir string) (runRecord, error) {
 	if err != nil {
 		return runRecord{}, fmt.Errorf("read the scan record %s: %w", dir, err)
 	}
-	record := runRecord{reporterFailedFile: map[string]bool{}}
+	var record runRecord
 	names := make([]string, 0, len(entries))
 	for _, entry := range entries {
 		names = append(names, entry.Name())
@@ -214,9 +209,6 @@ func readRunRecord(dir string) (runRecord, error) {
 					continue
 				}
 				record.reported = append(record.reported, line)
-				if line.FailedToRun {
-					record.reporterFailedFile[line.File] = true
-				}
 			}
 		case strings.HasSuffix(name, recordSuffix):
 			lines, err := readLines(filepath.Join(dir, name))
@@ -257,7 +249,7 @@ func processOf(lines []recordLine) (processRecord, bool) {
 	if len(lines) == 0 || lines[0].Kind != lineProcess || lines[0].Capabilities == nil {
 		return processRecord{}, false
 	}
-	process := processRecord{runner: lines[0].Runner, recording: lines[0].Recording, cumulative: lines[0].Cumulative, capabilities: *lines[0].Capabilities, scripts: map[string]scriptRecord{}}
+	process := processRecord{recording: lines[0].Recording, cumulative: lines[0].Cumulative, capabilities: *lines[0].Capabilities, scripts: map[string]scriptRecord{}}
 	checked := false
 	for _, line := range lines[1:] {
 		switch line.Kind {
@@ -272,10 +264,10 @@ func processOf(lines []recordLine) (processRecord, bool) {
 			}
 			process.capabilities = process.capabilities.and(*line.Capabilities)
 		case lineScript:
-			process.scripts[line.ID] = scriptRecord{id: line.ID, file: line.File, source: line.Source, sourceMap: line.Map, prefix: line.Prefix}
+			process.scripts[line.ID] = scriptRecord{file: line.File, source: line.Source, sourceMap: line.Map, prefix: line.Prefix}
 		case lineTake:
 			process.takes = append(process.takes, takeRecord{
-				at: line.At, test: line.Test, file: line.TakenFile, counts: line.Counts,
+				at: line.At, file: line.TakenFile, counts: line.Counts,
 				bounded: line.Bounded, callbacks: line.Callbacks, fakeUnseen: line.FakeUnseen,
 			})
 		case lineTest:

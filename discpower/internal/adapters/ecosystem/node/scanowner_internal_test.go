@@ -109,17 +109,17 @@ func capable() capabilities {
 // recordingOf is one process recording a test alone over the calc module.
 func recordingOf(takes ...takeRecord) processRecord {
 	return processRecord{
-		runner: "jest", recording: true, capabilities: capable(),
+		recording: true, capabilities: capable(),
 		scripts: map[string]scriptRecord{
-			scriptID:     {id: scriptID, file: calcFile, source: calcSource},
-			lazyScriptID: {id: lazyScriptID, file: lazyFile, source: lazySource},
+			scriptID:     {file: calcFile, source: calcSource},
+			lazyScriptID: {file: lazyFile, source: lazySource},
 		},
 		takes: takes,
 	}
 }
 
 func take(at string, counts map[string][][][3]int) takeRecord {
-	return takeRecord{at: at, test: "t", counts: counts, bounded: at == takeClose}
+	return takeRecord{at: at, counts: counts, bounded: at == takeClose}
 }
 
 // threeTimes is the same recording three times over.

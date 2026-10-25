@@ -58,6 +58,7 @@ const (
 	creditsConcurrently = "test/ownership.test.ts::ownership > credits concurrently"
 	timerItDidNotSet    = "test/timers.test.ts::fake timers set before the test > advances a timer it did not set"
 	itsOwnTimer         = "test/timers.test.ts::fake timers of the test > advances its own timer"
+	legacyTimer         = "test/legacy.test.ts::legacy fake timers set before the test > advances a legacy timer it did not set"
 	readsAfterSetup     = "test/setup.test.ts::setup > reads after setup"
 	neverRuns           = "test/outcomes.test.ts::a failing beforeAll > never runs"
 	passesItsBody       = "test/outcomes.test.ts::a failing afterEach > passes its body"
@@ -270,6 +271,13 @@ func TestScanOwnershipOnJestAndVitest(t *testing.T) {
 	}
 }
 
+func TestScanCutsOutJestLegacyFakeTimers(t *testing.T) {
+	t.Run("a legacy fake timer pending when the window opens is cut out of it"+verifiesScanOwnership, func(t *testing.T) {
+		s := scanProject(t, scanRunners()[0])
+		expectLines(t, "legacy timer owned", s.alone(t, legacyTimer)[legacyTimer].Owned, []int{creditLine}, []int{tickLine})
+	})
+}
+
 func TestScanFallbacksOnJestAndVitest(t *testing.T) {
 	for _, runner := range scanRunners() {
 		t.Run(string(runner.name), func(t *testing.T) {
@@ -282,9 +290,13 @@ func TestScanFallbacksOnJestAndVitest(t *testing.T) {
 					t.Fatalf("owned %v", covered.Owned)
 				}
 			})
-			t.Run("without synchronous takes the window opens at the test function, so beforeEach is not owned"+verifiesScanFallbacks, func(t *testing.T) {
+			t.Run("without synchronous takes the window opens at the test function, so beforeEach is not owned, and a test whose realm fakes timers when its window opens owns nothing"+verifiesScanFallbacks, func(t *testing.T) {
 				t.Setenv(withoutVariable, "synchronousTake")
-				expectLines(t, "reads after setup owned", s.alone(t, readsAfterSetup)[readsAfterSetup].Owned, []int{expressLine}, []int{creditLine})
+				covered := s.alone(t, readsAfterSetup, timerItDidNotSet)
+				expectLines(t, "reads after setup owned", covered[readsAfterSetup].Owned, []int{expressLine}, []int{creditLine})
+				if owned := covered[timerItDidNotSet].Owned; len(owned) != 0 {
+					t.Fatalf("owned %v", owned)
+				}
 			})
 			t.Run("where the async hooks are blind a line is owned when it ran more often than in hollow runs of the test"+verifiesScanFallbacks, func(t *testing.T) {
 				t.Setenv(withoutVariable, "asyncHooks")

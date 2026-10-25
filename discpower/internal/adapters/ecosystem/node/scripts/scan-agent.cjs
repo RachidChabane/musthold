@@ -26,6 +26,9 @@ const { fileURLToPath } = require('node:url');
 const v8 = require('node:v8');
 const vm = require('node:vm');
 
+// scheduleImmediate is Node's own setImmediate, kept before a test can fake it.
+const scheduleImmediate = setImmediate;
+
 const AGENT_KEY = Symbol.for('spec-proof.scan.agent');
 const TAG = Symbol.for('spec-proof.scan.origin');
 
@@ -178,7 +181,7 @@ function createAgent() {
       return;
     }
     session.post(method, params, (error, result) => {
-      setImmediate(() => {
+      scheduleImmediate(() => {
         inTake = true;
         try {
           done(error, result);
@@ -396,13 +399,30 @@ function createAgent() {
       .enable();
   }
 
+  // enumerate lists the pending fake timers of a realm, or null when they
+  // cannot be told apart: listing them throws, an entry holds no callback, or
+  // the clock counts another number of them than the list holds.
+  function enumerate(timers) {
+    try {
+      const entries = timers.pending();
+      const complete = Array.isArray(entries) && entries.length === timers.count() &&
+        entries.every((entry) => entry && entry.holder !== null && typeof entry.holder === 'object' && typeof entry.holder[entry.key] === 'function');
+      return complete ? entries : null;
+    } catch {
+      return null;
+    }
+  }
+
+  // pendingTimers lists the pending fake timers of the window's realm; when
+  // they can no longer be told apart, the window owns nothing.
   function pendingTimers() {
     if (window === null || window.timers === null) return [];
-    try {
-      return window.timers.pending();
-    } catch {
+    const entries = enumerate(window.timers);
+    if (entries === null) {
+      window.fakeUnseen = true;
       return [];
     }
+    return entries;
   }
 
   // enterSlice starts a callback of foreign origin inside the window: a slice
@@ -494,11 +514,14 @@ function createAgent() {
     // open opens the window of a test before its first beforeEach hook. timers
     // describes the fake timers of its realm: whether they are faked and, when
     // they can be enumerated, pending() lists each pending callback as the
-    // holder object and the key it is kept under.
+    // holder object and the key it is kept under, and count() is how many the
+    // clock counts. A realm that fakes timers its window cannot cut out, or
+    // whose takes are not synchronous, owns nothing.
     open(id, timers) {
       if (!agent.windows() || window !== null) return;
       const faked = Boolean(timers && timers.faked);
-      const enumerable = faked && typeof timers.pending === 'function' && capabilities[CAP_FAKE_TIMERS];
+      const listable = faked && typeof timers.pending === 'function' && typeof timers.count === 'function' && capabilities[CAP_FAKE_TIMERS] && capabilities[CAP_SYNCHRONOUS_TAKE];
+      const enumerable = listable && enumerate(timers) !== null;
       window = { id, timers: enumerable ? timers : null, callbacks: false, fnStarted: false, fnSettled: false, fakeUnseen: faked && !enumerable, opened: false };
       if (!capabilities[CAP_SYNCHRONOUS_TAKE]) return;
       take(AT_OPEN, { t: id });
@@ -542,7 +565,7 @@ function createAgent() {
       results.set(key, entry);
     },
     fileFailed(file) {
-      append({ k: 'file', file: relative(file), state: 'failed' });
+      append({ k: 'file', file: relative(file) });
     },
     // flush writes the outcomes recorded so far and takes what ran since the
     // last take.

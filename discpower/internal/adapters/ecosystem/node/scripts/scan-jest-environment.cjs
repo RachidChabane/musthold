@@ -97,8 +97,9 @@ function hollowed(fn) {
 }
 
 // timersOf describes the fake timers of the environment: the modern ones keep
-// their pending callbacks in the clock, the legacy ones in maps of their own;
-// timer functions replaced by anything else are faked and not enumerable.
+// their pending callbacks in the clock, the legacy ones in collections of
+// their own, each with the count its clock gives; timer functions replaced by
+// anything else are faked and not enumerable.
 function timersOf(environment, realTimeout) {
   const modern = environment.fakeTimersModern;
   const clock = modern && modern._fakingTime ? modern._clock : null;
@@ -106,6 +107,7 @@ function timersOf(environment, realTimeout) {
     return {
       faked: true,
       pending: () => [...(clock.timers ? clock.timers.values() : []), ...(clock.jobs || [])].map((holder) => ({ holder, key: SINON_TIMER_KEY })),
+      count: () => clock.countTimers(),
     };
   }
   const legacy = environment.fakeTimers;
@@ -113,6 +115,7 @@ function timersOf(environment, realTimeout) {
     return {
       faked: true,
       pending: () => [...legacy._timers.values(), ...legacy._immediates, ...legacy._ticks].map((holder) => ({ holder, key: LEGACY_TIMER_KEY })),
+      count: () => legacy.getTimerCount(),
     };
   }
   return { faked: environment.global.setTimeout !== realTimeout };

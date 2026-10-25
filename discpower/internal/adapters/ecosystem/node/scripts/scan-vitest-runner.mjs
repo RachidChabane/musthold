@@ -98,6 +98,7 @@ export default class ScanRunner extends Base {
       return {
         faked: true,
         pending: () => [...(clock.timers ? clock.timers.values() : []), ...(clock.jobs || [])].map((holder) => ({ holder, key: SINON_TIMER_KEY })),
+        count: () => clock.countTimers(),
       };
     }
     return { faked: globalThis.setTimeout !== this.scanRealTimeout };

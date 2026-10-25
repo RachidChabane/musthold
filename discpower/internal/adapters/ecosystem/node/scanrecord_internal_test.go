@@ -153,7 +153,7 @@ func TestGeometryOfAModule(t *testing.T) {
 
 // runOf assembles a run of the given processes and reporter results.
 func runOf(processes []processRecord, reported ...recordLine) runRecord {
-	return runRecord{processes: processes, reported: reported, reporterFailedFile: map[string]bool{}}
+	return runRecord{processes: processes, reported: reported}
 }
 
 func tested(id, outcome string) testRecord {
