@@ -1,0 +1,1 @@
+{"edits": [{"file": "boxoffice/prices.py", "qualname": "ticket_price", "new_source": "def ticket_price(age):\n    if age > SENIOR_FROM_AGE:\n        return SENIOR_PRICE"}]}

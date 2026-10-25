@@ -17,7 +17,7 @@ import (
 // Locations, relative to the repository root, and names the run depends on.
 const (
 	toolsBinRelative = ".tools/bin"
-	lockRelative     = ".tools/canary/session.lock"
+	LockRelative     = ".tools/canary/session.lock"
 	fixtureRelative  = "discpower/fixtures/prove/parcel"
 	memGuardRelative = "script/mem-guard"
 	shallnotBinary   = "shallnot"
@@ -267,7 +267,7 @@ func Plan(flag, repo, model string, homes Homes) ([]string, error) {
 	}
 	words := sessionEnvironmentWords(l)
 	if flag == harness.FlagClaude && homes.IsolatedClaude {
-		words = append(words, launch.OAuthTokenVariable+"="+tokenPlaceholder(homes.ClaudeSource))
+		words = append(words, launch.OAuthTokenVariable+"="+TokenPlaceholder(homes.ClaudeSource))
 	}
 	lines = append(lines,
 		"session environment: "+strings.Join(words, " "),

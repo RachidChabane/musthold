@@ -1,0 +1,12 @@
+diff --git a/boxoffice/prices.py b/boxoffice/prices.py
+--- a/boxoffice/prices.py
++++ b/boxoffice/prices.py
+@@ -9,7 +9,7 @@ CHILD_FROM_AGE = 3
+ 
+ 
+ def ticket_price(age):
+-    if age >= SENIOR_FROM_AGE:
++    if age > SENIOR_FROM_AGE:
+         return SENIOR_PRICE
+     if age >= ADULT_FROM_AGE:
+         return ADULT_PRICE
