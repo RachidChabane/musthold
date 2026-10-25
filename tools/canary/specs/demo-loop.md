@@ -30,14 +30,15 @@ tests run on the demonstration's own engine and skip where it is not running.
   commit the equipped project, run the gate on it, and record the command, the
   purpose, the exit code and the output of every step, stopping at the first
   step that fails.
-- **SP-2402~2**: WHEN the session of a run is built THE SYSTEM SHALL launch the
+- **SP-2402~3**: WHEN the session of a run is built THE SYSTEM SHALL launch the
   pinned Linux Claude Code of the product tree non-interactively on the task's
   prompt and the configured model, with its events streamed as JSON with the hook
   events, the project's settings and a session settings file that holds the
   configured permission rules and nothing else, edits accepted, the configured
-  spend cap, the plugin tree of each proof module and the umbrella plugin for the
-  four-proofs arm, an isolated configuration directory in which the project is
-  trusted, `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` set, and on its PATH first the
+  spend cap, for the four-proofs arm the product's plugin tree of each proof
+  module, of Shallnot from the pinned Shallnot source and of the relay, then the
+  umbrella plugin that depends on them, an isolated configuration directory in
+  which the project is trusted, `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` set, and on its PATH first the
   shims that record the hook calls of Shallnot and of each module, then the
   product's binaries and the pinned CLI.
 - **SP-2403~2**: WHEN a live run is started THE SYSTEM SHALL refuse a session
@@ -73,9 +74,10 @@ tests run on the demonstration's own engine and skip where it is not running.
   tree read-only, no docker socket, no engine log, and an environment emptied by
   `env -i` and refilled from a fixed list that names nothing of the host but the
   run directory.
-- **SP-2411~1**: WHEN the session of a live run starts THE SYSTEM SHALL run it in a
+- **SP-2411~2**: WHEN the session of a live run starts THE SYSTEM SHALL run it in a
   container with the same bounds on an internal network with no route out, behind
-  an egress proxy whose own container joins that network, and SHALL hand the token
+  an egress proxy whose own container joins that network under a fixed alias the
+  session addresses it by, whatever the length of the run's name, and SHALL hand the token
   to the container's entry on its standard input only, which starts the session's
   command with the token in that command's environment and its standard input
   closed; the token SHALL be in no command line, no environment of the docker
@@ -93,6 +95,17 @@ tests run on the demonstration's own engine and skip where it is not running.
   session image with no network, the Linux product and the recorded answers of
   the project's honest host THE SYSTEM SHALL block the gate on the weak test of
   BOX-2 with the example the tests miss and pass it once the test is strengthened.
+- **SP-2419~1**: WHEN the stream of a session starts THE SYSTEM SHALL end the
+  session at the init event when it reports a plugin error or lacks a plugin the
+  run gives the session, and at the first retry of a model API call that reached
+  no server before any answer, SHALL keep and render the records, and SHALL fail
+  the run, naming the reason and what failed.
+- **SP-2420~1**: WHEN the pinned Linux Claude Code runs a whole session of the
+  runner in containers against a stand-in for the model API that only the egress
+  proxy reaches THE SYSTEM SHALL have it reach the stand-in through the proxy alone
+  with the token its entry gave it as its bearer, load every plugin the run gives
+  it with no plugin error, run Shallnot's end-of-turn gate at most once per end of
+  turn, and leave no container behind.
 - **SP-2418~1**: WHEN no work area is named THE SYSTEM SHALL create the run
   directories under `.tools/demo-loop/work` of the repository, never in the
   system's temporary directory.
