@@ -226,7 +226,8 @@ installs none.
   `spec-proof-dp request list`, `spec-proof-dp request show <ticket>`, then
   `spec-proof-dp request submit <ticket> --nonce <nonce>` with the JSON answer on
   standard input, then `spec-proof-dp prove --resume`. Such answers have the
-  isolation `inline`.
+  isolation `inline` and are marked `exposed`: they block and escalate, and earn no
+  pass credit under any floor.
 
 Judged answers from harnesses below the isolation floor keep their power to block
 and escalate but earn no pass credit; see [trust model](trust-model.md#harness-isolation).

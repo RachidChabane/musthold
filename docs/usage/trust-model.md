@@ -107,12 +107,13 @@ escalate. So does an answer marked `leaked`, `exposed`, `resubmission_conflict`,
 | Claude Code | `restricted`, `restricted-attested` when attested | the executor is a plugin subagent whose `tools` list names exactly `fetch_request` and `submit_response`; it holds no shell and no file tool |
 | Codex CLI | `unrestricted`, `inline` when the executor's rollout does not show a blind start | Codex has no per-agent allowlist of built-in tools; the executor keeps the shell, and attestation is waived. The hooks deny a spawn of an executor that does not set `fork_turns: "none"` or `fork_context: false`, and the stop hook reads the executor's rollout: an answer whose executor started with the main agent's history (`history_inherited`), or whose rollout cannot show it did not (`blindness_unproven`), is credited `inline` and marked |
 | Copilot CLI | `restricted-unverified` | the allowlist is written, but its enforcement is not verified |
-| any other harness | `inline` | the main agent answers through `request show` and `request submit` |
+| any other harness | `inline`, marked `exposed` | the main agent answers through `request show` and `request submit`: the agent whose work is judged gives the answer |
 
-Consequences: on Codex, Copilot and inline harnesses, requirements without examples
-reach no PASS, local or signed, unless the floor is lowered; requirements with
-examples pass on executed evidence everywhere. Judged answers there still block and
-escalate.
+Consequences: on Codex and Copilot, requirements without examples reach no PASS,
+local or signed, unless the floor is lowered. On any other harness they reach no
+PASS under any floor, because every answer there is marked `exposed`. Requirements
+with examples pass on executed evidence everywhere. Judged answers still block and
+escalate on every harness.
 
 ## Classification by the host
 
