@@ -84,6 +84,26 @@ func goDialect() dialect {
 	}
 }
 
+// typeScriptDialect writes witnesses of a Jest or a Vitest project: plain
+// functions that throw through expect, with the imports given, Vitest's expect
+// among them.
+func typeScriptDialect(imports string) dialect {
+	return dialect{
+		imports: imports,
+		name:    func(vote int, stem string) string { return fmt.Sprintf("witness_v%d_%s", vote, stem) },
+		example: func(name, call, want string) string {
+			return fmt.Sprintf("function %s() {\n  expect(%s).toBe(%s);\n}\n", name, call, want)
+		},
+		property: func(name, call, want string) string {
+			return fmt.Sprintf("function %s() {\n  for (let total = %d; total < %d; total += %d) {\n    expect(%s).toBe(%s);\n  }\n}\n",
+				name, propertyFrom, propertyTo, propertyStep, call, want)
+		},
+	}
+}
+
+// vitestExpect imports Vitest's expect into a witness file.
+const vitestExpect = "import { expect } from 'vitest';\n"
+
 // witnessAnswer is the answer of one writer: the checks of the promise in the
 // dialect, named after the vote so that the two writers differ.
 func (d dialect) witnessAnswer(t *testing.T, vote int, checks []check) string {
@@ -307,6 +327,24 @@ func tallyScenario() scenario {
 	return s
 }
 
+// invoiceTypeScriptScenario is the TypeScript invoice project of a runner,
+// with the promises of the pytest one; preamble is what the witness file
+// imports before the project's modules.
+func invoiceTypeScriptScenario(preamble string) scenario {
+	s := invoiceScenario()
+	s.promises[0].checks = []check{
+		{stem: "one_line", call: "orderTotal([[4, 3]])", want: "12"},
+		{stem: "two_lines", call: "orderTotal([[4, 3], [2, 5]])", want: "22"},
+		{stem: "no_line", call: "orderTotal([])", want: "0"},
+		{stem: "any_lines", call: "orderTotal([[total, 1], [1, total]])", want: "2 * total", property: true},
+	}
+	s.promises[1].checks = fortyChecks("shipping")
+	s.dialect = typeScriptDialect(preamble + "import { orderTotal } from '../src/orders';\nimport { shipping } from '../src/totals';")
+	s.mutation = mutation{unit: "orderTotal", from: "unitPrice * quantity", to: "unitPrice + quantity", mechanism: s.mutation.mechanism}
+	s.label = "function orderTotal("
+	return s
+}
+
 // The promises of the README the parcel projects get for a scan beside
 // prove: the pytest project prices in units, the Go project in cents.
 const (
@@ -351,6 +389,23 @@ func parcelGoScenario() scenario {
 		breaks:   parcelGoQuote,
 		mutation: mutation{unit: "parcel.ShippingFee", from: "total >= FreeShippingFrom", to: "total > FreeShippingFrom", mechanism: "charge an order of exactly 5000 cents"},
 		label:    "func ShippingFee(",
+	}
+}
+
+// parcelTypeScriptScenario is the TypeScript parcel project of a runner of
+// prove, with the promise of the pytest one.
+func parcelTypeScriptScenario(preamble string) scenario {
+	return scenario{
+		promises: []promiseScript{{quote: parcelQuote, source: format.ScanSourceReadme, checks: []check{
+			{stem: "fifty_ships_free", call: "shippingFee(50)", want: "0"},
+			{stem: "seventy_five_ships_free", call: "shippingFee(75)", want: "0"},
+			{stem: "a_hundred_ships_free", call: "shippingFee(100)", want: "0"},
+			{stem: "from_fifty_ships_free", call: "shippingFee(50 + total)", want: "0", property: true},
+		}}},
+		dialect:  typeScriptDialect(preamble + "import { shippingFee } from '../src/rates';"),
+		breaks:   parcelQuote,
+		mutation: mutation{unit: "shippingFee", from: "total >= FREE_SHIPPING_FROM", to: "total > FREE_SHIPPING_FROM", mechanism: "charge an order of exactly fifty"},
+		label:    "function shippingFee(",
 	}
 }
 
