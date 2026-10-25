@@ -18,6 +18,7 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/promise"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/prompt"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/scanscope"
+	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
 )
@@ -37,7 +38,7 @@ const (
 // keeps its units whole, in the order of the code, and leaves out each unit
 // that would take it past the bound; the report names every view the bound
 // cut and the request says how many units it leaves out.
-const ViewSourceCap = 48 << 10
+const ViewSourceCap = format.SourceViewCap
 
 // boundedView keeps the units of a view within ViewSourceCap and counts the
 // units it leaves out.

@@ -7,6 +7,7 @@ package golden
 import (
 	"encoding/json"
 	"slices"
+	"strings"
 
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/formattest/proofs"
@@ -238,8 +239,51 @@ func discriminatingPowerCases() []Case {
 		build("discriminating-power-unsorted-examples", breaks(SchemaValid, format.CodeUnsorted), func(s *power) {
 			slices.Reverse(s.Predicate.Examples)
 		}),
+		build("discriminating-power-counterexample-example", valid(), func(s *power) {
+			withCounterexample(s, format.Counterexample{Origin: format.OriginTargeted, Slot: format.SlotBoundary, Example: intPointer(0)})
+		}),
+		build("discriminating-power-counterexample-witness", valid(), func(s *power) {
+			witness := format.BoundedWitness(counterexampleWitness, counterexampleClause, counterexampleCode)
+			withCounterexample(s, format.Counterexample{Origin: format.OriginOperator, Family: counterexampleFamily, Witness: &witness})
+		}),
+		build("discriminating-power-counterexample-in-ci", breaks(SchemaValid, format.CodeCounterexampleNotLocal), func(s *power) {
+			withCounterexample(s, format.Counterexample{Origin: format.OriginTargeted, Slot: format.SlotBoundary, Example: intPointer(0)})
+			s.Predicate.ProducedBy = format.ProducedByCI
+		}),
+		build("discriminating-power-counterexample-example-and-witness", breaks(SchemaInvalid, format.CodeMissingField), func(s *power) {
+			witness := format.BoundedWitness(counterexampleWitness, counterexampleClause, counterexampleCode)
+			withCounterexample(s, format.Counterexample{Origin: format.OriginTargeted, Slot: format.SlotDirect, Example: intPointer(0), Witness: &witness})
+		}),
+		build("discriminating-power-counterexample-targeted-without-slot", breaks(SchemaInvalid, format.CodeUnknownValue), func(s *power) {
+			withCounterexample(s, format.Counterexample{Origin: format.OriginTargeted, Example: intPointer(0)})
+		}),
+		build("discriminating-power-counterexample-oversized-witness", breaks(SchemaInvalid, format.CodeCounterexampleSize), func(s *power) {
+			witness := format.WitnessExample{Name: counterexampleWitness, Clause: counterexampleClause, Code: strings.Repeat("x", format.SourceViewCap+1)}
+			withCounterexample(s, format.Counterexample{Origin: format.OriginOperator, Family: counterexampleFamily, Witness: &witness})
+		}),
 	}
 }
+
+// Parts of the counterexample vectors.
+const (
+	counterexampleWitness = "free_from_fifty"
+	counterexampleClause  = "reaches 50"
+	counterexampleCode    = "def free_from_fifty():\n    assert shipping_fee(50) == 0"
+	counterexampleFamily  = "relational"
+)
+
+// withCounterexample gives the regular mutant of the statement a counterexample
+// and the producer that may carry one.
+func withCounterexample(s *format.Statement[format.DiscriminatingPower], counterexample format.Counterexample) {
+	s.Predicate.ProducedBy = format.ProducedByLocal
+	mutant := &s.Predicate.Mutants[proofs.RegularMutantIndex(s.Predicate.Mutants)]
+	if mutant.Extensions == nil {
+		mutant.Extensions = &format.MutantExtensions{}
+	}
+	mutant.Extensions.Counterexample = &counterexample
+}
+
+func intPointer(value int) *int { return &value }
 
 func completenessCases() []Case {
 	type completeness = format.Statement[format.Completeness]

@@ -228,6 +228,50 @@
     "schema": "valid"
   },
   {
+    "file": "discriminating-power-counterexample-example.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "discriminating-power-counterexample-witness.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "discriminating-power-counterexample-in-ci.json",
+    "decode": "ok",
+    "violations": [
+      "counterexample_not_local"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "discriminating-power-counterexample-example-and-witness.json",
+    "decode": "ok",
+    "violations": [
+      "missing_field"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "discriminating-power-counterexample-targeted-without-slot.json",
+    "decode": "ok",
+    "violations": [
+      "unknown_value"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "discriminating-power-counterexample-oversized-witness.json",
+    "decode": "ok",
+    "violations": [
+      "counterexample_size"
+    ],
+    "schema": "invalid"
+  },
+  {
     "file": "completeness-not-advisory.json",
     "decode": "ok",
     "violations": [

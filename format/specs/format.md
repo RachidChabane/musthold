@@ -66,6 +66,14 @@ Go tests of the module in CI.
 - **SP-20~1**: WHEN a predicate carries `extensions.decision` or
   `extensions.operatorScreen` THE SYSTEM SHALL keep them through decoding and
   encoding and check the decision's basis and confidences.
+- **SP-2420~1**: WHEN a mutant of a discriminating-power predicate carries
+  `extensions.counterexample` THE SYSTEM SHALL require the origin `targeted` with
+  one generation slot and no family, or the origin `operator` with a family and
+  no slot, and exactly one of the index of an example the mutant fails or a
+  witness with its name, its clause and code of at most `SourceViewCap` bytes,
+  the bound of a host view; SHALL refuse a counterexample in a statement not
+  produced locally; and SHALL cut a witness's code at that bound, at a line
+  boundary when there is one, saying that it was cut.
 
 ## Pending criteria and ledger layout
 

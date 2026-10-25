@@ -70,7 +70,8 @@
               "type": "array",
               "items": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/nonEmptyString" },
               "uniqueItems": true
-            }
+            },
+            "counterexample": { "$ref": "#/$defs/counterexample" }
           }
         }
       },
@@ -134,6 +135,40 @@
             }
           },
           "then": { "not": {} }
+        }
+      ]
+    },
+    "counterexample": {
+      "type": "object",
+      "required": ["origin"],
+      "properties": {
+        "origin": { "enum": ["targeted", "operator"] },
+        "slot": { "enum": ["S1", "S2", "S3"] },
+        "family": { "type": "string", "pattern": "^[a-z][a-z_]*$" },
+        "example": { "type": "integer", "minimum": 0 },
+        "witness": {
+          "type": "object",
+          "required": ["name", "clause", "code"],
+          "properties": {
+            "name": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/nonEmptyString" },
+            "clause": { "type": "string" },
+            "code": { "type": "string", "minLength": 1, "maxLength": 49152 },
+            "truncated": { "type": "boolean" }
+          }
+        }
+      },
+      "oneOf": [
+        { "required": ["example"], "not": { "required": ["witness"] } },
+        { "required": ["witness"], "not": { "required": ["example"] } }
+      ],
+      "allOf": [
+        {
+          "if": { "properties": { "origin": { "const": "targeted" } } },
+          "then": { "required": ["slot"], "not": { "required": ["family"] } }
+        },
+        {
+          "if": { "properties": { "origin": { "const": "operator" } } },
+          "then": { "required": ["family"], "not": { "required": ["slot"] } }
         }
       ]
     },
