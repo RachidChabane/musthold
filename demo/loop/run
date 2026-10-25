@@ -41,7 +41,7 @@ live() {
   while (($#)); do
     case "$1" in
       --config) config="$2"; shift 2 ;;
-      --dry-run) dry_run=1; forwarded+=("$1"); shift ;;
+      --dry-run) dry_run=1; shift ;;
       --force-window) forwarded+=("$1"); shift ;;
       --out) forwarded+=("$1" "$2"); shift 2 ;;
       *) usage ;;
@@ -49,7 +49,10 @@ live() {
   done
   build_runner
   if ((dry_run)); then
-    exec "${RUNNER}" run --config "${config}" --repo . ${forwarded[@]+"${forwarded[@]}"}
+    echo "a live run first runs, in ${PWD}: script/product-build; script/claude-code-install;"
+    echo "then: script/mem-guard run -- ${RUNNER} run --config ${config} --repo . ${forwarded[*]-}"
+    echo "which runs the following (this dry run starts none of it):"
+    exec "${RUNNER}" run --config "${config}" --repo . --dry-run ${forwarded[@]+"${forwarded[@]}"}
   fi
   script/product-build
   script/claude-code-install >/dev/null
