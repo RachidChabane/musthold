@@ -14,19 +14,32 @@ program behavior making bug detection difficult" ([Konstantinou, Degiovanni and
 Papadakis, 2024](https://arxiv.org/abs/2410.21136)).
 A green suite that proves nothing is a review you believe happened.
 
-**What spec-proof does.** It measures whether each test actually prevents a change
-of behaviour, and shows you the changed code a test lets through. Given a spec, it
-then checks that the tests verify what the spec asks, and hands the proofs to
-[Shallnot](https://github.com/RachidChabane/shallnot), the gate that composes them
-with traceability.
+**What spec-proof does.** Given a spec written in plain language, it proves,
+requirement by requirement, that the tests verify what the spec asks, and so that
+the code they pass meets it. [Shallnot](https://github.com/RachidChabane/shallnot)
+checks that each acceptance criterion is cited by a test that ran and passed.
+spec-proof adds what that cannot show:
+- the test checks what its criterion states;
+- the test fails on code that violates that criterion;
+- the spec says what the change does, or the gaps are listed as questions.
+
+Shallnot composes these proofs into one gate.
+
+**It works inside the agent's loop.** The gate holds the agent's turn while a proof
+is missing or failing, and names what failed. When a test fails to catch a
+violation, the finding is a counterexample: changed code that breaks the criterion,
+which the tests still pass. The agent fixes its tests from it and runs the gate
+again. A pipeline from spec to shipped code then needs no one to reread its pull
+requests. You review the spec and the evidence.
 
 Development automation will not scale while an agent's green means nothing.
 spec-proof's job is to make that green worth trusting.
 
 ## Scan any repository
 
-One command shows which of your tests still pass when the code they run is
-broken, and hands you the broken code:
+Without a spec, the discriminating-power check still runs. One command shows which
+of your tests still pass when the code they run is broken, and hands you the
+broken code:
 
 ```
 spec-proof scan
