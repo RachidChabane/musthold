@@ -104,7 +104,7 @@ code, cut at 48 KiB:
 ```
 BOX-2~1 proved BLOCK
   finding surviving_valid_mutant
-  survivor 10edb8fdacce: a targeted mutant of slot S1 (direct), which every test of the criterion passes, fails its example 1: ticket_price(age=65) => 8
+  survivor 10edb8fdacce: an operator mutant of family relational, which every test of the criterion passes, fails its example 1: ticket_price(age=65) => 8
 ```
 
 A survivor line never shows the mutant's code: a test written to that input does
