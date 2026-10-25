@@ -67,6 +67,10 @@ escalation-rate:  ## verdicts and escalation rate of the honest end-to-end fixtu
 regen-statement-fixtures:  ## regenerate every fixture derived from the proof statements, in dependency order (script/regen-statement-fixtures)
 	./script/regen-statement-fixtures
 
+.PHONY: uri-site
+uri-site:  ## write the static files that serve the format's URIs into OUT (script/uri-site; ARGS="OUT" or ARGS="--check OUT")
+	./script/uri-site $(ARGS)
+
 .PHONY: secrets-scan
 secrets-scan:  ## scan the whole git history for secrets with gitleaks (script/secrets-scan)
 	./script/secrets-scan
