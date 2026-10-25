@@ -33,14 +33,16 @@ const (
 	unknownClock     = "--:--"
 	noOutput         = "(no output)"
 	noCounterexample = "(no diff was recorded for this mutant)"
-	millisPerSecond  = 1000
-	secondsPerMinute = 60
-	minutesPerHour   = 60
-	fenceRune        = "`"
-	minimumFence     = 3
-	diffAdded        = "+"
-	diffRemoved      = "-"
-	diffHunk         = "@@"
+	// counterexampleNote says where a counterexample's diff comes from.
+	counterexampleNote = "The gate's message names this mutant by its id only. The diff below was rebuilt after the session from the mutant the discriminating-power module stored; the agent was not shown it."
+	millisPerSecond    = 1000
+	secondsPerMinute   = 60
+	minutesPerHour     = 60
+	fenceRune          = "`"
+	minimumFence       = 3
+	diffAdded          = "+"
+	diffRemoved        = "-"
+	diffHunk           = "@@"
 )
 
 // title is the heading of a transcript.
@@ -78,6 +80,14 @@ func heading(entry transcript.Entry) string {
 		return fmt.Sprintf("%s: %d launched", label, entry.Count)
 	}
 	return label
+}
+
+// note is the renderer's remark on an entry, or empty.
+func note(entry transcript.Entry) string {
+	if entry.Kind == transcript.KindCounterexample {
+		return counterexampleNote
+	}
+	return ""
 }
 
 // body is the text an entry shows above its block.
@@ -209,6 +219,9 @@ func Markdown(t transcript.Transcript) string {
 	for _, entry := range t.Entries {
 		fmt.Fprintf(&out, "### %s · %s\n\n", clock(entry.AtMillis), heading(entry))
 		fmt.Fprintf(&out, "Source: `%s`\n\n", entry.Source)
+		if remark := note(entry); remark != "" {
+			fmt.Fprintf(&out, "_%s_\n\n", remark)
+		}
 		if text := body(entry); text != "" {
 			language := "text"
 			if entry.Kind == transcript.KindCommand {
@@ -275,6 +288,9 @@ func HTML(t transcript.Transcript) string {
 		}
 		fmt.Fprintf(&out, `<article class="%s">`+"\n", escape(classes))
 		fmt.Fprintf(&out, "<h4><time>%s</time> %s<span class=\"meta\">%s</span></h4>\n", escape(clock(entry.AtMillis)), escape(heading(entry)), escape(entry.Source))
+		if remark := note(entry); remark != "" {
+			fmt.Fprintf(&out, "<p class=\"meta\">%s</p>\n", escape(remark))
+		}
 		if text := body(entry); text != "" {
 			fmt.Fprintf(&out, "<pre>%s</pre>\n", escape(text))
 		}

@@ -32,6 +32,43 @@ func MentionedMutants(text string) []string {
 	return found
 }
 
+// codeTreeRole is the role of a code file among a statement's inputs.
+const codeTreeRole = "code_tree"
+
+// CodeOfMutants reads a discriminating-power statement and maps the id of each
+// mutant it holds to the SHA-256 of every code file the statement was made on,
+// by path: the code each mutant was drawn against.
+func CodeOfMutants(statement []byte) (map[string]map[string]string, error) {
+	var document struct {
+		Predicate struct {
+			Inputs []struct {
+				Name   string `json:"name"`
+				Role   string `json:"role"`
+				Digest struct {
+					SHA256 string `json:"sha256"`
+				} `json:"digest"`
+			} `json:"inputs"`
+			Mutants []struct {
+				Digest string `json:"digest"`
+			} `json:"mutants"`
+		} `json:"predicate"`
+	}
+	if err := json.Unmarshal(statement, &document); err != nil {
+		return nil, err
+	}
+	code := map[string]string{}
+	for _, input := range document.Predicate.Inputs {
+		if input.Role == codeTreeRole {
+			code[input.Name] = input.Digest.SHA256
+		}
+	}
+	found := map[string]map[string]string{}
+	for _, mutant := range document.Predicate.Mutants {
+		found[mutant.Digest] = code
+	}
+	return found, nil
+}
+
 // GateReport is the part of Shallnot's JSON report a recording reads.
 type GateReport struct {
 	Verdict  string `json:"verdict"`

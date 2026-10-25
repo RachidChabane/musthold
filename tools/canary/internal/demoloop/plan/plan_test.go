@@ -150,9 +150,9 @@ func TestEnvironment(t *testing.T) {
 		}
 	})
 
-	t.Run("a shim exports the run's variables, not the PATH, and hands over to the runner's shim [verifies SP-2402~1]", func(t *testing.T) {
-		script := plan.ShimScript("/repo/.tools/bin/spec-proof-demo-loop", "/repo/.tools/bin/shallnot", "/runs/r1/records/hooks.jsonl", plan.Environment(nil, plan.Variables(layout, leading)))
-		if strings.Contains(script, "export PATH") || !strings.Contains(script, "export XDG_STATE_HOME=/runs/r1/state\n") {
+	t.Run("a shim exports the project directory and the run's variables, not the PATH, and hands over to the runner's shim [verifies SP-2402~1]", func(t *testing.T) {
+		script := plan.ShimScript("/repo/.tools/bin/spec-proof-demo-loop", "/repo/.tools/bin/shallnot", "/runs/r1/records/hooks.jsonl", plan.ShimExports(layout, plan.Variables(layout, leading)))
+		if strings.Contains(script, "export PATH") || !strings.Contains(script, "export XDG_STATE_HOME=/runs/r1/state\n") || !strings.HasPrefix(script, "#!/bin/sh\nexport CLAUDE_PROJECT_DIR=/runs/r1/project\n") {
 			t.Errorf("script:\n%s", script)
 		}
 		if !strings.HasSuffix(script, "exec /repo/.tools/bin/spec-proof-demo-loop shim --real /repo/.tools/bin/shallnot --record /runs/r1/records/hooks.jsonl -- \"$@\"\n") {

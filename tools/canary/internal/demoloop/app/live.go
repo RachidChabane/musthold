@@ -177,7 +177,7 @@ type session struct {
 func sessionOf(o Options, l plan.Layout, run config.Run, prepared Prepared, leading []string) session {
 	command := plan.SessionCommand(plan.SessionInput{Layout: l, Run: run, Config: o.Config, Claude: o.Claude})
 	variables := append(plan.Variables(l, leading), command.Env...)
-	return session{command: command, env: plan.Environment(prepared.Environment, variables), exports: plan.Environment(nil, variables)}
+	return session{command: command, env: plan.Environment(prepared.Environment, variables), exports: plan.ShimExports(l, variables)}
 }
 
 // ready runs the gate on the equipped project and lays the session's settings,

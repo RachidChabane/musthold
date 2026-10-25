@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -129,12 +131,16 @@ func (c Collector) counterexamples(ctx context.Context, prepared *Prepared, muta
 			}
 		}
 	}
+	drawnOn, err := c.drawnOn(l)
+	if err != nil {
+		return err
+	}
 	for _, short := range named {
 		id, found := fullID(mutants, short)
 		if !found {
 			continue
 		}
-		diff, err := c.diff(ctx, prepared, short, mutants[id])
+		diff, err := c.diff(ctx, prepared, short, mutants[id], drawnOn[id])
 		if err != nil {
 			return err
 		}
@@ -148,6 +154,33 @@ func (c Collector) counterexamples(ctx context.Context, prepared *Prepared, muta
 	return nil
 }
 
+// statementsPattern finds the discriminating-power statements of the project.
+var statementsPattern = filepath.Join(".spec-proof", "cache", "discriminating-power", "*", "*"+record.MutantExtension)
+
+// drawnOn maps each mutant id to the digests of the code files it was drawn on,
+// read from every statement the module left in the project's cache.
+func (c Collector) drawnOn(l plan.Layout) (map[string]map[string]string, error) {
+	paths, err := c.Files.Glob(filepath.Join(l.Project(), statementsPattern))
+	if err != nil {
+		return nil, err
+	}
+	found := map[string]map[string]string{}
+	for _, path := range paths {
+		content, err := c.Files.Read(path)
+		if err != nil {
+			return nil, err
+		}
+		code, err := record.CodeOfMutants(content)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", path, err)
+		}
+		for id, files := range code {
+			found[id] = files
+		}
+	}
+	return found, nil
+}
+
 func fullID(mutants map[string]counterexample.Mutant, short string) (string, bool) {
 	for id := range mutants {
 		if strings.HasPrefix(id, short) {
@@ -158,15 +191,16 @@ func fullID(mutants map[string]counterexample.Mutant, short string) (string, boo
 }
 
 // diff is the unified diff, as git writes it, of each file the mutant edits:
-// the file as the session left it, or as the equipped commit holds it when the
-// edited unit is no longer there, against the same file with the mutant in
-// place. A mutant that neither version can take gives no diff.
-func (c Collector) diff(ctx context.Context, prepared *Prepared, short string, mutant counterexample.Mutant) (string, error) {
+// the version of the file the mutant was drawn on, the one the session left or
+// the equipped one, against the same file with the mutant in place. A file whose
+// version the statements do not name, or that neither version matches, gives no
+// diff, so that a diff never mixes the mutant with code it was not drawn on.
+func (c Collector) diff(ctx context.Context, prepared *Prepared, short string, mutant counterexample.Mutant, drawnOn map[string]string) (string, error) {
 	l := prepared.Layout
 	work := l.Path(plan.TmpDir, diffWork, short)
 	var parts []string
 	for _, file := range mutant.Files() {
-		before, after, placed, err := c.versions(ctx, prepared, mutant, file)
+		before, after, placed, err := c.versions(ctx, prepared, mutant, file, drawnOn[file])
 		if err != nil {
 			return "", err
 		}
@@ -193,9 +227,12 @@ func (c Collector) diff(ctx context.Context, prepared *Prepared, short string, m
 	return strings.Join(parts, ""), nil
 }
 
-// versions finds the file version the mutant applies to and the file with the
-// mutant in place.
-func (c Collector) versions(ctx context.Context, prepared *Prepared, mutant counterexample.Mutant, file string) (string, string, bool, error) {
+// versions finds the version of the file whose digest is the one the mutant was
+// drawn on, and the file with the mutant in place.
+func (c Collector) versions(ctx context.Context, prepared *Prepared, mutant counterexample.Mutant, file, digest string) (string, string, bool, error) {
+	if digest == "" {
+		return "", "", false, nil
+	}
 	final, err := c.Files.Read(filepath.Join(prepared.Layout.Project(), file))
 	if err != nil {
 		return "", "", false, err
@@ -209,6 +246,9 @@ func (c Collector) versions(ctx context.Context, prepared *Prepared, mutant coun
 		candidates = append(candidates, equipped.Stdout)
 	}
 	for _, candidate := range candidates {
+		if sum := sha256.Sum256([]byte(candidate)); hex.EncodeToString(sum[:]) != digest {
+			continue
+		}
 		after, err := mutant.Apply(file, candidate)
 		switch {
 		case err == nil:

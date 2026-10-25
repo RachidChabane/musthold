@@ -317,6 +317,16 @@ func Environment(base []string, variables []string) []string {
 	return append(merged, resolved...)
 }
 
+// ProjectDirVariable names the project to a hook or an executor server that a
+// harness starts with a reduced environment.
+const ProjectDirVariable = "CLAUDE_PROJECT_DIR"
+
+// ShimExports are the variables a shim sets: the project directory, then the
+// run's variables.
+func ShimExports(l Layout, variables []string) []string {
+	return append([]string{ProjectDirVariable + "=" + l.Project()}, Environment(nil, variables)...)
+}
+
 // ShimScript is the executable that stands in for a binary on the session's
 // PATH: it exports the run's variables, because a harness may start a hook with a
 // reduced environment, and hands over to the runner's shim, which records the

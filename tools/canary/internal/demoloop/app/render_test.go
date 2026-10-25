@@ -62,6 +62,7 @@ func TestRenderedTranscript(t *testing.T) {
 			"+    assert ticket_price(age=65) == 8",
 			"Gate after the session: pass, exit code 0 (gate-after.json)",
 			"shallnot: gate passed: 4 requirement(s) in focus covered by passing tests",
+			"the agent was not shown it.",
 		} {
 			if !strings.Contains(markdown, wanted) {
 				t.Errorf("the transcript lacks %q", wanted)
