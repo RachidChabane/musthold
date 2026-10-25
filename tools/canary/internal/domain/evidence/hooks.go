@@ -37,8 +37,15 @@ type HookCall struct {
 	// Stdin is the payload the harness sent, as it sent it.
 	Stdin json.RawMessage `json:"stdin,omitempty"`
 	// Stdout is the decision the hook answered.
-	Stdout   string `json:"stdout,omitempty"`
+	Stdout string `json:"stdout,omitempty"`
+	// Stderr is what the hook printed to its error stream, which a harness shows
+	// the agent when the hook blocks.
+	Stderr   string `json:"stderr,omitempty"`
 	ExitCode int    `json:"exitCode"`
+	// StartedAt is when the hook started, in RFC 3339 with nanoseconds, and
+	// DurationMillis how long it ran; a probe records neither.
+	StartedAt      string `json:"startedAt,omitempty"`
+	DurationMillis int64  `json:"durationMs,omitempty"`
 }
 
 // HookPayload is the members of a hook payload the checks read. Claude Code and
@@ -62,7 +69,8 @@ type Decision struct {
 	UpdatedInput json.RawMessage `json:"updatedInput"`
 }
 
-func decodeHooks(data []byte) ([]HookCall, error) {
+// DecodeHooks reads the hook log, keeping the line of each record.
+func DecodeHooks(data []byte) ([]HookCall, error) {
 	lines, err := Lines(HooksFile, data)
 	if err != nil {
 		return nil, err

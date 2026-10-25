@@ -37,6 +37,9 @@ type SessionSpec struct {
 	Env  []string
 	// StdoutPath and StderrPath receive what the CLI prints.
 	StdoutPath, StderrPath string
+	// TimesPath, when set, receives one JSON line per stdout line: its number and
+	// the milliseconds since the CLI started at which it arrived.
+	TimesPath string
 	// Counts says whether a stdout line is a step the cap counts.
 	Counts  func(line []byte) bool
 	Cap     int

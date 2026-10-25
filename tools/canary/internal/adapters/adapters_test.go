@@ -197,6 +197,27 @@ func TestShim(t *testing.T) {
 	})
 }
 
+func TestShimTiming(t *testing.T) {
+	t.Run("a hook's error stream reaches the harness unchanged and is recorded with its start and duration [verifies SP-2408~1]", func(t *testing.T) {
+		real := fakeBinary(t, `cat >/dev/null; printf 'blocked: fix it\n' >&2; sleep 0.2; exit 2`)
+		record := filepath.Join(t.TempDir(), "hooks.jsonl")
+		var stdout, stderr strings.Builder
+		before := time.Now().UTC()
+		code := adapters.RunShim(real, record, []string{"hook", "claude-stop"}, strings.NewReader(`{"hook_event_name":"Stop"}`), &stdout, &stderr)
+		if code != 2 || stderr.String() != "blocked: fix it\n" || stdout.String() != "" {
+			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
+		}
+		calls := readRecords(t, record)
+		if len(calls) != 1 || calls[0].Stderr != "blocked: fix it\n" || calls[0].ExitCode != 2 {
+			t.Fatalf("records = %+v", calls)
+		}
+		started, err := time.Parse(time.RFC3339Nano, calls[0].StartedAt)
+		if err != nil || started.Before(before.Add(-time.Second)) || calls[0].DurationMillis < 150 {
+			t.Errorf("started %q (%v), duration %d ms", calls[0].StartedAt, err, calls[0].DurationMillis)
+		}
+	})
+}
+
 func TestProbe(t *testing.T) {
 	t.Run("a probe records the payload under its label and exits 0 even when it cannot write [verifies SP-1506~1]", func(t *testing.T) {
 		record := filepath.Join(t.TempDir(), "hooks.jsonl")
@@ -285,6 +306,39 @@ func TestSessionRunner(t *testing.T) {
 		}
 		if elapsed > 20*time.Second || strings.Count(stream, "assistant") > 4 {
 			t.Errorf("the session ran %s and printed %d steps", elapsed, strings.Count(stream, "assistant"))
+		}
+	})
+
+	t.Run("a times file receives the number of each line and when it arrived [verifies SP-2408~1]", func(t *testing.T) {
+		dir := t.TempDir()
+		spec := app.SessionSpec{
+			Argv: []string{"/bin/sh", "-c", `echo '{"type":"system"}'; sleep 0.3; echo '{"type":"assistant"}'`}, Dir: dir, Env: os.Environ(),
+			StdoutPath: filepath.Join(dir, "stream.jsonl"), StderrPath: filepath.Join(dir, "stderr.txt"), TimesPath: filepath.Join(dir, "times.jsonl"),
+			Counts: func([]byte) bool { return false }, Cap: 5, Timeout: 30 * time.Second,
+		}
+		if _, err := (adapters.Sessions{}).Run(spec); err != nil {
+			t.Fatal(err)
+		}
+		data, err := os.ReadFile(spec.TimesPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var arrivals []struct {
+			Line   int   `json:"line"`
+			Millis int64 `json:"ms"`
+		}
+		for _, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+			var arrival struct {
+				Line   int   `json:"line"`
+				Millis int64 `json:"ms"`
+			}
+			if err := json.Unmarshal([]byte(line), &arrival); err != nil {
+				t.Fatalf("%q: %v", line, err)
+			}
+			arrivals = append(arrivals, arrival)
+		}
+		if len(arrivals) != 2 || arrivals[0].Line != 1 || arrivals[1].Line != 2 || arrivals[1].Millis-arrivals[0].Millis < 250 {
+			t.Errorf("arrivals = %+v", arrivals)
 		}
 	})
 

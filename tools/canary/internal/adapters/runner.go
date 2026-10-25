@@ -89,6 +89,11 @@ func (Sessions) Run(spec app.SessionSpec) (app.SessionOutcome, error) {
 		return app.SessionOutcome{}, err
 	}
 	defer stderrFile.Close()
+	arrivals, err := openArrivals(spec.TimesPath)
+	if err != nil {
+		return app.SessionOutcome{}, err
+	}
+	defer arrivals.Close()
 
 	command := exec.Command(spec.Argv[0], spec.Argv[1:]...)
 	command.Dir, command.Env = spec.Dir, spec.Env
@@ -102,6 +107,7 @@ func (Sessions) Run(spec app.SessionSpec) (app.SessionOutcome, error) {
 		return app.SessionOutcome{}, err
 	}
 	group := command.Process.Pid
+	started := time.Now()
 	var reason string
 	var mutex sync.Mutex
 	stop := func(why string) {
@@ -130,9 +136,10 @@ func (Sessions) Run(spec app.SessionSpec) (app.SessionOutcome, error) {
 	scanner := bufio.NewScanner(pipe)
 	scanner.Buffer(nil, maxStreamLine)
 	steps := 0
-	for scanner.Scan() {
+	for number := 1; scanner.Scan(); number++ {
 		line := scanner.Bytes()
 		_, _ = stdoutFile.Write(append(append([]byte(nil), line...), '\n'))
+		arrivals.record(number, time.Since(started))
 		if spec.Counts(line) {
 			steps++
 			if steps > spec.Cap {
@@ -153,6 +160,34 @@ func (Sessions) Run(spec app.SessionSpec) (app.SessionOutcome, error) {
 		return outcome, waitErr
 	}
 	return outcome, nil
+}
+
+// arrivalLog writes the time each stream line arrived; a nil log writes nothing.
+type arrivalLog struct{ file *os.File }
+
+func openArrivals(path string) (*arrivalLog, error) {
+	if path == "" {
+		return &arrivalLog{}, nil
+	}
+	file, err := os.Create(path)
+	if err != nil {
+		return nil, err
+	}
+	return &arrivalLog{file: file}, nil
+}
+
+func (a *arrivalLog) record(line int, since time.Duration) {
+	if a.file != nil {
+		fmt.Fprintf(a.file, "{\"line\":%d,\"ms\":%d}\n", line, since.Milliseconds())
+	}
+}
+
+// Close closes the log.
+func (a *arrivalLog) Close() error {
+	if a.file == nil {
+		return nil
+	}
+	return a.file.Close()
 }
 
 // terminateGroup ends a process group: SIGTERM, then SIGKILL after a grace period.
