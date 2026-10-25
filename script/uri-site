@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# Writes the static files that serve the URIs of the proof format and the host
+# protocol: for each schema of format/schemas and format/hostproto/schemas, its
+# "$id" (an URI under URI_BASE) becomes a readable page <path>.html and the schema
+# itself <path>.json, and each top-level namespace gets an index.html listing its
+# URIs. The output is meant to be copied into the static files of the site that
+# serves URI_BASE.
+#
+#   script/uri-site OUT_DIR           write the files into OUT_DIR
+#   script/uri-site --check OUT_DIR   fail when OUT_DIR differs from what would be written
+#
+# Exit 0: written, or up to date. 1: --check found a difference. 2: usage, a missing
+# tool, or a schema whose "$id" is not under URI_BASE.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly URI_BASE="https://rachid-chabane.com/"
+readonly FORMAT_DOCUMENTATION="https://github.com/RachidChabane/spec-proof/blob/main/docs/architecture.md#the-proof-format"
+readonly SCHEMA_DIRECTORIES=(format/schemas format/hostproto/schemas)
+readonly EXIT_DIFFERENT=1
+readonly EXIT_USAGE=2
+
+usage() {
+  echo "usage: script/uri-site [--check] OUT_DIR" >&2
+  exit "${EXIT_USAGE}"
+}
+
+# page TITLE URI SCHEMA_FILE_NAME writes the readable page of one URI to stdout.
+page() {
+  local title="$1" uri="$2" schema_name="$3"
+  jq -rn --arg title "${title}" --arg uri "${uri}" --arg schema "${schema_name}" \
+    --arg documentation "${FORMAT_DOCUMENTATION}" '
+    "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n" +
+    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
+    "<title>\($title | @html)</title>\n" +
+    "<style>body{font-family:system-ui,sans-serif;max-width:44rem;margin:3rem auto;padding:0 1rem;line-height:1.5}code{word-break:break-all}</style>\n" +
+    "</head>\n<body>\n<h1>\($title | @html)</h1>\n" +
+    "<p>Identifier: <code>\($uri | @html)</code></p>\n" +
+    "<p>JSON schema: <a href=\"\($schema | @html)\">\($schema | @html)</a></p>\n" +
+    "<p>This identifier belongs to the spec-proof proof format. " +
+    "<a href=\"\($documentation | @html)\">Documentation of the format</a>.</p>\n" +
+    "</body>\n</html>"'
+}
+
+# index TITLE writes the index page of one namespace from "path<TAB>title" lines on stdin.
+index() {
+  jq -rRn --arg title "$1" '
+    [inputs | split("\t") | {path: .[0], title: .[1]}] as $entries |
+    "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n" +
+    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
+    "<title>\($title | @html)</title>\n" +
+    "<style>body{font-family:system-ui,sans-serif;max-width:44rem;margin:3rem auto;padding:0 1rem;line-height:1.5}</style>\n" +
+    "</head>\n<body>\n<h1>\($title | @html)</h1>\n<ul>\n" +
+    ([$entries[] | "<li><a href=\"/\(.path | @html)\">\(.title | @html)</a></li>\n"] | join("")) +
+    "</ul>\n</body>\n</html>"'
+}
+
+# write_site DIR writes every file into DIR.
+write_site() {
+  local out="$1" schema uri title path namespace listing=""
+  for directory in "${SCHEMA_DIRECTORIES[@]}"; do
+    for schema in "${directory}"/*.json; do
+      uri="$(jq -r '."$id"' "${schema}")"
+      title="$(jq -r '.title // ."$id"' "${schema}")"
+      if [[ "${uri}" != "${URI_BASE}"* ]]; then
+        echo "uri-site: ${schema}: \$id ${uri} is not under ${URI_BASE}" >&2
+        exit "${EXIT_USAGE}"
+      fi
+      path="${uri#"${URI_BASE}"}"
+      mkdir -p "${out}/$(dirname "${path}")"
+      cp "${schema}" "${out}/${path}.json"
+      page "${title}" "${uri}" "$(basename "${path}").json" >"${out}/${path}.html"
+      listing+="${path%%/*}"$'\t'"${path}"$'\t'"${title}"$'\n'
+    done
+  done
+  for namespace in $(printf '%s' "${listing}" | cut -f1 | sort -u); do
+    printf '%s' "${listing}" | awk -F'\t' -v ns="${namespace}" '$1 == ns {print $2 "\t" $3}' | sort |
+      index "spec-proof: ${namespace}" >"${out}/${namespace}/index.html"
+  done
+}
+
+main() {
+  local check=false
+  if [[ "${1:-}" == "--check" ]]; then
+    check=true
+    shift
+  fi
+  [[ $# -eq 1 ]] || usage
+  command -v jq >/dev/null 2>&1 || {
+    echo "uri-site: jq is not on PATH" >&2
+    exit "${EXIT_USAGE}"
+  }
+  if [[ "${check}" == false ]]; then
+    write_site "$1"
+    return
+  fi
+  expected="$(mktemp -d)"
+  trap 'rm -rf "${expected}"' EXIT
+  write_site "${expected}"
+  if ! diff -r "${expected}" "$1" >/dev/null; then
+    echo "uri-site: $1 differs from what script/uri-site writes; rerun it" >&2
+    exit "${EXIT_DIFFERENT}"
+  fi
+}
+
+main "$@"
