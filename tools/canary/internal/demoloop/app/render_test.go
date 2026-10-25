@@ -16,7 +16,7 @@ import (
 const recording = "testdata/recording"
 
 // placeholders are the texts the renderer writes where a record has nothing.
-var placeholders = []string{"(no output)", "(no diff was recorded for this mutant)"}
+var placeholders = []string{"(no output)"}
 
 func renderer() app.Renderer { return app.Renderer{Files: adapters.OSFiles{}} }
 
@@ -42,10 +42,10 @@ func copyRecording(t *testing.T) string {
 func TestRenderedTranscript(t *testing.T) {
 	markdown := string(rendered(t, recording).Markdown)
 
-	t.Run("the steps appear in the order of time, each gate decision with its message and each named counterexample with its diff [verifies SP-2405~1]", func(t *testing.T) {
+	t.Run("the steps appear in the order of time, each gate decision with the message the agent received [verifies SP-2405~1]", func(t *testing.T) {
 		order := []string{
 			"## Task", "· Agent", "· Edit", "· Edit", "· Agent", "· Gate: blocked", "· Skill", "· Command", "· Executors: 2 launched",
-			"· Command", "· Command", "· Gate: blocked", "· Counterexample: mutant 10edb8fdacce", "· Agent", "· Edit", "· Command",
+			"· Command", "· Command", "· Gate: blocked", "· Agent", "· Edit", "· Command",
 			"· Agent", "· Gate: passed", "## Outcome", "## Change the session made", "## Counts and timings",
 		}
 		rest := markdown
@@ -58,11 +58,10 @@ func TestRenderedTranscript(t *testing.T) {
 		}
 		for _, wanted := range []string{
 			"mutant 10edb8fdacce violates it and survived every test",
-			"-    if age >= SENIOR_FROM_AGE:\n+    if age > SENIOR_FROM_AGE:",
+			"every test passes on an operator mutant of family relational that fails the criterion's example 1: ticket_price(age=65) => 8",
 			"+    assert ticket_price(age=65) == 8",
 			"Gate after the session: pass, exit code 0 (gate-after.json)",
 			"shallnot: gate passed: 4 requirement(s) in focus covered by passing tests",
-			"the agent was not shown it.",
 		} {
 			if !strings.Contains(markdown, wanted) {
 				t.Errorf("the transcript lacks %q", wanted)
@@ -71,7 +70,7 @@ func TestRenderedTranscript(t *testing.T) {
 	})
 
 	t.Run("every entry names the record and the line it comes from [verifies SP-2405~1]", func(t *testing.T) {
-		for _, wanted := range []string{"Source: `stream.jsonl:2`", "Source: `hooks.jsonl:2`", "Source: `hooks.jsonl:4`", "Source: `counterexamples/10edb8fdacce.diff`", "Source: `stream.jsonl:24`"} {
+		for _, wanted := range []string{"Source: `stream.jsonl:2`", "Source: `hooks.jsonl:2`", "Source: `hooks.jsonl:4`", "Source: `stream.jsonl:24`"} {
 			if !strings.Contains(markdown, wanted) {
 				t.Errorf("the transcript lacks %s", wanted)
 			}
@@ -208,7 +207,7 @@ func TestRenderedHTML(t *testing.T) {
 				t.Errorf("the fragment holds %q", forbidden)
 			}
 		}
-		for _, wanted := range []string{"Done. &lt;ok&gt;", "&lt;run&gt;/project/tests/test_prices.py", `<span class="add">+    if age &gt; SENIOR_FROM_AGE:</span>`, `<article class="entry entry-gate passed">`} {
+		for _, wanted := range []string{"Done. &lt;ok&gt;", "&lt;run&gt;/project/tests/test_prices.py", `<span class="add">+    assert ticket_price(age=65) == 8</span>`, `<article class="entry entry-gate passed">`} {
 			if !strings.Contains(fragment, wanted) {
 				t.Errorf("the fragment lacks %s", wanted)
 			}
@@ -249,17 +248,6 @@ func TestRenderedFailures(t *testing.T) {
 			if !strings.Contains(markdown, wanted) {
 				t.Errorf("the transcript lacks %q", wanted)
 			}
-		}
-	})
-
-	t.Run("a block that names a mutant without a recorded diff says so [verifies SP-2405~1]", func(t *testing.T) {
-		dir := copyRecording(t)
-		if err := os.RemoveAll(filepath.Join(dir, record.CounterexamplesDir)); err != nil {
-			t.Fatal(err)
-		}
-		markdown := string(rendered(t, dir).Markdown)
-		if !strings.Contains(markdown, "· Counterexample: mutant 10edb8fdacce") || !strings.Contains(markdown, "(no diff was recorded for this mutant)") {
-			t.Errorf("transcript:\n%s", markdown)
 		}
 	})
 

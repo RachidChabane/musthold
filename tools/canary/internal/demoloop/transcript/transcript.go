@@ -1,7 +1,7 @@
 // Package transcript builds the readable account of one recorded run of the
 // agent loop: what the agent was asked, what it said and did, each decision of
-// the gate with its message, each counterexample a block named, the agent's
-// edits, how the run ended, and the counts and timings the records give. Every
+// the gate with the message the agent received, the agent's edits, how the run
+// ended, and the counts and timings the records give. Every
 // text it carries comes from a recorded file, with the file and line it comes
 // from; the package adds only the order and the kind of each entry. It is pure.
 package transcript
@@ -24,15 +24,14 @@ type Kind string
 
 // Kinds of entries.
 const (
-	KindAgent          Kind = "agent"
-	KindCommand        Kind = "command"
-	KindEdit           Kind = "edit"
-	KindSkill          Kind = "skill"
-	KindExecutors      Kind = "executors"
-	KindRead           Kind = "read"
-	KindTool           Kind = "tool"
-	KindGate           Kind = "gate"
-	KindCounterexample Kind = "counterexample"
+	KindAgent     Kind = "agent"
+	KindCommand   Kind = "command"
+	KindEdit      Kind = "edit"
+	KindSkill     Kind = "skill"
+	KindExecutors Kind = "executors"
+	KindRead      Kind = "read"
+	KindTool      Kind = "tool"
+	KindGate      Kind = "gate"
 )
 
 // Decision is what one run of the end-of-turn gate decided.
@@ -143,8 +142,6 @@ type Input struct {
 	// FinalGate is the report written after the session, or nil.
 	FinalGate *record.GateReport
 	Change    string
-	// Counterexamples maps a mutant id, as the gate prints it, to its diff.
-	Counterexamples map[string]string
 }
 
 // Build orders the records of a run into its transcript.
@@ -303,7 +300,7 @@ func isProve(command string) bool {
 }
 
 // gateEntries reads the runs of Shallnot's end-of-turn hook from the hook log,
-// each followed by the counterexamples its message names.
+// each with the message the agent received.
 func gateEntries(in Input, stats *Stats) []Entry {
 	var entries []Entry
 	for _, call := range in.Hooks {
@@ -316,16 +313,6 @@ func gateEntries(in Input, stats *Stats) []Entry {
 		when := sinceStart(in.Meta.StartedAt, call.StartedAt)
 		where := source(record.HooksFile, call.Line)
 		entries = append(entries, Entry{Kind: KindGate, AtMillis: when, Decision: decision, Text: message, Source: where})
-		if decision != DecisionBlocked && decision != DecisionGaveUp {
-			continue
-		}
-		for _, id := range record.MentionedMutants(message) {
-			entry := Entry{Kind: KindCounterexample, AtMillis: when, Text: id, Source: record.CounterexamplesDir + "/" + id + record.DiffExtension}
-			if diff, found := in.Counterexamples[id]; found {
-				entry.Block, entry.Diff = strings.TrimRight(diff, "\n"), true
-			}
-			entries = append(entries, entry)
-		}
 	}
 	return entries
 }

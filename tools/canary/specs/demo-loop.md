@@ -51,10 +51,8 @@ and make no model call.
   records the description of the run, the stream with the time each line
   arrived, what the CLI printed to its error stream, every hook call the shims
   recorded, the session's change as a diff against the equipped commit with new
-  files included, the gate's report on the project the session left, the
-  mutants the discriminating-power module kept, and for each mutant a gate block
-  named the diff git writes between the project's file and the same file with
-  the mutant in place, and SHALL write the token into none of them.
+  files included and the gate's report on the project the session left, and SHALL
+  write the token into none of them.
 
 ## Transcript
 
@@ -63,8 +61,8 @@ and make no model call.
   versions and caps, the task's prompt, then in the order of time the main
   agent's messages, its commands with their output, its edits as removed and
   added lines, its skill calls, the executors it launched counted together,
-  every decision of the end-of-turn gate with the message it gave, each
-  counterexample a block named with its recorded diff, how the session ended,
+  every decision of the end-of-turn gate with the message the agent received, how
+  the session ended,
   the gate's verdict on the project it left with its blocking findings, the
   session's change, and the counts and timings the records hold; SHALL name for
   every entry the record and the line it comes from; SHALL take every shown text
@@ -85,7 +83,9 @@ and make no model call.
 - **SP-2407~1**: WHEN the demonstration's fixture is equipped as a run equips it
   and its task is done with its tests left as they are THE SYSTEM SHALL block the
   gate with a surviving valid mutant of BOX-2 and no blocking finding on another
-  requirement, and WHEN the test of BOX-2 then reaches age 65 THE SYSTEM SHALL
+  requirement, whose end-of-turn block tells the agent the example of BOX-2 the
+  tests do not check and shows no mutant code, and WHEN the test of BOX-2 then
+  reaches age 65 THE SYSTEM SHALL
   pass the gate, every ticket served through each module's real hooks and
   executor server by a simulated Claude Code that replays the recorded answers of
   the project's honest host.

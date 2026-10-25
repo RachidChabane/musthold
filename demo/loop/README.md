@@ -26,8 +26,10 @@ What a run then shows, step by step:
 4. Discriminating power finds a surviving mutant of BOX-2: a change that violates
    the criterion's example and passes every test. Alignment may escalate the test
    as well.
-5. The gate blocks again and names the mutant. The transcript shows the mutant's
-   diff against the project's code.
+5. The gate blocks again. Its message names BOX-2, how the mutant was drawn and
+   the input every test passes while the mutant fails it: the criterion's example
+   `ticket_price(age=65) => 8`. It never shows the mutant's code. The transcript
+   shows that message as the agent received it.
 6. The agent strengthens the test and proves again, and the gate passes.
 
 A run that goes another way is rendered the way it went: a gate that gives up, a
@@ -116,8 +118,6 @@ demo/loop/run keep <run directory>
 | `hooks.jsonl` | every hook call the shims saw, the gate's block messages included |
 | `gate-before.json`, `gate-after.json` | Shallnot's report on the equipped project and on the project the session left |
 | `change.diff` | the session's change against the equipped commit |
-| `mutants/` | every mutant the discriminating-power module kept |
-| `counterexamples/` | for each mutant a block named, the diff git writes against the project's file |
 
 ## A small benchmark
 
@@ -134,7 +134,8 @@ configuration asks for one run.
 - the runner's preparation with the session replaced by a recorded stream;
 - a check of the fixture with the real binaries and no model. With the task done
   and the tests unchanged, the gate blocks on a surviving mutant of BOX-2 alone,
-  and once the test reaches age 65 it passes. A simulated Claude Code serves every
+  its end-of-turn message names the example `ticket_price(age=65) => 8` and no
+  mutant code, and once the test reaches age 65 it passes. A simulated Claude Code serves every
   ticket through the modules' real hooks and executor servers with recorded
   answers. `go test ./internal/demoloop/fixturegate -update` re-records those
   answers from the project's honest host.

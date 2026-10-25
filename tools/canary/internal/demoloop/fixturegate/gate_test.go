@@ -50,6 +50,11 @@ const (
 	// weakRequirement is the requirement whose only test passes without constraining it.
 	weakRequirement      = "BOX-2"
 	survivingValidMutant = "surviving_valid_mutant"
+	// missedInput is the example of BOX-2 its weak test does not check.
+	missedInput = "ticket_price(age=65) => 8"
+	// claudeExitBlock is the exit code of the end-of-turn hook that holds the turn.
+	claudeExitBlock = 2
+	stopPayload     = `{"hook_event_name":"Stop","session_id":"fixture-gate","stop_hook_active":false}`
 )
 
 // proofModules are the module binaries, in the order prove-all runs them, with the
@@ -69,7 +74,7 @@ type proofModule struct {
 }
 
 func TestFixtureGate(t *testing.T) {
-	t.Run("the gate blocks on the weak test of BOX-2 alone and passes once it reaches age 65 [verifies SP-2407~1]", gateBlocksThenPasses)
+	t.Run("the gate blocks on the weak test of BOX-2 alone, telling the agent the input it misses and no mutant code, and passes once it reaches age 65 [verifies SP-2407~1]", gateBlocksThenPasses)
 }
 
 func gateBlocksThenPasses(t *testing.T) {
@@ -104,6 +109,18 @@ func gateBlocksThenPasses(t *testing.T) {
 	blocking := before.blockingFindings()
 	if !slices.Contains(blocking, finding{survivingValidMutant, weakRequirement}) || slices.ContainsFunc(blocking, func(f finding) bool { return f.requirement != weakRequirement }) {
 		t.Fatalf("with the weak test the blocking findings are %v, want a surviving valid mutant of %s and nothing on another requirement:\n%s", blocking, weakRequirement, before.output)
+	}
+	feedback := session.stopFeedback(t)
+	t.Logf("end-of-turn feedback:\n%s", feedback)
+	for _, wanted := range []string{"surviving_valid_mutant", weakRequirement + "~1", missedInput} {
+		if !strings.Contains(feedback, wanted) {
+			t.Errorf("the feedback the agent receives lacks %q:\n%s", wanted, feedback)
+		}
+	}
+	for _, mutantCode := range mutantCodes {
+		if strings.Contains(feedback, mutantCode) {
+			t.Errorf("the feedback the agent receives shows mutant code %q:\n%s", mutantCode, feedback)
+		}
 	}
 
 	overlay(t, fixDir, layout.Project())
@@ -332,6 +349,28 @@ func newSession(t *testing.T, prepared app.Prepared, hosts *hosts) *session {
 		s.modules = append(s.modules, servedModule{proofModule: module, runner: runner, host: claudecode.NewHost(t, runner, t.TempDir())})
 	}
 	return s
+}
+
+// mutantCodes are the code of the mutants of BOX-2 that survive its weak test.
+var mutantCodes = []string{"age > SENIOR_FROM_AGE", "SENIOR_FROM_AGE = 66", "def ticket_price"}
+
+// stopFeedback runs Shallnot's end-of-turn hook as Claude Code does when the
+// agent ends its turn, and returns what it tells the agent.
+func (s *session) stopFeedback(t *testing.T) string {
+	t.Helper()
+	l := s.prepared.Layout
+	hook := exec.Command(l.Bin(plan.ShallnotBinary), "hook", "claude-stop")
+	hook.Dir = l.Project()
+	hook.Env = append(append([]string{}, s.prepared.Environment...), plan.ProjectDirVariable+"="+l.Project())
+	hook.Stdin = strings.NewReader(stopPayload)
+	var stderr bytes.Buffer
+	hook.Stderr = &stderr
+	err := hook.Run()
+	var exit *exec.ExitError
+	if !errors.As(err, &exit) || exit.ExitCode() != claudeExitBlock {
+		t.Fatalf("the end-of-turn hook did not block (%v):\n%s", err, stderr.String())
+	}
+	return stderr.String()
 }
 
 // proveAndGate runs prove-all as the skill does, with the hosts answering every

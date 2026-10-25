@@ -30,8 +30,7 @@ func TestKeep(t *testing.T) {
 		files := map[string]string{
 			record.MetaFile:   `{"argv":["` + repo + `/.tools/claude-code/2.1.295/bin/claude","--plugin-dir","` + repo + `/discpower/plugin/claude"],"task":"boxoffice"}`,
 			record.StreamFile: `{"type":"system","cwd":"` + run + `/project"}` + "\n" + `{"type":"user","text":"` + strings.TrimPrefix(run, "/private") + `/project/tests/test_prices.py"}` + "\n",
-			filepath.Join(record.CounterexamplesDir, "10edb8fdacce.diff"): "--- a/boxoffice/prices.py\n+++ b/boxoffice/prices.py\n",
-			record.HooksFile: `{"stdin":{"transcript_path":"` + home + `/.claude/projects/x.jsonl"}}` + "\n",
+			record.HooksFile:  `{"stdin":{"transcript_path":"` + home + `/.claude/projects/x.jsonl"}}` + "\n",
 		}
 		for name, content := range files {
 			if err := (adapters.OSFiles{}).Write(filepath.Join(records, name), []byte(content), false); err != nil {
@@ -51,8 +50,7 @@ func TestKeep(t *testing.T) {
 		for name, want := range map[string]string{
 			record.MetaFile:   `"<repo>/.tools/claude-code/2.1.295/bin/claude","--plugin-dir","<repo>/discpower/plugin/claude"`,
 			record.StreamFile: `"cwd":"<run>/project"`,
-			filepath.Join(record.CounterexamplesDir, "10edb8fdacce.diff"): "--- a/boxoffice/prices.py",
-			record.HooksFile: `"transcript_path":"~/.claude/projects/x.jsonl"`,
+			record.HooksFile:  `"transcript_path":"~/.claude/projects/x.jsonl"`,
 		} {
 			content, err := os.ReadFile(filepath.Join(to, name))
 			if err != nil || !strings.Contains(string(content), want) {

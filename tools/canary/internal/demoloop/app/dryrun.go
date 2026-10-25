@@ -99,8 +99,6 @@ func planLines(o Options, run config.Run) []string {
 	lines = append(lines,
 		"write "+l.Record(record.ChangeFile)+"   (what the git diff printed)",
 		quoted(plan.GateArgv(l, l.Record(record.FinalGateFile))...)+inProject,
-		"copy "+filepath.Join(l.Path(plan.CacheDir), "spec-proof", "*", record.MutantsDir)+" -> "+filepath.Join(l.Records(), record.MutantsDir),
-		"write "+filepath.Join(l.Records(), record.CounterexamplesDir, "<mutant>"+record.DiffExtension)+"   (git diff --no-index of each mutant a gate block names)",
 		"write "+l.Record(record.TranscriptMarkdown)+" and "+l.Record(record.TranscriptHTML),
 	)
 	return lines

@@ -21,9 +21,8 @@ const (
 	privateRoot = "/private"
 )
 
-// recordingPatterns are the files below the records a recording keeps: the
-// records and their mutants and counterexamples directories.
-var recordingPatterns = []string{"*", filepath.Join("*", "*")}
+// recordingPattern matches the files of the records a recording keeps.
+const recordingPattern = "*"
 
 // ErrRecordingExists refuses to write a recording over another.
 var ErrRecordingExists = errors.New("a recording is already there")
@@ -46,23 +45,17 @@ func (k Keeper) Keep(run, repo, home, destination string) error {
 		return fmt.Errorf("%w: %s has no %s", ErrNoRecording, records, record.MetaFile)
 	}
 	replacements := placeholders(run, repo, home)
-	for _, pattern := range recordingPatterns {
-		paths, err := k.Files.Glob(filepath.Join(records, pattern))
-		if err != nil {
-			return err
+	paths, err := k.Files.Glob(filepath.Join(records, recordingPattern))
+	if err != nil {
+		return err
+	}
+	for _, path := range paths {
+		content, err := k.Files.Read(path)
+		if err != nil || content == nil {
+			continue
 		}
-		for _, path := range paths {
-			content, err := k.Files.Read(path)
-			if err != nil || content == nil {
-				continue
-			}
-			relative, err := filepath.Rel(records, path)
-			if err != nil {
-				return err
-			}
-			if err := k.Files.Write(filepath.Join(destination, relative), redact(content, replacements), false); err != nil {
-				return err
-			}
+		if err := k.Files.Write(filepath.Join(destination, filepath.Base(path)), redact(content, replacements), false); err != nil {
+			return err
 		}
 	}
 	return nil

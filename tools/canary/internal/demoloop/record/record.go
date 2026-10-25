@@ -33,9 +33,6 @@ const (
 	// ChangeFile is the change the session made, as a unified diff against the
 	// equipped commit.
 	ChangeFile = "change.diff"
-	// MutantsDir holds the edit set of every mutant the discriminating-power
-	// module kept, by mutant id.
-	MutantsDir = "mutants"
 	// TranscriptMarkdown and TranscriptHTML are the rendered transcript.
 	TranscriptMarkdown = "transcript.md"
 	TranscriptHTML     = "transcript.html"

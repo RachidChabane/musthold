@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	canary "github.com/RachidChabane/spec-proof/tools/canary/internal/app"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/record"
@@ -74,24 +73,7 @@ func (r Renderer) Load(dir string) (transcript.Input, error) {
 		return in, err
 	}
 	in.Change = string(change)
-	in.Counterexamples, err = r.counterexamples(dir)
-	return in, err
-}
-
-func (r Renderer) counterexamples(dir string) (map[string]string, error) {
-	paths, err := r.Files.Glob(filepath.Join(dir, record.CounterexamplesDir, "*"+record.DiffExtension))
-	if err != nil {
-		return nil, err
-	}
-	found := map[string]string{}
-	for _, path := range paths {
-		content, err := r.Files.Read(path)
-		if err != nil {
-			return nil, err
-		}
-		found[strings.TrimSuffix(filepath.Base(path), record.DiffExtension)] = string(content)
-	}
-	return found, nil
+	return in, nil
 }
 
 // Rendered is a transcript in both forms.
