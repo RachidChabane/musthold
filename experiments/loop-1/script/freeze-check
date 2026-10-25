@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# PREREG 13.5: the tags, timestamps, sums, pins and digests the first run depends on.
+# Usage: script/freeze-check [ARGS...]
+set -euo pipefail
+# shellcheck source=experiments/loop-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+loop1_light freeze-check "$@"

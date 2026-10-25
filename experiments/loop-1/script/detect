@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# PREREG 9.8: detectors K1 to K6 on every counted run; refuses before the run phase ends.
+# Usage: script/detect [ARGS...]
+set -euo pipefail
+# shellcheck source=experiments/loop-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+loop1_heavy detect "$@"

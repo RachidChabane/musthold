@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# PREREG 3.3: the author and oracle calls of gpt-5.6-terra, domain by domain, until five tasks pass accept.
+# Usage: script/construct [ARGS...]
+set -euo pipefail
+# shellcheck source=experiments/loop-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+loop1_light construct "$@"

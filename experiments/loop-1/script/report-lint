@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# PREREG 11.4: the lint of results/REPORT.md.
+# Usage: script/report-lint [ARGS...]
+set -euo pipefail
+# shellcheck source=experiments/loop-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+loop1_light report-lint "$@"

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# PREREG 12: append an operator entry to DEVIATIONS.md, with its RFC 3161 timestamp.
+# Usage: script/log-deviation [ARGS...]
+set -euo pipefail
+# shellcheck source=experiments/loop-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+loop1_light log-deviation "$@"
