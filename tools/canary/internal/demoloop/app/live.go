@@ -18,6 +18,7 @@ import (
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/container"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/record"
+	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/startup"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/modules"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/window"
@@ -31,6 +32,9 @@ var (
 	ErrMemory        = errors.New("the memory guard refused the run")
 	ErrNoProduct     = errors.New("the Linux product is not built")
 	ErrTokenInRecord = errors.New("a record holds the token")
+	// ErrSessionStart is a session the runner ended because its start failed:
+	// a plugin did not load, or the model API was out of reach.
+	ErrSessionStart = errors.New("the session did not start")
 )
 
 // Names and bounds of a live run.
@@ -185,7 +189,8 @@ func (r Runner) one(ctx context.Context, o Options, configured config.Run, sourc
 	}
 	meta := metaOf(o, configured, session, versions)
 	meta.ClaudeSHA256, meta.Image, meta.Egress = claudeDigest, o.Image, container.ModelEndpoints()
-	outcome, err := r.conduct(ctx, o, current, session, source, &meta)
+	check := startup.New(plan.PluginNames(configured.Arm))
+	outcome, err := r.conduct(ctx, o, current, session, source, check, &meta)
 	if err != nil {
 		return dir, err
 	}
@@ -201,13 +206,17 @@ func (r Runner) one(ctx context.Context, o Options, configured config.Run, sourc
 		return dir, err
 	}
 	fmt.Fprintf(r.Stdout, "run %s: %s\ntranscript: %s\n", configured.Name(), dir, l.Record(record.TranscriptMarkdown))
+	if startup.Failed(outcome.Killed) {
+		return dir, fmt.Errorf("%w (%s): %s; the records are in %s", ErrSessionStart, outcome.Killed, check.Problem(), l.Records())
+	}
 	return dir, nil
 }
 
 // conduct starts the egress proxy on the run's internal network, runs the
-// session with the token on its entry's standard input, and removes the
-// containers and the network, whatever the session did.
-func (r Runner) conduct(ctx context.Context, o Options, current run, s *session, source canary.ClaudeCredential, meta *record.Meta) (canary.SessionOutcome, error) {
+// session with the token on its entry's standard input, ends it at once when the
+// check finds its start failed, and removes the containers and the network,
+// whatever the session did.
+func (r Runner) conduct(ctx context.Context, o Options, current run, s *session, source canary.ClaudeCredential, check *startup.Check, meta *record.Meta) (canary.SessionOutcome, error) {
 	defer r.teardown(ctx, o, current.box)
 	for _, argv := range [][]string{current.box.NetworkArgv(), current.box.ProxyArgv(current.layout.Record(record.EgressFile)), current.box.ConnectArgv()} {
 		if err := r.docker(ctx, o, argv); err != nil {
@@ -225,6 +234,7 @@ func (r Runner) conduct(ctx context.Context, o Options, current run, s *session,
 		Argv: s.argv, Dir: o.RepoRoot, Env: r.Env, Stdin: []byte(token + "\n"),
 		StdoutPath: l.Record(record.StreamFile), StderrPath: l.Record(record.StderrFile), TimesPath: l.Record(record.TimesFile),
 		Counts:  func(line []byte) bool { return launch.CountsAsEvent(harness.FlagClaude, line) },
+		Stops:   check.Line,
 		Cap:     o.Config.Caps.AssistantMessages,
 		Timeout: time.Duration(o.Config.Caps.Seconds) * time.Second,
 	})
@@ -275,7 +285,7 @@ func containerBase(l plan.Layout) []string {
 
 func sessionOf(o Options, l plan.Layout, box container.Box, configured config.Run) *session {
 	command := plan.SessionCommand(plan.SessionInput{Layout: l, Run: configured, Config: o.Config, Claude: l.Claude()})
-	variables := append(append(plan.Variables(l, leadingDirs(l)), command.Env...), box.ProxyVariables()...)
+	variables := append(append(plan.Variables(l, leadingDirs(l)), command.Env...), container.ProxyVariables()...)
 	variables = append(variables, NonessentialTraffic)
 	resolved := plan.Environment(containerBase(l), variables)
 	argv := append(append([]string{}, o.Docker...), box.SessionArgv(command.Dir, resolved, command.Argv)...)

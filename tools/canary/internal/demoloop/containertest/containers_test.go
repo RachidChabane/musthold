@@ -1,8 +1,9 @@
 // Package containertest runs the containers of a live run on the demonstration's
 // engine and checks what they isolate: the scratch HOME, the absent SSH agent and
 // docker socket, the egress that only the model endpoints pass, the token that no
-// engine record, run record or log holds, and the box office loop, blocked then
-// passed, inside a container with the simulated Claude Code. The front door
+// engine record, run record or log holds, the box office loop, blocked then
+// passed, inside a container with the simulated Claude Code, and whole runs of the
+// pinned Claude Code against a stand-in for the model API. The front door
 // (demo/loop/run test-containers) builds the Linux product and the image, starts
 // the engine, sets SPEC_PROOF_DEMO_CONTAINERS=1 and stops the engine after; without
 // that variable every test skips.
@@ -12,9 +13,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -42,6 +46,9 @@ const (
 	deniedHost    = "example.com:443"
 	directAddress = "1.1.1.1:443"
 	runTimeout    = 20 * time.Minute
+	// liveCap and liveSeconds bound each run against the stand-in.
+	liveCap     = 3
+	liveSeconds = 600
 )
 
 type world struct {
@@ -138,7 +145,7 @@ func (w world) network(t *testing.T, box container.Box) {
 }
 
 func sessionVariables(box container.Box) []string {
-	return append([]string{"HOME=" + container.ScratchHome, "PATH=" + container.ProductTarget + "/bin:" + container.SystemPath}, box.ProxyVariables()...)
+	return append([]string{"HOME=" + container.ScratchHome, "PATH=" + container.ProductTarget + "/bin:" + container.SystemPath}, container.ProxyVariables()...)
 }
 
 // egressEntries reads the proxy's log in the records directory and prints it in
@@ -298,34 +305,11 @@ func TestBoxOfficeLoopInAContainer(t *testing.T) {
 	})
 }
 
-// simulatedSessions runs the session's real container with the simulated
-// session in place of Claude Code: a recorded stream, then the end of the turn,
-// which runs Shallnot's hook through the session's shim.
-type simulatedSessions struct{ inner canary.Sessions }
-
-func (s simulatedSessions) Run(spec canary.SessionSpec) (canary.SessionOutcome, error) {
-	at := -1
-	for index, word := range spec.Argv {
-		if word == container.EntrySubcommand && index+1 < len(spec.Argv) && spec.Argv[index+1] == "--" {
-			at = index + 2
-		}
-	}
-	if at < 0 {
-		return canary.SessionOutcome{}, os.ErrInvalid
-	}
-	script := `printf '%s\n' '{"type":"system","subtype":"init","model":"simulated"}'; ` +
-		`printf '%s' '{"hook_event_name":"Stop","session_id":"simulated","stop_hook_active":false}' | shallnot hook claude-stop >/dev/null 2>&1; ` +
-		`printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"num_turns":1}'`
-	spec.Argv = append(append([]string{}, spec.Argv[:at]...), "/bin/sh", "-c", script)
-	return s.inner.Run(spec)
-}
-
-func TestRunnerInContainers(t *testing.T) {
-	const check = "a run prepares, holds its session in containers, records the gate's block and leaves no token and no container behind [verifies SP-2410~1]"
-	w, ok := setup(t, check)
-	if !ok {
-		return
-	}
+// liveRun runs the committed configuration once with the pinned Claude Code
+// against a stand-in for the model API, reachable or not, and without the plugin
+// trees named, and returns the run's directory, the stand-in and the error.
+func (w world) liveRun(t *testing.T, name string, reachable bool, without []string) (string, standIn, error) {
+	t.Helper()
 	data, err := os.ReadFile(filepath.Join(w.repo, "demo/loop/demo.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -334,14 +318,18 @@ func TestRunnerInContainers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	parsed.Caps = config.Caps{AssistantMessages: liveCap, Seconds: liveSeconds, BudgetUSD: parsed.Caps.BudgetUSD}
 	pin, err := os.ReadFile(filepath.Join(w.repo, plan.ClaudePinRelative))
 	if err != nil {
 		t.Fatal(err)
 	}
+	stand := w.startStandIn(t, name)
 	var stdout bytes.Buffer
 	runner := app.Runner{
-		Clock: realClock{}, Window: window.Nightly(), Processes: adapters.Exec{}, Sessions: simulatedSessions{inner: adapters.Sessions{}},
-		Files: adapters.OSFiles{}, Locker: adapters.FileLocker{},
+		Clock: realClock{}, Window: window.Nightly(),
+		Processes: standInProcesses{inner: adapters.Exec{}, standIn: stand, reachable: reachable, w: w, t: t},
+		Sessions:  standInSessions{inner: adapters.Sessions{}, standIn: stand, without: without},
+		Files:     adapters.OSFiles{}, Locker: adapters.FileLocker{},
 		Credentials: []canary.ClaudeCredential{adapters.EnvironmentCredential{Environ: []string{launch.OAuthTokenVariable + "=" + fakeToken}}},
 		Env:         launch.WithoutOAuthToken(os.Environ()), Stdout: &stdout,
 	}
@@ -350,31 +338,153 @@ func TestRunnerInContainers(t *testing.T) {
 		UID: os.Getuid(), GID: os.Getgid(), ClaudePin: strings.TrimSpace(string(pin)), ForceWindow: true,
 	}
 	dirs, err := runner.Run(context.Background(), options)
-	if err != nil {
+	if len(dirs) != 1 {
 		t.Fatalf("run: %v\n%s", err, stdout.String())
 	}
-	records := filepath.Join(dirs[0], plan.RecordsDir)
+	return dirs[0], stand, err
+}
 
-	t.Run(check, func(t *testing.T) {
-		hooks, err := os.ReadFile(filepath.Join(records, record.HooksFile))
-		if err != nil || !strings.Contains(string(hooks), `"args":["hook","claude-stop"]`) || !strings.Contains(string(hooks), `"exitCode":2`) {
-			t.Errorf("hooks.jsonl: %v\n%s", err, hooks)
+// streamEvents reads the session's stream.
+func streamEvents(t *testing.T, records string) []map[string]any {
+	t.Helper()
+	content, err := os.ReadFile(filepath.Join(records, record.StreamFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var events []map[string]any
+	for _, line := range strings.Split(strings.TrimSpace(string(content)), "\n") {
+		var event map[string]any
+		if json.Unmarshal([]byte(line), &event) == nil {
+			events = append(events, event)
+		}
+	}
+	return events
+}
+
+// gateBlockExit is the exit code of Shallnot's end-of-turn hook that holds the turn.
+const gateBlockExit = 2
+
+// gateBlocks counts the calls of Shallnot's end-of-turn hook the shims recorded
+// that held the turn.
+func gateBlocks(t *testing.T, records string) int {
+	t.Helper()
+	content, err := os.ReadFile(filepath.Join(records, record.HooksFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	blocks := 0
+	for _, line := range strings.Split(string(content), "\n") {
+		if strings.Contains(line, `"args":["hook","claude-stop"]`) && strings.Contains(line, fmt.Sprintf(`"exitCode":%d`, gateBlockExit)) {
+			blocks++
+		}
+	}
+	return blocks
+}
+
+func TestClaudeCodeInContainers(t *testing.T) {
+	const check1 = "the pinned Claude Code reaches the model API through the egress proxy by its alias, with the token the entry gave it, and the run leaves no container behind [verifies SP-2420~1]"
+	const check2 = "every plugin the run gives the session loads, and Shallnot's end-of-turn gate runs once per end of turn [verifies SP-2420~1]"
+	const check3 = "a session whose umbrella plugin lacks a dependency fails the run at its init event, naming the dependency [verifies SP-2419~1]"
+	const check4 = "a session whose model API is out of reach fails the run at its first retry [verifies SP-2419~1]"
+	w, ok := setup(t, check1, check2, check3, check4)
+	if !ok {
+		return
+	}
+	dir, stand, err := w.liveRun(t, "reach", true, nil)
+	records := filepath.Join(dir, plan.RecordsDir)
+	events := streamEvents(t, records)
+
+	t.Run(check1, func(t *testing.T) {
+		if err != nil {
+			t.Fatalf("run: %v", err)
+		}
+		allowed := 0
+		for _, entry := range egressEntries(t, records) {
+			if entry.Decision == egress.DecisionAllowed {
+				allowed++
+				if entry.Target != standInEndpoint {
+					t.Errorf("the proxy let %s out", entry.Target)
+				}
+			}
+		}
+		requests := stand.requests(t)
+		t.Logf("the stand-in served %+v", requests)
+		messages := 0
+		for _, r := range requests {
+			if strings.HasPrefix(r.Path, "/v1/messages") && r.Method == "POST" {
+				messages++
+			}
+			if !r.BearerIsToken {
+				t.Errorf("%s %s did not carry the token as its bearer", r.Method, r.Path)
+			}
+		}
+		if allowed == 0 || messages == 0 {
+			t.Errorf("%d tunnels and %d Messages requests reached the stand-in", allowed, messages)
 		}
 		meta, err := os.ReadFile(filepath.Join(records, record.MetaFile))
 		if err != nil || !strings.Contains(string(meta), `"claudeSha256": "`) || !strings.Contains(string(meta), `"image": "`+w.image) {
 			t.Errorf("run.json: %v\n%s", err, meta)
 		}
-		if _, err := os.Stat(filepath.Join(records, record.TranscriptMarkdown)); err != nil {
-			t.Error(err)
-		}
-		for _, entry := range egressEntries(t, records) {
-			if entry.Decision == egress.DecisionAllowed && !container.Allowed(entry.Target) {
-				t.Errorf("the proxy let %s out", entry.Target)
-			}
-		}
 		listed, _, _ := w.run(t, "", "ps", "--all", "--quiet", "--filter", "name=spdl-")
 		if strings.TrimSpace(listed) != "" {
 			t.Errorf("containers are left: %s", listed)
+		}
+	})
+
+	t.Run(check2, func(t *testing.T) {
+		var loaded []string
+		// blocks counts the Stop hooks that held an end of turn, the gate's block;
+		// a gate registered twice would hold one end of turn twice.
+		blocks, held := 0, 0
+		for _, event := range events {
+			switch {
+			case event["subtype"] == "init":
+				for _, plugin := range event["plugins"].([]any) {
+					loaded = append(loaded, plugin.(map[string]any)["name"].(string))
+				}
+				if failed, _ := event["plugin_errors"].([]any); len(failed) != 0 {
+					t.Errorf("plugin errors: %v", failed)
+				}
+			case event["type"] == "assistant":
+				held = 0
+			case event["subtype"] == "hook_response" && event["hook_event"] == "Stop" && event["exit_code"] == float64(gateBlockExit):
+				blocks, held = blocks+1, held+1
+				if held > 1 {
+					t.Errorf("one end of turn was held %d times", held)
+				}
+			}
+		}
+		for _, name := range plan.PluginNames(config.ArmFourProofs) {
+			if !slices.Contains(loaded, name) {
+				t.Errorf("plugin %s is not loaded: %v", name, loaded)
+			}
+		}
+		if calls := gateBlocks(t, records); blocks == 0 || calls != blocks {
+			t.Errorf("the gate blocked %d times through the shim, and %d ends of turn were held", calls, blocks)
+		}
+		t.Logf("%d ends of turn held, each once, by the gate", blocks)
+	})
+
+	t.Run(check3, func(t *testing.T) {
+		_, _, err := w.liveRun(t, "plugins", true, []string{container.ProductTarget + "/" + plan.ProductPluginsDir + "/" + plan.ProductShallnotPlugin})
+		if !errors.Is(err, app.ErrSessionStart) || !strings.Contains(err.Error(), "plugins-not-loaded") || !strings.Contains(err.Error(), plan.ShallnotPlugin) {
+			t.Errorf("run: %v", err)
+		}
+	})
+
+	t.Run(check4, func(t *testing.T) {
+		dir, _, err := w.liveRun(t, "unreachable", false, nil)
+		if !errors.Is(err, app.ErrSessionStart) || !strings.Contains(err.Error(), "api-unreachable") {
+			t.Fatalf("run: %v", err)
+		}
+		retries := 0
+		for _, event := range streamEvents(t, filepath.Join(dir, plan.RecordsDir)) {
+			if event["subtype"] == "api_retry" {
+				retries++
+			}
+		}
+		if retries != 1 {
+			t.Errorf("the session retried %d times", retries)
 		}
 	})
 }

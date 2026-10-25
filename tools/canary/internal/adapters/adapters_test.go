@@ -309,6 +309,26 @@ func TestSessionRunner(t *testing.T) {
 		}
 	})
 
+	t.Run("a line the spec stops at ends the session with the reason it gives [verifies SP-2419~1]", func(t *testing.T) {
+		dir := t.TempDir()
+		spec := app.SessionSpec{
+			Argv: []string{"/bin/sh", "-c", `sleep 60 & echo '{"type":"system"}'; echo '{"type":"stop-here"}'; sleep 60`}, Dir: dir, Env: os.Environ(),
+			StdoutPath: filepath.Join(dir, "stream.jsonl"), StderrPath: filepath.Join(dir, "stderr.txt"),
+			Counts: func([]byte) bool { return false }, Cap: 5, Timeout: 60 * time.Second,
+			Stops: func(line []byte) string {
+				if strings.Contains(string(line), "stop-here") {
+					return "failed-start"
+				}
+				return ""
+			},
+		}
+		started := time.Now()
+		outcome, err := adapters.Sessions{}.Run(spec)
+		if err != nil || outcome.Killed != "failed-start" || time.Since(started) > 20*time.Second {
+			t.Errorf("outcome %+v, %v after %s", outcome, err, time.Since(started))
+		}
+	})
+
 	t.Run("a times file receives the number of each line and when it arrived [verifies SP-2408~1]", func(t *testing.T) {
 		dir := t.TempDir()
 		spec := app.SessionSpec{

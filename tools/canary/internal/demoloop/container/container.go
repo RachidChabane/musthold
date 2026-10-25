@@ -47,6 +47,11 @@ const (
 	networkNone = "none"
 	// ProxyPort is the port the egress proxy listens on.
 	ProxyPort = "3128"
+	// ProxyHost is the name the session reaches the egress proxy by on the run's
+	// internal network, where it is the proxy's alias. A container's own name holds
+	// the run's name and can outgrow the 63 bytes of a DNS label, which resolvers
+	// refuse; each run has its own network, so one fixed alias serves every run.
+	ProxyHost = "egress-proxy"
 )
 
 // Subcommands of the runner binary the containers run.
@@ -150,17 +155,18 @@ func (b Box) ProxyArgv(logPath string) []string {
 	return command
 }
 
-// ConnectArgv joins the proxy to the run's internal network.
+// ConnectArgv joins the proxy to the run's internal network under its alias.
 func (b Box) ConnectArgv() []string {
-	return []string{"network", "connect", b.NetworkName(), b.ProxyName()}
+	return []string{"network", "connect", "--alias", ProxyHost, b.NetworkName(), b.ProxyName()}
 }
 
 // ProxyURL is the proxy as the session addresses it.
-func (b Box) ProxyURL() string { return "http://" + b.ProxyName() + ":" + ProxyPort }
+func ProxyURL() string { return "http://" + ProxyHost + ":" + ProxyPort }
 
 // ProxyVariables send every HTTP client of the session through the proxy.
-func (b Box) ProxyVariables() []string {
-	return []string{"HTTPS_PROXY=" + b.ProxyURL(), "HTTP_PROXY=" + b.ProxyURL(), "https_proxy=" + b.ProxyURL(), "http_proxy=" + b.ProxyURL()}
+func ProxyVariables() []string {
+	url := ProxyURL()
+	return []string{"HTTPS_PROXY=" + url, "HTTP_PROXY=" + url, "https_proxy=" + url, "http_proxy=" + url}
 }
 
 // SessionArgv is the session: attached to standard input, which carries the

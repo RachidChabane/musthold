@@ -33,12 +33,11 @@ const (
 
 // Locations relative to the repository root.
 const (
-	ToolsBinRelative       = ".tools/bin"
-	UmbrellaPluginRelative = ".tools/plugins/spec-proof"
-	MemGuardRelative       = "script/mem-guard"
-	ClaudePinRelative      = "script/claude-code.pin"
-	ClaudeToolsRelative    = ".tools/claude-code"
-	ShallnotPinRelative    = "script/shallnot.pin"
+	ToolsBinRelative    = ".tools/bin"
+	MemGuardRelative    = "script/mem-guard"
+	ClaudePinRelative   = "script/claude-code.pin"
+	ClaudeToolsRelative = ".tools/claude-code"
+	ShallnotPinRelative = "script/shallnot.pin"
 )
 
 // Binaries the runner runs by name from the repository's tools directory.
@@ -71,7 +70,7 @@ type Layout struct {
 	Repo, Run string
 	// Product is the root of the product tree the run's commands see, as the
 	// container mounts it: its binaries, the Claude Code CLI and the plugin
-	// trees. Empty, the binaries and plugins are the repository's own.
+	// trees. Empty, the binaries are the repository's own.
 	Product string
 }
 
@@ -82,7 +81,27 @@ const (
 	ProductClaudeDir  = "claude"
 	// ProductUmbrella is the umbrella plugin among the plugin trees.
 	ProductUmbrella = "spec-proof"
+	// ProductShallnotPlugin is Shallnot's Claude Code plugin among the plugin
+	// trees, staged from the pinned Shallnot source.
+	ProductShallnotPlugin = "shallnot"
+	// ProductRelayPlugin is the relay's Claude Code plugin among the plugin trees,
+	// at its path in the repository.
+	ProductRelayPlugin = "s1relay/plugin/claude"
 )
+
+// Names of the plugins a session loads besides the modules', as their manifests
+// give them.
+const (
+	ShallnotPlugin = "shallnot"
+	RelayPlugin    = "spec-proof-s1"
+	UmbrellaPlugin = "spec-proof"
+)
+
+// Plugin is a Claude Code plugin tree a session loads, by the name its manifest
+// gives it.
+type Plugin struct {
+	Name, Dir string
+}
 
 // Path joins a name to the run directory.
 func (l Layout) Path(name ...string) string {
@@ -112,20 +131,9 @@ func (l Layout) BinDir() string { return filepath.Dir(l.Bin(ShallnotBinary)) }
 // Claude is the Claude Code CLI of the product tree.
 func (l Layout) Claude() string { return filepath.Join(l.Product, ProductClaudeDir, ClaudeBinary) }
 
-// pluginDir is the Claude Code plugin tree of a module.
-func (l Layout) pluginDir(module modules.Module) string {
-	if l.Product != "" {
-		return filepath.Join(l.Product, ProductPluginsDir, module.PluginDir(harness.FlagClaude))
-	}
-	return filepath.Join(l.Repo, module.PluginDir(harness.FlagClaude))
-}
-
-// umbrellaDir is the tree of the umbrella plugin, which holds prove-all.
-func (l Layout) umbrellaDir() string {
-	if l.Product != "" {
-		return filepath.Join(l.Product, ProductPluginsDir, ProductUmbrella)
-	}
-	return filepath.Join(l.Repo, UmbrellaPluginRelative)
+// pluginDir is a plugin tree of the product.
+func (l Layout) pluginDir(relative string) string {
+	return filepath.Join(l.Product, ProductPluginsDir, relative)
 }
 
 // Dirs lists the directories a run creates before it starts anything.
@@ -239,18 +247,34 @@ func quoted(value string) string {
 	return string(encoded)
 }
 
-// PluginDirs are the plugin trees the session loads for an arm: each proof
-// module's Claude Code plugin and the umbrella plugin that holds `prove-all`.
-// Shallnot's hook and skills come from the files `shallnot init` writes.
-func PluginDirs(l Layout, arm config.Arm) []string {
+// Plugins are the plugin trees of the product the session loads for an arm: each
+// proof module's Claude Code plugin, then the plugins the umbrella depends on
+// besides them, Shallnot's and the relay's, then the umbrella plugin that holds
+// `prove-all`. The traceability arm loads none: Shallnot's hook and skills come
+// from the files `shallnot init` writes, and Shallnot's plugin runs its end-of-turn
+// hook only in a project that does not carry that hook already.
+func Plugins(l Layout, arm config.Arm) []Plugin {
 	if !arm.WithModules() {
 		return nil
 	}
-	var dirs []string
+	var plugins []Plugin
 	for _, module := range modules.All() {
-		dirs = append(dirs, l.pluginDir(module))
+		plugins = append(plugins, Plugin{Name: module.Plugin, Dir: l.pluginDir(module.PluginDir(harness.FlagClaude))})
 	}
-	return append(dirs, l.umbrellaDir())
+	return append(plugins,
+		Plugin{Name: ShallnotPlugin, Dir: l.pluginDir(ProductShallnotPlugin)},
+		Plugin{Name: RelayPlugin, Dir: l.pluginDir(ProductRelayPlugin)},
+		Plugin{Name: UmbrellaPlugin, Dir: l.pluginDir(ProductUmbrella)},
+	)
+}
+
+// PluginNames are the names of the plugins the session of an arm must load.
+func PluginNames(arm config.Arm) []string {
+	var names []string
+	for _, plugin := range Plugins(Layout{}, arm) {
+		names = append(names, plugin.Name)
+	}
+	return names
 }
 
 // Shimmed lists the binaries whose hook calls the session records: Shallnot,
@@ -297,8 +321,8 @@ func SessionCommand(in SessionInput) launch.Command {
 		"--permission-mode", "acceptEdits",
 		"--max-budget-usd", in.Config.Caps.BudgetUSD,
 	}
-	for _, dir := range PluginDirs(in.Layout, in.Run.Arm) {
-		argv = append(argv, "--plugin-dir", dir)
+	for _, plugin := range Plugins(in.Layout, in.Run.Arm) {
+		argv = append(argv, "--plugin-dir", plugin.Dir)
 	}
 	return launch.Command{Argv: argv, Dir: in.Layout.Project(), Env: []string{"CLAUDE_CONFIG_DIR=" + in.Layout.Path(ClaudeConfigDir)}}
 }

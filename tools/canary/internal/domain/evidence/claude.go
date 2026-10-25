@@ -16,6 +16,11 @@ const (
 	// --include-hook-events.
 	ClaudeSubtypeHookResponse = "hook_response"
 	ClaudeSubtypeHookStarted  = "hook_started"
+	// ClaudeSubtypeAPIRetry is the event of a model API call the CLI retries.
+	ClaudeSubtypeAPIRetry = "api_retry"
+	// ClaudeSyntheticModel is the model of a message the CLI writes itself, such
+	// as the report of an API error, rather than one the model answered.
+	ClaudeSyntheticModel = "<synthetic>"
 
 	// BlockToolUse is the type of a tool call in the content of a message.
 	BlockToolUse    = "tool_use"
