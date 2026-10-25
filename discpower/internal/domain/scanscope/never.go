@@ -22,13 +22,13 @@ var (
 	// migrationSegments are directories that hold schema migrations.
 	migrationSegments = []string{"migrations"}
 	// testSegments are directories that hold tests and their helpers.
-	testSegments = []string{"tests", "test", "testdata"}
+	testSegments = []string{"tests", "test", "testdata", "__tests__", "__mocks__", "__fixtures__"}
 	// generatedMarker is the conventional header of generated code, Go's
 	// `Code generated ... DO NOT EDIT.` and the `@generated` tag.
 	generatedMarker = regexp.MustCompile(`(?m)(^\s*(//|#)\s*Code generated .* DO NOT EDIT\.?\s*$)|@generated\b`)
 	// sinkCall matches a call whose effect is a log line, printed output or a
 	// metric: changing its arguments changes nothing a test may assert on.
-	sinkCall = regexp.MustCompile(`\b(print|pprint|fmt\.(Print|Println|Printf|Fprint|Fprintln|Fprintf)|log\.\w+|slog\.\w+|logging\.\w+|logger\.\w+|log\w*\.(debug|info|warning|warn|error|exception|critical)|warnings\.warn|metrics\.\w+|statsd\.\w+)\s*\(`)
+	sinkCall = regexp.MustCompile(`\b(print|pprint|fmt\.(Print|Println|Printf|Fprint|Fprintln|Fprintf)|log\.\w+|slog\.\w+|logging\.\w+|logger\.\w+|log\w*\.(debug|info|warning|warn|error|exception|critical)|warnings\.warn|console\.\w+|metrics\.\w+|statsd\.\w+)\s*\(`)
 )
 
 // Mutable reports whether a scan may mutate a file: a source file the project
