@@ -84,7 +84,7 @@ func Assemble(files Files) (Evidence, error) {
 	if found.Stream, err = Lines(StreamFile, files.Stream); err != nil {
 		return Evidence{}, err
 	}
-	if found.Hooks, err = decodeHooks(files.Hooks); err != nil {
+	if found.Hooks, err = DecodeHooks(files.Hooks); err != nil {
 		return Evidence{}, err
 	}
 	if found.Journal, err = decodeJournal(files.Journal); err != nil {

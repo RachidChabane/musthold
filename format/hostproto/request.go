@@ -34,12 +34,19 @@ const (
 	// KindGenerateWitness asks a blind writer for the witnesses of a criterion:
 	// tests derived from the spec alone, before and without any mutant.
 	KindGenerateWitness Kind = "generate.witness"
-	KindJudgeValidity   Kind = "judge.validity"
-	KindJudgeEquivalent Kind = "judge.equivalent"
-	KindJudgeAlignment  Kind = "judge.alignment"
+	// KindGeneratePromises asks the generator for the promises a change makes,
+	// each a verbatim quote of one source among the README, the description and
+	// the closing issues.
+	KindGeneratePromises Kind = "generate.promises"
+	KindJudgeValidity    Kind = "judge.validity"
+	KindJudgeEquivalent  Kind = "judge.equivalent"
+	KindJudgeAlignment   Kind = "judge.alignment"
 	// KindJudgeScope asks a blind scope judge, per witness, whether the
 	// criterion's text alone fixes the output the witness checks.
-	KindJudgeScope   Kind = "judge.scope"
+	KindJudgeScope Kind = "judge.scope"
+	// KindJudgeLabels asks the judge which functions of a generation view each
+	// kept promise concerns.
+	KindJudgeLabels  Kind = "judge.labels"
 	KindDecideClosed Kind = "decide.closed"
 )
 
@@ -66,16 +73,18 @@ var agentOfKind = map[Kind]Agent{
 	KindGenerateTargeted:        AgentGenerator,
 	KindGenerateWitnessStrategy: AgentGenerator,
 	KindGenerateWitness:         AgentGenerator,
+	KindGeneratePromises:        AgentGenerator,
 	KindJudgeValidity:           AgentJudge,
 	KindJudgeEquivalent:         AgentJudge,
 	KindJudgeAlignment:          AgentJudge,
 	KindJudgeScope:              AgentJudge,
+	KindJudgeLabels:             AgentJudge,
 	KindDecideClosed:            AgentDecider,
 }
 
 var kinds = []Kind{
-	KindGenerateTargeted, KindGenerateWitnessStrategy, KindGenerateWitness, KindJudgeValidity,
-	KindJudgeEquivalent, KindJudgeAlignment, KindJudgeScope, KindDecideClosed,
+	KindGenerateTargeted, KindGenerateWitnessStrategy, KindGenerateWitness, KindGeneratePromises, KindJudgeValidity,
+	KindJudgeEquivalent, KindJudgeAlignment, KindJudgeScope, KindJudgeLabels, KindDecideClosed,
 }
 
 // Kinds lists the closed set of request kinds.

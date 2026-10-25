@@ -107,7 +107,7 @@ func (r Runner) Run(ctx context.Context, options Options) (Outcome, error) {
 	if authErr != nil {
 		return Outcome{}, authErr
 	}
-	lock, err := r.Locker.Acquire(filepath.Join(options.RepoRoot, lockRelative))
+	lock, err := r.Locker.Acquire(filepath.Join(options.RepoRoot, LockRelative))
 	if err != nil {
 		return Outcome{}, err
 	}
@@ -165,7 +165,7 @@ func (r Runner) isolatedClaude(ctx context.Context, options Options) (ClaudeCred
 	if options.Harness != harness.FlagClaude || options.SharedHome {
 		return nil, nil
 	}
-	credential, err := firstCredential(ctx, r.Credentials)
+	credential, err := FirstCredential(ctx, r.Credentials)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +228,7 @@ func (r Runner) printClaudeCredentials(options Options, homes Homes, authErr err
 	case authErr != nil:
 		fmt.Fprintf(r.Stdout, "credentials: source %s: %v\n", SourceAbsent, authErr)
 	default:
-		fmt.Fprintf(r.Stdout, "credentials: source %s (%s=%s)\n", homes.ClaudeSource, launch.OAuthTokenVariable, tokenPlaceholder(homes.ClaudeSource))
+		fmt.Fprintf(r.Stdout, "credentials: source %s (%s=%s)\n", homes.ClaudeSource, launch.OAuthTokenVariable, TokenPlaceholder(homes.ClaudeSource))
 	}
 }
 

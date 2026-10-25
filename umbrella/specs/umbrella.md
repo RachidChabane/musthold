@@ -17,10 +17,10 @@ dispatcher, in Shallnot's Markdown spec format. `shallnot gate` traces them to t
   `plugin` directory of `RachidChabane/shallnot`; the plugins of the three proof
   modules and of the relay by the directory of their committed tree in this
   repository; and the thin plugin by a relative path to its own tree.
-- **SP-822~1**: WHEN the thin plugin is read THE SYSTEM SHALL name itself
+- **SP-822~2**: WHEN the thin plugin is read THE SYSTEM SHALL name itself
   `spec-proof`, depend on Shallnot, the three module plugins and the relay, every
-  one of them an entry of the marketplace other than itself, and hold exactly one
-  skill, `prove-all`, with no hook, agent, command or server.
+  one of them an entry of the marketplace other than itself, and hold exactly two
+  skills, `prove-all` and `scan`, with no hook, agent, command or server.
 - **SP-823~2**: WHEN the `prove-all` skill is read THE SYSTEM SHALL open with the
   `doctor` of each module and name the modules that are missing, run the modules
   in the order discriminating power, alignment, completeness, advance one wave of
@@ -45,14 +45,30 @@ dispatcher, in Shallnot's Markdown spec format. `shallnot gate` traces them to t
   skill under the name the `prove-all` skill sends the module's requests to, and,
   for a proof module, hook commands that run the binary the skill runs.
 
+## Scan skill
+
+- **SP-2290~1**: WHEN the `scan` skill is read THE SYSTEM SHALL run
+  `spec-proof scan --host` with the pull request number the user gave, on exit
+  code 3 take the session from the `session scan:<key>` line of the output,
+  relay the tickets of that session only, whose listing it asks for with
+  `--session scan:<key>`, then run `spec-proof scan --host --resume` with the
+  same number, stop on exit code 0 by showing the report and on exit code 2 by
+  showing the refusal, never answer a ticket itself, and carry no text about its
+  own authoring.
+- **SP-2291~1**: WHEN the `scan` skill pre-approves tools THE SYSTEM SHALL
+  pre-approve only `spec-proof scan`, the `request list` of `spec-proof-dp` and
+  the `drain` of the relay, and so no command that answers a request, and the
+  portable `scan` skill SHALL pre-approve none and leave the answering of a
+  ticket to the fulfil skill of the module.
+
 ## Portable plugin
 
-- **SP-1706~1**: WHEN the portable plugin of the umbrella is generated THE SYSTEM
+- **SP-1706~2**: WHEN the portable plugin of the umbrella is generated THE SYSTEM
   SHALL produce a root manifest valid for Agent Plugins 1.0.0, an `mcp.json` with
   no server, so that no server or skill of a module is declared twice, and the
-  `prove-all` skill with no `allowed-tools` that leaves the way a ticket is
-  answered to each module's fulfil skill, and the committed tree SHALL equal what
-  the generator produces.
+  `prove-all` and `scan` skills with no `allowed-tools` that leave the way a ticket
+  is answered to the fulfil skill of the module, and the committed tree SHALL equal
+  what the generator produces.
 
 ## Dispatcher
 

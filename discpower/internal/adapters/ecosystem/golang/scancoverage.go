@@ -12,13 +12,13 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/discpower/internal/app/suiterun"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/spec-proof/discpower/internal/platform/workerpool"
 	"github.com/RachidChabane/spec-proof/format"
 )
 
@@ -82,7 +82,7 @@ func (s scanSuite) LineCoverage(ctx context.Context, workspace ecosystem.Workspa
 		leaves = append(leaves, coveredRun{test: test.ID, dir: path.Dir(file), elements: strings.Split(testPath, subtestSeparator)})
 	}
 	binaries := make([]*coverageBinary, len(dirs))
-	err = onWorkers(ctx, request.Workers, len(dirs), func(ctx context.Context, index int) error {
+	err = workerpool.Run(ctx, request.Workers, len(dirs), func(ctx context.Context, index int) error {
 		built, err := s.buildCoverageBinary(ctx, workspace, toolchain, dirs[index])
 		binaries[index] = &coverageBinary{path: built, dir: dirs[index]}
 		return err
@@ -202,7 +202,7 @@ func (p *coveragePlan) chainOf(leaf coveredRun) baselineChain {
 // requested workers, stops at the first error, and reads each baseline. A
 // baseline run that times out is not usable, never an error.
 func (s scanSuite) runBaselines(ctx context.Context, workspace ecosystem.Workspace, plan *coveragePlan, request ports.ScanCoverageRequest) error {
-	err := onWorkers(ctx, request.Workers, plan.baselineJobs(), func(ctx context.Context, index int) error {
+	err := workerpool.Run(ctx, request.Workers, plan.baselineJobs(), func(ctx context.Context, index int) error {
 		key := plan.baselineKeys[index/baselineRunsPerPath]
 		ran, err := s.runBinary(ctx, workspace, plan.binaryOf[key], key.selection(), request.Timeout)
 		if err != nil {
@@ -229,7 +229,7 @@ func (s scanSuite) runBaselines(ctx context.Context, workspace ecosystem.Workspa
 func (s scanSuite) runLeaves(ctx context.Context, workspace ecosystem.Workspace, plan *coveragePlan, module string, request ports.ScanCoverageRequest) ([]vacuity.Coverage, error) {
 	source := newSourceReader(workspace.Dir)
 	covered := make([]vacuity.Coverage, len(plan.leaves))
-	err := onWorkers(ctx, request.Workers, len(plan.leaves), func(ctx context.Context, index int) error {
+	err := workerpool.Run(ctx, request.Workers, len(plan.leaves), func(ctx context.Context, index int) error {
 		leaf := plan.leaves[index]
 		selection := expression([][]string{leaf.elements})
 		ran, err := s.runBinary(ctx, workspace, leaf.binary, selection, request.Timeout)
@@ -245,41 +245,6 @@ func (s scanSuite) runLeaves(ctx context.Context, workspace ecosystem.Workspace,
 		return nil
 	})
 	return covered, err
-}
-
-// onWorkers does each of count jobs, by index, on at most the given number of
-// workers, at least one; it starts no job after the first error and returns
-// that error once every started job has ended.
-func onWorkers(ctx context.Context, workers, count int, do func(ctx context.Context, index int) error) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	var mutex sync.Mutex
-	var failure error
-	jobs := make(chan int)
-	var wait sync.WaitGroup
-	for range max(workers, 1) {
-		wait.Go(func() {
-			for index := range jobs {
-				if err := do(ctx, index); err != nil {
-					mutex.Lock()
-					if failure == nil {
-						failure = err
-						cancel()
-					}
-					mutex.Unlock()
-				}
-			}
-		})
-	}
-	for index := range count {
-		if ctx.Err() != nil {
-			break
-		}
-		jobs <- index
-	}
-	close(jobs)
-	wait.Wait()
-	return failure
 }
 
 func (s scanSuite) buildCoverageBinary(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, dir string) (string, error) {

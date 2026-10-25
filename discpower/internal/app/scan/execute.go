@@ -67,10 +67,10 @@ type EvidenceSource interface {
 // records each finished candidate in the progress of the scan
 // (vacuity.Progress), which no worker reads. The outcomes are indexed like the
 // candidates.
-func (s *Service) execute(ctx context.Context, ref reference, plan plan, drawn drawn, deadline time.Time, request Request) ([]outcome, error) {
+func (s *Service) execute(ctx context.Context, ref reference, plan plan, drawn drawn, deadline time.Time, request Request, sources []EvidenceSource) ([]outcome, error) {
 	budgeted, cancel := s.budgeted(ctx, deadline)
 	defer cancel()
-	runner := mutantRunner{service: s, ref: ref, forms: map[string]string{}, sources: s.evidenceSources(ref, drawn, request.Seed), covered: map[ecosystem.TestID]scanscope.LineSet{}}
+	runner := mutantRunner{service: s, ref: ref, forms: map[string]string{}, sources: sources, covered: map[ecosystem.TestID]scanscope.LineSet{}}
 	for _, test := range ref.green {
 		if coverage, recorded := ref.coverage[test]; recorded {
 			runner.covered[test] = scanscope.NewLineSet(coverage.Lines)

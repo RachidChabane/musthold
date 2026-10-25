@@ -32,13 +32,16 @@ const (
 	reproFile   = "repro.sh"
 	findingFile = "finding.json"
 
-	arrow         = "→"
-	separator     = " · "
-	notAPass      = "Not a pass: unproven and unsampled tests are unjudged."
-	noModel       = "no model used"
-	noPromises    = "promises not checked"
-	partialNote   = "partial: the budget stopped the scan before every mutant ran"
-	findingFormat = "passes on all %d proven changes in lines it ran"
+	arrow      = "→"
+	separator  = " · "
+	notAPass   = "Not a pass: unproven and unsampled tests are unjudged."
+	noModel    = "no model used"
+	noPromises = "promises not checked"
+	// promisesChecked closes the footer of a scan whose host answered.
+	promisesChecked = "promises checked"
+	callsFormat     = "%d of %d model calls"
+	partialNote     = "partial: the budget stopped the scan before every mutant ran"
+	findingFormat   = "passes on all %d proven changes in lines it ran"
 	// notStartedMore follows the sentence of a finding when changes in the
 	// lines it ran stopped the test from starting.
 	notStartedMore = "; %d more stopped it from starting"
@@ -92,6 +95,11 @@ var allRuns = fmt.Sprintf("%d/%d", vacuity.RunsPerOutcome, vacuity.RunsPerOutcom
 // ShortCommit is the commit id as a report shows it.
 func ShortCommit(commit string) string {
 	return commit[:min(len(commit), ShortCommitLength)]
+}
+
+// BrokenPromiseDir is the folder of a broken promise, relative to the work tree.
+func BrokenPromiseDir(report scan.Report, broken scan.BrokenPromise) string {
+	return fmt.Sprintf("%s/%s/promise-%d", Directory, ShortCommit(report.Commit), broken.Rank)
 }
 
 // FindingDir is the folder of a finding, relative to the work tree.
@@ -204,8 +212,22 @@ func footer(report scan.Report) string {
 		parts[0] += fmt.Sprintf(notRunFormat, mutants.NotRun, scan.GapNotRun)
 	}
 	parts[0] += ")"
-	parts = append(parts, elapsed(report), noModel, noPromises)
-	return strings.Join(parts, separator)
+	parts = append(parts, elapsed(report))
+	return strings.Join(append(parts, modelAndPromises(report)...), separator)
+}
+
+// modelAndPromises are the last parts of the footer: that no model ran and no
+// promise was checked, or, for a scan that ran with a host, how many calls it
+// made and whether its promises were checked.
+func modelAndPromises(report scan.Report) []string {
+	if report.Promises == nil {
+		return []string{noModel, noPromises}
+	}
+	checked := noPromises
+	if report.Promises.Checked {
+		checked = promisesChecked
+	}
+	return []string{fmt.Sprintf(callsFormat, report.Promises.Calls, report.Promises.Budget), checked}
 }
 
 // notRunFormat counts the drawn mutants the budget left unrun.
@@ -278,11 +300,11 @@ func stake(report scan.Report) string {
 
 // changeLine shows the change of a finding: where, what became what and, for
 // a differential route, the input and the two results.
-func changeLine(finding scan.Finding) string {
-	line := fmt.Sprintf("%s:%d  %s", finding.Site.File, finding.Site.Line, tokenChange(finding))
-	if finding.Route.Kind == format.ScanRouteDifferential {
+func changeLine(site format.ScanLine, files []scan.FileChange, route format.ScanRoute) string {
+	line := fmt.Sprintf("%s:%d  %s", site.File, site.Line, tokenChange(files))
+	if route.Kind == format.ScanRouteDifferential {
 		line += fmt.Sprintf("   input %s: reference %s, mutant %s",
-			renderInput(finding.Route.Input), renderObservation(finding.Route.Reference), renderObservation(finding.Route.Mutant))
+			renderInput(route.Input), renderObservation(route.Reference), renderObservation(route.Mutant))
 	}
 	return line
 }
@@ -301,8 +323,8 @@ func provenBy(route format.ScanRoute) string {
 // tokenChange is the smallest span of the changed line that differs, as
 // `before → after`; a change of several lines shows its first line on each
 // side.
-func tokenChange(finding scan.Finding) string {
-	for _, file := range finding.Files {
+func tokenChange(files []scan.FileChange) string {
+	for _, file := range files {
 		removed, added := changedLines(file.Before, file.After)
 		if len(removed) == 0 && len(added) == 0 {
 			continue

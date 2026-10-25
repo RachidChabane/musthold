@@ -18,7 +18,7 @@ const (
 	verifiesSample    = " [verifies SP-2104~1]"
 	verifiesSeed      = " [verifies SP-2105~1]"
 	verifiesLines     = " [verifies SP-2106~1]"
-	verifiesNever     = " [verifies SP-2107~1]"
+	verifiesNever     = " [verifies SP-2107~2]"
 	verifiesFunctions = " [verifies SP-2109~1]"
 
 	maxFiles        = 5
@@ -173,6 +173,10 @@ func TestNeverMutated(t *testing.T) {
 		{"a source file", "src/parse.py", "def f():\n    return 1\n", true},
 		{"a test file", "src/test_parse.py", "def test_f():\n    pass\n", false},
 		{"a helper of a test directory", "tests/helpers.py", "def make():\n    return 1\n", false},
+		{"a module of a __tests__ directory", "src/__tests__/helpers.ts", "export const make = () => 1;\n", false},
+		{"a manual mock", "src/__mocks__/clock.ts", "export const now = () => 0;\n", false},
+		{"a fixture module", "src/__fixtures__/orders.ts", "export const orders = [];\n", false},
+		{"a TypeScript source file", "src/totals.ts", "export const total = 1;\n", true},
 		{"a vendored package", "vendor/lib/lib.go", "package lib\n", false},
 		{"an installed package", ".venv/lib/site-packages/x.py", "x = 1\n", false},
 		{"a migration", "app/migrations/0001_initial.py", "x = 1\n", false},
@@ -195,6 +199,9 @@ func TestNeverMutated(t *testing.T) {
 		`	fmt.Println(total)`:                   true,
 		`	slog.Info("total", "value", total)`:   true,
 		`    metrics.increment("orders")`:       true,
+		`  console.log('total', total);`:        true,
+		`  console.error(error);`:               true,
+		`  return consoleTotal(total);`:         false,
 		`    return total * rate`:               false,
 		`	if total >= limit {`:                  false,
 		`    blueprint(total)`:                  false,

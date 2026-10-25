@@ -46,14 +46,14 @@ func invoke(t *testing.T, runner *scriptedRunner, args ...string) (int, string, 
 }
 
 func TestFakehostCommand(t *testing.T) {
-	t.Run("the personas a command line can play are listed [verifies SP-142~1]", func(t *testing.T) {
+	t.Run("the personas a command line can play are listed [verifies SP-142~2]", func(t *testing.T) {
 		code, stdout, _ := invoke(t, &scriptedRunner{}, "-list")
 		if code != exitOK || strings.Fields(stdout)[0] != hostprototest.PersonaHonest || len(strings.Fields(stdout)) != len(hostprototest.CLIPersonaNames()) {
 			t.Fatalf("code %d, stdout %q", code, stdout)
 		}
 	})
 
-	t.Run("a persona answers the pending tickets and each submission is reported [verifies SP-142~1]", func(t *testing.T) {
+	t.Run("a persona answers the pending tickets and each submission is reported [verifies SP-142~2]", func(t *testing.T) {
 		runner, _ := newScripted()
 		code, stdout, stderr := invoke(t, runner, "-module-bin", "module", "-persona", "honest")
 		if code != exitOK {
@@ -68,7 +68,7 @@ func TestFakehostCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("recorded answers are read from the recordings directory [verifies SP-142~1]", func(t *testing.T) {
+	t.Run("recorded answers are read from the recordings directory [verifies SP-142~2]", func(t *testing.T) {
 		runner, request := newScripted()
 		directory := t.TempDir()
 		recorded := `{"validity":"EQUIVALENT"}`
@@ -84,7 +84,7 @@ func TestFakehostCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("a request without a recording is answered by the oracle when one is named [verifies SP-142~1]", func(t *testing.T) {
+	t.Run("a request without a recording is answered by the oracle when one is named [verifies SP-142~2]", func(t *testing.T) {
 		runner, request := newScripted()
 		view := request.ViewFor(hostprototest.Ticket(request, 0, 1))
 		directory := t.TempDir()
@@ -114,7 +114,7 @@ func TestFakehostCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("a missing binary, an unknown flag, an unreadable directory and a persona that needs hooks are refused [verifies SP-142~1]", func(t *testing.T) {
+	t.Run("a missing binary, an unknown flag, an unreadable directory and a persona that needs hooks are refused [verifies SP-142~2]", func(t *testing.T) {
 		runner, _ := newScripted()
 		cases := []struct {
 			name string
@@ -134,7 +134,7 @@ func TestFakehostCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("a failing module makes the command fail [verifies SP-142~1]", func(t *testing.T) {
+	t.Run("a failing module makes the command fail [verifies SP-142~2]", func(t *testing.T) {
 		var stdout, stderr bytes.Buffer
 		failing := func(string) hostprototest.ModuleRunner { return failingRunner{} }
 		if code := run([]string{"-module-bin", "m"}, &stdout, &stderr, failing, func(time.Duration) {}); code != exitFailure {
@@ -142,7 +142,7 @@ func TestFakehostCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("the process runner reports the standard error of a failing binary [verifies SP-142~1]", func(t *testing.T) {
+	t.Run("the process runner reports the standard error of a failing binary [verifies SP-142~2]", func(t *testing.T) {
 		runner := execRunner("false")
 		if _, err := runner.Run(nil, nil); err == nil {
 			t.Fatal("a failing binary succeeded")

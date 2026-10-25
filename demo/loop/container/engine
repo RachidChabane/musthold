@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# The container engine of the agent-loop demonstration: one colima machine of its own
+# profile, sized as the demos-1 engine (2 CPUs, 3 GiB, 40 GiB disk), whose only mounts
+# are the demonstration's work area, read-write, and its product area, read-only.
+#
+#   demo/loop/container/engine start    start the machine (a no-op when it runs)
+#   demo/loop/container/engine stop     stop the machine whatever its state
+#   demo/loop/container/engine host     print the DOCKER_HOST every docker command names
+#
+# The machine activates no docker context and writes no ssh configuration, so a bare
+# `docker` keeps talking to whatever engine the user chose; every command of the
+# demonstration names this machine's socket instead.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/../../.."
+
+readonly PROFILE="spec-proof-loop"
+readonly CPUS=2
+readonly MEMORY_GIB=3
+readonly DISK_GIB=40
+readonly WORK=".tools/demo-loop/work"
+readonly PRODUCT=".tools/demo-loop/product"
+readonly EXIT_USAGE=64
+
+socket() { echo "unix://${HOME}/.colima/${PROFILE}/docker.sock"; }
+
+running() { colima status --profile "${PROFILE}" >/dev/null 2>&1; }
+
+case "${1:-}" in
+  start)
+    mkdir -p "${WORK}" "${PRODUCT}"
+    work="$(cd "${WORK}" && pwd -P)"
+    product="$(cd "${PRODUCT}" && pwd -P)"
+    if running; then
+      echo "engine: ${PROFILE} already runs" >&2
+      exit 0
+    fi
+    ./script/mem-guard check
+    colima start --profile "${PROFILE}" --cpu "${CPUS}" --memory "${MEMORY_GIB}" --disk "${DISK_GIB}" \
+      --activate=false --ssh-config=false --mount "${work}:w" --mount "${product}" >&2
+    ;;
+  stop)
+    colima stop --profile "${PROFILE}" >/dev/null 2>&1 || true
+    ;;
+  host)
+    socket
+    ;;
+  *)
+    sed -n '2,13p' "${BASH_SOURCE[0]}" >&2
+    exit "${EXIT_USAGE}"
+    ;;
+esac

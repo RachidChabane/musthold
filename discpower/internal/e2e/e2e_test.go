@@ -170,6 +170,23 @@ func TestHonestHostEndToEnd(t *testing.T) {
 		}
 	})
 
+	t.Run("prove names each survivor of the weak criterion with how it was drawn and the witness it fails, never its code [verifies SP-2421~1]", func(t *testing.T) {
+		survivors := survivorLines(last.stdout, weakCriterion)
+		if len(survivors) == 0 {
+			t.Fatalf("no survivor is named under %s:\n%s", weakCriterion, last.stdout)
+		}
+		for _, line := range survivors {
+			if !strings.Contains(line, "mutant of ") || !strings.Contains(line, "which every test of the criterion passes, fails the witness ") {
+				t.Errorf("survivor line %q", line)
+			}
+		}
+		for _, mutated := range []string{"total > FREE_SHIPPING_FROM", "return SHIPPING_FEE\n"} {
+			if strings.Contains(last.stdout, mutated) {
+				t.Errorf("prove shows mutant code %q:\n%s", mutated, last.stdout)
+			}
+		}
+	})
+
 	t.Run("a main-session call of an executor tool is denied and left in the journal [verifies SP-250~2]", func(t *testing.T) {
 		ticket := p.firstJournaledTicket()
 		denied, code := host.Fire(hostproto.HookPreTool, map[string]any{
@@ -205,6 +222,19 @@ func TestHonestHostEndToEnd(t *testing.T) {
 		}
 		if raised[adequateCriterion] != 0 {
 			t.Errorf("the passing %s raised %d findings", adequateCriterion, raised[adequateCriterion])
+		}
+	})
+
+	t.Run("the end-of-turn block names each survivor of the weak criterion with the witness it fails, never its code [verifies SP-2421~1]", func(t *testing.T) {
+		stop := p.stop("e2e-honest-survivor")
+		if stop.code != exitHookHold || !strings.Contains(stop.stderr, "surviving_valid_mutant") {
+			t.Fatalf("stop hook: exit %d\n%s", stop.code, stop.output())
+		}
+		if !strings.Contains(stop.stderr, "every test passes on ") || !strings.Contains(stop.stderr, "that fails the witness ") {
+			t.Errorf("the block does not name a witness:\n%s", stop.stderr)
+		}
+		if strings.Contains(stop.stderr, "total > FREE_SHIPPING_FROM") {
+			t.Errorf("the block shows mutant code:\n%s", stop.stderr)
 		}
 	})
 

@@ -50,7 +50,7 @@ consecutive blocks whose only findings are pending reasons.
 |---|---|---|
 | `stale_proof` | A required proof is missing or stale: an input file changed, a bound test file is not among the proof's inputs, the statement changed, or a consumed proof is not valid. | Run the command the message names, or `prove-all`, then `spec-proof-verify --accept-local ...`. Never edit a proof file. |
 | `malformed_proof` | The manifest or a statement breaks the format. | Re-run `spec-proof-verify`. A `local` manifest needs `proofs.trust: local`. |
-| `correct_code_fails`, `example_failed`, `surviving_valid_mutant` | The tests or the code do not meet the requirement. | Fix the code, or strengthen the tests until they fail on the mutant. |
+| `correct_code_fails`, `example_failed`, `surviving_valid_mutant` | The tests or the code do not meet the requirement. For a surviving mutant, the message names the input the tests do not distinguish: an example of the requirement, or a witness test. | Fix the code, or add a test bound to the requirement that checks that input. |
 | `escalated_mutant`, `no_valid_mutant`, `no_killed_valid_mutant`, `mutation_sensitive_test`, `misaligned_test` | A judged signal that the tests may not check the requirement. | Make the tests check the statement. |
 | `completeness_question` | An advisory question about the spec. | Raise it with the spec's owner. |
 
@@ -61,8 +61,8 @@ The `shallnot` on `PATH` predates report schema 1.2. Install a Shallnot that has
 or point `SPEC_PROOF_SHALLNOT` at one. `doctor` shows the `shallnot` path and the
 `shallnot-schema` check.
 
-**`prove` stays at exit 3.** Tickets are unanswered. `spec-proof-dp request list`
-shows them. Each run of `prove`, including `--resume`, advances one wave; answers
+**`prove` stays at exit 3.** Tickets are unanswered. `spec-proof-dp request list
+--session prove` shows them. Each run of `prove`, including `--resume`, advances one wave; answers
 must exist before `--resume` can consume them.
 
 **The executor server refuses every answer, or tickets never leave `awaiting_host`.**
@@ -79,7 +79,7 @@ executor must start with none of the main agent's history: spawn it with
 its ticket, and `blindness_unproven` when the rollout cannot be read or does not show
 the message that carried the ticket.
 
-**`prove --resume` says "nothing to resume: no request was ever emitted".** Run
+**`prove --resume` says "nothing to resume: the prove session holds no request".** Run
 `prove` first.
 
 **`--ci needs the CI run`.** Set `SPEC_PROOF_CI_RUN_ID` or `GITHUB_RUN_ID`.
@@ -105,7 +105,9 @@ stale.
 
 - `spec-proof-dp doctor` checks Shallnot, the ecosystem, the host store and the
   journal chain.
-- `spec-proof-dp request list --json` shows every pending ticket with its role.
+- `spec-proof-dp request list --json` shows every pending ticket with its role
+  and the sessions that want it: `prove`, or `scan:<key>` for a scan. Add
+  `--session prove` to see the tickets `prove` waits for.
 - `.spec-proof/cache/` holds the statements and nothing else,
   `.spec-proof/verified/manifest.json` the verified set, `.spec-proof/pending/` the
   pending files, `.spec-proof/seeds/` the CI seed records of discriminating power

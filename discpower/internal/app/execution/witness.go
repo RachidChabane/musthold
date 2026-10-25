@@ -94,6 +94,22 @@ func (r Runner) ReferenceWitnesses(ctx context.Context, set witness.Set) (map[st
 	return outcomes, r.remember(key, outcomes)
 }
 
+// RepeatWitnesses runs a witness set alone on a program, the reference for no
+// edits or a mutant, witness.ReferenceRuns times, and returns what each witness
+// did in each run. A set the ecosystem cannot lay out, or a program that does
+// not build, errors in every run. Nothing is memoized: every call runs.
+func (r Runner) RepeatWitnesses(ctx context.Context, edits mutation.EditSet, set witness.Set) (map[string][]witness.Outcome, error) {
+	laid := r.layOut(set)
+	if laid.err != nil {
+		return erroredRuns(set, witness.ReferenceRuns), nil
+	}
+	runs, err := r.runSets(ctx, edits, []laidOut{laid}, witness.ReferenceRuns)
+	if err != nil || runs == nil {
+		return erroredRuns(set, witness.ReferenceRuns), err
+	}
+	return runs, nil
+}
+
 // EditWitnesses runs witness sets on an edited program, a mutant or a planted
 // refactor, and returns what each witness did: a failure that the rerun
 // repeats, a failure it does not (flaky), a pass or an error. Sets already run

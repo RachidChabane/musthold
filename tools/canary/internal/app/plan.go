@@ -17,7 +17,7 @@ import (
 // Locations, relative to the repository root, and names the run depends on.
 const (
 	toolsBinRelative = ".tools/bin"
-	lockRelative     = ".tools/canary/session.lock"
+	LockRelative     = ".tools/canary/session.lock"
 	fixtureRelative  = "discpower/fixtures/prove/parcel"
 	memGuardRelative = "script/mem-guard"
 	shallnotBinary   = "shallnot"
@@ -209,7 +209,10 @@ func versionOfBinaryArgv(path string) []string { return []string{path, "version"
 // proveArgv runs the primary module's proof until it asks the host.
 func proveArgv(l layout) []string { return []string{l.primary(), "prove", "--all"} }
 
-func listArgv(l layout) []string { return []string{l.primary(), "request", "list", "--json"} }
+// listArgv lists the tickets of the prove session, which the canary drives.
+func listArgv(l layout) []string {
+	return append([]string{l.primary()}, hostproto.ListArgs(hostproto.SessionProve)...)
+}
 
 func initArgv(l layout, module modules.Module) []string {
 	return []string{l.binary(module.Binary), "init", "--hooks", harness.FlagCodex}
@@ -264,7 +267,7 @@ func Plan(flag, repo, model string, homes Homes) ([]string, error) {
 	}
 	words := sessionEnvironmentWords(l)
 	if flag == harness.FlagClaude && homes.IsolatedClaude {
-		words = append(words, launch.OAuthTokenVariable+"="+tokenPlaceholder(homes.ClaudeSource))
+		words = append(words, launch.OAuthTokenVariable+"="+TokenPlaceholder(homes.ClaudeSource))
 	}
 	lines = append(lines,
 		"session environment: "+strings.Join(words, " "),

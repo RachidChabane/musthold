@@ -339,6 +339,7 @@ func (r *critRun) mutantEntry(m *poolMutant, decision power.Decision) (format.Mu
 		Route:      string(decision.Route),
 		Witnesses:  decision.Failing,
 	}
+	extensions.Counterexample = r.counterexample(m, decision)
 	if decision.OffTarget != nil {
 		extensions.OffTarget = decision.OffTarget.String()
 	}

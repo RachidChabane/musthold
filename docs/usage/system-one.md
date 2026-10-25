@@ -15,7 +15,7 @@ relay is the environment's client of your service.
 For every closed request (a `decide.closed` ticket):
 
 1. If `systemone.endpoint` is configured and `spec-proof-s1` is on `PATH`, the
-   module's fulfil skill runs `spec-proof-s1 drain --module <module>`. The relay
+   module's fulfil skill runs `spec-proof-s1 drain --module <module> --session prove`. The relay
    answers what it can. A relay failure leaves the requests for step 2.
 2. Otherwise, on Claude Code, the mod of the module's plugin may classify the
    request ([below](#classification-by-the-host)). A classification that does not
@@ -110,7 +110,7 @@ route `/v1/systemone`.
 
 ```
 spec-proof-s1 version
-spec-proof-s1 drain --module MODULE [--endpoint URL] [--model NAME] [--timeout DURATION] [--max-requests N] [--root DIR] [--mem-guard] [--no-unload]
+spec-proof-s1 drain --module MODULE [--session SESSION] [--endpoint URL] [--model NAME] [--timeout DURATION] [--max-requests N] [--root DIR] [--mem-guard] [--no-unload]
 ```
 
 `spec-proof-s1 -h`, `--help` and `help` print the commands, and `spec-proof-s1 drain -h`
@@ -119,6 +119,7 @@ prints the flags below with their defaults; both exit 0.
 | Flag | Default | Meaning |
 |---|---|---|
 | `--module` | required | The proof module whose closed requests are relayed: `dp`, `alignment` or `completeness`. The relay runs the executable `spec-proof-<module>`; a module name holds lower-case letters, digits and hyphens. |
+| `--session` | every session | Relay the closed requests of one session only: `prove`, or `scan:<key>` for a scan. A value that names no session exits 2 before any module runs. |
 | `--endpoint` | `systemone.endpoint` | The endpoint. |
 | `--model` | `systemone.model` | Model named in each request. |
 | `--timeout` | `2m` | Time limit of one request. Must be positive. |
@@ -127,7 +128,8 @@ prints the flags below with their defaults; both exit 0.
 | `--mem-guard` | off | Refuse to start, and stop between requests, when free memory is below the rule: fewer than 40 percent free on macOS (`MEM_GUARD_MIN_FREE_PCT` changes the threshold), fail closed when it cannot be read, skipped with a logged reason on other systems. |
 | `--no-unload` | off | Keep the model loaded after the batch. |
 
-`drain` runs `spec-proof-<module> systemone export` from the project root, posts
+`drain` runs `spec-proof-<module> systemone export`, with `--session` when it is
+given one, from the project root, posts
 each exported closed request to the endpoint, one at a time, and runs
 `spec-proof-<module> systemone import` with the reply of the endpoint for each
 usable answer, under the source `system-one:<model>@<endpoint digest>`. Run it by

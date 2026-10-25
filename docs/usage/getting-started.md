@@ -53,7 +53,7 @@ In Claude Code:
 ```
 
 The `spec-proof` plugin declares Shallnot, the three module plugins and the
-System One relay as dependencies and holds one skill, `prove-all`. To install
+System One relay as dependencies and holds two skills, `prove-all` and `scan`. To install
 modules one at a time use `/plugin install spec-proof-dp@spec-proof`,
 `spec-proof-alignment@spec-proof` or `spec-proof-completeness@spec-proof`. A
 module installed alone works with Shallnot alone.
@@ -168,7 +168,7 @@ You can run a module by hand at any time:
 
 ```
 spec-proof-dp prove --changed
-spec-proof-dp request list
+spec-proof-dp request list --session prove
 spec-proof-dp prove --resume
 ```
 
@@ -223,10 +223,11 @@ installs none.
   `.github/hooks/<module>.json` and `.github/skills/<module>-fulfil/SKILL.md`.
   Isolation is `restricted-unverified`.
 - **Any other harness.** The main agent answers each ticket itself:
-  `spec-proof-dp request list`, `spec-proof-dp request show <ticket>`, then
+  `spec-proof-dp request list --session prove`, `spec-proof-dp request show <ticket>`, then
   `spec-proof-dp request submit <ticket> --nonce <nonce>` with the JSON answer on
   standard input, then `spec-proof-dp prove --resume`. Such answers have the
-  isolation `inline`.
+  isolation `inline` and are marked `exposed`: they block and escalate, and earn no
+  pass credit under any floor.
 
 Judged answers from harnesses below the isolation floor keep their power to block
 and escalate but earn no pass credit; see [trust model](trust-model.md#harness-isolation).

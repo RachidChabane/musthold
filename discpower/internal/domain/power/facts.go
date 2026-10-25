@@ -103,13 +103,42 @@ type Facts struct {
 	Outcomes map[ecosystem.TestID]format.Outcome `json:"outcomes"`
 	// FailedExamples lists the criteria one of whose examples the mutant fails,
 	// sorted.
-	FailedExamples []spec.Ref   `json:"failedExamples,omitempty"`
-	Differential   Differential `json:"differential"`
-	Identity       Identity     `json:"identity,omitempty"`
+	FailedExamples []spec.Ref `json:"failedExamples,omitempty"`
+	// ExampleFailures names each example the mutant fails, sorted by criterion
+	// and index.
+	ExampleFailures []ExampleFailure `json:"exampleFailures,omitempty"`
+	Differential    Differential     `json:"differential"`
+	Identity        Identity         `json:"identity,omitempty"`
 	// WitnessOutcomes holds, by witness id, what each witness the mutant ran
 	// against did: a failure is reproduced, a failure the rerun did not repeat is
 	// flaky.
 	WitnessOutcomes map[string]witness.Outcome `json:"witnessOutcomes,omitempty"`
+}
+
+// ExampleFailure is one example of a criterion that a mutant fails: the
+// criterion and the example's index among its examples.
+type ExampleFailure struct {
+	Owner spec.Ref `json:"owner"`
+	Index int      `json:"index"`
+}
+
+// Compare orders example failures by criterion, then by index.
+func (e ExampleFailure) Compare(other ExampleFailure) int {
+	if order := e.Owner.Compare(other.Owner); order != 0 {
+		return order
+	}
+	return e.Index - other.Index
+}
+
+// FirstFailedExample returns the lowest index of an example of the criterion
+// that the mutant fails.
+func (f Facts) FirstFailedExample(ref spec.Ref) (int, bool) {
+	for _, failure := range f.ExampleFailures {
+		if failure.Owner == ref {
+			return failure.Index, true
+		}
+	}
+	return 0, false
 }
 
 // FailsWitness reports whether the mutant failed the witness, reproduced.

@@ -10,7 +10,8 @@ from specbench.domain.jsonread import RecordError
 from specbench.domain.sessions import RequestKind
 
 TICKET_PATTERN: Final = re.compile(r"[0-9a-f]{64}\.\d+\.\d+")
-KIND_GENERATE_PREFIX: Final = "generate."
+KIND_GENERATE_TARGETED: Final = "generate.targeted"
+KIND_GENERATE_WITNESS_STRATEGY: Final = "generate.witnessStrategy"
 KIND_GENERATE_WITNESS: Final = "generate.witness"
 KIND_JUDGE_SCOPE: Final = "judge.scope"
 KIND_JUDGE_VALIDITY: Final = "judge.validity"
@@ -33,6 +34,8 @@ def request_id_of(ticket: str) -> str:
 
 
 EXACT_REQUEST_KINDS: Final[dict[str, RequestKind]] = {
+    KIND_GENERATE_TARGETED: RequestKind.MUTANTS,
+    KIND_GENERATE_WITNESS_STRATEGY: RequestKind.MUTANTS,
     KIND_GENERATE_WITNESS: RequestKind.WITNESSES,
     KIND_JUDGE_SCOPE: RequestKind.SCOPE,
     KIND_JUDGE_VALIDITY: RequestKind.VALIDITY,
@@ -40,7 +43,8 @@ EXACT_REQUEST_KINDS: Final[dict[str, RequestKind]] = {
     KIND_JUDGE_ALIGNMENT: RequestKind.ALIGNMENT,
     KIND_DECIDE_CLOSED: RequestKind.CLOSED_QUESTION,
 }
-"""Product request kinds that map to one benchmark request kind by their exact name."""
+"""Product request kinds the benchmark counts, each mapped to one benchmark request kind by its exact name; the
+scan's kinds are not among them, since no benchmark arm runs a scan."""
 
 
 def request_kind_of(module: Module, kind: str) -> RequestKind:
@@ -49,6 +53,4 @@ def request_kind_of(module: Module, kind: str) -> RequestKind:
         return RequestKind.COMPLETENESS
     if (exact := EXACT_REQUEST_KINDS.get(kind)) is not None:
         return exact
-    if kind.startswith(KIND_GENERATE_PREFIX):
-        return RequestKind.MUTANTS
     raise RecordError(f"unknown request kind {kind!r}")

@@ -12,6 +12,7 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
 	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
@@ -57,11 +58,11 @@ func (u UseCase) Run(ctx context.Context, options Options) (Result, error) {
 // run against the witnesses of every criterion and settled, and the criteria
 // whose survivors are judged are proved.
 func (u UseCase) pass(ctx context.Context, p *project, options Options) (Result, error) {
-	wave, err := u.Deps.Store.AdvanceWave()
+	wave, err := u.Deps.Store.AdvanceWave(hostproto.SessionProve)
 	if err != nil {
 		return Result{}, fmt.Errorf("advance the wave: %w", err)
 	}
-	bridge := hostbridge.New(u.Deps.Store, u.Deps.Clock, u.Deps.Entropy, wave)
+	bridge := hostbridge.New(u.Deps.Store, u.Deps.Clock, u.Deps.Entropy, hostproto.SessionProve, wave)
 	p.scopes = nil
 	runs := make([]*critRun, len(p.criteria))
 	settled := true
@@ -86,10 +87,7 @@ func (u UseCase) pass(ctx context.Context, p *project, options Options) (Result,
 	for _, run := range runs {
 		result.Findings = append(result.Findings, run.readingConflicts()...)
 	}
-	if err := bridge.SupersedeUnwanted(); err != nil {
-		return Result{}, err
-	}
-	pending, err := bridge.PendingTickets()
+	pending, err := bridge.FinishWave()
 	if err != nil {
 		return Result{}, err
 	}
@@ -102,8 +100,9 @@ func (u UseCase) pass(ctx context.Context, p *project, options Options) (Result,
 
 // freshRecord remembers the Statement written for a freshness key.
 type freshRecord struct {
-	CacheKey string `json:"cacheKey"`
-	Result   string `json:"result"`
+	CacheKey  string     `json:"cacheKey"`
+	Result    string     `json:"result"`
+	Survivors []Survivor `json:"survivors,omitempty"`
 }
 
 // proveAll runs the searches of every criterion, then settles the pools against
@@ -177,7 +176,7 @@ func (r *critRun) conclude(ctx context.Context, sets []witness.Set, records []wi
 	}
 	if options.Selection == SelectChanged {
 		if record, fresh := r.p.freshRecord(r.c.Ref, freshness); fresh {
-			return CriterionResult{Ref: r.c.Ref, Status: StatusFresh, CacheKey: record.CacheKey, Outcome: power.Outcome{Result: power.Result(record.Result)}}, nil
+			return CriterionResult{Ref: r.c.Ref, Status: StatusFresh, CacheKey: record.CacheKey, Outcome: power.Outcome{Result: power.Result(record.Result)}, Survivors: record.Survivors}, nil
 		}
 	}
 	if r.waiting || !r.creditSettled() {
@@ -216,10 +215,11 @@ func (r *critRun) finalize(base []format.Input, freshness string) (CriterionResu
 	if err := r.consume(); err != nil {
 		return CriterionResult{}, err
 	}
-	if err := r.p.rememberFresh(freshness, freshRecord{CacheKey: cacheKey, Result: string(outcome.Result)}); err != nil {
+	survivors := r.survivors(predicate)
+	if err := r.p.rememberFresh(freshness, freshRecord{CacheKey: cacheKey, Result: string(outcome.Result), Survivors: survivors}); err != nil {
 		return CriterionResult{}, err
 	}
-	return CriterionResult{Ref: r.c.Ref, Status: StatusProved, Outcome: outcome, CacheKey: cacheKey}, nil
+	return CriterionResult{Ref: r.c.Ref, Status: StatusProved, Outcome: outcome, CacheKey: cacheKey, Survivors: survivors}, nil
 }
 
 // writeFacts keeps the facts record of the Statement: every executed fact and

@@ -201,8 +201,10 @@ type fakeSuite struct {
 	// coverageOverruns makes the recording outlive it.
 	coverageTimeout  time.Duration
 	coverageOverruns bool
-	// covered lists the tests whose coverage was asked for.
+	// covered lists the tests whose coverage was asked for, and owners the
+	// owners each such request named.
 	covered []ecosystem.TestID
+	owners  [][]ecosystem.TestID
 	// hangs makes every run of a selection last until its context ends.
 	hangs bool
 	// oneRun makes the fake record every test's coverage in one run.
@@ -288,6 +290,7 @@ func (s *fakeSuite) LineCoverage(_ context.Context, _ ecosystem.Workspace, _ eco
 		}
 	} else {
 		s.coverageTimeout = request.Timeout
+		s.owners = append(s.owners, slices.Clone(request.Owners))
 		for _, test := range request.Tests {
 			s.covered = append(s.covered, test.ID)
 		}
@@ -390,6 +393,8 @@ func (c fakeCompiler) Forms(_ context.Context, workspace ecosystem.Workspace, _ 
 type fakeSource struct {
 	dirty   bool
 	changed map[string][]int
+	// tracked are files tracked besides the module and its tests.
+	tracked []string
 }
 
 func (s fakeSource) Head(context.Context) (string, error) { return headCommit, nil }
@@ -398,7 +403,7 @@ func (s fakeSource) Resolve(_ context.Context, revision string) (string, error) 
 }
 func (s fakeSource) Dirty(context.Context) (bool, error) { return s.dirty, nil }
 func (s fakeSource) TrackedFiles(context.Context) ([]string, error) {
-	return []string{totals, "tests/test_discount.py", "tests/test_shipping.py", ".spec-proof/scan/old/report.md"}, nil
+	return append([]string{totals, "tests/test_discount.py", "tests/test_shipping.py", ".spec-proof/scan/old/report.md"}, s.tracked...), nil
 }
 func (s fakeSource) ChangedLines(context.Context, string) (map[string][]int, error) {
 	return s.changed, nil
@@ -462,12 +467,19 @@ func newFixture() *fixture {
 	}
 }
 
-func (f *fixture) service(t *testing.T) *scan.Service {
+// enginesFor registers the Python engine the fake project needs.
+func enginesFor(t *testing.T) *operatorgen.Registry {
 	t.Helper()
 	engines := operatorgen.NewRegistry()
 	if err := engines.Register(pythonmutation.New(), treesitter.NewLocator()); err != nil {
 		t.Fatal(err)
 	}
+	return engines
+}
+
+func (f *fixture) service(t *testing.T) *scan.Service {
+	t.Helper()
+	engines := enginesFor(t)
 	deps := scan.Deps{
 		Ecosystem: fakeEcosystem{workspaces: f.workspaces, broken: f.broken}, Suite: f.suite, Workspaces: f.workspaces,
 		Engines: engines, Prober: f.prober, Source: f.source, Project: f.workspaces.project, Clock: f.clock.read,

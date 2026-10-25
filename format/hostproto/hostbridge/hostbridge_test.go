@@ -59,11 +59,11 @@ func newRig(t testing.TB) *rig {
 	t.Helper()
 	store := hostprototest.NewMemoryHostStore()
 	clock := &fakeClock{now: hostprototest.Epoch}
-	return &rig{t: t, store: store, clock: clock, bridge: New(store, clock.Now, &sequenceReader{}, firstWave)}
+	return &rig{t: t, store: store, clock: clock, bridge: New(store, clock.Now, &sequenceReader{}, hostproto.SessionProve, firstWave)}
 }
 
 func (r *rig) bridgeOnWave(wave int) *Bridge {
-	return New(r.store, r.clock.Now, &sequenceReader{next: uint64(wave) * waveSeedStride}, wave)
+	return New(r.store, r.clock.Now, &sequenceReader{next: uint64(wave) * waveSeedStride}, hostproto.SessionProve, wave)
 }
 
 func variant(label string) hostproto.Request {
@@ -157,7 +157,7 @@ func states(answer Answer) []hostproto.State {
 }
 
 func TestEmission(t *testing.T) {
-	t.Run("one ticket is emitted per vote and the request is recorded in the queue [verifies SP-714~1]", func(t *testing.T) {
+	t.Run("one ticket is emitted per vote and the request is recorded in the queue [verifies SP-714~2]", func(t *testing.T) {
 		r := newRig(t)
 		request := variant("emission")
 		answer := r.want(threeVotes, request)
@@ -188,7 +188,7 @@ func TestEmission(t *testing.T) {
 		}
 	})
 
-	t.Run("asking again emits nothing new [verifies SP-714~1]", func(t *testing.T) {
+	t.Run("asking again emits nothing new [verifies SP-714~2]", func(t *testing.T) {
 		r := newRig(t)
 		first := r.want(threeVotes, variant("again"))
 		second := r.want(threeVotes, variant("again"))
@@ -200,7 +200,7 @@ func TestEmission(t *testing.T) {
 }
 
 func TestReissue(t *testing.T) {
-	t.Run("a rejected ticket is reissued with a new nonce [verifies SP-714~1]", func(t *testing.T) {
+	t.Run("a rejected ticket is reissued with a new nonce [verifies SP-714~2]", func(t *testing.T) {
 		r := newRig(t)
 		first := r.want(oneVote, variant("rejected"))
 		before := r.entry(first.Votes[0].Ticket)
@@ -216,7 +216,7 @@ func TestReissue(t *testing.T) {
 		}
 	})
 
-	t.Run("a fetched ticket stays fetched until the time to live passed, then it is reissued [verifies SP-714~1]", func(t *testing.T) {
+	t.Run("a fetched ticket stays fetched until the time to live passed, then it is reissued [verifies SP-714~2]", func(t *testing.T) {
 		r := newRig(t)
 		first := r.want(oneVote, variant("expired"))
 		ticket := first.Votes[0].Ticket
@@ -238,7 +238,7 @@ func TestReissue(t *testing.T) {
 		}
 	})
 
-	t.Run("a ticket is abandoned after its last emission and the request is unresponsive [verifies SP-714~1]", func(t *testing.T) {
+	t.Run("a ticket is abandoned after its last emission and the request is unresponsive [verifies SP-714~2]", func(t *testing.T) {
 		r := newRig(t)
 		request := variant("abandoned")
 		answer := r.want(oneVote, request)
@@ -276,7 +276,7 @@ func TestReadingVotes(t *testing.T) {
 		{"consumed", func(r *rig, _ hostproto.TicketID) { r.mustValidate(); r.mustConsume() }, hostproto.StateConsumed, true},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name+" votes expose their output and executor [verifies SP-714~1]", func(t *testing.T) {
+		t.Run(tt.name+" votes expose their output and executor [verifies SP-714~2]", func(t *testing.T) {
 			r := newRig(t)
 			request := variant("reading " + tt.name)
 			first := r.want(oneVote, request)
@@ -295,7 +295,7 @@ func TestReadingVotes(t *testing.T) {
 	}
 
 	for _, state := range []hostproto.State{hostproto.StateEmitted, hostproto.StateFetched} {
-		t.Run("a vote in state "+string(state)+" exposes nothing [verifies SP-714~1]", func(t *testing.T) {
+		t.Run("a vote in state "+string(state)+" exposes nothing [verifies SP-714~2]", func(t *testing.T) {
 			r := newRig(t)
 			request := variant("hidden " + string(state))
 			first := r.want(oneVote, request)
@@ -321,7 +321,7 @@ func TestReadingVotes(t *testing.T) {
 		{hostproto.EventSchemaFailed, false},
 	}
 	for _, tt := range markTests {
-		t.Run("the journal event "+string(tt.kind)+" sets the mark as expected [verifies SP-714~1]", func(t *testing.T) {
+		t.Run("the journal event "+string(tt.kind)+" sets the mark as expected [verifies SP-714~2]", func(t *testing.T) {
 			r := newRig(t)
 			request := variant("marks " + string(tt.kind))
 			first := r.want(twoVotes, request)
@@ -364,7 +364,7 @@ func (r *rig) answerThenContradict(ticket hostproto.TicketID, output string) {
 }
 
 func TestTransitions(t *testing.T) {
-	t.Run("validate moves accepted votes only, consume moves validated votes only [verifies SP-714~1]", func(t *testing.T) {
+	t.Run("validate moves accepted votes only, consume moves validated votes only [verifies SP-714~2]", func(t *testing.T) {
 		r := newRig(t)
 		request := variant("transitions")
 		answer := r.want(threeVotes, request)
@@ -396,7 +396,7 @@ func TestTransitions(t *testing.T) {
 		}
 	})
 
-	t.Run("contradict rejects an accepted vote and the next ask reissues it [verifies SP-714~1]", func(t *testing.T) {
+	t.Run("contradict rejects an accepted vote and the next ask reissues it [verifies SP-714~2]", func(t *testing.T) {
 		r := newRig(t)
 		request := variant("contradict")
 		first := r.want(oneVote, request)
@@ -413,7 +413,7 @@ func TestTransitions(t *testing.T) {
 		}
 	})
 
-	t.Run("contradict of a vote that is not accepted fails [verifies SP-714~1]", func(t *testing.T) {
+	t.Run("contradict of a vote that is not accepted fails [verifies SP-714~2]", func(t *testing.T) {
 		r := newRig(t)
 		first := r.want(oneVote, variant("not accepted"))
 		err := r.bridge.Contradict(first.Votes[0], "reason")
@@ -424,7 +424,7 @@ func TestTransitions(t *testing.T) {
 }
 
 func TestSupersedeUnwanted(t *testing.T) {
-	t.Run("only emitted tickets of requests nobody asked for in the wave are superseded [verifies SP-714~1]", func(t *testing.T) {
+	t.Run("only emitted tickets of requests nobody asked for in the wave are superseded [verifies SP-714~2]", func(t *testing.T) {
 		r := newRig(t)
 		previous := r.bridgeOnWave(firstWave - 1)
 		stale := variant("stale")
@@ -466,7 +466,7 @@ func (r *rig) ticketOf(request hostproto.Request) hostproto.TicketID {
 }
 
 func TestPendingTickets(t *testing.T) {
-	t.Run("pending tickets are the emitted and the fetched ones in store order [verifies SP-714~1]", func(t *testing.T) {
+	t.Run("pending tickets are the emitted and the fetched ones in store order [verifies SP-714~2]", func(t *testing.T) {
 		r := newRig(t)
 		request := variant("pending")
 		answer := r.want(4, request)
@@ -489,7 +489,7 @@ func TestPendingTickets(t *testing.T) {
 }
 
 func TestWaiting(t *testing.T) {
-	t.Run("the bridge waits exactly while an asked request holds a pending ticket [verifies SP-714~1]", func(t *testing.T) {
+	t.Run("the bridge waits exactly while an asked request holds a pending ticket [verifies SP-714~2]", func(t *testing.T) {
 		r := newRig(t)
 		if r.bridge.Waiting() {
 			t.Fatal("a new bridge does not wait")
@@ -515,7 +515,7 @@ type bridgeModel struct {
 	rig        *rig
 	bridges    []*Bridge
 	requests   []hostproto.Request
-	superseded map[hostproto.Key]bool
+	superseded map[hostproto.TicketID]bool
 }
 
 func (m *bridgeModel) pickRequest() hostproto.Request {
@@ -541,32 +541,39 @@ func (m *bridgeModel) checkAnswer(answer Answer) {
 		if vote.Holds() != (vote.Output != nil) {
 			m.t.Fatalf("vote %+v: holds %v with output %s", vote, vote.Holds(), vote.Output)
 		}
-		if m.superseded[vote.Ticket.Key()] && vote.State != hostproto.StateSuperseded {
+		if m.superseded[vote.Ticket] && vote.State != hostproto.StateSuperseded {
 			m.t.Fatalf("superseded ticket %s revived as %s", vote.Ticket, vote.State)
 		}
 	}
 }
 
+// checkSuperseded checks that a superseded ticket never comes back under its own
+// emission, and that a ticket is superseded only when no live session holds its
+// request.
 func (m *bridgeModel) checkSuperseded() {
 	entries, _ := m.rig.store.ListEntries()
+	items, _ := m.rig.store.Items()
+	states, _ := m.rig.store.Sessions()
+	sessions, liveness := hostproto.IndexSessions(items), hostproto.LivenessOf(states)
 	for _, entry := range entries {
-		if entry.State == hostproto.StateSuperseded {
-			m.superseded[entry.Ticket.Key()] = true
-		}
-	}
-	for key := range m.superseded {
-		entry, err := m.rig.store.GetEntry(key)
-		if err != nil || entry.State != hostproto.StateSuperseded {
-			m.t.Fatalf("superseded ticket %v is now %+v (%v)", key, entry, err)
+		ticket := entry.Ticket.TicketID
+		switch {
+		case entry.State == hostproto.StateSuperseded && !m.superseded[ticket]:
+			if liveness.AnyLive(sessions.Of(ticket.RequestID)) {
+				m.t.Fatalf("ticket %s was superseded while %v hold its request", ticket, sessions.Of(ticket.RequestID))
+			}
+			m.superseded[ticket] = true
+		case entry.State != hostproto.StateSuperseded && m.superseded[ticket]:
+			m.t.Fatalf("superseded ticket %s is now %s", ticket, entry.State)
 		}
 	}
 }
 
 func TestBridgeProperty(t *testing.T) {
-	t.Run("the bridge exposes only accepted, validated or consumed answers and never revives a superseded ticket [verifies SP-714~1]", func(t *testing.T) {
+	t.Run("the bridges of two sessions expose only accepted, validated or consumed answers and supersede only what no live session holds [verifies SP-714~2] [verifies SP-2148~1]", func(t *testing.T) {
 		rapid.Check(t, func(rt *rapid.T) {
 			r := newRig(t)
-			m := &bridgeModel{t: rt, rig: r, bridges: []*Bridge{r.bridgeOnWave(1), r.bridgeOnWave(2)}, superseded: map[hostproto.Key]bool{}}
+			m := &bridgeModel{t: rt, rig: r, bridges: []*Bridge{r.on(hostproto.SessionProve), r.on(scanSession)}, superseded: map[hostproto.TicketID]bool{}}
 			for index := range propertyRequests {
 				m.requests = append(m.requests, variant("property "+string(rune('a'+index))))
 			}
@@ -606,6 +613,11 @@ func TestBridgeProperty(t *testing.T) {
 				},
 				"supersede": func() {
 					if err := m.bridges[rapid.IntRange(0, 1).Draw(rt, "bridge")].SupersedeUnwanted(); err != nil {
+						rt.Fatal(err)
+					}
+				},
+				"end": func() {
+					if err := m.bridges[rapid.IntRange(0, 1).Draw(rt, "bridge")].End(); err != nil {
 						rt.Fatal(err)
 					}
 				},

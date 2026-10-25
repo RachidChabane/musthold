@@ -17,7 +17,7 @@ Flags are accepted as `--flag` or `-flag`. The other binaries (`spec-proof-ledge
 `spec-proof-verify`, `spec-proof-s1`) answer the same help forms.
 
 ```
-spec-proof-dp <version|prove|request|systemone|doctor|init|enable|disable|mcp|hook|host|facts>
+spec-proof-dp <version|prove|scan|request|systemone|doctor|init|enable|disable|mcp|hook|host|facts>
 ```
 
 Every command that works on a project takes `--root DIR` (default: the working
@@ -84,7 +84,7 @@ spec-proof-dp prove --ci [--import-host DIR] [--root DIR]
 |---|---|
 | `--changed` | Prove what changed since its last proof. The default. |
 | `--all` | Prove everything again. Excludes `--changed`. |
-| `--resume` | Continue a run that is awaiting the host. Refused when no request was ever emitted. |
+| `--resume` | Continue a run that is awaiting the host. Refused when the prove session holds no request. |
 | `--record DIR` | Keep each consumed answer and its executor under the request id in `DIR`. |
 | `--replay DIR` | Answer every pending ticket from the recordings in `DIR`. A request without a recording is a hard error. Excludes `--record`. |
 | `--ci` | Run as CI does: produce statements as CI and leave unanswered requests in `.spec-proof/ci-issued/<module>/`, one directory per module, for the CI job to upload. Discriminating power also draws the seed of the head commit and needs `SPEC_PROOF_CI_RUN_ID` or `GITHUB_RUN_ID`. Excludes `--record` and `--replay`. |
@@ -101,6 +101,8 @@ again without answering gives the same requests.
 The first line is `wave N`. A final `awaiting_host N tickets` line is printed while
 tickets wait. Lines in between are specific to each module. Findings are printed
 as `  finding <name>` under a criterion and `module finding <name>` for the run.
+The discriminating-power module adds a `  survivor` line under a criterion for each
+mutant that blocks it (see [discriminating power](discpower.md)).
 
 Exit codes: 0 clean; 1 blocked or escalated (the meaning is per module), or a
 refusal such as `--ci` without a CI run, a bundle of another module version that left
@@ -110,7 +112,7 @@ error such as conflicting flags; 3 `awaiting_host`.
 ## request
 
 ```
-spec-proof-dp request list [--json] [--root DIR]
+spec-proof-dp request list [--json] [--session SESSION] [--root DIR]
 spec-proof-dp request show <ticket> [--cap CAP] [--root DIR]
 spec-proof-dp request submit <ticket> --nonce NONCE [--cap CAP] [--root DIR]
 ```
@@ -118,13 +120,17 @@ spec-proof-dp request submit <ticket> --nonce NONCE [--cap CAP] [--root DIR]
 A ticket is `<requestId>.<vote>.<emission>`.
 
 - `list` prints `<ticket> <role>` per pending ticket; with `--json` it prints the
-  listing, including each ticket's nonce and view.
+  listing, including each ticket's nonce, view and the sessions that want its
+  request. `--session prove` lists the tickets of `prove` only, and
+  `--session scan:<key>` those of one scan; without `--session` it lists the
+  tickets of every session. A value that names no session is refused.
 - `show` prints what an executor receives: the ticket, its nonce, the prompt, the
   response schema and, for closed requests, the question set. Showing a ticket
   outside an executor is journaled as `exposed`.
 - `submit` reads the JSON answer from standard input and prints a receipt. A
   schema violation is reported back and one correction is allowed. A different
-  second answer for an accepted ticket is refused as `resubmission_conflict`.
+  second answer for an accepted ticket is refused as `resubmission_conflict`. An
+  answer submitted outside an executor is journaled as `exposed`.
 
 While attestation is required, `show` and `submit` need a capability that only a
 harness hook issues. These commands exist for scripts, the relay, test fakes and
@@ -133,13 +139,14 @@ harnesses with no executor support. A refused answer exits 1.
 ## systemone
 
 ```
-spec-proof-dp systemone export [--root DIR]
+spec-proof-dp systemone export [--session SESSION] [--root DIR]
 spec-proof-dp systemone import <ticket> --nonce NONCE --source SOURCE [--root DIR]
 spec-proof-dp systemone classify-plan (--model MODEL | --voters VOTERS) [--session-model MODEL] [--root DIR]
 ```
 
 `export` prints the closed requests that wait for their first vote, as JSON, with
-each ticket, nonce and question set. `import` reads the endpoint's answers from
+each ticket, nonce and question set; `--session` restricts it to one session's
+requests, as for `request list`. `import` reads the endpoint's answers from
 standard input and submits them under `SOURCE`, which has the form
 `system-one:<model>@<endpoint digest>`, or reads the classifier calls of the host
 mod under a source of the form `host-classify(5,rot1):<voters>`. The relay

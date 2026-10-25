@@ -198,10 +198,11 @@ func (h *Host) Fire(kind hostproto.HookKind, payload map[string]any) (HookOutput
 	return HookOutput{Permission: answer.Output.Permission, Reason: answer.Output.Reason, Updated: answer.Output.Updated}, r.Code
 }
 
-// ListPending returns the tickets that wait for an answer, with their roles.
+// ListPending returns the tickets of the prove session that wait for an answer,
+// with their roles.
 func (h *Host) ListPending() hostproto.Listing {
 	h.t.Helper()
-	r := h.module.Run("", hostproto.ListArgs()...)
+	r := h.module.Run("", hostproto.ListArgs(hostproto.SessionProve)...)
 	if r.Code != 0 {
 		h.t.Fatalf("request list: %s", r.Stdout+r.Stderr)
 	}

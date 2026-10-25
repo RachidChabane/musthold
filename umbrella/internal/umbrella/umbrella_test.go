@@ -365,7 +365,7 @@ func TestThinPlugin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Run("the thin plugin is named spec-proof and depends on Shallnot, the three modules and the relay, each an entry of the marketplace [verifies SP-822~1]", func(t *testing.T) {
+	t.Run("the thin plugin is named spec-proof and depends on Shallnot, the three modules and the relay, each an entry of the marketplace [verifies SP-822~2]", func(t *testing.T) {
 		if manifest.Name != umbrella.PluginName || !regexp.MustCompile(`^\d+\.\d+\.\d+$`).MatchString(manifest.Version) || manifest.Description == "" {
 			t.Fatalf("manifest = %+v", manifest)
 		}
@@ -384,7 +384,7 @@ func TestThinPlugin(t *testing.T) {
 		}
 	})
 
-	t.Run("the thin plugin holds one skill and no hook, agent, command or server [verifies SP-822~1]", func(t *testing.T) {
+	t.Run("the thin plugin holds the prove-all and scan skills and no hook, agent, command or server [verifies SP-822~2]", func(t *testing.T) {
 		var paths []string
 		for path := range files {
 			if strings.HasPrefix(path, umbrella.PluginDirectory+"/") {
@@ -392,7 +392,8 @@ func TestThinPlugin(t *testing.T) {
 			}
 		}
 		slices.Sort(paths)
-		want := []string{manifestFile, "skills/" + umbrella.SkillName + "/SKILL.md"}
+		want := []string{manifestFile, "skills/" + umbrella.SkillName + "/SKILL.md", "skills/" + umbrella.ScanSkillName + "/SKILL.md"}
+		slices.Sort(want)
 		if !slices.Equal(paths, want) {
 			t.Fatalf("files = %v, want %v", paths, want)
 		}
@@ -485,7 +486,7 @@ func TestProveAllSkill(t *testing.T) {
 		allowed := strings.Split(members["allowed-tools"], ", ")
 		var want []string
 		for _, module := range umbrella.Modules {
-			want = append(want, "Bash("+module.Binary+" doctor)", "Bash("+module.Binary+" prove *)", "Bash("+module.Binary+" request list)")
+			want = append(want, "Bash("+module.Binary+" doctor)", "Bash("+module.Binary+" prove *)", "Bash("+module.Binary+" request list --session prove)")
 		}
 		want = append(want, "Bash(spec-proof-s1 drain *)", "Bash(spec-proof-verify --accept-local .spec-proof/cache --out .spec-proof/verified)")
 		for _, rule := range allowed {
@@ -509,6 +510,45 @@ func TestProveAllSkill(t *testing.T) {
 			if !strings.HasSuffix(content, "\n") || strings.Contains(content, " \n") {
 				t.Errorf("%s is not tidy", path)
 			}
+		}
+	})
+}
+
+func scanSkillText(t *testing.T) (map[string]string, string) {
+	t.Helper()
+	return frontMatter(t, generated(t)[umbrella.PluginDirectory+"/skills/"+umbrella.ScanSkillName+"/SKILL.md"])
+}
+
+func TestScanSkill(t *testing.T) {
+	members, body := scanSkillText(t)
+
+	t.Run("the skill runs the scan, relays only the session it printed and resumes with the same number until the scan ends [verifies SP-2290~1]", func(t *testing.T) {
+		if members["name"] != umbrella.ScanSkillName || members["description"] == "" {
+			t.Fatalf("members = %v", members)
+		}
+		for _, want := range []string{
+			"`spec-proof scan --host [<PR>]`",
+			"`spec-proof scan --host --resume [<PR>]`",
+			"`session scan:<key>`",
+			"`spec-proof-dp request list --session scan:<key>`",
+			"`spec-proof-s1 drain --module dp --session scan:<key>`",
+			"Exit code 0", "Exit code 2", "Exit code 3",
+			"List no other session",
+			"Never answer a ticket yourself",
+		} {
+			if !strings.Contains(body, want) {
+				t.Errorf("the skill does not say %q", want)
+			}
+		}
+		if strings.Contains(body, "--session prove") {
+			t.Error("the skill names the prove session")
+		}
+	})
+
+	t.Run("the skill pre-approves only the scan, the listing of the dp module and the relay's drain [verifies SP-2291~1]", func(t *testing.T) {
+		want := []string{"Bash(spec-proof scan *)", "Bash(spec-proof-dp request list *)", "Bash(spec-proof-s1 drain *)"}
+		if got := strings.Split(members["allowed-tools"], ", "); !slices.Equal(got, want) {
+			t.Fatalf("allowed-tools = %v, want %v", got, want)
 		}
 	})
 }

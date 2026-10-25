@@ -73,6 +73,10 @@ const (
 	// digest of a witness set a writer returned: the detail is
 	// `<criterion> <draw> <set digest>`.
 	EventWitnessSetCommitted EventKind = "witness_set_committed"
+	// EventSessionBound records, once per session, what a scan session is bound
+	// to: the detail is the canonical binding the session key digests, so that a
+	// resume whose binding differs can name what changed.
+	EventSessionBound EventKind = "session_bound"
 )
 
 // Event is one journaled fact. Only the fields that apply are set.
@@ -82,6 +86,21 @@ type Event struct {
 	AgentID string    `json:"agentId,omitempty"`
 	Role    string    `json:"role,omitempty"`
 	Detail  string    `json:"detail,omitempty"`
+	// Session is the session whose bridge moved the ticket; an emission journaled
+	// with it counts toward that session's emission cap.
+	Session Session `json:"session,omitempty"`
+}
+
+// Emissions counts the emissions the journal records for the session: first
+// issues, reissues and re-emissions alike.
+func Emissions(records []Record, session Session) int {
+	count := 0
+	for _, record := range records {
+		if record.Event.Kind == EventEmitted && record.Event.Session == session {
+			count++
+		}
+	}
+	return count
 }
 
 // Record is one link of the digest chain: the event, the digest of the previous

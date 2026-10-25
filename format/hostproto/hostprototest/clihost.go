@@ -79,8 +79,10 @@ func PlayCLI(runner ModuleRunner, persona string, answers AnswerSource, sleep fu
 	return results, nil
 }
 
+// listPending lists the tickets of the prove session, which a fake host answers
+// as the fulfil skills do.
 func listPending(runner ModuleRunner) (hostproto.Listing, error) {
-	stdout, err := runner.Run(hostproto.ListArgs(), nil)
+	stdout, err := runner.Run(hostproto.ListArgs(hostproto.SessionProve), nil)
 	if err != nil {
 		return hostproto.Listing{}, fmt.Errorf("request list: %w", err)
 	}

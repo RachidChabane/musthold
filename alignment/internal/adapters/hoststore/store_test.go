@@ -20,6 +20,7 @@ const (
 	concurrentStores   = 2
 	updatesPerStore    = 15
 	hexSecretLength    = SecretBytes * 2
+	legacyProveWave    = 3
 	stalePartialRecord = `{"ticket":`
 )
 
@@ -72,7 +73,7 @@ func TestLayout(t *testing.T) {
 		mustNoError(t, err)
 		_, err = store.Secret()
 		mustNoError(t, err)
-		_, err = store.AdvanceWave()
+		_, err = store.AdvanceWave(hostproto.SessionProve)
 		mustNoError(t, err)
 
 		for _, dir := range []string{store.Dir(), store.path(RequestsDir), store.path(TicketsDir), store.path(ResponsesDir)} {
@@ -317,7 +318,7 @@ func TestQueue(t *testing.T) {
 		return hostproto.QueueItem{RequestID: hostproto.RequestID(id), Criteria: criteria, Wave: wave, Purpose: "validity"}
 	}
 
-	t.Run("the wave of the first record is kept and the criteria are merged without duplicates [verifies SP-343~1]", func(t *testing.T) {
+	t.Run("the wave of the first record is kept and the criteria are merged without duplicates [verifies SP-343~2]", func(t *testing.T) {
 		store := openStore(t)
 		mustNoError(t, store.Record(item("b", 1, "PAR-2~1")))
 		mustNoError(t, store.Record(item("b", 2, "PAR-1~1", "PAR-2~1")))
@@ -328,7 +329,7 @@ func TestQueue(t *testing.T) {
 		}
 	})
 
-	t.Run("items are listed by request id [verifies SP-343~1]", func(t *testing.T) {
+	t.Run("items are listed by request id [verifies SP-343~2]", func(t *testing.T) {
 		store := openStore(t)
 		for _, id := range []string{"c", "a", "b"} {
 			mustNoError(t, store.Record(item(id, 1, "PAR-1~1")))
@@ -344,41 +345,41 @@ func TestQueue(t *testing.T) {
 		}
 	})
 
-	t.Run("an empty queue has no item and wave zero [verifies SP-343~1]", func(t *testing.T) {
+	t.Run("an empty queue has no item and wave zero [verifies SP-343~2]", func(t *testing.T) {
 		store := openStore(t)
 		items, err := store.Items()
-		wave, waveErr := store.Wave()
+		wave, waveErr := store.Wave(hostproto.SessionProve)
 		if err != nil || waveErr != nil || items == nil || len(items) != 0 || wave != 0 {
 			t.Fatalf("items = %v, %v; wave = %d, %v", items, err, wave, waveErr)
 		}
 	})
 
-	t.Run("the wave advances by consecutive numbers from one and survives a reopen [verifies SP-343~1]", func(t *testing.T) {
+	t.Run("the wave advances by consecutive numbers from one and survives a reopen [verifies SP-343~2]", func(t *testing.T) {
 		dir := filepath.Join(t.TempDir(), "host")
 		store := mustOpen(t, dir)
 		for want := 1; want <= 3; want++ {
-			got, err := store.AdvanceWave()
+			got, err := store.AdvanceWave(hostproto.SessionProve)
 			if err != nil || got != want {
 				t.Fatalf("AdvanceWave = %d, %v; want %d", got, err, want)
 			}
 		}
-		wave, err := mustOpen(t, dir).Wave()
+		wave, err := mustOpen(t, dir).Wave(hostproto.SessionProve)
 		if err != nil || wave != 3 {
 			t.Fatalf("Wave = %d, %v", wave, err)
 		}
 	})
 
-	t.Run("recording keeps the wave counter [verifies SP-343~1]", func(t *testing.T) {
+	t.Run("recording keeps the wave counter [verifies SP-343~2]", func(t *testing.T) {
 		store := openStore(t)
-		_, err := store.AdvanceWave()
+		_, err := store.AdvanceWave(hostproto.SessionProve)
 		mustNoError(t, err)
 		mustNoError(t, store.Record(item("a", 1, "PAR-1~1")))
-		if wave, _ := store.Wave(); wave != 1 {
+		if wave, _ := store.Wave(hostproto.SessionProve); wave != 1 {
 			t.Fatalf("wave = %d", wave)
 		}
 	})
 
-	t.Run("the criteria of any records merge to their sorted union [verifies SP-343~1]", func(t *testing.T) {
+	t.Run("the criteria of any records merge to their sorted union [verifies SP-343~2]", func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
 			store, err := Open(filepath.Join(os.TempDir(), "hoststore-q-"+rapid.StringMatching(`[a-z0-9]{12}`).Draw(t, "name")))
 			if err != nil {
@@ -404,5 +405,34 @@ func TestQueue(t *testing.T) {
 				t.Fatalf("criteria = %v, want %v", got, union)
 			}
 		})
+	})
+
+	t.Run("a queue.json written without sessions is the prove session's, and every store of the protocol holds sessions [verifies SP-343~2]", func(t *testing.T) {
+		dir := filepath.Join(t.TempDir(), "host")
+		store := mustOpen(t, dir)
+		legacy := `{"wave":3,"items":[{"requestId":"a","criteria":["PAR-1~1"],"wave":2,"purpose":"validity"}]}`
+		mustNoError(t, os.WriteFile(store.path(QueueFile), []byte(legacy), FileMode))
+		wave, err := store.Wave(hostproto.SessionProve)
+		if err != nil || wave != legacyProveWave {
+			t.Fatalf("prove wave = %d, %v", wave, err)
+		}
+		items, err := store.Items()
+		mustNoError(t, err)
+		if len(items) != 1 || items[0].Wave != 2 || !slices.Equal(items[0].Sessions, []hostproto.Session{hostproto.SessionProve}) {
+			t.Fatalf("items = %+v", items)
+		}
+		scan := hostproto.ScanSession("3f5a9c")
+		next, err := store.AdvanceWave(hostproto.SessionProve)
+		mustNoError(t, err)
+		first, err := store.AdvanceWave(scan)
+		mustNoError(t, err)
+		reopened, err := mustOpen(t, dir).Wave(hostproto.SessionProve)
+		if err != nil || next != legacyProveWave+1 || first != 1 || reopened != legacyProveWave+1 {
+			t.Fatalf("prove wave %d then %d after a reopen, first scan wave %d, %v", next, reopened, first, err)
+		}
+	})
+
+	t.Run("the filesystem store satisfies the queue contract, sessions and waves per session included [verifies SP-343~2]", func(t *testing.T) {
+		hostprototest.RunQueueContract(t, func(t *testing.T) hostproto.HostStore { return openStore(t) })
 	})
 }

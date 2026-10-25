@@ -32,7 +32,7 @@ Run from the repository root; the binary lands in `$GOBIN`, or
 spec-proof-completeness init
 spec-proof-completeness enable
 spec-proof-completeness prove --changed
-spec-proof-completeness request list
+spec-proof-completeness request list --session prove
 spec-proof-completeness prove --resume
 spec-proof-completeness doctor
 ```

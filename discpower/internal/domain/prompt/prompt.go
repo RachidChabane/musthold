@@ -102,6 +102,21 @@ type GenerationInput struct {
 	Slice     []SliceEntry
 	// Avoid lists the mechanisms of earlier rounds.
 	Avoid []string
+	// Omitted counts the units of the code a size bound left out of Slice.
+	Omitted int
+}
+
+// omittedNoteFormat tells a model how many units of the code a size bound
+// left out of what it is shown.
+const omittedNoteFormat = "%d more units of this code are not shown: the code above is cut to a size bound.\n\n"
+
+// omittedNote is the note on the units a size bound left out, empty when it
+// left none out.
+func omittedNote(omitted int) string {
+	if omitted <= 0 {
+		return ""
+	}
+	return fmt.Sprintf(omittedNoteFormat, omitted)
 }
 
 // BuildGeneration builds the `generate.targeted` prompt of one round.
@@ -111,6 +126,9 @@ func BuildGeneration(input GenerationInput) Built {
 	user.WriteString("Code under test:\n")
 	for _, entry := range input.Slice {
 		fmt.Fprintf(&user, "--- %s :: %s\n%s\n", entry.File, entry.Qualname, strings.TrimRight(entry.Source, "\n"))
+	}
+	if input.Omitted > 0 {
+		user.WriteString("\n" + strings.TrimSuffix(omittedNote(input.Omitted), "\n"))
 	}
 	user.WriteString("\n" + embedded(generateInstructions))
 	if len(input.Avoid) > 0 {
@@ -310,5 +328,7 @@ func TemplateDigests() map[hostproto.Kind]string {
 		hostproto.KindDecideClosed:     screen.Prompt.TemplateDigest,
 		hostproto.KindGenerateWitness:  BuildWitness(WitnessInput{}).Prompt.TemplateDigest,
 		hostproto.KindJudgeScope:       BuildScope(ScopeInput{}).Prompt.TemplateDigest,
+		hostproto.KindGeneratePromises: BuildPromises(PromisesInput{}).Prompt.TemplateDigest,
+		hostproto.KindJudgeLabels:      BuildLabels(LabelsInput{}).Prompt.TemplateDigest,
 	}
 }

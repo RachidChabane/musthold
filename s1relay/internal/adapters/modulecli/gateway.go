@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/systemonewire"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/app/ports"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/failure"
@@ -69,9 +70,10 @@ var _ ports.ModuleGateway = (*Gateway)(nil)
 
 // Gateway is the ModuleGateway of one module binary, run from the project root.
 type Gateway struct {
-	binary string
-	dir    string
-	runner Runner
+	binary   string
+	dir      string
+	runner   Runner
+	sessions hostproto.SessionFilter
 }
 
 // BinaryName is the executable of a module: `spec-proof-<module>`.
@@ -88,12 +90,22 @@ func NewGateway(module, dir string, runner Runner) (*Gateway, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Gateway{binary: binary, dir: dir, runner: runner}, nil
+	return &Gateway{binary: binary, dir: dir, runner: runner, sessions: hostproto.EverySession}, nil
 }
 
-// Export runs `systemone export` and reads its list of closed requests.
+// ForSessions returns the gateway whose export lists the closed requests of the
+// sessions the filter selects.
+func (g *Gateway) ForSessions(filter hostproto.SessionFilter) *Gateway {
+	scoped := *g
+	scoped.sessions = filter
+	return &scoped
+}
+
+// Export runs `systemone export`, with `--session` when the gateway is scoped to
+// one session, and reads its list of closed requests.
 func (g *Gateway) Export(ctx context.Context) ([]ports.Exported, error) {
-	stdout, stderr, err := g.runner.Run(ctx, g.dir, g.binary, []string{commandSystemOne, verbExport}, nil)
+	args := append([]string{commandSystemOne, verbExport}, g.sessions.Args()...)
+	stdout, stderr, err := g.runner.Run(ctx, g.dir, g.binary, args, nil)
 	if err != nil {
 		return nil, fmt.Errorf("%s %s %s: %w%s", g.binary, commandSystemOne, verbExport, err, excerptOf(stderr))
 	}

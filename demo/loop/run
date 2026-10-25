@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+# Front door of the agent-loop demonstration (demo/loop/README.md). The runner is
+# tools/canary/cmd/spec-proof-demo-loop, built into .tools/bin for the host and,
+# for the containers, into .tools/demo-loop/product.
+#
+#   demo/loop/run build
+#       start the demonstration's engine, build the Linux product and the session
+#       image, stop the engine
+#   demo/loop/run test-containers [GO TEST ARGS...]
+#       build, then run the container tests on the engine, then stop it
+#   demo/loop/run live [--dry-run] [--force-window] [--config FILE] [--work DIR]
+#       build, then run the configured sessions, each in containers on the engine,
+#       under script/mem-guard; a session starts only when its time cap ends before
+#       07:30 unless forced. --dry-run prints every command, the docker commands
+#       included, and starts nothing. --work defaults to .tools/demo-loop/work.
+#       A live run spends the model quota of the account whose token the keychain
+#       item spec-proof-claude-oauth holds.
+#   demo/loop/run keep RUN_DIR
+#       keep the records of a run as the committed recording demo/loop/recording,
+#       with the machine's paths written as placeholders; a record that holds the
+#       token fails the keep
+#   demo/loop/run replay [--check]
+#       render the committed recording into demo/loop/recording/transcript.md and
+#       transcript.html, starting no session; --check fails when they are stale
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/../.."
+
+readonly RUNNER=".tools/bin/spec-proof-demo-loop"
+readonly CONFIG="demo/loop/demo.json"
+readonly RECORDING="demo/loop/recording"
+readonly ENGINE="demo/loop/container/engine"
+readonly BUILD="demo/loop/container/build"
+readonly CONTAINER_TESTS="./internal/demoloop/containertest/"
+readonly BUILD_PROCS=1
+readonly BUILD_GOMAXPROCS=2
+readonly BUILD_NICE=10
+readonly EXIT_USAGE=64
+
+usage() {
+  sed -n '2,25p' "${BASH_SOURCE[0]}" >&2
+  exit "${EXIT_USAGE}"
+}
+
+build_runner() {
+  mkdir -p "$(dirname "${RUNNER}")"
+  GOMAXPROCS="${BUILD_GOMAXPROCS}" nice -n "${BUILD_NICE}" \
+    go build -C tools/canary -p "${BUILD_PROCS}" -o "${PWD}/${RUNNER}" ./cmd/spec-proof-demo-loop
+}
+
+# with_engine starts the engine, builds the product and the image, and stops the
+# engine when the script exits, whatever its exit.
+with_engine() {
+  trap '"${ENGINE}" stop' EXIT
+  "${ENGINE}" start
+  script/mem-guard run -- "${BUILD}" product
+  "${BUILD}" image
+}
+
+build() {
+  (($# == 0)) || usage
+  with_engine
+}
+
+test_containers() {
+  with_engine
+  SPEC_PROOF_DEMO_CONTAINERS=1 GOMAXPROCS="${BUILD_GOMAXPROCS}" script/mem-guard run -- \
+    go test -C tools/canary -p "${BUILD_PROCS}" -count=1 "${CONTAINER_TESTS}" "$@"
+}
+
+live() {
+  local config="${CONFIG}" dry_run=0 forwarded=()
+  while (($#)); do
+    case "$1" in
+      --config) config="$2"; shift 2 ;;
+      --dry-run) dry_run=1; shift ;;
+      --force-window) forwarded+=("$1"); shift ;;
+      --work) forwarded+=("$1" "$2"); shift 2 ;;
+      *) usage ;;
+    esac
+  done
+  build_runner
+  if ((dry_run)); then
+    echo "a live run first runs, in ${PWD}: ${ENGINE} start; ${BUILD} product; ${BUILD} image;"
+    echo "then: script/mem-guard run -- ${RUNNER} run --config ${config} --repo . ${forwarded[*]-}; then ${ENGINE} stop"
+    echo "which runs the following (this dry run starts none of it):"
+    exec "${RUNNER}" run --config "${config}" --repo . --dry-run ${forwarded[@]+"${forwarded[@]}"}
+  fi
+  with_engine
+  script/mem-guard run -- "${RUNNER}" run --config "${config}" --repo . ${forwarded[@]+"${forwarded[@]}"}
+}
+
+keep() {
+  (($# == 1)) || usage
+  build_runner
+  exec "${RUNNER}" keep --run "$1" --to "${RECORDING}" --repo .
+}
+
+replay() {
+  local check=()
+  case "${1:-}" in
+    "") ;;
+    --check) check=(--check) ;;
+    *) usage ;;
+  esac
+  if [[ ! -f "${RECORDING}/run.json" ]]; then
+    echo "demo/loop/run: no recording in ${RECORDING}: run \`demo/loop/run live\`, then \`demo/loop/run keep RUN_DIR\`" >&2
+    exit 2
+  fi
+  build_runner
+  exec "${RUNNER}" render --records "${RECORDING}" --out "${RECORDING}" ${check[@]+"${check[@]}"}
+}
+
+verb="${1:-}"
+(($#)) && shift
+case "${verb}" in
+  build) build "$@" ;;
+  test-containers) test_containers "$@" ;;
+  live) live "$@" ;;
+  keep) keep "$@" ;;
+  replay) replay "$@" ;;
+  *) usage ;;
+esac

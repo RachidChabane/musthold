@@ -24,6 +24,7 @@ const (
 	flagModel        = "model"
 	flagVoters       = "voters"
 	flagSessionModel = "session-model"
+	flagSession      = "session"
 	// Verbs of `systemone`.
 	verbExport       = "export"
 	verbImport       = "import"
@@ -37,7 +38,20 @@ const (
 	usageClassifySessionModel = "the model of the session, which an admission entry names; defaults to --model"
 )
 
+// usageSession is the usage of `--session` of `request list` and `systemone export`.
+const usageSession = "list the tickets of this session only, prove or scan:<key> (default: every session)"
+
 var errMissingTicket = refusal{errors.New("a ticket identifier is required")}
+
+// sessionFilterOf reads `--session`: no session selects the tickets of every
+// session, and a text that names no session is refused.
+func sessionFilterOf(text string) (hostproto.SessionFilter, error) {
+	filter, err := hostproto.ParseSessionFilter(text)
+	if err != nil {
+		return filter, refusal{err}
+	}
+	return filter, nil
+}
 
 func (e Env) requestService(root string) (requests.Service, error) {
 	store, err := e.hostStore(root)
@@ -71,6 +85,7 @@ func (e Env) request(args []string) outcome {
 func (e Env) requestList(args []string) outcome {
 	set := e.newFlags(commandRequest+" "+hostproto.SubcommandList, "")
 	asJSON := set.Bool(flagJSON, false, "print the listing as JSON")
+	session := set.String(flagSession, "", usageSession)
 	root := set.String(flagRoot, "", usageRoot)
 	rest, err := parseInterleaved(set, args)
 	switch {
@@ -79,11 +94,15 @@ func (e Env) requestList(args []string) outcome {
 	case len(rest) > 0:
 		return outcome{err: errUnexpectedParams}
 	}
+	filter, err := sessionFilterOf(*session)
+	if err != nil {
+		return outcome{err: err}
+	}
 	service, err := e.requestService(mustRoot(e, *root))
 	if err != nil {
 		return outcome{err: err}
 	}
-	return e.list(service, *asJSON)
+	return e.list(service, *asJSON, filter)
 }
 
 func (e Env) requestShow(args []string) outcome {
@@ -127,8 +146,8 @@ func mustRoot(e Env, given string) string {
 	return root
 }
 
-func (e Env) list(service requests.Service, asJSON bool) outcome {
-	listing, err := service.List()
+func (e Env) list(service requests.Service, asJSON bool, filter hostproto.SessionFilter) outcome {
+	listing, err := service.List(filter)
 	if err != nil {
 		return outcome{err: err}
 	}
@@ -224,6 +243,7 @@ func (e Env) systemOne(args []string) outcome {
 
 func (e Env) systemOneExport(args []string) outcome {
 	set := e.newFlags(commandSystemOne+" "+verbExport, "")
+	session := set.String(flagSession, "", usageSession)
 	root := set.String(flagRoot, "", usageRoot)
 	rest, err := parseInterleaved(set, args)
 	switch {
@@ -232,11 +252,15 @@ func (e Env) systemOneExport(args []string) outcome {
 	case len(rest) > 0:
 		return outcome{err: errUnexpectedParams}
 	}
+	filter, err := sessionFilterOf(*session)
+	if err != nil {
+		return outcome{err: err}
+	}
 	service, err := e.requestService(mustRoot(e, *root))
 	if err != nil {
 		return outcome{err: err}
 	}
-	return e.exportClosed(service)
+	return e.exportClosed(service, filter)
 }
 
 func (e Env) systemOneImport(args []string) outcome {
@@ -255,8 +279,8 @@ func (e Env) systemOneImport(args []string) outcome {
 	return e.importClosed(service, mustRoot(e, *root), positionals, *nonce, *source)
 }
 
-func (e Env) exportClosed(service requests.Service) outcome {
-	listing, err := service.List()
+func (e Env) exportClosed(service requests.Service, filter hostproto.SessionFilter) outcome {
+	listing, err := service.List(filter)
 	if err != nil {
 		return outcome{err: err}
 	}

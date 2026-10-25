@@ -43,7 +43,7 @@ func producing(producedBy format.ProducedBy) fixture {
 	f := briefed(newFixture())
 	f.project.settings.ProducedBy = producedBy
 	f.project.runner.Witnesses = execution.Witnesses{Host: layoutOnly{}}
-	f.run.bridge = hostbridge.New(hostprototest.NewMemoryHostStore(), time.Now, rand.Reader, 1)
+	f.run.bridge = hostbridge.New(hostprototest.NewMemoryHostStore(), time.Now, rand.Reader, hostproto.SessionProve, 1)
 	return f
 }
 

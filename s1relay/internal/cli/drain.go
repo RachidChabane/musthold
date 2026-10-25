@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/RachidChabane/spec-proof/format/cliconv"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/memguard"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/modulecli"
 	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/projectconfig"
@@ -28,6 +29,7 @@ const (
 	flagRoot        = "root"
 	flagMemGuard    = "mem-guard"
 	flagNoUnload    = "no-unload"
+	flagSession     = "session"
 )
 
 // drainSettings are the settings of one drain after the flags and the project
@@ -41,6 +43,7 @@ type drainSettings struct {
 	root        string
 	memGuard    bool
 	unload      bool
+	sessions    hostproto.SessionFilter
 }
 
 type drainReport struct {
@@ -92,6 +95,7 @@ func (e Env) drain(args []string) int {
 		fmt.Fprintf(e.Stderr, "%s: %v\n", e.Binary, err)
 		return ExitToolFailure
 	}
+	gateway = gateway.ForSessions(settings.sessions)
 	service := drain.Service{
 		Module:    gateway,
 		Endpoint:  settings.endpoint,
@@ -128,6 +132,7 @@ func (e Env) settingsFrom(args []string) (drainSettings, error) {
 	root := set.String(flagRoot, "", "the project root (default: the working directory)")
 	memGuard := set.Bool(flagMemGuard, false, "refuse to start, and stop, when free memory is below the memory rule")
 	noUnload := set.Bool(flagNoUnload, false, "keep the model loaded after the batch")
+	session := set.String(flagSession, "", "relay the closed requests of this session only, prove or scan:<key> (default: every session)")
 	rest, err := set.ParseArguments(args)
 	if err != nil {
 		return drainSettings{}, err
@@ -141,7 +146,11 @@ func (e Env) settingsFrom(args []string) (drainSettings, error) {
 	if *timeout <= 0 || *maxRequests < 0 {
 		return drainSettings{}, errors.New("--" + flagTimeout + " must be positive and --" + flagMaxRequests + " not negative")
 	}
-	settings := drainSettings{module: *module, timeout: *timeout, maxRequests: *maxRequests, root: *root, memGuard: *memGuard, unload: !*noUnload}
+	sessions, err := hostproto.ParseSessionFilter(*session)
+	if err != nil {
+		return drainSettings{}, cliconv.UsageError{Err: err, Text: set.Usage()}
+	}
+	settings := drainSettings{module: *module, timeout: *timeout, maxRequests: *maxRequests, root: *root, memGuard: *memGuard, unload: !*noUnload, sessions: sessions}
 	if settings.root == "" {
 		settings.root = e.WorkDir
 	}

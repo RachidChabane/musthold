@@ -38,16 +38,16 @@ type ClaudeCredential interface {
 	Token(ctx context.Context) (string, error)
 }
 
-// tokenPlaceholder is what a plan prints for the value of the token of a source.
-func tokenPlaceholder(source string) string {
+// TokenPlaceholder is what a plan prints for the value of the token of a source.
+func TokenPlaceholder(source string) string {
 	if source == SourceKeychain {
 		return placeholderKeychain
 	}
 	return placeholderSet
 }
 
-// firstCredential returns the first source, in order, that holds a token.
-func firstCredential(ctx context.Context, sources []ClaudeCredential) (ClaudeCredential, error) {
+// FirstCredential returns the first source, in order, that holds a token.
+func FirstCredential(ctx context.Context, sources []ClaudeCredential) (ClaudeCredential, error) {
 	for _, source := range sources {
 		present, err := source.Present(ctx)
 		if err != nil {

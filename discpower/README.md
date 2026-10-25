@@ -29,14 +29,14 @@ Run from the repository root; the binary lands in `$GOBIN`, or
 spec-proof-dp init
 spec-proof-dp enable
 spec-proof-dp prove --changed
-spec-proof-dp request list
+spec-proof-dp request list --session prove
 spec-proof-dp prove --resume
 spec-proof-dp doctor
 spec-proof-dp scan
 ```
 
 `prove` exits 3 while tickets wait for the host. `scan` needs no spec and no
-configuration: it names the tests of any pytest or Go repository that still pass
+configuration: it names the tests of any pytest, Go, Jest or Vitest repository that still pass
 when the code they run is broken ([scan](../docs/usage/discpower.md#scan)). The full command set is in
 [commands](../docs/usage/commands.md).
 

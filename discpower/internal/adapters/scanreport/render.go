@@ -41,9 +41,15 @@ func Text(report scan.Report) string {
 	for _, finding := range report.Findings {
 		line("")
 		line(rankFormat+"%s", finding.Rank, finding.Test, findingSentence(finding))
-		line("%s%s", blockIndent, changeLine(finding))
+		line("%s%s", blockIndent, changeLine(finding.Site, finding.Files, finding.Route))
 		line("%sproven by: %s", blockIndent, provenBy(finding.Route))
 		line("%srepro: %s/%s", blockIndent, FindingDir(report, finding), reproFile)
+		if breaks := mayBreak(report, finding); breaks != "" {
+			line("%smay break: %s", blockIndent, breaks)
+		}
+	}
+	if report.Promises != nil {
+		writeTextPromises(&out, report)
 	}
 	line("%s", footer(report))
 	if closing := stake(report); closing != "" {
@@ -96,15 +102,21 @@ func Markdown(report scan.Report) string {
 		line("")
 		line("### %d. `%s` %s", finding.Rank, finding.Test, findingSentence(finding))
 		line("")
-		line("- Change: `%s`", changeLine(finding))
+		line("- Change: `%s`", changeLine(finding.Site, finding.Files, finding.Route))
 		line("- Proven by: %s", provenBy(finding.Route))
 		line("- Reproduce: `%s/%s`", FindingDir(report, finding), reproFile)
+		if breaks := mayBreak(report, finding); breaks != "" {
+			line("- May break: %s", breaks)
+		}
 		line("")
 		line("```diff")
 		for _, file := range finding.Files {
 			out.WriteString(UnifiedDiff(file.Path, file.Before, file.After))
 		}
 		line("```")
+	}
+	if report.Promises != nil {
+		writeMarkdownPromises(&out, report)
 	}
 	line("")
 	line("%s", footer(report))
@@ -113,4 +125,84 @@ func Markdown(report scan.Report) string {
 		line("%s", closing)
 	}
 	return out.String()
+}
+
+// writeTextPromises writes the promises of a scan that ran with a host: what
+// was checked, each broken promise as a block, the questions and what went
+// unchecked.
+func writeTextPromises(out *strings.Builder, report scan.Report) {
+	line := func(format string, args ...any) { fmt.Fprintf(out, format+newline, args...) }
+	promises := report.Promises
+	sentence, items := promiseStatus(promises)
+	line("")
+	line("%s", sentence)
+	for _, item := range items {
+		line("%s%s", indent, item)
+	}
+	for _, broken := range promises.Broken {
+		line("")
+		line(brokenRankFormat+" %s", broken.Rank, brokenTitle(broken))
+		line("%s%s", blockIndent, brokenChange(broken))
+		line("%sproven by: %s", blockIndent, brokenProof(broken))
+		line("%srepro: %s/%s", blockIndent, BrokenPromiseDir(report, broken), brokenScript)
+	}
+	notes := prefixed(questionPrefix, questionLines(promises))
+	if notes = append(notes, prefixed(uncheckedPrefix, uncheckedLines(promises))...); len(notes) > 0 {
+		line("")
+	}
+	for _, note := range notes {
+		line("%s", note)
+	}
+}
+
+// prefixed puts a prefix before each line.
+func prefixed(prefix string, lines []string) []string {
+	out := make([]string, 0, len(lines))
+	for _, text := range lines {
+		out = append(out, prefix+text)
+	}
+	return out
+}
+
+// writeMarkdownPromises writes the promises of a scan that ran with a host as
+// the sections Promises, Broken promises, Questions and Unchecked.
+func writeMarkdownPromises(out *strings.Builder, report scan.Report) {
+	line := func(format string, args ...any) { fmt.Fprintf(out, format+newline, args...) }
+	promises := report.Promises
+	section := func(heading string, items []string) {
+		if len(items) == 0 {
+			return
+		}
+		line("")
+		line("%s", heading)
+		line("")
+		for _, item := range items {
+			line("%s%s", itemPrefix, item)
+		}
+	}
+	sentence, items := promiseStatus(promises)
+	if len(items) == 0 {
+		items = []string{sentence}
+	}
+	section(promisesHeading, items)
+	if len(promises.Broken) > 0 {
+		line("")
+		line("%s", brokenHeading)
+	}
+	for _, broken := range promises.Broken {
+		line("")
+		line("#### "+brokenMarkdownFormat+" %s", broken.Rank, brokenTitle(broken))
+		line("")
+		line("- Change: `%s`", brokenChange(broken))
+		line("- Proven by: %s", brokenProof(broken))
+		line("- Reproduce: `%s/%s`", BrokenPromiseDir(report, broken), brokenScript)
+		line("")
+		line("```diff")
+		for _, file := range broken.Files {
+			out.WriteString(UnifiedDiff(file.Path, file.Before, file.After))
+		}
+		line("```")
+	}
+	section(questionsHeading, questionLines(promises))
+	section(uncheckedHeading, uncheckedLines(promises))
 }

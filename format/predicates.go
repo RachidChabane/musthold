@@ -155,6 +155,8 @@ type MutantExtensions struct {
 	Route          string   `json:"route,omitempty"`
 	Witnesses      []string `json:"witnesses,omitempty"`
 	CollateralWith []string `json:"collateralWith,omitempty"`
+	// Counterexample is what the local finding of a blocking survivor shows.
+	Counterexample *Counterexample `json:"counterexample,omitempty"`
 }
 
 // TestResult is the executed outcome of one test against one mutant.

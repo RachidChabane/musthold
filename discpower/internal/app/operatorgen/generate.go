@@ -91,6 +91,16 @@ type Generator struct {
 // NewGenerator returns a Generator over the registered engines.
 func NewGenerator(registry *Registry) *Generator { return &Generator{registry: registry} }
 
+// Footprint closes the entry functions over the call graphs of the files: the
+// definitions and module assignments the entries reach. With no entry it is
+// empty, which leaves every unit of the files in scope.
+func (g *Generator) Footprint(files []mutation.SourceFile, entries []footprint.Ref) (footprint.Footprint, error) {
+	sorted := slices.Clone(files)
+	slices.SortFunc(sorted, func(a, b mutation.SourceFile) int { return strings.Compare(a.Path, b.Path) })
+	scope, err := g.scopeOf(sorted, entries)
+	return scope.footprint, err
+}
+
 // Generate runs the pipeline over the request.
 func (g *Generator) Generate(request Request) (Result, error) {
 	files := slices.Clone(request.Files)

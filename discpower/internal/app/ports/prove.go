@@ -61,6 +61,21 @@ type Covering interface {
 	Coverage() CoverageRecorder
 }
 
+// WitnessRunning is implemented by an ecosystem strategy that runs a scan's
+// witnesses with a runner of their own, which needs nothing the project does
+// not already hold, in place of the runner `prove` runs its suite with.
+type WitnessRunning interface {
+	WitnessRunner() SuiteRunner
+}
+
+// WitnessCovering is implemented by an ecosystem strategy that records the
+// units the tests it is given run, running those tests alone: the coverage of
+// a scan's witnesses, for an ecosystem whose whole-suite recording `prove`
+// does not use.
+type WitnessCovering interface {
+	WitnessCoverage() CoverageRecorder
+}
+
 // ProofStore keeps the discriminating-power Statements of the project.
 type ProofStore interface {
 	// Has reports whether the Statement of the criterion with the cache key exists.

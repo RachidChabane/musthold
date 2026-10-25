@@ -386,7 +386,7 @@ func (h *harness) journal() []hostproto.Record {
 
 func (h *harness) requestsJSON() hostproto.Listing {
 	h.t.Helper()
-	output, err := h.Run(hostproto.ListArgs(), nil)
+	output, err := h.Run(hostproto.ListArgs(hostproto.SessionProve), nil)
 	if err != nil {
 		h.t.Fatal(err)
 	}

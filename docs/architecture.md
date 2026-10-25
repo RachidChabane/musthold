@@ -91,8 +91,8 @@ executor tools. `format/hostproto/hostprototest` is test support and is never li
 into a shipped binary.
 
 **Request.** A JCS document with the module, a `kind` (`generate.targeted`,
-`generate.witnessStrategy`, `generate.witness`, `judge.validity`, `judge.equivalent`,
-`judge.alignment`, `judge.scope`, `decide.closed`), a plugin-scoped `role`, a `shape` (`open` or `closed`), the
+`generate.witnessStrategy`, `generate.witness`, `generate.promises`, `judge.validity`,
+`judge.equivalent`, `judge.alignment`, `judge.scope`, `judge.labels`, `decide.closed`), a plugin-scoped `role`, a `shape` (`open` or `closed`), the
 `prompt`, an embedded `responseSchema`, the question set of a closed request, the
 `inputs` and a `cacheKey`. Its `requestId` is the SHA-256 of its canonical bytes
 with `module.version` removed, so identical work is never asked twice and a version
@@ -106,21 +106,29 @@ that stays outside the id.
 `journal.jsonl` and a per-install `secret` (mode 0600). A location outside the work
 tree is hygiene, not a security boundary.
 
+**Sessions.** One store serves every run of the repository that asks the host:
+`prove`, and one `scan:<key>` per scan. The queue tags each request with the
+sessions that want it and counts waves per session; a request two sessions want
+has one set of tickets. A session sees only its own tickets, supersedes only what
+no live session wants, and ends in the wave that leaves none of its tickets
+waiting. A new scan ends the older scans; nothing but `prove` ends `prove`.
+
 **Lifecycle.**
 
 | State | Entered by | Next |
 |---|---|---|
-| `emitted` | `prove` reaches a model step with no cached response | `fetched`, `superseded` |
+| `emitted` | a session reaches a model step with no cached response | `fetched`, `superseded` |
 | `fetched` | `fetch_request(ticket, cap)` | `accepted`, `rejected`, or `expired` after 20 minutes |
 | `accepted` | `submit_response` with a known ticket, an unused nonce, a valid capability and output valid against the schema; one schema correction is allowed | `validated`, `rejected` |
 | `rejected`, `expired` | execution contradicts the answer, or the schema still fails, or the time ran out | `emitted` again with a new nonce while emissions remain (3 by default), else `abandoned` |
 | `validated` | at `--resume`: the splice, the build, the kills and the invariants of the module hold | `consumed` |
-| `superseded` | an input changed, giving a new id | terminal |
+| `superseded` | no live session wants the request any more | `emitted` again as a new emission when a session wants it again, never counted toward abandonment |
 | `abandoned` | emissions exhausted | the claim is UNDETERMINED with `host_unresponsive` |
 
 **Waves.** `prove` is a resumable state machine. It does its deterministic stages,
 emits the tickets of one wave and exits 3. `prove --resume` runs the next wave. The
-fulfil skill loops in the session until the exit code is not 3.
+fulfil skill loops in the session until the exit code is not 3, listing the
+tickets of the prove session with `request list --session prove`.
 
 **Executor.** The host runs a plugin subagent whose tools are exactly `fetch_request`
 and `submit_response`, served by the plugin's own MCP server (`mcp --role executor`).

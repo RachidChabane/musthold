@@ -235,7 +235,7 @@ func verdictsOf(report gateReport) []string {
 // pendingOf lists the tickets of the alignment module that wait for an answer.
 func pendingOf(p *parcelProject) hostproto.Listing {
 	p.t.Helper()
-	r := p.alignment("", hostproto.ListArgs()...)
+	r := p.alignment("", hostproto.ListArgs(hostproto.SessionProve)...)
 	if r.code != exitClean {
 		p.t.Fatalf("request list: %s", r.output())
 	}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["promises"],
+  "properties": {
+    "promises": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["quote", "source"],
+        "properties": {
+          "quote": { "type": "string", "minLength": 1, "maxLength": 2000 },
+          "source": { "type": "string", "pattern": "^(README\\.md|description|issue #[1-9][0-9]*)$" }
+        }
+      }
+    }
+  }
+}

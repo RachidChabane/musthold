@@ -120,6 +120,8 @@ func TestPromptProperties(t *testing.T) {
 				hostproto.KindDecideClosed:     screen.Prompt.TemplateDigest,
 				hostproto.KindGenerateWitness:  prompt.BuildWitness(prompt.WitnessInput{Spec: statement, Statement: statement, Interface: []string{statement}}).Prompt.TemplateDigest,
 				hostproto.KindJudgeScope:       prompt.BuildScope(prompt.ScopeInput{Spec: statement, Statement: statement, Witnesses: []prompt.ScopeWitness{{Clause: statement, Code: statement}}}).Prompt.TemplateDigest,
+				hostproto.KindGeneratePromises: prompt.BuildPromises(prompt.PromisesInput{Sources: []prompt.PromiseSource{{Name: "README.md", Text: statement}}, Signatures: []string{statement}}).Prompt.TemplateDigest,
+				hostproto.KindJudgeLabels:      prompt.BuildLabels(prompt.LabelsInput{Promises: []prompt.LabelPromise{{ID: "p1", Quote: statement}}, Functions: []prompt.LabelFunction{{ID: "f1", Path: statement, Signature: statement, Code: statement}}}).Prompt.TemplateDigest,
 			}
 			seen := map[string]hostproto.Kind{}
 			for kind, digest := range got {

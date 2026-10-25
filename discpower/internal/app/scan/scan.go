@@ -33,6 +33,9 @@ var (
 	ErrReferenceBuild = errors.New("the reference does not build")
 	// ErrNoTests is returned when the runner collects no test.
 	ErrNoTests = errors.New("the runner collected no test")
+	// ErrNoPullRequests is returned for `scan <PR>` when no pull request can be
+	// read.
+	ErrNoPullRequests = errors.New("no pull request reader is wired")
 )
 
 // Deps are the ports a scan works through.
@@ -56,6 +59,17 @@ type Deps struct {
 	// Capacity reads the machine a scan chooses its workers on; nil chooses
 	// DefaultWorkers.
 	Capacity ports.CapacityReader
+	// PullRequests reads the pull request of `scan <PR>`; nil when none can be
+	// read.
+	PullRequests PullRequestReader
+	// WitnessHost briefs witness writers and lays out witnesses as tests of the
+	// ecosystem; nil for an ecosystem with none.
+	WitnessHost ports.WitnessHost
+	// Witnesses runs witness sets; nil for an ecosystem that runs none.
+	Witnesses WitnessRunners
+	// Host holds the ports of a scan that asks a host; nil for a scan that asks
+	// none and for a replay.
+	Host *HostDeps
 }
 
 // Request is one scan.
@@ -63,7 +77,13 @@ type Request struct {
 	// Root is the directory of the work tree.
 	Root string
 	// Base, when set, makes it a change scan against that revision.
-	Base       string
+	Base string
+	// PullRequest, when positive, makes it a change scan of that pull request,
+	// against the merge base of the head and its base commit.
+	PullRequest int
+	// Resume continues the open scan session of the same binding; it applies
+	// to a scan that asks a host only.
+	Resume     bool
 	Seed       uint64
 	SampleSize int
 	// Mutants is how many operator mutants are drawn, sentinels aside.
@@ -142,6 +162,9 @@ type Report struct {
 	Workers int
 	// Phases splits the elapsed time by phase.
 	Phases Phases
+	// Promises is what a scan that asked its host established about the
+	// promises; nil for a scan that asked none.
+	Promises *PromiseReport
 }
 
 // Phases is how long each phase of a scan took.
@@ -168,7 +191,8 @@ type SuiteCounts struct {
 
 // MutantCounts counts the mutants of a draw by what became of them.
 type MutantCounts struct {
-	// Drawn are the operator mutants and sentinels drawn.
+	// Drawn are the operator mutants and sentinels drawn, and the model mutants
+	// a scan that asked its host added.
 	Drawn int
 	// AmbiguousUnits are the definitions and assignments the draw left out
 	// because their file defines their name more than once.
@@ -210,6 +234,13 @@ type Finding struct {
 	Files []FileChange
 	// Repro is the command line that runs the test from the project root.
 	Repro []string
+	// Killers are, for each route of the mutant, the executed counter-evidence
+	// it offers: a test that fails on the mutant.
+	Killers []Killer
+	// Witnesses and Spec are, for a witness_failure route, the witnesses laid
+	// out with the failing one and the promises they were written against.
+	Witnesses []format.ScanWitness
+	Spec      []format.ScanPromise
 }
 
 // FileChange is one file a mutant edits, before and after.
@@ -242,16 +273,43 @@ func (s *Service) Run(ctx context.Context, request Request) (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
-	base, err := s.baseOf(ctx, request.Base)
+	change, err := s.changeOf(ctx, request)
 	if err != nil {
 		return Report{}, err
 	}
-	reference, err := s.prepareReference(ctx, request)
+	copied := s.deps.Clock()
+	built, err := s.buildReference(ctx, request.Root)
 	if err != nil {
 		return Report{}, err
 	}
-	defer func() { _ = s.deps.Workspaces.Release(reference.workspace) }()
-	plan, err := s.plan(ctx, &reference, request, base)
+	defer func() { _ = s.deps.Workspaces.Release(built.workspace) }()
+	return s.scanFrom(ctx, scanInput{started: started, copied: copied, commit: commit, base: change.base, request: request, reference: built})
+}
+
+// scanInput is what the phases of a scan that runs the suite start from: the
+// built reference, the commit and base, and for a scan that asks a host what
+// its answers add.
+type scanInput struct {
+	started   time.Time
+	copied    time.Time
+	commit    string
+	base      string
+	request   Request
+	reference reference
+	// host is nil for a scan that asks no host.
+	host *hostScan
+}
+
+// scanFrom runs the phases of a scan on a built reference, in one process: the
+// suite three times, coverage, sample, draw, execution and evidence,
+// classification, confirmation and statement.
+func (s *Service) scanFrom(ctx context.Context, in scanInput) (Report, error) {
+	request := in.request
+	reference := in.reference
+	if err := s.runReference(ctx, &reference, in.copied); err != nil {
+		return Report{}, err
+	}
+	plan, err := s.plan(ctx, &reference, request, in.base)
 	if err != nil {
 		return Report{}, err
 	}
@@ -260,16 +318,28 @@ func (s *Service) Run(ctx context.Context, request Request) (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
+	sources := s.evidenceSources(reference, drawn, request.Seed)
+	if in.host != nil {
+		drawn = in.host.withModels(drawn)
+		if sources, err = in.host.withWitnesses(ctx, reference, sources); err != nil {
+			return Report{}, err
+		}
+	}
 	mutantsStarted := s.deps.Clock()
 	deadline := time.Time{}
 	if request.Budget > 0 {
-		deadline = started.Add(request.Budget)
+		deadline = in.started.Add(request.Budget)
 	}
-	executed, err := s.execute(ctx, reference, plan, drawn, deadline, request)
+	executed, err := s.execute(ctx, reference, plan, drawn, deadline, request, sources)
 	if err != nil {
 		return Report{}, err
 	}
-	emission := emission{commit: commit, base: base, reference: reference, plan: plan, drawn: drawn, executed: executed, request: request}
+	emission := emission{commit: in.commit, base: in.base, reference: reference, plan: plan, drawn: drawn, executed: executed, request: request}
+	if in.host != nil {
+		if emission.promises, err = in.host.outcome(ctx, reference, drawn, executed); err != nil {
+			return Report{}, err
+		}
+	}
 	input, ran, result, err := emission.classify()
 	if err != nil {
 		return Report{}, err
@@ -284,7 +354,7 @@ func (s *Service) Run(ctx context.Context, request Request) (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
-	report.Elapsed = s.deps.Clock().Sub(started)
+	report.Elapsed = s.deps.Clock().Sub(in.started)
 	report.Depth, report.Budget, report.Workers = request.Depth, request.Budget, request.Workers
 	report.Phases = Phases{
 		Reference: reference.referenceTime, Coverage: reference.coverageTime,
@@ -310,15 +380,32 @@ func (s *Service) commitOf(ctx context.Context) (string, error) {
 	return commit, nil
 }
 
-// baseOf resolves the base revision of a change scan; a repository scan has
-// none.
-func (s *Service) baseOf(ctx context.Context, revision string) (string, error) {
-	if revision == "" {
-		return "", nil
+// change is what a change scan is measured against: the base commit and, for
+// `scan <PR>`, the pull request. A repository scan has neither.
+type change struct {
+	base string
+	pull *PullRequest
+}
+
+// changeOf resolves the base of a change scan: the merge base of the head and
+// the base commit of the pull request, or the revision the request names; a
+// repository scan has none.
+func (s *Service) changeOf(ctx context.Context, request Request) (change, error) {
+	switch {
+	case request.PullRequest > 0 && s.deps.PullRequests == nil:
+		return change{}, ErrNoPullRequests
+	case request.PullRequest > 0:
+		pull, err := s.deps.PullRequests.Read(ctx, request.PullRequest)
+		if err != nil {
+			return change{}, fmt.Errorf("read pull request #%d: %w", request.PullRequest, err)
+		}
+		return change{base: pull.ScanBase, pull: &pull}, nil
+	case request.Base == "":
+		return change{}, nil
 	}
-	base, err := s.deps.Source.Resolve(ctx, revision)
+	base, err := s.deps.Source.Resolve(ctx, request.Base)
 	if err != nil {
-		return "", fmt.Errorf("resolve the base %q: %w", revision, err)
+		return change{}, fmt.Errorf("resolve the base %q: %w", request.Base, err)
 	}
-	return base, nil
+	return change{base: base}, nil
 }

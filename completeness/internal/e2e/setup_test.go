@@ -233,7 +233,7 @@ func (p *project) claudeHost() *claudecode.Host {
 // pending lists the tickets that wait for an answer.
 func (p *project) pending() hostproto.Listing {
 	p.t.Helper()
-	r := p.mustRun(hostproto.ListArgs()...)
+	r := p.mustRun(hostproto.ListArgs(hostproto.SessionProve)...)
 	var listing hostproto.Listing
 	if err := json.Unmarshal([]byte(r.stdout), &listing); err != nil {
 		p.t.Fatal(err)

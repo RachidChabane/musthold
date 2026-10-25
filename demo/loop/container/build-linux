@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Runs inside the pinned Go image, from a staged source tree of spec-proof: builds
+# for Linux every binary a live run of the agent loop mounts, into OUT. The proof
+# modules and their build tags come from the canary's `modules` list, the same one
+# script/product-build reads; Shallnot is built from SHALLNOT_TREE, a tree of its
+# pinned commit, with the version variable script/shallnot-build injects.
+#
+#   build-linux OUT SHALLNOT_TREE SHALLNOT_PIN
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/../../.."
+
+readonly OUT="$1" SHALLNOT_TREE="$2" SHALLNOT_PIN="$3"
+readonly SHORT_SHA_LENGTH=12
+readonly BUILD_PROCS=1
+VERSION_VAR="$(sed -n 's/^readonly VERSION_VAR="\(.*\)"$/\1/p' script/shallnot-build)"
+readonly VERSION_VAR
+export CGO_ENABLED=0 GOMAXPROCS=2
+# <module dir> <binary> of the binaries a run mounts besides the proof modules.
+readonly EXTRA_BINARIES=(
+  "verify spec-proof-verify"
+  "tools/canary spec-proof-demo-loop"
+)
+
+build() { # <module dir> <binary> <tags>
+  echo "build-linux: ${2}"
+  go build -C "$1" -p "${BUILD_PROCS}" ${3:+-tags "$3"} -o "${OUT}/$2" "./cmd/$2"
+}
+
+mkdir -p "${OUT}"
+build tools/canary spec-proof-canary ""
+while IFS=$'\t' read -r dir binary tags; do
+  build "${dir}" "${binary}" "${tags}"
+done < <("${OUT}/spec-proof-canary" modules)
+for entry in "${EXTRA_BINARIES[@]}"; do
+  read -r dir binary <<<"${entry}"
+  build "${dir}" "${binary}" ""
+done
+echo "build-linux: fixturegate.test"
+go test -C tools/canary -c -p "${BUILD_PROCS}" -o "${OUT}/fixturegate.test" ./internal/demoloop/fixturegate
+echo "build-linux: shallnot"
+(cd "${SHALLNOT_TREE}" && go build -p "${BUILD_PROCS}" -ldflags "-X ${VERSION_VAR}=${SHALLNOT_PIN:0:${SHORT_SHA_LENGTH}}" -o "${OUT}/shallnot" ./cmd/shallnot)
+rm -f "${OUT}/spec-proof-canary"

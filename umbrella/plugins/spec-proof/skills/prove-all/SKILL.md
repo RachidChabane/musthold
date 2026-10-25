@@ -1,7 +1,7 @@
 ---
 name: prove-all
 description: Prove a change with every spec-proof module that is installed, in the order discriminating power, alignment, completeness, answering each module's requests with its blind executors. Use before finishing a change to code, tests or specs, and when Shallnot reports awaiting_host, awaiting_proof or awaiting_host_judgment.
-allowed-tools: Bash(spec-proof-dp doctor), Bash(spec-proof-dp prove *), Bash(spec-proof-dp request list), Bash(spec-proof-alignment doctor), Bash(spec-proof-alignment prove *), Bash(spec-proof-alignment request list), Bash(spec-proof-completeness doctor), Bash(spec-proof-completeness prove *), Bash(spec-proof-completeness request list), Bash(spec-proof-s1 drain *), Bash(spec-proof-verify --accept-local .spec-proof/cache --out .spec-proof/verified)
+allowed-tools: Bash(spec-proof-dp doctor), Bash(spec-proof-dp prove *), Bash(spec-proof-dp request list --session prove), Bash(spec-proof-alignment doctor), Bash(spec-proof-alignment prove *), Bash(spec-proof-alignment request list --session prove), Bash(spec-proof-completeness doctor), Bash(spec-proof-completeness prove *), Bash(spec-proof-completeness request list --session prove), Bash(spec-proof-s1 drain *), Bash(spec-proof-verify --accept-local .spec-proof/cache --out .spec-proof/verified)
 ---
 
 # Prove with every module

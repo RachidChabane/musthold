@@ -13,6 +13,7 @@ import (
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/justify"
 	"github.com/RachidChabane/spec-proof/completeness/internal/domain/reach"
 	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
 	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
 )
@@ -125,7 +126,7 @@ func (u UseCase) pass(ctx context.Context, options Options) (Result, error) {
 	if err != nil {
 		return Result{}, fmt.Errorf("load the criteria: %w", err)
 	}
-	wave, err := u.Deps.Store.AdvanceWave()
+	wave, err := u.Deps.Store.AdvanceWave(hostproto.SessionProve)
 	if err != nil {
 		return Result{}, fmt.Errorf("advance the wave: %w", err)
 	}
@@ -135,7 +136,7 @@ func (u UseCase) pass(ctx context.Context, options Options) (Result, error) {
 	}
 	pass := &passState{
 		deps: u.Deps, settings: u.Settings, options: options, project: report.Project, policyDigest: policyDigest,
-		bridge: hostbridge.New(u.Deps.Store, u.Deps.Clock, u.Deps.Entropy, wave),
+		bridge: hostbridge.New(u.Deps.Store, u.Deps.Clock, u.Deps.Entropy, hostproto.SessionProve, wave),
 		files:  map[string]fileDigest{}, closed: map[string]*closedSignal{},
 	}
 	if err := pass.analyse(ctx); err != nil {
@@ -150,10 +151,7 @@ func (u UseCase) pass(ctx context.Context, options Options) (Result, error) {
 		result.Specs = append(result.Specs, proved)
 	}
 	result.Findings = slices.Clone(pass.findings)
-	if err := pass.bridge.SupersedeUnwanted(); err != nil {
-		return Result{}, err
-	}
-	pending, err := pass.bridge.PendingTickets()
+	pending, err := pass.bridge.FinishWave()
 	if err != nil {
 		return Result{}, err
 	}

@@ -94,6 +94,25 @@ by `  finding <name>` lines. Findings: `correct_code_fails`, `example_failed`,
 `reading_conflict` and `witness_runner_unavailable` are printed after the
 requirements.
 
+Under a blocked requirement, a local run prints one `  survivor` line per mutant
+that blocks it: the mutant's reference, how it was drawn (a targeted mutant of a
+generation slot, or an operator mutant of a family) and the input every test passes
+while the mutant fails it. That input is the requirement's example, written as the
+spec writes it, or a block-bearing witness, shown with its name, its clause and its
+code, cut at 48 KiB:
+
+```
+BOX-2~1 proved BLOCK
+  finding surviving_valid_mutant
+  survivor 10edb8fdacce: an operator mutant of family relational, which every test of the criterion passes, fails its example 1: ticket_price(age=65) => 8
+```
+
+A survivor line never shows the mutant's code: a test written to that input does
+real testing work, and one fitted to the code would not. The Statement records the
+same in its mutant entry (`extensions.counterexample`), and Shallnot's
+`surviving_valid_mutant` finding repeats it under `proofs.trust: local`. A
+Statement produced by CI records none.
+
 `spec-proof-dp facts show <ID~REV>` prints the facts record of the last Statement
 of a requirement: every witness with its runs and scope votes, and every mutant
 with its kill vector, witness outcomes, compiled form and votes.
@@ -147,12 +166,12 @@ and sees only its ticket.
 
 ## Scan
 
-`spec-proof-dp scan` asks of any pytest or Go repository, with no spec, no model
-and no configuration, which tests still pass when the code they run is broken
-(ADR 0014). `spec-proof scan` runs it through the [umbrella](umbrella.md).
+`spec-proof-dp scan` asks of any pytest, Go, Jest or Vitest repository, with no
+spec, no model and no configuration, which tests still pass when the code they
+run is broken (ADR 0014). `spec-proof scan` runs it through the [umbrella](umbrella.md).
 
 ```
-spec-proof-dp scan [--full] [--base REV] [--seed N] [--sample N] [--mutants N] [--budget DURATION] [--workers N] [--coverage-timeout DURATION] [--format text|md|json] [--root DIR]
+spec-proof-dp scan [--full] [--host [--resume]] [--base REV] [--seed N] [--sample N] [--mutants N] [--budget DURATION] [--workers N] [--coverage-timeout DURATION] [--format text|md|json] [--root DIR] [<PR>]
 ```
 
 The work tree must have no uncommitted change to a tracked file: a scan names
@@ -167,7 +186,18 @@ is owned when every block holding code on it that the test ran is owned, so a
 `case` condition, which no block holds, is never owned. For pytest, a test owns
 the lines its own thread ran in its setup and call, outside the setup of a
 fixture wider than the function and outside the body of a module it imported;
-a teardown is never owned.
+a teardown is never owned. For Jest and Vitest, a test whose owned lines the
+scan reads runs alone in three processes, each recording V8 coverage mapped to
+the sources through the source maps the runner's transform writes. Its window
+opens before its first `beforeEach` hook and closes when its test function
+settles; a callback scheduled by setup files, module evaluation, describe
+bodies or another hook, and a fake timer set before the window, run in the
+window but are none of its own. A line is owned when every code unit of it the
+test ran counted in that window, with the same counts in the three processes,
+so a line `afterEach` also runs is never owned; a window in which a module is
+evaluated owns nothing. A process that cannot check one of these conditions
+owns less, never more: without an inspector session the test gets the whole
+of each file it ran and owns nothing.
 Without `--base` it samples green tests, stratified by file; with `--base` it
 takes the green tests that run a function changed since that revision. It draws
 operator mutants on the lines the judged tests own, round-robin over those
@@ -178,7 +208,7 @@ to 12 sentinels, one file at a time.
 |---|---|---|
 | Tests sampled | 12 | 40 |
 | Operator mutants | 72, six per test | 150 |
-| Coverage recorded | the sampled tests (every green test for pytest, which records them in one run) | every green test |
+| Coverage recorded | the sampled tests (every green test for pytest, which records them in one run) | every green test; Jest and Vitest record the tests not sampled in one run of their files, each with the lines of its file's segment |
 | Tests run on a mutant | the tests with recorded coverage that ran its lines | every green test that ran its lines |
 | Budget | 90 s, then running mutants stop and count as not run | none |
 
@@ -192,8 +222,10 @@ that killed a mutant on its lines keeps its class whatever else runs, as does a
 test that failed a sentinel; every other judged test is open. A budget that cuts
 the scan therefore spends its time on the open verdicts first, and the mutant
 count names how many mutants it left unrun. It never mutates a test, vendored,
-generated or migration file nor a line that logs, prints or records a metric,
-and runs each mutant against every test that ran one of its lines, three times.
+generated or migration file, a file of a `__tests__`, `__mocks__` or
+`__fixtures__` directory, nor a line that logs, prints, calls `console` or
+records a metric, and runs each mutant against every test that ran one of its
+lines, three times.
 
 A mutant counts only when executed evidence proves it changes behaviour: another
 green test kills it three runs out of three, or a differential run of the
@@ -207,14 +239,16 @@ kill or an inconclusive outcome, never a survival.
 Before a test is named, the scan confirms its claim alone, since a mutant runs
 every test that ran its lines in one selection. The test keeps only the changes
 on lines it also owns when it runs alone, recorded again in a session of its
-own for pytest; a change only kills prove stays only when one of its killers,
+own for pytest and read from the recording alone for Go, Jest and Vitest; a
+change only kills prove stays only when one of its killers,
 run alone, passes the reference and fails the mutant three times; and the test
 runs alone three times on each change left, a change it does not pass three
 times making it unproven. The number it prints is the confirmed one.
 
 A mutant can stop a test's process before any test starts: a Go test binary
-that panics in a package variable or `init`, or a pytest module, `conftest.py`
-or `__init__.py` that raises on import. When every run of a test on a mutant
+that panics in a package variable or `init`, a pytest module, `conftest.py`
+or `__init__.py` that raises on import, a Jest or Vitest test file whose import,
+describe body or setup file throws, or a global setup that throws. When every run of a test on a mutant
 stopped so, the change counts neither for nor against the test: the statement
 lists it apart from the test's changes, under `notStarted`. The other tests of
 the run still run: a pytest session names the test files, keeps the selected
@@ -223,7 +257,12 @@ and runs again without the tests below a `conftest.py` that stopped it. A Go
 process that exits early with tests left unrun counts as one run, and the
 package runs again in fresh processes until each test has three. A Go subtest
 that passes while its parent fails on its own did not pass; when a failing
-sibling may have failed the parent, the subtest runs again without it. The
+sibling may have failed the parent, the subtest runs again without it. Jest
+runs in band and Vitest in one fork, each run one process with coverage,
+bail and retries off; a Jest or Vitest test is named `file::titles`, its
+describe titles and its own joined by ` > `, and a hook failure, a retry, or a
+name another test shares, for Jest ignoring case, gives an error. A Vitest
+project that runs its tests in a browser is refused. The
 headline gives each class over its denominator and never reads as a pass:
 
 ```
@@ -276,6 +315,36 @@ proofs admits.
 `spec-proof scan replay <dir>` re-executes, with no model, the finding of a
 finding folder or every finding of a scan folder, and exits 1 when a claim no
 longer holds.
+
+### Scan with a host
+
+`--host` asks the host, through the exit-3 loop of the `/spec-proof:scan` skill
+([umbrella](umbrella.md#the-scan-skill)), for the promises of the code. A scan
+without it calls no model. `<PR>` scans a pull request: its head must be the
+checked-out commit, and the scan takes the merge base with its base commit.
+`--base` and `<PR>` exclude each other.
+
+The quotable sources are the README at head and, for a pull request, its title
+and body and each issue it closes. Their bytes are saved under
+`.spec-proof/scan/<commit>/sources/`. A change's code is never a source. A scan
+with no quotable source prints "no quotable promise in the README, description or
+closing issues" beside its headline.
+
+Each invocation runs the stages (sources, writers, admission, final) as far as
+the answers go:
+
+| Exit code | Meaning |
+|---|---|
+| 0 | the scan finished and wrote its reports |
+| 2 | a refusal, such as a `--resume` whose commit, tree, mode, base, pull request, seed, counts, budget, module version or sources differ from the open session's, each difference named |
+| 3 | tickets wait: the scan prints `wave N`, `session scan:<key>` and `awaiting_host N tickets` |
+
+The tickets of the session are listed with
+`spec-proof-dp request list --session scan:<key>`. `--resume` continues the open
+session of the same scan and implies `--host`. A scan asks at most 18 calls: 4
+for each of at most 3 promises, 1 for the promises and 1 for the labels; a promise
+the budget cannot cover is reported unchecked. A finding folder also holds the
+test that kills the mutant by its route, which `repro.sh` runs.
 
 ## Configuration
 

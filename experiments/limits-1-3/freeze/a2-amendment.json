@@ -1,0 +1,23 @@
+{
+  "amendment": "prereg-limits-1-3-a2",
+  "amended_tag": "prereg-limits-1-3-a1",
+  "amended_commit": "3ba0b8d1f08d479b5e88823a416dd5cf43a9b54c",
+  "kind": "test-only",
+  "reason": "Two integration tests ran run_secondary with the wall clock against SECONDARY_WINDOW, which closed on 2026-10-24 23:59 UTC, so the windowed caller blocked every call once that date passed. Each now injects a clock inside the window.",
+  "changed_paths": [
+    "harness/tests/integration/test_core_run.py"
+  ],
+  "pinned_tests": [
+    "harness/tests/integration/test_core_run.py::test_run_secondary_requires_the_audit_sample",
+    "harness/tests/integration/test_core_run.py::test_run_secondary_adds_j_h_name_shown_j_x_masked_and_the_audit_and_records_per_call_status"
+  ],
+  "pinned_clock": "2026-10-13T00:00:00+00:00",
+  "unchanged": [
+    "harness/src/",
+    "prereg/",
+    "fixture/",
+    "runs/",
+    "freeze/prereg-commit.*",
+    "freeze/README.md"
+  ]
+}

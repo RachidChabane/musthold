@@ -31,7 +31,7 @@ const (
 
 type fixture struct {
 	t        *testing.T
-	store    *hostprototest.MemoryStore
+	store    *hostprototest.MemoryHostStore
 	service  executorhost.Service
 	requests requests.Service
 	request  hostproto.Request
@@ -40,7 +40,7 @@ type fixture struct {
 
 func newFixture(t *testing.T, requireAttestation bool) *fixture {
 	t.Helper()
-	store := hostprototest.NewMemoryStore()
+	store := hostprototest.NewMemoryHostStore()
 	service := requests.Service{Plugin: hostprototest.PluginName,
 		Store: store, Validator: hostprototest.MemberValidator{}, Clock: func() time.Time { return hostprototest.Epoch },
 		RequireAttestation: requireAttestation,

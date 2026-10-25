@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
@@ -84,12 +85,15 @@ func RunShim(real, record string, args []string, stdin io.Reader, stdout, stderr
 	command := exec.Command(real, args...)
 	command.Env = launch.WithoutOAuthToken(os.Environ())
 	command.Stdin = bytes.NewReader(payload)
-	var captured bytes.Buffer
+	var captured, capturedErr bytes.Buffer
 	command.Stdout = &captured
-	command.Stderr = stderr
+	command.Stderr = io.MultiWriter(stderr, &capturedErr)
+	started := time.Now()
 	err := command.Run()
+	call.StartedAt, call.DurationMillis = started.UTC().Format(time.RFC3339Nano), time.Since(started).Milliseconds()
 	call.Stdin = asJSON(payload)
 	call.Stdout = captured.String()
+	call.Stderr = capturedErr.String()
 	var exit *exec.ExitError
 	switch {
 	case errors.As(err, &exit):

@@ -27,13 +27,29 @@ func holdsAnswer(state hostproto.State) bool {
 	return state == hostproto.StateAccepted || state == hostproto.StateValidated || state == hostproto.StateConsumed
 }
 
-// Collect builds the bundle of a push from the store: every response the
-// lifecycle keeps, with the profile it is credited with and the marks the journal
-// holds against it, and the digest at the head of the journal.
-func Collect(store hostproto.HostStore, module format.Module, headSHA string) (hostbundle.Bundle, error) {
+// sessionEntries lists the entries of the requests the session holds, in store
+// order.
+func sessionEntries(store hostproto.HostStore, session hostproto.Session) ([]hostproto.Entry, []hostproto.QueueItem, error) {
 	entries, err := store.ListEntries()
 	if err != nil {
-		return hostbundle.Bundle{}, fmt.Errorf("list the tickets: %w", err)
+		return nil, nil, fmt.Errorf("list the tickets: %w", err)
+	}
+	queue, err := store.Items()
+	if err != nil {
+		return nil, nil, fmt.Errorf("read the queue: %w", err)
+	}
+	index, filter := hostproto.IndexSessions(queue), hostproto.OnlySession(session)
+	return slices.DeleteFunc(entries, func(entry hostproto.Entry) bool { return !index.Selects(filter, entry.Ticket.RequestID) }), queue, nil
+}
+
+// Collect builds the bundle of a push from the store: every response of the
+// session's requests the lifecycle keeps, with the profile it is credited with
+// and the marks the journal holds against it, and the digest at the head of the
+// journal.
+func Collect(store hostproto.HostStore, session hostproto.Session, module format.Module, headSHA string) (hostbundle.Bundle, error) {
+	entries, _, err := sessionEntries(store, session)
+	if err != nil {
+		return hostbundle.Bundle{}, err
 	}
 	records, err := store.Records()
 	if err != nil {
@@ -123,20 +139,16 @@ func (i *Importer) serve(ticket hostproto.TicketID, nonce string, response hostp
 	return nil
 }
 
-// ExportIssued gathers the requests whose tickets still wait for an answer: the
-// requests in full, with their votes, criteria and purpose.
-func ExportIssued(store hostproto.HostStore) (hostbundle.IssuedBundle, error) {
-	entries, err := store.ListEntries()
+// ExportIssued gathers the requests of the session whose tickets still wait for
+// an answer: the requests in full, with their votes, criteria and purpose.
+func ExportIssued(store hostproto.HostStore, session hostproto.Session) (hostbundle.IssuedBundle, error) {
+	entries, queue, err := sessionEntries(store, session)
 	if err != nil {
-		return hostbundle.IssuedBundle{}, fmt.Errorf("list the tickets: %w", err)
-	}
-	queue, err := store.Items()
-	if err != nil {
-		return hostbundle.IssuedBundle{}, fmt.Errorf("read the queue: %w", err)
+		return hostbundle.IssuedBundle{}, err
 	}
 	votes := map[hostproto.RequestID]int{}
 	for _, entry := range entries {
-		if entry.State == hostproto.StateEmitted || entry.State == hostproto.StateFetched {
+		if hostproto.Waits(entry.State) {
 			votes[entry.Ticket.RequestID] = max(votes[entry.Ticket.RequestID], entry.Ticket.Vote+1)
 		}
 	}
@@ -158,14 +170,15 @@ func ExportIssued(store hostproto.HostStore) (hostbundle.IssuedBundle, error) {
 	return issued, nil
 }
 
-// ImportIssued puts the requests CI issued into the store as tickets for the host
-// to answer. A request already there keeps the tickets it has.
-func ImportIssued(store hostproto.HostStore, issued hostbundle.IssuedBundle, clock func() time.Time, entropy io.Reader) (int, error) {
-	wave, err := store.Wave()
+// ImportIssued puts the requests CI issued into the store as tickets of the
+// session for the host to answer. A request already there keeps the tickets it
+// has.
+func ImportIssued(store hostproto.HostStore, session hostproto.Session, issued hostbundle.IssuedBundle, clock func() time.Time, entropy io.Reader) (int, error) {
+	wave, err := store.Wave(session)
 	if err != nil {
 		return 0, fmt.Errorf("read the wave: %w", err)
 	}
-	bridge := hostbridge.New(store, clock, entropy, wave)
+	bridge := hostbridge.New(store, clock, entropy, session, wave)
 	imported := 0
 	for _, request := range issued.Requests {
 		id, err := request.ID()

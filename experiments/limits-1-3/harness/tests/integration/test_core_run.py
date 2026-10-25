@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -43,6 +44,7 @@ WITNESS = {
     "validated": None, "amount": None, "expected": {"kind": "RETURNS", "value": "2.50"},
 }
 TESTS_PER_JUDGE = 8
+INSIDE_SECONDARY_WINDOW = datetime(2026, 10, 13, tzinfo=UTC)
 
 
 def edits(qualname, source):
@@ -383,7 +385,7 @@ def test_run_secondary_requires_the_audit_sample(completed, tmp_path):
     shutil.copytree(world, copied)
     deps, _ = build(copied, FakeModel(), tmp_path / "w")
     with pytest.raises(SecondaryPreconditionFailed, match="audit_sample.json"):
-        run_secondary(SecondaryDependencies(deps, ExploratoryLedger(deps.ctx.store)))
+        run_secondary(SecondaryDependencies(deps, ExploratoryLedger(deps.ctx.store), clock=lambda: INSIDE_SECONDARY_WINDOW))
 
 
 def test_run_secondary_adds_j_h_name_shown_j_x_masked_and_the_audit_and_records_per_call_status(completed, tmp_path):
@@ -397,7 +399,7 @@ def test_run_secondary_adds_j_h_name_shown_j_x_masked_and_the_audit_and_records_
     store.write_json("audit_sample.json", {"seed": 1, "mutant_ids": sample, "strata": {m: "s" for m in sample}})
     model = FakeModel()
     again, _ = build(world, model, tmp_path / "secondary")
-    run_secondary(SecondaryDependencies(again, ExploratoryLedger(store)))
+    run_secondary(SecondaryDependencies(again, ExploratoryLedger(store), clock=lambda: INSIDE_SECONDARY_WINDOW))
     alignment = rows(store, "alignment.jsonl")
     assert {(r["judge"], r["arm"]) for r in alignment} == {("J-H", "NAME-MASKED"), ("J-H", "NAME-SHOWN"), ("J-X", "NAME-MASKED")}
     assert len(alignment) == 3 * TESTS_PER_JUDGE * 5

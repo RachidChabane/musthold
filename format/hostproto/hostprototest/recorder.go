@@ -1,4 +1,4 @@
-package main
+package hostprototest
 
 import (
 	"encoding/json"
@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
 )
 
 const (
@@ -35,7 +34,7 @@ var ErrNoOptions = errors.New("a closed question offers no option")
 // confidence.
 type FirstOption struct{}
 
-// Answer implements hostprototest.AnswerSource.
+// Answer implements AnswerSource.
 func (FirstOption) Answer(_ string, view hostproto.ExecutorView) (string, error) {
 	if len(view.Closed) == 0 {
 		return "", ErrNoClosedQuestions
@@ -68,16 +67,16 @@ func quoted(value string) string {
 // Recorder wraps an answer source and keeps every answer it gave, keyed by the
 // request the ticket belongs to.
 type Recorder struct {
-	Source  hostprototest.AnswerSource
+	Source  AnswerSource
 	Answers map[hostproto.RequestID]string
 }
 
 // NewRecorder records the answers of a source.
-func NewRecorder(source hostprototest.AnswerSource) *Recorder {
+func NewRecorder(source AnswerSource) *Recorder {
 	return &Recorder{Source: source, Answers: map[hostproto.RequestID]string{}}
 }
 
-// Answer implements hostprototest.AnswerSource.
+// Answer implements AnswerSource.
 func (r *Recorder) Answer(persona string, view hostproto.ExecutorView) (string, error) {
 	id, err := hostproto.ParseTicketID(view.Ticket)
 	if err != nil {

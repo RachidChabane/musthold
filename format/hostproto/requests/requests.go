@@ -89,7 +89,7 @@ type Service struct {
 	// Plugin is the name of the module's plugin, which names the harness of a
 	// submission made from the command line.
 	Plugin    string
-	Store     hostproto.Store
+	Store     hostproto.HostStore
 	Validator hostproto.ResponseValidator
 	Clock     func() time.Time
 	// RequireAttestation refuses a fetch or an answer that carries no capability.
@@ -98,23 +98,31 @@ type Service struct {
 	Executor ExecutorContext
 }
 
-// List returns the tickets that wait for an answer: those in state `emitted`,
-// ordered by request id then vote.
-func (s Service) List() (hostproto.Listing, error) {
+// List returns the tickets that wait for an answer in the sessions the filter
+// selects: those in state `emitted`, ordered by request id then vote, each with
+// the sessions that want its request.
+func (s Service) List(filter hostproto.SessionFilter) (hostproto.Listing, error) {
 	entries, err := s.Store.ListEntries()
 	if err != nil {
 		return hostproto.Listing{}, fmt.Errorf("list the tickets: %w", err)
 	}
+	items, err := s.Store.Items()
+	if err != nil {
+		return hostproto.Listing{}, fmt.Errorf("read the queue: %w", err)
+	}
+	sessions := hostproto.IndexSessions(items)
 	listing := hostproto.Listing{Items: []hostproto.ListingItem{}}
 	for _, entry := range entries {
-		if entry.State != hostproto.StateEmitted {
+		if entry.State != hostproto.StateEmitted || !sessions.Selects(filter, entry.Ticket.RequestID) {
 			continue
 		}
 		request, err := s.Store.GetRequest(entry.Ticket.RequestID)
 		if err != nil {
 			return hostproto.Listing{}, fmt.Errorf("read the request of %s: %w", entry.Ticket.TicketID, err)
 		}
-		listing.Items = append(listing.Items, hostproto.ListingItem{Ticket: entry.Ticket, Role: entry.Role, View: request.ViewFor(entry.Ticket)})
+		listing.Items = append(listing.Items, hostproto.ListingItem{
+			Ticket: entry.Ticket, Role: entry.Role, Sessions: sessions.Of(entry.Ticket.RequestID), View: request.ViewFor(entry.Ticket),
+		})
 	}
 	return listing, nil
 }

@@ -31,7 +31,7 @@ readonly NICE_LEVEL=10
 readonly GATE_PROCS=2
 readonly E2E_MODULE="tools/e2e"
 # Paths whose change concerns every module.
-readonly SHARED_PATHS='^(format/|go\.work|script/(ci|lint|modules|shallnot-build|shallnot\.pin|test)$)'
+readonly SHARED_PATHS='^(format/|go\.work|script/(ci|lint|modules|product-build|shallnot-build|shallnot\.pin|test)$)'
 # Paths no gate reads.
 readonly UNGATED_PATHS='^(notes/|docs/adr/)'
 # Paths the benchmark core's checks read besides the Go modules.

@@ -30,7 +30,7 @@ type plan struct {
 func (s *Service) plan(ctx context.Context, ref *reference, request Request, base string) (plan, error) {
 	if base == "" {
 		sampled := scanscope.Sample(scanCasesOf(ref.cases, ref.green), request.SampleSize, request.Seed)
-		if err := s.recordCoverage(ctx, ref, request.Coverage.of(ref.green, sampled, s.deps.Suite.CoverageOfOneRun()), request); err != nil {
+		if err := s.recordCoverage(ctx, ref, request.Coverage.of(ref.green, sampled, s.deps.Suite.CoverageOfOneRun()), sampled, request); err != nil {
 			return plan{}, err
 		}
 		return plan{mode: format.ScanModeRepository, sampled: sampled, targets: s.coveredBy(*ref, sampled)}, nil
@@ -39,7 +39,7 @@ func (s *Service) plan(ctx context.Context, ref *reference, request Request, bas
 	if err != nil {
 		return plan{}, err
 	}
-	if err := s.recordCoverage(ctx, ref, ref.green, request); err != nil {
+	if err := s.recordCoverage(ctx, ref, ref.green, nil, request); err != nil {
 		return plan{}, err
 	}
 	var running []ports.ScanCase

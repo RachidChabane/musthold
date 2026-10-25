@@ -298,15 +298,15 @@ func (m Module) copilotDelegation() string {
 
 // Steps the fulfil skills of every harness share.
 const (
-	skillRelayStep = "1. If `spec-proof-s1` is on `PATH` and `.spec-proof/config.yaml` sets `systemone.endpoint`, run `spec-proof-s1 drain --module {{.Relay}}`. A failure leaves the requests for the next step.\n" +
-		"2. Run `{{.Binary}} request list`. Each line is `<ticket> <role>`. When it prints nothing, run `{{.Binary}} prove --changed` once and list again.\n"
+	skillRelayStep = "1. If `spec-proof-s1` is on `PATH` and `.spec-proof/config.yaml` sets `systemone.endpoint`, run `spec-proof-s1 drain --module {{.Relay}} " + hostproto.FlagSession + " " + string(hostproto.SessionProve) + "`. A failure leaves the requests for the next step.\n" +
+		"2. Run `{{.Binary}} " + hostproto.ProveListCommand + "`. Each line is `<ticket> <role>`. When it prints nothing, run `{{.Binary}} prove --changed` once and list again.\n"
 	skillResumeSteps = "4. Run `{{.Binary}} prove --resume`. While it exits with code 3, go back to step 2. Exit code 0 or 1 ends the loop: report the verdict lines. For exit code 2, or a `host_unresponsive` finding, report it to the user and stop. Do not loop.\n" +
 		"5. When the loop ended with exit code 0 or 1, publish the local proofs where Shallnot's gate reads them: run `{{.Verify}}`. When `" + VerifyBinary + "` is not on `PATH`, tell the user: the proofs stay unpublished and the gate reports them stale. Report a rejection by the verifier with its message. Do not loop.\n"
 )
 
 const skillTemplate = `---
 name: {{.Name}}
-description: Answer the pending host requests of {{.Plugin}} ({{.Subject}}) with blind executor subagents and finish the proof run. Use when ` + "`{{.Binary}} prove`" + ` exits with code 3, when Shallnot reports awaiting_host for {{.Plugin}}, or when ` + "`{{.Binary}} request list`" + ` shows tickets.
+description: Answer the pending host requests of {{.Plugin}} ({{.Subject}}) with blind executor subagents and finish the proof run. Use when ` + "`{{.Binary}} prove`" + ` exits with code 3, when Shallnot reports awaiting_host for {{.Plugin}}, or when ` + "`{{.Binary}} " + hostproto.ProveListCommand + "`" + ` shows tickets.
 {{- if .Allowed}}
 allowed-tools: {{.Allowed}}
 {{- end}}
@@ -328,7 +328,7 @@ Never answer a ticket yourself, never read what a ticket asks, and give an execu
 // leaves experimental.
 const portableSkillTemplate = `---
 name: {{.Name}}
-description: Answer the pending host requests of {{.Plugin}} ({{.Subject}}) and finish the proof run. Use when ` + "`{{.Binary}} prove`" + ` exits with code 3, when Shallnot reports awaiting_host for {{.Plugin}}, or when ` + "`{{.Binary}} request list`" + ` shows tickets.
+description: Answer the pending host requests of {{.Plugin}} ({{.Subject}}) and finish the proof run. Use when ` + "`{{.Binary}} prove`" + ` exits with code 3, when Shallnot reports awaiting_host for {{.Plugin}}, or when ` + "`{{.Binary}} " + hostproto.ProveListCommand + "`" + ` shows tickets.
 ---
 
 # Fulfil the requests of {{.Plugin}}
@@ -434,7 +434,7 @@ func (m Module) claudePlugin(h harness.Harness) ([]File, error) {
 		files = append(files, File{Path: "agents/" + string(agent) + ".md", Content: content})
 	}
 	allowed := strings.Join([]string{
-		"Bash(" + m.Binary + " prove *)", "Bash(" + m.Binary + " request list)", "Bash(" + RelayBinary + " drain *)",
+		"Bash(" + m.Binary + " prove *)", "Bash(" + m.Binary + " " + hostproto.ProveListCommand + ")", "Bash(" + RelayBinary + " drain *)",
 		"Bash(" + VerifyLocalCommand + ")",
 	}, ", ")
 	skill, err := m.skillFile("skills/"+m.SkillName()+"/SKILL.md", claudeDelegation, allowed)

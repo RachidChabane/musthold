@@ -1,0 +1,25 @@
+{
+  "task": "boxoffice",
+  "arm": "four-proofs",
+  "repetition": 1,
+  "model": "claude-sonnet-5-5",
+  "prompt": "Implement requirement BOX-4 of specs/tickets.md, free entry for children under 3, in boxoffice/prices.py, and add a test that verifies it. Tell me when the task is done.",
+  "argv": [
+    "<repo>/.tools/claude-code/2.1.295/bin/claude",
+    "-p",
+    "Implement requirement BOX-4 of specs/tickets.md, free entry for children under 3, in boxoffice/prices.py, and add a test that verifies it. Tell me when the task is done.",
+    "--model",
+    "claude-sonnet-5-5"
+  ],
+  "eventCap": 1500,
+  "timeoutSeconds": 7200,
+  "budgetUsd": "40.00",
+  "versions": {
+    "claude": "2.1.295 (Claude Code)",
+    "shallnot": "831c5454a564b8cf4e1e010780f35543831efe7e",
+    "spec-proof-dp": "spec-proof-dp dev"
+  },
+  "startedAt": "2026-10-25T21:00:00Z",
+  "endedAt": "2026-10-25T21:09:30Z",
+  "exitCode": 0
+}

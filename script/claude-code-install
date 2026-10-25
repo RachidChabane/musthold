@@ -8,6 +8,11 @@
 # .tools/claude-code/<version>/SHA256 holds the SHA-256 of the installed binary; a re-run that finds the binary
 # matching it is a no-op. The last line printed is the binary path.
 #
+# With --linux ARCH (arm64 or x64) it installs instead the Linux binary of the same pin, for containers, into
+# .tools/claude-code/<version>/linux-ARCH/claude, from the npm package @anthropic-ai/claude-code-linux-ARCH at that
+# exact version, whose integrity npm checks; linux-ARCH/SHA256 holds its SHA-256. It cannot run on this host, so its
+# version is checked where it runs. The last line printed is the binary path.
+#
 # Environment:
 #   CLAUDE_CODE_NATIVE_VERSIONS  directory of native version binaries (default ~/.local/share/claude/versions)
 #   CLAUDE_CODE_NPM              the npm command (default npm)
@@ -63,6 +68,37 @@ install_from_npm() {
 PIN="$(tr -d '[:space:]' <"${PIN_FILE}")"
 [[ "${PIN}" =~ ${VERSION_PATTERN} ]] || fail "${EXIT_PRECONDITION}" "${PIN_FILE} must hold one version such as 2.1.293"
 readonly PIN
+
+readonly LINUX_ARCHES="arm64 x64"
+readonly PACKED_BIN="package/claude"
+
+# install_linux ARCH installs the Linux binary of the pin for ARCH and prints its path.
+install_linux() {
+  local arch="$1" dir binary scratch tarball
+  [[ " ${LINUX_ARCHES} " == *" ${arch} "* ]] || fail "${EXIT_PRECONDITION}" "--linux takes one of: ${LINUX_ARCHES}"
+  dir="${TOOLS_DIR}/${PIN}/linux-${arch}"
+  binary="${dir}/claude"
+  if [[ -f "${binary}" && -f "${dir}/${CHECKSUM_FILE}" && "$(sha256_of "${binary}")" == "$(cat "${dir}/${CHECKSUM_FILE}")" ]]; then
+    echo "claude-code-install: ${binary} is up to date at ${PIN}" >&2
+    echo "${PWD}/${binary}"
+    return
+  fi
+  command -v "${NPM}" >/dev/null 2>&1 || fail "${EXIT_PRECONDITION}" "the ${NPM} command is required for --linux"
+  scratch="$(mktemp -d)"
+  trap 'rm -rf "${scratch}"' RETURN
+  tarball="$(cd "${scratch}" && "${NPM}" pack --silent "${NPM_PACKAGE}-linux-${arch}@${PIN}")"
+  tar -xzf "${scratch}/${tarball}" -C "${scratch}" "${PACKED_BIN}"
+  mkdir -p "${dir}"
+  install -m 0755 "${scratch}/${PACKED_BIN}" "${binary}"
+  sha256_of "${binary}" >"${dir}/${CHECKSUM_FILE}"
+  echo "claude-code-install: installed ${binary} at ${PIN}" >&2
+  echo "${PWD}/${binary}"
+}
+
+if [[ "${1:-}" == "--linux" ]]; then
+  install_linux "${2:-}"
+  exit 0
+fi
 readonly VERSION_DIR="${TOOLS_DIR}/${PIN}"
 readonly BIN_DIR="${VERSION_DIR}/bin"
 readonly BIN="${BIN_DIR}/claude"

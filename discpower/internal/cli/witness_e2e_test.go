@@ -55,7 +55,7 @@ const (
 // scope verdicts or anything else.
 func (h *harness) pendingSchemas() (witnesses, scopes, others int) {
 	h.t.Helper()
-	_, listed, _ := h.run(nil, hostproto.ListArgs()...)
+	_, listed, _ := h.run(nil, hostproto.ListArgs(hostproto.SessionProve)...)
 	var listing hostproto.Listing
 	if err := json.Unmarshal([]byte(listed), &listing); err != nil {
 		h.t.Fatal(err)

@@ -8,7 +8,7 @@ import (
 )
 
 func TestReissueReplacesTheAnswer(t *testing.T) {
-	t.Run("the answer a contradicted ticket held is replaced by the answer to its reissue [verifies SP-714~1]", func(t *testing.T) {
+	t.Run("the answer a contradicted ticket held is replaced by the answer to its reissue [verifies SP-714~2]", func(t *testing.T) {
 		r := newRig(t)
 		request := variant("contradicted")
 		first := r.want(1, request)

@@ -1,0 +1,3 @@
+Answer every promise by its id in "labels", with the ids of the functions whose behaviour the promise depends on.
+Name a function only when changing what it does could make the promise false. Use an empty list when no shown function does.
+Use only the promise ids and the function ids shown above.

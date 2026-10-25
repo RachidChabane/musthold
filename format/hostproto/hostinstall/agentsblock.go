@@ -1,5 +1,7 @@
 package hostinstall
 
+import "github.com/RachidChabane/spec-proof/format/hostproto"
+
 // Advisory sentence a module whose proof Shallnot cannot require adds to its block.
 const advisorySentence = "\n\nThe result is advisory: Shallnot reports it and never blocks on it."
 
@@ -19,7 +21,7 @@ func (m Module) agentsSection() string {
 		"After any change to code, tests or specs, run `" + binary + " prove --changed` before finishing. " +
 		"When it exits with code 3, run the `" + m.Files.SkillName() + "` skill and follow it to the end. " +
 		"Use the executor subagents the skill names; never answer a ticket yourself while they are available.\n\n" +
-		"On a harness without that skill or those subagents, answer each ticket that `" + binary + " request list` prints: " +
+		"On a harness without that skill or those subagents, answer each ticket that `" + binary + " " + hostproto.ProveListCommand + "` prints: " +
 		"read it with `" + binary + " request show <ticket>`, " +
 		"submit the JSON answer with `" + binary + " request submit <ticket> --nonce <nonce>` on standard input, " +
 		"then run `" + binary + " prove --resume`." + advisory + "\n" +

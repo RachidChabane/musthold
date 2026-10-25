@@ -19,6 +19,12 @@ which run the evaluators on recorded event streams and make no model call.
   directories of the harness before and after the session, so that a session with
   a configuration directory of its own is shown to leave them alone and one that
   shares them lists what it wrote.
+- **SP-2408~1**: WHEN a hook is called through a recording shim THE SYSTEM SHALL
+  record, besides its payload, its answer and its exit code, what it printed to
+  its error stream, when it started and how long it ran, and pass its error
+  stream on to the harness unchanged; and WHEN a session's stream is recorded
+  with a times file THE SYSTEM SHALL write for each line its number and the
+  milliseconds since the CLI started at which it arrived.
 
 ## Verdicts
 

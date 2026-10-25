@@ -68,7 +68,7 @@ func TestShadowClassificationsAreObserved(t *testing.T) {
 	t.Run("a request is planned once: a classified ticket is not planned again [verifies SP-1908~1]", func(t *testing.T) {
 		f := newClassifyFixture(t)
 		commands := ClassifyCommands{Service: f.service, Kind: format.KindAlignment, Admission: f.admission, Stdout: &strings.Builder{}}
-		listing, err := f.service.List()
+		listing, err := f.service.List(hostproto.EverySession)
 		if err != nil {
 			t.Fatal(err)
 		}

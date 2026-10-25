@@ -52,6 +52,7 @@ def test_a_product_request_kind_maps_to_the_benchmarks_kind(module: Module, kind
     assert request_kind_of(module, kind) is expected
 
 
-def test_an_unknown_request_kind_is_refused() -> None:
+@pytest.mark.parametrize("kind", ["judge.unheard-of", "generate.promises", "judge.labels"])
+def test_an_unknown_request_kind_is_refused(kind: str) -> None:
     with pytest.raises(RecordError, match="unknown request kind"):
-        request_kind_of(Module.ALIGNMENT, "judge.unheard-of")
+        request_kind_of(Module.DISCRIMINATING_POWER, kind)
