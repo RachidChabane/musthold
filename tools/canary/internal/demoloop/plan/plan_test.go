@@ -78,7 +78,7 @@ func TestSessionCommand(t *testing.T) {
 	command := plan.SessionCommand(plan.SessionInput{Layout: layout, Run: run, Config: cfg, Claude: "/repo/.tools/claude-code/9.9.9/bin/claude"})
 	line := strings.Join(command.Argv, " ")
 
-	t.Run("one headless turn on the prompt and model, streamed with the hook events, the project's and the session's settings only [verifies SP-2402~2]", func(t *testing.T) {
+	t.Run("one headless turn on the prompt and model, streamed with the hook events, the project's and the session's settings only [verifies SP-2402~3]", func(t *testing.T) {
 		if command.Argv[0] != "/repo/.tools/claude-code/9.9.9/bin/claude" || command.Argv[1] != "-p" || command.Argv[2] != "Do the task." {
 			t.Errorf("argv = %v", command.Argv)
 		}
@@ -95,11 +95,25 @@ func TestSessionCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("the four-proofs arm loads each module's plugin and the umbrella plugin, the traceability arm none [verifies SP-2402~2]", func(t *testing.T) {
-		for _, dir := range []string{"/repo/discpower/plugin/claude", "/repo/alignment/plugin/claude", "/repo/completeness/plugin/claude", "/repo/.tools/plugins/spec-proof"} {
-			if !strings.Contains(line, "--plugin-dir "+dir) {
-				t.Errorf("the command lacks the plugin %s", dir)
+	t.Run("the four-proofs arm loads each module's plugin, Shallnot's, the relay's and the umbrella plugin last, all from the product, the traceability arm none [verifies SP-2402~3]", func(t *testing.T) {
+		product := plan.Layout{Repo: "/repo", Run: "/runs/r1", Product: "/opt/spec-proof"}
+		argv := plan.SessionCommand(plan.SessionInput{Layout: product, Run: run, Config: cfg, Claude: "claude"}).Argv
+		var dirs []string
+		for i, arg := range argv {
+			if arg == "--plugin-dir" {
+				dirs = append(dirs, argv[i+1])
 			}
+		}
+		want := []string{
+			"/opt/spec-proof/plugins/discpower/plugin/claude", "/opt/spec-proof/plugins/alignment/plugin/claude", "/opt/spec-proof/plugins/completeness/plugin/claude",
+			"/opt/spec-proof/plugins/shallnot", "/opt/spec-proof/plugins/s1relay/plugin/claude", "/opt/spec-proof/plugins/spec-proof",
+		}
+		if !slices.Equal(dirs, want) {
+			t.Errorf("plugin dirs %v, want %v", dirs, want)
+		}
+		names := []string{"spec-proof-dp", "spec-proof-alignment", "spec-proof-completeness", "shallnot", "spec-proof-s1", "spec-proof"}
+		if got := plan.PluginNames(config.ArmFourProofs); !slices.Equal(got, names) || plan.PluginNames(config.ArmTraceability) != nil {
+			t.Errorf("plugin names %v", got)
 		}
 		run.Arm = config.ArmTraceability
 		bare := plan.SessionCommand(plan.SessionInput{Layout: layout, Run: run, Config: cfg, Claude: "claude"})
@@ -111,7 +125,7 @@ func TestSessionCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("the session settings hold the permission rules and nothing else [verifies SP-2402~2]", func(t *testing.T) {
+	t.Run("the session settings hold the permission rules and nothing else [verifies SP-2402~3]", func(t *testing.T) {
 		encoded, err := plan.SessionSettingsJSON([]string{"Bash(pytest *)"})
 		if err != nil {
 			t.Fatal(err)
@@ -131,13 +145,13 @@ func TestEnvironment(t *testing.T) {
 	base := []string{"PATH=/usr/bin:/bin", "HOME=/home/me", "TMPDIR=/tmp", launch.OAuthTokenVariable + "=secret"}
 	env := plan.Environment(base, plan.Variables(layout, leading))
 
-	t.Run("the shims lead the PATH, then the binaries and the pinned CLI, then the inherited PATH [verifies SP-2402~2]", func(t *testing.T) {
+	t.Run("the shims lead the PATH, then the binaries and the pinned CLI, then the inherited PATH [verifies SP-2402~3]", func(t *testing.T) {
 		if !slices.Contains(env, "PATH=/runs/r1/shim:/repo/.tools/bin:/py/bin:/repo/.tools/claude-code/9.9.9/bin:/usr/bin:/bin") {
 			t.Errorf("env = %v", env)
 		}
 	})
 
-	t.Run("the run's state, caches and temporary files replace the inherited ones, and the token is dropped [verifies SP-2402~2]", func(t *testing.T) {
+	t.Run("the run's state, caches and temporary files replace the inherited ones, and the token is dropped [verifies SP-2402~3]", func(t *testing.T) {
 		for _, wanted := range []string{"XDG_STATE_HOME=/runs/r1/state", "XDG_CACHE_HOME=/runs/r1/cache", "TMPDIR=/runs/r1/tmp", "HOME=/home/me", "PYTHONDONTWRITEBYTECODE=1", "DISABLE_AUTOUPDATER=1"} {
 			if !slices.Contains(env, wanted) {
 				t.Errorf("env lacks %s: %v", wanted, env)
@@ -150,7 +164,7 @@ func TestEnvironment(t *testing.T) {
 		}
 	})
 
-	t.Run("a shim exports the project directory and the run's variables, not the PATH, and hands over to the runner's shim [verifies SP-2402~2]", func(t *testing.T) {
+	t.Run("a shim exports the project directory and the run's variables, not the PATH, and hands over to the runner's shim [verifies SP-2402~3]", func(t *testing.T) {
 		script := plan.ShimScript("/repo/.tools/bin/spec-proof-demo-loop", "/repo/.tools/bin/shallnot", "/runs/r1/records/hooks.jsonl", plan.ShimExports(layout, plan.Variables(layout, leading)))
 		if strings.Contains(script, "export PATH") || !strings.Contains(script, "export XDG_STATE_HOME=/runs/r1/state\n") || !strings.HasPrefix(script, "#!/bin/sh\nexport CLAUDE_PROJECT_DIR=/runs/r1/project\n") {
 			t.Errorf("script:\n%s", script)
