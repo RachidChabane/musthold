@@ -201,8 +201,10 @@ type fakeSuite struct {
 	// coverageOverruns makes the recording outlive it.
 	coverageTimeout  time.Duration
 	coverageOverruns bool
-	// covered lists the tests whose coverage was asked for.
+	// covered lists the tests whose coverage was asked for, and owners the
+	// owners each such request named.
 	covered []ecosystem.TestID
+	owners  [][]ecosystem.TestID
 	// hangs makes every run of a selection last until its context ends.
 	hangs bool
 	// oneRun makes the fake record every test's coverage in one run.
@@ -288,6 +290,7 @@ func (s *fakeSuite) LineCoverage(_ context.Context, _ ecosystem.Workspace, _ eco
 		}
 	} else {
 		s.coverageTimeout = request.Timeout
+		s.owners = append(s.owners, slices.Clone(request.Owners))
 		for _, test := range request.Tests {
 			s.covered = append(s.covered, test.ID)
 		}

@@ -17,6 +17,7 @@ const (
 	verifiesComposition = " [verifies SP-2129~3]"
 	verifiesWorkers     = " [verifies SP-2130~1]"
 	verifiesDepth       = " [verifies SP-2131~3]"
+	verifiesOwners      = " [verifies SP-2298~1]"
 
 	gibibyte = 1 << 30
 )
@@ -74,6 +75,26 @@ func TestDepth(t *testing.T) {
 		run(t, f, request())
 		if !slices.Equal(slices.Sorted(slices.Values(f.suite.covered)), []ecosystem.TestID{vacuousTest, exactTest, feeTest}) {
 			t.Fatalf("covered %v", f.suite.covered)
+		}
+	})
+	t.Run("a repository scan names its sampled tests as the owners whose owned lines it reads"+verifiesOwners, func(t *testing.T) {
+		f := newFixture()
+		req := request()
+		req.SampleSize = 1
+		report := run(t, f, req)
+		sampled := []ecosystem.TestID{ecosystem.TestID(report.Statement.Predicate.Tests[0].ID)}
+		if len(f.suite.owners) != 1 || !slices.Equal(f.suite.owners[0], sampled) || len(f.suite.covered) != 3 {
+			t.Fatalf("owners %v, covered %v, sampled %v", f.suite.owners, f.suite.covered, sampled)
+		}
+	})
+	t.Run("a change scan, which samples once the coverage is recorded, reads the owned lines of every test it records"+verifiesOwners, func(t *testing.T) {
+		f := newFixture()
+		f.source.changed = map[string][]int{totals: {9}}
+		req := request()
+		req.Base = "main"
+		run(t, f, req)
+		if len(f.suite.owners) != 1 || f.suite.owners[0] != nil {
+			t.Fatalf("owners %v", f.suite.owners)
 		}
 	})
 }
