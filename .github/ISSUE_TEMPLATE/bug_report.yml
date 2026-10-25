@@ -1,0 +1,50 @@
+name: Bug report
+description: Something crashes, hangs or misbehaves.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For a security vulnerability, follow [SECURITY.md](https://github.com/RachidChabane/spec-proof/blob/main/SECURITY.md) instead of opening an issue.
+        If a scan or proof finding looks wrong, use the "False finding" form.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `<binary> --version`, or the commit you built from.
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Operating system and architecture
+      placeholder: macOS 15 arm64, Ubuntu 24.04 amd64
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      description: The exact command line you ran.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: The output, error message or stack trace, as text.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: A minimal repository, spec file or sequence of steps.
