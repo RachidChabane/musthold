@@ -113,6 +113,16 @@ canary-codex:  ## live canary of Codex under exec (ARGS="--dry-run")
 canary-copilot:  ## live canary of GitHub Copilot CLI under -p (ARGS="--dry-run --shared-home")
 	script/canary-copilot $(ARGS)
 
+# The agent-loop demonstration (demo/loop/README.md): a live run spends model quota and runs only in the nightly
+# window; replay renders the committed recording with no model.
+.PHONY: demo-loop demo-loop-replay
+
+demo-loop:  ## live run of the agent-loop demonstration (demo/loop/run live; ARGS="--dry-run")
+	demo/loop/run live $(ARGS)
+
+demo-loop-replay:  ## render the committed agent-loop recording (demo/loop/run replay; ARGS="--check")
+	demo/loop/run replay $(ARGS)
+
 # The benchmark core (bench/): every target calls bench/script/<verb> from the repository root, so paths in ARGS are
 # relative to the root. bench/Makefile offers the same verbs from inside bench/.
 .PHONY: bench-setup bench-test bench-lint bench-check bench-recordings bench-recordings-check bench-verify-corpus bench-analyze bench-report-lint bench-site
