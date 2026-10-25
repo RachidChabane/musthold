@@ -27,7 +27,7 @@ import (
 
 // Namespaces of the memoized facts.
 const (
-	namespaceKillVector   = "kill-vector"
+	namespaceKillVector   = "kill-vector-2"
 	namespaceDifferential = "differential"
 	namespaceWitness      = "witness"
 	keySeparator          = "\x00"
@@ -111,6 +111,8 @@ type Execution struct {
 	Diagnostics string                    `json:"diagnostics,omitempty"`
 	Outcomes    map[string]format.Outcome `json:"outcomes,omitempty"`
 	Failed      []spec.Ref                `json:"failedExamples,omitempty"`
+	// FailedAt names each failed example by its criterion and its index.
+	FailedAt []power.ExampleFailure `json:"exampleFailures,omitempty"`
 }
 
 // Facts converts the execution into the facts the decision rules read.
@@ -123,7 +125,7 @@ func (e Execution) Facts(id string, origin power.Origin, slot power.Slot, edits 
 	for _, edit := range edits.Canonical().Edits {
 		sites = append(sites, edit.File+siteSeparator+edit.Qualname)
 	}
-	return power.Facts{ID: id, Origin: origin, Slot: slot, Sites: sites, Outcomes: outcomes, FailedExamples: e.Failed}
+	return power.Facts{ID: id, Origin: origin, Slot: slot, Sites: sites, Outcomes: outcomes, FailedExamples: e.Failed, ExampleFailures: e.FailedAt}
 }
 
 // Runner executes mutants of one project against its suite.
@@ -211,7 +213,7 @@ func (r Runner) Observe(ctx context.Context, mutant MutantSpec) (Execution, erro
 		if mutant.Sentinel {
 			return nil
 		}
-		execution.Failed, err = r.failedExamples(ctx, workspace)
+		execution.Failed, execution.FailedAt, err = r.failedExamples(ctx, workspace)
 		return err
 	})
 	if err != nil {
@@ -314,20 +316,27 @@ func outcomeOf(run ecosystem.RunResult, test ecosystem.TestID, ran bool) format.
 }
 
 // failedExamples runs every bound example in the workspace and lists the
-// criteria one of whose examples did not get what it expects.
-func (r Runner) failedExamples(ctx context.Context, workspace ecosystem.Workspace) ([]spec.Ref, error) {
+// criteria one of whose examples did not get what it expects, and each such
+// example, sorted by criterion and index.
+func (r Runner) failedExamples(ctx context.Context, workspace ecosystem.Workspace) ([]spec.Ref, []power.ExampleFailure, error) {
 	observed, runnable, err := r.observeExamples(ctx, workspace)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	var failed []spec.Ref
+	var failures []power.ExampleFailure
 	for index, example := range runnable {
-		if !example.Example.Met(observed[index]) && !slices.Contains(failed, example.Owner) {
+		if example.Example.Met(observed[index]) {
+			continue
+		}
+		failures = append(failures, power.ExampleFailure{Owner: example.Owner, Index: example.Example.Index})
+		if !slices.Contains(failed, example.Owner) {
 			failed = append(failed, example.Owner)
 		}
 	}
 	slices.SortFunc(failed, spec.Ref.Compare)
-	return failed, nil
+	slices.SortFunc(failures, power.ExampleFailure.Compare)
+	return failed, failures, nil
 }
 
 // observeExamples runs the examples whose operation is bound.

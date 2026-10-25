@@ -21,6 +21,8 @@ type poolMutant struct {
 	spec   execution.MutantSpec
 	origin power.Origin
 	slot   power.Slot
+	// family is the operator family of an operator mutant.
+	family string
 	round  int
 	edits  mutation.EditSet
 	facts  power.Facts
@@ -226,6 +228,7 @@ func (r *critRun) observeOperatorPool(ctx context.Context) (survivors []*poolMut
 		if m == nil {
 			continue
 		}
+		m.family = string(mutant.Family)
 		switch {
 		case slices.Contains(m.facts.FailedExamples, r.c.Ref):
 			r.add(m)

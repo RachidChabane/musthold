@@ -132,6 +132,9 @@ type CriterionResult struct {
 	Status   CriterionStatus
 	Outcome  power.Outcome
 	CacheKey string
+	// Survivors are the mutants that block the criterion, with what their local
+	// findings show.
+	Survivors []Survivor
 }
 
 // Result is the result of a run.

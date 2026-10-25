@@ -168,3 +168,22 @@ func (p *project) firstJournaledTicket() string {
 	p.t.Fatal("the journal names no ticket")
 	return ""
 }
+
+// survivorPrefix starts the line `prove` prints for a blocking survivor.
+const survivorPrefix = "  survivor "
+
+// survivorLines lists the survivor lines `prove` prints under a criterion.
+func survivorLines(output, requirement string) []string {
+	var lines []string
+	current := ""
+	for _, line := range strings.Split(output, "\n") {
+		if match := criterionLine.FindStringSubmatch(line); match != nil {
+			current = strings.SplitN(match[1], "~", 2)[0]
+			continue
+		}
+		if current == requirement && strings.HasPrefix(line, survivorPrefix) {
+			lines = append(lines, line)
+		}
+	}
+	return lines
+}
