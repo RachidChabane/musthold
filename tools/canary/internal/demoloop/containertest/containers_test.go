@@ -48,10 +48,18 @@ type world struct {
 	repo, docker, product, image, work string
 }
 
-func setup(t *testing.T) world {
+// setup readies the engine's world for a test whose checks are named. Off the
+// engine it reports each check as skipped, so the results still name what was not
+// checked, and returns false.
+func setup(t *testing.T, checks ...string) (world, bool) {
 	t.Helper()
 	if os.Getenv(enableVariable) != "1" {
-		t.Skipf("set %s=1 (demo/loop/run test-containers) to run the container tests", enableVariable)
+		for _, check := range checks {
+			t.Run(check, func(t *testing.T) {
+				t.Skipf("set %s=1 (demo/loop/run test-containers) to run the container tests", enableVariable)
+			})
+		}
+		return world{}, false
 	}
 	repo, err := filepath.Abs(repoFromHere)
 	if err != nil {
@@ -78,7 +86,7 @@ func setup(t *testing.T) world {
 	if w.product, err = filepath.EvalSymlinks(w.product); err != nil {
 		t.Fatal(err)
 	}
-	return w
+	return w, true
 }
 
 func (w world) box(t *testing.T, name string) container.Box {
@@ -153,8 +161,12 @@ func egressEntries(t *testing.T, records string) []egress.Entry {
 }
 
 func TestEngine(t *testing.T) {
-	w := setup(t)
-	t.Run("every docker command reaches the demonstration's own engine [verifies SP-2415~1]", func(t *testing.T) {
+	const check = "every docker command reaches the demonstration's own engine [verifies SP-2415~1]"
+	w, ok := setup(t, check)
+	if !ok {
+		return
+	}
+	t.Run(check, func(t *testing.T) {
 		name, stderr, code := w.run(t, "", "info", "--format", "{{.Name}}")
 		if code != 0 || !strings.Contains(name, engineProfile) {
 			t.Fatalf("engine %q (exit %d): %s", name, code, stderr)
@@ -163,7 +175,12 @@ func TestEngine(t *testing.T) {
 }
 
 func TestSessionIsolation(t *testing.T) {
-	w := setup(t)
+	const check1 = "HOME is an empty scratch directory and no SSH agent, docker socket or other socket is there [verifies SP-2415~1]"
+	const check2 = "no host answers directly, and the proxy forwards to the model endpoints only, logging each request [verifies SP-2415~1]"
+	w, ok := setup(t, check1, check2)
+	if !ok {
+		return
+	}
 	box := w.box(t, "isolation")
 	w.network(t, box)
 	allowed := container.ModelEndpoints()[0]
@@ -177,7 +194,7 @@ func TestSessionIsolation(t *testing.T) {
 		t.Fatalf("probe printed %q: %v", stdout, err)
 	}
 
-	t.Run("HOME is an empty scratch directory and no SSH agent, docker socket or other socket is there [verifies SP-2415~1]", func(t *testing.T) {
+	t.Run(check1, func(t *testing.T) {
 		if report.Home != container.ScratchHome || len(report.HomeEntries) != 0 {
 			t.Errorf("HOME %s holds %v", report.Home, report.HomeEntries)
 		}
@@ -186,7 +203,7 @@ func TestSessionIsolation(t *testing.T) {
 		}
 	})
 
-	t.Run("no host answers directly, and the proxy forwards to the model endpoints only, logging each request [verifies SP-2415~1]", func(t *testing.T) {
+	t.Run(check2, func(t *testing.T) {
 		for target, reached := range report.Direct {
 			if reached {
 				t.Errorf("%s answered without the proxy", target)
@@ -206,7 +223,11 @@ func TestSessionIsolation(t *testing.T) {
 }
 
 func TestTokenStaysOutOfTheEngine(t *testing.T) {
-	w := setup(t)
+	const check = "the session's command gets the token while docker inspect, the engine's logs and the records never hold it [verifies SP-2416~1]"
+	w, ok := setup(t, check)
+	if !ok {
+		return
+	}
 	box := w.box(t, "token")
 	w.network(t, box)
 	script := `test -n "$` + launch.OAuthTokenVariable + `" && echo token-delivered; sleep 8`
@@ -226,7 +247,7 @@ func TestTokenStaysOutOfTheEngine(t *testing.T) {
 	output := <-done
 	logs, _, _ := w.run(t, "", "logs", box.SessionName())
 
-	t.Run("the session's command gets the token while docker inspect, the engine's logs and the records never hold it [verifies SP-2416~1]", func(t *testing.T) {
+	t.Run(check, func(t *testing.T) {
 		if !strings.Contains(output, "token-delivered") {
 			t.Errorf("the command did not get the token: %q", output)
 		}
@@ -253,7 +274,11 @@ func TestTokenStaysOutOfTheEngine(t *testing.T) {
 }
 
 func TestBoxOfficeLoopInAContainer(t *testing.T) {
-	w := setup(t)
+	const check = "the gate blocks on the weak test, names the input it misses, and passes once it is strengthened, all offline in a container [verifies SP-2417~1]"
+	w, ok := setup(t, check)
+	if !ok {
+		return
+	}
 	box := w.box(t, "boxoffice")
 	gate := container.ProductTarget + "/tests/tools/canary/internal/demoloop/fixturegate"
 	variables := []string{
@@ -263,7 +288,7 @@ func TestBoxOfficeLoopInAContainer(t *testing.T) {
 	argv := []string{container.ProductTarget + "/bin/fixturegate.test", "-test.run", "^TestFixtureGate$", "-test.v", "-test.count=1"}
 	stdout, stderr, code := w.run(t, "", box.StepArgv(1, gate, variables, argv)...)
 
-	t.Run("the gate blocks on the weak test, names the input it misses, and passes once it is strengthened, all offline in a container [verifies SP-2417~1]", func(t *testing.T) {
+	t.Run(check, func(t *testing.T) {
 		if code != 0 || !strings.Contains(stdout, "--- PASS: TestFixtureGate") {
 			t.Fatalf("exit %d:\n%s\n%s", code, stdout, stderr)
 		}
@@ -296,7 +321,11 @@ func (s simulatedSessions) Run(spec canary.SessionSpec) (canary.SessionOutcome, 
 }
 
 func TestRunnerInContainers(t *testing.T) {
-	w := setup(t)
+	const check = "a run prepares, holds its session in containers, records the gate's block and leaves no token and no container behind [verifies SP-2410~1]"
+	w, ok := setup(t, check)
+	if !ok {
+		return
+	}
 	data, err := os.ReadFile(filepath.Join(w.repo, "demo/loop/demo.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -326,7 +355,7 @@ func TestRunnerInContainers(t *testing.T) {
 	}
 	records := filepath.Join(dirs[0], plan.RecordsDir)
 
-	t.Run("a run prepares, holds its session in containers, records the gate's block and leaves no token and no container behind [verifies SP-2410~1]", func(t *testing.T) {
+	t.Run(check, func(t *testing.T) {
 		hooks, err := os.ReadFile(filepath.Join(records, record.HooksFile))
 		if err != nil || !strings.Contains(string(hooks), `"args":["hook","claude-stop"]`) || !strings.Contains(string(hooks), `"exitCode":2`) {
 			t.Errorf("hooks.jsonl: %v\n%s", err, hooks)
