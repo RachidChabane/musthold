@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/RachidChabane/spec-proof/format/formattest/prompts"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 )
 
@@ -15,10 +16,8 @@ import (
 type Oracle struct{}
 
 var (
-	unitHeader       = regexp.MustCompile(`^(\S+) :: (\S+)\n`)
-	changedPattern   = regexp.MustCompile(`(?s)--- (\S+) :: (\S+)\nbefore:\n(.*?)\nafter:\n(.*?)(?:\n--- |\n\nObserved|\n\nAnswer|\n\nFor each|$)`)
-	observedPattern  = regexp.MustCompile(`- (\w+)\(([^)]*)\): original (\S+), mutant (.+)`)
-	requirementBlock = regexp.MustCompile(`(?s)Requirement (\d+):\n(.*?)\n\n`)
+	changedPattern  = regexp.MustCompile(`(?s)--- (\S+) :: (\S+)\nbefore:\n(.*?)\nafter:\n(.*?)(?:\n--- |\n\nObserved|\n\nAnswer|\n\nFor each|$)`)
+	observedPattern = regexp.MustCompile(`- (\w+)\(([^)]*)\): original (\S+), mutant (.+)`)
 )
 
 // Answer implements hostprototest.AnswerSource.
@@ -73,37 +72,23 @@ func generationAnswer(user string) string {
 			{"MAX_PERCENT - clampPercent(percent)", "MAX_PERCENT + clampPercent(percent)", typescriptSuffix},
 		}}
 	}
-	units := sliceUnits(user)
+	units := prompts.Units(user)
 	var mutants []map[string]any
 	for _, slot := range []string{"S1", "S2", "S3"} {
 		for _, change := range scripted[slot] {
 			for qualname, unit := range units {
-				if !strings.Contains(unit.source, change.from) || !strings.HasSuffix(unit.file, change.suffix) {
+				if !strings.Contains(unit.Source, change.from) || !strings.HasSuffix(unit.File, change.suffix) {
 					continue
 				}
 				mutants = append(mutants, map[string]any{
 					"slot": slot, "mechanism": "replace " + change.from + " by " + change.to,
-					"edits": []map[string]string{{"file": unit.file, "qualname": qualname, "new_source": strings.Replace(unit.source, change.from, change.to, 1)}},
+					"edits": []map[string]string{{"file": unit.File, "qualname": qualname, "new_source": strings.Replace(unit.Source, change.from, change.to, 1)}},
 				})
 			}
 		}
 	}
 	encoded, _ := json.Marshal(map[string]any{"mutants": mutants})
 	return string(encoded)
-}
-
-type sliceUnit struct{ file, source string }
-
-// sliceUnits reads the units of the code slice a generation prompt shows.
-func sliceUnits(user string) map[string]sliceUnit {
-	start := strings.Index(user, "Code under test:\n") + len("Code under test:\n")
-	end := strings.Index(user, "\n\nWrite up to")
-	units := map[string]sliceUnit{}
-	for _, block := range strings.Split(user[start:end], "--- ")[1:] {
-		header := unitHeader.FindStringSubmatch(block)
-		units[header[2]] = sliceUnit{file: header[1], source: strings.TrimRight(block[len(header[0]):], "\n")}
-	}
-	return units
 }
 
 // violates reports whether the change touches what the statement is about.
@@ -141,12 +126,12 @@ func changedUnits(user string) []string {
 func ScreenAnswer(user string) string {
 	units := changedUnits(user[strings.Index(user, "Changed units"):])
 	var answers []map[string]any
-	for _, match := range requirementBlock.FindAllStringSubmatch(user, -1) {
+	for _, requirement := range prompts.Requirements(user) {
 		choice := "CONSISTENT"
-		if violates(match[2], units) {
+		if violates(requirement.Statement, units) {
 			choice = "VIOLATES"
 		}
-		answers = append(answers, map[string]any{"id": "q" + match[1], "choice": choice})
+		answers = append(answers, map[string]any{"id": "q" + requirement.Number, "choice": choice})
 	}
 	encoded, _ := json.Marshal(map[string]any{"answers": answers})
 	return string(encoded)

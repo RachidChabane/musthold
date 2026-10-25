@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"regexp"
 	"strings"
+
+	"github.com/RachidChabane/spec-proof/format/formattest/prompts"
 )
 
 // Languages a witness prompt names, as the module's witness hosts write them.
@@ -164,8 +166,8 @@ func witnessesFor(language string) map[string]witnessSet {
 // WitnessAnswer answers a witness request the way an honest writer does: three
 // examples and a property for the criterion to check, in the project's language.
 func WitnessAnswer(user string) string {
-	byLanguage := witnessesFor(lineAfter(user, languageHeader))
-	target := sectionAfter(user, targetHeader)
+	byLanguage := witnessesFor(prompts.LineAfter(user, languageHeader))
+	target := prompts.SectionAfter(user, targetHeader)
 	set := byLanguage[subjectDiscount]
 	for _, subject := range []string{subjectShipping, subjectLines} {
 		if strings.Contains(target, subject) {
@@ -185,24 +187,4 @@ func ScopeAnswer(user string) string {
 	}
 	encoded, _ := json.Marshal(map[string]any{"verdicts": verdicts})
 	return string(encoded)
-}
-
-// lineAfter returns the rest of the line a header starts.
-func lineAfter(text, header string) string {
-	start := strings.Index(text, header)
-	if start < 0 {
-		return ""
-	}
-	line, _, _ := strings.Cut(text[start+len(header):], "\n")
-	return line
-}
-
-// sectionAfter returns the text a header starts, up to the next blank line.
-func sectionAfter(text, header string) string {
-	start := strings.Index(text, header)
-	if start < 0 {
-		return ""
-	}
-	section, _, _ := strings.Cut(text[start:], "\n\n")
-	return section
 }
