@@ -94,6 +94,25 @@ by `  finding <name>` lines. Findings: `correct_code_fails`, `example_failed`,
 `reading_conflict` and `witness_runner_unavailable` are printed after the
 requirements.
 
+Under a blocked requirement, a local run prints one `  survivor` line per mutant
+that blocks it: the mutant's reference, how it was drawn (a targeted mutant of a
+generation slot, or an operator mutant of a family) and the input every test passes
+while the mutant fails it. That input is the requirement's example, written as the
+spec writes it, or a block-bearing witness, shown with its name, its clause and its
+code, cut at 48 KiB:
+
+```
+BOX-2~1 proved BLOCK
+  finding surviving_valid_mutant
+  survivor 10edb8fdacce: a targeted mutant of slot S1 (direct), which every test of the criterion passes, fails its example 1: ticket_price(age=65) => 8
+```
+
+A survivor line never shows the mutant's code: a test written to that input does
+real testing work, and one fitted to the code would not. The Statement records the
+same in its mutant entry (`extensions.counterexample`), and Shallnot's
+`surviving_valid_mutant` finding repeats it under `proofs.trust: local`. A
+Statement produced by CI records none.
+
 `spec-proof-dp facts show <ID~REV>` prints the facts record of the last Statement
 of a requirement: every witness with its runs and scope votes, and every mutant
 with its kill vector, witness outcomes, compiled form and votes.

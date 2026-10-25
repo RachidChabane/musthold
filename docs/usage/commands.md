@@ -101,6 +101,8 @@ again without answering gives the same requests.
 The first line is `wave N`. A final `awaiting_host N tickets` line is printed while
 tickets wait. Lines in between are specific to each module. Findings are printed
 as `  finding <name>` under a criterion and `module finding <name>` for the run.
+The discriminating-power module adds a `  survivor` line under a criterion for each
+mutant that blocks it (see [discriminating power](discpower.md)).
 
 Exit codes: 0 clean; 1 blocked or escalated (the meaning is per module), or a
 refusal such as `--ci` without a CI run, a bundle of another module version that left

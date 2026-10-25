@@ -27,9 +27,11 @@ Shallnot composes these proofs into one gate.
 
 **It works inside the agent's loop.** The gate holds the agent's turn while a proof
 is missing or failing, and names what failed. When a test fails to catch a
-violation, the finding is a counterexample: changed code that breaks the criterion,
-which the tests still pass. The agent fixes its tests from it and runs the gate
-again. A pipeline from spec to shipped code then needs no one to reread its pull
+violation, the gate names the criterion and an input the tests do not distinguish:
+an example of the criterion, or a witness test written from the spec alone, that a
+changed version of the code fails while every test still passes. It never shows
+that changed code, so a test cannot be fitted to it. The agent strengthens its
+tests at that input and runs the gate again. A pipeline from spec to shipped code then needs no one to reread its pull
 requests. You review the spec and the evidence.
 
 Development automation will not scale while an agent's green means nothing.

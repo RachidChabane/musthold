@@ -50,7 +50,7 @@ consecutive blocks whose only findings are pending reasons.
 |---|---|---|
 | `stale_proof` | A required proof is missing or stale: an input file changed, a bound test file is not among the proof's inputs, the statement changed, or a consumed proof is not valid. | Run the command the message names, or `prove-all`, then `spec-proof-verify --accept-local ...`. Never edit a proof file. |
 | `malformed_proof` | The manifest or a statement breaks the format. | Re-run `spec-proof-verify`. A `local` manifest needs `proofs.trust: local`. |
-| `correct_code_fails`, `example_failed`, `surviving_valid_mutant` | The tests or the code do not meet the requirement. | Fix the code, or strengthen the tests until they fail on the mutant. |
+| `correct_code_fails`, `example_failed`, `surviving_valid_mutant` | The tests or the code do not meet the requirement. For a surviving mutant, the message names the input the tests do not distinguish: an example of the requirement, or a witness test. | Fix the code, or add a test bound to the requirement that checks that input. |
 | `escalated_mutant`, `no_valid_mutant`, `no_killed_valid_mutant`, `mutation_sensitive_test`, `misaligned_test` | A judged signal that the tests may not check the requirement. | Make the tests check the statement. |
 | `completeness_question` | An advisory question about the spec. | Raise it with the spec's owner. |
 
