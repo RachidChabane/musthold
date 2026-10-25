@@ -1020,8 +1020,9 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   each witness's outcome by its package and test name, and fail the
   collection when a witness file does not compile; an ecosystem without a
   runner of witnesses runs them with its suite runner.
-- **SP-2274~1**: WHEN `spec-proof-dp scan --host` runs on a pytest or a Go
-  project committed in its own repository, whose README holds a promise the
+- **SP-2274~2**: WHEN `spec-proof-dp scan --host` runs on a pytest, a Go, a
+  Jest or a Vitest project committed in its own repository, whose README holds
+  a promise the
   suite runs and never asserts and a promise the code does not keep, and a
   host answers each ticket the scan lists for its session THE SYSTEM SHALL
   exit 3 until every answer is in and then exit 0, print the broken promise
@@ -1032,20 +1033,22 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-2275~1**: WHEN the host directory and the memo of a scan that asked its
   host are deleted THE SYSTEM SHALL still hold, on `scan replay`, the
   `witness_failure` route of a finding and the broken promise.
-- **SP-2276~1**: WHEN a scan of a whole repository that asks its host shows a
-  generation ticket of a promise whose witnesses were admitted, in a pytest or
-  a Go project THE SYSTEM SHALL show the functions those witnesses run and no
-  other.
+- **SP-2276~2**: WHEN a scan of a whole repository that asks its host shows a
+  generation ticket of a promise whose witnesses were admitted, in a pytest, a
+  Go, a Jest or a Vitest project THE SYSTEM SHALL show the functions those
+  witnesses run and no other.
 - **SP-2277~1**: WHEN `spec-proof-dp scan --resume` runs with a flag that
   differs from the open scan session's THE SYSTEM SHALL exit 2 naming the
   field, its old value and its new one.
-- **SP-2278~1**: WHEN the host of a scan of a pytest or a Go project answers
+- **SP-2278~2**: WHEN the host of a scan of a pytest, a Go, a Jest or a Vitest
+  project answers
   every ticket with an answer its schema accepts and the scan rejects THE
   SYSTEM SHALL ask the rejected tickets again while the session's emissions
   allow, make at most 18 emissions in the session, report the asks the cap
   left out and the calls used, and finish with exit 0.
-- **SP-2279~1**: WHEN a scan that asks its host and `prove` wait for the host
-  in one pytest or Go repository at the same time, each answered between its
+- **SP-2279~2**: WHEN a scan that asks its host and `prove` wait for the host
+  in one pytest, Go, Jest or Vitest repository at the same time, each answered
+  between its
   own invocations THE SYSTEM SHALL finish both, and no invocation of the scan
   SHALL retire a ticket `prove` waits for.
 - **SP-2280~1**: WHEN `spec-proof-dp scan --host <PR>` runs with gh answering
@@ -1530,11 +1533,12 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   every line from the one that holds the first byte of its mutated span to the
   one that holds its last, the line of the insertion for an empty span, and no
   line for a span outside the file.
-- **SP-2107~1**: WHEN a scan chooses what it may mutate THE SYSTEM SHALL refuse
-  test files and the files of `tests`, `test` and `testdata` directories,
-  vendored and installed code, generated code marked `Code generated ... DO NOT
-  EDIT.` or `@generated`, and migrations; and SHALL refuse a site with a line
-  that calls a print, a log or a metric.
+- **SP-2107~2**: WHEN a scan chooses what it may mutate THE SYSTEM SHALL refuse
+  test files and the files of `tests`, `test`, `testdata`, `__tests__`,
+  `__mocks__` and `__fixtures__` directories, vendored and installed code,
+  generated code marked `Code generated ... DO NOT EDIT.` or `@generated`, and
+  migrations; and SHALL refuse a site with a line that calls a print, a log, a
+  `console` method or a metric.
 - **SP-2108~2**: WHEN a repository is scanned THE SYSTEM SHALL refuse a work tree
   whose tracked files differ from the head commit before running anything; copy
   the work tree, scan reports aside, into a workspace outside it and build it,
@@ -1628,8 +1632,9 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   patch and runs the one test, quoted, so that its exit status is the test's,
   and `finding.json`, which names the commit, the runner, the test, the mutant
   with its edits and the route.
-- **SP-2119~2**: WHEN `spec-proof-dp scan` runs THE SYSTEM SHALL need no
-  configuration, scan the first pytest or Go suite it detects, quickly unless
+- **SP-2119~3**: WHEN `spec-proof-dp scan` runs THE SYSTEM SHALL need no
+  configuration, scan the first pytest, Go, Jest or Vitest suite it detects,
+  quickly unless
   `--full` is given (SP-2131), `--sample`, `--mutants` and `--budget` replacing
   what the depth presets, write the reports,
   print the headline, the Markdown report with `--format md` or the scan statement
@@ -1644,8 +1649,9 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   reports, give the lines of the head that differ from a base, a pure deletion
   marking the line it follows, and name the repository `owner/name` from its
   origin, in URL or scp-like form, or by its directory.
-- **SP-2122~2**: WHEN `spec-proof-dp scan --budget 0` runs on a pytest or a Go
-  project committed in its own repository, one of whose tests runs a function
+- **SP-2122~3**: WHEN `spec-proof-dp scan --budget 0` runs on a pytest, a Go, a
+  Jest or a Vitest project committed in its own repository, one of whose tests
+  runs a function
   and asserts nothing THE SYSTEM SHALL name that test as the first that verifies
   nothing and exit 0, leave the work tree with only its reports added, and give a
   repro script that passes the test on the changed code; and `spec-proof-dp
@@ -1734,12 +1740,13 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   or such a directory, and errored otherwise, a session that ended in a usage,
   internal or interruption error without such a report included; and SHALL give
   a test whose fixture or setup failed errored.
-- **SP-2136~1**: WHEN `spec-proof-dp scan --budget 0` runs on a Go project, one
+- **SP-2136~2**: WHEN `spec-proof-dp scan --budget 0` runs on a Go project, one
   of whose packages calls a helper from a test-file variable and from its test
   bodies, another of which calls it from its test bodies, and a third only at
-  start-up, or on a pytest project, one of whose test modules calls a helper on
-  import and in its test bodies, THE SYSTEM SHALL list, for each test whose
-  binary or module a change of the helper stops from starting, that change
+  start-up, or on a pytest, a Jest or a Vitest project, one of whose test
+  modules calls a helper on import and in its test bodies, THE SYSTEM SHALL
+  list, for each test whose binary or module a change of the helper stops from
+  starting, that change
   apart and count it neither for nor against the test; settle the change as
   usual for a Go test whose binary starts; record no survival on the helper for
   the Go test that runs it only at start-up; print how many changes stopped each
@@ -1797,11 +1804,14 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   report of one of its sessions covers it as SP-2135 gives, the outcome of the
   session that ran it otherwise, timed out when its last session timed out, and
   errored for a test absent from a module that collected.
-- **SP-2143~2**: WHEN `spec-proof-dp scan --budget 0` runs on a Go project whose
+- **SP-2143~3**: WHEN `spec-proof-dp scan --budget 0` runs on a Go project whose
   only survivals of a test lie in the setup its parent test runs before its
   subtests or in the header of a clause that a `fallthrough` enters, or on a
   pytest project whose only survivals of a test lie in the teardown of a
-  fixture, THE SYSTEM SHALL make no claim that the test verifies nothing; WHEN it runs on a pytest project in which a change stops a test
+  fixture, or on a Jest or a Vitest project whose only survivals of a test lie
+  in an `afterEach` hook it shares, THE SYSTEM SHALL make no claim that the
+  test verifies nothing; WHEN it runs on a pytest project in which a change
+  stops a test
   module and a `conftest.py` from importing, THE SYSTEM SHALL settle the tests
   outside them as usual and list that change apart for the tests it stops; and
   SHALL write a statement the format accepts and replay its findings with
@@ -1824,10 +1834,12 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   verdict, no route and no count but the test's own; show in a finding a kill
   only by a killer the confirmation upheld; and write the scan statement in
   the same form.
-- **SP-2145~1**: WHEN `spec-proof-dp scan --budget 0` runs on a pytest project
+- **SP-2145~2**: WHEN `spec-proof-dp scan --budget 0` runs on a pytest project
   one of whose tests owns lines only once an earlier test of the session set
-  the state it reads, or on a Go project one of whose tests passes the changes
-  it runs only beside the test that seeds the state it reads, THE SYSTEM SHALL
+  the state it reads, on a Go project one of whose tests passes the changes it
+  runs only beside the test that seeds the state it reads, or on a Jest or a
+  Vitest project one of whose tests runs a function only once an earlier test
+  of its file set the state it reads, THE SYSTEM SHALL
   make no claim that the test verifies nothing; SHALL keep the claim of a test
   that verifies nothing alone and print the time of the confirmation; and
   SHALL write a statement the format accepts and replay its findings with
@@ -1838,3 +1850,78 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   every engine, count the units left out of the run, report that count in the
   footer of a scan, and still fail the run on any other mutant that does not
   splice.
+
+## Scan of Jest and Vitest suites
+
+- **SP-2292~1**: WHEN a scan runs a Jest or a Vitest suite THE SYSTEM SHALL run
+  each run as one process of the runner, Jest in band under the shipped test
+  environment and reporter, Vitest in one fork under the shipped runner and
+  configuration, coverage, bail and retries off and test files in path order;
+  name each test `file::titles`, its describe titles and its own joined by
+  ` > `; keep the tests of a selection alone, skipping every other test and
+  every describe block left with none; give a test whose test function fails
+  a failure, and give errored to a test whose hook fails, to a test that was
+  retried, to a test whose id another test shares, or for Jest equals another
+  ignoring case, and, in a run of a selection, to a test only the reporter saw;
+  give a test not started only when the run's global setup failed or the
+  test's file stopped before any of its tests began; and give the tests of a
+  process that timed out, and of every later run, timed out.
+- **SP-2293~1**: WHEN a scan records the coverage of a Jest or a Vitest test it
+  reads the owned lines of THE SYSTEM SHALL record the test alone in three
+  processes, each with V8 precise coverage through an inspector session of
+  its own; open the test's window before its first `beforeEach` hook and close
+  it when its test function settles; cut out of the window, as slices of
+  foreign origin, each callback whose async resource was created by setup
+  files, module evaluation, describe bodies or the `beforeAll`, `afterAll` and
+  `afterEach` hooks, and each callback of a fake timer pending when the window
+  opened or scheduled by such a slice; map each code unit of the generated
+  code past the runner's wrapper to a line of the project through the source
+  map that code carries, a unit that is whitespace or a brace holding no code;
+  own a line only when, in each of the three processes, every code unit of it
+  that ran counted in the window and in no slice of foreign origin, with the
+  same window counts in all three; and own nothing for a recording whose
+  window evaluated a module, a module's own function counting or a module
+  first counting there, whose window did not hold the start and the settling
+  of the test function, or in which the test did not pass.
+- **SP-2294~1**: WHEN a process of a Jest or a Vitest recording lacks a
+  precondition of SP-2293 THE SYSTEM SHALL give its fallback: without an
+  inspector session, record the test again through `NODE_V8_COVERAGE` and give
+  it every line of each project file one of whose functions counted, owning
+  nothing; without synchronous takes, open the window at the test function, so
+  that `beforeEach` is not owned, and read the window as without async hooks
+  that see the realm's promises, against three hollow runs of the test whose
+  test function does nothing, owning a line only when it ran more often in the
+  window than in the hollow runs, which agree with each other, and, when they
+  do not, owning nothing for a window in which a callback of foreign origin
+  ran; without a take that shows a module evaluated in the window, or with
+  function counts that may vanish between takes, own nothing; without
+  enumerable pending fake timers, own nothing for a test whose realm fakes
+  timers when its window opens; without the generated code and source map of a
+  module, map only a module whose code is its file byte for byte; and without
+  windows that bound a concurrent test, own nothing for a concurrent test.
+- **SP-2295~1**: WHEN a scan records the coverage of Jest or Vitest tests whose
+  owned lines it does not read THE SYSTEM SHALL run them in one process of
+  their files in path order and give each the lines its file's segment of that
+  process ran, from the file's start to the next file's, the process's
+  start-up included, owning none; SHALL report no line of a test file; and
+  SHALL read the counts of a process alike whether its takes reset the counts
+  or count from the start of the process.
+- **SP-2296~1**: WHEN a scan records the units the witnesses of a Jest or a
+  Vitest project run THE SYSTEM SHALL run each witness alone under the
+  coverage of SP-2293 and name the innermost definition of the project holding
+  each line it ran inside its window, a test file's aside.
+- **SP-2297~1**: WHEN a scan binds a definition of a Jest or a Vitest project
+  to the differential search THE SYSTEM SHALL bind a top-level function of a
+  source module to `path/file.ts:function` and no method, nested function,
+  declaration file or test file; SHALL write a repro that runs the one test
+  with `npx --no-install`, by its file and an anchored pattern over its full
+  title that accepts ` > ` or a space between titles; and SHALL refuse a
+  Vitest project that runs its tests in a browser, naming the reason.
+- **SP-2298~1**: WHEN a repository scan records the coverage of its tests THE
+  SYSTEM SHALL name the sampled tests as the owners whose owned lines it
+  reads, and a change scan, which samples once the coverage is recorded, SHALL
+  name every test it records.
+- **SP-2299~1**: WHEN a scan runs the jobs of a recording on its workers THE
+  SYSTEM SHALL run each job once on at most the given number of workers, at
+  least one, start no job once one has failed, and return that failure once
+  every started job has ended.
