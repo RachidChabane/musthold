@@ -36,7 +36,7 @@ spec-proof-dp scan
 ```
 
 `prove` exits 3 while tickets wait for the host. `scan` needs no spec and no
-configuration: it names the tests of any pytest or Go repository that still pass
+configuration: it names the tests of any pytest, Go, Jest or Vitest repository that still pass
 when the code they run is broken ([scan](../docs/usage/discpower.md#scan)). The full command set is in
 [commands](../docs/usage/commands.md).
 
