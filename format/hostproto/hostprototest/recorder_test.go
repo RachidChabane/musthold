@@ -1,4 +1,4 @@
-package main
+package hostprototest_test
 
 import (
 	"encoding/json"
@@ -42,7 +42,7 @@ func (f fixedSource) Answer(string, hostproto.ExecutorView) (string, error) { re
 func TestFirstOption(t *testing.T) {
 	t.Run("every question is answered with its first option at the stated confidence", func(t *testing.T) {
 		view := closedView(t, choiceQuestion("boundaries", firstChoice, otherChoice), choiceQuestion("permissions", otherChoice, firstChoice))
-		got, err := FirstOption{}.Answer(testPersona, view)
+		got, err := hostprototest.FirstOption{}.Answer(testPersona, view)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -54,7 +54,7 @@ func TestFirstOption(t *testing.T) {
 
 	t.Run("the answer is a document the closed members accept", func(t *testing.T) {
 		view := closedView(t, choiceQuestion("boundaries", firstChoice, otherChoice))
-		got, err := FirstOption{}.Answer(testPersona, view)
+		got, err := hostprototest.FirstOption{}.Answer(testPersona, view)
 		if err != nil || !json.Valid([]byte(got)) {
 			t.Fatalf("answer %q, error %v", got, err)
 		}
@@ -64,7 +64,7 @@ func TestFirstOption(t *testing.T) {
 		request := hostprototest.Request()
 		view := request.ViewFor(hostprototest.Ticket(request, 0, 1))
 		view.Closed = nil
-		if _, err := (FirstOption{}).Answer(testPersona, view); !errors.Is(err, ErrNoClosedQuestions) {
+		if _, err := (hostprototest.FirstOption{}).Answer(testPersona, view); !errors.Is(err, hostprototest.ErrNoClosedQuestions) {
 			t.Fatalf("error %v", err)
 		}
 	})
@@ -75,7 +75,7 @@ func TestRecorder(t *testing.T) {
 	view := request.ViewFor(hostprototest.Ticket(request, 0, 1))
 
 	t.Run("an answer is kept under the request of its ticket, trimmed", func(t *testing.T) {
-		recorder := NewRecorder(fixedSource(" {\"a\":1}\n"))
+		recorder := hostprototest.NewRecorder(fixedSource(" {\"a\":1}\n"))
 		if _, err := recorder.Answer(testPersona, view); err != nil {
 			t.Fatal(err)
 		}
@@ -85,7 +85,7 @@ func TestRecorder(t *testing.T) {
 	})
 
 	t.Run("the same answer twice is kept once", func(t *testing.T) {
-		recorder := NewRecorder(fixedSource("x"))
+		recorder := hostprototest.NewRecorder(fixedSource("x"))
 		for range 2 {
 			if _, err := recorder.Answer(testPersona, view); err != nil {
 				t.Fatal(err)
@@ -97,12 +97,12 @@ func TestRecorder(t *testing.T) {
 	})
 
 	t.Run("two different answers to one request are refused", func(t *testing.T) {
-		recorder := NewRecorder(fixedSource("x"))
+		recorder := hostprototest.NewRecorder(fixedSource("x"))
 		if _, err := recorder.Answer(testPersona, view); err != nil {
 			t.Fatal(err)
 		}
 		recorder.Source = fixedSource("y")
-		if _, err := recorder.Answer(testPersona, view); !errors.Is(err, ErrConflictingRecording) {
+		if _, err := recorder.Answer(testPersona, view); !errors.Is(err, hostprototest.ErrConflictingRecording) {
 			t.Fatalf("error %v", err)
 		}
 	})

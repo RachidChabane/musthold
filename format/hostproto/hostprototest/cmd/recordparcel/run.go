@@ -57,7 +57,7 @@ func moduleHosts() []moduleHost {
 	return []moduleHost{
 		{"spec-proof-dp", parcel.Oracle{}},
 		{"spec-proof-alignment", parcel.HonestAlignment()},
-		{"spec-proof-completeness", FirstOption{}},
+		{"spec-proof-completeness", hostprototest.FirstOption{}},
 	}
 }
 
@@ -147,7 +147,7 @@ func record(binaries, fixture, out string) (int, error) {
 	recorded := map[hostproto.RequestID]string{}
 	for _, host := range moduleHosts() {
 		runner := processRunner{binary: filepath.Join(binaries, host.binary), directory: tree, environment: environment}
-		recorder := NewRecorder(host.source)
+		recorder := hostprototest.NewRecorder(host.source)
 		if err := playModule(runner, recorder, filepath.Join(scratch, recordDirectory, host.binary), tree); err != nil {
 			return 0, fmt.Errorf("%s: %w", host.binary, err)
 		}
