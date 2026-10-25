@@ -3,6 +3,7 @@ package app_test
 import (
 	"errors"
 	"io/fs"
+	"maps"
 	"path"
 	"sync"
 	"testing"
@@ -13,7 +14,7 @@ import (
 )
 
 const (
-	verifiesArchiveContent = " [verifies SP-1805~2]"
+	verifiesArchiveContent = " [verifies SP-1805~3]"
 	buildCommit            = "4444444444444444444444444444444444444444"
 )
 
@@ -124,27 +125,17 @@ func containsEntry(entries []domain.ArchiveEntry, name, data string) bool {
 	return false
 }
 
-func withSources(base map[string]string, extra map[string]string) map[string]string {
-	merged := map[string]string{}
-	for name, data := range base {
-		merged[name] = data
-	}
-	for name, data := range extra {
-		merged[name] = data
-	}
-	return merged
-}
-
 func TestBuilderArchiveContent(t *testing.T) {
 	sources := map[string]string{
 		domain.LicenseFile:               "licence",
 		"discpower/" + domain.ReadmeFile: "readme",
+		domain.NoticeFile:                "notice",
 		domain.ThirdPartyNoticesFile:     "third party",
 		"script/install":                 "installer",
 	}
 
-	t.Run("every archive holds the NOTICE of the work when the repository root has one"+verifiesArchiveContent, func(t *testing.T) {
-		archiver, err := buildWith(t, withSources(sources, map[string]string{domain.NoticeFile: "notice"}))
+	t.Run("every archive holds the NOTICE and the third-party notices of the work"+verifiesArchiveContent, func(t *testing.T) {
+		archiver, err := buildWith(t, sources)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -158,20 +149,16 @@ func TestBuilderArchiveContent(t *testing.T) {
 		}
 	})
 
-	t.Run("an archive holds no NOTICE when the repository root has none"+verifiesArchiveContent, func(t *testing.T) {
-		archiver, err := buildWith(t, sources)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, entries := range archiver.entries {
-			if containsEntry(entries, domain.NoticeFile, "") || !containsEntry(entries, domain.ThirdPartyNoticesFile, "third party") {
-				t.Errorf("entries = %v", entryNames(entries))
-			}
+	t.Run("a build without the NOTICE fails"+verifiesArchiveContent, func(t *testing.T) {
+		without := maps.Clone(sources)
+		delete(without, domain.NoticeFile)
+		if _, err := buildWith(t, without); !errors.Is(err, fs.ErrNotExist) {
+			t.Fatalf("error = %v", err)
 		}
 	})
 
 	t.Run("a build without the third-party notices fails"+verifiesArchiveContent, func(t *testing.T) {
-		without := withSources(sources, nil)
+		without := maps.Clone(sources)
 		delete(without, domain.ThirdPartyNoticesFile)
 		if _, err := buildWith(t, without); !errors.Is(err, fs.ErrNotExist) {
 			t.Fatalf("error = %v", err)

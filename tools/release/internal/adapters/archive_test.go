@@ -15,14 +15,14 @@ import (
 	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
 )
 
-const verifiesArchive = " [verifies SP-1805~2]"
+const verifiesArchive = " [verifies SP-1805~3]"
 
 var archiveTime = time.Unix(1_700_000_000, 0).UTC()
 
 func sampleEntries(target domain.Target) []domain.ArchiveEntry {
 	return domain.ArchiveEntries(target, "tool", domain.ArchiveContent{
 		Binary: bytes.Repeat([]byte("binary "), 500), License: []byte("licence\n"), Readme: []byte("readme\n"),
-		Notice: []byte("notice\n"), HasNotice: true, ThirdPartyNotices: []byte("third party\n"),
+		Notice: []byte("notice\n"), ThirdPartyNotices: []byte("third party\n"),
 	})
 }
 
@@ -59,7 +59,7 @@ func TestArchivePacker(t *testing.T) {
 			target := rapid.SampledFrom(domain.Targets()).Draw(t, "target")
 			entries := domain.ArchiveEntries(target, "tool", domain.ArchiveContent{
 				Binary: rapid.SliceOf(rapid.Byte()).Draw(t, "binary"), License: rapid.SliceOf(rapid.Byte()).Draw(t, "licence"), Readme: rapid.SliceOf(rapid.Byte()).Draw(t, "readme"),
-				Notice: rapid.SliceOf(rapid.Byte()).Draw(t, "notice"), HasNotice: rapid.Bool().Draw(t, "has notice"),
+				Notice:            rapid.SliceOf(rapid.Byte()).Draw(t, "notice"),
 				ThirdPartyNotices: rapid.SliceOf(rapid.Byte()).Draw(t, "third party notices"),
 			})
 			if !bytes.Equal(packFor(t, target, entries, archiveTime), packFor(t, target, entries, archiveTime)) {

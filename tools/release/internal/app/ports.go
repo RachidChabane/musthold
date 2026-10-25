@@ -70,7 +70,6 @@ type BinaryInspector interface {
 // Files reads and writes the files of the release: sources, the staging area and
 // the dist directory.
 type Files interface {
-	FilePresence
 	ReadFile(path string) ([]byte, error)
 	WriteFile(path string, data []byte, mode int64) error
 	RemoveAll(path string) error

@@ -35,8 +35,7 @@ go install github.com/RachidChabane/spec-proof/discpower/cmd/spec-proof-dp@v0.2.
      `plugin.Version` for `s1relay`, `umbrella.Version` for `umbrella`);
    - run `make plugin-gen` and commit what it changes: it writes the plugin manifests
      and, in the root marketplace, the `"ref": "<module>/vX.Y.Z"` of every module
-     plugin, taken from the version in that module's plugin manifest;
-   - name the copyright holder in `NOTICE` in place of `[COPYRIGHT HOLDER]`.
+     plugin, taken from the version in that module's plugin manifest.
 2. Rehearse it: `make release-dry-run TAG=<module>/vX.Y.Z`. The report lists what a
    real release would refuse. Fix those findings.
 3. Tag `format` first when the module requires a newer one, push the tag and let
@@ -55,8 +54,7 @@ which holds the `NOTICE` with its copyright holder, the `go.mod` files that requ
 plugin. Run the commands from a clone of the public repository whose `main` is that
 commit. Each command pushes named tags; `--tags` is never used.
 
-1. Name the holder: replace `[COPYRIGHT HOLDER]` in `NOTICE`, commit and push.
-2. Tag `format` and rehearse it:
+1. Tag `format` and rehearse it:
 
    ```
    git tag format/v0.1.0
@@ -64,7 +62,7 @@ commit. Each command pushes named tags; `--tags` is never used.
    ```
 
    The report lists no finding.
-3. Push the tag and wait until its release workflow succeeds:
+2. Push the tag and wait until its release workflow succeeds:
 
    ```
    git push origin format/v0.1.0
@@ -74,7 +72,7 @@ commit. Each command pushes named tags; `--tags` is never used.
    `go install` fail in every other module, because its `go.mod` requires that
    version and no `replace` rule points at `../format`. The workspace (`go.work`)
    keeps development and the gates working.
-4. Tag the other modules on the same commit. The marketplace pins every plugin of
+3. Tag the other modules on the same commit. The marketplace pins every plugin of
    this repository to its tag, and the pre-flight of a plugin release requires each
    of those tags to exist, so all of them are created before any is pushed:
 
@@ -83,7 +81,7 @@ commit. Each command pushes named tags; `--tags` is never used.
      git tag "$module/v0.1.0"
    done
    ```
-5. Rehearse each one; the report lists no finding:
+4. Rehearse each one; the report lists no finding:
 
    ```
    make release-dry-run TAG=discpower/v0.1.0
@@ -91,7 +89,7 @@ commit. Each command pushes named tags; `--tags` is never used.
 
    Repeat for `ledger`, `verify`, `alignment`, `completeness`, `s1relay` and
    `umbrella`.
-6. Push the tags in one command; each starts its own release workflow:
+5. Push the tags in one command; each starts its own release workflow:
 
    ```
    git push origin ledger/v0.1.0 verify/v0.1.0 discpower/v0.1.0 alignment/v0.1.0 \
@@ -179,10 +177,10 @@ Each binary is built with `GOWORK=off CGO_ENABLED=0 GOTOOLCHAIN=go1.26.4
 GOFLAGS=-mod=readonly` and `go build -trimpath -buildvcs=false -ldflags "-s -w
 -buildid= -X main.version=<semver> -X main.commit=<sha>"`. An archive is
 `<bin>_<semver>_<os>_<arch>.tar.gz`, or `.zip` for Windows, and holds the binary,
-`LICENSE`, `README.md`, `THIRD_PARTY_NOTICES.md` and, when the repository root has
-a `NOTICE` file, `NOTICE` (Apache-2.0 section 4(d)). Its entries are sorted, with
-fixed modes, owner root and the commit time. `verify-dist` expects `NOTICE` in an
-archive exactly when the repository root has it. `SHA256SUMS` lists the archives, their SPDX 2.3 SBOMs
+`LICENSE`, `README.md`, `NOTICE` (Apache-2.0 section 4(d)) and
+`THIRD_PARTY_NOTICES.md`. Its entries are sorted, with fixed modes, owner root and
+the commit time. A build fails when the repository root lacks `NOTICE`, and
+`verify-dist` requires all five entries in every archive. `SHA256SUMS` lists the archives, their SPDX 2.3 SBOMs
 (`<archive>.spdx.json`) and the installer.
 
 ## Install a release

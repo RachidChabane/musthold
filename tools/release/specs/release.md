@@ -34,10 +34,9 @@ the network.
   `-trimpath`, no VCS stamping and link flags that strip the binary, drop the build
   id and link the version and the commit, dropping the caller's own values of
   those variables.
-- **SP-1805~2**: WHEN an archive is written THE SYSTEM SHALL list the binary, the
-  licence, the README, the third-party notices and, when the repository root has
-  a NOTICE file, the NOTICE, sorted by name with fixed modes, owner root and the
-  commit time, and no name or time in the compression header, so that writing it
+- **SP-1805~3**: WHEN an archive is written THE SYSTEM SHALL list the binary, the
+  licence, the README, the NOTICE, the third-party notices, sorted by name with
+  fixed modes, owner root and the commit time, and no name or time in the compression header, so that writing it
   twice gives the same bytes and the extracted tree equals the entries given.
 - **SP-1806~1**: WHEN checksums are rendered THE SYSTEM SHALL write
   `<sha256>  <name>` lines sorted by name that `sha256sum -c` accepts, and

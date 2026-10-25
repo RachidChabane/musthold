@@ -11,18 +11,18 @@ import (
 
 const (
 	verifiesDist      = " [verifies SP-1818~1]"
-	verifiesArchiving = " [verifies SP-1805~2]"
+	verifiesArchiving = " [verifies SP-1805~3]"
 	distCommit        = "3333333333333333333333333333333333333333"
 )
 
 // validDist builds the facts of a dist directory that holds exactly the release of
 // a tag for the targets.
-func validDist(t *testing.T, tagText string, targets []domain.Target, hasNotice bool) domain.DistFacts {
+func validDist(t *testing.T, tagText string, targets []domain.Target) domain.DistFacts {
 	t.Helper()
 	tag := mustTag(t, tagText)
 	module := tag.Module
 	instant := domain.CommitTime(1_700_000_000)
-	facts := domain.DistFacts{Tag: tag, Commit: distCommit, CommitTime: instant, Targets: targets, HasNotice: hasNotice, Files: map[string]domain.DistFile{}}
+	facts := domain.DistFacts{Tag: tag, Commit: distCommit, CommitTime: instant, Targets: targets, Files: map[string]domain.DistFile{}}
 	var sums []domain.Checksum
 	add := func(name string, file domain.DistFile) {
 		file.Digest = domain.DigestOf([]byte(name))
@@ -32,7 +32,7 @@ func validDist(t *testing.T, tagText string, targets []domain.Target, hasNotice 
 	for _, target := range targets {
 		archive := target.ArchiveName(module.Binary, tag.Version)
 		var entries []domain.EntryFacts
-		for _, name := range domain.ExpectedEntryNames(target, module.Binary, hasNotice) {
+		for _, name := range domain.ExpectedEntryNames(target, module.Binary) {
 			mode := domain.FileMode
 			if name == target.ExecutableName(module.Binary) {
 				mode = domain.ExecutableMode
@@ -77,13 +77,13 @@ func TestVerifyDist(t *testing.T) {
 	targets := linuxAndWindows(t)
 
 	t.Run("a dist directory that holds exactly the release has no finding"+verifiesDist, func(t *testing.T) {
-		if findings := domain.VerifyDist(validDist(t, "discpower/v0.2.0", targets, false)); len(findings) != 0 {
+		if findings := domain.VerifyDist(validDist(t, "discpower/v0.2.0", targets)); len(findings) != 0 {
 			t.Fatalf("findings = %v", findings)
 		}
 	})
 
 	t.Run("the signature bundle and the formula may sit beside the release files"+verifiesDist, func(t *testing.T) {
-		facts := validDist(t, "discpower/v0.2.0", targets, false)
+		facts := validDist(t, "discpower/v0.2.0", targets)
 		facts.Files[domain.SignatureBundleName] = domain.DistFile{}
 		facts.Files[domain.FormulaFileName("spec-proof-dp")] = domain.DistFile{}
 		if findings := domain.VerifyDist(facts); len(findings) != 0 {
@@ -91,30 +91,19 @@ func TestVerifyDist(t *testing.T) {
 		}
 	})
 
-	t.Run("a dist directory of a work with a NOTICE holds it in every archive"+verifiesArchiving, func(t *testing.T) {
-		if findings := domain.VerifyDist(validDist(t, "discpower/v0.2.0", targets, true)); len(findings) != 0 {
-			t.Fatalf("findings = %v", findings)
-		}
-	})
-
-	t.Run("an archive that lacks the NOTICE of the work is a finding"+verifiesArchiving, func(t *testing.T) {
-		facts := validDist(t, "discpower/v0.2.0", targets, false)
-		facts.HasNotice = true
-		if findings := domain.VerifyDist(facts); !anyFinding(findings, "NOTICE") {
-			t.Fatalf("findings = %v", findings)
-		}
-	})
-
-	t.Run("an archive that holds a NOTICE the work does not have is a finding"+verifiesArchiving, func(t *testing.T) {
-		facts := validDist(t, "discpower/v0.2.0", targets, true)
-		facts.HasNotice = false
-		if findings := domain.VerifyDist(facts); !anyFinding(findings, "NOTICE") {
+	t.Run("an archive that lacks the NOTICE is a finding"+verifiesArchiving, func(t *testing.T) {
+		facts := validDist(t, "discpower/v0.2.0", targets)
+		name := targets[0].ArchiveName("spec-proof-dp", facts.Tag.Version)
+		file := facts.Files[name]
+		file.Entries = slices.DeleteFunc(slices.Clone(file.Entries), func(entry domain.EntryFacts) bool { return entry.Name == domain.NoticeFile })
+		facts.Files[name] = file
+		if findings := domain.VerifyDist(facts); !anyFinding(findings, domain.NoticeFile) {
 			t.Fatalf("findings = %v", findings)
 		}
 	})
 
 	t.Run("an archive that lacks the third-party notices is a finding"+verifiesArchiving, func(t *testing.T) {
-		facts := validDist(t, "discpower/v0.2.0", targets, false)
+		facts := validDist(t, "discpower/v0.2.0", targets)
 		name := targets[0].ArchiveName("spec-proof-dp", facts.Tag.Version)
 		file := facts.Files[name]
 		file.Entries = slices.DeleteFunc(slices.Clone(file.Entries), func(entry domain.EntryFacts) bool { return entry.Name == domain.ThirdPartyNoticesFile })
@@ -225,7 +214,7 @@ func TestVerifyDist(t *testing.T) {
 	}
 	for name, mutation := range mutations {
 		t.Run("the check finds "+name+verifiesDist, func(t *testing.T) {
-			facts := validDist(t, "discpower/v0.2.0", targets, false)
+			facts := validDist(t, "discpower/v0.2.0", targets)
 			mutation.change(&facts)
 			findings := domain.VerifyDist(facts)
 			if !anyFinding(findings, mutation.fragment) {
@@ -243,10 +232,8 @@ func TestVerifyDist(t *testing.T) {
 func TestArchiveEntries(t *testing.T) {
 	content := domain.ArchiveContent{
 		Binary: []byte("binary"), License: []byte("licence"), Readme: []byte("readme"),
-		Notice: []byte("notice"), HasNotice: true, ThirdPartyNotices: []byte("third party"),
+		Notice: []byte("notice"), ThirdPartyNotices: []byte("third party"),
 	}
-	withoutNotice := content
-	withoutNotice.HasNotice = false
 
 	t.Run("an archive lists the binary, the licence, the README, the NOTICE and the third-party notices sorted by name with fixed modes"+verifiesArchiving, func(t *testing.T) {
 		for _, target := range domain.Targets() {
@@ -262,22 +249,10 @@ func TestArchiveEntries(t *testing.T) {
 					t.Errorf("%s %s: mode %o", target, entry.Name, entry.Mode)
 				}
 			}
-			want := domain.ExpectedEntryNames(target, "tool", true)
+			want := domain.ExpectedEntryNames(target, "tool")
 			wantOrder := []string{"LICENSE", "NOTICE", "README.md", "THIRD_PARTY_NOTICES.md", target.ExecutableName("tool")}
 			if !slices.Equal(names, want) || !slices.Equal(names, wantOrder) {
 				t.Errorf("%s: names %v, want %v", target, names, wantOrder)
-			}
-		}
-	})
-
-	t.Run("an archive of a work with no NOTICE holds no NOTICE entry"+verifiesArchiving, func(t *testing.T) {
-		for _, target := range domain.Targets() {
-			var names []string
-			for _, entry := range domain.ArchiveEntries(target, "tool", withoutNotice) {
-				names = append(names, entry.Name)
-			}
-			if want := domain.ExpectedEntryNames(target, "tool", false); !slices.Equal(names, want) || slices.Contains(names, domain.NoticeFile) {
-				t.Errorf("%s: names %v, want %v", target, names, want)
 			}
 		}
 	})

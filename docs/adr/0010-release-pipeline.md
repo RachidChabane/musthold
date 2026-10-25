@@ -86,8 +86,8 @@ The judge checked the decisive claims against GoReleaser's source:
    - Command: `go build -trimpath -buildvcs=false -ldflags "-s -w -buildid= -X
      main.version=<semver> -X main.commit=<sha>"`.
    - Archives are named `<bin>_<semver>_<os>_<arch>.tar.gz`, or `.zip` for
-     Windows. They hold the binary, `LICENSE`, `README.md`,
-     `THIRD_PARTY_NOTICES.md` and, when the repository root has one, `NOTICE`.
+     Windows. They hold the binary, `LICENSE`, `README.md`, `NOTICE` and
+     `THIRD_PARTY_NOTICES.md`.
    - Archive entries are sorted, with fixed modes, uid and gid 0, and the
      commit's time.
 6. **Workflow `release.yml`.**
