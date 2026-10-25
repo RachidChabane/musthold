@@ -129,7 +129,8 @@ A ticket is `<requestId>.<vote>.<emission>`.
   outside an executor is journaled as `exposed`.
 - `submit` reads the JSON answer from standard input and prints a receipt. A
   schema violation is reported back and one correction is allowed. A different
-  second answer for an accepted ticket is refused as `resubmission_conflict`.
+  second answer for an accepted ticket is refused as `resubmission_conflict`. An
+  answer submitted outside an executor is journaled as `exposed`.
 
 While attestation is required, `show` and `submit` need a capability that only a
 harness hook issues. These commands exist for scripts, the relay, test fakes and
