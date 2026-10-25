@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# PREREG 4: the blind oracle and the held-out violations on every counted run; refuses before the run phase ends.
+# Usage: script/oracle [ARGS...]
+set -euo pipefail
+# shellcheck source=experiments/loop-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+loop1_heavy oracle "$@"

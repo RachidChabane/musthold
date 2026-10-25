@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Shared by the experiments/loop-1/script/<verb> front door; source it, never run it.
+#
+# A verb runs as `spec-proof-demo-loop <verb> --config experiments/loop-1/loop-1.json --work $LOOP1_WORK`,
+# from the repository root. The runner is built from tools/canary into .tools/bin. Heavy verbs go through
+# script/mem-guard run, which applies nice and refuses to start, or stops, when the laptop's free memory or
+# pressure level is not safe. $LOOP1_WORK (default ~/.spec-proof-loop-1) holds every raw record.
+
+LOOP1_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "${LOOP1_DIR}/../.." && pwd)"
+RUNNER="${REPO_ROOT}/.tools/bin/spec-proof-demo-loop"
+MEM_GUARD="${REPO_ROOT}/script/mem-guard"
+CONFIG="${LOOP1_CONFIG:-${LOOP1_DIR}/loop-1.json}"
+WORK="${LOOP1_WORK:-${HOME}/.spec-proof-loop-1}"
+readonly LOOP1_DIR REPO_ROOT RUNNER MEM_GUARD CONFIG WORK
+readonly BUILD_PROCS=1 BUILD_GOMAXPROCS=2 BUILD_NICE=10
+
+# build_runner: compile the runner from tools/canary, one job at a time.
+build_runner() {
+  mkdir -p "$(dirname "${RUNNER}")"
+  GOMAXPROCS="${BUILD_GOMAXPROCS}" nice -n "${BUILD_NICE}" \
+    go build -C "${REPO_ROOT}/tools/canary" -p "${BUILD_PROCS}" -o "${RUNNER}" ./cmd/spec-proof-demo-loop
+}
+
+# loop1_light VERB ARGS...: a short verb that needs no memory guard.
+loop1_light() {
+  build_runner
+  cd "${REPO_ROOT}" || return
+  nice -n "${BUILD_NICE}" "${RUNNER}" "$1" --config "${CONFIG}" --work "${WORK}" "${@:2}"
+}
+
+# loop1_heavy VERB ARGS...: a long or memory-hungry verb, guarded.
+loop1_heavy() {
+  build_runner
+  cd "${REPO_ROOT}" || return
+  "${MEM_GUARD}" run -- "${RUNNER}" "$1" --config "${CONFIG}" --work "${WORK}" "${@:2}"
+}

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# PREREG 13.4: freeze/inputs.json and freeze/inputs-SHA256SUMS.
+# Usage: script/resolve [ARGS...]
+set -euo pipefail
+# shellcheck source=experiments/loop-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+loop1_light resolve "$@"

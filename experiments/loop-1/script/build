@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# PREREG 2, 7.2: the linux product binaries, the runner and the plugin trees, then the image, from source images resolved to digests.
+# Usage: script/build [ARGS...]
+set -euo pipefail
+# shellcheck source=experiments/loop-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+loop1_heavy build "$@"

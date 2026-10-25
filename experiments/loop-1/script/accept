@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# PREREG 3.4: checks A1 to A9 of every task, each executed check three times in an offline container.
+# Usage: script/accept [ARGS...]
+set -euo pipefail
+# shellcheck source=experiments/loop-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+loop1_heavy accept "$@"

@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""PREREG 10.6: power of the primary test of loop-1, printed as a Markdown table.
+
+The primary test is the exact stratified permutation test of PREREG 10.2: tasks are
+strata, the statistic is the number of escapes in the treatment arm, and its null
+distribution permutes the arm labels within each task with each task's escape total
+fixed. The companion is the exact one-sided sign test over tasks on the per-task
+difference of escapes. Escape rates are the same in every task. The draws use a fixed
+seed, so every run prints the same table.
+
+Usage: script/power
+"""
+
+import math
+import random
+
+TASKS = 6
+RUNS_PER_ARM = 3
+ALPHA = 0.05
+DRAWS = 20_000
+SEED = 20261025
+# (control rate, treatment rate), in the order of the table.
+SCENARIOS = (
+    (0.50, 0.00),
+    (0.50, 0.10),
+    (0.50, 0.20),
+    (0.40, 0.10),
+    (0.33, 0.00),
+    (0.30, 0.10),
+    (0.20, 0.00),
+    (0.20, 0.05),
+    (0.10, 0.00),
+)
+NULL_RATES = (0.20, 0.50)
+
+
+def hypergeometric(escapes: int) -> dict[int, float]:
+    """Distribution of the treatment escapes of one task with `escapes` in all."""
+    runs = 2 * RUNS_PER_ARM
+    total = math.comb(runs, RUNS_PER_ARM)
+    low, high = max(0, escapes - RUNS_PER_ARM), min(escapes, RUNS_PER_ARM)
+    return {
+        treated: math.comb(escapes, treated) * math.comb(runs - escapes, RUNS_PER_ARM - treated) / total
+        for treated in range(low, high + 1)
+    }
+
+
+def convolve(left: dict[int, float], right: dict[int, float]) -> dict[int, float]:
+    out: dict[int, float] = {}
+    for a, p in left.items():
+        for b, q in right.items():
+            out[a + b] = out.get(a + b, 0.0) + p * q
+    return out
+
+
+def stratified_p_less(totals: list[int], treated: int) -> float:
+    """P(treatment escapes <= observed) under the within-task permutation null."""
+    distribution = {0: 1.0}
+    for escapes in totals:
+        distribution = convolve(distribution, hypergeometric(escapes))
+    return sum(p for value, p in distribution.items() if value <= treated)
+
+
+def sign_p(differences: list[int]) -> float:
+    """One-sided exact sign test: control has more escapes than treatment."""
+    informative = [d for d in differences if d != 0]
+    if not informative:
+        return 1.0
+    favourable = sum(1 for d in informative if d > 0)
+    n = len(informative)
+    return sum(math.comb(n, k) for k in range(favourable, n + 1)) / 2**n
+
+
+def draw(rng: random.Random, control: float, treatment: float) -> tuple[list[int], int, list[int]]:
+    totals, treated_sum, differences = [], 0, []
+    for _ in range(TASKS):
+        c = sum(rng.random() < control for _ in range(RUNS_PER_ARM))
+        t = sum(rng.random() < treatment for _ in range(RUNS_PER_ARM))
+        totals.append(c + t)
+        treated_sum += t
+        differences.append(c - t)
+    return totals, treated_sum, differences
+
+
+def main() -> None:
+    rng = random.Random(SEED)
+    print("| Escape rate, control | Escape rate, treatment | Power, stratified exact test | Power, sign test over tasks |")
+    print("|---|---|---|---|")
+    for control, treatment in SCENARIOS:
+        stratified = signed = 0
+        for _ in range(DRAWS):
+            totals, treated, differences = draw(rng, control, treatment)
+            stratified += stratified_p_less(totals, treated) <= ALPHA
+            signed += sign_p(differences) <= ALPHA
+        print(f"| {control:.2f} | {treatment:.2f} | {stratified / DRAWS:.2f} | {signed / DRAWS:.2f} |")
+    print()
+    for rate in NULL_RATES:
+        rejected = 0
+        for _ in range(DRAWS):
+            totals, treated, _ = draw(rng, rate, rate)
+            rejected += stratified_p_less(totals, treated) <= ALPHA
+        print(f"size of the stratified exact test at rate {rate:.2f} in both arms: {rejected / DRAWS:.3f}")
+    print(f"({TASKS} tasks, {RUNS_PER_ARM} runs per arm, one-sided alpha {ALPHA}, {DRAWS} draws, seed {SEED})")
+
+
+if __name__ == "__main__":
+    main()

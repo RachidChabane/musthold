@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# PREREG 13.3: canary sessions C1 to C3, inside the nightly window; they spend model quota.
+# Usage: script/canary [ARGS...]
+set -euo pipefail
+# shellcheck source=experiments/loop-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+loop1_heavy canary "$@"

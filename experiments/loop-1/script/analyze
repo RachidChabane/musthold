@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# PREREG 10, 11: the decisions, results/summary.json and results/REPORT.md; refuses before the run phase ends.
+# Usage: script/analyze [ARGS...]
+set -euo pipefail
+# shellcheck source=experiments/loop-1/script/_lib
+source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+loop1_light analyze "$@"
