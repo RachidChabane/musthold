@@ -7,6 +7,7 @@ package e2e_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"os/exec"
@@ -15,6 +16,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/RachidChabane/spec-proof/discpower/internal/testkit/nodeinstall"
 )
 
 // Locations and names the end-to-end tests use.
@@ -132,6 +135,48 @@ func newProject(t *testing.T) *project {
 	}
 	copyTree(t, filepath.Join(abs(t, discpowerDir), fixtureProject), p.root)
 	return p
+}
+
+// The Node projects the end-to-end tests copy, whose dependencies are those
+// of an installed ecosystem fixture of their runner.
+const (
+	nodeManifest      = "package.json"
+	nodeModulesDir    = "node_modules"
+	ecosystemFixtures = "fixtures/ecosystems"
+)
+
+// nodeRunners are the runners a Node project's dev dependencies name, each
+// with the ecosystem fixture whose installed dependencies it shares.
+var nodeRunners = []string{"jest", "vitest"}
+
+// linkNodeModules links the node_modules of a copied Node project to those
+// installed for the ecosystem fixture of its runner; a tree with no
+// package.json, or none that names a runner, is left as it is.
+func linkNodeModules(t *testing.T, root string) {
+	t.Helper()
+	content, err := os.ReadFile(filepath.Join(root, nodeManifest))
+	if errors.Is(err, os.ErrNotExist) {
+		return
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest struct {
+		DevDependencies map[string]string `json:"devDependencies"`
+	}
+	if err := json.Unmarshal(content, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	for _, runner := range nodeRunners {
+		if _, depends := manifest.DevDependencies[runner]; !depends {
+			continue
+		}
+		installed := nodeinstall.Installed(t, filepath.Join(abs(t, discpowerDir), ecosystemFixtures, runner))
+		if err := os.Symlink(filepath.Join(installed, nodeModulesDir), filepath.Join(root, nodeModulesDir)); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
 }
 
 func copyTree(t *testing.T, from, to string) {

@@ -81,6 +81,7 @@ func newHostRepository(t *testing.T, fixture string) *hostRepository {
 		}
 	}
 	copyTree(t, filepath.Join(abs(t, discpowerDir), fixture), r.root)
+	linkNodeModules(t, r.root)
 	r.git("init", "-q", "-b", "main")
 	r.commit("first")
 	return r

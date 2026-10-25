@@ -14,7 +14,11 @@ import (
 const (
 	goReceiptsFixture     = "fixtures/scan/go-receipts"
 	pytestReceiptsFixture = "fixtures/scan/pytest-receipts"
-	verifiesOwnershipE2E  = " [verifies SP-2143~2]"
+	jestReceiptsFixture   = "fixtures/scan/jest-receipts"
+	vitestReceiptsFixture = "fixtures/scan/vitest-receipts"
+	vacuousNodeFormat     = "test/format.test.ts::format accepts any amount"
+	sharedNodeBatch       = "test/archive.test.ts::a batch > holds two entries"
+	verifiesOwnershipE2E  = " [verifies SP-2143~3]"
 )
 
 // ownershipCase is a project of the receipts fixtures: the test that verifies
@@ -34,6 +38,8 @@ func TestScanClaimsOnlyTheLinesATestOwns(t *testing.T) {
 			name: "pytest", fixture: pytestReceiptsFixture, tool: "python3",
 			vacuous: "tests/test_format.py::test_format_accepts_any_amount", shared: "tests/test_archive.py::test_batch_holds_two_entries",
 		},
+		{name: "jest", fixture: jestReceiptsFixture, tool: nodeTool, vacuous: vacuousNodeFormat, shared: sharedNodeBatch},
+		{name: "vitest", fixture: vitestReceiptsFixture, tool: nodeTool, vacuous: vacuousNodeFormat, shared: sharedNodeBatch},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if _, err := exec.LookPath(c.tool); err != nil {

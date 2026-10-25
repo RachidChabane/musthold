@@ -16,7 +16,11 @@ import (
 const (
 	goStartUpFixture     = "fixtures/scan/go-rates"
 	pytestStartUpFixture = "fixtures/scan/pytest-rates"
-	verifiesStartUpE2E   = " [verifies SP-2136~1]"
+	jestStartUpFixture   = "fixtures/scan/jest-rates"
+	vitestStartUpFixture = "fixtures/scan/vitest-rates"
+	vacuousNodeFare      = "test/billing.test.ts::total accepts any fare"
+	stoppedNodeFare      = "test/billing.test.ts::total adds the standard rate"
+	verifiesStartUpE2E   = " [verifies SP-2136~2]"
 	stoppedSuffix        = " more stopped it from starting"
 	stoppedLine          = " proven changes in lines it ran stopped it from starting; they count neither way"
 	ratesFile            = "rates/rates.go"
@@ -64,6 +68,8 @@ func TestScanSetsApartChangesThatStopATest(t *testing.T) {
 			name: "pytest", fixture: pytestStartUpFixture, tool: "python3",
 			vacuous: "tests/test_billing.py::test_total_accepts_any_fare", stopped: "tests/test_billing.py::test_total_adds_the_standard_rate",
 		},
+		{name: "jest", fixture: jestStartUpFixture, tool: nodeTool, vacuous: vacuousNodeFare, stopped: stoppedNodeFare},
+		{name: "vitest", fixture: vitestStartUpFixture, tool: nodeTool, vacuous: vacuousNodeFare, stopped: stoppedNodeFare},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			if _, err := exec.LookPath(c.tool); err != nil {
