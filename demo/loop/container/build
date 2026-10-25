@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# Build what a live run of the agent loop mounts and runs, on the demonstration's
+# engine, which must run (demo/loop/container/engine start):
+#
+#   demo/loop/container/build product   the Linux binaries, built in the pinned Go
+#                                       image from the working tree (its tracked and unignored files) and the
+#                                       pinned Shallnot; the Linux Claude Code CLI of
+#                                       script/claude-code.pin; the plugin trees; the
+#                                       files of the container test of the fixture
+#   demo/loop/container/build image     the session image, from the pinned base
+#
+# Both write into .tools/demo-loop/product, the tree every container mounts
+# read-only; BUILD.json records what was built and the SHA-256 of each binary, and
+# IMAGE the image's id.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/../../.."
+
+readonly HERE="demo/loop/container"
+readonly DOCKER="${HERE}/docker"
+readonly PRODUCT=".tools/demo-loop/product"
+readonly STAGE=".tools/demo-loop/work/build"
+readonly IMAGE_NAME="spec-proof-demo-loop-session"
+readonly EXIT_USAGE=64
+# shellcheck source=demo/loop/container/images
+source "${HERE}/images"
+
+sha256_of() { shasum -a 256 "$1" | awk '{print $1}'; }
+
+stage_sources() {
+  rm -rf "${STAGE}/src" "${STAGE}/shallnot" "${STAGE}/out"
+  mkdir -p "${STAGE}/src" "${STAGE}/shallnot" "${STAGE}/out" "${STAGE}/cache"
+  git ls-files -z --cached --others --exclude-standard | tar --null -T - -c -f - | tar -x -C "${STAGE}/src"
+  git -C "$(script/shallnot-src)" archive "${SHALLNOT_PIN}" | tar -x -C "${STAGE}/shallnot"
+}
+
+product() {
+  SHALLNOT_PIN="$(tr -d '[:space:]' <script/shallnot.pin)"
+  ./script/mem-guard check
+  stage_sources
+  local stage
+  stage="$(cd "${STAGE}" && pwd -P)"
+  "${DOCKER}" run --rm --user "$(id -u):$(id -g)" --cpus 2 --memory 2560m --memory-swap 2560m \
+    --mount "type=bind,source=${stage},target=${stage}" --workdir "${stage}/src" \
+    --env HOME="${stage}/cache/home" --env GOCACHE="${stage}/cache/go-build" --env GOMODCACHE="${stage}/cache/go-mod" \
+    --env GOFLAGS=-modcacherw "${GO_IMAGE}" \
+    bash "${HERE}/build-linux" "${stage}/out" "${stage}/shallnot" "${SHALLNOT_PIN}"
+  local claude
+  claude="$(script/claude-code-install --linux arm64 | tail -n 1)"
+  rm -rf "${PRODUCT:?}/bin" "${PRODUCT:?}/plugins" "${PRODUCT:?}/claude" "${PRODUCT:?}/tests"
+  mkdir -p "${PRODUCT}/bin" "${PRODUCT}/plugins" "${PRODUCT}/claude"
+  cp "${stage}/out/"* "${PRODUCT}/bin/"
+  install -m 0755 "${claude}" "${PRODUCT}/claude/claude"
+  for module in discpower alignment completeness; do
+    mkdir -p "${PRODUCT}/plugins/${module}/plugin"
+    cp -R "${stage}/src/${module}/plugin/claude" "${PRODUCT}/plugins/${module}/plugin/claude"
+  done
+  cp -R "${stage}/src/umbrella/plugins/spec-proof" "${PRODUCT}/plugins/spec-proof"
+  stage_tests "${stage}/src"
+  write_build_record "$(git rev-parse HEAD)$(git diff --quiet HEAD -- || echo -dirty)"
+  echo "build: product in ${PRODUCT}"
+}
+
+# stage_tests copies what the container test of the fixture reads, at the paths it reads them from.
+stage_tests() {
+  local src="$1" tests="${PRODUCT}/tests"
+  mkdir -p "${tests}/demo/loop" "${tests}/tools/canary/internal/demoloop/fixturegate"
+  cp "${src}/demo/loop/demo.json" "${tests}/demo/loop/"
+  cp -R "${src}/demo/loop/fixture" "${tests}/demo/loop/fixture"
+  cp -R "${src}/tools/canary/internal/demoloop/fixturegate/testdata" "${tests}/tools/canary/internal/demoloop/fixturegate/testdata"
+}
+
+write_build_record() {
+  {
+    printf '{\n  "commit": "%s",\n  "shallnotPin": "%s",\n  "goImage": "%s",\n  "sha256": {\n' "$1" "${SHALLNOT_PIN}" "${GO_IMAGE}"
+    local first=1 file
+    for file in "${PRODUCT}"/bin/* "${PRODUCT}/claude/claude"; do
+      ((first)) || printf ',\n'
+      first=0
+      printf '    "%s": "%s"' "${file#"${PRODUCT}"/}" "$(sha256_of "${file}")"
+    done
+    printf '\n  }\n}\n'
+  } >"${PRODUCT}/BUILD.json"
+}
+
+image() {
+  ./script/mem-guard check
+  local tag
+  tag="${IMAGE_NAME}:$(cat "${HERE}/Dockerfile" "${HERE}/images" | shasum -a 256 | cut -c1-12)"
+  "${DOCKER}" build --quiet --build-arg BASE_IMAGE="${BASE_IMAGE}" --build-arg PYTEST_VERSION="${PYTEST_VERSION}" \
+    --tag "${tag}" --file "${HERE}/Dockerfile" "${HERE}" >/dev/null
+  mkdir -p "${PRODUCT}"
+  "${DOCKER}" image inspect --format '{{.Id}}' "${tag}" >"${PRODUCT}/IMAGE"
+  echo "build: image ${tag} $(cat "${PRODUCT}/IMAGE")"
+}
+
+case "${1:-}" in
+  product) product ;;
+  image) image ;;
+  *)
+    sed -n '2,15p' "${BASH_SOURCE[0]}" >&2
+    exit "${EXIT_USAGE}"
+    ;;
+esac

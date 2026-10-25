@@ -1,0 +1,6 @@
+# The pinned images of the agent-loop demonstration, sourced by its scripts.
+# GO_IMAGE builds the Linux product; BASE_IMAGE is the base of the session image.
+# shellcheck shell=bash disable=SC2034
+GO_IMAGE="golang:1.26.4-bookworm@sha256:b305420a68d0f229d91eb3b3ed9e519fcf2cf5461da4bef997bf927e8c0bfd2b"
+BASE_IMAGE="python:3.13-slim-bookworm@sha256:e32be0e55814a08977501ca863271d9bd02443710db8f2afaf8372e2c4508530"
+PYTEST_VERSION="9.1.1"
