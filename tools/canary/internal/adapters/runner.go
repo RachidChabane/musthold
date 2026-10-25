@@ -76,7 +76,8 @@ func (Exec) Run(ctx context.Context, spec app.CommandSpec) (app.Output, error) {
 }
 
 // RunSession runs the harness CLI in its own process group, records its output,
-// and ends the whole group when the event cap or the timeout is reached. The group
+// and ends the whole group when the event cap or the timeout is reached, or at
+// the first line the spec's Stops gives a reason for. The group
 // is also ended when the CLI exits, so that the servers it started do not outlive it.
 func (Sessions) Run(spec app.SessionSpec) (app.SessionOutcome, error) {
 	stdoutFile, err := os.Create(spec.StdoutPath)
@@ -143,6 +144,11 @@ func (Sessions) Run(spec app.SessionSpec) (app.SessionOutcome, error) {
 		line := scanner.Bytes()
 		_, _ = stdoutFile.Write(append(append([]byte(nil), line...), '\n'))
 		arrivals.record(number, time.Since(started))
+		if spec.Stops != nil {
+			if why := spec.Stops(line); why != "" {
+				stop(why)
+			}
+		}
 		if spec.Counts(line) {
 			steps++
 			if steps > spec.Cap {

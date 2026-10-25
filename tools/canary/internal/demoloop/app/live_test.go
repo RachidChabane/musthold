@@ -19,6 +19,7 @@ import (
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/container"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/record"
+	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/startup"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
 	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/window"
 )
@@ -89,29 +90,47 @@ func (d *dockerHost) argvs() [][]string {
 	return all
 }
 
-// recordedSession stands for the session: it writes the recorded stream and,
+// recordedSession stands for the session: it writes the recorded stream, or the
+// stream it is given, line by line up to the first line the spec stops at, and,
 // when asked, a record that holds the token.
 type recordedSession struct {
-	specs []canary.SessionSpec
-	leak  bool
+	specs  []canary.SessionSpec
+	leak   bool
+	stream []byte
 }
 
 func (r *recordedSession) Run(spec canary.SessionSpec) (canary.SessionOutcome, error) {
 	r.specs = append(r.specs, spec)
-	for source, target := range map[string]string{record.StreamFile: spec.StdoutPath, record.TimesFile: spec.TimesPath} {
-		content, err := os.ReadFile(filepath.Join(recording, source))
-		if err != nil {
+	times, err := os.ReadFile(filepath.Join(recording, record.TimesFile))
+	if err != nil {
+		return canary.SessionOutcome{}, err
+	}
+	if err := os.WriteFile(spec.TimesPath, times, 0o644); err != nil {
+		return canary.SessionOutcome{}, err
+	}
+	stream := r.stream
+	if stream == nil {
+		if stream, err = os.ReadFile(filepath.Join(recording, record.StreamFile)); err != nil {
 			return canary.SessionOutcome{}, err
 		}
-		if err := os.WriteFile(target, content, 0o644); err != nil {
-			return canary.SessionOutcome{}, err
+	}
+	var outcome canary.SessionOutcome
+	var written []byte
+	for _, line := range bytes.SplitAfter(stream, []byte("\n")) {
+		written = append(written, line...)
+		if why := spec.Stops(bytes.TrimSpace(line)); why != "" {
+			outcome.Killed = why
+			break
 		}
+	}
+	if err := os.WriteFile(spec.StdoutPath, written, 0o644); err != nil {
+		return outcome, err
 	}
 	stderr := []byte("session ended\n")
 	if r.leak {
 		stderr = []byte("env: " + launch.OAuthTokenVariable + "=" + testToken + "\n")
 	}
-	return canary.SessionOutcome{}, os.WriteFile(spec.StderrPath, stderr, 0o644)
+	return outcome, os.WriteFile(spec.StderrPath, stderr, 0o644)
 }
 
 type noLock struct{}
@@ -222,9 +241,9 @@ func TestLiveRunInContainers(t *testing.T) {
 		}
 	})
 
-	t.Run("the session runs on an internal network behind the egress proxy, its token on the entry's standard input only [verifies SP-2411~1]", func(t *testing.T) {
+	t.Run("the session runs on an internal network behind the egress proxy, its token on the entry's standard input only [verifies SP-2411~2]", func(t *testing.T) {
 		line := joined(spec.Argv)
-		for _, wanted := range []string{"--interactive", "--network " + box.NetworkName(), container.Runner() + " entry -- /opt/spec-proof/claude/claude -p", "HTTPS_PROXY=http://" + box.ProxyName() + ":3128", app.NonessentialTraffic, "--log-driver none", "--init"} {
+		for _, wanted := range []string{"--interactive", "--network " + box.NetworkName(), container.Runner() + " entry -- /opt/spec-proof/claude/claude -p", "HTTPS_PROXY=" + container.ProxyURL(), app.NonessentialTraffic, "--log-driver none", "--init"} {
 			if !strings.Contains(line, wanted) {
 				t.Errorf("the session lacks %q: %s", wanted, line)
 			}
@@ -282,6 +301,61 @@ func TestTokenScan(t *testing.T) {
 			t.Fatalf("error = %v", err)
 		}
 	})
+}
+
+func TestFailedStart(t *testing.T) {
+	for _, tc := range []struct {
+		name, stream, reason, problem string
+		// lines is how many lines of the stream the session wrote before it was ended.
+		lines int
+	}{
+		{
+			name:    "a session whose init event reports a plugin error is ended and fails the run, naming the plugin, with its records kept [verifies SP-2419~1]",
+			stream:  `{"type":"system","subtype":"init","plugins":[{"name":"spec-proof-dp"}],"plugin_errors":[{"plugin":"spec-proof@inline","type":"dependency-unsatisfied","message":"Dependency \"shallnot\" is not installed"}]}` + "\n" + `{"type":"assistant","message":{"model":"claude-sonnet-5-5","content":[]}}` + "\n",
+			reason:  startup.ReasonPlugins,
+			problem: "spec-proof@inline: dependency-unsatisfied",
+			lines:   1,
+		},
+		{
+			name:    "a session whose first API call reaches no server is ended at that retry and fails the run [verifies SP-2419~1]",
+			stream:  recordedInit(t) + `{"type":"system","subtype":"api_retry","attempt":1,"max_retries":10,"error_status":null,"error":"unknown"}` + "\n" + `{"type":"system","subtype":"api_retry","attempt":2,"max_retries":10,"error_status":null,"error":"unknown"}` + "\n",
+			reason:  startup.ReasonUnreachable,
+			problem: "attempt 1",
+			lines:   2,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := newWorld(t, &tickingClock{at: night, step: time.Second}, true)
+			w.sessions.stream = []byte(tc.stream)
+			dirs, err := w.runner.Run(context.Background(), w.options)
+			if !errors.Is(err, app.ErrSessionStart) || !strings.Contains(err.Error(), tc.reason) || !strings.Contains(err.Error(), tc.problem) {
+				t.Fatalf("error = %v", err)
+			}
+			records := filepath.Join(dirs[0], plan.RecordsDir)
+			stream, _ := os.ReadFile(filepath.Join(records, record.StreamFile))
+			if strings.Count(string(stream), "\n") != tc.lines {
+				t.Errorf("the session went on past the failed start:\n%s", stream)
+			}
+			meta, _ := os.ReadFile(filepath.Join(records, record.MetaFile))
+			if !strings.Contains(string(meta), `"killed": "`+tc.reason+`"`) {
+				t.Errorf("run.json does not say why: %s", meta)
+			}
+			if _, err := os.Stat(filepath.Join(records, record.TranscriptMarkdown)); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+}
+
+// recordedInit is the init line of the recorded stream.
+func recordedInit(t *testing.T) string {
+	t.Helper()
+	content, err := os.ReadFile(filepath.Join(recording, record.StreamFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, _, _ := strings.Cut(string(content), "\n")
+	return first + "\n"
 }
 
 func TestLiveRefusals(t *testing.T) {
