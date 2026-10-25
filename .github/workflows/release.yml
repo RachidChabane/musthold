@@ -58,8 +58,6 @@ jobs:
     uses: ./.github/workflows/ci.yml
     with:
       modules: ${{ needs.plan.outputs.ci_modules }}
-    secrets:
-      SHALLNOT_PROOF_GATE_DEPLOY_KEY: ${{ secrets.SHALLNOT_PROOF_GATE_DEPLOY_KEY }}
 
   build:
     name: build

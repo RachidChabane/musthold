@@ -1,0 +1,44 @@
+name: False finding
+description: A scan or proof finding that you believe is wrong.
+labels: [false-finding]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when a tool reports something that does not hold: a finding on code that is fine, or a pass on code that is not.
+        Do not paste secrets or private source. Reduce the case to the smallest input that still shows the finding.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `<binary> --version`, or the commit you built from.
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      description: The exact command line you ran.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: The finding as reported, including its rule or requirement identifier.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: why-wrong
+    attributes:
+      label: Why the finding is wrong
+      description: What the code or spec actually does, and why the reported finding does not apply, or why a missing finding should have been reported.
+    validations:
+      required: true
+  - type: textarea
+    id: input
+    attributes:
+      label: Minimal input
+      description: The spec file, test or code fragment that reproduces it, or a link to a public repository and commit.

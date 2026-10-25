@@ -8,9 +8,10 @@ self-gate in CI. Read [the architecture](docs/architecture.md) first.
 
 - Go (the version in `go.work`), `git`, `make`, `bash`.
 - Shallnot with report schema 1.2 or later, to run the self-gate. Build the pinned
-  one with `script/shallnot-build`; it reads the commit in `script/shallnot.pin`
-  from the git repository at `$SHALLNOT_SRC` (default `shallnot-proof-gate` next to the main working tree, as `script/shallnot-src` prints it) and
-  writes `.tools/bin/shallnot`.
+  one with `script/shallnot-build`; it reads the commit in `script/shallnot.pin`,
+  from the git repository at `$SHALLNOT_SRC` when that directory exists, else from the
+  public repository <https://github.com/RachidChabane/shallnot>, and writes
+  `.tools/bin/shallnot`.
 - For the ecosystem fixtures of `discpower`: Python with pytest, Node with npm, a JDK
   21, and Maven on `PATH` (the Gradle fixture carries its wrapper), as the CI job
   installs them.

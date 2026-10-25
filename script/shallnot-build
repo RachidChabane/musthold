@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Build the pinned Shallnot into .tools/bin/shallnot. The source is the git
+# Build the pinned Shallnot into .tools/bin/shallnot, at the commit recorded in
+# script/shallnot.pin, never from a working tree. The source is the local git
 # repository script/shallnot-src names ($SHALLNOT_SRC, else next to the main
-# working tree), built at the commit recorded in script/shallnot.pin, never from
-# its working tree.
+# working tree) when that directory exists, else the public repository
+# https://github.com/RachidChabane/shallnot, fetched at the pin.
 # A sidecar .tools/bin/shallnot.pin makes a re-run with an unchanged pin a no-op.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -12,6 +13,7 @@ readonly PIN_FILE="script/shallnot.pin"
 readonly BIN_DIR=".tools/bin"
 readonly BIN="${BIN_DIR}/shallnot"
 readonly BIN_PIN="${BIN_DIR}/shallnot.pin"
+readonly PUBLIC_REPOSITORY_URL="https://github.com/RachidChabane/shallnot.git"
 readonly MAIN_PACKAGE="./cmd/shallnot"
 readonly VERSION_VAR="github.com/RachidChabane/shallnot/internal/version.injected"
 readonly SCHEMA_VERSION_CURRENT="1.2"
@@ -24,6 +26,22 @@ readonly BUILD_NICE=10
 fail() {
   echo "shallnot-build: $*" >&2
   exit "${EXIT_PRECONDITION}"
+}
+
+# export_source writes the pinned source tree into the directory $1.
+export_source() {
+  local destination="$1"
+  if [[ -d "${SRC}" ]]; then
+    git -C "${SRC}" cat-file -e "${PIN}^{commit}" 2>/dev/null \
+      || fail "commit ${PIN} is missing from ${SRC}"
+    git -C "${SRC}" archive "${PIN}" | tar -x -C "${destination}"
+    return
+  fi
+  local clone="${scratch}/clone"
+  git init -q "${clone}"
+  git -C "${clone}" fetch -q --depth 1 "${PUBLIC_REPOSITORY_URL}" "${PIN}" \
+    || fail "commit ${PIN} cannot be fetched from ${PUBLIC_REPOSITORY_URL}"
+  git -C "${clone}" archive FETCH_HEAD | tar -x -C "${destination}"
 }
 
 verify_binary() {
@@ -45,20 +63,20 @@ fi
 
 command -v go >/dev/null 2>&1 || fail "go is required to build shallnot"
 command -v jq >/dev/null 2>&1 || fail "jq is required to verify the shallnot build"
-[[ -d "${SRC}" ]] || fail "shallnot source not found at ${SRC} (set SHALLNOT_SRC)"
-git -C "${SRC}" cat-file -e "${PIN}^{commit}" 2>/dev/null \
-  || fail "commit ${PIN} is missing from ${SRC}"
+command -v git >/dev/null 2>&1 || fail "git is required to read the shallnot source"
 
 ./script/mem-guard check
 
 scratch="$(mktemp -d)"
 trap 'rm -rf "${scratch}"' EXIT
-git -C "${SRC}" archive "${PIN}" | tar -x -C "${scratch}"
+source_tree="${scratch}/source"
+mkdir "${source_tree}"
+export_source "${source_tree}"
 
 mkdir -p "${BIN_DIR}"
 output="$(cd "${BIN_DIR}" && pwd)/shallnot"
 (
-  cd "${scratch}"
+  cd "${source_tree}"
   CGO_ENABLED=0 GOMAXPROCS="${BUILD_GOMAXPROCS}" nice -n "${BUILD_NICE}" \
     go build -p "${BUILD_PROCS}" \
     -ldflags "-X ${VERSION_VAR}=${PIN:0:${SHORT_SHA_LENGTH}}" \

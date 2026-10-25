@@ -17,9 +17,6 @@ on:
         description: "Space-separated modules to lint and self-gate, as MODULES of make ci; empty runs every module and every other job"
         type: string
         default: ""
-    secrets:
-      SHALLNOT_PROOF_GATE_DEPLOY_KEY:
-        required: true
   workflow_dispatch:
 
 concurrency:
@@ -29,17 +26,6 @@ concurrency:
 env:
   # The pytest the Python fixtures of the proof modules and the bench recordings run.
   FIXTURE_PYTEST_VERSION: "9.1.1"
-  # The jobs run on the self-hosted runner, whose caches live on its work volume,
-  # never in the home directory.
-  GRADLE_USER_HOME: /Volumes/ci-runner/cache/gradle
-  MAVEN_OPTS: -Dmaven.repo.local=/Volumes/ci-runner/cache/m2
-  UV_PYTHON_INSTALL_DIR: /Volumes/ci-runner/cache/uv-python
-  # The self-hosted runner takes about two to three times as long as a developer
-  # machine; packages without a timeout of their own get this one.
-  GOFLAGS: -timeout=40m
-  # The Maven the JUnit 5 fixtures build with; the self-hosted runner has none.
-  MAVEN_VERSION: "3.9.16"
-  MAVEN_SHA512: 831a8591fe20c8243b1dbe7d71e3244f31d1665b0804b2e825e38cbbe5ce0cafb8338851f90780735568773e0a6cd07bbec107cda0b896b008b861075358b6f6
 
 permissions:
   contents: read
@@ -47,8 +33,8 @@ permissions:
 jobs:
   product:
     name: product modules (${{ matrix.group }})
-    runs-on: [self-hosted, mac-mini]
-    timeout-minutes: 480
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
@@ -68,35 +54,36 @@ jobs:
       - name: Check out the pinned Shallnot
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: RachidChabane/shallnot-proof-gate
+          repository: RachidChabane/shallnot
           ref: ${{ steps.pin.outputs.sha }}
-          ssh-key: ${{ secrets.SHALLNOT_PROOF_GATE_DEPLOY_KEY }}
-          path: shallnot-proof-gate
+          path: shallnot
           persist-credentials: false
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: spec-proof/go.work
-          cache: false
+          cache-dependency-path: spec-proof/**/go.sum
 
       - name: Set up Java 21 for the JUnit 5 fixtures
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
           java-version: "21"
+          cache: maven
+          cache-dependency-path: spec-proof/discpower/fixtures/ecosystems/*/pom.xml
 
-      - name: Install the pinned Maven for the JUnit 5 fixtures
-        run: |
-          archive="apache-maven-${MAVEN_VERSION}-bin.tar.gz"
-          curl -fsSL -o "${RUNNER_TEMP}/${archive}" \
-            "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/${archive}"
-          echo "${MAVEN_SHA512}  ${RUNNER_TEMP}/${archive}" | shasum -a 512 -c -
-          tar -xzf "${RUNNER_TEMP}/${archive}" -C "${RUNNER_TEMP}"
-          echo "${RUNNER_TEMP}/apache-maven-${MAVEN_VERSION}/bin" >> "${GITHUB_PATH}"
+      - name: Cache the Gradle home of the JUnit 5 fixtures
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('spec-proof/discpower/fixtures/ecosystems/*/build.gradle*', 'spec-proof/discpower/fixtures/ecosystems/*/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
 
       - name: Set up Python for the pytest fixtures
-        uses: ./spec-proof/.github/actions/setup-python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
 
@@ -107,6 +94,8 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
+          cache: npm
+          cache-dependency-path: spec-proof/discpower/fixtures/ecosystems/*/package-lock.json
 
       - name: Install the pinned Claude Code CLI for the offline plugin checks
         run: |
@@ -116,7 +105,7 @@ jobs:
       - name: Lint and self-gate the modules
         working-directory: spec-proof
         env:
-          SHALLNOT_SRC: ${{ github.workspace }}/shallnot-proof-gate
+          SHALLNOT_SRC: ${{ github.workspace }}/shallnot
           MODULES: ${{ inputs.modules }}
           GROUP: ${{ matrix.group }}
         run: |
@@ -131,16 +120,19 @@ jobs:
   pilot:
     if: inputs.modules == ''
     name: pilot harness
-    runs-on: [self-hosted, mac-mini]
-    timeout-minutes: 75
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Check out spec-proof
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Set up Python and uv
-        uses: ./.github/actions/setup-python
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version-file: experiments/limits-1-3/harness/.python-version
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -160,8 +152,8 @@ jobs:
   bench:
     if: inputs.modules == ''
     name: benchmark core
-    runs-on: [self-hosted, mac-mini]
-    timeout-minutes: 150
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - name: Check out spec-proof
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -173,28 +165,18 @@ jobs:
       - name: Check out the pinned Shallnot
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: RachidChabane/shallnot-proof-gate
+          repository: RachidChabane/shallnot
           ref: ${{ steps.pin.outputs.sha }}
-          ssh-key: ${{ secrets.SHALLNOT_PROOF_GATE_DEPLOY_KEY }}
-          path: shallnot-proof-gate
+          path: shallnot
           persist-credentials: false
 
-      - name: Set up Python and uv
-        uses: ./.github/actions/setup-python
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version-file: bench/.python-version
 
-      - name: Put OpenSSL 3 first on PATH
-        # The gate's tests sign with ed25519 keys, which macOS's LibreSSL cannot make.
-        env:
-          HOMEBREW_CACHE: /Volumes/ci-runner/cache/homebrew
-          HOMEBREW_NO_AUTO_UPDATE: "1"
-          HOMEBREW_NO_INSTALL_CLEANUP: "1"
-          # The runner's service PATH does not hold Homebrew.
-          BREW: /opt/homebrew/bin/brew
-        run: |
-          "${BREW}" list --versions openssl@3 >/dev/null || "${BREW}" install openssl@3
-          echo "$("${BREW}" --prefix openssl@3)/bin" >> "${GITHUB_PATH}"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -213,7 +195,7 @@ jobs:
 
       - name: Build the product the integration tests drive
         env:
-          SHALLNOT_SRC: ${{ github.workspace }}/shallnot-proof-gate
+          SHALLNOT_SRC: ${{ github.workspace }}/shallnot
           MEM_GUARD_MIN_FREE_PCT: "10"
         run: script/product-build
 
@@ -245,18 +227,21 @@ jobs:
   calibration:
     if: inputs.modules == ''
     name: calibration harness
-    runs-on: [self-hosted, mac-mini]
-    timeout-minutes: 120
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Check out spec-proof with its tags
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - name: Set up Python and uv
-        uses: ./.github/actions/setup-python
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version-file: experiments/calibration/harness/.python-version
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -290,16 +275,19 @@ jobs:
   demos-1:
     if: inputs.modules == ''
     name: demos-1 tooling
-    runs-on: [self-hosted, mac-mini]
-    timeout-minutes: 75
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Check out spec-proof
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Set up Python and uv
-        uses: ./.github/actions/setup-python
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version-file: experiments/demos-1/harness/.python-version
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
 
       - name: Install the locked dependencies
         run: experiments/demos-1/script/setup
@@ -322,14 +310,14 @@ jobs:
   notices:
     if: inputs.modules == ''
     name: third-party notices
-    runs-on: [self-hosted, mac-mini]
-    timeout-minutes: 40
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Check out spec-proof
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python
-        uses: ./.github/actions/setup-python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
 

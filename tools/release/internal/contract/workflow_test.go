@@ -290,9 +290,8 @@ func TestCIWorkflowKeepsItsTriggers(t *testing.T) {
 		if modules["type"] != "string" || modules["default"] != "" {
 			t.Errorf("modules input = %v", modules)
 		}
-		secrets, _ := call["secrets"].(map[string]any)
-		if _, present := secrets["SHALLNOT_PROOF_GATE_DEPLOY_KEY"]; !present {
-			t.Errorf("secrets = %v", secrets)
+		if secrets, declared := call["secrets"]; declared {
+			t.Errorf("CI declares secrets %v, which a fork cannot provide", secrets)
 		}
 	})
 
