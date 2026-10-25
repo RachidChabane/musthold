@@ -34,6 +34,10 @@ const (
 	CodeExecutedWithExecutor      ViolationCode = "executed_with_executor"
 	CodeInconsistentAttribution   ViolationCode = "inconsistent_attribution"
 	CodeInputDescriptor           ViolationCode = "input_descriptor"
+	// CodeCounterexampleNotLocal: a statement not produced locally carries a
+	// counterexample; CodeCounterexampleSize: its witness is above the bound.
+	CodeCounterexampleNotLocal ViolationCode = "counterexample_not_local"
+	CodeCounterexampleSize     ViolationCode = "counterexample_size"
 
 	// Codes of the scan statement (ADR 0014).
 	CodeMutantID      ViolationCode = "mutant_id"

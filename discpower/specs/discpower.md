@@ -589,6 +589,18 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   the survivors that entered the pool only because the floor kept answers below it
   or marked from screening them out.
 
+- **SP-2421~1**: WHEN a mutant blocks its criterion, because its decision gives
+  it the power to block and every test of the criterion passes on it, and the
+  Statement is produced locally THE SYSTEM SHALL record in its entry how it was
+  drawn, the slot of a targeted mutant or the family of an operator one, and one
+  confirmed witness: the lowest-indexed example of the criterion it fails, else a
+  block-bearing witness of the criterion it fails with its code bounded by the
+  bound of a host view; SHALL record none in a Statement produced by CI; and
+  `prove` SHALL print for each such survivor its reference, how it was drawn and
+  that example, written as the spec writes it, or that witness, and never the
+  mutant's code, and the end-of-turn block of the pinned Shallnot SHALL show the
+  same for each survivor.
+
 ## Witnesses
 
 - **SP-1960~1**: WHEN a witness is judged THE SYSTEM SHALL read its three runs on

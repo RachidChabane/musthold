@@ -48,7 +48,11 @@ func (p DiscriminatingPower) check(sink *collector, subject []Subject) {
 	p.Executor.check(sink, "predicate.executor")
 	checkAscending(sink, "predicate.mutants", p.Mutants, func(a, b Mutant) int { return strings.Compare(a.Digest, b.Digest) })
 	for index, mutant := range p.Mutants {
-		checkMutant(sink, fmt.Sprintf("predicate.mutants[%d]", index), mutant)
+		path := fmt.Sprintf("predicate.mutants[%d]", index)
+		checkMutant(sink, path, mutant)
+		if mutant.Extensions != nil {
+			checkCounterexample(sink, path+".extensions.counterexample", p.ProducedBy, mutant.Extensions.Counterexample)
+		}
 	}
 	checkAscending(sink, "predicate.examples", p.Examples, func(a, b ExampleRun) int { return cmp.Compare(a.Index, b.Index) })
 	for index, example := range p.Examples {
