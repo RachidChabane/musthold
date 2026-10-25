@@ -1,23 +1,24 @@
 #!/usr/bin/env bash
-# Everything CI runs for the Go product: build the pinned Shallnot when its source
-# is there, then for each module lint and run the self-gate, which runs the module's
-# tests and traces its specs to their results. Arguments name the modules to run;
-# with none, every module of the workspace runs.
+# Everything CI runs for the Go product: build the product when the pinned Shallnot's
+# source is there, then for each module lint and run the self-gate, which runs the
+# module's tests and traces its specs to their results. Arguments name the modules to
+# run; with none, every module of the workspace runs.
 #
-# The pinned Shallnot is built from the git repository script/shallnot-src names
-# ($SHALLNOT_SRC, else shallnot-proof-gate next to the main working tree). Without that source nothing is built, and the end-to-end
-# tests that need the pinned Shallnot record a skip that names the reason; the gate
-# reports a requirement whose bound tests were all skipped, so the requirement is
-# never dropped silently.
+# The product (script/product-build: the pinned Shallnot and every product binary)
+# is built with the Shallnot source script/shallnot-src names ($SHALLNOT_SRC, else
+# shallnot-proof-gate next to the main working tree), because end-to-end tests of
+# several modules drive those binaries. Without that source nothing is built, and
+# those tests record a skip that names the reason; the gate reports a requirement
+# whose bound tests were all skipped, so the requirement is never dropped silently.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 shallnot_src="$(script/shallnot-src)"
 
 if [ -d "${shallnot_src}" ]; then
-  SHALLNOT_SRC="${shallnot_src}" script/shallnot-build
+  SHALLNOT_SRC="${shallnot_src}" script/product-build
 else
-  echo "ci: no Shallnot source at ${shallnot_src} (set SHALLNOT_SRC): the end-to-end tests that need the pinned Shallnot are skipped" >&2
+  echo "ci: no Shallnot source at ${shallnot_src} (set SHALLNOT_SRC): the end-to-end tests that need the product binaries are skipped" >&2
 fi
 
 if [ -d .tools/bin ]; then
