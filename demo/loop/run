@@ -22,12 +22,16 @@
 #   demo/loop/run replay [--check]
 #       render the committed recording into demo/loop/recording/transcript.md and
 #       transcript.html, starting no session; --check fails when they are stale
+#   demo/loop/run gif OUT
+#       film the key moments of the committed recording into the GIF OUT with vhs
+#       (demo/loop/gif/loop.tape), starting no session
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
 readonly RUNNER=".tools/bin/musthold-demo-loop"
 readonly CONFIG="demo/loop/demo.json"
 readonly RECORDING="demo/loop/recording"
+readonly GIF_TAPE="demo/loop/gif/loop.tape"
 readonly ENGINE="demo/loop/container/engine"
 readonly BUILD="demo/loop/container/build"
 readonly CONTAINER_TESTS="./internal/demoloop/containertest/"
@@ -37,7 +41,7 @@ readonly BUILD_NICE=10
 readonly EXIT_USAGE=64
 
 usage() {
-  sed -n '2,25p' "${BASH_SOURCE[0]}" >&2
+  sed -n '2,27p' "${BASH_SOURCE[0]}" >&2
   exit "${EXIT_USAGE}"
 }
 
@@ -112,11 +116,21 @@ replay() {
 
 verb="${1:-}"
 (($#)) && shift
+gif() {
+  (($# == 1)) || usage
+  if [[ ! -f "${RECORDING}/transcript.md" ]]; then
+    echo "demo/loop/run: no recording in ${RECORDING}" >&2
+    exit 2
+  fi
+  command -v vhs >/dev/null || { echo "demo/loop/run: gif needs vhs (https://github.com/charmbracelet/vhs)" >&2; exit 2; }
+  exec nice -n "${BUILD_NICE}" vhs "${GIF_TAPE}" -o "$1"
+}
 case "${verb}" in
   build) build "$@" ;;
   test-containers) test_containers "$@" ;;
   live) live "$@" ;;
   keep) keep "$@" ;;
   replay) replay "$@" ;;
+  gif) gif "$@" ;;
   *) usage ;;
 esac
