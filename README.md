@@ -15,7 +15,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/RachidChabane/musthold" alt="License: Apache-2.0"></a>
 </p>
 
-![A Claude Code session implements BOX-4. musthold-dp blocks BOX-2: three mutants pass every test of the criterion and fail its example ticket_price(age=65) => 8. The agent adds a test of the ages 65 and 120, the proof passes, the agent publishes the proofs and the gate allows the stop.](https://raw.githubusercontent.com/RachidChabane/musthold-demo/main/media/loop.gif)
+![A Claude Code session implements BOX-4. musthold-dp blocks BOX-2: three mutants pass every test of the criterion, two fail its example ticket_price(age=65) => 8 and one fails a witness test. The agent adds a test of the ages 65 and 120, the proof passes, the agent publishes the proofs and the gate allows the stop.](https://raw.githubusercontent.com/RachidChabane/musthold-demo/main/media/loop.gif)
 
 An agent writes the code and the tests, and the tests pass. That says little. A
 test can stay green while the code it runs is broken, and tests written by the
