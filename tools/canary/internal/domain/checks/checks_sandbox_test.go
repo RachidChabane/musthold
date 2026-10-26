@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/checks"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/checks"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/verdict"
 )
 
 const (

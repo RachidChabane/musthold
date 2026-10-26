@@ -4,10 +4,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/operator"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation/operator"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // CandidatesPerTest is how many drawn mutants among its own lines each sampled

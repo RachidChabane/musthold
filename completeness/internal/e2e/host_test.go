@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest/claudecode"
+	"github.com/RachidChabane/musthold/completeness/internal/testkit"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest/claudecode"
 )
 
 // Requirements the end-to-end tests verify.

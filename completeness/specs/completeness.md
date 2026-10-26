@@ -6,7 +6,7 @@ traces them to the Go tests of the module in CI.
 
 ## Binary
 
-- **SP-102~1**: WHEN the `spec-proof-completeness` binary is run with the
+- **SP-102~1**: WHEN the `musthold-completeness` binary is run with the
   `version` argument THE SYSTEM SHALL print its version.
 
 ## Checklist
@@ -159,7 +159,7 @@ traces them to the Go tests of the module in CI.
 - **SP-527~1**: WHEN a Statement is written to the proof cache THE SYSTEM SHALL
   validate it against the embedded schemas first, refuse an invalid one, and
   write it atomically at
-  `.spec-proof/cache/completeness/<spec path>/<cacheKey>.json`, the spec path
+  `.musthold/cache/completeness/<spec path>/<cacheKey>.json`, the spec path
   percent-encoded into one directory name.
 - **SP-528~1**: WHEN a Statement is validated against its schema THE SYSTEM SHALL
   accept a valid completeness Statement, refuse one that breaks its schema, and
@@ -176,7 +176,7 @@ traces them to the Go tests of the module in CI.
 - **SP-531~1**: WHEN the host store of a project is opened THE SYSTEM SHALL keep
   `queue.json`, `requests/`, `tickets/`, `responses/`, a digest-chained
   `journal.jsonl` and a `secret` under
-  `$XDG_STATE_HOME/spec-proof/completeness/<repo-digest>/host/`, with directories
+  `$XDG_STATE_HOME/musthold/completeness/<repo-digest>/host/`, with directories
   private to the user and the secret readable by the user only, and SHALL derive
   the repository digest from the absolute path of the project root.
 - **SP-532~1**: WHEN the filesystem store is tested THE SYSTEM SHALL satisfy the
@@ -274,7 +274,7 @@ traces them to the Go tests of the module in CI.
   subagent of its harness with the capability's evidence, and, when attestation is
   waived, journal the answer as restricted.
 - **SP-782~1**: WHEN a host harness is selected THE SYSTEM SHALL ship the decider of
-  `spec-proof-completeness` as its executor agents, name their types and the executor tools as the
+  `musthold-completeness` as its executor agents, name their types and the executor tools as the
   harness spells them, and map a reported type back to the role of the requests of
   the module.
 - **SP-783~1**: WHEN the host files of the module are generated THE SYSTEM SHALL
@@ -304,7 +304,7 @@ traces them to the Go tests of the module in CI.
   prints accepts version 1.2 and refuses 1.1, and report the check.
 - **SP-788~1**: WHEN `host push` runs THE SYSTEM SHALL publish every answered ticket with
   the profile it is credited with and the marks against it as a tree under the ref
-  `refs/spec-proof/host/completeness/<head>` of the head commit with git plumbing, replace a
+  `refs/musthold/host/completeness/<head>` of the head commit with git plumbing, replace a
   ref that exists, publish the ref to a remote when asked, touch neither the working
   tree nor the current branch, warn when a tracked file differs from the head commit,
   refuse a store whose journal chain is broken and publish nothing when nothing is
@@ -318,7 +318,7 @@ traces them to the Go tests of the module in CI.
   the same checks as any answer, ignore what the bundle holds that it does not ask
   for, leave the other tickets pending, mark again what the pushing host marked,
   refuse a bundle of another version that left requests unanswered, leave the
-  requests that remain in `.spec-proof/ci-issued/completeness`, where the CI job uploads them from, and refuse `--import-host`
+  requests that remain in `.musthold/ci-issued/completeness`, where the CI job uploads them from, and refuse `--import-host`
   without `--ci` and `--ci` with `--record` or `--replay`.
 - **SP-791~1**: WHEN a project is equipped with Shallnot and the module, edited and proved
   THE SYSTEM SHALL let a simulated Claude Code host answer every ticket through the
@@ -493,7 +493,7 @@ traces them to the Go tests of the module in CI.
 ## Portable plugin
 
 - **SP-1712~1**: WHEN the portable plugin of the module is generated THE SYSTEM SHALL
-  give it the manifest, the server of `spec-proof-completeness`, the fulfil skill and the agents and
+  give it the manifest, the server of `musthold-completeness`, the fulfil skill and the agents and
   hooks of Copilot CLI that the shared generator produces, the root server naming
   no harness and the agents' servers named apart from it, and the committed tree
   SHALL equal what the generator produces; the Copilot tree under `plugin/` is the
@@ -505,7 +505,7 @@ traces them to the Go tests of the module in CI.
 
 ## Release version
 
-- **SP-1853~1**: WHEN `spec-proof-completeness` is run with the lone argument `--version` THE SYSTEM
+- **SP-1853~1**: WHEN `musthold-completeness` is run with the lone argument `--version` THE SYSTEM
   SHALL print the bare version, the one a release build linked with
   `-X main.version`, else the one `go install` recorded, else `dev`, and the
   `version` command SHALL print the binary name, that version and the linked

@@ -15,10 +15,10 @@ import (
 	"github.com/odvcencio/gotreesitter"
 	"github.com/odvcencio/gotreesitter/grammars"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/code"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/testlabel"
-	"github.com/RachidChabane/spec-proof/completeness/internal/platform/treeunits"
+	"github.com/RachidChabane/musthold/completeness/internal/app/ports"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/code"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/testlabel"
+	"github.com/RachidChabane/musthold/completeness/internal/platform/treeunits"
 )
 
 // Naming rules of Java source files.

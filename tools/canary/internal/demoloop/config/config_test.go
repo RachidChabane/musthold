@@ -9,7 +9,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/config"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
 )
 
 const valid = `{

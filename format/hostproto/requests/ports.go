@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Recording is an answer kept from an earlier run: the output and, when it was

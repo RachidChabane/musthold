@@ -7,8 +7,8 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 const (

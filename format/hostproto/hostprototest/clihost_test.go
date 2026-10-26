@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 // fakeModule is a module's command line over the reference host on the inline

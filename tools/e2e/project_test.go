@@ -15,9 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest/claudecode"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest/claudecode"
 )
 
 // Locations and names of the project end-to-end tests.
@@ -26,28 +26,28 @@ const (
 	shallnotScript     = "script/shallnot-build"
 	memGuardScript     = "script/mem-guard"
 	shallnotRelative   = ".tools/bin/shallnot"
-	dpBinary           = "spec-proof-dp"
-	alignmentBinary    = "spec-proof-alignment"
-	completenessBinary = "spec-proof-completeness"
-	s1Binary           = "spec-proof-s1"
-	dispatcherBinary   = "spec-proof"
+	dpBinary           = "musthold-dp"
+	alignmentBinary    = "musthold-alignment"
+	completenessBinary = "musthold-completeness"
+	s1Binary           = "musthold-s1"
+	dispatcherBinary   = "musthold"
 	alignmentTags      = "grammar_subset,grammar_subset_python,grammar_subset_javascript,grammar_subset_typescript,grammar_subset_tsx,grammar_subset_java,grammar_subset_kotlin"
 	buildTimeout       = 5 * time.Minute
 	commandTimeout     = 8 * time.Minute
 	niceLevel          = "10"
-	shallnotVariable   = "SPEC_PROOF_SHALLNOT"
+	shallnotVariable   = "MUSTHOLD_SHALLNOT"
 	reportFile         = "report.json"
-	verifiedPath       = ".spec-proof/verified"
-	cachePath          = ".spec-proof/cache"
+	verifiedPath       = ".musthold/verified"
+	cachePath          = ".musthold/cache"
 	verifiesTag        = "verifies"
 )
 
 // dpIdentity is the plugin of the discriminating-power module and its executor
 // agents, from which the harness spells the names of the executor tools.
-var dpIdentity = harness.Identity{Plugin: "spec-proof-dp", Agents: hostproto.Agents()}
+var dpIdentity = harness.Identity{Plugin: "musthold-dp", Agents: hostproto.Agents()}
 
 // alignmentIdentity is the plugin of the alignment module and its executor agents.
-var alignmentIdentity = harness.Identity{Plugin: "spec-proof-alignment", Agents: []hostproto.Agent{hostproto.AgentJudge, hostproto.AgentDecider}}
+var alignmentIdentity = harness.Identity{Plugin: "musthold-alignment", Agents: []hostproto.Agent{hostproto.AgentJudge, hostproto.AgentDecider}}
 
 var (
 	productOnce sync.Once
@@ -60,7 +60,7 @@ var (
 func productBinaries(t *testing.T) string {
 	t.Helper()
 	productOnce.Do(func() {
-		productDir, productErr = os.MkdirTemp("", "spec-proof-chain-bin-")
+		productDir, productErr = os.MkdirTemp("", "musthold-chain-bin-")
 		if productErr != nil {
 			return
 		}

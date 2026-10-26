@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
 )
 
 const repeatedSource = "RATE = 1\nRATE = 2\n\ndef add(a, b):\n    return a + b\n\ndef neg(a):\n    return -a\n\ndef neg(a):\n    return a\n"

@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/testkit/nodeinstall"
+	"github.com/RachidChabane/musthold/discpower/internal/testkit/nodeinstall"
 )
 
 // Locations and names the end-to-end tests use.
@@ -28,12 +28,12 @@ const (
 	buildScript      = "script/shallnot-build"
 	memGuardScript   = "script/mem-guard"
 	fixtureProject   = "fixtures/prove/parcel"
-	binaryName       = "spec-proof-dp"
+	binaryName       = "musthold-dp"
 	buildTimeout     = 5 * time.Minute
 	commandTimeout   = 8 * time.Minute
 	directoryMode    = 0o755
 	fileMode         = 0o644
-	shallnotVariable = "SPEC_PROOF_SHALLNOT"
+	shallnotVariable = "MUSTHOLD_SHALLNOT"
 )
 
 var (
@@ -82,7 +82,7 @@ func shallnotBinary(t *testing.T) string {
 func productBinary(t *testing.T) string {
 	t.Helper()
 	buildOnce.Do(func() {
-		dir, err := os.MkdirTemp("", "spec-proof-e2e-bin-")
+		dir, err := os.MkdirTemp("", "musthold-e2e-bin-")
 		if err != nil {
 			buildError = err
 			return

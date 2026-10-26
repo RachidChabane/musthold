@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/formattest/proofs"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/formattest/proofs"
 )
 
 func TestInputDescriptors(t *testing.T) {

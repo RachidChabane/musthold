@@ -11,7 +11,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // These helpers publish what the module wrote as a verified set with local trust,
@@ -19,10 +19,10 @@ import (
 // tests that drive one module alone need a set Shallnot reads, not the verifier. They
 // are test support and ship nowhere.
 const (
-	statementsDirectory = ".spec-proof/cache/discriminating-power"
-	verifiedDirectory   = ".spec-proof/verified"
+	statementsDirectory = ".musthold/cache/discriminating-power"
+	verifiedDirectory   = ".musthold/verified"
 	manifestFile        = "manifest.json"
-	standInVerifier     = "end-to-end stand-in for spec-proof-verify"
+	standInVerifier     = "end-to-end stand-in for musthold-verify"
 	moduleKind          = "discriminating-power"
 	reasonAwaitingHost  = "awaiting_host"
 )
@@ -131,7 +131,7 @@ func awaiting(output string) []string {
 // journalEvents reads the journal of the project's host store.
 func (p *project) journalEvents() []hostproto.Event {
 	p.t.Helper()
-	matches, err := filepath.Glob(filepath.Join(p.state, "spec-proof", "discpower", "*", "host", "journal.jsonl"))
+	matches, err := filepath.Glob(filepath.Join(p.state, "musthold", "discpower", "*", "host", "journal.jsonl"))
 	if err != nil || len(matches) != 1 {
 		p.t.Fatalf("the host journal: %v, %v", matches, err)
 	}

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
 )
 
 const verifiesSP162 = " [verifies SP-162~1]"

@@ -9,16 +9,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/adapters"
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
-	"github.com/RachidChabane/spec-proof/tools/release/internal/testkit"
+	"github.com/RachidChabane/musthold/tools/release/internal/adapters"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/testkit"
 )
 
 const (
 	verifiesInstaller = " [verifies SP-1821~1]"
 	installerVersion  = "0.1.0"
 	installerModule   = "discpower"
-	installerBinary   = "spec-proof-dp"
+	installerBinary   = "musthold-dp"
 	exitUsage         = 2
 	exitNoVerifier    = 3
 	exitChecksum      = 6

@@ -6,9 +6,9 @@ package ed25519verifier
 import (
 	"crypto/ed25519"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/refusal"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/trustpolicy"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/verify/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/verify/internal/domain/trustpolicy"
 )
 
 // Verifier accepts an envelope that carries a valid signature of a pinned key.

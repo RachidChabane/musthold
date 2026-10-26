@@ -12,12 +12,12 @@ import (
 	"io/fs"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/policy"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
+	"github.com/RachidChabane/musthold/alignment/internal/app/ports"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/policy"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
 // Exit codes of the binary (ADR 0005).

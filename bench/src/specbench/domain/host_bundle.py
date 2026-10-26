@@ -1,4 +1,4 @@
-"""The manifest of a pushed host bundle (`refs/spec-proof/host/<module>/<head sha>`): the commit it was pushed for, the
+"""The manifest of a pushed host bundle (`refs/musthold/host/<module>/<head sha>`): the commit it was pushed for, the
 responses it lists, and the manifest of the bundle that holds the responses of two."""
 
 from __future__ import annotations

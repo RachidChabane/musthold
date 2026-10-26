@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/masking"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/masking"
 )
 
 // Coverage is how much of a criterion a test's assertions check.

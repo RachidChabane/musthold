@@ -3,8 +3,8 @@ package pytest
 import (
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/differential"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/differential"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 )
 
 func TestTestIDOfNode(t *testing.T) {

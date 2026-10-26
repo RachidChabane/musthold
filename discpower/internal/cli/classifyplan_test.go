@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/discpower/internal/cli"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 // shadowConfig turns the switch to the mode that plans every request.
@@ -17,7 +17,7 @@ const shadowConfig = "systemone:\n  classify: shadow\n"
 // inShadow writes the shared configuration of the project of the fixture.
 func (f *hostFixture) inShadow() *hostFixture {
 	f.t.Helper()
-	directory := filepath.Join(f.root, ".spec-proof")
+	directory := filepath.Join(f.root, ".musthold")
 	if err := os.MkdirAll(directory, 0o750); err != nil {
 		f.t.Fatal(err)
 	}

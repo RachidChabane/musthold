@@ -3,8 +3,8 @@ package vacuity
 import (
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Line is one line of a source file.

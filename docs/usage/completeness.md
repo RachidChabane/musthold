@@ -1,4 +1,4 @@
-# Completeness (`spec-proof-completeness`)
+# Completeness (`musthold-completeness`)
 
 Completeness asks what a specification leaves unstated about what a change does.
 It is advisory: its proof has no verdict field, so the gate reports its questions
@@ -72,19 +72,19 @@ Example operations bind to a function written as `module:function`,
 
 | Role | Writes |
 |---|---|
-| `spec-proof-completeness:decider` | answers to the closed questions above (`decide_k` votes when no System One endpoint answers) |
+| `musthold-completeness:decider` | answers to the closed questions above (`decide_k` votes when no System One endpoint answers) |
 
 The module has no generator and no judge.
 
 ## Configuration
 
-Policy lives in `.spec-proof/completeness.yaml`; the proof is switched on in
-`.spec-proof/config.yaml`. See [configuration](configuration.md#spec-proofcompletenessyaml).
+Policy lives in `.musthold/completeness.yaml`; the proof is switched on in
+`.musthold/config.yaml`. See [configuration](configuration.md#mustholdcompletenessyaml).
 
 ## Files
 
 | Path | Content |
 |---|---|
-| `.spec-proof/cache/completeness/<spec path>/<cacheKey>.json` | the module's Statements; the spec path is percent-encoded into one directory name |
-| `.spec-proof/pending/completeness.json` | requests awaited |
-| `$XDG_STATE_HOME/spec-proof/completeness/<repo-digest>/host/` | tickets, responses, journal, secret |
+| `.musthold/cache/completeness/<spec path>/<cacheKey>.json` | the module's Statements; the spec path is percent-encoded into one directory name |
+| `.musthold/pending/completeness.json` | requests awaited |
+| `$XDG_STATE_HOME/musthold/completeness/<repo-digest>/host/` | tickets, responses, journal, secret |

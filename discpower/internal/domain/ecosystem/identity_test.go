@@ -3,7 +3,7 @@ package ecosystem_test
 import (
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 )
 
 func TestTestIdentity(t *testing.T) {

@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/formattest/parcel"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/formattest/parcel"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
@@ -63,22 +63,22 @@ func hostProjects() []hostProject {
 		{
 			name: "pytest", fixture: pytestHostFixture, tool: "python3", scenario: invoiceScenario(),
 			shown: []string{"order_total"}, hidden: []string{"discount", "line_total", "shipping"},
-			killerFailure: []string{"FAILED tests/test_specproof_", " failed"},
+			killerFailure: []string{"FAILED tests/test_musthold_", " failed"},
 		},
 		{
 			name: "go", fixture: goHostFixture, tool: "go", scenario: tallyScenario(),
 			shown: []string{"tally.OrderTotal"}, hidden: []string{"tally.Discount", "tally.LineTotal", "tally.Shipping"},
-			killerFailure: []string{"--- FAIL: Test_specproof_witness_", "FAIL"},
+			killerFailure: []string{"--- FAIL: Test_musthold_witness_", "FAIL"},
 		},
 		{
 			name: "jest", fixture: jestHostFixture, tool: nodeTool, scenario: invoiceTypeScriptScenario(""),
 			shown: []string{"orderTotal"}, hidden: nodeHidden,
-			killerFailure: []string{"FAIL test/specproof_", "specproof_witnesses"},
+			killerFailure: []string{"FAIL test/musthold_", "musthold_witnesses"},
 		},
 		{
 			name: "vitest", fixture: vitestHostFixture, tool: nodeTool, scenario: invoiceTypeScriptScenario(vitestExpect),
 			shown: []string{"orderTotal"}, hidden: nodeHidden,
-			killerFailure: []string{"FAIL", "test/specproof_", "specproof_witnesses"},
+			killerFailure: []string{"FAIL", "test/musthold_", "musthold_witnesses"},
 		},
 	}
 }
@@ -111,7 +111,7 @@ func TestScanWithAHost(t *testing.T) {
 			t.Run("the broken promise is printed with its quote, a change the whole suite passes 3/3 and its witness script"+verifiesHostE2E, func(t *testing.T) {
 				for _, want := range []string{
 					fmt.Sprintf("#P1 %q (README.md) a change that passes the whole suite 3/3 fails a block-bearing witness written for it", orderQuote),
-					"repro: .spec-proof/scan/" + r.short() + "/" + brokenPromiseFolder + "/killer.sh",
+					"repro: .musthold/scan/" + r.short() + "/" + brokenPromiseFolder + "/killer.sh",
 				} {
 					if !strings.Contains(out, want) {
 						t.Errorf("missing %q:\n%s", want, out)
@@ -152,7 +152,7 @@ func TestScanWithAHost(t *testing.T) {
 				}
 			})
 			t.Run("the broken promise's script reproduces the witness failure on the change"+verifiesHostE2E, func(t *testing.T) {
-				script := filepath.Join(".spec-proof", "scan", r.short(), brokenPromiseFolder, "killer.sh")
+				script := filepath.Join(".musthold", "scan", r.short(), brokenPromiseFolder, "killer.sh")
 				if _, err := os.Stat(filepath.Join(r.root, script)); err != nil {
 					t.Fatal(err)
 				}
@@ -519,7 +519,7 @@ func TestScanOfAPullRequestWithAHost(t *testing.T) {
 				t.Errorf("the extraction does not show %q:\n%s", want, extraction[0])
 			}
 		}
-		saved, err := os.ReadDir(filepath.Join(r.root, ".spec-proof", "scan", head, "sources"))
+		saved, err := os.ReadDir(filepath.Join(r.root, ".musthold", "scan", head, "sources"))
 		if err != nil || len(saved) != 3 {
 			t.Fatalf("saved sources %v, %v", saved, err)
 		}

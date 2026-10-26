@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Build every product artifact the live canaries and the benchmark need into .tools/:
 # the canary, the pinned Shallnot, the binary of each proof module (the list comes
-# from the canary: `spec-proof-canary modules`), the verification, ledger and System
+# from the canary: `musthold-canary modules`), the verification, ledger and System
 # One binaries, the umbrella's dispatcher and the umbrella plugin tree
-# (.tools/plugins/spec-proof; the plugin ships no binary). With --canary-only only
+# (.tools/plugins/musthold; the plugin ships no binary). With --canary-only only
 # the canary is built, which is all a dry run needs. Every compile runs under nice,
 # one job at a time.
 set -euo pipefail
@@ -11,18 +11,18 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 readonly BIN_DIR=".tools/bin"
 readonly PLUGIN_DIR=".tools/plugins"
-readonly UMBRELLA_PLUGIN_SOURCE="umbrella/plugins/spec-proof"
-readonly UMBRELLA_PLUGIN_NAME="spec-proof"
-readonly CANARY="${BIN_DIR}/spec-proof-canary"
+readonly UMBRELLA_PLUGIN_SOURCE="umbrella/plugins/musthold"
+readonly UMBRELLA_PLUGIN_NAME="musthold"
+readonly CANARY="${BIN_DIR}/musthold-canary"
 readonly BUILD_PROCS=1
 readonly BUILD_GOMAXPROCS=2
 readonly BUILD_NICE=10
 # <module dir> <binary> of the product binaries that are not proof modules.
 readonly EXTRA_BINARIES=(
-  "verify spec-proof-verify"
-  "ledger spec-proof-ledger"
-  "s1relay spec-proof-s1"
-  "umbrella spec-proof"
+  "verify musthold-verify"
+  "ledger musthold-ledger"
+  "s1relay musthold-s1"
+  "umbrella musthold"
 )
 
 build() { # <module dir> <binary> <tags>
@@ -43,7 +43,7 @@ install_umbrella_plugin() {
 
 mkdir -p "${BIN_DIR}"
 ./script/mem-guard check
-build tools/canary spec-proof-canary ""
+build tools/canary musthold-canary ""
 
 [[ "${1:-}" == "--canary-only" ]] && exit 0
 

@@ -28,7 +28,7 @@ const (
 // HookCall is one record of the hook log.
 type HookCall struct {
 	Line int `json:"-"`
-	// Module is the binary the harness ran: spec-proof-dp, for example. It is
+	// Module is the binary the harness ran: musthold-dp, for example. It is
 	// empty for a probe.
 	Module string `json:"module,omitempty"`
 	// Label names a probe record.

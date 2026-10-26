@@ -14,11 +14,11 @@ import (
 	"io/fs"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/policy"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
+	"github.com/RachidChabane/musthold/completeness/internal/app/ports"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/policy"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
 // Exit codes of the binary (ADR 0005). Completeness is advisory, so a question

@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/verify/internal/cli"
-	"github.com/RachidChabane/spec-proof/verify/internal/version"
+	"github.com/RachidChabane/musthold/verify/internal/cli"
+	"github.com/RachidChabane/musthold/verify/internal/version"
 )
 
-const binary = "spec-proof-verify"
+const binary = "musthold-verify"
 
 func TestMain(t *testing.T) {
 	cases := []struct {
@@ -17,7 +17,7 @@ func TestMain(t *testing.T) {
 		wantCode   int
 		wantStdout string
 	}{
-		{"spec-proof-verify prints its version", []string{"version"}, cli.ExitClean, binary + " " + version.Version + "\n"},
+		{"musthold-verify prints its version", []string{"version"}, cli.ExitClean, binary + " " + version.Version + "\n"},
 		{"no argument is a tool failure", nil, cli.ExitToolFailure, ""},
 		{"an unknown argument is a tool failure", []string{"frobnicate"}, cli.ExitToolFailure, ""},
 	}

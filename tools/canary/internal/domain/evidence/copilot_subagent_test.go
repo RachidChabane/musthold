@@ -4,15 +4,15 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
 )
 
 const (
 	taskCall   = "call_qGur5ZF9cX5qI20DNWOhYok9"
 	subagentID = "d7ba8126-5bc3-47cc-9f2a-9dcfe2d9e16e"
-	started    = `{"type":"subagent.started","agentId":"` + subagentID + `","data":{"toolCallId":"` + taskCall + `","agentName":"spec-proof-dp:spec-proof-dp-decider","agentDisplayName":"spec-proof-dp-decider","model":"gpt-5.6-luna"}}`
-	selected   = `{"type":"subagent.selected","agentId":"` + subagentID + `","data":{"agentName":"spec-proof-dp:spec-proof-dp-decider","agentDisplayName":"spec-proof-dp-decider","tools":["spec-proof-dp-exec/fetch_request","spec-proof-dp-exec/submit_response"]}}`
-	completed  = `{"type":"subagent.completed","agentId":"` + subagentID + `","data":{"toolCallId":"` + taskCall + `","agentName":"spec-proof-dp:spec-proof-dp-decider","totalToolCalls":2,"totalTokens":5301}}`
+	started    = `{"type":"subagent.started","agentId":"` + subagentID + `","data":{"toolCallId":"` + taskCall + `","agentName":"musthold-dp:musthold-dp-decider","agentDisplayName":"musthold-dp-decider","model":"gpt-5.6-luna"}}`
+	selected   = `{"type":"subagent.selected","agentId":"` + subagentID + `","data":{"agentName":"musthold-dp:musthold-dp-decider","agentDisplayName":"musthold-dp-decider","tools":["musthold-dp-exec/fetch_request","musthold-dp-exec/submit_response"]}}`
+	completed  = `{"type":"subagent.completed","agentId":"` + subagentID + `","data":{"toolCallId":"` + taskCall + `","agentName":"musthold-dp:musthold-dp-decider","totalToolCalls":2,"totalTokens":5301}}`
 )
 
 func TestCopilotSubagentDecoder(t *testing.T) {
@@ -22,10 +22,10 @@ func TestCopilotSubagentDecoder(t *testing.T) {
 			t.Fatalf("%d subagents", len(subagents))
 		}
 		subagent := subagents[0]
-		if subagent.Name != "spec-proof-dp:spec-proof-dp-decider" || subagent.AgentID != subagentID || subagent.ToolCallID != taskCall {
+		if subagent.Name != "musthold-dp:musthold-dp-decider" || subagent.AgentID != subagentID || subagent.ToolCallID != taskCall {
 			t.Fatalf("subagent = %+v", subagent)
 		}
-		wantTools := []string{"spec-proof-dp-exec/fetch_request", "spec-proof-dp-exec/submit_response"}
+		wantTools := []string{"musthold-dp-exec/fetch_request", "musthold-dp-exec/submit_response"}
 		if !subagent.HasSelected || !reflect.DeepEqual(subagent.Selected.Tools, wantTools) || subagent.Selected.Line != 2 {
 			t.Errorf("selected = %+v", subagent.Selected)
 		}
@@ -68,7 +68,7 @@ func TestCopilotSubagentAttribution(t *testing.T) {
 	event := func(line string) evidence.CopilotEvent { return decodeCopilot(line).Events[0] }
 
 	t.Run("a tool start is the subagent's when it names the task call as its parent, whatever its envelope says [verifies SP-1521~1]", func(t *testing.T) {
-		start := event(`{"type":"tool.execution_start","data":{"toolCallId":"c1","toolName":"spec-proof-dp-exec-fetch_request","parentToolCallId":"` + taskCall + `"}}`)
+		start := event(`{"type":"tool.execution_start","data":{"toolCallId":"c1","toolName":"musthold-dp-exec-fetch_request","parentToolCallId":"` + taskCall + `"}}`)
 		if start.ParentToolCallID != taskCall || !subagent.Originated(start) {
 			t.Errorf("start = %+v", start)
 		}

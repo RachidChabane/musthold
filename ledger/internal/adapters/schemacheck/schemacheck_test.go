@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/schemacheck"
-	"github.com/RachidChabane/spec-proof/ledger/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/ledger/internal/adapters/schemacheck"
+	"github.com/RachidChabane/musthold/ledger/internal/testkit"
 )
 
 const verifiesSchemas = " [verifies SP-200~1]"

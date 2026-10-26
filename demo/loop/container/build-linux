@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs inside the pinned Go image, from a staged source tree of spec-proof: builds
+# Runs inside the pinned Go image, from a staged source tree of musthold: builds
 # for Linux every binary a live run of the agent loop mounts, into OUT. The proof
 # modules and their build tags come from the canary's `modules` list, the same one
 # script/product-build reads; Shallnot is built from SHALLNOT_TREE, a tree of its
@@ -17,8 +17,8 @@ readonly VERSION_VAR
 export CGO_ENABLED=0 GOMAXPROCS=2
 # <module dir> <binary> of the binaries a run mounts besides the proof modules.
 readonly EXTRA_BINARIES=(
-  "verify spec-proof-verify"
-  "tools/canary spec-proof-demo-loop"
+  "verify musthold-verify"
+  "tools/canary musthold-demo-loop"
 )
 
 build() { # <module dir> <binary> <tags>
@@ -27,10 +27,10 @@ build() { # <module dir> <binary> <tags>
 }
 
 mkdir -p "${OUT}"
-build tools/canary spec-proof-canary ""
+build tools/canary musthold-canary ""
 while IFS=$'\t' read -r dir binary tags; do
   build "${dir}" "${binary}" "${tags}"
-done < <("${OUT}/spec-proof-canary" modules)
+done < <("${OUT}/musthold-canary" modules)
 for entry in "${EXTRA_BINARIES[@]}"; do
   read -r dir binary <<<"${entry}"
   build "${dir}" "${binary}" ""
@@ -39,4 +39,4 @@ echo "build-linux: fixturegate.test"
 go test -C tools/canary -c -p "${BUILD_PROCS}" -o "${OUT}/fixturegate.test" ./internal/demoloop/fixturegate
 echo "build-linux: shallnot"
 (cd "${SHALLNOT_TREE}" && go build -p "${BUILD_PROCS}" -ldflags "-X ${VERSION_VAR}=${SHALLNOT_PIN:0:${SHORT_SHA_LENGTH}}" -o "${OUT}/shallnot" ./cmd/shallnot)
-rm -f "${OUT}/spec-proof-canary"
+rm -f "${OUT}/musthold-canary"

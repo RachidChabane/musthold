@@ -5,7 +5,7 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // MemoryStore is the reference implementation of hostproto.Store: everything in

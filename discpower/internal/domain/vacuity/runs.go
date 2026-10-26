@@ -1,10 +1,10 @@
-// Package vacuity holds the pure rules of `spec-proof scan` (ADR 0014): which
+// Package vacuity holds the pure rules of `musthold scan` (ADR 0014): which
 // mutants a scan has proven to change behaviour, and, from each test's own line
 // coverage and its settled outcomes on those mutants, whether the test verifies
 // nothing, caught a change, or is unproven. It reads no file and runs nothing.
 package vacuity
 
-import "github.com/RachidChabane/spec-proof/format"
+import "github.com/RachidChabane/musthold/format"
 
 // Run is what one run of a test did.
 type Run string

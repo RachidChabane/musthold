@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/mcpstdio"
+	"github.com/RachidChabane/musthold/format/hostproto/mcpstdio"
 )
 
 var _ mcpstdio.ExecutorService = (*LazyService)(nil)
@@ -23,7 +23,7 @@ type LazyService struct {
 
 // ErrNoProject is returned when the directory a portable server resolved holds
 // no configuration of the module.
-var ErrNoProject = errors.New("no project of spec-proof here: start the client in the project directory, or pass --root")
+var ErrNoProject = errors.New("no project of musthold here: start the client in the project directory, or pass --root")
 
 // PickRoot chooses the project directory of a server: the directory given, then
 // the one the client exports, then the first root the client lists. It returns

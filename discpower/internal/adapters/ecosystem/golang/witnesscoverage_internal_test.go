@@ -6,8 +6,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/footprint"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation/footprint"
 )
 
 const verifiesWitnessUnits = " [verifies SP-2270~1]"
@@ -46,9 +46,9 @@ func TestInnermost(t *testing.T) {
 
 func TestTestsByPackage(t *testing.T) {
 	t.Run("tests group by the directory of their file, in the order each directory first appears"+verifiesWitnessUnits, func(t *testing.T) {
-		root := ecosystem.NewBoundTest("example.com/tally", "Test_a", "zz_specproof_a_test.go", 3)
-		nested := ecosystem.NewBoundTest("example.com/tally/rates", "Test_b", "rates/zz_specproof_b_test.go", 3)
-		again := ecosystem.NewBoundTest("example.com/tally", "Test_c", "zz_specproof_a_test.go", 9)
+		root := ecosystem.NewBoundTest("example.com/tally", "Test_a", "zz_musthold_a_test.go", 3)
+		nested := ecosystem.NewBoundTest("example.com/tally/rates", "Test_b", "rates/zz_musthold_b_test.go", 3)
+		again := ecosystem.NewBoundTest("example.com/tally", "Test_c", "zz_musthold_a_test.go", 9)
 		groups := testsByPackage([]ecosystem.BoundTest{root, nested, again})
 		if len(groups) != 2 || groups[0].dir != "." || groups[1].dir != "rates" ||
 			!slices.Equal(groups[0].tests, []ecosystem.BoundTest{root, again}) || !slices.Equal(groups[1].tests, []ecosystem.BoundTest{nested}) {

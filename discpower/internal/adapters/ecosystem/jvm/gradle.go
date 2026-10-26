@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 )
 
 const (
@@ -19,8 +19,8 @@ const (
 	testClassesTask = "testClasses"
 	testsFlag       = "--tests"
 	classpathInit   = "-I"
-	classpathOutput = "-PspecProofClasspathOutput="
-	classpathTask   = "specProofClasspath"
+	classpathOutput = "-PmustholdClasspathOutput="
+	classpathTask   = "mustholdClasspath"
 	methodSeparator = "."
 )
 
@@ -43,8 +43,8 @@ var gradleBaseFlags = []string{
 // project that applies the Java plugin, one element per line.
 const classpathScript = `allprojects {
     plugins.withId('java') {
-        tasks.register('specProofClasspath') {
-            def output = providers.gradleProperty('specProofClasspathOutput')
+        tasks.register('mustholdClasspath') {
+            def output = providers.gradleProperty('mustholdClasspathOutput')
             doLast {
                 def elements = project.extensions.getByName('sourceSets').getByName('test').runtimeClasspath.files
                 new File(output.get()).text = elements.collect { it.absolutePath }.join('\n')

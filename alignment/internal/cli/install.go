@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/hostinstall"
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/shallnot"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/hostinstall"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/shallnot"
 )
 
 // Commands and flags of the install commands.

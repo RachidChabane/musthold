@@ -6,7 +6,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // editSets generates valid edit sets of up to four edits over a few files,
@@ -64,7 +64,7 @@ func TestScanEdits(t *testing.T) {
 			Lines: []format.ScanLine{{File: "src/parse.py", Line: 3}},
 		}
 		statement := format.NewScanStatement(format.SHA256Hex([]byte("commit"))[:40], format.SHA256Hex([]byte("tree")), format.Scan{
-			Module: format.Module{Name: "spec-proof-dp", Version: "0.1.0"}, ProducedBy: format.ProducedByLocal,
+			Module: format.Module{Name: "musthold-dp", Version: "0.1.0"}, ProducedBy: format.ProducedByLocal,
 			Mode: format.ScanModeRepository, Runner: "pytest", Seed: "0", Mutants: []format.ScanMutant{mutant},
 		})
 		if err := statement.Validate(); err != nil {

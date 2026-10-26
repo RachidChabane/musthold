@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/cli"
-	"github.com/RachidChabane/spec-proof/alignment/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/alignment/internal/cli"
+	"github.com/RachidChabane/musthold/alignment/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 // requestKinds counts the requests the host store holds, by kind.
@@ -118,7 +118,7 @@ func TestWithoutDiscriminatingPower(t *testing.T) {
 			}
 			t.Errorf("%s: a proof input without a proof", key)
 		}
-		if roles := ticketRoles(h); roles["spec-proof-alignment:decider"] != 0 {
+		if roles := ticketRoles(h); roles["musthold-alignment:decider"] != 0 {
 			t.Errorf("System One was asked: %v", roles)
 		}
 	})
@@ -219,7 +219,7 @@ func TestBudget(t *testing.T) {
 
 func TestAwaitingProof(t *testing.T) {
 	h := newHarness(t, testkit.PythonParcel)
-	h.write(".spec-proof/pending/discpower.json", `{"module":"discpower","pending":[{"criterion":"PAR-1~1","reason":"awaiting_host"}]}`)
+	h.write(".musthold/pending/discpower.json", `{"module":"discpower","pending":[{"criterion":"PAR-1~1","reason":"awaiting_host"}]}`)
 	powers := testkit.PythonPowers()
 	h.withPowers(powers[1:])
 	code, output := h.driveAttested(testkit.Oracle{})
@@ -246,7 +246,7 @@ func TestAwaitingProof(t *testing.T) {
 	})
 
 	t.Run("once the proof exists the Statement is written from it [verifies SP-359~1]", func(t *testing.T) {
-		h.write(".spec-proof/pending/discpower.json", `{"module":"discpower","pending":[]}`)
+		h.write(".musthold/pending/discpower.json", `{"module":"discpower","pending":[]}`)
 		powers[0].Write(t, h.root)
 		code, output := h.driveAttested(testkit.Oracle{})
 		if code != cli.ExitBlocked {
@@ -366,7 +366,7 @@ func TestSystemOne(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, entry := range entries {
-			if entry.Role == "spec-proof-alignment:decider" && entry.Ticket.Vote != 0 {
+			if entry.Role == "musthold-alignment:decider" && entry.Ticket.Vote != 0 {
 				t.Errorf("a host vote %s was asked next to a relayed answer", entry.Ticket.TicketID)
 			}
 		}

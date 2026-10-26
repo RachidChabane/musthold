@@ -23,10 +23,10 @@ latest release of each module receives security fixes. Earlier releases do not.
 
 In scope, because the product exists to make these hold:
 
-- **Signatures.** Statements signed by CI and checked by `spec-proof-verify` against
+- **Signatures.** Statements signed by CI and checked by `musthold-verify` against
   a trust policy: a forged, replayed or substituted statement admitted as signed, a
   trust policy bypass, a signature check that accepts a statement it should refuse.
-- **Attestations and the ledger.** The append-only ledger kept by `spec-proof-ledger`
+- **Attestations and the ledger.** The append-only ledger kept by `musthold-ledger`
   and the provenance of release archives (checksums, Sigstore signatures, GitHub
   attestations, SBOMs): a tampered entry or archive that verifies, and an installer
   that installs an artifact it did not verify.
@@ -46,7 +46,7 @@ Out of scope:
   access, and local proofs are advisory by design ([trust model](docs/usage/trust-model.md#limits));
 - vulnerabilities in the harnesses (Claude Code, Codex CLI, Copilot CLI), in Shallnot
   or in a third-party dependency: report them to their own projects. A dependency
-  issue that spec-proof makes exploitable is in scope;
+  issue that musthold makes exploitable is in scope;
 - findings that require a weakened configuration the documentation warns against,
   such as `host.require_attestation: false` or a `proofs.min_isolation` below
   `restricted`.

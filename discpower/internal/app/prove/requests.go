@@ -1,10 +1,10 @@
 package prove
 
 import (
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/hostrequest"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/prompt"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/discpower/internal/app/hostrequest"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/prompt"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // requestDraft is what a request is assembled from: its kind, the built prompt

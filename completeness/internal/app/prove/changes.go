@@ -9,10 +9,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/code"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/hunk"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/completeness/internal/app/ports"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/code"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/hunk"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Findings the run reports about the change.

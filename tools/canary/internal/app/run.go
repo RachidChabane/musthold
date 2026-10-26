@@ -12,15 +12,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostinstall"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/checks"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/known"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/modules"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/window"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/hostinstall"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/checks"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/known"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/modules"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/verdict"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/window"
 )
 
 // Refusals of a run. They are reported before anything is started.
@@ -394,7 +394,7 @@ func (r Runner) writeAgents(l layout) error {
 }
 
 // classifyConfigFile is the shared configuration of the fixture project.
-const classifyConfigFile = ".spec-proof/config.yaml"
+const classifyConfigFile = ".musthold/config.yaml"
 
 // configureClassification lays the raw API log directory and turns on, in the
 // project, the shadow classification of the completeness proof and the check of
@@ -651,7 +651,7 @@ func (r Runner) collect(options Options, prepared preparedSession, session evide
 // collectJournal copies the journal a module kept in the state directory into
 // the records under the given name; a module that journaled nothing leaves no file.
 func (r Runner) collectJournal(l layout, module modules.Module, recordName string) error {
-	journals, err := r.Files.Glob(filepath.Join(l.state, "spec-proof", module.Dir, "*", "host", evidence.JournalFile))
+	journals, err := r.Files.Glob(filepath.Join(l.state, "musthold", module.Dir, "*", "host", evidence.JournalFile))
 	if err != nil || len(journals) == 0 {
 		return err
 	}

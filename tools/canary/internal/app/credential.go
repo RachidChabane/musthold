@@ -15,7 +15,7 @@ const (
 
 // KeychainService is the name of the keychain item that holds the token. The owner
 // stores it there under his macOS login.
-const KeychainService = "spec-proof-claude-oauth"
+const KeychainService = "musthold-claude-oauth"
 
 // Placeholders a plan prints instead of the value of the credential.
 const (

@@ -12,7 +12,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
 )
 
 const (

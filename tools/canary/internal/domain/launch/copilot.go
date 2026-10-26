@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/modules"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/modules"
 )
 
 // Variables of the environment of a Copilot CLI session.

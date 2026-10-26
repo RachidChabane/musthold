@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // ImportedClassification is what one import of the mod printed.

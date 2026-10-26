@@ -12,16 +12,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	canary "github.com/RachidChabane/spec-proof/tools/canary/internal/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/config"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/container"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/plan"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/record"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/startup"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/modules"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/window"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	canary "github.com/RachidChabane/musthold/tools/canary/internal/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/container"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/startup"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/modules"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/window"
 )
 
 // Refusals of a live run, reported before the session they concern starts.
@@ -39,7 +39,7 @@ var (
 
 // Names and bounds of a live run.
 const (
-	runDirPrefix      = "spec-proof-demo-loop-"
+	runDirPrefix      = "musthold-demo-loop-"
 	supportTimeout    = 2 * time.Minute
 	versionArgument   = "--version"
 	moduleVersionVerb = "version"

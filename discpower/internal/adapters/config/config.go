@@ -1,4 +1,4 @@
-// Package config reads and writes `.spec-proof/config.yaml`.
+// Package config reads and writes `.musthold/config.yaml`.
 package config
 
 import (
@@ -12,10 +12,10 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/policy"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/projectconfig"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/policy"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/projectconfig"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Top-level keys of the configuration file.

@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/formattest/parcel"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest/claudecode"
+	"github.com/RachidChabane/musthold/format/formattest/parcel"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest/claudecode"
 )
 
 const (
@@ -139,7 +139,7 @@ func TestHonestHostEndToEnd(t *testing.T) {
 
 	t.Run("the end-of-turn hook of Shallnot holds the turn while the host owes answers [verifies SP-250~2]", func(t *testing.T) {
 		stop := p.stop("e2e-honest")
-		if stop.code != exitHookHold || !strings.Contains(stop.stderr, "awaiting_host") || !strings.Contains(stop.stderr, "spec-proof-dp-fulfil") {
+		if stop.code != exitHookHold || !strings.Contains(stop.stderr, "awaiting_host") || !strings.Contains(stop.stderr, "musthold-dp-fulfil") {
 			t.Fatalf("stop hook: exit %d\n%s", stop.code, stop.output())
 		}
 		for _, criterion := range []string{"PAR-1~1", "PAR-2~1", "PAR-3~1"} {

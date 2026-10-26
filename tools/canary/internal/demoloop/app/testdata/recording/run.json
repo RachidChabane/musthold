@@ -17,7 +17,7 @@
   "versions": {
     "claude": "2.1.295 (Claude Code)",
     "shallnot": "831c5454a564b8cf4e1e010780f35543831efe7e",
-    "spec-proof-dp": "spec-proof-dp dev"
+    "musthold-dp": "musthold-dp dev"
   },
   "startedAt": "2026-10-25T21:00:00Z",
   "endedAt": "2026-10-25T21:09:30Z",

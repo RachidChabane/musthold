@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/execution"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/discpower/internal/app/execution"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbridge"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (

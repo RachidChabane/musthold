@@ -16,7 +16,7 @@ from specbench.domain.sessions import SessionKind, SessionOutcome
 from support.coder_rigs import KILL_AFTER_SECONDS, OWNER_CONFIG, make_codex_rig
 from support.fake_codex import recorded_codex_calls
 
-SPAWN = {"spawn": "spec-proof-dp-decider"}
+SPAWN = {"spawn": "musthold-dp-decider"}
 
 
 def test_a_fresh_session_runs_in_the_workspace_with_the_sandbox_flags(tmp_path: Path) -> None:

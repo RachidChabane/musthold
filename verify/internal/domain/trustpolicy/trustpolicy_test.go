@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/trustpolicy"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/verify/internal/domain/trustpolicy"
 )
 
 const verifiesPolicy = " [verifies SP-210~1]"

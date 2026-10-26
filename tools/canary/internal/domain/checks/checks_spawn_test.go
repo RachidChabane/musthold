@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/verdict"
 )
 
 const (
@@ -17,7 +17,7 @@ const (
 	// history control.
 	firstSpawnCall = "call_Zz00Yy11"
 	// refusalOutput is the output the harness gave the first spawn.
-	refusalOutput = `"output":"an executor must start with none of your history: call spawn_agent again for spec-proof-dp-decider with the same arguments, fork_turns set to \"none\" and no fork_context"`
+	refusalOutput = `"output":"an executor must start with none of your history: call spawn_agent again for musthold-dp-decider with the same arguments, fork_turns set to \"none\" and no fork_context"`
 	// parentPrompt is the prompt of the main agent, as an inherited thread shows it.
 	parentPrompt = `{"timestamp":"2026-10-07T21:05:15.955Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"scripted prompt"}]}}`
 )
@@ -34,9 +34,9 @@ func TestExecutorSpawnIsBlind(t *testing.T) {
 			t.Errorf("evidence = %+v", v.Evidence)
 		}
 		for _, part := range []string{
-			"the module's pre-tool hook denied the first spawn of spec-proof-dp-decider, which set no blind form, and the spawn that followed started blind",
-			"of 2 spawn(s) of spec-proof-dp-decider, the module's pre-tool hook received 1, 1 set a blind form, 1 that set none were denied by the pre-tool hook and 0 that set none were not denied",
-			"of 1 thread(s) of spec-proof-dp-decider, 1 started blind, 0 inherited history and 0 cannot show it",
+			"the module's pre-tool hook denied the first spawn of musthold-dp-decider, which set no blind form, and the spawn that followed started blind",
+			"of 2 spawn(s) of musthold-dp-decider, the module's pre-tool hook received 1, 1 set a blind form, 1 that set none were denied by the pre-tool hook and 0 that set none were not denied",
+			"of 1 thread(s) of musthold-dp-decider, 1 started blind, 0 inherited history and 0 cannot show it",
 			"agent_id, agent_type, hook_event_name, session_id", "none of them says how much history the child inherited",
 		} {
 			if !strings.Contains(v.Summary, part) {
@@ -115,7 +115,7 @@ func TestExecutorSpawnIsBlind(t *testing.T) {
 
 	t.Run("a spawn of another agent type is not the executor's [verifies SP-1511~3]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
-		files.RolloutMain = replace(files.RolloutMain, `spec-proof-dp-decider`, `explorer`)
+		files.RolloutMain = replace(files.RolloutMain, `musthold-dp-decider`, `explorer`)
 		files.RolloutChildren = nil
 		want(t, evaluate(t, "codex", files), spawnDecider, verdict.Inconclusive)
 	})

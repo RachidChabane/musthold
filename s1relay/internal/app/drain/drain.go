@@ -9,9 +9,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/endpoint"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/failure"
+	"github.com/RachidChabane/musthold/s1relay/internal/app/ports"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/endpoint"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/failure"
 )
 
 // ConsecutiveFailureLimit is how many requests in a row may fail because of the

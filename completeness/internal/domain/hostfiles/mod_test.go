@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/hostfiles"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/hostharness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest/claudecli"
-	"github.com/RachidChabane/spec-proof/format/hostproto/pluginfiles"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/hostfiles"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/hostharness"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest/claudecli"
+	"github.com/RachidChabane/musthold/format/hostproto/pluginfiles"
 )
 
 func TestClaudeMod(t *testing.T) {

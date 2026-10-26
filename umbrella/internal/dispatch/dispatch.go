@@ -1,7 +1,7 @@
-// Package dispatch is the `spec-proof` command line: a dispatcher that holds no
+// Package dispatch is the `musthold` command line: a dispatcher that holds no
 // rule of its own and runs each command in the binary of the module that owns
-// it, with the same arguments, streams and exit code. `spec-proof scan` runs
-// `spec-proof-dp scan`.
+// it, with the same arguments, streams and exit code. `musthold scan` runs
+// `musthold-dp scan`.
 package dispatch
 
 import (
@@ -12,11 +12,11 @@ import (
 	"path/filepath"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/format/cliconv"
+	"github.com/RachidChabane/musthold/format/cliconv"
 )
 
 // BinaryName is the name of the dispatcher.
-const BinaryName = "spec-proof"
+const BinaryName = "musthold"
 
 // Commands of the dispatcher.
 const (
@@ -25,14 +25,14 @@ const (
 )
 
 // routes maps each command the dispatcher forwards to the binary that runs it.
-var routes = map[string]string{commandScan: "spec-proof-dp"}
+var routes = map[string]string{commandScan: "musthold-dp"}
 
 // ExitNotInstalled is the exit code when the binary of a command is missing.
 const ExitNotInstalled = cliconv.ExitUsage
 
 // ErrNotInstalled is returned when the binary of a command is neither beside
 // the dispatcher nor on the PATH.
-var ErrNotInstalled = errors.New("is not installed: put it beside spec-proof or on the PATH")
+var ErrNotInstalled = errors.New("is not installed: put it beside musthold or on the PATH")
 
 // Process starts a binary with arguments on the dispatcher's streams and
 // returns its exit code.

@@ -5,7 +5,7 @@
 # sha>" lines on standard input. A new remote branch is compared with origin/main;
 # a deleted ref is skipped. Once every gate passed, a push to main starts a
 # detached script/watch-ci for its head, which appends the outcome of the CI run
-# to $CI_WATCH_LOG (default ~/Library/Logs/spec-proof/ci-watch.log) and raises a
+# to $CI_WATCH_LOG (default ~/Library/Logs/musthold/ci-watch.log) and raises a
 # desktop notification when the run fails. Install it with script/install-git-hooks.
 #
 # Exit 0: the push may go on. 1: a gate failed, so the push is refused.
@@ -23,7 +23,7 @@ done
 readonly ZERO_SHA="0000000000000000000000000000000000000000"
 readonly DEFAULT_BASE="origin/main"
 readonly MAIN_REF="refs/heads/main"
-readonly CI_WATCH_LOG="${CI_WATCH_LOG:-${HOME}/Library/Logs/spec-proof/ci-watch.log}"
+readonly CI_WATCH_LOG="${CI_WATCH_LOG:-${HOME}/Library/Logs/musthold/ci-watch.log}"
 
 # watch_ci follows the CI run of a commit in the background, past the end of the push.
 watch_ci() {

@@ -87,7 +87,7 @@ def test_the_seed_record_is_written_where_the_product_restores_it_from(
     agent = repository.commit_agent_tree(tree)
     identity = CiIdentity(ci_run_id(DIGEST), agent, repository.commit_setup(tree))
     repository.restore_seed(tree, identity.seed_record)
-    stored = json.loads((tree / ".spec-proof" / "seeds" / f"{identity.head}.json").read_text(encoding="utf-8"))
+    stored = json.loads((tree / ".musthold" / "seeds" / f"{identity.head}.json").read_text(encoding="utf-8"))
     assert stored["headSha"] == identity.head
     assert stored["firstRunId"] == identity.run_id
     assert stored["seed"] == identity.seed_record.seed
@@ -106,7 +106,7 @@ def test_a_pushed_host_ref_is_exported_as_the_flat_files_of_its_tree(
     tree = write_tree(tmp_path / "tree")
     repository.commit_agent_tree(tree)
     head = repository.commit_setup(tree)
-    git(tree, "update-ref", f"refs/spec-proof/host/discpower/{head}", head)
+    git(tree, "update-ref", f"refs/musthold/host/discpower/{head}", head)
     exported = tmp_path / "export" / "discpower"
     assert repository.export_host_ref(tree, "discpower", exported) is True
     assert (exported / "src" / "app.py").read_text(encoding="utf-8") == FILES["src/app.py"]

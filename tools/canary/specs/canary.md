@@ -257,7 +257,7 @@ which run the evaluators on recorded event streams and make no model call.
 - **SP-1523~1**: WHEN an isolated Claude Code session is started THE SYSTEM SHALL
   take its long-lived token from the environment variable CLAUDE_CODE_OAUTH_TOKEN
   when it is set and otherwise from the macOS keychain item of the service
-  `spec-proof-claude-oauth` under the account of the login, treat an item that
+  `musthold-claude-oauth` under the account of the login, treat an item that
   does not exist as absent, fail on any other keychain failure without naming
   what the keychain tool printed, refuse to start when no source holds a token
   unless the shared home is chosen, put the token in the environment of the Claude

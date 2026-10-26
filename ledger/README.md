@@ -1,7 +1,7 @@
-# ledger (`spec-proof-ledger`)
+# ledger (`musthold-ledger`)
 
 Signs the proofs a CI run produced and keeps them in an append-only git branch,
-`spec-proof/ledger`, with the data needed to verify them offline. It runs in CI,
+`musthold/ledger`, with the data needed to verify them offline. It runs in CI,
 calls no model and reads no project code.
 
 ## Alone
@@ -12,7 +12,7 @@ Sigstore identity.
 ## Install
 
 ```
-nice -n 10 go install -C ledger -p 1 ./cmd/spec-proof-ledger
+nice -n 10 go install -C ledger -p 1 ./cmd/musthold-ledger
 ```
 
 Run from the repository root; the binary lands in `$GOBIN`, or
@@ -21,12 +21,12 @@ Run from the repository root; the binary lands in `$GOBIN`, or
 ## Commands
 
 ```
-spec-proof-ledger sign --identity ed25519 --in .spec-proof/cache --out signed
-spec-proof-ledger ledger append --signed signed --head-sha SHA --run-id ID
-spec-proof-ledger ledger export --to bundles
-spec-proof-ledger ledger audit
-spec-proof-ledger ledger seed --head-sha SHA --run-id ID
-spec-proof-ledger ledger fetch-trust --out trust
+musthold-ledger sign --identity ed25519 --in .musthold/cache --out signed
+musthold-ledger ledger append --signed signed --head-sha SHA --run-id ID
+musthold-ledger ledger export --to bundles
+musthold-ledger ledger audit
+musthold-ledger ledger seed --head-sha SHA --run-id ID
+musthold-ledger ledger fetch-trust --out trust
 ```
 
 Exit codes: 0 success, 1 a refusal, 2 a command line or tool failure.

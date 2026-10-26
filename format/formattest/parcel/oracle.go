@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format/formattest/prompts"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/formattest/prompts"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // Oracle plays an honest host: it reads the prompt an executor sees and answers

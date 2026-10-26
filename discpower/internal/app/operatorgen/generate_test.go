@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/footprint"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/operator"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation/footprint"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation/operator"
 )
 
 // fakeEngine proposes, for each definition `fN` of a file, three relational

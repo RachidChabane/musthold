@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
+	"github.com/RachidChabane/musthold/completeness/internal/app/ports"
 )
 
 // Shallnot command line.

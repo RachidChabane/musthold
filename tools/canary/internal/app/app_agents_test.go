@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostinstall"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/modules"
+	"github.com/RachidChabane/musthold/format/hostproto/hostinstall"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/modules"
 )
 
 // fixtureAgents is an AGENTS.md the fixture project could already hold.

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Ref identifies a criterion: its requirement ID and revision.

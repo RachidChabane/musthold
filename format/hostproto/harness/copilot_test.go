@@ -3,27 +3,27 @@ package harness_test
 import (
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
 )
 
 func TestCopilotAgentTypeForms(t *testing.T) {
 	copilot := harness.Copilot(sample)
 
 	t.Run("the plugin-prefixed type the stop hook reports resolves to the role of its agent [verifies SP-1870~1]", func(t *testing.T) {
-		role, ok := copilot.RoleOf("spec-proof-sample:spec-proof-sample-decider")
-		if !ok || role != "spec-proof-sample:decider" {
+		role, ok := copilot.RoleOf("musthold-sample:musthold-sample-decider")
+		if !ok || role != "musthold-sample:decider" {
 			t.Errorf("role = %q, %v", role, ok)
 		}
-		if _, ok := copilot.RoleOf("spec-proof-sample-decider"); !ok {
+		if _, ok := copilot.RoleOf("musthold-sample-decider"); !ok {
 			t.Error("the plain file name does not resolve")
 		}
 	})
 
 	t.Run("no other prefix and no unshipped agent resolves [verifies SP-1870~1]", func(t *testing.T) {
 		for _, reported := range []string{
-			"other:spec-proof-sample-decider", "spec-proof-sample/spec-proof-sample-decider", "spec-proof-sample@spec-proof-sample-decider",
-			"spec-proof-sample:spec-proof-sample-boss", "spec-proof-sample::spec-proof-sample-decider", "x:spec-proof-sample:spec-proof-sample-decider",
-			"spec-proof-sample:spec-proof-sample-decider:x", ":spec-proof-sample-decider",
+			"other:musthold-sample-decider", "musthold-sample/musthold-sample-decider", "musthold-sample@musthold-sample-decider",
+			"musthold-sample:musthold-sample-boss", "musthold-sample::musthold-sample-decider", "x:musthold-sample:musthold-sample-decider",
+			"musthold-sample:musthold-sample-decider:x", ":musthold-sample-decider",
 		} {
 			if role, ok := copilot.RoleOf(reported); ok {
 				t.Errorf("%q was taken for %q", reported, role)
@@ -32,11 +32,11 @@ func TestCopilotAgentTypeForms(t *testing.T) {
 	})
 
 	t.Run("a role is named by the types of its own agent only [verifies SP-1870~1]", func(t *testing.T) {
-		const decider = "spec-proof-sample:decider"
-		if !copilot.NamesRole(decider, "spec-proof-sample:spec-proof-sample-decider") || !copilot.NamesRole(decider, "spec-proof-sample-decider") {
+		const decider = "musthold-sample:decider"
+		if !copilot.NamesRole(decider, "musthold-sample:musthold-sample-decider") || !copilot.NamesRole(decider, "musthold-sample-decider") {
 			t.Error("a type of the decider does not name its role")
 		}
-		if copilot.NamesRole(decider, "spec-proof-sample:spec-proof-sample-judge") {
+		if copilot.NamesRole(decider, "musthold-sample:musthold-sample-judge") {
 			t.Error("the judge's type names the decider's role")
 		}
 	})

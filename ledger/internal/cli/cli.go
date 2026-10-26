@@ -8,10 +8,10 @@ import (
 	"io"
 	"os"
 
-	"github.com/RachidChabane/spec-proof/format/cliconv"
-	"github.com/RachidChabane/spec-proof/ledger/internal/app"
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/refusal"
-	"github.com/RachidChabane/spec-proof/ledger/internal/version"
+	"github.com/RachidChabane/musthold/format/cliconv"
+	"github.com/RachidChabane/musthold/ledger/internal/app"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/ledger/internal/version"
 )
 
 // Exit codes of the binary (ADR 0002).

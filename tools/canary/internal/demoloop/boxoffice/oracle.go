@@ -13,9 +13,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format/formattest/parcel"
-	"github.com/RachidChabane/spec-proof/format/formattest/prompts"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/formattest/parcel"
+	"github.com/RachidChabane/musthold/format/formattest/prompts"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // oldestAge bounds the ages the honest host reasons about.

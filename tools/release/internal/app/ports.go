@@ -5,7 +5,7 @@ package app
 import (
 	"time"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
 )
 
 // RepositoryReader reads the version-control facts a release depends on.

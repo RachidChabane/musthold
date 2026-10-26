@@ -10,9 +10,9 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const verifiesSP1983 = " [verifies SP-1983~1]"

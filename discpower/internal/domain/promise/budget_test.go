@@ -6,7 +6,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/promise"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/promise"
 )
 
 const (

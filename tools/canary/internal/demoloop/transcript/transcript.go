@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/record"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/modules"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/modules"
 )
 
 // Kind is what an entry of the transcript stands for.

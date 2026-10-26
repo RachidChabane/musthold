@@ -3,7 +3,7 @@ package scan
 import (
 	"context"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
 )
 
 // Bounds of the workers a scan chooses from the capacity of the machine.

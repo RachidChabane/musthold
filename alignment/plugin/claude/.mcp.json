@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "exec": {
-      "command": "spec-proof-alignment",
+      "command": "musthold-alignment",
       "args": [
         "mcp",
         "--role",

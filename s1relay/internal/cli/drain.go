@@ -9,14 +9,14 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/cliconv"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/memguard"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/modulecli"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/projectconfig"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/systemone"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/app/drain"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/endpoint"
+	"github.com/RachidChabane/musthold/format/cliconv"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/s1relay/internal/adapters/memguard"
+	"github.com/RachidChabane/musthold/s1relay/internal/adapters/modulecli"
+	"github.com/RachidChabane/musthold/s1relay/internal/adapters/projectconfig"
+	"github.com/RachidChabane/musthold/s1relay/internal/adapters/systemone"
+	"github.com/RachidChabane/musthold/s1relay/internal/app/drain"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/endpoint"
 )
 
 // Flags of `drain`.

@@ -3,10 +3,10 @@ package verdict_test
 import (
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/matrix"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/policy"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/verdict"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/matrix"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/policy"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/verdict"
+	"github.com/RachidChabane/musthold/format"
 )
 
 func TestRouteThresholdPerSource(t *testing.T) {

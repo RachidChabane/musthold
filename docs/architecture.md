@@ -16,16 +16,16 @@ with its own `go.mod`, tests and, where it ships one, binary, plugin and release
 | Directory | Binary | Role |
 |---|---|---|
 | `format` | none | the proof format and the host protocol: the only shared package |
-| `discpower` | `spec-proof-dp` | discriminating power; owns ecosystem execution |
-| `alignment` | `spec-proof-alignment` | alignment; reads discriminating-power proofs |
-| `completeness` | `spec-proof-completeness` | advisory |
-| `ledger` | `spec-proof-ledger` | `sign` and the append-only ledger |
-| `verify` | `spec-proof-verify` | signature verifier, files only |
-| `s1relay` | `spec-proof-s1` | the only code that opens a connection to a System One endpoint |
-| `umbrella` | none | marketplace and the thin `spec-proof` plugin |
+| `discpower` | `musthold-dp` | discriminating power; owns ecosystem execution |
+| `alignment` | `musthold-alignment` | alignment; reads discriminating-power proofs |
+| `completeness` | `musthold-completeness` | advisory |
+| `ledger` | `musthold-ledger` | `sign` and the append-only ledger |
+| `verify` | `musthold-verify` | signature verifier, files only |
+| `s1relay` | `musthold-s1` | the only code that opens a connection to a System One endpoint |
+| `umbrella` | none | marketplace and the thin `musthold` plugin |
 | `tools/archtest` | none | architecture tests that span the modules |
 | `tools/e2e` | none | black-box tests of the built binaries and of the documentation |
-| `tools/release` | `spec-proof-release` | the release pipeline: tags, pre-flight, archives, checksums, SBOMs, formula, notes (never released) |
+| `tools/release` | `musthold-release` | the release pipeline: tags, pre-flight, archives, checksums, SBOMs, formula, notes (never released) |
 
 `bench/` (the benchmark core) and `experiments/` (the pilot and calibration
 harnesses) measure the product and are not part of it.
@@ -101,7 +101,7 @@ bump that leaves the templates unchanged keeps the ids.
 **Ticket.** `<requestId>.<vote>.<emission>` plus a 128-bit nonce from `crypto/rand`
 that stays outside the id.
 
-**Store.** `$XDG_STATE_HOME/spec-proof/<module>/<repo-digest>/host/` holds
+**Store.** `$XDG_STATE_HOME/musthold/<module>/<repo-digest>/host/` holds
 `queue.json`, `requests/`, `tickets/`, `responses/`, a digest-chained
 `journal.jsonl` and a per-install `secret` (mode 0600). A location outside the work
 tree is hygiene, not a security boundary.
@@ -155,12 +155,12 @@ Architecture tests enforce these with `go list -deps`:
 - `net`, `net/http` and `crypto/tls` are not linked into the binaries of the three
   proof modules. `net/http` appears only in `s1relay` and in the signing adapters
   of `ledger` and `verify`.
-- `spec-proof-verify` holds no `os/exec` symbol of its own; the packages reachable
+- `musthold-verify` holds no `os/exec` symbol of its own; the packages reachable
   from it that import `os/exec` equal a reviewed allowlist.
 - No shipped binary contains the test support of `format`.
 
 The rule that no binary calls a model follows: the proof modules open no
-connection, and `spec-proof-s1` is the only client of a System One endpoint.
+connection, and `musthold-s1` is the only client of a System One endpoint.
 
 ## Generated files
 

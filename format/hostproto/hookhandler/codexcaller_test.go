@@ -3,13 +3,13 @@ package hookhandler_test
 import (
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
 )
 
 // realCodexToolName is the name Codex gives the fetch tool of the server
-// `spec-proof-dp-exec`.
-const realCodexToolName = "mcp__spec_proof_dp_exec__fetch_request"
+// `musthold-dp-exec`.
+const realCodexToolName = "mcp__musthold_dp_exec__fetch_request"
 
 func codexExecutorPayload(t *testing.T, ticket string, identityMembers map[string]any) []byte {
 	t.Helper()
@@ -49,7 +49,7 @@ func TestCodexCallerIdentification(t *testing.T) {
 
 	t.Run("a call of an executor of another role or of an agent that is not an executor is denied [verifies SP-705~1]", func(t *testing.T) {
 		for name, members := range map[string]map[string]any{
-			"another role":       {"agent_id": agentID, "agent_type": codex.AgentType("spec-proof-dp:decider")},
+			"another role":       {"agent_id": agentID, "agent_type": codex.AgentType("musthold-dp:decider")},
 			"a foreign agent":    {"agent_id": agentID, "agent_type": "explorer"},
 			"an id without type": {"agent_id": otherAgentID},
 		} {

@@ -22,7 +22,7 @@ HEAD = "ced135c284f5523908f24159524e2252b91c1907"
 
 CI_SIMULATION_LINE = (
     "- protocol | arms: TR, AL, DP, CO, ALL, PL, ALL-native, cheat | The clean-room gate's CI run is simulated: "
-    "SPEC_PROOF_CI_RUN_ID is bench-<tree digest prefix>, and the seed record of the head is restored with the seed of "
+    "MUSTHOLD_CI_RUN_ID is bench-<tree digest prefix>, and the seed record of the head is restored with the seed of "
     "the agent tree's own commit, so every arm gets the same CI seed on the same tree; CI-issued artifacts reach host "
     "pull through a gh shim no session can reach."
 )
@@ -57,7 +57,7 @@ def test_the_seed_record_is_what_the_products_seed_store_reads() -> None:
     record = CiIdentity(ci_run_id(DIGEST), AGENT_HEAD, HEAD).seed_record
     body = json.loads(record.to_json())
     assert body == {"headSha": HEAD, "firstRunId": "bench-987ff01544d31604", "seed": record.seed}
-    assert record.path == f".spec-proof/seeds/{HEAD}.json"
+    assert record.path == f".musthold/seeds/{HEAD}.json"
 
 
 def test_the_round_trips_are_capped_where_shallnot_stops_waiting_for_the_host() -> None:

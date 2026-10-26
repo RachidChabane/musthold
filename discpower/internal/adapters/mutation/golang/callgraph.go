@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/footprint"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation/footprint"
 )
 
 // callGraph builds the graph contribution of the file: one node per function or

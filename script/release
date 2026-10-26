@@ -26,7 +26,7 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 readonly TOOL_DIR="tools/release"
-readonly TOOL_BIN=".tools/bin/spec-proof-release"
+readonly TOOL_BIN=".tools/bin/musthold-release"
 readonly DEFAULT_DIST="dist"
 readonly DEFAULT_JOBS=2
 readonly BUILD_GOMAXPROCS=2
@@ -56,7 +56,7 @@ throttled() { nice -n "${BUILD_NICE}" "$@"; }
 
 build_tool() {
   mkdir -p "$(dirname "${TOOL_BIN}")"
-  GOWORK=off throttled go build -C "${TOOL_DIR}" -o "${PWD}/${TOOL_BIN}" ./cmd/spec-proof-release
+  GOWORK=off throttled go build -C "${TOOL_DIR}" -o "${PWD}/${TOOL_BIN}" ./cmd/musthold-release
 }
 
 plan_value() { # <plan output> <key>

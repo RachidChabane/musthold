@@ -11,7 +11,7 @@ import (
 
 	"golang.org/x/mod/modfile"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
 )
 
 const (

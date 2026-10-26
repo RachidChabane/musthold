@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/hostrequest"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/prompt"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/discpower/internal/app/hostrequest"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/prompt"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 )
 
 func identity() hostrequest.Identity {
-	return hostrequest.Identity{Module: format.Module{Name: "spec-proof-dp", Version: "0.1.0"}, Plugin: "spec-proof-dp", PolicyDigest: hostrequest.DigestText("policy")}
+	return hostrequest.Identity{Module: format.Module{Name: "musthold-dp", Version: "0.1.0"}, Plugin: "musthold-dp", PolicyDigest: hostrequest.DigestText("policy")}
 }
 
 func pinnedDraft() hostrequest.Draft {

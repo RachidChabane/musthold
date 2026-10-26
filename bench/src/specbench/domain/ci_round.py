@@ -16,7 +16,7 @@ from specbench.domain.product import ProofModule
 class CiRoundRequest:
     """What a host needs to answer round `number`: the pending modules, where CI left their requests and the room.
 
-    `ci_issued` is the `.spec-proof/ci-issued` directory of the settle step that found the modules pending; each
+    `ci_issued` is the `.musthold/ci-issued` directory of the settle step that found the modules pending; each
     pending module's requests are the directory below it that carries its host-ref name.
     """
 

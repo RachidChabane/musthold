@@ -1,4 +1,4 @@
-// Package cli is the command line of spec-proof-release: it parses a verb and its
+// Package cli is the command line of musthold-release: it parses a verb and its
 // flags, wires the use cases to their adapters and prints what they found.
 package cli
 
@@ -11,8 +11,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/app"
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/app"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
 )
 
 // Exit codes of the command.
@@ -25,7 +25,7 @@ const (
 )
 
 // Binary is the name of the command.
-const Binary = "spec-proof-release"
+const Binary = "musthold-release"
 
 // Verbs of the command.
 const (

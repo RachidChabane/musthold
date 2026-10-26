@@ -13,12 +13,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/adapters"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/known"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/modules"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/window"
+	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
+	"github.com/RachidChabane/musthold/tools/canary/internal/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/known"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/modules"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/verdict"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/window"
 )
 
 // Exit codes beyond those of a report (verdict.Exit*).
@@ -60,7 +60,7 @@ func Main() int {
 		executable, err = filepath.EvalSymlinks(executable)
 	}
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "spec-proof-canary:", err)
+		fmt.Fprintln(os.Stderr, "musthold-canary:", err)
 		return ExitRefused
 	}
 	return Run(Env{Args: os.Args[1:], Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr, Environ: os.Environ(), Now: time.Now, Executable: executable})
@@ -89,12 +89,12 @@ func Run(env Env) int {
 }
 
 func (e Env) usage() int {
-	fmt.Fprintf(e.Stderr, "usage: spec-proof-canary %s|%s --harness claude|codex|copilot [flags]\n", commandRun, commandEvaluate)
+	fmt.Fprintf(e.Stderr, "usage: musthold-canary %s|%s --harness claude|codex|copilot [flags]\n", commandRun, commandEvaluate)
 	return ExitUsage
 }
 
 func (e Env) flags(name string) *flag.FlagSet {
-	set := flag.NewFlagSet("spec-proof-canary "+name, flag.ContinueOnError)
+	set := flag.NewFlagSet("musthold-canary "+name, flag.ContinueOnError)
 	set.SetOutput(e.Stderr)
 	return set
 }
@@ -117,18 +117,18 @@ func (e Env) run(args []string) int {
 	}
 	registry, err := loadKnownInconclusive(*knownFile)
 	if err != nil {
-		fmt.Fprintln(e.Stderr, "spec-proof-canary:", err)
+		fmt.Fprintln(e.Stderr, "musthold-canary:", err)
 		return ExitRefused
 	}
 	root, err := filepath.Abs(options.RepoRoot)
 	if err != nil {
-		fmt.Fprintln(e.Stderr, "spec-proof-canary:", err)
+		fmt.Fprintln(e.Stderr, "musthold-canary:", err)
 		return ExitRefused
 	}
 	options.RepoRoot = root
 	if !options.DryRun {
 		if err := adapters.Lower(); err != nil {
-			fmt.Fprintln(e.Stderr, "spec-proof-canary: cannot lower the priority:", err)
+			fmt.Fprintln(e.Stderr, "musthold-canary: cannot lower the priority:", err)
 			return ExitRefused
 		}
 	}
@@ -136,7 +136,7 @@ func (e Env) run(args []string) int {
 	defer stop()
 	outcome, err := e.runner(registry).Run(ctx, options)
 	if err != nil {
-		fmt.Fprintln(e.Stderr, "spec-proof-canary:", err)
+		fmt.Fprintln(e.Stderr, "musthold-canary:", err)
 		if outcome.RunDir != "" {
 			fmt.Fprintln(e.Stderr, "run directory:", outcome.RunDir)
 		}
@@ -146,7 +146,7 @@ func (e Env) run(args []string) int {
 		return verdict.ExitAllPass
 	}
 	if err := app.WriteReport(outcome.Report, e.Stdout, e.Stderr); err != nil {
-		fmt.Fprintln(e.Stderr, "spec-proof-canary:", err)
+		fmt.Fprintln(e.Stderr, "musthold-canary:", err)
 		return ExitRefused
 	}
 	fmt.Fprintln(e.Stderr, "records:", filepath.Join(outcome.RunDir, "records"))
@@ -197,16 +197,16 @@ func (e Env) evaluate(args []string) int {
 	}
 	registry, err := loadKnownInconclusive(*knownFile)
 	if err != nil {
-		fmt.Fprintln(e.Stderr, "spec-proof-canary:", err)
+		fmt.Fprintln(e.Stderr, "musthold-canary:", err)
 		return ExitRefused
 	}
 	report, err := e.runner(registry).Evaluate(records, harnessFlag)
 	if err != nil {
-		fmt.Fprintln(e.Stderr, "spec-proof-canary:", err)
+		fmt.Fprintln(e.Stderr, "musthold-canary:", err)
 		return ExitRefused
 	}
 	if err := app.WriteReport(report, e.Stdout, e.Stderr); err != nil {
-		fmt.Fprintln(e.Stderr, "spec-proof-canary:", err)
+		fmt.Fprintln(e.Stderr, "musthold-canary:", err)
 		return ExitRefused
 	}
 	return report.ExitCode()

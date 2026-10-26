@@ -8,7 +8,7 @@ package tournament
 import (
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/blind"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/blind"
 )
 
 // MaxGroup is the largest number of criteria one question holds, besides NONE.

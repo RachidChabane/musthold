@@ -14,11 +14,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/systemonewire"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/endpoint"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/failure"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/question"
+	"github.com/RachidChabane/musthold/s1relay/internal/adapters/systemonewire"
+	"github.com/RachidChabane/musthold/s1relay/internal/app/ports"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/endpoint"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/failure"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/question"
 )
 
 // Limits and headers of the exchange.

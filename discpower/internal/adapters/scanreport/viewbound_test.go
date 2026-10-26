@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/scanreport"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/promise"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/scanreport"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/promise"
+	"github.com/RachidChabane/musthold/format"
 )
 
 const verifiesTruncatedReport = " [verifies SP-2272~1]"

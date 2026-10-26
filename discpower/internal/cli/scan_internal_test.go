@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/junitxml"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
-	domain "github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/scanscope"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/junitxml"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/process"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
+	domain "github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/scanscope"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 func TestDepthRequest(t *testing.T) {

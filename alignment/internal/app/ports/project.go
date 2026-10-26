@@ -5,8 +5,8 @@ import (
 	"io/fs"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Report is what Shallnot reports about the criteria of a project: the schema

@@ -5,9 +5,9 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/operator"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation/operator"
 )
 
 // The sources the definition locator is specified with.

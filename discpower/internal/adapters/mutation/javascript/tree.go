@@ -6,7 +6,7 @@ import (
 
 	"github.com/odvcencio/gotreesitter"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 )
 
 // Node types of the tree-sitter JavaScript and TypeScript grammars.

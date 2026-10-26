@@ -4,8 +4,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/policy"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/policy"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/power"
 )
 
 func hostVote(choice power.ClosedChoice) power.ClosedAnswer {

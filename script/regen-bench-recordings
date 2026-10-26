@@ -12,7 +12,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 readonly EXIT_DIFFERENT=1
 readonly EXIT_PRECONDITION=2
 readonly BIN_DIR=".tools/bin"
-readonly NEEDED_BINARIES=(shallnot spec-proof-dp spec-proof-alignment spec-proof-completeness)
+readonly NEEDED_BINARIES=(shallnot musthold-dp musthold-alignment musthold-completeness)
 readonly FIXTURE_DIR="discpower/fixtures/prove/parcel"
 readonly RECORDINGS_DIR="bench/tests/fixtures/parcel_answers"
 readonly RECORDER_PACKAGE="./hostproto/hostprototest/cmd/recordparcel"

@@ -3,7 +3,7 @@ package witness
 import (
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Outcome is what one run of a witness did.

@@ -42,14 +42,14 @@ jobs:
         # time, so it gates in its own job, beside every other module.
         group: [discpower, rest]
     steps:
-      - name: Check out spec-proof
+      - name: Check out musthold
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          path: spec-proof
+          path: musthold
 
       - name: Read the pinned Shallnot commit
         id: pin
-        run: echo "sha=$(tr -d '[:space:]' < spec-proof/script/shallnot.pin)" >> "$GITHUB_OUTPUT"
+        run: echo "sha=$(tr -d '[:space:]' < musthold/script/shallnot.pin)" >> "$GITHUB_OUTPUT"
 
       - name: Check out the pinned Shallnot
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -62,8 +62,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: spec-proof/go.work
-          cache-dependency-path: spec-proof/**/go.sum
+          go-version-file: musthold/go.work
+          cache-dependency-path: musthold/**/go.sum
 
       - name: Set up Java 21 for the JUnit 5 fixtures
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
@@ -71,7 +71,7 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-          cache-dependency-path: spec-proof/discpower/fixtures/ecosystems/*/pom.xml
+          cache-dependency-path: musthold/discpower/fixtures/ecosystems/*/pom.xml
 
       - name: Cache the Gradle home of the JUnit 5 fixtures
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -79,7 +79,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('spec-proof/discpower/fixtures/ecosystems/*/build.gradle*', 'spec-proof/discpower/fixtures/ecosystems/*/gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-${{ runner.os }}-${{ hashFiles('musthold/discpower/fixtures/ecosystems/*/build.gradle*', 'musthold/discpower/fixtures/ecosystems/*/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
 
       - name: Set up Python for the pytest fixtures
@@ -95,15 +95,15 @@ jobs:
         with:
           node-version: "24"
           cache: npm
-          cache-dependency-path: spec-proof/discpower/fixtures/ecosystems/*/package-lock.json
+          cache-dependency-path: musthold/discpower/fixtures/ecosystems/*/package-lock.json
 
       - name: Install the pinned Claude Code CLI for the offline plugin checks
         run: |
-          claude_code_version="$(tr -d '[:space:]' < spec-proof/script/claude-code.pin)"
+          claude_code_version="$(tr -d '[:space:]' < musthold/script/claude-code.pin)"
           npm install --global --no-fund --no-audit "@anthropic-ai/claude-code@${claude_code_version}"
 
       - name: Lint and self-gate the modules
-        working-directory: spec-proof
+        working-directory: musthold
         env:
           SHALLNOT_SRC: ${{ github.workspace }}/shallnot
           MODULES: ${{ inputs.modules }}
@@ -123,7 +123,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Check out spec-proof
+      - name: Check out musthold
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python
@@ -155,7 +155,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - name: Check out spec-proof
+      - name: Check out musthold
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Read the pinned Shallnot commit
@@ -230,7 +230,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Check out spec-proof with its tags
+      - name: Check out musthold with its tags
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -278,7 +278,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Check out spec-proof
+      - name: Check out musthold
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python
@@ -313,7 +313,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Check out spec-proof
+      - name: Check out musthold
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python

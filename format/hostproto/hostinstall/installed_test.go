@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
 )
 
 func TestInstalled(t *testing.T) {
@@ -23,7 +23,7 @@ func TestInstalled(t *testing.T) {
 
 	eachModule(t, "a plugin another module enabled is not this module's", "[verifies SP-717~2]", func(t *testing.T, s sample) {
 		files := repository(t)
-		files.put(t, settingsPath, `{"enabledPlugins":{"spec-proof-other@spec-proof":true}}`)
+		files.put(t, settingsPath, `{"enabledPlugins":{"musthold-other@musthold":true}}`)
 		files.put(t, ".codex/hooks.json", `{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"shallnot hook stop"}]}]}}`)
 		if got := s.module.Installed(files); len(got) != 0 {
 			t.Fatalf("installed = %v", got)

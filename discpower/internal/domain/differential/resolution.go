@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
 )
 
 // The full resolution of the drawn values. A datetime is drawn to the

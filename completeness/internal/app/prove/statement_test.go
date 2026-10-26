@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/prove"
-	"github.com/RachidChabane/spec-proof/completeness/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/completeness/internal/app/prove"
+	"github.com/RachidChabane/musthold/completeness/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // rapidChecks bounds the iterations of the properties that run the whole use case.
@@ -44,7 +44,7 @@ func TestStatement(t *testing.T) {
 		if len(statement.Subject) != 1 || statement.Subject[0].Name != "specs/invoicing.md" || statement.Subject[0].Digest.SHA256 != testkit.FileDigest(t, w.root, "specs/invoicing.md") {
 			t.Fatalf("subject %+v", statement.Subject)
 		}
-		if !statement.Predicate.Advisory || statement.Predicate.ProducedBy != format.ProducedByLocal || statement.Predicate.Module.Name != "spec-proof-completeness" {
+		if !statement.Predicate.Advisory || statement.Predicate.ProducedBy != format.ProducedByLocal || statement.Predicate.Module.Name != "musthold-completeness" {
 			t.Fatalf("predicate %+v", statement.Predicate.Core)
 		}
 		encoded, err := statement.Encode()

@@ -3,10 +3,10 @@ package hostsync_test
 import (
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostsync"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/hostproto/hostsync"
 )
 
 func TestCollectBlindness(t *testing.T) {

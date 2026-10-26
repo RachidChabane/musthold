@@ -14,7 +14,7 @@
 # Environment: NIGHT_JOBS_CLAUDE_CAP and NIGHT_JOBS_CODEX_CAP (the caps, default 250 each),
 # NIGHT_JOBS_CONSTRUCT_BUDGET (construction's ceiling, default 120), NIGHT_BUDGET_PILOT_LEDGER,
 # SPECBENCH_SAMPLE_CLAUDE_RUN and SPECBENCH_SAMPLE_CODEX_RUN (run directories under bench/runs),
-# SPEC_PROOF_STATE_DIR (where budget.lock and the recorded canary reserve live).
+# MUSTHOLD_STATE_DIR (where budget.lock and the recorded canary reserve live).
 set -euo pipefail
 # shellcheck source=bench/script/_lib
 source "$(dirname "${BASH_SOURCE[0]}")/_lib"

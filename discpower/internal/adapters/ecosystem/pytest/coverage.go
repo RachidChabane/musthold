@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/suiterun"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/coverage"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/footprint"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/app/suiterun"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/coverage"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation/footprint"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/format"
 )
 
 var _ ports.Covering = (*Strategy)(nil)
@@ -28,7 +28,7 @@ var ErrCoverageFailed = errors.New("coverage run left no report")
 const (
 	coveragePluginModule   = "spproof_coverage"
 	coveragePluginFile     = coveragePluginModule + pythonSuffix
-	coverageOutputVariable = "SPEC_PROOF_COVERAGE_OUT"
+	coverageOutputVariable = "MUSTHOLD_COVERAGE_OUT"
 	pluginFlag             = "-p"
 	coverageReportSuffix   = ".json"
 	coverageDirPermissions = 0o700

@@ -10,10 +10,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/modulecli"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/failure"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/question"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/s1relay/internal/adapters/modulecli"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/failure"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/question"
 )
 
 const (
@@ -43,10 +43,10 @@ func (f *fakeRunner) Run(_ context.Context, dir, name string, args []string, std
 }
 
 func TestBinaryName(t *testing.T) {
-	t.Run("a module is run as spec-proof- and its name [verifies SP-602~1]", func(t *testing.T) {
+	t.Run("a module is run as musthold- and its name [verifies SP-602~1]", func(t *testing.T) {
 		for _, module := range []string{"dp", "alignment", "completeness", "a-1"} {
 			got, err := modulecli.BinaryName(module)
-			if err != nil || got != "spec-proof-"+module {
+			if err != nil || got != "musthold-"+module {
 				t.Errorf("BinaryName(%q) = %q, %v", module, got, err)
 			}
 		}
@@ -75,7 +75,7 @@ func TestExport(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := call{dir: "/project", name: "spec-proof-dp", args: []string{"systemone", "export"}}
+		want := call{dir: "/project", name: "musthold-dp", args: []string{"systemone", "export"}}
 		if len(runner.calls) != 1 || runner.calls[0].dir != want.dir || runner.calls[0].name != want.name || strings.Join(runner.calls[0].args, " ") != "systemone export" {
 			t.Fatalf("calls %+v", runner.calls)
 		}
@@ -139,7 +139,7 @@ func TestImport(t *testing.T) {
 			t.Fatal(err)
 		}
 		got := runner.calls[0]
-		if got.name != "spec-proof-alignment" || strings.Join(got.args, " ") != "systemone import aa.0.1 --nonce n1 --source system-one:m@d" {
+		if got.name != "musthold-alignment" || strings.Join(got.args, " ") != "systemone import aa.0.1 --nonce n1 --source system-one:m@d" {
 			t.Fatalf("call %+v", got)
 		}
 		if got.stdin != string(reply) {

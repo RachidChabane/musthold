@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/formattest/proofs"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/formattest/proofs"
 )
 
 // counterexampleStatement is a statement whose regular mutant carries the

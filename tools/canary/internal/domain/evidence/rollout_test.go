@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
 )
 
 const (
-	decider = "spec-proof-dp-decider"
+	decider = "musthold-dp-decider"
 	mainID  = "01a11334-f5df-7a33-ba1e-3dd65b19d059"
 )
 
@@ -53,7 +53,7 @@ func TestRolloutDecoder(t *testing.T) {
 			{Line: 3, CallID: "call_a1", TaskName: "decide_a", AgentType: decider, History: map[string]string{"fork_turns": `"none"`}, Blind: true, ChildPath: "/root/decide_a"},
 			{Line: 5, CallID: "call_b2", TaskName: "decide_b", AgentType: decider, History: map[string]string{}},
 			{Line: 6, CallID: "call_c3", TaskName: "decide_c", AgentType: decider, History: map[string]string{"fork_turns": `"all"`}},
-			{Line: 7, CallID: "call_d4", TaskName: "decide_d", AgentType: "spec-proof-dp-judge", History: map[string]string{"fork_turns": "3"}},
+			{Line: 7, CallID: "call_d4", TaskName: "decide_d", AgentType: "musthold-dp-judge", History: map[string]string{"fork_turns": "3"}},
 		} {
 			if got := rollouts.Spawns[index]; !reflect.DeepEqual(got, want) {
 				t.Errorf("spawn %d = %+v, want %+v", index, got, want)
@@ -273,11 +273,11 @@ func TestCopilotModelAndTaskCall(t *testing.T) {
 
 	t.Run("the agent type of a task call is read from its arguments, and only a task call has one [verifies SP-1515~2]", func(t *testing.T) {
 		stream := decodeCopilot(
-			`{"type":"tool.execution_start","data":{"toolCallId":"c","toolName":"task","arguments":{"agent_type":"spec-proof-dp:spec-proof-dp-decider","prompt":"p"}}}`,
+			`{"type":"tool.execution_start","data":{"toolCallId":"c","toolName":"task","arguments":{"agent_type":"musthold-dp:musthold-dp-decider","prompt":"p"}}}`,
 			`{"type":"tool.execution_start","data":{"toolCallId":"d","toolName":"bash","arguments":{"agent_type":"x"}}}`,
 			`{"type":"tool.execution_start","data":{"toolCallId":"e","toolName":"task","arguments":"not an object"}}`)
 		events := stream.Of(evidence.CopilotEventToolStart)
-		if got, isTask := events[0].TaskAgentType(); !isTask || got != "spec-proof-dp:spec-proof-dp-decider" {
+		if got, isTask := events[0].TaskAgentType(); !isTask || got != "musthold-dp:musthold-dp-decider" {
 			t.Errorf("task call = %q, %v", got, isTask)
 		}
 		if _, isTask := events[1].TaskAgentType(); isTask {

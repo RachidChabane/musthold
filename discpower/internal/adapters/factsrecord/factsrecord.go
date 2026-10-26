@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
-	"github.com/RachidChabane/spec-proof/discpower/internal/platform/atomicfile"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/platform/atomicfile"
 )
 
 var _ ports.FactsStore = (*Store)(nil)

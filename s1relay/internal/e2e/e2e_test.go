@@ -15,13 +15,13 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/endpoint"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/testkit/stubendpoint"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/endpoint"
+	"github.com/RachidChabane/musthold/s1relay/internal/testkit/stubendpoint"
 )
 
 const (
-	alignmentBinary          = "spec-proof-alignment"
-	relayBinary              = "spec-proof-s1"
+	alignmentBinary          = "musthold-alignment"
+	relayBinary              = "musthold-s1"
 	alignmentModule          = "../../../alignment"
 	relayModule              = "../.."
 	fixtureDir               = "../../testdata/alignment"
@@ -33,7 +33,7 @@ const (
 	exitToolFailure          = 2
 	dirMode                  = 0o755
 	fileMode                 = 0o644
-	recordedShallnotVariable = "SPEC_PROOF_SHALLNOT"
+	recordedShallnotVariable = "MUSTHOLD_SHALLNOT"
 	recordedReportVariable   = "SHALLNOT_RECORDED_REPORT"
 )
 
@@ -47,7 +47,7 @@ var (
 func build(t *testing.T) string {
 	t.Helper()
 	buildOnce.Do(func() {
-		binaries, buildErr = os.MkdirTemp("", "spec-proof-s1-e2e-")
+		binaries, buildErr = os.MkdirTemp("", "musthold-s1-e2e-")
 		if buildErr != nil {
 			return
 		}

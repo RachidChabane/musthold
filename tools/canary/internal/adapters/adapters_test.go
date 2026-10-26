@@ -14,11 +14,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/mcpstdio"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/adapters"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
+	"github.com/RachidChabane/musthold/format/hostproto/mcpstdio"
+	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
+	"github.com/RachidChabane/musthold/tools/canary/internal/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
 )
 
 // Modes in which the test binary stands in for another program.
@@ -155,13 +155,13 @@ func TestShim(t *testing.T) {
 	t.Run("a Copilot hook payload, whose members are camelCase, is recorded as the harness sent it [verifies SP-1506~1]", func(t *testing.T) {
 		real := fakeBinary(t, `cat >/dev/null`)
 		record := filepath.Join(t.TempDir(), "hooks.jsonl")
-		payload := `{"sessionId":"s","toolName":"spec-proof-dp-exec/fetch_request","toolArgs":"{\"ticket\":\"t\"}","agentType":"spec-proof-dp-decider"}`
+		payload := `{"sessionId":"s","toolName":"musthold-dp-exec/fetch_request","toolArgs":"{\"ticket\":\"t\"}","agentType":"musthold-dp-decider"}`
 		adapters.RunShim(real, record, []string{"hook", "pre-tool", "--harness", "copilot"}, strings.NewReader(payload), &strings.Builder{}, &strings.Builder{})
 		calls := readRecords(t, record)
 		if len(calls) != 1 || calls[0].Kind() != "pre-tool" || string(calls[0].Stdin) != payload {
 			t.Fatalf("records = %+v", calls)
 		}
-		if event := calls[0].CopilotHook(); event.ToolName != "spec-proof-dp-exec/fetch_request" || event.AgentType != "spec-proof-dp-decider" {
+		if event := calls[0].CopilotHook(); event.ToolName != "musthold-dp-exec/fetch_request" || event.AgentType != "musthold-dp-decider" {
 			t.Errorf("event = %+v", event)
 		}
 	})

@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Defaults of the parameters.

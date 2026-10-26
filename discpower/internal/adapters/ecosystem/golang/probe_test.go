@@ -9,15 +9,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/golang"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/junitxml"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/goparser"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/workspace"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/differential"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/golang"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/junitxml"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/process"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/sourceparse/goparser"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/workspace"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/differential"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
 )
 
 const (

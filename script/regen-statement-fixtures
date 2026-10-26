@@ -22,7 +22,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 readonly NICE_LEVEL=10
 readonly TEST_PROCS=2
-readonly PRODUCT_BINARY=".tools/bin/spec-proof-dp"
+readonly PRODUCT_BINARY=".tools/bin/musthold-dp"
 
 regenerate() {
   local module="$1" package="$2" flag="$3"

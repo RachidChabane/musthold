@@ -5,8 +5,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/footprint"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation/footprint"
 )
 
 const (

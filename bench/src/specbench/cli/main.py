@@ -82,7 +82,7 @@ def _path(value: str) -> Path:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="specbench", description="Deterministic core of the spec-proof benchmark.")
+    parser = argparse.ArgumentParser(prog="specbench", description="Deterministic core of the musthold benchmark.")
     verbs = parser.add_subparsers(dest="verb", required=True)
     _add_mining_verbs(verbs.add_parser)
     _add_corpus_verbs(verbs.add_parser)

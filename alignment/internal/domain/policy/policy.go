@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Defaults of the thresholds and limits.

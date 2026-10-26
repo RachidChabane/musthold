@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/gitsource"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/discpower/internal/testkit/gitrepo"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/gitsource"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/process"
+	"github.com/RachidChabane/musthold/discpower/internal/testkit/gitrepo"
 )
 
 const (
@@ -121,7 +121,7 @@ func TestRepository(t *testing.T) {
 		}
 	})
 	t.Run("a tracked change makes the tree dirty, a scan report and an untracked file do not [verifies SP-2120~1]", func(t *testing.T) {
-		write(t, dir, ".spec-proof/scan/abc/report.md", "report\n")
+		write(t, dir, ".musthold/scan/abc/report.md", "report\n")
 		write(t, dir, "notes.txt", "draft\n")
 		if dirty, err := repository.Dirty(ctx); err != nil || dirty {
 			t.Fatalf("dirty = %v, %v", dirty, err)

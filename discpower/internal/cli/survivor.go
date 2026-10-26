@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/prove"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/app/prove"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Words of a survivor's lines.

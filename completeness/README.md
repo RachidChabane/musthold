@@ -1,4 +1,4 @@
-# completeness (`spec-proof-completeness`)
+# completeness (`musthold-completeness`)
 
 Completeness: what does the specification leave unstated about what a change does?
 The module raises advisory questions: dimensions of a checklist the spec does not
@@ -18,23 +18,23 @@ model.
 ## Install
 
 ```
-nice -n 10 go install -C completeness -p 1 ./cmd/spec-proof-completeness
+nice -n 10 go install -C completeness -p 1 ./cmd/musthold-completeness
 ```
 
 Run from the repository root; the binary lands in `$GOBIN`, or
 `$(go env GOPATH)/bin`. In Claude Code, install the plugin with
-`/plugin marketplace add RachidChabane/spec-proof` and
-`/plugin install spec-proof-completeness@spec-proof`.
+`/plugin marketplace add RachidChabane/musthold` and
+`/plugin install musthold-completeness@musthold`.
 
 ## Commands
 
 ```
-spec-proof-completeness init
-spec-proof-completeness enable
-spec-proof-completeness prove --changed
-spec-proof-completeness request list --session prove
-spec-proof-completeness prove --resume
-spec-proof-completeness doctor
+musthold-completeness init
+musthold-completeness enable
+musthold-completeness prove --changed
+musthold-completeness request list --session prove
+musthold-completeness prove --resume
+musthold-completeness doctor
 ```
 
 `prove` exits 3 while tickets wait for the host. The full command set is in
@@ -43,6 +43,6 @@ spec-proof-completeness doctor
 ## Documentation
 
 - [Completeness](../docs/usage/completeness.md)
-- [Configuration](../docs/usage/configuration.md#spec-proofcompletenessyaml)
+- [Configuration](../docs/usage/configuration.md#mustholdcompletenessyaml)
 - [Getting started](../docs/usage/getting-started.md)
 - [Project README](../README.md)

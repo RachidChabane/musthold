@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/pluginfiles"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/plugin"
+	"github.com/RachidChabane/musthold/format/hostproto/pluginfiles"
+	"github.com/RachidChabane/musthold/s1relay/internal/plugin"
 )
 
 const portableTree = "../../plugin/portable"
@@ -89,7 +89,7 @@ func TestPortableTreeIsGenerated(t *testing.T) {
 			t.Fatalf("files = %v, want %v", paths, want)
 		}
 		skill := files[pluginfiles.PortableSkillPath(plugin.SkillName)]
-		if strings.Contains(skill, "allowed-tools") || !strings.Contains(skill, "spec-proof-s1 drain --module <module>") {
+		if strings.Contains(skill, "allowed-tools") || !strings.Contains(skill, "musthold-s1 drain --module <module>") {
 			t.Errorf("skill:\n%s", skill)
 		}
 	})

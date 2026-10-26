@@ -15,7 +15,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 const (

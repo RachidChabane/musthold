@@ -3,7 +3,7 @@ package evidence_test
 import (
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
 )
 
 func assembleChild(t *testing.T, rollout string) evidence.RolloutChild {

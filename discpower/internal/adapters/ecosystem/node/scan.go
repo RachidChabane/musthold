@@ -15,26 +15,26 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/suiterun"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
-	"github.com/RachidChabane/spec-proof/discpower/internal/platform/workerpool"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/app/suiterun"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/discpower/internal/platform/workerpool"
 )
 
 var _ ports.Scanning = (*Strategy)(nil)
 
 // ErrBrowserMode is returned for a Vitest project that runs its tests in a
 // browser: a scan records V8 coverage in Node.
-var ErrBrowserMode = errors.New("spec-proof scan runs Vitest in Node: browser mode is not supported")
+var ErrBrowserMode = errors.New("musthold scan runs Vitest in Node: browser mode is not supported")
 
 // The variables the shipped scripts read, and what a scan's runs set them to.
 const (
-	scanOutVariable       = "SPEC_PROOF_SCAN_OUT"
-	scanRootVariable      = "SPEC_PROOF_SCAN_ROOT"
-	scanSelectionVariable = "SPEC_PROOF_SCAN_SELECTION"
-	scanCoverageVariable  = "SPEC_PROOF_SCAN_COVERAGE"
-	scanHollowVariable    = "SPEC_PROOF_SCAN_HOLLOW"
+	scanOutVariable       = "MUSTHOLD_SCAN_OUT"
+	scanRootVariable      = "MUSTHOLD_SCAN_ROOT"
+	scanSelectionVariable = "MUSTHOLD_SCAN_SELECTION"
+	scanCoverageVariable  = "MUSTHOLD_SCAN_COVERAGE"
+	scanHollowVariable    = "MUSTHOLD_SCAN_HOLLOW"
 	v8CoverageVariable    = "NODE_V8_COVERAGE"
 	enabledValue          = "1"
 	selectionExtension    = ".json"
@@ -43,7 +43,7 @@ const (
 	scriptsDirectory      = "scripts"
 	// overlayBasePlaceholder is the line of the shipped Vitest configuration
 	// that imports the project's own.
-	overlayBasePlaceholder = "// spec-proof:base"
+	overlayBasePlaceholder = "// musthold:base"
 )
 
 //go:embed scripts/scan-agent.cjs scripts/scan-jest-environment.cjs scripts/scan-jest-reporter.cjs scripts/scan-jest-sequencer.cjs scripts/scan-global-setup.cjs scripts/scan-vitest-runner.mjs scripts/scan-vitest-global-setup.mjs

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
 )
 
 // The actions of `go test -json` a scan reads.

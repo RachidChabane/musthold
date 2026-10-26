@@ -14,9 +14,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/platform/atomicfile"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
+	"github.com/RachidChabane/musthold/alignment/internal/platform/atomicfile"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
 const (

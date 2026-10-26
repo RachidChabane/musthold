@@ -6,7 +6,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/window"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/window"
 )
 
 func at(hour, minute, second int) time.Time {

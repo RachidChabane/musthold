@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // The projects a scan runs on, and what it finds in them.
@@ -119,18 +119,18 @@ func TestScanFindsTheTestThatVerifiesNothing(t *testing.T) {
 			t.Run("the work tree only gains the scan's reports"+verifiesScanE2E, func(t *testing.T) {
 				status := s.run("git", "status", "--porcelain", "--untracked-files=all")
 				for _, line := range strings.Split(strings.TrimSpace(status.stdout), "\n") {
-					if !strings.HasPrefix(line, "?? .spec-proof/scan/"+short+"/") {
+					if !strings.HasPrefix(line, "?? .musthold/scan/"+short+"/") {
 						t.Errorf("unexpected change %q", line)
 					}
 				}
 			})
 			t.Run("the repro script passes the test on the mutant"+verifiesScanE2E, func(t *testing.T) {
-				if repro := s.run("sh", ".spec-proof/scan/"+short+"/1/repro.sh"); repro.code != 0 {
+				if repro := s.run("sh", ".musthold/scan/"+short+"/1/repro.sh"); repro.code != 0 {
 					t.Fatalf("exit %d:\n%s", repro.code, repro.output())
 				}
 			})
 			t.Run("a replay of the scan's findings holds every claim with no model"+verifiesReplay, func(t *testing.T) {
-				replay := s.run(s.binary, "scan", "replay", ".spec-proof/scan/"+short)
+				replay := s.run(s.binary, "scan", "replay", ".musthold/scan/"+short)
 				if replay.code != 0 || !strings.Contains(replay.stdout, c.vacuous) || strings.Contains(replay.stdout, "NOT held") {
 					t.Fatalf("exit %d:\n%s", replay.code, replay.output())
 				}
@@ -245,7 +245,7 @@ func TestScanRefusesADirtyTree(t *testing.T) {
 		if scan.code == 0 || !strings.Contains(scan.stderr, "commit or stash") {
 			t.Fatalf("exit %d:\n%s", scan.code, scan.output())
 		}
-		if _, err := os.Stat(filepath.Join(s.root, ".spec-proof")); !os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(s.root, ".musthold")); !os.IsNotExist(err) {
 			t.Fatalf("reports written: %v", err)
 		}
 	})

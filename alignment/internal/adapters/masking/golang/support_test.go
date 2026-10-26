@@ -10,8 +10,8 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/alignment/internal/app/ports"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/criterion"
 )
 
 const (

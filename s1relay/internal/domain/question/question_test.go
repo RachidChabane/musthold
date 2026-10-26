@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/question"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/question"
 )
 
 func choice(id string, names ...string) question.Question {

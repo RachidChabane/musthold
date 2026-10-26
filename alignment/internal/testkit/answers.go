@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/prompt"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/prompt"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // Words of the parcel criteria's statements that tell a token which criterion it

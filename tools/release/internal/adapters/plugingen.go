@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
 )
 
 const snapshotSeparator = "\n--\n"

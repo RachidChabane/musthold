@@ -1,4 +1,4 @@
-"""Typed wrappers around the product binaries (`spec-proof-dp`, `-alignment`, `-completeness`, `-ledger`, `-verify`).
+"""Typed wrappers around the product binaries (`musthold-dp`, `-alignment`, `-completeness`, `-ledger`, `-verify`).
 
 Every method builds its argv with a pure function of this module and runs it through the process runner; the exit
 codes a command may end with are named, and any other exit is a `ProductCommandFailed`.
@@ -23,8 +23,8 @@ PROVEN_EXITS: Final = frozenset({EXIT_CLEAN, EXIT_REFUSED})
 PROVED_OR_AWAITING: Final = PROVEN_EXITS | {EXIT_AWAITING_HOST}
 HOOKS_NONE: Final = "none"
 ED25519_IDENTITY: Final = "ed25519"
-LOCAL_CACHE_DIRECTORY: Final = ".spec-proof/cache"
-VERIFIED_DIRECTORY: Final = ".spec-proof/verified"
+LOCAL_CACHE_DIRECTORY: Final = ".musthold/cache"
+VERIFIED_DIRECTORY: Final = ".musthold/verified"
 
 
 class ProductCommandFailed(RuntimeError):

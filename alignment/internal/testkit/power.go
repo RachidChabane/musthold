@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // MutantKind says how a mutant of a discriminating-power Statement is classed.
@@ -55,7 +55,7 @@ type Power struct {
 }
 
 const (
-	moduleName        = "spec-proof-dp"
+	moduleName        = "musthold-dp"
 	moduleVersion     = "0.1.0"
 	harnessName       = "fixture-host"
 	harnessVersion    = "1"
@@ -192,7 +192,7 @@ func (p Power) Write(t testing.TB, root string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(root, ".spec-proof", "cache", "discriminating-power", p.Ref.String(), decoded.Predicate.CacheKey+".json")
+	path := filepath.Join(root, ".musthold", "cache", "discriminating-power", p.Ref.String(), decoded.Predicate.CacheKey+".json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}

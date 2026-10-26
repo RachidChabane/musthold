@@ -5,36 +5,36 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/config"
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/hoststore"
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/localcache"
-	golangmask "github.com/RachidChabane/spec-proof/alignment/internal/adapters/masking/golang"
-	javamask "github.com/RachidChabane/spec-proof/alignment/internal/adapters/masking/java"
-	javascriptmask "github.com/RachidChabane/spec-proof/alignment/internal/adapters/masking/javascript"
-	kotlinmask "github.com/RachidChabane/spec-proof/alignment/internal/adapters/masking/kotlin"
-	pythonmask "github.com/RachidChabane/spec-proof/alignment/internal/adapters/masking/python"
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/pendingfile"
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/proofcache"
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/proofsource"
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/schemacheck"
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/shallnot"
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/xdg"
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/prove"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/policy"
-	"github.com/RachidChabane/spec-proof/alignment/internal/version"
-	"github.com/RachidChabane/spec-proof/format"
-	sharedinstall "github.com/RachidChabane/spec-proof/format/hostproto/hostinstall"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/config"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/hoststore"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/localcache"
+	golangmask "github.com/RachidChabane/musthold/alignment/internal/adapters/masking/golang"
+	javamask "github.com/RachidChabane/musthold/alignment/internal/adapters/masking/java"
+	javascriptmask "github.com/RachidChabane/musthold/alignment/internal/adapters/masking/javascript"
+	kotlinmask "github.com/RachidChabane/musthold/alignment/internal/adapters/masking/kotlin"
+	pythonmask "github.com/RachidChabane/musthold/alignment/internal/adapters/masking/python"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/pendingfile"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/process"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/proofcache"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/proofsource"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/schemacheck"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/shallnot"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/xdg"
+	"github.com/RachidChabane/musthold/alignment/internal/app/ports"
+	"github.com/RachidChabane/musthold/alignment/internal/app/prove"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/policy"
+	"github.com/RachidChabane/musthold/alignment/internal/version"
+	"github.com/RachidChabane/musthold/format"
+	sharedinstall "github.com/RachidChabane/musthold/format/hostproto/hostinstall"
 )
 
 // Identity of the module in the Statements and the requests it emits.
 const (
-	moduleName = "spec-proof-alignment"
-	pluginName = "spec-proof-alignment"
+	moduleName = "musthold-alignment"
+	pluginName = "musthold-alignment"
 	// pendingModule names the module in its pending file.
 	pendingModule = "alignment"
-	// stateDirectory holds the project's spec-proof state, and the module's
+	// stateDirectory holds the project's musthold state, and the module's
 	// configuration file.
 	stateDirectory = sharedinstall.StateDirectory
 	// sharedConfigFile is the configuration file the modules share, in stateDirectory.
@@ -63,7 +63,7 @@ func (e Env) hostStore(root string) (*hoststore.Store, error) {
 	return hoststore.Open(xdg.HostDir(e.lookupEnv, e.HomeDir, root))
 }
 
-// policyOf reads `.spec-proof/alignment.yaml`; a project without one has the
+// policyOf reads `.musthold/alignment.yaml`; a project without one has the
 // default policy.
 func policyOf(root string) (policy.Policy, error) {
 	data, err := os.ReadFile(filepath.Join(root, stateDirectory, config.FileName))

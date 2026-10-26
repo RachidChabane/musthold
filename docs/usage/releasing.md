@@ -22,7 +22,7 @@ leading zero in a number. Any other prefix, a bare `v1.2.3` and every module und
 tag of a module in a subdirectory by its path:
 
 ```
-go install github.com/RachidChabane/spec-proof/discpower/cmd/spec-proof-dp@v0.2.0
+go install github.com/RachidChabane/musthold/discpower/cmd/musthold-dp@v0.2.0
 ```
 
 ## Cut a release
@@ -98,7 +98,7 @@ commit. Each command pushes named tags; `--tags` is never used.
 
 The `go.sum` of each module holds the hash of `format v0.1.0`, which covers the
 files of `format/` and the root `LICENSE`. A change to either after the tag needs a
-new `format` version and `go get github.com/RachidChabane/spec-proof/format@<version>`
+new `format` version and `go get github.com/RachidChabane/musthold/format@<version>`
 in each module that requires it.
 
 ## The pre-flight
@@ -189,8 +189,8 @@ Install with Go, or with the verified installer published with every binary
 release:
 
 ```
-go install github.com/RachidChabane/spec-proof/ledger/cmd/spec-proof-ledger@v0.2.0
-curl -fsSLO https://github.com/RachidChabane/spec-proof/releases/download/ledger/v0.2.0/install
+go install github.com/RachidChabane/musthold/ledger/cmd/musthold-ledger@v0.2.0
+curl -fsSLO https://github.com/RachidChabane/musthold/releases/download/ledger/v0.2.0/install
 bash install ledger 0.2.0
 ```
 
@@ -209,7 +209,7 @@ release workflow at the tag, then the archive against `SHA256SUMS`:
 
 ```
 cosign verify-blob --bundle SHA256SUMS.sigstore.json \
-  --certificate-identity https://github.com/RachidChabane/spec-proof/.github/workflows/release.yml@refs/tags/ledger/v0.2.0 \
+  --certificate-identity https://github.com/RachidChabane/musthold/.github/workflows/release.yml@refs/tags/ledger/v0.2.0 \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   SHA256SUMS
 sha256sum --ignore-missing -c SHA256SUMS
@@ -218,8 +218,8 @@ sha256sum --ignore-missing -c SHA256SUMS
 With `gh`, verify the attestation of an archive:
 
 ```
-gh attestation verify ledger_0.2.0_linux_amd64.tar.gz --repo RachidChabane/spec-proof \
-  --signer-workflow RachidChabane/spec-proof/.github/workflows/release.yml
+gh attestation verify ledger_0.2.0_linux_amd64.tar.gz --repo RachidChabane/musthold \
+  --signer-workflow RachidChabane/musthold/.github/workflows/release.yml
 ```
 
 A binary prints exactly its version with `--version`, and its name, version and

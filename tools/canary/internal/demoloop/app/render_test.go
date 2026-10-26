@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/adapters"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/record"
+	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 )
 
 const recording = "testdata/recording"
@@ -199,7 +199,7 @@ func TestRenderedHTML(t *testing.T) {
 	fragment := string(rendered(t, recording).HTML)
 
 	t.Run("the fragment is self-contained and escapes every recorded text [verifies SP-2405~1]", func(t *testing.T) {
-		if !strings.HasPrefix(fragment, `<section class="spec-proof-loop">`) || !strings.HasSuffix(fragment, "</section>\n") {
+		if !strings.HasPrefix(fragment, `<section class="musthold-loop">`) || !strings.HasSuffix(fragment, "</section>\n") {
 			t.Errorf("fragment starts %q", fragment[:40])
 		}
 		for _, forbidden := range []string{"<script", "<link", "src=", "href=", "<ok>", "<run>"} {

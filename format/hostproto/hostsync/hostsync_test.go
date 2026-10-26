@@ -7,23 +7,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/executorrun"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostsync"
-	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/executorrun"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbundle"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/hostproto/hostsync"
+	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
 const (
 	headSHA   = "0123456789abcdef0123456789abcdef01234567"
-	judgeRole = "spec-proof-dp:judge"
+	judgeRole = "musthold-dp:judge"
 	agent     = "agent-0001"
 	answer    = `{"validity":"VALID"}`
 )
 
-var module = format.Module{Name: "spec-proof-dp", Version: "0.1.0"}
+var module = format.Module{Name: "musthold-dp", Version: "0.1.0"}
 
 func clock() time.Time { return hostprototest.Epoch }
 

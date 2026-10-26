@@ -4,10 +4,10 @@ import (
 	"context"
 	"io/fs"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/differential"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/differential"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
 )
 
 // WitnessFile is one witness set laid out as a test file of the project.

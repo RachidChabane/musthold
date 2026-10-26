@@ -5,8 +5,8 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/code"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/hunk"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/code"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/hunk"
 )
 
 func unit(qualname, normalized string, line int) code.Unit {

@@ -234,7 +234,7 @@ def overview(inputs: SiteInputs, results: ResultsView) -> Page:
         },
     )
     return Page(
-        INDEX, copy.SITE_TITLE, "Results of the spec-proof benchmark, with every figure's interval and sample.", body
+        INDEX, copy.SITE_TITLE, "Results of the musthold benchmark, with every figure's interval and sample.", body
     )
 
 

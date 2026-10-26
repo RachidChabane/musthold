@@ -1,9 +1,9 @@
-module github.com/RachidChabane/spec-proof/completeness
+module github.com/RachidChabane/musthold/completeness
 
 go 1.26.4
 
 require (
-	github.com/RachidChabane/spec-proof/format v0.1.0
+	github.com/RachidChabane/musthold/format v0.1.0
 	github.com/odvcencio/gotreesitter v0.55.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	gopkg.in/yaml.v3 v3.0.1

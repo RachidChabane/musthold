@@ -7,16 +7,16 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/execution"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/coverage"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/footprint"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/policy"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
+	"github.com/RachidChabane/musthold/discpower/internal/app/execution"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/coverage"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation/footprint"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/policy"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbridge"
 )
 
 const (

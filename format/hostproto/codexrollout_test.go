@@ -7,17 +7,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/executorrun"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/executorrun"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
 	childThread    = "01a12287-50ec-7773-98c2-aeb643ce6d1e"
-	childRole      = "spec-proof-dp-decider"
+	childRole      = "musthold-dp-decider"
 	recordedTicket = "864f5e696da12d6944d9380733d5c5a9fba0f0140f3b243c3efae9a6cc74cb38.0.1"
-	fetchTool      = "mcp__spec_proof_dp_exec__fetch_request"
-	submitTool     = "mcp__spec_proof_dp_exec__submit_response"
+	fetchTool      = "mcp__musthold_dp_exec__fetch_request"
+	submitTool     = "mcp__musthold_dp_exec__submit_response"
 	parentPrompt   = "Run the proofs of the project and fix what they report."
 )
 
@@ -109,7 +109,7 @@ func TestCodexChildRolloutBlind(t *testing.T) {
 	})
 
 	t.Run("a thread handed the project's AGENTS.md in its harness context is blind [verifies SP-1934~2]", func(t *testing.T) {
-		agents := "<!-- spec-proof-dp:begin -->\n## spec-proof-dp: discriminating power\n<!-- spec-proof-dp:end -->"
+		agents := "<!-- musthold-dp:begin -->\n## musthold-dp: discriminating power\n<!-- musthold-dp:end -->"
 		rollout := hostprototest.NewCodexRollout(childThread, childRole).Bookkeeping().Developer("Fetch the ticket in your task.").ContextWithAgents("/work/parcel", agents).AgentMessage()
 		if run := hostproto.ReadCodexChildRollout(rolloutBytes(t, rollout)); run.History != hostproto.ChildBlind {
 			t.Fatalf("history %s: %s", run.History, run.Reason)

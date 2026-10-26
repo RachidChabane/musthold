@@ -6,10 +6,10 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/executorrun"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/executorrun"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
 )
 
 func copilotStored(level format.Isolation) format.ExecutorProfile {

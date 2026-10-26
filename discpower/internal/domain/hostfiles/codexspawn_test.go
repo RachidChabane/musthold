@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostharness"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/hostharness"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 const codexHooksPath = ".codex/hooks.json"

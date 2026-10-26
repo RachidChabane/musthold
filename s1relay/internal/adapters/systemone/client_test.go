@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/systemone"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/endpoint"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/failure"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/question"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/testkit/stubendpoint"
+	"github.com/RachidChabane/musthold/s1relay/internal/adapters/systemone"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/endpoint"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/failure"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/question"
+	"github.com/RachidChabane/musthold/s1relay/internal/testkit/stubendpoint"
 )
 
 const (

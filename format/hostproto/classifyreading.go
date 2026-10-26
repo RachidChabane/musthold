@@ -9,7 +9,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // TauClassify is the confidence every question of a request needs for a

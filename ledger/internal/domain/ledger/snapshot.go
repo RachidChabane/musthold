@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/refusal"
 )
 
 // SnapshotID names a trust snapshot: the SHA-256 of its timestamp file. The

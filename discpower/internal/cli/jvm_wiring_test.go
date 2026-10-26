@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
+	"github.com/RachidChabane/musthold/discpower/internal/cli"
 )
 
 func TestInitRecognizesJVMProjects(t *testing.T) {
@@ -22,7 +22,7 @@ func TestInitRecognizesJVMProjects(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name+" [verifies SP-1121~1]", func(t *testing.T) {
 			h := newHarness(t, "")
-			for _, leftover := range []string{".spec-proof", "pytest.ini", "conftest.py"} {
+			for _, leftover := range []string{".musthold", "pytest.ini", "conftest.py"} {
 				if err := os.RemoveAll(filepath.Join(h.root, leftover)); err != nil {
 					t.Fatal(err)
 				}
@@ -31,7 +31,7 @@ func TestInitRecognizesJVMProjects(t *testing.T) {
 			if code, stdout, stderr := h.run(nil, "init", "--hooks", "none"); code != cli.ExitClean {
 				t.Fatalf("exit %d: %s%s", code, stdout, stderr)
 			}
-			config := readFile(t, filepath.Join(h.root, ".spec-proof", "config.yaml"))
+			config := readFile(t, filepath.Join(h.root, ".musthold", "config.yaml"))
 			if !strings.Contains(config, "- "+c.wantTool+"\n") {
 				t.Fatalf("the configuration does not name %s:\n%s", c.wantTool, config)
 			}

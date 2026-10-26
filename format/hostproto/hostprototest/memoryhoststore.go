@@ -3,7 +3,7 @@ package hostprototest
 import (
 	"sync"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // MemoryHostStore completes the MemoryStore with an in-memory queue, so that it

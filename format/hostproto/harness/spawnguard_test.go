@@ -4,8 +4,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
 )
 
 func TestSpawnGuard(t *testing.T) {
@@ -30,7 +30,7 @@ func TestSpawnGuard(t *testing.T) {
 				t.Errorf("%s is not selected", name)
 			}
 		}
-		for _, name := range []string{"Bash", "wait_agent", "multi_agent_v1wait_agent", "spawn_agent_x", "my_spawn_agent", "mcp__spec_proof_other_exec__fetch_request"} {
+		for _, name := range []string{"Bash", "wait_agent", "multi_agent_v1wait_agent", "spawn_agent_x", "my_spawn_agent", "mcp__musthold_other_exec__fetch_request"} {
 			if matcher.MatchString(name) {
 				t.Errorf("%s is selected", name)
 			}

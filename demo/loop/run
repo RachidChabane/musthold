@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Front door of the agent-loop demonstration (demo/loop/README.md). The runner is
-# tools/canary/cmd/spec-proof-demo-loop, built into .tools/bin for the host and,
+# tools/canary/cmd/musthold-demo-loop, built into .tools/bin for the host and,
 # for the containers, into .tools/demo-loop/product.
 #
 #   demo/loop/run build
@@ -14,7 +14,7 @@
 #       07:30 unless forced. --dry-run prints every command, the docker commands
 #       included, and starts nothing. --work defaults to .tools/demo-loop/work.
 #       A live run spends the model quota of the account whose token the keychain
-#       item spec-proof-claude-oauth holds.
+#       item musthold-claude-oauth holds.
 #   demo/loop/run keep RUN_DIR
 #       keep the records of a run as the committed recording demo/loop/recording,
 #       with the machine's paths written as placeholders; a record that holds the
@@ -25,7 +25,7 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
-readonly RUNNER=".tools/bin/spec-proof-demo-loop"
+readonly RUNNER=".tools/bin/musthold-demo-loop"
 readonly CONFIG="demo/loop/demo.json"
 readonly RECORDING="demo/loop/recording"
 readonly ENGINE="demo/loop/container/engine"
@@ -44,7 +44,7 @@ usage() {
 build_runner() {
   mkdir -p "$(dirname "${RUNNER}")"
   GOMAXPROCS="${BUILD_GOMAXPROCS}" nice -n "${BUILD_NICE}" \
-    go build -C tools/canary -p "${BUILD_PROCS}" -o "${PWD}/${RUNNER}" ./cmd/spec-proof-demo-loop
+    go build -C tools/canary -p "${BUILD_PROCS}" -o "${PWD}/${RUNNER}" ./cmd/musthold-demo-loop
 }
 
 # with_engine starts the engine, builds the product and the image, and stops the
@@ -63,7 +63,7 @@ build() {
 
 test_containers() {
   with_engine
-  SPEC_PROOF_DEMO_CONTAINERS=1 GOMAXPROCS="${BUILD_GOMAXPROCS}" script/mem-guard run -- \
+  MUSTHOLD_DEMO_CONTAINERS=1 GOMAXPROCS="${BUILD_GOMAXPROCS}" script/mem-guard run -- \
     go test -C tools/canary -p "${BUILD_PROCS}" -count=1 "${CONTAINER_TESTS}" "$@"
 }
 

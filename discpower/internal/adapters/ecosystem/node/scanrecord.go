@@ -12,7 +12,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 )
 
 // The files a run of a scan leaves in its record directory, which the shipped

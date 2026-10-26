@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/record"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/transcript"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/transcript"
 )
 
 // Labels of the entries, by kind.
@@ -237,22 +237,22 @@ func writeFenced(out *strings.Builder, language, text string) {
 }
 
 // style is the stylesheet of the fragment, scoped to its section.
-const style = `.spec-proof-loop{font-family:system-ui,sans-serif;line-height:1.45;max-width:72rem}
-.spec-proof-loop pre{white-space:pre-wrap;overflow-wrap:anywhere;background:rgba(127,127,127,.08);padding:.6rem .8rem;border-radius:6px;font-size:.85rem}
-.spec-proof-loop .entry{border-left:3px solid rgba(127,127,127,.35);padding:.1rem 0 .1rem .8rem;margin:1rem 0}
-.spec-proof-loop .entry-gate{border-left-color:#b3541e}
-.spec-proof-loop .entry-gate.passed{border-left-color:#2f7d32}
-.spec-proof-loop .meta{opacity:.7;font-size:.8rem;margin-left:.5rem}
-.spec-proof-loop .add{color:#2f7d32}
-.spec-proof-loop .del{color:#b3261e}
-.spec-proof-loop .hunk{opacity:.7}
-.spec-proof-loop table{border-collapse:collapse}
-.spec-proof-loop td,.spec-proof-loop th{border-bottom:1px solid rgba(127,127,127,.25);padding:.2rem .8rem .2rem 0;text-align:left}`
+const style = `.musthold-loop{font-family:system-ui,sans-serif;line-height:1.45;max-width:72rem}
+.musthold-loop pre{white-space:pre-wrap;overflow-wrap:anywhere;background:rgba(127,127,127,.08);padding:.6rem .8rem;border-radius:6px;font-size:.85rem}
+.musthold-loop .entry{border-left:3px solid rgba(127,127,127,.35);padding:.1rem 0 .1rem .8rem;margin:1rem 0}
+.musthold-loop .entry-gate{border-left-color:#b3541e}
+.musthold-loop .entry-gate.passed{border-left-color:#2f7d32}
+.musthold-loop .meta{opacity:.7;font-size:.8rem;margin-left:.5rem}
+.musthold-loop .add{color:#2f7d32}
+.musthold-loop .del{color:#b3261e}
+.musthold-loop .hunk{opacity:.7}
+.musthold-loop table{border-collapse:collapse}
+.musthold-loop td,.musthold-loop th{border-bottom:1px solid rgba(127,127,127,.25);padding:.2rem .8rem .2rem 0;text-align:left}`
 
 // HTML renders the transcript as a self-contained HTML fragment.
 func HTML(t transcript.Transcript) string {
 	var out strings.Builder
-	out.WriteString(`<section class="spec-proof-loop">` + "\n<style>\n" + style + "\n</style>\n")
+	out.WriteString(`<section class="musthold-loop">` + "\n<style>\n" + style + "\n</style>\n")
 	fmt.Fprintf(&out, "<h2>%s</h2>\n<ul>\n", escape(title(t)))
 	for _, line := range facts(t) {
 		fmt.Fprintf(&out, "<li>%s</li>\n", escape(line))

@@ -39,7 +39,7 @@ def test_a_real_task_is_verified_end_to_end(upstream: tuple[Path, str, str]) -> 
     assert report.runs == 3
     survivors = next(c for c in report.checks if c.name is CheckName.OPERATOR_SURVIVORS)
     assert survivors.status is CheckStatus.NOT_EVALUATED
-    assert report.limitation is not None and "spec-proof-dp" in report.limitation
+    assert report.limitation is not None and "musthold-dp" in report.limitation
 
 
 def test_a_parametrized_h_test_named_without_parameters_is_verified_end_to_end(

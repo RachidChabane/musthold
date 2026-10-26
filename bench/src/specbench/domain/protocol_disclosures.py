@@ -11,7 +11,7 @@ from specbench.domain.deviations import DeviationEntry, DeviationKind
 CI_SIMULATION: Final = DeviationEntry.create(
     DeviationKind.PROTOCOL,
     (Arm.TR, Arm.AL, Arm.DP, Arm.CO, Arm.ALL, Arm.PL, Arm.ALL_NATIVE, Arm.CHEAT),
-    "The clean-room gate's CI run is simulated: SPEC_PROOF_CI_RUN_ID is bench-<tree digest prefix>, and the seed "
+    "The clean-room gate's CI run is simulated: MUSTHOLD_CI_RUN_ID is bench-<tree digest prefix>, and the seed "
     "record of the head is restored with the seed of the agent tree's own commit, so every arm gets the same CI seed "
     "on the same tree; CI-issued artifacts reach host pull through a gh shim no session can reach.",
 )

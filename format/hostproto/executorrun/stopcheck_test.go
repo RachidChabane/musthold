@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/executorrun"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/executorrun"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
@@ -188,7 +188,7 @@ func TestObservedCopilotRun(t *testing.T) {
 			t.Fatalf("findings = %+v", o.findings)
 		}
 		observed, ok := executorrun.ParseAllowlistObserved(o.detailOf(hostproto.EventAllowlistObserved))
-		wantTools := []string{"spec-proof-dp-exec/fetch_request", "spec-proof-dp-exec/submit_response"}
+		wantTools := []string{"musthold-dp-exec/fetch_request", "musthold-dp-exec/submit_response"}
 		if !ok || observed.CLIVersion != harness.CopilotVersion || !slices.Equal(observed.SelectedTools, wantTools) || observed.LogDigest != hostproto.TranscriptDigest(o.log) {
 			t.Errorf("allowlist_observed = %+v, %v", observed, ok)
 		}

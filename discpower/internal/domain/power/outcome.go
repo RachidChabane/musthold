@@ -4,10 +4,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/policy"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/policy"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Result is the terminal outcome of a criterion (ADR 0003, terminal outcomes).

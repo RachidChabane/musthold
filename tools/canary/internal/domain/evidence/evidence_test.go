@@ -2,11 +2,11 @@ package evidence_test
 
 import (
 	"encoding/json"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto"
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
 )
 
 func decode(t *testing.T, lines ...string) evidence.ClaudeStream {
@@ -120,8 +120,8 @@ func TestCodexDecoder(t *testing.T) {
 
 func TestHookRecords(t *testing.T) {
 	files := evidence.Files{Hooks: []byte(
-		`{"module":"spec-proof-dp","args":["hook","pre-tool","--harness","claude"],"stdin":{"tool_name":"X","agent_id":"a"},"stdout":"{\"hookSpecificOutput\":{\"permissionDecision\":\"allow\",\"updatedInput\":{\"cap\":\"c\"}}}","exitCode":0}` + "\n" +
-			`{"module":"spec-proof-dp","args":["mcp","--role","executor"],"exitCode":0}` + "\n" +
+		`{"module":"musthold-dp","args":["hook","pre-tool","--harness","claude"],"stdin":{"tool_name":"X","agent_id":"a"},"stdout":"{\"hookSpecificOutput\":{\"permissionDecision\":\"allow\",\"updatedInput\":{\"cap\":\"c\"}}}","exitCode":0}` + "\n" +
+			`{"module":"musthold-dp","args":["mcp","--role","executor"],"exitCode":0}` + "\n" +
 			`{"label":"Stop-probe","stdin":{"hook_event_name":"Stop"},"exitCode":0}` + "\n")}
 
 	t.Run("a record is a module hook, a probe or another command, and its payload and answer decode [verifies SP-1506~1]", func(t *testing.T) {
@@ -129,7 +129,7 @@ func TestHookRecords(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		hooks := found.HookCalls("spec-proof-dp", "pre-tool")
+		hooks := found.HookCalls("musthold-dp", "pre-tool")
 		if len(hooks) != 1 || hooks[0].Payload().ToolName != "X" || hooks[0].Payload().AgentID != "a" || hooks[0].Decision().Permission != "allow" {
 			t.Fatalf("hooks = %+v", hooks)
 		}

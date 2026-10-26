@@ -39,8 +39,8 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/verify/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/verify/internal/testkit"
 )
 
 // Layout of testdata, written by `go test -update-fixtures`.
@@ -260,7 +260,7 @@ func trustedRootJSON(authority *fulcio, virtual *ca.VirtualSigstore) ([]byte, er
 		MediaType: root.TrustedRootMediaType01,
 		Tlogs:     tlogs,
 		CertificateAuthorities: []*prototrustroot.CertificateAuthority{{
-			Subject: &protocommon.DistinguishedName{Organization: "spec-proof fixtures", CommonName: "fulcio"},
+			Subject: &protocommon.DistinguishedName{Organization: "musthold fixtures", CommonName: "fulcio"},
 			Uri:     "https://fulcio.fixtures.invalid",
 			CertChain: &protocommon.X509CertificateChain{Certificates: []*protocommon.X509Certificate{
 				{RawBytes: authority.intermediate.Raw}, {RawBytes: authority.root.Raw},

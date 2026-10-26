@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/pluginfiles"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/pluginfiles"
 )
 
 func TestSkillsSpellTheVerifiedLaunchPrompt(t *testing.T) {

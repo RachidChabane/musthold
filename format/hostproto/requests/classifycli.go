@@ -7,9 +7,9 @@ import (
 	"io"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostsettings"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostsettings"
 )
 
 // ClassifyCommands are the classification verbs of `systemone` for one module:

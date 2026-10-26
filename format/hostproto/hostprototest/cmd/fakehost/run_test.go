@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/formattest/parcel"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/formattest/parcel"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 type scriptedRunner struct {

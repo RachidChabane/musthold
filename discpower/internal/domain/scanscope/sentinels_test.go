@@ -8,8 +8,8 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/operator"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/scanscope"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation/operator"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/scanscope"
 )
 
 const (

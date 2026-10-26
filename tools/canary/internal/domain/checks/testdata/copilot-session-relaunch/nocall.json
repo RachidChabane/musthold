@@ -8,17 +8,17 @@
   },
   "servers": [
     {
-      "binary": "spec-proof-dp",
+      "binary": "musthold-dp",
       "started": true,
       "detail": "fetch_request, submit_response"
     },
     {
-      "binary": "spec-proof-alignment",
+      "binary": "musthold-alignment",
       "started": true,
       "detail": "fetch_request, submit_response"
     },
     {
-      "binary": "spec-proof-completeness",
+      "binary": "musthold-completeness",
       "started": true,
       "detail": "fetch_request, submit_response"
     }
@@ -27,64 +27,64 @@
   "copilotListing": {
     "attempted": true,
     "pluginsExit": 0,
-    "pluginsOutput": "[\n  {\n    \"name\": \"spec-proof-dp\",\n    \"marketplace\": \"\",\n    \"version\": \"0.1.0\",\n    \"enabled\": true,\n    \"source\": \"external\"\n  },\n  {\n    \"name\": \"spec-proof-alignment\",\n    \"marketplace\": \"\",\n    \"version\": \"0.1.0\",\n    \"enabled\": true,\n    \"source\": \"external\"\n  },\n  {\n    \"name\": \"spec-proof-completeness\",\n    \"marketplace\": \"\",\n    \"version\": \"0.1.0\",\n    \"enabled\": true,\n    \"source\": \"external\"\n  }\n]\n",
+    "pluginsOutput": "[\n  {\n    \"name\": \"musthold-dp\",\n    \"marketplace\": \"\",\n    \"version\": \"0.1.0\",\n    \"enabled\": true,\n    \"source\": \"external\"\n  },\n  {\n    \"name\": \"musthold-alignment\",\n    \"marketplace\": \"\",\n    \"version\": \"0.1.0\",\n    \"enabled\": true,\n    \"source\": \"external\"\n  },\n  {\n    \"name\": \"musthold-completeness\",\n    \"marketplace\": \"\",\n    \"version\": \"0.1.0\",\n    \"enabled\": true,\n    \"source\": \"external\"\n  }\n]\n",
     "skillsExit": 0,
-    "skillsOutput": "[\n  {\n    \"name\": \"spec-proof-dp-fulfil\",\n    \"description\": \"Answer the pending host requests of spec-proof-dp (discriminating power) and finish the proof run. Use when `spec-proof-dp prove` exits with code 3, when Shallnot reports awaiting_host for spec-proof-dp, or when `spec-proof-dp request list` shows tickets.\",\n    \"source\": \"plugin\",\n    \"path\": \"/home/runner/dev-env/0-git/0-perso/spec-proof/discpower/plugin/portable/skills/spec-proof-dp-fulfil\",\n    \"enabled\": true\n  },\n  {\n    \"name\": \"spec-proof-alignment-fulfil\",\n    \"description\": \"Answer the pending host requests of spec-proof-alignment (alignment) and finish the proof run. Use when `spec-proof-alignment prove` exits with code 3, when Shallnot reports awaiting_host for spec-proof-alignment, or when `spec-proof-alignment request list` shows tickets.\",\n    \"source\": \"plugin\",\n    \"path\": \"/home/runner/dev-env/0-git/0-perso/spec-proof/alignment/plugin/portable/skills/spec-proof-alignment-fulfil\",\n    \"enabled\": true\n  },\n  {\n    \"name\": \"spec-proof-completeness-fulfil\",\n    \"description\": \"Answer the pending host requests of spec-proof-completeness (completeness) and finish the proof run. Use when `spec-proof-completeness prove` exits with code 3, when Shallnot reports awaiting_host for spec-proof-completeness, or when `spec-proof-completeness request list` shows tickets.\",\n    \"source\": \"plugin\",\n    \"path\": \"/home/runner/dev-env/0-git/0-perso/spec-proof/completeness/plugin/portable/skills/spec-proof-completeness-fulfil\",\n    \"enabled\": true\n  },\n  {\n    \"name\": \"customize-cloud-agent\",\n    \"description\": \"Skill for customizing the Copilot cloud agent (formerly known as Copilot coding agent) environment, including copilot-setup-steps.yml configuration, preinstalling tools and dependencies, runners, and settings. Use when the user mentions copilot-setup-steps, copilot setup steps, or wants to configure the cloud agent environment.\",\n    \"source\": \"builtin\",\n    \"path\": \"/run/tmp\",\n    \"enabled\": true\n  },\n  {\n    \"name\": \"github-pr-media\",\n    \"description\": \"Upload an image or video to GitHub's user attachments API and embed it in a pull request description or comment. Use when asked to add screenshots, diagrams, recordings, or other media to a PR or GitHub comment.\",\n    \"source\": \"builtin\",\n    \"path\": \"/run/tmp\",\n    \"enabled\": true\n  }\n]\n"
+    "skillsOutput": "[\n  {\n    \"name\": \"musthold-dp-fulfil\",\n    \"description\": \"Answer the pending host requests of musthold-dp (discriminating power) and finish the proof run. Use when `musthold-dp prove` exits with code 3, when Shallnot reports awaiting_host for musthold-dp, or when `musthold-dp request list` shows tickets.\",\n    \"source\": \"plugin\",\n    \"path\": \"/home/runner/dev-env/0-git/0-perso/musthold/discpower/plugin/portable/skills/musthold-dp-fulfil\",\n    \"enabled\": true\n  },\n  {\n    \"name\": \"musthold-alignment-fulfil\",\n    \"description\": \"Answer the pending host requests of musthold-alignment (alignment) and finish the proof run. Use when `musthold-alignment prove` exits with code 3, when Shallnot reports awaiting_host for musthold-alignment, or when `musthold-alignment request list` shows tickets.\",\n    \"source\": \"plugin\",\n    \"path\": \"/home/runner/dev-env/0-git/0-perso/musthold/alignment/plugin/portable/skills/musthold-alignment-fulfil\",\n    \"enabled\": true\n  },\n  {\n    \"name\": \"musthold-completeness-fulfil\",\n    \"description\": \"Answer the pending host requests of musthold-completeness (completeness) and finish the proof run. Use when `musthold-completeness prove` exits with code 3, when Shallnot reports awaiting_host for musthold-completeness, or when `musthold-completeness request list` shows tickets.\",\n    \"source\": \"plugin\",\n    \"path\": \"/home/runner/dev-env/0-git/0-perso/musthold/completeness/plugin/portable/skills/musthold-completeness-fulfil\",\n    \"enabled\": true\n  },\n  {\n    \"name\": \"customize-cloud-agent\",\n    \"description\": \"Skill for customizing the Copilot cloud agent (formerly known as Copilot coding agent) environment, including copilot-setup-steps.yml configuration, preinstalling tools and dependencies, runners, and settings. Use when the user mentions copilot-setup-steps, copilot setup steps, or wants to configure the cloud agent environment.\",\n    \"source\": \"builtin\",\n    \"path\": \"/run/tmp\",\n    \"enabled\": true\n  },\n  {\n    \"name\": \"github-pr-media\",\n    \"description\": \"Upload an image or video to GitHub's user attachments API and embed it in a pull request description or comment. Use when asked to add screenshots, diagrams, recordings, or other media to a PR or GitHub comment.\",\n    \"source\": \"builtin\",\n    \"path\": \"/run/tmp\",\n    \"enabled\": true\n  }\n]\n"
   },
   "pluginTrees": [
     {
-      "dir": "/home/runner/dev-env/0-git/0-perso/spec-proof/discpower/plugin/portable",
-      "name": "spec-proof-dp",
+      "dir": "/home/runner/dev-env/0-git/0-perso/musthold/discpower/plugin/portable",
+      "name": "musthold-dp",
       "servers": [
-        "spec-proof-dp"
+        "musthold-dp"
       ],
       "skills": [
         {
-          "dir": "spec-proof-dp-fulfil",
-          "name": "spec-proof-dp-fulfil"
+          "dir": "musthold-dp-fulfil",
+          "name": "musthold-dp-fulfil"
         }
       ],
       "namespace": [
-        "com.github.copilot/agents/spec-proof-dp-decider.agent.md",
-        "com.github.copilot/agents/spec-proof-dp-generator.agent.md",
-        "com.github.copilot/agents/spec-proof-dp-judge.agent.md",
+        "com.github.copilot/agents/musthold-dp-decider.agent.md",
+        "com.github.copilot/agents/musthold-dp-generator.agent.md",
+        "com.github.copilot/agents/musthold-dp-judge.agent.md",
         "com.github.copilot/hooks/hooks.json"
       ],
       "problems": null
     },
     {
-      "dir": "/home/runner/dev-env/0-git/0-perso/spec-proof/alignment/plugin/portable",
-      "name": "spec-proof-alignment",
+      "dir": "/home/runner/dev-env/0-git/0-perso/musthold/alignment/plugin/portable",
+      "name": "musthold-alignment",
       "servers": [
-        "spec-proof-alignment"
+        "musthold-alignment"
       ],
       "skills": [
         {
-          "dir": "spec-proof-alignment-fulfil",
-          "name": "spec-proof-alignment-fulfil"
+          "dir": "musthold-alignment-fulfil",
+          "name": "musthold-alignment-fulfil"
         }
       ],
       "namespace": [
-        "com.github.copilot/agents/spec-proof-alignment-decider.agent.md",
-        "com.github.copilot/agents/spec-proof-alignment-judge.agent.md",
+        "com.github.copilot/agents/musthold-alignment-decider.agent.md",
+        "com.github.copilot/agents/musthold-alignment-judge.agent.md",
         "com.github.copilot/hooks/hooks.json"
       ],
       "problems": null
     },
     {
-      "dir": "/home/runner/dev-env/0-git/0-perso/spec-proof/completeness/plugin/portable",
-      "name": "spec-proof-completeness",
+      "dir": "/home/runner/dev-env/0-git/0-perso/musthold/completeness/plugin/portable",
+      "name": "musthold-completeness",
       "servers": [
-        "spec-proof-completeness"
+        "musthold-completeness"
       ],
       "skills": [
         {
-          "dir": "spec-proof-completeness-fulfil",
-          "name": "spec-proof-completeness-fulfil"
+          "dir": "musthold-completeness-fulfil",
+          "name": "musthold-completeness-fulfil"
         }
       ],
       "namespace": [
-        "com.github.copilot/agents/spec-proof-completeness-decider.agent.md",
+        "com.github.copilot/agents/musthold-completeness-decider.agent.md",
         "com.github.copilot/hooks/hooks.json"
       ],
       "problems": null

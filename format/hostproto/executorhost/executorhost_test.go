@@ -8,18 +8,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/executorhost"
-	"github.com/RachidChabane/spec-proof/format/hostproto/executorrun"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
-	"github.com/RachidChabane/spec-proof/format/hostproto/mcpstdio"
-	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/executorhost"
+	"github.com/RachidChabane/musthold/format/hostproto/executorrun"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/hostproto/mcpstdio"
+	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
 const (
 	moduleAlias   = "dp"
-	judgeRole     = "spec-proof-dp:judge"
+	judgeRole     = "musthold-dp:judge"
 	agentID       = "agent-0001"
 	otherAgent    = "agent-0002"
 	validAnswer   = `{"validity":"VALID"}`

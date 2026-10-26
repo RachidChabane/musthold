@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/systemonewire"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/question"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/testkit/stubendpoint"
+	"github.com/RachidChabane/musthold/s1relay/internal/adapters/systemonewire"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/question"
+	"github.com/RachidChabane/musthold/s1relay/internal/testkit/stubendpoint"
 )
 
 // skySet is the question the recorded exchanges asked.

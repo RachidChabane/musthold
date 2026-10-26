@@ -7,16 +7,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/adapters"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/plan"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/record"
+	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 )
 
 func TestKeep(t *testing.T) {
 	keeper := app.Keeper{Files: adapters.OSFiles{}}
 	const (
-		repo = "/Users/someone/src/spec-proof"
+		repo = "/Users/someone/src/musthold"
 		home = "/Users/someone"
 	)
 	runOn := func(t *testing.T) string {

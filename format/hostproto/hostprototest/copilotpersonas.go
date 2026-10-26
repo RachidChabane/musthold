@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // Names of the fake-host personas that play Copilot CLI executors.

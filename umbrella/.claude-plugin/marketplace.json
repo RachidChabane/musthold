@@ -1,11 +1,11 @@
 {
-  "name": "spec-proof",
+  "name": "musthold",
   "owner": {
     "name": "Rachid Chabane",
     "url": "https://github.com/RachidChabane"
   },
   "metadata": {
-    "description": "spec-proof: proofs that the tests of a project check what its requirements say, for coding agents."
+    "description": "musthold: proofs that the tests of a project check what its requirements say, for coding agents."
   },
   "plugins": [
     {
@@ -18,49 +18,49 @@
       "description": "Requirement-to-test traceability for coding agents and the end-of-turn gate the proofs plug into."
     },
     {
-      "name": "spec-proof-dp",
+      "name": "musthold-dp",
       "source": {
         "source": "git-subdir",
-        "url": "RachidChabane/spec-proof",
+        "url": "RachidChabane/musthold",
         "path": "discpower/plugin/claude",
         "ref": "discpower/v0.1.0"
       },
       "description": "Discriminating power: do the tests of a criterion catch a violation of it."
     },
     {
-      "name": "spec-proof-alignment",
+      "name": "musthold-alignment",
       "source": {
         "source": "git-subdir",
-        "url": "RachidChabane/spec-proof",
+        "url": "RachidChabane/musthold",
         "path": "alignment/plugin/claude",
         "ref": "alignment/v0.1.0"
       },
       "description": "Alignment: does each test verify what its criterion states."
     },
     {
-      "name": "spec-proof-completeness",
+      "name": "musthold-completeness",
       "source": {
         "source": "git-subdir",
-        "url": "RachidChabane/spec-proof",
+        "url": "RachidChabane/musthold",
         "path": "completeness/plugin/claude",
         "ref": "completeness/v0.1.0"
       },
       "description": "Completeness: does the spec cover what a change does (advisory)."
     },
     {
-      "name": "spec-proof-s1",
+      "name": "musthold-s1",
       "source": {
         "source": "git-subdir",
-        "url": "RachidChabane/spec-proof",
+        "url": "RachidChabane/musthold",
         "path": "s1relay/plugin/claude",
         "ref": "s1relay/v0.1.0"
       },
       "description": "The relay of closed questions to a System One endpoint."
     },
     {
-      "name": "spec-proof",
-      "source": "./plugins/spec-proof",
-      "description": "Installs Shallnot and every spec-proof module and runs them together with the prove-all skill."
+      "name": "musthold",
+      "source": "./plugins/musthold",
+      "description": "Installs Shallnot and every musthold module and runs them together with the prove-all skill."
     }
   ]
 }

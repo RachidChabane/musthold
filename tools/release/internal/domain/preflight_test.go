@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
 )
 
 const (
@@ -105,7 +105,7 @@ func TestTagRules(t *testing.T) {
 func TestGoModRules(t *testing.T) {
 	t.Run("every replace and exclude rule is a finding only a real release needs"+verifiesGoModRules, func(t *testing.T) {
 		facts := releasableFacts(t, "discpower/v0.2.0")
-		facts.GoMod.Replaces = []string{"github.com/RachidChabane/spec-proof/format => ../format", "x => y"}
+		facts.GoMod.Replaces = []string{"github.com/RachidChabane/musthold/format => ../format", "x => y"}
 		facts.GoMod.Excludes = []string{"z v1.0.0"}
 		findings := findingsOf(facts)
 		if len(findings) != 3 {
@@ -252,7 +252,7 @@ func TestMarketplaceRules(t *testing.T) {
 
 	t.Run("an entry whose source is a path inside the marketplace needs no ref"+verifiesMarketRules, func(t *testing.T) {
 		facts := releasableFacts(t, "umbrella/v0.2.0")
-		facts.Marketplace = []domain.MarketplaceEntry{{Name: "spec-proof", Relative: true}}
+		facts.Marketplace = []domain.MarketplaceEntry{{Name: "musthold", Relative: true}}
 		if findings := findingsOf(facts); len(findings) != 0 {
 			t.Errorf("findings = %v", findings)
 		}
@@ -261,15 +261,15 @@ func TestMarketplaceRules(t *testing.T) {
 	t.Run("the marketplace file is read as paths and pinned repositories"+verifiesMarketRules, func(t *testing.T) {
 		entries, err := domain.ParseMarketplace([]byte(`{"plugins":[
 			{"name":"a","source":"./umbrella/plugins/a"},
-			{"name":"b","source":{"source":"git-subdir","url":"RachidChabane/spec-proof","path":"b/plugin/claude","ref":"b/v1.0.0"}},
-			{"name":"c","source":{"source":"git-subdir","url":"https://github.com/RachidChabane/spec-proof.git","path":"c"}}]}`))
+			{"name":"b","source":{"source":"git-subdir","url":"RachidChabane/musthold","path":"b/plugin/claude","ref":"b/v1.0.0"}},
+			{"name":"c","source":{"source":"git-subdir","url":"https://github.com/RachidChabane/musthold.git","path":"c"}}]}`))
 		if err != nil {
 			t.Fatal(err)
 		}
 		want := []domain.MarketplaceEntry{
 			{Name: "a", Relative: true},
-			{Name: "b", Repository: "RachidChabane/spec-proof", Ref: "b/v1.0.0"},
-			{Name: "c", Repository: "RachidChabane/spec-proof"},
+			{Name: "b", Repository: "RachidChabane/musthold", Ref: "b/v1.0.0"},
+			{Name: "c", Repository: "RachidChabane/musthold"},
 		}
 		if len(entries) != len(want) {
 			t.Fatalf("entries = %v", entries)

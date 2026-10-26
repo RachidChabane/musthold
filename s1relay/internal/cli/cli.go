@@ -7,11 +7,11 @@ import (
 	"io"
 	"os"
 
-	"github.com/RachidChabane/spec-proof/format/cliconv"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/memguard"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/modulecli"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/version"
+	"github.com/RachidChabane/musthold/format/cliconv"
+	"github.com/RachidChabane/musthold/s1relay/internal/adapters/memguard"
+	"github.com/RachidChabane/musthold/s1relay/internal/adapters/modulecli"
+	"github.com/RachidChabane/musthold/s1relay/internal/app/ports"
+	"github.com/RachidChabane/musthold/s1relay/internal/version"
 )
 
 // Exit codes of the binary: 0, 1 and 2 as in ADR 0002, and 4 as script/mem-guard

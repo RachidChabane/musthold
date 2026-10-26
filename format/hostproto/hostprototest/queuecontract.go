@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // Sessions the queue contract records requests for.

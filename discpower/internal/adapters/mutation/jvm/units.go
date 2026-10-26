@@ -5,8 +5,8 @@ import (
 
 	"github.com/odvcencio/gotreesitter"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
 )
 
 // qualnameSeparator joins the names of a definition's enclosing containers.

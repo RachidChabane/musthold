@@ -2,11 +2,11 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "^(spawn_agent|collaborationspawn_agent|multi_agent_v1spawn_agent)$|mcp__spec_proof_alignment_exec__.*",
+        "matcher": "^(spawn_agent|collaborationspawn_agent|multi_agent_v1spawn_agent)$|mcp__musthold_alignment_exec__.*",
         "hooks": [
           {
             "type": "command",
-            "command": "spec-proof-alignment hook pre-tool --harness codex",
+            "command": "musthold-alignment hook pre-tool --harness codex",
             "timeout": 30
           }
         ]
@@ -14,11 +14,11 @@
     ],
     "SubagentStart": [
       {
-        "matcher": "^(spec-proof-alignment-judge|spec-proof-alignment-decider)$",
+        "matcher": "^(musthold-alignment-judge|musthold-alignment-decider)$",
         "hooks": [
           {
             "type": "command",
-            "command": "spec-proof-alignment hook subagent-start --harness codex",
+            "command": "musthold-alignment hook subagent-start --harness codex",
             "timeout": 30
           }
         ]
@@ -26,11 +26,11 @@
     ],
     "SubagentStop": [
       {
-        "matcher": "^(spec-proof-alignment-judge|spec-proof-alignment-decider)$",
+        "matcher": "^(musthold-alignment-judge|musthold-alignment-decider)$",
         "hooks": [
           {
             "type": "command",
-            "command": "spec-proof-alignment hook subagent-stop --harness codex",
+            "command": "musthold-alignment hook subagent-stop --harness codex",
             "timeout": 30
           }
         ]

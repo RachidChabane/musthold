@@ -6,11 +6,11 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/aggregate"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/matrix"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/policy"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/verdict"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/aggregate"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/matrix"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/policy"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/verdict"
+	"github.com/RachidChabane/musthold/format"
 )
 
 func result(signature matrix.Signature) matrix.Result {

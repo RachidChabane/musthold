@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/adapters"
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
-	"github.com/RachidChabane/spec-proof/tools/release/internal/testkit"
+	"github.com/RachidChabane/musthold/tools/release/internal/adapters"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/testkit"
 )
 
 const (
@@ -161,7 +161,7 @@ func TestWorkspace(t *testing.T) {
 	})
 
 	t.Run("exclude rules are read"+verifiesGoModFacts, func(t *testing.T) {
-		repository.Write("format/go.mod", "module github.com/RachidChabane/spec-proof/format\n\ngo 1.26.4\n\nexclude example.com/x v1.0.0\n", 0o644)
+		repository.Write("format/go.mod", "module github.com/RachidChabane/musthold/format\n\ngo 1.26.4\n\nexclude example.com/x v1.0.0\n", 0o644)
 		facts, err := workspace.GoMod("format")
 		if err != nil || len(facts.Excludes) != 1 || !strings.Contains(facts.Excludes[0], "example.com/x") {
 			t.Fatalf("facts = %+v, error %v", facts, err)
@@ -206,8 +206,8 @@ func TestWorkspace(t *testing.T) {
 			t.Fatal(err)
 		}
 		want := []domain.MarketplaceEntry{
-			{Name: "spec-proof-dp", Repository: "RachidChabane/spec-proof"},
-			{Name: "spec-proof", Relative: true},
+			{Name: "musthold-dp", Repository: "RachidChabane/musthold"},
+			{Name: "musthold", Relative: true},
 		}
 		if !slices.Equal(entries, want) {
 			t.Fatalf("entries = %v", entries)

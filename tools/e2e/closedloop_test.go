@@ -25,7 +25,7 @@ const (
 	helpRequestedText = "help requested"
 	usageText         = "usage:"
 	versionCommand    = "version"
-	configPath        = ".spec-proof/config.yaml"
+	configPath        = ".musthold/config.yaml"
 	gitignorePath     = ".gitignore"
 	operationsExample = "# operations:\n#   line_total:\n"
 
@@ -36,7 +36,7 @@ const (
 
 var (
 	helpFlags       = []string{"-h", "--help"}
-	localStateLines = []string{".spec-proof/cache/", ".spec-proof/verified/", ".spec-proof/pending/"}
+	localStateLines = []string{".musthold/cache/", ".musthold/verified/", ".musthold/pending/"}
 )
 
 // helpRun is what a binary printed and exited with.
@@ -140,7 +140,7 @@ func TestEveryBinaryAnswersHelp(t *testing.T) {
 }
 
 // TestInitAndEnableLeaveTheLocalLoopReady checks what the modules leave in a project
-// that had no spec-proof state: the policy of the local loop, the local state kept
+// that had no musthold state: the policy of the local loop, the local state kept
 // out of version control and the commented operations example.
 func TestInitAndEnableLeaveTheLocalLoopReady(t *testing.T) {
 	requirements := []string{localSetupRequirement}
@@ -148,7 +148,7 @@ func TestInitAndEnableLeaveTheLocalLoopReady(t *testing.T) {
 		skipRequirements(t, requirements, "builds the binaries and Shallnot")
 	}
 	p := newParcelProject(t, requirements)
-	if err := os.RemoveAll(filepath.Join(p.root, ".spec-proof")); err != nil {
+	if err := os.RemoveAll(filepath.Join(p.root, ".musthold")); err != nil {
 		t.Fatal(err)
 	}
 	p.equip()

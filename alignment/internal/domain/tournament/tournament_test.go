@@ -7,8 +7,8 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/masking"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/tournament"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/masking"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/tournament"
 )
 
 func options(count int) []string {

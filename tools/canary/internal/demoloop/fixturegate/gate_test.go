@@ -19,16 +19,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest/claudecode"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/adapters"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/boxoffice"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/config"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/plan"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/modules"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest/claudecode"
+	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/boxoffice"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/modules"
 )
 
 // update rewrites the recorded answers from the honest host instead of replaying them.
@@ -54,7 +54,7 @@ const (
 	missedInput = "ticket_price(age=65) => 8"
 	// productVariable names the product tree the test runs against, as the
 	// containers of a live run mount it; unset, it runs the repository's binaries.
-	productVariable = "SPEC_PROOF_DEMO_PRODUCT"
+	productVariable = "MUSTHOLD_DEMO_PRODUCT"
 	// claudeExitBlock is the exit code of the end-of-turn hook that holds the turn.
 	claudeExitBlock = 2
 	stopPayload     = `{"hook_event_name":"Stop","session_id":"fixture-gate","stop_hook_active":false}`
@@ -86,7 +86,7 @@ func gateBlocksThenPasses(t *testing.T) {
 		t.Fatal(err)
 	}
 	layout := plan.Layout{Repo: repo, Run: runDir(t), Product: os.Getenv(productVariable)}
-	for _, binary := range []string{plan.ShallnotBinary, plan.VerifyBinary, "spec-proof-dp", "spec-proof-alignment", "spec-proof-completeness"} {
+	for _, binary := range []string{plan.ShallnotBinary, plan.VerifyBinary, "musthold-dp", "musthold-alignment", "musthold-completeness"} {
 		if _, err := os.Stat(layout.Bin(binary)); err != nil {
 			t.Skipf("%s is not built: run script/product-build", layout.Bin(binary))
 		}
@@ -391,7 +391,7 @@ func (s *session) proveAndGate(t *testing.T) gateOutcome {
 			code = module.runner.prove(t, "--resume")
 		}
 	}
-	verify := exec.Command(l.Bin(plan.VerifyBinary), "--accept-local", ".spec-proof/cache", "--out", ".spec-proof/verified")
+	verify := exec.Command(l.Bin(plan.VerifyBinary), "--accept-local", ".musthold/cache", "--out", ".musthold/verified")
 	verify.Dir, verify.Env = l.Project(), s.prepared.Environment
 	if output, err := verify.CombinedOutput(); err != nil {
 		t.Fatalf("verify: %v\n%s", err, output)

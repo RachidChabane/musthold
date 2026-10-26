@@ -3,8 +3,8 @@ package promise
 import (
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Runs of a witness set on the reference.

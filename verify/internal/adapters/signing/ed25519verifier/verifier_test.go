@@ -8,11 +8,11 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/verify/internal/adapters/policyfile"
-	"github.com/RachidChabane/spec-proof/verify/internal/adapters/signing/ed25519verifier"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/refusal"
-	"github.com/RachidChabane/spec-proof/verify/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/verify/internal/adapters/policyfile"
+	"github.com/RachidChabane/musthold/verify/internal/adapters/signing/ed25519verifier"
+	"github.com/RachidChabane/musthold/verify/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/verify/internal/testkit"
 )
 
 const verifiesEd25519 = " [verifies SP-211~1]"

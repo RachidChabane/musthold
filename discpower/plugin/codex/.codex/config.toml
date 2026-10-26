@@ -1,6 +1,6 @@
-# spec-proof-dp:begin
-[mcp_servers.spec-proof-dp-exec]
-command = "spec-proof-dp"
+# musthold-dp:begin
+[mcp_servers.musthold-dp-exec]
+command = "musthold-dp"
 args = ["mcp", "--role", "executor", "--harness", "codex"]
 default_tools_approval_mode = "approve"
-# spec-proof-dp:end
+# musthold-dp:end

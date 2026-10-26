@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/umbrella/internal/umbrella"
+	"github.com/RachidChabane/musthold/umbrella/internal/umbrella"
 )
 
 // update rewrites the committed files from the generator.
@@ -219,7 +219,7 @@ func TestRootMarketplace(t *testing.T) {
 				}
 				continue
 			}
-			if source := plugin.subdir(t); source.URL == "RachidChabane/spec-proof" {
+			if source := plugin.subdir(t); source.URL == "RachidChabane/musthold" {
 				if _, err := os.Stat(filepath.Join(repositoryRoot, filepath.FromSlash(source.Path), filepath.FromSlash(manifestFile))); err != nil {
 					t.Errorf("%s: %v", plugin.Name, err)
 				}
@@ -323,7 +323,7 @@ func (p listedPlugin) relative() (string, bool) {
 func TestMarketplace(t *testing.T) {
 	found := readListing(t)
 
-	t.Run("the marketplace is named spec-proof, has an owner and lists each plugin once, Shallnot's first and the thin plugin last [verifies SP-821~2]", func(t *testing.T) {
+	t.Run("the marketplace is named musthold, has an owner and lists each plugin once, Shallnot's first and the thin plugin last [verifies SP-821~2]", func(t *testing.T) {
 		if found.Name != umbrella.MarketplaceName || found.Owner.Name == "" {
 			t.Fatalf("marketplace = %+v", found)
 		}
@@ -339,7 +339,7 @@ func TestMarketplace(t *testing.T) {
 				t.Errorf("%s has no description", plugin.Name)
 			}
 		}
-		want := []string{"shallnot", "spec-proof-dp", "spec-proof-alignment", "spec-proof-completeness", "spec-proof-s1", "spec-proof"}
+		want := []string{"shallnot", "musthold-dp", "musthold-alignment", "musthold-completeness", "musthold-s1", "musthold"}
 		if !slices.Equal(names, want) {
 			t.Fatalf("plugins = %v, want %v", names, want)
 		}
@@ -355,7 +355,7 @@ func TestMarketplace(t *testing.T) {
 		for index, module := range modules {
 			source := found.Plugins[index+1].subdir(t)
 			want := subdirSource{
-				Source: "git-subdir", URL: "RachidChabane/spec-proof", Path: module.Directory + "/plugin/claude",
+				Source: "git-subdir", URL: "RachidChabane/musthold", Path: module.Directory + "/plugin/claude",
 				Ref: module.Directory + "/v" + versions[module.Directory],
 			}
 			if source != want {
@@ -405,11 +405,11 @@ func TestThinPlugin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Run("the thin plugin is named spec-proof and depends on Shallnot, the three modules and the relay, each an entry of the marketplace [verifies SP-822~2]", func(t *testing.T) {
+	t.Run("the thin plugin is named musthold and depends on Shallnot, the three modules and the relay, each an entry of the marketplace [verifies SP-822~2]", func(t *testing.T) {
 		if manifest.Name != umbrella.PluginName || !regexp.MustCompile(`^\d+\.\d+\.\d+$`).MatchString(manifest.Version) || manifest.Description == "" {
 			t.Fatalf("manifest = %+v", manifest)
 		}
-		want := []string{"shallnot", "spec-proof-dp", "spec-proof-alignment", "spec-proof-completeness", "spec-proof-s1"}
+		want := []string{"shallnot", "musthold-dp", "musthold-alignment", "musthold-completeness", "musthold-s1"}
 		if !slices.Equal(manifest.Dependencies, want) {
 			t.Fatalf("dependencies = %v, want %v", manifest.Dependencies, want)
 		}
@@ -528,10 +528,10 @@ func TestProveAllSkill(t *testing.T) {
 		for _, module := range umbrella.Modules {
 			want = append(want, "Bash("+module.Binary+" doctor)", "Bash("+module.Binary+" prove *)", "Bash("+module.Binary+" request list --session prove)")
 		}
-		want = append(want, "Bash(spec-proof-s1 drain *)", "Bash(spec-proof-verify --accept-local .spec-proof/cache --out .spec-proof/verified)")
+		want = append(want, "Bash(musthold-s1 drain *)", "Bash(musthold-verify --accept-local .musthold/cache --out .musthold/verified)")
 		for _, rule := range allowed {
 			for _, answering := range []string{" request show", " request submit", " host ", " disable", " enable", " init", " *)"} {
-				if strings.Contains(rule, answering) && !strings.HasSuffix(rule, " prove *)") && !strings.HasSuffix(rule, " drain *)") && !strings.HasPrefix(rule, "Bash(spec-proof-verify --accept-local ") {
+				if strings.Contains(rule, answering) && !strings.HasSuffix(rule, " prove *)") && !strings.HasSuffix(rule, " drain *)") && !strings.HasPrefix(rule, "Bash(musthold-verify --accept-local ") {
 					t.Errorf("%s pre-approves a command that answers or changes a project", rule)
 				}
 			}
@@ -567,11 +567,11 @@ func TestScanSkill(t *testing.T) {
 			t.Fatalf("members = %v", members)
 		}
 		for _, want := range []string{
-			"`spec-proof scan --host [<PR>]`",
-			"`spec-proof scan --host --resume [<PR>]`",
+			"`musthold scan --host [<PR>]`",
+			"`musthold scan --host --resume [<PR>]`",
 			"`session scan:<key>`",
-			"`spec-proof-dp request list --session scan:<key>`",
-			"`spec-proof-s1 drain --module dp --session scan:<key>`",
+			"`musthold-dp request list --session scan:<key>`",
+			"`musthold-s1 drain --module dp --session scan:<key>`",
 			"Exit code 0", "Exit code 2", "Exit code 3",
 			"List no other session",
 			"Never answer a ticket yourself",
@@ -586,7 +586,7 @@ func TestScanSkill(t *testing.T) {
 	})
 
 	t.Run("the skill pre-approves only the scan, the listing of the dp module and the relay's drain [verifies SP-2291~1]", func(t *testing.T) {
-		want := []string{"Bash(spec-proof scan *)", "Bash(spec-proof-dp request list *)", "Bash(spec-proof-s1 drain *)"}
+		want := []string{"Bash(musthold scan *)", "Bash(musthold-dp request list *)", "Bash(musthold-s1 drain *)"}
 		if got := strings.Split(members["allowed-tools"], ", "); !slices.Equal(got, want) {
 			t.Fatalf("allowed-tools = %v, want %v", got, want)
 		}
@@ -638,7 +638,7 @@ func TestAgreementWithTheModuleTrees(t *testing.T) {
 			if !strings.Contains(string(content), `"command": "`+module.Binary+` hook `) {
 				t.Errorf("%s: the hooks do not run %s", module.Plugin, module.Binary)
 			}
-			if strings.Contains(string(content), `"command": "spec-proof-`) && !strings.Contains(string(content), module.Binary) {
+			if strings.Contains(string(content), `"command": "musthold-`) && !strings.Contains(string(content), module.Binary) {
 				t.Errorf("%s: the hooks run another module's binary", module.Plugin)
 			}
 		}

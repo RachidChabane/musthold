@@ -3,7 +3,7 @@ package app
 import (
 	"fmt"
 
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/ledger"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/ledger"
 )
 
 // SeedService finds the seed of a head commit: the one the ledger already holds,

@@ -6,17 +6,17 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // The build signer the Sigstore fixtures are signed by, and the ones the policy
 // must refuse. The fixtures are generated with these values.
 const (
 	FixtureIssuer       = "https://token.actions.githubusercontent.com"
-	FixtureSignerURI    = "https://github.com/spec-proof/ci/.github/workflows/prove.yml@refs/tags/v1.0.0"
+	FixtureSignerURI    = "https://github.com/musthold/ci/.github/workflows/prove.yml@refs/tags/v1.0.0"
 	FixtureSignerDigest = "0123456789abcdef0123456789abcdef01234567"
 	OtherSignerDigest   = "fedcba9876543210fedcba9876543210fedcba98"
-	OtherSignerURI      = "https://github.com/spec-proof/ci/.github/workflows/evil.yml@refs/heads/main"
+	OtherSignerURI      = "https://github.com/musthold/ci/.github/workflows/evil.yml@refs/heads/main"
 	OtherIssuer         = "https://issuer.example.test"
 )
 

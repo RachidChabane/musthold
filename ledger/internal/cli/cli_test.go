@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/ledger/internal/cli"
-	"github.com/RachidChabane/spec-proof/ledger/internal/version"
+	"github.com/RachidChabane/musthold/ledger/internal/cli"
+	"github.com/RachidChabane/musthold/ledger/internal/version"
 )
 
-const binary = "spec-proof-ledger"
+const binary = "musthold-ledger"
 
 func TestMain(t *testing.T) {
 	cases := []struct {
@@ -17,7 +17,7 @@ func TestMain(t *testing.T) {
 		wantCode   int
 		wantStdout string
 	}{
-		{"spec-proof-ledger prints its version", []string{"version"}, cli.ExitClean, binary + " " + version.Version + "\n"},
+		{"musthold-ledger prints its version", []string{"version"}, cli.ExitClean, binary + " " + version.Version + "\n"},
 		{"no argument is a tool failure", nil, cli.ExitToolFailure, ""},
 		{"an unknown argument is a tool failure", []string{"frobnicate"}, cli.ExitToolFailure, ""},
 	}

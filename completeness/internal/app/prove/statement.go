@@ -7,11 +7,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/prompt"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/question"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/prompt"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/question"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // Names of the inputs of a Statement.

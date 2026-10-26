@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verified installer for a spec-proof binary release. It is published as the asset
+# Verified installer for a musthold binary release. It is published as the asset
 # `install` of every binary release.
 #
 #   install <module> <semver> [--prefix DIR] [--os OS] [--arch ARCH] [--from DIR]
@@ -18,7 +18,7 @@
 # only: it is how a release is rehearsed before anything is published.
 set -euo pipefail
 
-readonly REPOSITORY="RachidChabane/spec-proof"
+readonly REPOSITORY="RachidChabane/musthold"
 readonly DOWNLOAD_BASE="https://github.com/${REPOSITORY}/releases/download"
 readonly SIGNER_WORKFLOW="${REPOSITORY}/.github/workflows/release.yml"
 readonly IDENTITY_PREFIX="https://github.com/${SIGNER_WORKFLOW}@refs/tags/"

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/ledger"
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/ledger"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/refusal"
 )
 
 // ExportService materializes the signed proofs and the newest trust snapshot of the

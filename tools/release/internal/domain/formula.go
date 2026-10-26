@@ -65,7 +65,7 @@ func RenderFormula(tag Tag, sums []Checksum) (string, error) {
 }
 
 // formulaClassName turns a binary name into the class name Homebrew expects:
-// spec-proof-dp becomes SpecProofDp.
+// musthold-dp becomes MustholdDp.
 func formulaClassName(binary string) string {
 	var name strings.Builder
 	for _, word := range strings.Split(binary, "-") {

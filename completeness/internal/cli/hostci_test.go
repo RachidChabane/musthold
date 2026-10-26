@@ -7,11 +7,11 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/cli"
-	"github.com/RachidChabane/spec-proof/completeness/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/completeness/internal/cli"
+	"github.com/RachidChabane/musthold/completeness/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbundle"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 	maxCIRounds    = 8
 	ciFlag         = "--ci"
 	importFlag     = "--import-host"
-	issuedRelative = ".spec-proof/ci-issued/completeness"
+	issuedRelative = ".musthold/ci-issued/completeness"
 	issuedDocument = "issued.json"
 )
 

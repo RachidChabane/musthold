@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/formattest/parcel"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest/claudecode"
+	"github.com/RachidChabane/musthold/format/formattest/parcel"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest/claudecode"
 )
 
 // Requirements the alignment host tests verify.
@@ -23,7 +23,7 @@ const (
 	hostlessRequirements      = "SP-841~1"
 	forgeRequirements         = "SP-842~1"
 
-	stateDirectory     = "spec-proof"
+	stateDirectory     = "musthold"
 	alignmentStateName = "alignment"
 	hostDirectory      = "host"
 	journalName        = "journal.jsonl"

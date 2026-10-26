@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format/formattest/parcel"
+	"github.com/RachidChabane/musthold/format/formattest/parcel"
 )
 
 // Readings of an alignment host.

@@ -17,7 +17,7 @@ def manifest_text(head: str, *responses: tuple[str, int]) -> str:
     entries = [{"requestId": request_id, "vote": vote} for request_id, vote in responses]
     return json.dumps(
         {
-            "module": {"name": "spec-proof-dp", "version": "dev"},
+            "module": {"name": "musthold-dp", "version": "dev"},
             "headSha": head,
             "journalDigest": "d",
             "responses": entries,

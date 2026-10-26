@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/verify/internal/cli"
-	"github.com/RachidChabane/spec-proof/verify/internal/testkit"
-	"github.com/RachidChabane/spec-proof/verify/internal/version"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/verify/internal/cli"
+	"github.com/RachidChabane/musthold/verify/internal/testkit"
+	"github.com/RachidChabane/musthold/verify/internal/version"
 )
 
 const (
@@ -123,7 +123,7 @@ func TestSignedRun(t *testing.T) {
 
 	t.Run("replaying the verification gives a byte-identical manifest"+verifiesReplay, func(t *testing.T) {
 		_, first := readManifest(t, layout.Verified)
-		again := filepath.Join(t.TempDir(), ".spec-proof")
+		again := filepath.Join(t.TempDir(), ".musthold")
 		testkit.WriteFile(t, filepath.Join(again, "trust-policy.yaml"), policy)
 		if outcome := run("--bundles", bundles, "--offline", "--out", filepath.Join(again, "verified")); outcome.code != cli.ExitClean {
 			t.Fatalf("exit %d: %s", outcome.code, outcome.stderr)

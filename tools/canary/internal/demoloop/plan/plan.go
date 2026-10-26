@@ -12,10 +12,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/config"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/modules"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/modules"
 )
 
 // Directories of a run, relative to the run directory.
@@ -43,15 +43,15 @@ const (
 // Binaries the runner runs by name from the repository's tools directory.
 const (
 	ShallnotBinary = "shallnot"
-	VerifyBinary   = "spec-proof-verify"
+	VerifyBinary   = "musthold-verify"
 	ClaudeBinary   = "claude"
 	GitBinary      = "git"
 )
 
 // Files of the project the equipping steps touch.
 const (
-	SpecProofConfig = ".spec-proof/config.yaml"
-	ShallnotConfig  = "shallnot.yaml"
+	MustholdConfig = ".musthold/config.yaml"
+	ShallnotConfig = "shallnot.yaml"
 )
 
 // Git identity and commits of the project: one author, one date and no user or
@@ -80,7 +80,7 @@ const (
 	ProductPluginsDir = "plugins"
 	ProductClaudeDir  = "claude"
 	// ProductUmbrella is the umbrella plugin among the plugin trees.
-	ProductUmbrella = "spec-proof"
+	ProductUmbrella = "musthold"
 	// ProductShallnotPlugin is Shallnot's Claude Code plugin among the plugin
 	// trees, staged from the pinned Shallnot source.
 	ProductShallnotPlugin = "shallnot"
@@ -93,8 +93,8 @@ const (
 // give them.
 const (
 	ShallnotPlugin = "shallnot"
-	RelayPlugin    = "spec-proof-s1"
-	UmbrellaPlugin = "spec-proof"
+	RelayPlugin    = "musthold-s1"
+	UmbrellaPlugin = "musthold"
 )
 
 // Plugin is a Claude Code plugin tree a session loads, by the name its manifest
@@ -207,7 +207,7 @@ func ChangeArgv() [][]string {
 }
 
 // ErrOperationsBound is returned for a configuration that already binds operations.
-var ErrOperationsBound = fmt.Errorf("%s already has an operations block", SpecProofConfig)
+var ErrOperationsBound = fmt.Errorf("%s already has an operations block", MustholdConfig)
 
 // BindOperations appends the task's operations to the shared configuration of the
 // modules, the step getting started documents after `init`. The block lists the
@@ -348,7 +348,7 @@ func Variables(l Layout, leading []string) []string {
 	return []string{
 		pathVariable + "=" + strings.Join(leading, string(filepath.ListSeparator)) + string(filepath.ListSeparator) + "$PATH",
 		"XDG_STATE_HOME=" + l.Path(StateDir), "XDG_CACHE_HOME=" + l.Path(CacheDir), "TMPDIR=" + l.Path(TmpDir),
-		"SPEC_PROOF_SHALLNOT=" + l.Bin(ShallnotBinary), FewThreads, NoBytecode, NoUpdater,
+		"MUSTHOLD_SHALLNOT=" + l.Bin(ShallnotBinary), FewThreads, NoBytecode, NoUpdater,
 	}
 }
 

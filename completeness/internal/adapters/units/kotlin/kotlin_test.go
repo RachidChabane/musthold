@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/kotlin"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/code"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/hunk"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/testlabel"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/units/kotlin"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/code"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/hunk"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/testlabel"
 )
 
 // marker is the word that opens a citation; the tests write it as `cites` so that

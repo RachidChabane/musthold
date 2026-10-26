@@ -7,8 +7,8 @@ import (
 	"io/fs"
 	"os"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
 )
 
 // ErrMutantNotFound is returned by Vault.Get for a mutant that was never kept.

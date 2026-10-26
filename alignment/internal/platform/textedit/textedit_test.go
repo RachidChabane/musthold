@@ -5,7 +5,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/platform/textedit"
+	"github.com/RachidChabane/musthold/alignment/internal/platform/textedit"
 )
 
 func TestRender(t *testing.T) {

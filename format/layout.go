@@ -6,7 +6,7 @@ import "strings"
 // writes it, the verifier reads the exported copy, and both name the same paths.
 const (
 	// LedgerBranch is the orphan branch that stores every signed proof.
-	LedgerBranch = "spec-proof/ledger"
+	LedgerBranch = "musthold/ledger"
 
 	// ProofsDirectory holds `<module>/<subject key>/<cacheKey>.dsse.json`.
 	ProofsDirectory = "proofs"

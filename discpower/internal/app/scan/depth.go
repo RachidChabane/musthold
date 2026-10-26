@@ -3,7 +3,7 @@ package scan
 import (
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/scanscope"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/scanscope"
 )
 
 // Depth is how much of a suite a scan judges: a quick scan gives a first

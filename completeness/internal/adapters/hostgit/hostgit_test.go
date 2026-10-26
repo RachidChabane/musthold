@@ -9,12 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/hostgit"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/hostgit"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/process"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbundle"
 )
 
-const testRef = "refs/spec-proof/host/completeness/abc"
+const testRef = "refs/musthold/host/completeness/abc"
 
 // runGit runs the git binary in dir for the test's own set-up and checks.
 func runGit(t *testing.T, dir string, args ...string) string {

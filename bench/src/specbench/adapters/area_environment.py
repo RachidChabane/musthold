@@ -9,7 +9,7 @@ from typing import Final
 from specbench.domain.clean_room import RoomArea
 
 SHALLNOT_BINARY: Final = "shallnot"
-SHALLNOT_ENV: Final = "SPEC_PROOF_SHALLNOT"
+SHALLNOT_ENV: Final = "MUSTHOLD_SHALLNOT"
 STATE_ENV: Final = "XDG_STATE_HOME"
 CACHE_ENV: Final = "XDG_CACHE_HOME"
 PATH_ENV: Final = "PATH"

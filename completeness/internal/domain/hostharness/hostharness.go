@@ -4,14 +4,14 @@
 package hostharness
 
 import (
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
 )
 
 // Names the plugin and its executor server go by.
 const (
 	// PluginName is the name of the module's plugin on every harness.
-	PluginName = "spec-proof-completeness"
+	PluginName = "musthold-completeness"
 	// ExecutorServer is the name of the executor server inside the plugin.
 	ExecutorServer = harness.ExecutorServer
 	// StandaloneExecutorServer is the executor server's name where the harness

@@ -1,6 +1,6 @@
 package testkit
 
-import "github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
+import "github.com/RachidChabane/musthold/alignment/internal/domain/criterion"
 
 // Test is a test of a fixture project: its identity in the per-test results of a
 // discriminating-power Statement, `classname::name`, and its label in an alignment

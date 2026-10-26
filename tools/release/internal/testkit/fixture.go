@@ -11,7 +11,7 @@ import (
 // Constants of the fixture repository.
 const (
 	FixtureModule    = "discpower"
-	FixtureBinary    = "spec-proof-dp"
+	FixtureBinary    = "musthold-dp"
 	FixturePluginDir = FixtureModule + "/plugin/claude/.claude-plugin"
 	workspaceFile    = "go.work"
 	scriptMode       = 0o755
@@ -44,7 +44,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 var version, commit string
@@ -59,15 +59,15 @@ func main() {
 `
 
 const fixtureMarketplace = `{
-  "name": "spec-proof",
+  "name": "musthold",
   "plugins": [
     {
-      "name": "spec-proof-dp",
-      "source": {"source": "git-subdir", "url": "RachidChabane/spec-proof", "path": "discpower/plugin/claude"}
+      "name": "musthold-dp",
+      "source": {"source": "git-subdir", "url": "RachidChabane/musthold", "path": "discpower/plugin/claude"}
     },
     {
-      "name": "spec-proof",
-      "source": "./umbrella/plugins/spec-proof"
+      "name": "musthold",
+      "source": "./umbrella/plugins/musthold"
     }
   ]
 }
@@ -86,14 +86,14 @@ func NewReleaseRepository(tb testing.TB) *Repository {
 	repository.Write("LICENSE", "Apache License fixture\n", fileMode)
 	repository.Write("NOTICE", "Copyright 2026 Fixture Holder\n", fileMode)
 	repository.Write("THIRD_PARTY_NOTICES.md", "# Third-party notices\n", fileMode)
-	repository.Write("format/go.mod", "module github.com/RachidChabane/spec-proof/format\n\ngo 1.26.4\n", fileMode)
+	repository.Write("format/go.mod", "module github.com/RachidChabane/musthold/format\n\ngo 1.26.4\n", fileMode)
 	repository.Write("format/format.go", "package format\n\n// Marker is exported so that a binary links the module.\nconst Marker = \"fixture\"\n", fileMode)
 	repository.Write("format/README.md", "# format\n", fileMode)
-	repository.Write(FixtureModule+"/go.mod", "module github.com/RachidChabane/spec-proof/"+FixtureModule+"\n\ngo 1.26.4\n\n"+
-		"require github.com/RachidChabane/spec-proof/format v0.0.0\n\nreplace github.com/RachidChabane/spec-proof/format => ../format\n", fileMode)
+	repository.Write(FixtureModule+"/go.mod", "module github.com/RachidChabane/musthold/"+FixtureModule+"\n\ngo 1.26.4\n\n"+
+		"require github.com/RachidChabane/musthold/format v0.0.0\n\nreplace github.com/RachidChabane/musthold/format => ../format\n", fileMode)
 	repository.Write(FixtureModule+"/cmd/"+FixtureBinary+"/main.go", fixtureMain, fileMode)
 	repository.Write(FixtureModule+"/README.md", "# "+FixtureModule+"\n", fileMode)
-	repository.Write(FixturePluginDir+"/plugin.json", `{"name":"spec-proof-dp","version":"0.1.0"}`+"\n", fileMode)
+	repository.Write(FixturePluginDir+"/plugin.json", `{"name":"musthold-dp","version":"0.1.0"}`+"\n", fileMode)
 	repository.Write(".claude-plugin/marketplace.json", fixtureMarketplace, fileMode)
 	repository.Write("script/plugin-gen", "#!/usr/bin/env bash\nexit 0\n", scriptMode)
 	for _, script := range []string{"release", "install", "mem-guard"} {

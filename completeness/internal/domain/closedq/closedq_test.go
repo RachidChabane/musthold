@@ -8,7 +8,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/closedq"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/closedq"
 )
 
 func options(names ...string) []closedq.Option {

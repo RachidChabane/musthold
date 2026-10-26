@@ -28,10 +28,10 @@ from specbench.domain.clean_room import RoomArea
 from specbench.domain.product import ProofModule
 from specbench.domain.shallnot_config import ProofTrust
 
-CI_RUN_ID_ENV: Final = "SPEC_PROOF_CI_RUN_ID"
-TRUST_POLICY_PATH: Final = ".spec-proof/trust-policy.yaml"
-PENDING_DIRECTORY: Final = ".spec-proof/pending"
-CI_ISSUED_DIRECTORY: Final = ".spec-proof/ci-issued"
+CI_RUN_ID_ENV: Final = "MUSTHOLD_CI_RUN_ID"
+TRUST_POLICY_PATH: Final = ".musthold/trust-policy.yaml"
+PENDING_DIRECTORY: Final = ".musthold/pending"
+CI_ISSUED_DIRECTORY: Final = ".musthold/ci-issued"
 SIGNED_DIRECTORY: Final = "signed"
 LEDGER_BUNDLES_DIRECTORY: Final = "bundles"
 

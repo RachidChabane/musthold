@@ -14,12 +14,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/suiterun"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
-	"github.com/RachidChabane/spec-proof/discpower/internal/platform/workerpool"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/app/suiterun"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/discpower/internal/platform/workerpool"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // ErrCoverageFailed is returned when a package's test binary cannot be built

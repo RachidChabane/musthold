@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/refusal"
 )
 
 // ExportDir is the directory the ledger is exported into.

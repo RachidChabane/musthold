@@ -1,21 +1,21 @@
-# Verify (`spec-proof-verify`)
+# Verify (`musthold-verify`)
 
 The verifier turns signed proof bundles, or local unsigned statements, into the
 verified set that Shallnot reads. It works from files only: it runs no other
 program, calls no model and, with `--offline`, opens no connection.
 
 ```
-spec-proof-verify version
-spec-proof-verify --bundles DIR [--accept-local DIR] [--offline] --out DIR
-spec-proof-verify --accept-local DIR --out DIR
+musthold-verify version
+musthold-verify --bundles DIR [--accept-local DIR] [--offline] --out DIR
+musthold-verify --accept-local DIR --out DIR
 ```
 
 | Flag | Meaning |
 |---|---|
-| `--bundles DIR` | The directory `spec-proof-ledger ledger export` wrote. |
-| `--accept-local DIR` | A local proof cache whose unsigned statements are admitted; `.spec-proof/cache` for a developer. |
+| `--bundles DIR` | The directory `musthold-ledger ledger export` wrote. |
+| `--accept-local DIR` | A local proof cache whose unsigned statements are admitted; `.musthold/cache` for a developer. |
 | `--offline` | Read the Sigstore trusted root from the trust snapshot inside `--bundles`, not from the network. Needs `--bundles`. |
-| `--out DIR` | The verified directory to write; `.spec-proof/verified` is what Shallnot reads by default. |
+| `--out DIR` | The verified directory to write; `.musthold/verified` is what Shallnot reads by default. |
 
 `--out` and at least one of `--bundles` and `--accept-local` are required. No
 other flag exists besides the help flags: `-h`, `--help` or `help` print the forms
@@ -30,9 +30,9 @@ standard error. Every non-zero exit is explained on standard error.
 
 The verifier reads `trust-policy.yaml` from the directory that holds `--out`, and
 the pending directory `pending/` from the same place. For `--out
-.spec-proof/verified` these are `.spec-proof/trust-policy.yaml` and
-`.spec-proof/pending/`. The file format is in
-[configuration](configuration.md#spec-prooftrust-policyyaml).
+.musthold/verified` these are `.musthold/trust-policy.yaml` and
+`.musthold/pending/`. The file format is in
+[configuration](configuration.md#mustholdtrust-policyyaml).
 
 ## Signed bundles
 

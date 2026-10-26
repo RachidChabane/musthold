@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/pluginfiles"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/pluginfiles"
 )
 
 func portableOf(t *testing.T, module pluginfiles.Module) map[string]string {

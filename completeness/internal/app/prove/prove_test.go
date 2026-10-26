@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/prove"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/closedq"
-	"github.com/RachidChabane/spec-proof/completeness/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/completeness/internal/app/prove"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/closedq"
+	"github.com/RachidChabane/musthold/completeness/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // ledger describes a fixture project for the table of tests below: what the

@@ -6,13 +6,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/config"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/hostinstall"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/junitxml"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/shallnot"
-	domain "github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/projectconfig"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/config"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/hostinstall"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/junitxml"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/process"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/shallnot"
+	domain "github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/projectconfig"
 )
 
 // Commands and flags of the install commands.

@@ -16,16 +16,16 @@ from typing import IO, Final
 
 SLOT_COUNT: Final = 2
 SLOT_FILE_TEMPLATE: Final = "slot-{index}.lock"
-STATE_DIRECTORY_ENV: Final = "SPEC_PROOF_STATE_DIR"
-SLOTS_DIRECTORY_ENV: Final = "SPEC_PROOF_SLOTS_DIR"
+STATE_DIRECTORY_ENV: Final = "MUSTHOLD_STATE_DIR"
+SLOTS_DIRECTORY_ENV: Final = "MUSTHOLD_SLOTS_DIR"
 SLOTS_DIRECTORY_NAME: Final = "slots"
-HELD_SLOTS_ENV: Final = "SPEC_PROOF_SLOTS_HELD"
+HELD_SLOTS_ENV: Final = "MUSTHOLD_SLOTS_HELD"
 DEFAULT_POLL_SECONDS: Final = 5.0
-_STATE_RELATIVE_PATH: Final = Path("Library") / "Application Support" / "spec-proof"
+_STATE_RELATIVE_PATH: Final = Path("Library") / "Application Support" / "musthold"
 
 
 def default_state_directory() -> Path:
-    """`$SPEC_PROOF_STATE_DIR`, else `~/Library/Application Support/spec-proof`."""
+    """`$MUSTHOLD_STATE_DIR`, else `~/Library/Application Support/musthold`."""
     configured = os.environ.get(STATE_DIRECTORY_ENV)
     return Path(configured) if configured else Path.home() / _STATE_RELATIVE_PATH
 

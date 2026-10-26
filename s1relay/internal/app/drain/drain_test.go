@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/app/drain"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/endpoint"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/failure"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/question"
+	"github.com/RachidChabane/musthold/s1relay/internal/app/drain"
+	"github.com/RachidChabane/musthold/s1relay/internal/app/ports"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/endpoint"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/failure"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/question"
 )
 
 const modelName = "tev1:0.8b"
@@ -181,7 +181,7 @@ func TestRunImportsEachAnswer(t *testing.T) {
 
 	t.Run("a module that cannot export is an error and posts nothing [verifies SP-602~1]", func(t *testing.T) {
 		r := newRig(t, 1)
-		r.module.exportErr = errors.New("spec-proof-dp: no project")
+		r.module.exportErr = errors.New("musthold-dp: no project")
 		if _, err := r.service.Run(context.Background(), drain.Options{}); err == nil || r.systemOn.calls != 0 {
 			t.Fatalf("error %v, %d posts", err, r.systemOn.calls)
 		}

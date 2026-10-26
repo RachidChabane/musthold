@@ -119,7 +119,7 @@ def git(tree: Path, *arguments: str) -> str:
 
 def seed_record_of(gate: LiveGate) -> dict[str, object]:
     head = git(gate.settle_tree, "rev-parse", "HEAD")
-    return json.loads((gate.settle_tree / ".spec-proof" / "seeds" / f"{head}.json").read_text(encoding="utf-8"))
+    return json.loads((gate.settle_tree / ".musthold" / "seeds" / f"{head}.json").read_text(encoding="utf-8"))
 
 
 def archived_response_ids(gate: LiveGate, number: int) -> set[str]:
@@ -339,7 +339,7 @@ def test_a_missing_plugin_in_system_init_aborts_the_gate_as_misconfigured(
     fakehost: Path,
     signing: SigningMaterial,
 ) -> None:
-    session = FakeGateSession(fakehost, BINARIES, PARCEL_ANSWERS, omit_plugin="spec-proof-alignment")
+    session = FakeGateSession(fakehost, BINARIES, PARCEL_ANSWERS, omit_plugin="musthold-alignment")
     rig = build_rig(tmp_path, fakehost, signing, session=session)
     outcome = rig.host.run_gate(rig.tree, Arm.AL, rig.record, GateMode.LIVE)
     assert outcome.status is GateStatus.HARNESS_MISCONFIGURED
@@ -358,7 +358,7 @@ def test_a_gate_killed_mid_session_resumes_from_its_pending_tickets_in_the_same_
     first = build_rig(tmp_path / "killed", fakehost, signing, session=killed)
     with pytest.raises(SessionKilled):
         first.host.run_gate(first.tree, Arm.DP, first.record, GateMode.LIVE)
-    answered_in_the_store = list((killed.specs[0].cwd.parent / "state").glob("spec-proof/discpower/*/host/responses/*"))
+    answered_in_the_store = list((killed.specs[0].cwd.parent / "state").glob("musthold/discpower/*/host/responses/*"))
     assert answered_in_the_store
 
     resumed = FakeGateSession(fakehost, BINARIES, PARCEL_ANSWERS)
@@ -415,7 +415,7 @@ def test_a_stale_ci_issued_directory_never_triggers_a_round(
     signing: SigningMaterial,
 ) -> None:
     rig = build_rig(tmp_path, fakehost, signing)
-    stale = rig.tree / ".spec-proof" / "ci-issued" / "alignment"
+    stale = rig.tree / ".musthold" / "ci-issued" / "alignment"
     stale.mkdir(parents=True)
     (stale / "issued.json").write_text("{}", encoding="utf-8")
     outcomes = drive(rig, Arm.AL)

@@ -1,6 +1,6 @@
 package probe
 
-import "github.com/RachidChabane/spec-proof/discpower/internal/domain/differential"
+import "github.com/RachidChabane/musthold/discpower/internal/domain/differential"
 
 // hintsByType is the type hint of the declared types the probe program converts
 // literals to, Java and Kotlin spellings together.

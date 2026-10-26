@@ -9,8 +9,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/alignment/internal/platform/atomicfile"
+	"github.com/RachidChabane/musthold/alignment/internal/app/ports"
+	"github.com/RachidChabane/musthold/alignment/internal/platform/atomicfile"
 )
 
 // Layout of the cache directory and the modes of what it holds.

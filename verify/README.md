@@ -1,4 +1,4 @@
-# verify (`spec-proof-verify`)
+# verify (`musthold-verify`)
 
 Verifies signed proof bundles, or accepts local unsigned statements, and writes the
 verified set that Shallnot reads. It works from files only: it runs no other program,
@@ -12,7 +12,7 @@ Needs the bundles of an exported ledger (`--bundles`), a local proof cache
 ## Install
 
 ```
-nice -n 10 go install -C verify -p 1 ./cmd/spec-proof-verify
+nice -n 10 go install -C verify -p 1 ./cmd/musthold-verify
 ```
 
 Run from the repository root; the binary lands in `$GOBIN`, or
@@ -21,8 +21,8 @@ Run from the repository root; the binary lands in `$GOBIN`, or
 ## Commands
 
 ```
-spec-proof-verify --accept-local .spec-proof/cache --out .spec-proof/verified
-spec-proof-verify --bundles bundles --offline --out .spec-proof/verified
+musthold-verify --accept-local .musthold/cache --out .musthold/verified
+musthold-verify --bundles bundles --offline --out .musthold/verified
 ```
 
 Exit codes: 0 the verified set was written, 1 a bundle, statement or pending file
@@ -31,6 +31,6 @@ was rejected, 2 a command line or tool failure.
 ## Documentation
 
 - [Verify](../docs/usage/verify.md)
-- [Configuration of the trust policy](../docs/usage/configuration.md#spec-prooftrust-policyyaml)
+- [Configuration of the trust policy](../docs/usage/configuration.md#mustholdtrust-policyyaml)
 - [CI](../docs/usage/ci.md)
 - [Project README](../README.md)

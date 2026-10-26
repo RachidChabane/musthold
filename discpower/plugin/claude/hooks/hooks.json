@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "spec-proof-dp hook post-tool --harness claude",
+            "command": "musthold-dp hook post-tool --harness claude",
             "timeout": 30
           }
         ]
@@ -14,11 +14,11 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Agent|mcp__plugin_spec-proof-dp_exec__.*",
+        "matcher": "Agent|mcp__plugin_musthold-dp_exec__.*",
         "hooks": [
           {
             "type": "command",
-            "command": "spec-proof-dp hook pre-tool --harness claude",
+            "command": "musthold-dp hook pre-tool --harness claude",
             "timeout": 30
           }
         ]
@@ -26,11 +26,11 @@
     ],
     "SubagentStart": [
       {
-        "matcher": "^(spec-proof-dp:generator|spec-proof-dp:judge|spec-proof-dp:decider)$",
+        "matcher": "^(musthold-dp:generator|musthold-dp:judge|musthold-dp:decider)$",
         "hooks": [
           {
             "type": "command",
-            "command": "spec-proof-dp hook subagent-start --harness claude",
+            "command": "musthold-dp hook subagent-start --harness claude",
             "timeout": 30
           }
         ]
@@ -38,11 +38,11 @@
     ],
     "SubagentStop": [
       {
-        "matcher": "^(spec-proof-dp:generator|spec-proof-dp:judge|spec-proof-dp:decider)$",
+        "matcher": "^(musthold-dp:generator|musthold-dp:judge|musthold-dp:decider)$",
         "hooks": [
           {
             "type": "command",
-            "command": "spec-proof-dp hook subagent-stop --harness claude",
+            "command": "musthold-dp hook subagent-stop --harness claude",
             "timeout": 30
           }
         ]

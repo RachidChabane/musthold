@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // ClassifyDiagnosis is what `doctor` says about the classification of a module.

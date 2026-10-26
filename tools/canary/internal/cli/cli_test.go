@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/cli"
+	"github.com/RachidChabane/musthold/tools/canary/internal/cli"
 )
 
 const (
@@ -59,7 +59,7 @@ func TestCommandLine(t *testing.T) {
 			t.Fatalf("exit %d, output %q", code, stdout)
 		}
 		fields := strings.Split(lines[0], "\t")
-		if len(fields) != 3 || fields[0] != "discpower" || fields[1] != "spec-proof-dp" || fields[2] != "" {
+		if len(fields) != 3 || fields[0] != "discpower" || fields[1] != "musthold-dp" || fields[2] != "" {
 			t.Errorf("first line = %q", lines[0])
 		}
 		if !strings.Contains(lines[1], "grammar_subset") {
@@ -142,7 +142,7 @@ func TestCommandLine(t *testing.T) {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, out.String(), errOut.String())
 		}
 		calls, _ := os.ReadFile(log)
-		if strings.Contains(string(calls), "-w") || !strings.Contains(string(calls), "-s spec-proof-claude-oauth -a ") {
+		if strings.Contains(string(calls), "-w") || !strings.Contains(string(calls), "-s musthold-claude-oauth -a ") {
 			t.Errorf("security calls:\n%s", calls)
 		}
 	})

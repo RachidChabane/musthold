@@ -6,7 +6,7 @@ the module in CI.
 
 ## Binary
 
-- **SP-103~1**: WHEN the `spec-proof-ledger` binary is run with the `version`
+- **SP-103~1**: WHEN the `musthold-ledger` binary is run with the `version`
   argument THE SYSTEM SHALL print its version.
 - **SP-209~1**: WHEN a command ends THE SYSTEM SHALL exit 0 when it succeeded, 1
   when it refused a statement, a path or a ledger that breaks a rule, and 2 for a
@@ -44,7 +44,7 @@ the module in CI.
 
 - **SP-203~1**: WHEN signed proofs are appended THE SYSTEM SHALL write
   `proofs/<module>/<ID>~<REV>/<cacheKey>.dsse.json` on the orphan branch
-  `spec-proof/ledger` with git plumbing only, as one commit that fast-forwards
+  `musthold/ledger` with git plumbing only, as one commit that fast-forwards
   the branch, accept the same bytes at an existing path as a no-op, and refuse
   the whole run when an existing path would get other bytes, when a bundle does
   not carry an admitted CI-produced statement at its own path, or when two
@@ -80,7 +80,7 @@ the module in CI.
 
 ## Release version
 
-- **SP-1854~1**: WHEN `spec-proof-ledger` is run with the lone argument `--version` THE SYSTEM
+- **SP-1854~1**: WHEN `musthold-ledger` is run with the lone argument `--version` THE SYSTEM
   SHALL print the bare version, the one a release build linked with
   `-X main.version`, else the one `go install` recorded, else `dev`, and the
   `version` command SHALL print the binary name, that version and the linked

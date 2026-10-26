@@ -3,8 +3,8 @@ package javascript
 import (
 	"github.com/odvcencio/gotreesitter"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/platform/syntax"
-	"github.com/RachidChabane/spec-proof/alignment/internal/platform/textedit"
+	"github.com/RachidChabane/musthold/alignment/internal/platform/syntax"
+	"github.com/RachidChabane/musthold/alignment/internal/platform/textedit"
 )
 
 // fileIndex is a parsed file with the edits that remove its comments.

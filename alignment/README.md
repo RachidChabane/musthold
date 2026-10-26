@@ -1,4 +1,4 @@
-# alignment (`spec-proof-alignment`)
+# alignment (`musthold-alignment`)
 
 Alignment: does each test verify what its requirement states? The module shows a
 blind judge each test with the requirements under opaque tokens and the test's name
@@ -17,23 +17,23 @@ Java and Kotlin (JUnit 5) are masked. It calls no model.
 ## Install
 
 ```
-nice -n 10 go install -C alignment -p 1 ./cmd/spec-proof-alignment
+nice -n 10 go install -C alignment -p 1 ./cmd/musthold-alignment
 ```
 
 Run from the repository root; the binary lands in `$GOBIN`, or
 `$(go env GOPATH)/bin`. In Claude Code, install the plugin with
-`/plugin marketplace add RachidChabane/spec-proof` and
-`/plugin install spec-proof-alignment@spec-proof`.
+`/plugin marketplace add RachidChabane/musthold` and
+`/plugin install musthold-alignment@musthold`.
 
 ## Commands
 
 ```
-spec-proof-alignment init
-spec-proof-alignment enable
-spec-proof-alignment prove --changed
-spec-proof-alignment request list --session prove
-spec-proof-alignment prove --resume
-spec-proof-alignment doctor
+musthold-alignment init
+musthold-alignment enable
+musthold-alignment prove --changed
+musthold-alignment request list --session prove
+musthold-alignment prove --resume
+musthold-alignment doctor
 ```
 
 `prove` exits 3 while tickets wait for the host. The full command set is in
@@ -42,6 +42,6 @@ spec-proof-alignment doctor
 ## Documentation
 
 - [Alignment](../docs/usage/alignment.md)
-- [Configuration](../docs/usage/configuration.md#spec-proofalignmentyaml)
+- [Configuration](../docs/usage/configuration.md#mustholdalignmentyaml)
 - [Getting started](../docs/usage/getting-started.md)
 - [Project README](../README.md)

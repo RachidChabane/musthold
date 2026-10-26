@@ -3,13 +3,13 @@ package gitrepo
 import (
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/ledger"
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/ledger"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/refusal"
 )
 
 // fetchedLedgerRef holds the remote ledger branch after a fetch. It is a private
 // ref: the local ledger branch only ever fast-forwards to it.
-const fetchedLedgerRef = "refs/spec-proof/fetched-ledger"
+const fetchedLedgerRef = "refs/musthold/fetched-ledger"
 
 // Remote synchronises the ledger branch of a repository with a named remote.
 type Remote struct {

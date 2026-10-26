@@ -12,8 +12,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/verdict"
 )
 
 // Names of the files a recorded session consists of, relative to its directory.

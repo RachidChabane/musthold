@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/pluginfiles"
-	"github.com/RachidChabane/spec-proof/umbrella/internal/umbrella"
+	"github.com/RachidChabane/musthold/format/hostproto/pluginfiles"
+	"github.com/RachidChabane/musthold/umbrella/internal/umbrella"
 )
 
 const portableTree = "../../" + umbrella.PortableDirectory
@@ -106,7 +106,7 @@ func TestPortableTreeIsGenerated(t *testing.T) {
 		if strings.Contains(scan, "allowed-tools") || strings.Contains(scan, "Agent") {
 			t.Errorf("scan skill:\n%s", scan)
 		}
-		for _, want := range []string{"`spec-proof-dp request list --session scan:<key>`", umbrella.Modules[0].FulfilSkill()} {
+		for _, want := range []string{"`musthold-dp request list --session scan:<key>`", umbrella.Modules[0].FulfilSkill()} {
 			if !strings.Contains(scan, want) {
 				t.Errorf("the portable scan skill does not say %q", want)
 			}

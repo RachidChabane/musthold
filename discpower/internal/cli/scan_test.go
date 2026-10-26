@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
+	"github.com/RachidChabane/musthold/discpower/internal/cli"
 )
 
 const verifiesScanCommand = " [verifies SP-2119~3]"

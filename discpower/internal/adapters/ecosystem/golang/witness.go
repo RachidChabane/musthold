@@ -14,11 +14,11 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
-	"github.com/RachidChabane/spec-proof/discpower/internal/platform/witnesskit"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
+	"github.com/RachidChabane/musthold/discpower/internal/platform/witnesskit"
 )
 
 var _ ports.Witnessing = (*Strategy)(nil)
@@ -32,7 +32,7 @@ const (
 		"In \"imports\", list each import of the file as a quoted import path, one per line, \"testing\" included, and use every one of them. " +
 		"Declare nothing at the top level besides the test function. A property draws its inputs from `rand.New(rand.NewPCG(<constant>, <constant>))` of " +
 		"`math/rand/v2`, never from the global source or the clock."
-	witnessFilePrefix    = "zz_specproof_"
+	witnessFilePrefix    = "zz_musthold_"
 	witnessFileSuffix    = "_test.go"
 	witnessTestPrefix    = "Test_"
 	funcKeyword          = "func"

@@ -3,7 +3,7 @@ package hostproto
 import (
 	"encoding/json"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Response is what a module records for an accepted submission.

@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
 )
 
 // File modes of the reports.

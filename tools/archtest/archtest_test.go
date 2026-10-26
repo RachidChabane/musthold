@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	rootPath      = "github.com/RachidChabane/spec-proof"
+	rootPath      = "github.com/RachidChabane/musthold"
 	repositoryDir = "../.."
 	toolsDir      = "tools"
 	goModFile     = "go.mod"
@@ -207,8 +207,8 @@ func verifierExecImporters(t *testing.T, goos string) []string {
 // binary holds: a binary whose linker pruned every use of the package holds none.
 func linkedProcessSymbols(t *testing.T, cgo string) []string {
 	t.Helper()
-	binary := path.Join(t.TempDir(), "spec-proof-verify")
-	build := exec.Command("go", "build", "-C", moduleDir(verifyModule), "-p", "1", "-o", binary, "./cmd/spec-proof-verify")
+	binary := path.Join(t.TempDir(), "musthold-verify")
+	build := exec.Command("go", "build", "-C", moduleDir(verifyModule), "-p", "1", "-o", binary, "./cmd/musthold-verify")
 	build.Env = append(os.Environ(), "CGO_ENABLED="+cgo)
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build the verifier: %v\n%s", err, output)

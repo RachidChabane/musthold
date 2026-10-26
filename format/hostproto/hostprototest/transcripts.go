@@ -12,9 +12,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/mcpstdio"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/mcpstdio"
 )
 
 //go:embed testdata/transcripts/*.json
@@ -22,7 +22,7 @@ var transcriptFiles embed.FS
 
 const (
 	transcriptDirectory = "testdata/transcripts"
-	serverName          = "spec-proof-fake"
+	serverName          = "musthold-fake"
 	serverVersion       = "0.0.0"
 	fakeNonce           = "0102030405060708090a0b0c0d0e0f10"
 	sampledAnswer       = `{"validity":"VALID"}`

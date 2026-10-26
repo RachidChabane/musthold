@@ -9,15 +9,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/junitxml"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/workspace"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/mutantrun"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
-	"github.com/RachidChabane/spec-proof/discpower/internal/testkit/bindings"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/junitxml"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/process"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/workspace"
+	"github.com/RachidChabane/musthold/discpower/internal/app/mutantrun"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/testkit/bindings"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Adapters are the real adapters a Strategy is built over.

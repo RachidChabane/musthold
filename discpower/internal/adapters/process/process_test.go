@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/process"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
 )
 
 const (
@@ -54,8 +54,8 @@ func TestRunCapturesOutputAndExitStatus(t *testing.T) {
 
 	t.Run("the directory and the added environment apply [verifies SP-66~1]", func(t *testing.T) {
 		dir := t.TempDir()
-		command := sh(`printf '%s' "$SPEC_PROOF_PROBE:$(pwd -P)"`)
-		command.Dir, command.Env = dir, []string{"SPEC_PROOF_PROBE=on"}
+		command := sh(`printf '%s' "$MUSTHOLD_PROBE:$(pwd -P)"`)
+		command.Dir, command.Env = dir, []string{"MUSTHOLD_PROBE=on"}
 		result, err := runner.Run(context.Background(), command)
 		if err != nil {
 			t.Fatal(err)
@@ -66,7 +66,7 @@ func TestRunCapturesOutputAndExitStatus(t *testing.T) {
 	})
 
 	t.Run("a command that cannot start is an error [verifies SP-66~1]", func(t *testing.T) {
-		if _, err := runner.Run(context.Background(), ports.Command{Argv: []string{"spec-proof-no-such-binary"}}); err == nil {
+		if _, err := runner.Run(context.Background(), ports.Command{Argv: []string{"musthold-no-such-binary"}}); err == nil {
 			t.Fatal("expected a start error")
 		}
 		if _, err := runner.Run(context.Background(), ports.Command{}); !errors.Is(err, process.ErrEmptyCommand) {

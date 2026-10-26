@@ -1,5 +1,5 @@
 // Package config reads the module's own configuration,
-// `.spec-proof/completeness.yaml`: the decision parameters a project sets. An
+// `.musthold/completeness.yaml`: the decision parameters a project sets. An
 // absent member keeps its default.
 package config
 
@@ -11,11 +11,11 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/policy"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/policy"
+	"github.com/RachidChabane/musthold/format"
 )
 
-// FileName is the configuration file inside the project's `.spec-proof` directory.
+// FileName is the configuration file inside the project's `.musthold` directory.
 const FileName = "completeness.yaml"
 
 // document is the YAML shape of the configuration file.

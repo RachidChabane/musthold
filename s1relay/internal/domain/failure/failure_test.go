@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/failure"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/failure"
 )
 
 func TestKinds(t *testing.T) {

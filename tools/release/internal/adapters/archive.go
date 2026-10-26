@@ -11,7 +11,7 @@ import (
 	"io/fs"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
 )
 
 const permissionMask = 0o777

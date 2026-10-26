@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
-const deciderType = "spec-proof-dp-decider"
+const deciderType = "musthold-dp-decider"
 
 func spawnInput(t *testing.T, members map[string]any) json.RawMessage {
 	t.Helper()
@@ -27,7 +27,7 @@ func TestCodexSpawnTool(t *testing.T) {
 				t.Errorf("%s is not recognized", name)
 			}
 		}
-		for _, name := range []string{"wait_agent", "multi_agent_v1wait_agent", "spawn_agent_x", "Agent", "mcp__spec_proof_dp_exec__fetch_request", ""} {
+		for _, name := range []string{"wait_agent", "multi_agent_v1wait_agent", "spawn_agent_x", "Agent", "mcp__musthold_dp_exec__fetch_request", ""} {
 			if hostproto.IsCodexSpawnTool(name) {
 				t.Errorf("%s is recognized", name)
 			}

@@ -84,11 +84,11 @@ modules and the pages under `docs/usage`) against the binaries built from the
 modules, and need no Shallnot and no model. The built binaries are driven as black
 boxes; the checks skip with a recorded reason when the memory guard refuses a build.
 
-- **SP-1400~1**: WHEN the documentation shows a command line of a spec-proof binary
+- **SP-1400~1**: WHEN the documentation shows a command line of a musthold binary
   THE SYSTEM SHALL find the command it names among the commands the binary lists,
   and the verb it names among the verbs of that command.
 - **SP-1401~1**: WHEN the documentation shows a flag on a command line of a
-  spec-proof binary THE SYSTEM SHALL find that flag accepted by that command of the
+  musthold binary THE SYSTEM SHALL find that flag accepted by that command of the
   binary.
 - **SP-1402~1**: WHEN the documentation links to a file, a directory or a heading of
   the repository THE SYSTEM SHALL find the file or directory and, for a Markdown
@@ -103,7 +103,7 @@ boxes; the checks skip with a recorded reason when the memory guard refuses a bu
   only the flags that verb defines, and refuse a flag another verb owns as a usage
   error on the error stream with exit 2.
 - **SP-1671~1**: WHEN both proof modules are initialized and enabled in a project
-  that has no spec-proof state THE SYSTEM SHALL leave `shallnot.yaml` with both
+  that has no musthold state THE SYSTEM SHALL leave `shallnot.yaml` with both
   proofs required, the trust `local` and the source root of the project as code,
   keep the cache, the verified set and the pending files out of version control,
   write the commented example of the operations block once, and plan no change on
@@ -115,8 +115,8 @@ boxes; the checks skip with a recorded reason when the memory guard refuses a bu
 
 ## Scan
 
-- **SP-2124~2**: WHEN `spec-proof scan --budget 0` runs, with no configuration,
+- **SP-2124~2**: WHEN `musthold scan --budget 0` runs, with no configuration,
   in a pytest project committed in its own repository, one of whose tests runs a
   function and asserts nothing THE SYSTEM SHALL exit 0 and print that test as one
-  that verifies nothing, and `spec-proof scan replay` SHALL re-execute the scan's
+  that verifies nothing, and `musthold scan replay` SHALL re-execute the scan's
   findings with every claim held.

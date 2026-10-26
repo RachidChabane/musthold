@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
 )
 
 const (
 	ticket = "864f5e696da12d6944d9380733d5c5a9fba0f0140f3b243c3efae9a6cc74cb38.0.1"
-	role   = "spec-proof-dp:decider"
+	role   = "musthold-dp:decider"
 )
 
 func input() launch.Input {
@@ -105,8 +105,8 @@ func TestClaudeCommand(t *testing.T) {
 	})
 
 	t.Run("the prompt runs and resumes the completeness proof after the edit [verifies SP-1925~1]", func(t *testing.T) {
-		prompt := launch.ClaudePrompt("spec-proof-dp:decider", "ticket")
-		run, resume := strings.Index(prompt, "spec-proof-completeness prove --all"), strings.Index(prompt, "spec-proof-completeness prove --resume")
+		prompt := launch.ClaudePrompt("musthold-dp:decider", "ticket")
+		run, resume := strings.Index(prompt, "musthold-completeness prove --all"), strings.Index(prompt, "musthold-completeness prove --resume")
 		if run < 0 || resume < run || run < strings.Index(prompt, launch.EditFile) {
 			t.Errorf("the steps are out of order:\n%s", prompt)
 		}
@@ -181,7 +181,7 @@ func TestPrompts(t *testing.T) {
 
 	t.Run("the Claude prompt scripts the fetch, the launch with a model, the edit and the end [verifies SP-1504~2]", func(t *testing.T) {
 		prompt := launch.ClaudePrompt(role, ticket)
-		for _, part := range []string{"mcp__plugin_spec-proof-dp_exec__fetch_request", `model "haiku"`, role, launch.EditFile, launch.EditFrom, launch.EditTo, "foreground"} {
+		for _, part := range []string{"mcp__plugin_musthold-dp_exec__fetch_request", `model "haiku"`, role, launch.EditFile, launch.EditFrom, launch.EditTo, "foreground"} {
 			if !strings.Contains(prompt, part) {
 				t.Errorf("the prompt lacks %q", part)
 			}
@@ -190,7 +190,7 @@ func TestPrompts(t *testing.T) {
 
 	t.Run("the Codex prompt names the agent type as the harness spells it and asks for a write [verifies SP-1504~2]", func(t *testing.T) {
 		prompt := launch.CodexPrompt(role, ticket)
-		for _, part := range []string{`"spec-proof-dp-decider"`, "touch " + launch.SandboxProbeFile, launch.EditFrom} {
+		for _, part := range []string{`"musthold-dp-decider"`, "touch " + launch.SandboxProbeFile, launch.EditFrom} {
 			if !strings.Contains(prompt, part) {
 				t.Errorf("the prompt lacks %q", part)
 			}
@@ -201,7 +201,7 @@ func TestPrompts(t *testing.T) {
 		prompt := launch.CodexPrompt(role, ticket)
 		message := launch.ExecutorMessage(ticket)
 		for _, part := range []string{
-			"spawn_agent with agent_type \"spec-proof-dp-decider\", message " + strconv.Quote(message) + " and any other argument the tool requires",
+			"spawn_agent with agent_type \"musthold-dp-decider\", message " + strconv.Quote(message) + " and any other argument the tool requires",
 			"call wait_agent", launch.EditFile,
 		} {
 			if !strings.Contains(prompt, part) {
@@ -314,7 +314,7 @@ func TestProjectFiles(t *testing.T) {
 	})
 
 	t.Run("the Claude settings allow the run and the resume of the completeness proof and no other command [verifies SP-1925~1]", func(t *testing.T) {
-		want := []string{"Bash(spec-proof-completeness prove --all)", "Bash(spec-proof-completeness prove --resume)"}
+		want := []string{"Bash(musthold-completeness prove --all)", "Bash(musthold-completeness prove --resume)"}
 		if got := claudeSettings(t).Permissions.Allow; !slices.Equal(got, want) {
 			t.Errorf("permissions.allow = %v, want %v", got, want)
 		}

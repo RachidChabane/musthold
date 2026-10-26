@@ -8,17 +8,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/golang"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/junitxml"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/goparser"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/workspace"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/execution"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/mutantrun"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/golang"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/junitxml"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/process"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/sourceparse/goparser"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/workspace"
+	"github.com/RachidChabane/musthold/discpower/internal/app/execution"
+	"github.com/RachidChabane/musthold/discpower/internal/app/mutantrun"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/power"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
 )
 
 const (
@@ -77,7 +77,7 @@ func TestGoWitnessBrief(t *testing.T) {
 			t.Fatal(err)
 		}
 		content := string(file.Content)
-		if !strings.HasPrefix(file.Path, "zz_specproof_") || !strings.HasSuffix(file.Path, "_test.go") || !strings.HasPrefix(content, "package parcel\n") {
+		if !strings.HasPrefix(file.Path, "zz_musthold_") || !strings.HasSuffix(file.Path, "_test.go") || !strings.HasPrefix(content, "package parcel\n") {
 			t.Fatalf("path %q content %q", file.Path, content)
 		}
 		for _, w := range set.Witnesses {

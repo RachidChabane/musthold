@@ -5,11 +5,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/closedq"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/prompt"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/closedq"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/prompt"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbridge"
 )
 
 // askState is where an ask of the host stands.

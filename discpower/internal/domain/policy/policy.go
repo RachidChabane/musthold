@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Defaults of the routing, thresholds and limits (ADR 0003, "Routing,

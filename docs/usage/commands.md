@@ -1,8 +1,8 @@
 # Commands shared by the proof modules
 
-`spec-proof-dp` (discriminating power), `spec-proof-alignment` and
-`spec-proof-completeness` have the same command line. This page uses
-`spec-proof-dp`; replace the binary name for the other modules. The parts that
+`musthold-dp` (discriminating power), `musthold-alignment` and
+`musthold-completeness` have the same command line. This page uses
+`musthold-dp`; replace the binary name for the other modules. The parts that
 differ are in the page of each module: [discriminating power](discpower.md),
 [alignment](alignment.md) and [completeness](completeness.md).
 
@@ -13,11 +13,11 @@ of that command and exit 0; for a command that takes a verb, such as `request`,
 `systemone` and `host`, `-h` lists its verbs and `<command> <verb> -h` lists
 exactly the flags of that verb. A flag a command does not define is a usage error
 (exit 2) that prints the failure and the usage of the command on standard error.
-Flags are accepted as `--flag` or `-flag`. The other binaries (`spec-proof-ledger`,
-`spec-proof-verify`, `spec-proof-s1`) answer the same help forms.
+Flags are accepted as `--flag` or `-flag`. The other binaries (`musthold-ledger`,
+`musthold-verify`, `musthold-s1`) answer the same help forms.
 
 ```
-spec-proof-dp <version|prove|scan|request|systemone|doctor|init|enable|disable|mcp|hook|host|facts>
+musthold-dp <version|prove|scan|request|systemone|doctor|init|enable|disable|mcp|hook|host|facts>
 ```
 
 Every command that works on a project takes `--root DIR` (default: the working
@@ -26,7 +26,7 @@ directory), except `init`, `enable` and `disable`, which take `--dir DIR`.
 ## version
 
 ```
-spec-proof-dp version
+musthold-dp version
 ```
 
 Prints `<binary> <version>`.
@@ -34,28 +34,28 @@ Prints `<binary> <version>`.
 ## init, enable, disable
 
 ```
-spec-proof-dp init [--dir DIR] [--hooks auto|none|claude,codex,copilot] [--check]
-spec-proof-dp enable [--dir DIR] [--check]
-spec-proof-dp disable [--dir DIR] [--check]
+musthold-dp init [--dir DIR] [--hooks auto|none|claude,codex,copilot] [--check]
+musthold-dp enable [--dir DIR] [--check]
+musthold-dp disable [--dir DIR] [--check]
 ```
 
-All three refuse to run when the Shallnot found (`SPEC_PROOF_SHALLNOT`, else
+All three refuse to run when the Shallnot found (`MUSTHOLD_SHALLNOT`, else
 `shallnot` on `PATH`) speaks a report schema below 1.2. Each prints one line per
 file it creates, updates or leaves `unchanged`, then the next steps. With
 `--check` nothing changes and the exit code is 1 when a file would change.
 
-- `init` writes the module's seed of `.spec-proof/config.yaml` (every proof off,
+- `init` writes the module's seed of `.musthold/config.yaml` (every proof off,
   the ecosystems detected, and a commented `operations` example; the example is a
   comment because a binding is valid only once it names a callable that exists, so
-  you uncomment it and edit it), ignores `.spec-proof/cache/`,
-  `.spec-proof/verified/` and `.spec-proof/pending/` in `.gitignore`, and installs the files of each selected
+  you uncomment it and edit it), ignores `.musthold/cache/`,
+  `.musthold/verified/` and `.musthold/pending/` in `.gitignore`, and installs the files of each selected
   harness by merging into files other tools share and writing the files it owns.
   `--hooks auto` installs Claude Code's files and those of every harness whose
   configuration the project holds. For Codex, `init` and `enable` keep the
   module's executor server as one marked table of `.codex/config.toml`, replaced in
   place and never touching another line. A second run changes nothing. Shallnot's
   configuration, its `AGENTS.md` block and its hooks are never touched.
-- `enable` sets the module's proof to `true` in `.spec-proof/config.yaml`, adds its
+- `enable` sets the module's proof to `true` in `.musthold/config.yaml`, adds its
   kind to `proofs.require` in `shallnot.yaml` and adds its block to `AGENTS.md`,
   by line edits that keep every other byte. In `shallnot.yaml` it also sets
   `proofs.trust: local`, so that Shallnot reads the proofs made on the machine,
@@ -76,8 +76,8 @@ file it creates, updates or leaves `unchanged`, then the next steps. With
 ## prove
 
 ```
-spec-proof-dp prove [--changed | --all] [--resume] [--record DIR | --replay DIR] [--root DIR]
-spec-proof-dp prove --ci [--import-host DIR] [--root DIR]
+musthold-dp prove [--changed | --all] [--resume] [--record DIR | --replay DIR] [--root DIR]
+musthold-dp prove --ci [--import-host DIR] [--root DIR]
 ```
 
 | Flag | Meaning |
@@ -87,7 +87,7 @@ spec-proof-dp prove --ci [--import-host DIR] [--root DIR]
 | `--resume` | Continue a run that is awaiting the host. Refused when the prove session holds no request. |
 | `--record DIR` | Keep each consumed answer and its executor under the request id in `DIR`. |
 | `--replay DIR` | Answer every pending ticket from the recordings in `DIR`. A request without a recording is a hard error. Excludes `--record`. |
-| `--ci` | Run as CI does: produce statements as CI and leave unanswered requests in `.spec-proof/ci-issued/<module>/`, one directory per module, for the CI job to upload. Discriminating power also draws the seed of the head commit and needs `SPEC_PROOF_CI_RUN_ID` or `GITHUB_RUN_ID`. Excludes `--record` and `--replay`. |
+| `--ci` | Run as CI does: produce statements as CI and leave unanswered requests in `.musthold/ci-issued/<module>/`, one directory per module, for the CI job to upload. Discriminating power also draws the seed of the head commit and needs `MUSTHOLD_CI_RUN_ID` or `GITHUB_RUN_ID`. Excludes `--record` and `--replay`. |
 | `--import-host DIR` | With `--ci`: serve the tickets the run asks for from the bundle a `host push` published. |
 | `--root DIR` | Project root. |
 
@@ -112,9 +112,9 @@ error such as conflicting flags; 3 `awaiting_host`.
 ## request
 
 ```
-spec-proof-dp request list [--json] [--session SESSION] [--root DIR]
-spec-proof-dp request show <ticket> [--cap CAP] [--root DIR]
-spec-proof-dp request submit <ticket> --nonce NONCE [--cap CAP] [--root DIR]
+musthold-dp request list [--json] [--session SESSION] [--root DIR]
+musthold-dp request show <ticket> [--cap CAP] [--root DIR]
+musthold-dp request submit <ticket> --nonce NONCE [--cap CAP] [--root DIR]
 ```
 
 A ticket is `<requestId>.<vote>.<emission>`.
@@ -139,9 +139,9 @@ harnesses with no executor support. A refused answer exits 1.
 ## systemone
 
 ```
-spec-proof-dp systemone export [--session SESSION] [--root DIR]
-spec-proof-dp systemone import <ticket> --nonce NONCE --source SOURCE [--root DIR]
-spec-proof-dp systemone classify-plan (--model MODEL | --voters VOTERS) [--session-model MODEL] [--root DIR]
+musthold-dp systemone export [--session SESSION] [--root DIR]
+musthold-dp systemone import <ticket> --nonce NONCE --source SOURCE [--root DIR]
+musthold-dp systemone classify-plan (--model MODEL | --voters VOTERS) [--session-model MODEL] [--root DIR]
 ```
 
 `export` prints the closed requests that wait for their first vote, as JSON, with
@@ -150,7 +150,7 @@ requests, as for `request list`. `import` reads the endpoint's answers from
 standard input and submits them under `SOURCE`, which has the form
 `system-one:<model>@<endpoint digest>`, or reads the classifier calls of the host
 mod under a source of the form `host-classify(5,rot1):<voters>`. The relay
-`spec-proof-s1 drain` calls `export` and `import`; see [System One](system-one.md).
+`musthold-s1 drain` calls `export` and `import`; see [System One](system-one.md).
 
 `classify-plan` prints, as JSON, the classifier calls to make for each closed
 request that waits for its first vote: the model, the text, the labels in the
@@ -163,7 +163,7 @@ to one model. See [System One](system-one.md#classification-by-the-host).
 ## doctor
 
 ```
-spec-proof-dp doctor [--root DIR]
+musthold-dp doctor [--root DIR]
 ```
 
 Prints one `ok` or `fail` line per check: Shallnot found and its report schema
@@ -176,7 +176,7 @@ differs from the one an entry was measured on. Exits 2 when a check fails.
 ## facts
 
 ```
-spec-proof-dp facts show ID~REV [--root DIR]
+musthold-dp facts show ID~REV [--root DIR]
 ```
 
 Discriminating power only. Prints, as canonical JSON, the facts record of the last
@@ -190,8 +190,8 @@ requirement that has no record.
 ## mcp and hook
 
 ```
-spec-proof-dp mcp --role executor [--harness claude|codex|copilot] [--root DIR]
-spec-proof-dp hook <pre-tool|subagent-start|subagent-stop|post-tool> [--harness claude|codex|copilot] [--root DIR]
+musthold-dp mcp --role executor [--harness claude|codex|copilot] [--root DIR]
+musthold-dp hook <pre-tool|subagent-start|subagent-stop|post-tool> [--harness claude|codex|copilot] [--root DIR]
 ```
 
 Harness plumbing, started by the plugin files and not by you.
@@ -210,20 +210,20 @@ An unknown role, harness or hook exits 1.
 ## host
 
 ```
-spec-proof-dp host push [--remote NAME] [--root DIR]
-spec-proof-dp host pull --ci-run ID [--repo OWNER/NAME] [--artifact NAME] [--root DIR]
+musthold-dp host push [--remote NAME] [--root DIR]
+musthold-dp host pull --ci-run ID [--repo OWNER/NAME] [--artifact NAME] [--root DIR]
 ```
 
 - `push` publishes every answered ticket, with the profile it is credited with and
   the marks against it, as a tree under the ref
-  `refs/spec-proof/host/<module>/<head sha>`, using git plumbing. It touches
+  `refs/musthold/host/<module>/<head sha>`, using git plumbing. It touches
   neither the working tree nor the current branch. `--remote NAME` also pushes the
   ref. It warns when a tracked file differs from the head commit, refuses a store
   whose journal chain is broken, and exits 1 when nothing is answered. `<module>`
   is `discpower`, `alignment` or `completeness`.
 - `pull` downloads, with `gh run download`, the requests a CI run left for the
-  host (`--artifact` defaults to `spec-proof-host-<module>`) and makes tickets of
+  host (`--artifact` defaults to `musthold-host-<module>`) and makes tickets of
   them once. It reads them from the root of the artifact, or from the directory of
-  the module below it when the artifact holds `.spec-proof/ci-issued` as a whole.
+  the module below it when the artifact holds `.musthold/ci-issued` as a whole.
 
 See [CI](ci.md) for the workflow.

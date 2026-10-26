@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/schemacheck"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/schemacheck"
+	"github.com/RachidChabane/musthold/format"
 )
 
 const goldenDirectory = "../../../../format/testdata/golden/"

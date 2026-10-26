@@ -3,7 +3,7 @@ package promise
 import (
 	"errors"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Extracted is a promise as the extraction ticket returned it: a quote and the

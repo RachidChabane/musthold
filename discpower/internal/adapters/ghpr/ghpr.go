@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
 )
 
 // gh command line.

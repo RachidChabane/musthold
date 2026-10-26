@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/config"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/plan"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
 )
 
 var layout = plan.Layout{Repo: "/repo", Run: "/runs/r1"}
@@ -32,9 +32,9 @@ func TestEquipSteps(t *testing.T) {
 	t.Run("the four-proofs arm runs init then enable of each module, in order, after Shallnot [verifies SP-2401~1]", func(t *testing.T) {
 		want := []string{
 			"/repo/.tools/bin/shallnot init",
-			"/repo/.tools/bin/spec-proof-dp init", "/repo/.tools/bin/spec-proof-dp enable",
-			"/repo/.tools/bin/spec-proof-alignment init", "/repo/.tools/bin/spec-proof-alignment enable",
-			"/repo/.tools/bin/spec-proof-completeness init", "/repo/.tools/bin/spec-proof-completeness enable",
+			"/repo/.tools/bin/musthold-dp init", "/repo/.tools/bin/musthold-dp enable",
+			"/repo/.tools/bin/musthold-alignment init", "/repo/.tools/bin/musthold-alignment enable",
+			"/repo/.tools/bin/musthold-completeness init", "/repo/.tools/bin/musthold-completeness enable",
 		}
 		if got := argvs(plan.EquipSteps(layout, config.ArmFourProofs)); !slices.Equal(got, want) {
 			t.Errorf("steps = %v", got)
@@ -96,7 +96,7 @@ func TestSessionCommand(t *testing.T) {
 	})
 
 	t.Run("the four-proofs arm loads each module's plugin, Shallnot's, the relay's and the umbrella plugin last, all from the product, the traceability arm none [verifies SP-2402~3]", func(t *testing.T) {
-		product := plan.Layout{Repo: "/repo", Run: "/runs/r1", Product: "/opt/spec-proof"}
+		product := plan.Layout{Repo: "/repo", Run: "/runs/r1", Product: "/opt/musthold"}
 		argv := plan.SessionCommand(plan.SessionInput{Layout: product, Run: run, Config: cfg, Claude: "claude"}).Argv
 		var dirs []string
 		for i, arg := range argv {
@@ -105,13 +105,13 @@ func TestSessionCommand(t *testing.T) {
 			}
 		}
 		want := []string{
-			"/opt/spec-proof/plugins/discpower/plugin/claude", "/opt/spec-proof/plugins/alignment/plugin/claude", "/opt/spec-proof/plugins/completeness/plugin/claude",
-			"/opt/spec-proof/plugins/shallnot", "/opt/spec-proof/plugins/s1relay/plugin/claude", "/opt/spec-proof/plugins/spec-proof",
+			"/opt/musthold/plugins/discpower/plugin/claude", "/opt/musthold/plugins/alignment/plugin/claude", "/opt/musthold/plugins/completeness/plugin/claude",
+			"/opt/musthold/plugins/shallnot", "/opt/musthold/plugins/s1relay/plugin/claude", "/opt/musthold/plugins/musthold",
 		}
 		if !slices.Equal(dirs, want) {
 			t.Errorf("plugin dirs %v, want %v", dirs, want)
 		}
-		names := []string{"spec-proof-dp", "spec-proof-alignment", "spec-proof-completeness", "shallnot", "spec-proof-s1", "spec-proof"}
+		names := []string{"musthold-dp", "musthold-alignment", "musthold-completeness", "shallnot", "musthold-s1", "musthold"}
 		if got := plan.PluginNames(config.ArmFourProofs); !slices.Equal(got, names) || plan.PluginNames(config.ArmTraceability) != nil {
 			t.Errorf("plugin names %v", got)
 		}
@@ -165,11 +165,11 @@ func TestEnvironment(t *testing.T) {
 	})
 
 	t.Run("a shim exports the project directory and the run's variables, not the PATH, and hands over to the runner's shim [verifies SP-2402~3]", func(t *testing.T) {
-		script := plan.ShimScript("/repo/.tools/bin/spec-proof-demo-loop", "/repo/.tools/bin/shallnot", "/runs/r1/records/hooks.jsonl", plan.ShimExports(layout, plan.Variables(layout, leading)))
+		script := plan.ShimScript("/repo/.tools/bin/musthold-demo-loop", "/repo/.tools/bin/shallnot", "/runs/r1/records/hooks.jsonl", plan.ShimExports(layout, plan.Variables(layout, leading)))
 		if strings.Contains(script, "export PATH") || !strings.Contains(script, "export XDG_STATE_HOME=/runs/r1/state\n") || !strings.HasPrefix(script, "#!/bin/sh\nexport CLAUDE_PROJECT_DIR=/runs/r1/project\n") {
 			t.Errorf("script:\n%s", script)
 		}
-		if !strings.HasSuffix(script, "exec /repo/.tools/bin/spec-proof-demo-loop shim --real /repo/.tools/bin/shallnot --record /runs/r1/records/hooks.jsonl -- \"$@\"\n") {
+		if !strings.HasSuffix(script, "exec /repo/.tools/bin/musthold-demo-loop shim --real /repo/.tools/bin/shallnot --record /runs/r1/records/hooks.jsonl -- \"$@\"\n") {
 			t.Errorf("script:\n%s", script)
 		}
 	})

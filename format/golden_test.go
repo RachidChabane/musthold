@@ -10,8 +10,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/formattest/golden"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/formattest/golden"
 )
 
 const (

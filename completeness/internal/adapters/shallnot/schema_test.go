@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
+	"github.com/RachidChabane/musthold/completeness/internal/app/ports"
 )
 
 // schemaProcess answers `shallnot schema report` with a canned result.

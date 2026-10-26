@@ -6,16 +6,16 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/bundlefs"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/ghrun"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/hostgit"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/completeness/internal/version"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/cliconv"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostsync"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/bundlefs"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/ghrun"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/hostgit"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/process"
+	"github.com/RachidChabane/musthold/completeness/internal/version"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/cliconv"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbundle"
+	"github.com/RachidChabane/musthold/format/hostproto/hostsync"
 )
 
 // Verbs and flags of `host`.
@@ -29,7 +29,7 @@ const (
 	flagRepo     = "repo"
 	flagArtifact = "artifact"
 
-	scratchPattern = "spec-proof-pull-"
+	scratchPattern = "musthold-pull-"
 
 	// hostModule names the module in the refs and the artifacts of host push and pull.
 	hostModule = "completeness"

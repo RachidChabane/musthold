@@ -10,11 +10,11 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/jvm"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/treesitter"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/testkit/bindings"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/jvm"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/sourceparse/treesitter"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/testkit/bindings"
 )
 
 const fixturesRoot = "../../../../fixtures/ecosystems"

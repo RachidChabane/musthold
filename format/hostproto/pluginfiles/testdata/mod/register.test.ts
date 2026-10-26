@@ -1,6 +1,6 @@
 import { expect, test } from "claude-code/testing"
 
-const BINARY = "spec-proof-sample"
+const BINARY = "musthold-sample"
 const SESSION_MODEL = "session-model"
 const SESSION_CWD = "/work/project"
 const CLI_VERSION = "2.1.295"

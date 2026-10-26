@@ -8,14 +8,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostfiles"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostharness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/pluginfiles"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/hostfiles"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/hostharness"
+	"github.com/RachidChabane/musthold/format/hostproto/pluginfiles"
 )
 
 const (
 	portableDirectory = "../../../plugin/portable"
-	skillPath         = "skills/spec-proof-dp-fulfil/SKILL.md"
+	skillPath         = "skills/musthold-dp-fulfil/SKILL.md"
 )
 
 func portableGenerated(t *testing.T) map[string]string {
@@ -91,7 +91,7 @@ func TestPortablePlugin(t *testing.T) {
 		slices.Sort(paths)
 		want := []string{pluginfiles.PortableManifestPath, pluginfiles.PortableMCPPath, skillPath, pluginfiles.CopilotNamespace + "/hooks/hooks.json"}
 		for _, agent := range hostharness.Identity.Agents {
-			want = append(want, pluginfiles.CopilotNamespace+"/agents/spec-proof-dp-"+string(agent)+".agent.md")
+			want = append(want, pluginfiles.CopilotNamespace+"/agents/musthold-dp-"+string(agent)+".agent.md")
 		}
 		slices.Sort(want)
 		if !slices.Equal(paths, want) {
@@ -102,7 +102,7 @@ func TestPortablePlugin(t *testing.T) {
 	t.Run("the root server launches the module with no harness, so its answers are inline [verifies SP-1710~1]", func(t *testing.T) {
 		servers := portableGenerated(t)[pluginfiles.PortableMCPPath]
 		for _, fragment := range []string{
-			`"$schema": "` + pluginfiles.MCPSchemaURL + `"`, `"spec-proof-dp": {`, `"type": "stdio"`, `"command": "spec-proof-dp"`,
+			`"$schema": "` + pluginfiles.MCPSchemaURL + `"`, `"musthold-dp": {`, `"type": "stdio"`, `"command": "musthold-dp"`,
 			"\"mcp\",\n        \"--role\",\n        \"executor\"\n      ]",
 		} {
 			if !strings.Contains(servers, fragment) {
@@ -117,8 +117,8 @@ func TestPortablePlugin(t *testing.T) {
 	t.Run("the Copilot agents hold their own restricted server, named apart from the root server [verifies SP-1710~1]", func(t *testing.T) {
 		files := portableGenerated(t)
 		for _, agent := range hostharness.Identity.Agents {
-			content := files[pluginfiles.CopilotNamespace+"/agents/spec-proof-dp-"+string(agent)+".agent.md"]
-			for _, fragment := range []string{"spec-proof-dp-exec:", "--harness", "tools: [\"spec-proof-dp-exec/fetch_request\", \"spec-proof-dp-exec/submit_response\"]"} {
+			content := files[pluginfiles.CopilotNamespace+"/agents/musthold-dp-"+string(agent)+".agent.md"]
+			for _, fragment := range []string{"musthold-dp-exec:", "--harness", "tools: [\"musthold-dp-exec/fetch_request\", \"musthold-dp-exec/submit_response\"]"} {
 				if !strings.Contains(content, fragment) {
 					t.Errorf("%s agent lacks %q:\n%s", agent, fragment, content)
 				}
@@ -128,10 +128,10 @@ func TestPortablePlugin(t *testing.T) {
 
 	t.Run("the skill is an Agent Skill that answers through the subagents when they exist and inline otherwise [verifies SP-1710~1]", func(t *testing.T) {
 		skill := portableGenerated(t)[skillPath]
-		if strings.Contains(skill, "allowed-tools") || !strings.HasPrefix(skill, "---\nname: spec-proof-dp-fulfil\n") {
+		if strings.Contains(skill, "allowed-tools") || !strings.HasPrefix(skill, "---\nname: musthold-dp-fulfil\n") {
 			t.Errorf("front matter:\n%s", skill)
 		}
-		for _, fragment := range []string{"`fetch_request`", "`submit_response`", "block power only", "spec-proof-s1 drain --module dp"} {
+		for _, fragment := range []string{"`fetch_request`", "`submit_response`", "block power only", "musthold-s1 drain --module dp"} {
 			if !strings.Contains(skill, fragment) {
 				t.Errorf("skill lacks %q", fragment)
 			}

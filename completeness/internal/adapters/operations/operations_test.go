@@ -6,7 +6,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/operations"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/operations"
 )
 
 const configuration = `
@@ -51,10 +51,10 @@ func TestBinding(t *testing.T) {
 
 	t.Run("the configuration of a project is read from its state directory [verifies SP-509~1]", func(t *testing.T) {
 		root := t.TempDir()
-		if err := os.MkdirAll(filepath.Join(root, ".spec-proof"), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Join(root, ".musthold"), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(root, ".spec-proof", "config.yaml"), []byte(configuration), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(root, ".musthold", "config.yaml"), []byte(configuration), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		binding, err := operations.Load(root)

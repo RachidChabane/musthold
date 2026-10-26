@@ -21,7 +21,7 @@ RUN_ID_DIGEST_LENGTH: Final = 16
 SEED_SEPARATOR: Final = b"\x00"
 """The byte between the head commit and the run id in the seed hash (`hostbundle.CISeed`)."""
 SEED_BYTES: Final = 8
-SEEDS_DIRECTORY: Final = ".spec-proof/seeds"
+SEEDS_DIRECTORY: Final = ".musthold/seeds"
 SEED_RECORD_SUFFIX: Final = ".json"
 CI_ROUND_TRIPS: Final = MAX_HOST_WAITS
 """The most CI round trips a gate makes: as many as Shallnot waits for the host in a row."""
@@ -41,7 +41,7 @@ def ci_seed(head_sha: str, first_run_id: str) -> int:
 
 @dataclass(frozen=True)
 class SeedRecord:
-    """What the product keeps for a head commit in `.spec-proof/seeds/<head>.json` and reuses on the next CI run."""
+    """What the product keeps for a head commit in `.musthold/seeds/<head>.json` and reuses on the next CI run."""
 
     head_sha: str
     first_run_id: str

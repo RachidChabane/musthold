@@ -3,8 +3,8 @@ package app
 import (
 	"errors"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/verify/internal/domain/refusal"
 )
 
 // NoBundles is the BundleSource of a run without `--bundles`.

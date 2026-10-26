@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/cli"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/alignment/internal/cli"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const samplingOnYAML = "host:\n  sampling: on\n"
@@ -259,7 +259,7 @@ func marshalJSON(t *testing.T, value any) string {
 func TestHooksInAProjectWithoutTheModule(t *testing.T) {
 	t.Run("a hook in a project that has no shared configuration does nothing and creates no state [verifies SP-740~1]", func(t *testing.T) {
 		h := claudeHost(t)
-		if err := os.Remove(filepath.Join(h.root, ".spec-proof", "config.yaml")); err != nil {
+		if err := os.Remove(filepath.Join(h.root, ".musthold", "config.yaml")); err != nil {
 			t.Fatal(err)
 		}
 		if err := os.RemoveAll(h.state); err != nil {

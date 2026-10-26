@@ -1,9 +1,9 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {
-    "spec-proof-alignment": {
+    "musthold-alignment": {
       "type": "stdio",
-      "command": "spec-proof-alignment",
+      "command": "musthold-alignment",
       "args": [
         "mcp",
         "--role",

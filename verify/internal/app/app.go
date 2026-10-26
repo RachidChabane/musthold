@@ -7,9 +7,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/proofset"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/verify/internal/domain/proofset"
+	"github.com/RachidChabane/musthold/verify/internal/domain/refusal"
 )
 
 // BundleFile is a signed proof read from the exported ledger.

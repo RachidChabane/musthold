@@ -1,4 +1,4 @@
-// Package scan is the use case of `spec-proof-dp scan` (ADR 0014): it runs the
+// Package scan is the use case of `musthold-dp scan` (ADR 0014): it runs the
 // suite of a repository three times on the reference, records each test's own
 // line coverage, samples tests, draws operator mutants and sentinels in the code
 // the sampled tests ran, runs each mutant against the tests that ran its
@@ -18,10 +18,10 @@ import (
 	"io/fs"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/operatorgen"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/app/operatorgen"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Errors of a scan.

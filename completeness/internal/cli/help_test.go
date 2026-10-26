@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/cli"
+	"github.com/RachidChabane/musthold/completeness/internal/cli"
 )
 
 const (
 	verifiesHelp       = " [verifies SP-1630~1]"
-	helpBinary         = "spec-proof-completeness"
+	helpBinary         = "musthold-completeness"
 	helpRequestedError = "help requested"
 	undefinedFlagError = "flag provided but not defined: -zz-undefined"
 )

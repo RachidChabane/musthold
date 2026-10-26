@@ -3,10 +3,10 @@ package power
 import (
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/policy"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/policy"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Reason names why a mutant is unsettled or why a criterion escalates.

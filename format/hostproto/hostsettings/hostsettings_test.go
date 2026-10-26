@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostsettings"
+	"github.com/RachidChabane/musthold/format/hostproto/hostsettings"
 )
 
 func TestParse(t *testing.T) {

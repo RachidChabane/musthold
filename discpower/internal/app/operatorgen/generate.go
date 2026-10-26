@@ -6,9 +6,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/footprint"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/operator"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation/footprint"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation/operator"
 )
 
 // ErrUnsplicable is returned when a generated mutant cannot be spliced into its

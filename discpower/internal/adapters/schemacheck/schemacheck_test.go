@@ -7,9 +7,9 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/formattest/golden"
-	"github.com/RachidChabane/spec-proof/format/formattest/proofs"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/formattest/golden"
+	"github.com/RachidChabane/musthold/format/formattest/proofs"
 )
 
 func mustChecker(t testing.TB) *Checker {

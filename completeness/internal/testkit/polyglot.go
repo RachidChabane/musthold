@@ -1,8 +1,8 @@
 package testkit
 
 import (
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // citationWord is spelled in two parts so that no source line reads as a requirement

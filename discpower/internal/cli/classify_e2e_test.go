@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/hoststore"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/xdg"
-	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/hoststore"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/xdg"
+	"github.com/RachidChabane/musthold/discpower/internal/cli"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 // driveClassifying runs the proof as a host would whose mod classifies every
@@ -40,7 +40,7 @@ func (h *harness) witnessing() {
 	h.t.Helper()
 	dir := filepath.Join(h.t.TempDir(), "bodies")
 	h.rawLog = hostprototest.NewRawAPILog(h.t, dir, h.now)
-	h.rewrite(".spec-proof/config.yaml", "ecosystems:", "host:\n  classify:\n    witness_dir: "+dir+"\npolicy:\n  tau_screen:\n    default: 0.2\n    \""+classifySource+"\": 0.5\necosystems:")
+	h.rewrite(".musthold/config.yaml", "ecosystems:", "host:\n  classify:\n    witness_dir: "+dir+"\npolicy:\n  tau_screen:\n    default: 0.2\n    \""+classifySource+"\": 0.5\necosystems:")
 }
 
 func (h *harness) admitting() {

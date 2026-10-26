@@ -10,8 +10,8 @@ from specbench.domain.arms import Arm, Harness
 from specbench.domain.cheat import CheatInstruction
 from specbench.site.results_view import ArmMetric
 
-SITE_TITLE: Final = "spec-proof benchmark"
-REPOSITORY_URL: Final = "https://github.com/RachidChabane/spec-proof"
+SITE_TITLE: Final = "musthold benchmark"
+REPOSITORY_URL: Final = "https://github.com/RachidChabane/musthold"
 
 ARM_DESCRIPTIONS: Final = {
     Arm.N: "No stop policy: the agent's first stop, S_N.",

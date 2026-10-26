@@ -13,30 +13,30 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/hoststore"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/operations"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/proofsource"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/responsecheck"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/schemacheck"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/shallnot"
-	golangunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/golang"
-	javaunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/java"
-	javascriptunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/javascript"
-	kotlinunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/kotlin"
-	pythonunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/python"
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/prove"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/closedq"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/policy"
-	"github.com/RachidChabane/spec-proof/completeness/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
-	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/hoststore"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/operations"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/proofsource"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/responsecheck"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/schemacheck"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/shallnot"
+	golangunits "github.com/RachidChabane/musthold/completeness/internal/adapters/units/golang"
+	javaunits "github.com/RachidChabane/musthold/completeness/internal/adapters/units/java"
+	javascriptunits "github.com/RachidChabane/musthold/completeness/internal/adapters/units/javascript"
+	kotlinunits "github.com/RachidChabane/musthold/completeness/internal/adapters/units/kotlin"
+	pythonunits "github.com/RachidChabane/musthold/completeness/internal/adapters/units/python"
+	"github.com/RachidChabane/musthold/completeness/internal/app/ports"
+	"github.com/RachidChabane/musthold/completeness/internal/app/prove"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/closedq"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/policy"
+	"github.com/RachidChabane/musthold/completeness/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
 const (
-	pluginName    = "spec-proof-completeness"
+	pluginName    = "musthold-completeness"
 	moduleVersion = "0.1.0"
 )
 
@@ -217,7 +217,7 @@ func (w *world) deps() prove.Deps {
 	}
 	if w.answers != nil {
 		w.replay = &honestReplayer{
-			service: requests.Service{Plugin: "spec-proof-completeness", Store: w.store, Validator: responsecheck.New(), Clock: deps.Clock},
+			service: requests.Service{Plugin: "musthold-completeness", Store: w.store, Validator: responsecheck.New(), Clock: deps.Clock},
 			answers: w.answers,
 			origin:  requests.OriginReplay,
 			profile: format.ExecutorProfile{

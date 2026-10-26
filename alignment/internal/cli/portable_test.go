@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/cli"
+	"github.com/RachidChabane/musthold/alignment/internal/cli"
 )
 
 func TestPortableExecutorServer(t *testing.T) {
@@ -19,7 +19,7 @@ func TestPortableExecutorServer(t *testing.T) {
 		if code != cli.ExitClean {
 			t.Fatalf("mcp exited %d: %s", code, stderr)
 		}
-		if !strings.Contains(stdout, `"isError":true`) || !strings.Contains(stdout, "no project of spec-proof here") {
+		if !strings.Contains(stdout, `"isError":true`) || !strings.Contains(stdout, "no project of musthold here") {
 			t.Fatalf("the tool call was not refused: %s", stdout)
 		}
 	})

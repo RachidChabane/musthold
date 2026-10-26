@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
+	"github.com/RachidChabane/musthold/completeness/internal/app/ports"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbundle"
 )
 
 // Git command line.
@@ -22,10 +22,10 @@ const (
 	envIndexFile     = "GIT_INDEX_FILE="
 	indexFileName    = "index"
 	blobMode         = "100644"
-	commitIdentity   = "spec-proof"
-	commitEmail      = "spec-proof@localhost"
-	commitMessage    = "spec-proof host bundle"
-	scratchPrefix    = "spec-proof-hostgit-"
+	commitIdentity   = "musthold"
+	commitEmail      = "musthold@localhost"
+	commitMessage    = "musthold host bundle"
+	scratchPrefix    = "musthold-hostgit-"
 	fileMode         = 0o644
 	forcePrefix      = "+"
 	refspecSeparator = ":"

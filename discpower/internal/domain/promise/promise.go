@@ -1,11 +1,11 @@
-// Package promise holds the pure rules of the promise flow of `spec-proof scan`
+// Package promise holds the pure rules of the promise flow of `musthold scan`
 // (ADR 0014): the quote check of the promises a host extracted, the choice of
 // at most three of them, the budget of the calls a scan may spend, the
 // admission of witnesses, the one finding a promise can carry, and the labels a
 // promise puts on tests. It reads no file, runs nothing and calls no model.
 package promise
 
-import "github.com/RachidChabane/spec-proof/format"
+import "github.com/RachidChabane/musthold/format"
 
 // SourceKind says where a promise is quoted from. The set is closed: the
 // change's diff is never a quotable source.
@@ -22,7 +22,7 @@ const (
 )
 
 // idDomain separates the id of a promise from every other digest of a scan.
-const idDomain = "spec-proof scan promise\x00"
+const idDomain = "musthold scan promise\x00"
 
 // idSeparator ends the source name in the preimage of an id, so that a quote
 // cannot be moved into the name.

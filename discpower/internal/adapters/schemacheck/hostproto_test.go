@@ -8,9 +8,9 @@ import (
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 func compileHostProtocol(t *testing.T) map[string]*jsonschema.Schema {
@@ -48,7 +48,7 @@ func TestHostProtocolSchemas(t *testing.T) {
 			"no module version":     func(r *hostproto.Request) { r.Module.Version = "" },
 			"an unknown kind":       func(r *hostproto.Request) { r.Kind = "judge.vibes" },
 			"a role without agent":  func(r *hostproto.Request) { r.Role = "judge" },
-			"another agent's role":  func(r *hostproto.Request) { r.Role = "spec-proof-dp:generator" },
+			"another agent's role":  func(r *hostproto.Request) { r.Role = "musthold-dp:generator" },
 			"an open kind, closed":  func(r *hostproto.Request) { r.Shape = hostproto.ShapeClosed },
 			"an unknown shape":      func(r *hostproto.Request) { r.Shape = "wide" },
 			"questions on an open":  func(r *hostproto.Request) { r.Closed = json.RawMessage(`{}`) },
@@ -81,12 +81,12 @@ func TestHostProtocolSchemas(t *testing.T) {
 			"no round":                hostprototest.GenerationRequest(func(r *hostproto.Request) { r.Round = nil }),
 			"round zero":              hostprototest.GenerationRequest(func(r *hostproto.Request) { r.Round = new(int) }),
 			"no seed":                 hostprototest.GenerationRequest(func(r *hostproto.Request) { r.Seed = "" }),
-			"a judge on a generation": hostprototest.GenerationRequest(func(r *hostproto.Request) { r.Role = "spec-proof-dp:judge" }),
+			"a judge on a generation": hostprototest.GenerationRequest(func(r *hostproto.Request) { r.Role = "musthold-dp:judge" }),
 			"a closed request":        hostprototest.ClosedRequest(),
 			"no questions":            hostprototest.ClosedRequest(func(r *hostproto.Request) { r.Closed = nil }),
 			"an open shape on closed": hostprototest.ClosedRequest(func(r *hostproto.Request) { r.Shape = hostproto.ShapeOpen }),
 			"a round on a closed one": hostprototest.ClosedRequest(func(r *hostproto.Request) { r.Round = &round }),
-			"a judge deciding closed": hostprototest.ClosedRequest(func(r *hostproto.Request) { r.Role = "spec-proof-dp:judge" }),
+			"a judge deciding closed": hostprototest.ClosedRequest(func(r *hostproto.Request) { r.Role = "musthold-dp:judge" }),
 		}
 		for name, request := range cases {
 			if got, want := schemaAccepts(t, schema, request), request.Validate() == nil; got != want {

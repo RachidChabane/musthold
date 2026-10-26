@@ -5,10 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/ledger/internal/app"
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/ledger"
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/ledger/internal/app"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/ledger"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/refusal"
 )
 
 // AdditionDir lists the files of a directory as ledger additions at

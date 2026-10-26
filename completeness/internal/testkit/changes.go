@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
+	"github.com/RachidChabane/musthold/completeness/internal/app/ports"
 )
 
 // FixtureChanges is what a change source would report for a fixture project: every

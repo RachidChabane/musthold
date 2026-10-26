@@ -9,8 +9,8 @@ import (
 	"io/fs"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	domain "github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	domain "github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 )
 
 // Errors of the registry.

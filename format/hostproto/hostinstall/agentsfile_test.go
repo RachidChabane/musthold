@@ -3,7 +3,7 @@ package hostinstall_test
 import (
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostinstall"
+	"github.com/RachidChabane/musthold/format/hostproto/hostinstall"
 )
 
 func TestWithAgentsBlocks(t *testing.T) {

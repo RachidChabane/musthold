@@ -13,7 +13,7 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../../.."
 
-readonly PROFILE="spec-proof-loop"
+readonly PROFILE="musthold-loop"
 readonly CPUS=2
 readonly MEMORY_GIB=3
 readonly DISK_GIB=40

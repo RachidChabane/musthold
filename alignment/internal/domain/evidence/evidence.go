@@ -8,9 +8,9 @@ package evidence
 import (
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/matrix"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/matrix"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // qualifyingBases are the decision bases whose VALID verdicts enter a pool: a

@@ -13,16 +13,16 @@ import (
 	"testing/fstest"
 	"time"
 
-	pythonmutation "github.com/RachidChabane/spec-proof/discpower/internal/adapters/mutation/python"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/treesitter"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/operatorgen"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/differential"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
-	"github.com/RachidChabane/spec-proof/format"
+	pythonmutation "github.com/RachidChabane/musthold/discpower/internal/adapters/mutation/python"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/sourceparse/treesitter"
+	"github.com/RachidChabane/musthold/discpower/internal/app/operatorgen"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/differential"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // The project the fakes scan: one module of two functions and four tests.
@@ -403,7 +403,7 @@ func (s fakeSource) Resolve(_ context.Context, revision string) (string, error) 
 }
 func (s fakeSource) Dirty(context.Context) (bool, error) { return s.dirty, nil }
 func (s fakeSource) TrackedFiles(context.Context) ([]string, error) {
-	return append([]string{totals, "tests/test_discount.py", "tests/test_shipping.py", ".spec-proof/scan/old/report.md"}, s.tracked...), nil
+	return append([]string{totals, "tests/test_discount.py", "tests/test_shipping.py", ".musthold/scan/old/report.md"}, s.tracked...), nil
 }
 func (s fakeSource) ChangedLines(context.Context, string) (map[string][]int, error) {
 	return s.changed, nil
@@ -453,10 +453,10 @@ type fixture struct {
 
 func newFixture() *fixture {
 	project := fstest.MapFS{
-		totals:                           {Data: []byte(totalsSource)},
-		"tests/test_discount.py":         {Data: []byte("from invoice.totals import discount\n\ndef test_discount_takes_the_percent_off():\n    assert discount(200, 10) == 180\n")},
-		"tests/test_shipping.py":         {Data: []byte("from invoice.totals import shipping\n\ndef test_shipping_is_waived_from_fifty():\n    assert shipping(50) == 0\n")},
-		".spec-proof/scan/old/report.md": {Data: []byte("an earlier report\n")},
+		totals:                         {Data: []byte(totalsSource)},
+		"tests/test_discount.py":       {Data: []byte("from invoice.totals import discount\n\ndef test_discount_takes_the_percent_off():\n    assert discount(200, 10) == 180\n")},
+		"tests/test_shipping.py":       {Data: []byte("from invoice.totals import shipping\n\ndef test_shipping_is_waived_from_fifty():\n    assert shipping(50) == 0\n")},
+		".musthold/scan/old/report.md": {Data: []byte("an earlier report\n")},
 	}
 	workspaces := &fakeWorkspaces{project: project}
 	return &fixture{
@@ -502,6 +502,6 @@ func (f *fixture) serviceWith(t *testing.T, capacity ports.CapacityReader) *scan
 func request() scan.Request {
 	return scan.Request{
 		Root: "/work/invoicing", Seed: 7, SampleSize: 40, Mutants: 150, Workers: 2,
-		Module: format.Module{Name: "spec-proof-dp", Version: "0.1.0"},
+		Module: format.Module{Name: "musthold-dp", Version: "0.1.0"},
 	}
 }

@@ -7,7 +7,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // parentItem is an assistant message of the spawning agent, as a rollout line.

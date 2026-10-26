@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/closedq"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/closedq"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // Words of the ledger fixtures that tell an answer what a requirement or a change

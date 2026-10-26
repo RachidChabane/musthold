@@ -4,15 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/rawlog"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/rawlog"
 	"io"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/responsecheck"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/cliconv"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/responsecheck"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/cliconv"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
 // Flags of `request` and `systemone`.

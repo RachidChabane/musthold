@@ -1,4 +1,4 @@
-// Package hostsettings is the `host` section of `.spec-proof/config.yaml`, the
+// Package hostsettings is the `host` section of `.musthold/config.yaml`, the
 // settings of the host harness a module hands its model work to. Every module
 // reads the same section the same way: the file is shared, so a module reads its
 // own sections and tolerates the others'. It reads no file; the bytes are given.
@@ -13,8 +13,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // DefaultRequireAttestation is the default of `host.require_attestation`: an

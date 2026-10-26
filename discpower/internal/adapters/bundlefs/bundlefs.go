@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbundle"
 )
 
 const (

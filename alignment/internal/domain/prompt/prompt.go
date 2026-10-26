@@ -11,10 +11,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/aggregate"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/masking"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/aggregate"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/masking"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 //go:embed templates

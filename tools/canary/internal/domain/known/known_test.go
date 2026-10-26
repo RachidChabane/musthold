@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/known"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/known"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/verdict"
 )
 
 const (

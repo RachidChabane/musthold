@@ -1,5 +1,5 @@
 // Package proofcache keeps the alignment Statements of a project in
-// its work tree, at `.spec-proof/cache/alignment/<ID>~<REV>/<cacheKey>.json`.
+// its work tree, at `.musthold/cache/alignment/<ID>~<REV>/<cacheKey>.json`.
 // A Statement is validated against the embedded schemas before it is written.
 package proofcache
 
@@ -11,15 +11,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/alignment/internal/platform/atomicfile"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/alignment/internal/app/ports"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/alignment/internal/platform/atomicfile"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Location of the cache inside a project and the modes of what it holds.
 const (
-	cacheDirectory  = ".spec-proof"
+	cacheDirectory  = ".musthold"
 	cacheSubdir     = "cache"
 	predicateFolder = "alignment"
 	statementExt    = ".json"

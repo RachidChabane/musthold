@@ -8,17 +8,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/discpower/internal/cli"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
 	ciRunID        = "1001"
 	maxCIRounds    = 4
-	issuedRelative = ".spec-proof/ci-issued/discpower"
-	seedsRelative  = ".spec-proof/seeds"
-	cacheRelative  = ".spec-proof/cache"
+	issuedRelative = ".musthold/ci-issued/discpower"
+	seedsRelative  = ".musthold/seeds"
+	cacheRelative  = ".musthold/cache"
 )
 
 // extractRef unpacks the tree of a ref into dir, as the CI job that fetches the
@@ -47,7 +47,7 @@ func TestCIRoundTrip(t *testing.T) {
 		laptop := newHarness(t, shared)
 		commitProject(t, laptop.root)
 		laptop.drive(hostprototest.PersonaHonest, oracle{})
-		t.Setenv("SPEC_PROOF_CI_RUN_ID", ciRunID)
+		t.Setenv("MUSTHOLD_CI_RUN_ID", ciRunID)
 
 		bundle := filepath.Join(t.TempDir(), "bundle")
 		push := func() {
@@ -57,7 +57,7 @@ func TestCIRoundTrip(t *testing.T) {
 				t.Fatalf("push: %d %s%s", code, stdout, stderr)
 			}
 			head := git(t, laptop.root, "rev-parse", "HEAD")
-			extractRef(t, laptop.root, "refs/spec-proof/host/discpower/"+head, bundle)
+			extractRef(t, laptop.root, "refs/musthold/host/discpower/"+head, bundle)
 		}
 		push()
 

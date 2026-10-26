@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 func TestEmbeddedSchemas(t *testing.T) {

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/ghrun"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/process"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/ghrun"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/process"
 )
 
 // stub writes a gh that records its arguments and exits with the status given.
@@ -29,11 +29,11 @@ func TestDownload(t *testing.T) {
 	t.Run("the run's artifact is downloaded into the directory with gh [verifies SP-789~1]", func(t *testing.T) {
 		binary, argsFile := stub(t, 0, "")
 		client := ghrun.Client{Process: process.New(), Binary: binary, Dir: t.TempDir()}
-		if err := client.Download(context.Background(), "4242", "spec-proof-host-completeness", "/tmp/out", ""); err != nil {
+		if err := client.Download(context.Background(), "4242", "musthold-host-completeness", "/tmp/out", ""); err != nil {
 			t.Fatal(err)
 		}
 		recorded, _ := os.ReadFile(argsFile)
-		if got := strings.Fields(string(recorded)); strings.Join(got, " ") != "run download 4242 --name spec-proof-host-completeness --dir /tmp/out" {
+		if got := strings.Fields(string(recorded)); strings.Join(got, " ") != "run download 4242 --name musthold-host-completeness --dir /tmp/out" {
 			t.Fatalf("arguments = %v", got)
 		}
 	})

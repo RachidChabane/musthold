@@ -1,19 +1,19 @@
-// Package projectconfig defines the settings `spec-proof init` and `enable` keep
-// in `.spec-proof/config.yaml`.
+// Package projectconfig defines the settings `musthold init` and `enable` keep
+// in `.musthold/config.yaml`.
 package projectconfig
 
 import (
 	"errors"
 	"fmt"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Directory and file names of the project configuration.
 const (
-	// Directory is the project directory that holds spec-proof state.
-	Directory = ".spec-proof"
+	// Directory is the project directory that holds musthold state.
+	Directory = ".musthold"
 	// FileName is the configuration file inside Directory.
 	FileName = "config.yaml"
 )
@@ -44,7 +44,7 @@ type AdmissionSettings struct {
 	RefactorsDir string
 }
 
-// Default returns the settings `spec-proof init` writes: every proof disabled and
+// Default returns the settings `musthold init` writes: every proof disabled and
 // the given ecosystems recorded.
 func Default(detected []ecosystem.Name) Settings {
 	proofs := make(map[format.Kind]bool, len(format.Kinds()))

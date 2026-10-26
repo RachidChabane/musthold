@@ -1,4 +1,4 @@
-# Discriminating power (`spec-proof-dp`)
+# Discriminating power (`musthold-dp`)
 
 Discriminating power answers one question per requirement: would the tests bound
 to this requirement fail on code that violates it? The module answers it by
@@ -59,9 +59,9 @@ For each requirement in scope, the module:
    search found no difference and the survivor fails no witness the unmodified
    code passes;
 9. writes one proof Statement per requirement under
-   `.spec-proof/cache/discriminating-power/<ID>~<REV>/<cacheKey>.json`, and its
+   `.musthold/cache/discriminating-power/<ID>~<REV>/<cacheKey>.json`, and its
    facts record under the state directory. Mutant bodies stay in
-   `$XDG_CACHE_HOME/spec-proof/<repo-digest>/mutants/`, never in the proof or the
+   `$XDG_CACHE_HOME/musthold/<repo-digest>/mutants/`, never in the proof or the
    work tree.
 
 ## Outcome
@@ -113,7 +113,7 @@ same in its mutant entry (`extensions.counterexample`), and Shallnot's
 `surviving_valid_mutant` finding repeats it under `proofs.trust: local`. A
 Statement produced by CI records none.
 
-`spec-proof-dp facts show <ID~REV>` prints the facts record of the last Statement
+`musthold-dp facts show <ID~REV>` prints the facts record of the last Statement
 of a requirement: every witness with its runs and scope votes, and every mutant
 with its kill vector, witness outcomes, compiled form and votes.
 
@@ -160,18 +160,18 @@ and sees only its ticket.
 
 | Role | Writes |
 |---|---|
-| `spec-proof-dp:generator` | host mutants and witnesses |
-| `spec-proof-dp:judge` | the scope of witnesses, and the validity of a surviving mutant and its equivalence, with a confidence and a witness |
-| `spec-proof-dp:decider` | answers to closed questions, such as the screen of surviving mutants |
+| `musthold-dp:generator` | host mutants and witnesses |
+| `musthold-dp:judge` | the scope of witnesses, and the validity of a surviving mutant and its equivalence, with a confidence and a witness |
+| `musthold-dp:decider` | answers to closed questions, such as the screen of surviving mutants |
 
 ## Scan
 
-`spec-proof-dp scan` asks of any pytest, Go, Jest or Vitest repository, with no
+`musthold-dp scan` asks of any pytest, Go, Jest or Vitest repository, with no
 spec, no model and no configuration, which tests still pass when the code they
-run is broken (ADR 0014). `spec-proof scan` runs it through the [umbrella](umbrella.md).
+run is broken (ADR 0014). `musthold scan` runs it through the [umbrella](umbrella.md).
 
 ```
-spec-proof-dp scan [--full] [--host [--resume]] [--base REV] [--seed N] [--sample N] [--mutants N] [--budget DURATION] [--workers N] [--coverage-timeout DURATION] [--format text|md|json] [--root DIR] [<PR>]
+musthold-dp scan [--full] [--host [--resume]] [--base REV] [--seed N] [--sample N] [--mutants N] [--budget DURATION] [--workers N] [--coverage-timeout DURATION] [--format text|md|json] [--root DIR] [<PR>]
 ```
 
 The work tree must have no uncommitted change to a tracked file: a scan names
@@ -277,7 +277,7 @@ acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled ·
 #1 tests/test_parse.py::test_parse_ok passes on all 9 proven changes in lines it ran; 1 more stopped it from starting
    src/invoicing/parse.py:41  >= → >   input line="a,": reference "a", mutant ""
    proven by: a differential run of invoicing.parse:split_fields, reproduced, on a reference that agrees with itself
-   repro: .spec-proof/scan/3f2a9c1/1/repro.sh
+   repro: .musthold/scan/3f2a9c1/1/repro.sh
 150 mutants (61 proven) · 4m12s (reference 41s, coverage 1m2s, draw 1s, mutants 2m16s, confirmation 12s) · no model used · promises not checked
 7/40 sampled tests stay green on every proven change in lines they ran: on those lines, their green is no evidence the code is right.
 ```
@@ -306,19 +306,19 @@ proofs admits.
 
 | Path | Content |
 |---|---|
-| `.spec-proof/scan/<commit>/report.md` | the Markdown report |
-| `.spec-proof/scan/<commit>/scan.json` | the scan statement |
-| `.spec-proof/scan/<commit>/<n>/mutant.patch` | the change the test passes on |
-| `.spec-proof/scan/<commit>/<n>/repro.sh` | extracts the commit into a temporary directory, applies the patch and runs the one test |
-| `.spec-proof/scan/<commit>/<n>/finding.json` | the record a replay re-executes |
+| `.musthold/scan/<commit>/report.md` | the Markdown report |
+| `.musthold/scan/<commit>/scan.json` | the scan statement |
+| `.musthold/scan/<commit>/<n>/mutant.patch` | the change the test passes on |
+| `.musthold/scan/<commit>/<n>/repro.sh` | extracts the commit into a temporary directory, applies the patch and runs the one test |
+| `.musthold/scan/<commit>/<n>/finding.json` | the record a replay re-executes |
 
-`spec-proof scan replay <dir>` re-executes, with no model, the finding of a
+`musthold scan replay <dir>` re-executes, with no model, the finding of a
 finding folder or every finding of a scan folder, and exits 1 when a claim no
 longer holds.
 
 ### Scan with a host
 
-`--host` asks the host, through the exit-3 loop of the `/spec-proof:scan` skill
+`--host` asks the host, through the exit-3 loop of the `/musthold:scan` skill
 ([umbrella](umbrella.md#the-scan-skill)), for the promises of the code. A scan
 without it calls no model. `<PR>` scans a pull request: its head must be the
 checked-out commit, and the scan takes the merge base with its base commit.
@@ -326,7 +326,7 @@ checked-out commit, and the scan takes the merge base with its base commit.
 
 The quotable sources are the README at head and, for a pull request, its title
 and body and each issue it closes. Their bytes are saved under
-`.spec-proof/scan/<commit>/sources/`. A change's code is never a source. A scan
+`.musthold/scan/<commit>/sources/`. A change's code is never a source. A scan
 with no quotable source prints "no quotable promise in the README, description or
 closing issues" beside its headline.
 
@@ -340,7 +340,7 @@ the answers go:
 | 3 | tickets wait: the scan prints `wave N`, `session scan:<key>` and `awaiting_host N tickets` |
 
 The tickets of the session are listed with
-`spec-proof-dp request list --session scan:<key>`. `--resume` continues the open
+`musthold-dp request list --session scan:<key>`. `--resume` continues the open
 session of the same scan and implies `--host`. A scan asks at most 18 calls: 4
 for each of at most 3 promises, 1 for the promises and 1 for the labels; a promise
 the budget cannot cover is reported unchecked. A finding folder also holds the
@@ -348,14 +348,14 @@ test that kills the mutant by its route, which `repro.sh` runs.
 
 ## Configuration
 
-`.spec-proof/config.yaml` holds `proofs.discriminating-power`, `ecosystems`,
+`.musthold/config.yaml` holds `proofs.discriminating-power`, `ecosystems`,
 `operations`, `policy` and `host`. See [configuration](configuration.md).
 
 ## Files
 
 | Path | Content |
 |---|---|
-| `.spec-proof/cache/discriminating-power/` | the module's Statements |
-| `$XDG_STATE_HOME/spec-proof/discpower/<repo-digest>/host/` | tickets, responses, `journal.jsonl`, the per-install secret |
-| `$XDG_STATE_HOME/spec-proof/discpower/<repo-digest>/records/` | the facts record of each Statement |
-| `$XDG_CACHE_HOME/spec-proof/<repo-digest>/mutants/` | mutant bodies |
+| `.musthold/cache/discriminating-power/` | the module's Statements |
+| `$XDG_STATE_HOME/musthold/discpower/<repo-digest>/host/` | tickets, responses, `journal.jsonl`, the per-install secret |
+| `$XDG_STATE_HOME/musthold/discpower/<repo-digest>/records/` | the facts record of each Statement |
+| `$XDG_CACHE_HOME/musthold/<repo-digest>/mutants/` | mutant bodies |

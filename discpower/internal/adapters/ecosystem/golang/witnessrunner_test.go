@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/goparser"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/sourceparse/goparser"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
 )
 
 const (

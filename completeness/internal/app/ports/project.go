@@ -8,9 +8,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/code"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/code"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Report is what Shallnot reports about a project: the schema version of the

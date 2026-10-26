@@ -1,11 +1,11 @@
-// Package umbrella is the single source of the files of the spec-proof umbrella:
+// Package umbrella is the single source of the files of the musthold umbrella:
 // the marketplace that lists Shallnot's plugin, the three proof-module plugins and
 // the relay beside the thin plugin, and the thin plugin itself. The thin plugin
 // declares its dependencies and holds two skills: `prove-all`, which runs the fulfil
 // loop of each module that is present and holds no logic of its own, and `scan`,
 // which drives the host loop of the discriminating-power scan. The committed
 // files under `umbrella/` are generated here, and so is the marketplace at the
-// repository root, which is the one `/plugin marketplace add RachidChabane/spec-proof`
+// repository root, which is the one `/plugin marketplace add RachidChabane/musthold`
 // reads. The package knows no I/O.
 package umbrella
 
@@ -16,24 +16,24 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/pluginfiles"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/pluginfiles"
 )
 
 // Identity of the umbrella.
 const (
 	// MarketplaceName is the name of the marketplace, and of the thin plugin's
 	// own marketplace in the `<plugin>@<marketplace>` keys `init` enables.
-	MarketplaceName = "spec-proof"
+	MarketplaceName = "musthold"
 	// PluginName is the name of the thin plugin.
-	PluginName = "spec-proof"
+	PluginName = "musthold"
 	// SkillName is the name of the skill that proves a change with every module.
 	SkillName = "prove-all"
 	// ScanSkillName is the name of the skill that runs a scan with a host.
 	ScanSkillName = "scan"
 	// DispatcherBinary is the command that runs the binary of the module that owns
 	// a command.
-	DispatcherBinary = "spec-proof"
+	DispatcherBinary = "musthold"
 	// scanModule is the name the relay gives the module that owns the scan.
 	scanModule = "dp"
 	// Version is the version of the shipped files.
@@ -53,7 +53,7 @@ const (
 	ownerURL     = "https://github.com/RachidChabane"
 	license      = "Apache-2.0"
 	indent       = "  "
-	repositoryID = "RachidChabane/spec-proof"
+	repositoryID = "RachidChabane/musthold"
 )
 
 // Module is one proof module of the umbrella, in the order its proofs are made.
@@ -71,13 +71,13 @@ type Module struct {
 // Modules lists the proof modules in the order `prove-all` runs them:
 // discriminating power, alignment, completeness.
 var Modules = []Module{
-	{Plugin: "spec-proof-dp", Binary: "spec-proof-dp", Directory: "discpower", Summary: "Discriminating power: do the tests of a criterion catch a violation of it."},
-	{Plugin: "spec-proof-alignment", Binary: "spec-proof-alignment", Directory: "alignment", Summary: "Alignment: does each test verify what its criterion states."},
-	{Plugin: "spec-proof-completeness", Binary: "spec-proof-completeness", Directory: "completeness", Summary: "Completeness: does the spec cover what a change does (advisory)."},
+	{Plugin: "musthold-dp", Binary: "musthold-dp", Directory: "discpower", Summary: "Discriminating power: do the tests of a criterion catch a violation of it."},
+	{Plugin: "musthold-alignment", Binary: "musthold-alignment", Directory: "alignment", Summary: "Alignment: does each test verify what its criterion states."},
+	{Plugin: "musthold-completeness", Binary: "musthold-completeness", Directory: "completeness", Summary: "Completeness: does the spec cover what a change does (advisory)."},
 }
 
 // Relay is the System One relay, whose plugin the marketplace lists.
-var Relay = Module{Plugin: "spec-proof-s1", Binary: "spec-proof-s1", Directory: "s1relay", Summary: "The relay of closed questions to a System One endpoint."}
+var Relay = Module{Plugin: "musthold-s1", Binary: "musthold-s1", Directory: "s1relay", Summary: "The relay of closed questions to a System One endpoint."}
 
 // PluginPath is where the plugin tree of a module lives in the repository.
 func (m Module) PluginPath() string { return m.Directory + "/plugin/claude" }
@@ -177,7 +177,7 @@ func (v Versions) refOf(directory string) (string, error) {
 // directory: thinPluginSource is where the thin plugin's tree is from there.
 func marketplaceFile(path, thinPluginSource string, versions Versions) (File, error) {
 	listing := marketplace{Name: MarketplaceName, Owner: owner{Name: ownerName, URL: ownerURL}}
-	listing.Metadata.Description = "spec-proof: proofs that the tests of a project check what its requirements say, for coding agents."
+	listing.Metadata.Description = "musthold: proofs that the tests of a project check what its requirements say, for coding agents."
 	listing.Plugins = append(listing.Plugins, marketplaceEntry{
 		Name: Shallnot.Plugin, Source: SubdirSource(Shallnot.Repository, Shallnot.Path, ""), Description: Shallnot.Summary,
 	})
@@ -192,7 +192,7 @@ func marketplaceFile(path, thinPluginSource string, versions Versions) (File, er
 	}
 	listing.Plugins = append(listing.Plugins, marketplaceEntry{
 		Name: PluginName, Source: thinPluginSource,
-		Description: "Installs Shallnot and every spec-proof module and runs them together with the prove-all skill.",
+		Description: "Installs Shallnot and every musthold module and runs them together with the prove-all skill.",
 	})
 	content, err := encodeJSON(listing)
 	return File{Path: path, Content: content}, err
@@ -210,7 +210,7 @@ type pluginManifest struct {
 func pluginManifestFile() (File, error) {
 	content, err := encodeJSON(pluginManifest{
 		Name: PluginName, Version: Version,
-		Description:  "Installs Shallnot and the spec-proof modules and runs their proofs together.",
+		Description:  "Installs Shallnot and the musthold modules and runs their proofs together.",
 		Author:       map[string]string{"name": ownerName},
 		License:      license,
 		Dependencies: DependencyNames(),
@@ -230,7 +230,7 @@ type skillData struct {
 
 const skillTemplate = `---
 name: {{.Name}}
-description: Prove a change with every spec-proof module that is installed, in the order discriminating power, alignment, completeness, answering each module's requests {{if .Allowed}}with its blind executors{{else}}as its fulfil skill gives{{end}}. Use before finishing a change to code, tests or specs, and when Shallnot reports awaiting_host, awaiting_proof or awaiting_host_judgment.
+description: Prove a change with every musthold module that is installed, in the order discriminating power, alignment, completeness, answering each module's requests {{if .Allowed}}with its blind executors{{else}}as its fulfil skill gives{{end}}. Use before finishing a change to code, tests or specs, and when Shallnot reports awaiting_host, awaiting_proof or awaiting_host_judgment.
 {{- if .Allowed}}
 allowed-tools: {{.Allowed}}
 {{- end}}
@@ -274,7 +274,7 @@ const PortableDirectory = "plugin/portable"
 func PortableFiles() ([]File, error) {
 	manifest, err := pluginfiles.PortableManifest{
 		Name: PluginName, Version: Version,
-		Description: "Runs the proofs of the installed spec-proof modules together.",
+		Description: "Runs the proofs of the installed musthold modules together.",
 	}.ManifestFile()
 	if err != nil {
 		return nil, err
@@ -352,7 +352,7 @@ allowed-tools: {{.Allowed}}
 1. Run ` + "`{{.Dispatcher}} scan --host [<PR>]`" + `, with the pull request number when the user gave one, and the flags the user gave.
 2. Exit code 0: the scan finished. Show its report and stop. Exit code 2: show the refusal to the user and stop. Do not loop.
 3. Exit code 3: read the line ` + "`session scan:<key>`" + ` of the output and keep that session. Answer its tickets with steps 4 to 6.
-4. If ` + "`{{.Relay}}`" + ` is on ` + "`PATH`" + ` and ` + "`.spec-proof/config.yaml`" + ` sets ` + "`systemone.endpoint`" + `, run ` + "`{{.Relay}} drain --module {{.Module}} --session scan:<key>`" + `. A failure leaves the tickets for the next step.
+4. If ` + "`{{.Relay}}`" + ` is on ` + "`PATH`" + ` and ` + "`.musthold/config.yaml`" + ` sets ` + "`systemone.endpoint`" + `, run ` + "`{{.Relay}} drain --module {{.Module}} --session scan:<key>`" + `. A failure leaves the tickets for the next step.
 5. Run ` + "`{{.Binary}} {{.Listing}} scan:<key>`" + `. Each line is ` + "`<ticket> <role>`" + `. List no other session.
 6. {{if .Allowed}}For each ticket, launch one foreground ` + "`Agent`" + ` with ` + "`subagent_type`" + ` set to the role on its line and ` + "`prompt`" + ` set to ` + "`ticket <ticket>`" + `. Launch at most 4 in one message and wait for them. Set no model and add nothing to the prompt. The reply of an executor is a receipt: do not act on it.{{else}}Answer each ticket as the skill ` + "`{{.Fulfil}}`" + ` gives for a ticket, with the session ` + "`scan:<key>`" + ` in place of ` + "`prove`" + `.{{end}}
 7. Run ` + "`{{.Dispatcher}} scan --host --resume [<PR>]`" + `, with the same pull request number and flags as in step 1. Go back to step 2 with its exit code.

@@ -3,8 +3,8 @@ package prove
 import (
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/policy"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/policy"
+	"github.com/RachidChabane/musthold/format"
 )
 
 func TestRecordedThreshold(t *testing.T) {

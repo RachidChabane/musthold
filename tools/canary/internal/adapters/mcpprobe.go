@@ -12,15 +12,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/mcpstdio"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/mcpstdio"
+	"github.com/RachidChabane/musthold/tools/canary/internal/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
 )
 
 const (
 	mcpProtocolVersion = "2025-06-18"
-	mcpClientName      = "spec-proof-canary"
+	mcpClientName      = "musthold-canary"
 	probeTimeout       = 30 * time.Second
 	servedMarker       = "responseSchema"
 	detailLimit        = 200

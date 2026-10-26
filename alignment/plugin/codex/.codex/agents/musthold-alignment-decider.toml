@@ -1,0 +1,4 @@
+name = "musthold-alignment-decider"
+description = "Executes one closed-question ticket of musthold-alignment as a blind executor. Launch it only through the musthold-alignment-fulfil skill, with a prompt that is the ticket."
+developer_instructions = "Call `mcp__musthold_alignment_exec__fetch_request` with the ticket from your task and an empty `cap`. Follow the instructions it returns. Call `mcp__musthold_alignment_exec__submit_response` with the ticket, the nonce from the fetch, an empty `cap` and the JSON output matching the schema it returned. Then reply only with the receipt. Use no skill and no shell command for this."
+sandbox_mode = "read-only"

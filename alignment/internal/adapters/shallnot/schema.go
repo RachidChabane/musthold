@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
+	"github.com/RachidChabane/musthold/alignment/internal/app/ports"
 )
 
 // The report schema command and the versions the module tells apart.

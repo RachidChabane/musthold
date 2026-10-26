@@ -113,7 +113,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   import no adapter.
 - **SP-38~1**: WHEN an adapter is inspected THE SYSTEM SHALL import no other
   adapter.
-- **SP-40~1**: WHEN the `spec-proof-dp` binary is run with the `version`
+- **SP-40~1**: WHEN the `musthold-dp` binary is run with the `version`
   argument THE SYSTEM SHALL print its version.
 
 ## Adapters
@@ -270,7 +270,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-148~1**: WHEN the host store of a project is opened THE SYSTEM SHALL keep
   `queue.json`, `requests/`, `tickets/`, `responses/`, a digest-chained
   `journal.jsonl` and a `secret` under
-  `$XDG_STATE_HOME/spec-proof/discpower/<repo-digest>/host/`, with directories
+  `$XDG_STATE_HOME/musthold/discpower/<repo-digest>/host/`, with directories
   private to the user and the secret readable by the user only, and SHALL derive
   the repository digest from the absolute path of the project root.
 - **SP-149~1**: WHEN the filesystem store is tested THE SYSTEM SHALL satisfy the
@@ -306,9 +306,9 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-153~1**: WHEN a Statement is written to the proof cache THE SYSTEM SHALL
   validate it against the embedded schemas first, refuse an invalid one, and
   write it atomically at
-  `.spec-proof/cache/discriminating-power/<ID>~<REV>/<cacheKey>.json`.
+  `.musthold/cache/discriminating-power/<ID>~<REV>/<cacheKey>.json`.
 - **SP-154~1**: WHEN a mutant body is kept THE SYSTEM SHALL write it under
-  `$XDG_CACHE_HOME/spec-proof/<repo-digest>/mutants/` and never in the work tree,
+  `$XDG_CACHE_HOME/musthold/<repo-digest>/mutants/` and never in the work tree,
   and return exactly the edit set it was given.
 - **SP-155~1**: WHEN an executed fact is memoized THE SYSTEM SHALL return it for
   its key, treat an absent or unreadable entry as a miss and write atomically.
@@ -850,7 +850,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   it from the committed tree and not from the work tree, and SHALL report a path
   that is not a file of that tree as a typed error.
 - **SP-2209~1**: WHEN named sources are saved THE SYSTEM SHALL write each one's
-  exact bytes under `.spec-proof/scan/<commit>/sources/` of the repository, give
+  exact bytes under `.musthold/scan/<commit>/sources/` of the repository, give
   its SHA-256 digest as the format computes it, and read the same bytes back.
 - **SP-2210~1**: WHEN a source name is turned into a file name THE SYSTEM SHALL
   do it deterministically and without two names sharing a file, keeping every
@@ -861,7 +861,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 
 ## Scan with a host
 
-- **SP-2220~1**: WHEN `spec-proof-dp scan` runs without `--host` THE SYSTEM SHALL
+- **SP-2220~1**: WHEN `musthold-dp scan` runs without `--host` THE SYSTEM SHALL
   call no model, open no host store and exit 0 once it wrote its reports, and
   SHALL write the same statement, headline, Markdown report, patches,
   reproduction scripts and finding records as a scan that has no host mode,
@@ -869,7 +869,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-2221~1**: WHEN a scan asks its host THE SYSTEM SHALL take as its
   quotable sources the README of the head commit and, for `scan <PR>`, the
   title and body of the pull request and of each issue it closes, byte for
-  byte, save them under `.spec-proof/scan/<commit>/sources/`, which no
+  byte, save them under `.musthold/scan/<commit>/sources/`, which no
   reference copy holds, and SHALL never take the change's diff as a source.
 - **SP-2222~1**: WHEN a scan asks its host for its promises THE SYSTEM SHALL ask
   one extraction ticket that shows each source under its name with its exact
@@ -957,7 +957,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   queue tag names, let the budget planner decide what to issue, cap the
   session at 18 emissions as a backstop, and report the asks it cut and the
   model calls it used.
-- **SP-2244~1**: WHEN `spec-proof-dp scan` is given `--host`, `--resume` or a
+- **SP-2244~1**: WHEN `musthold-dp scan` is given `--host`, `--resume` or a
   pull request number THE SYSTEM SHALL ask the host with either flag, take at
   most one positive number, refuse a number beside `--base`, and refuse
   anything else as a usage error.
@@ -1032,7 +1032,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   each witness's outcome by its package and test name, and fail the
   collection when a witness file does not compile; an ecosystem without a
   runner of witnesses runs them with its suite runner.
-- **SP-2274~2**: WHEN `spec-proof-dp scan --host` runs on a pytest, a Go, a
+- **SP-2274~2**: WHEN `musthold-dp scan --host` runs on a pytest, a Go, a
   Jest or a Vitest project committed in its own repository, whose README holds
   a promise the
   suite runs and never asserts and a promise the code does not keep, and a
@@ -1049,7 +1049,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   generation ticket of a promise whose witnesses were admitted, in a pytest, a
   Go, a Jest or a Vitest project THE SYSTEM SHALL show the functions those
   witnesses run and no other.
-- **SP-2277~1**: WHEN `spec-proof-dp scan --resume` runs with a flag that
+- **SP-2277~1**: WHEN `musthold-dp scan --resume` runs with a flag that
   differs from the open scan session's THE SYSTEM SHALL exit 2 naming the
   field, its old value and its new one.
 - **SP-2278~2**: WHEN the host of a scan of a pytest, a Go, a Jest or a Vitest
@@ -1063,7 +1063,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   between its
   own invocations THE SYSTEM SHALL finish both, and no invocation of the scan
   SHALL retire a ticket `prove` waits for.
-- **SP-2280~1**: WHEN `spec-proof-dp scan --host <PR>` runs with gh answering
+- **SP-2280~1**: WHEN `musthold-dp scan --host <PR>` runs with gh answering
   for the pull request and the issue it closes THE SYSTEM SHALL read both
   through gh, show the description and the issue byte for byte as sources
   of the extraction, save the sources of the head commit, scan the change
@@ -1165,7 +1165,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   `--changed` selects it THE SYSTEM SHALL write it no new Statement and report its
   stored outcome.
 - **SP-189~1**: WHEN a Statement is written THE SYSTEM SHALL validate it against the
-  embedded schemas, write it under `.spec-proof/cache/discriminating-power`, and
+  embedded schemas, write it under `.musthold/cache/discriminating-power`, and
   keep mutant bodies only in the user cache outside the work tree.
 - **SP-190~3**: WHEN no differential search can run, because the ecosystem cannot
   probe calls or the project binds no operation, THE SYSTEM SHALL still ask for the
@@ -1293,14 +1293,14 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   not one, and make tickets of the requests it holds once, with the votes and the
   queue metadata CI gave them.
 - **SP-249~2**: WHEN `prove --ci` runs THE SYSTEM SHALL draw the seed of the head
-  commit from the first CI run, record it in `.spec-proof/seeds/<head sha>.json`,
+  commit from the first CI run, record it in `.musthold/seeds/<head sha>.json`,
   outside the cache of statements, and reuse it on every later run of the
   commit, produce the Statements as CI, serve the tickets it is asking for from the
   bundle given with `--import-host` through the same checks as any answer, ignore
   what the bundle holds that it does not ask for, leave the other tickets pending,
   mark again what the pushing host marked, refuse a bundle of another version that
   left requests unanswered, and leave the requests that remain in
-  `.spec-proof/ci-issued/discpower`, where the CI job uploads them from.
+  `.musthold/ci-issued/discpower`, where the CI job uploads them from.
 
 ## End to end
 
@@ -1354,7 +1354,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 ## Portable plugin
 
 - **SP-1710~1**: WHEN the portable plugin of the module is generated THE SYSTEM SHALL
-  give it the manifest, the server of `spec-proof-dp`, the fulfil skill and the agents and
+  give it the manifest, the server of `musthold-dp`, the fulfil skill and the agents and
   hooks of Copilot CLI that the shared generator produces, the root server naming
   no harness and the agents' servers named apart from it, and the committed tree
   SHALL equal what the generator produces; the Copilot tree under `plugin/` is the
@@ -1366,7 +1366,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 
 ## Release version
 
-- **SP-1851~1**: WHEN `spec-proof-dp` is run with the lone argument `--version` THE SYSTEM
+- **SP-1851~1**: WHEN `musthold-dp` is run with the lone argument `--version` THE SYSTEM
   SHALL print the bare version, the one a release build linked with
   `-X main.version`, else the one `go install` recorded, else `dev`, and the
   `version` command SHALL print the binary name, that version and the linked
@@ -1645,7 +1645,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   proof and repro script and its patch as a diff, and the closing line, never
   "bug", "PASS" or a score.
 - **SP-2117~1**: WHEN the reports of a scan are written THE SYSTEM SHALL write,
-  under `.spec-proof/scan/<short commit>/` and in place of the earlier reports of
+  under `.musthold/scan/<short commit>/` and in place of the earlier reports of
   that commit, `report.md`, the canonical statement as `scan.json` and, per
   finding, `mutant.patch`, a unified diff with one hunk that `git apply` applies
   to the commit, an executable `repro.sh` that extracts the commit into a
@@ -1653,7 +1653,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   patch and runs the one test, quoted, so that its exit status is the test's,
   and `finding.json`, which names the commit, the runner, the test, the mutant
   with its edits and the route.
-- **SP-2119~3**: WHEN `spec-proof-dp scan` runs THE SYSTEM SHALL need no
+- **SP-2119~3**: WHEN `musthold-dp scan` runs THE SYSTEM SHALL need no
   configuration, scan the first pytest, Go, Jest or Vitest suite it detects,
   quickly unless
   `--full` is given (SP-2131), `--sample`, `--mutants` and `--budget` replacing
@@ -1661,7 +1661,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   print the headline, the Markdown report with `--format md` or the scan statement
   with `--format json`, and exit 0 whatever the counts; SHALL fail, writing no
   report, on a tree with no such suite, a dirty tree, an unknown format or an
-  extra argument; and `spec-proof-dp scan replay <dir>` SHALL replay the finding
+  extra argument; and `musthold-dp scan replay <dir>` SHALL replay the finding
   of a finding folder or every finding of a scan folder and exit 1 when a claim
   does not hold.
 - **SP-2120~1**: WHEN the git state of a scanned project is read THE SYSTEM SHALL
@@ -1670,12 +1670,12 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   reports, give the lines of the head that differ from a base, a pure deletion
   marking the line it follows, and name the repository `owner/name` from its
   origin, in URL or scp-like form, or by its directory.
-- **SP-2122~3**: WHEN `spec-proof-dp scan --budget 0` runs on a pytest, a Go, a
+- **SP-2122~3**: WHEN `musthold-dp scan --budget 0` runs on a pytest, a Go, a
   Jest or a Vitest project committed in its own repository, one of whose tests
   runs a function
   and asserts nothing THE SYSTEM SHALL name that test as the first that verifies
   nothing and exit 0, leave the work tree with only its reports added, and give a
-  repro script that passes the test on the changed code; and `spec-proof-dp
+  repro script that passes the test on the changed code; and `musthold-dp
   scan` with no flag SHALL run quickly, print its depth line and exit 0.
 - **SP-2123~2**: WHEN a scan of the same project that no budget stopped is
   recorded THE SYSTEM SHALL produce the same canonical statement whatever the
@@ -1761,7 +1761,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   or such a directory, and errored otherwise, a session that ended in a usage,
   internal or interruption error without such a report included; and SHALL give
   a test whose fixture or setup failed errored.
-- **SP-2136~2**: WHEN `spec-proof-dp scan --budget 0` runs on a Go project, one
+- **SP-2136~2**: WHEN `musthold-dp scan --budget 0` runs on a Go project, one
   of whose packages calls a helper from a test-file variable and from its test
   bodies, another of which calls it from its test bodies, and a third only at
   start-up, or on a pytest, a Jest or a Vitest project, one of whose test
@@ -1797,9 +1797,9 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   mutant recorded, in one place that no running mutant reads; and SHALL leave
   out no mutant, so that a scan that runs every mutant runs the same ones
   whatever the order they finish in.
-- **SP-2140~1**: WHEN `spec-proof-dp scan --budget 0` runs on a Go project of
+- **SP-2140~1**: WHEN `musthold-dp scan --budget 0` runs on a Go project of
   several packages, once on one worker and once on four, THE SYSTEM SHALL write
-  the same scan statement; and WHEN `spec-proof-dp scan` runs with no flag on a
+  the same scan statement; and WHEN `musthold-dp scan` runs with no flag on a
   Go project, one of whose tests runs a function and asserts nothing, THE
   SYSTEM SHALL name that test as the first that verifies nothing.
 - **SP-2141~1**: WHEN a Go process of a scan gives a leaf test a pass THE
@@ -1825,7 +1825,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   report of one of its sessions covers it as SP-2135 gives, the outcome of the
   session that ran it otherwise, timed out when its last session timed out, and
   errored for a test absent from a module that collected.
-- **SP-2143~3**: WHEN `spec-proof-dp scan --budget 0` runs on a Go project whose
+- **SP-2143~3**: WHEN `musthold-dp scan --budget 0` runs on a Go project whose
   only survivals of a test lie in the setup its parent test runs before its
   subtests or in the header of a clause that a `fallthrough` enters, or on a
   pytest project whose only survivals of a test lie in the teardown of a
@@ -1855,7 +1855,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   verdict, no route and no count but the test's own; show in a finding a kill
   only by a killer the confirmation upheld; and write the scan statement in
   the same form.
-- **SP-2145~2**: WHEN `spec-proof-dp scan --budget 0` runs on a pytest project
+- **SP-2145~2**: WHEN `musthold-dp scan --budget 0` runs on a pytest project
   one of whose tests owns lines only once an earlier test of the session set
   the state it reads, on a Go project one of whose tests passes the changes it
   runs only beside the test that seeds the state it reads, or on a Jest or a

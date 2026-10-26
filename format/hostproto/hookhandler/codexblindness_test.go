@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/executorrun"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hookhandler"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/executorrun"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/hookhandler"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 // spawnPayload is the PreToolUse payload of a spawn by the main agent, which
@@ -71,7 +71,7 @@ func TestCodexSpawnGuard(t *testing.T) {
 			"fork_context false":        spawnPayload(t, "spawn_agent", spawnInput(decider, map[string]any{"fork_context": false})),
 			"both blind forms":          spawnPayload(t, "collaborationspawn_agent", spawnInput(decider, map[string]any{"fork_turns": "none", "fork_context": false})),
 			"another agent type":        spawnPayload(t, "spawn_agent", spawnInput("explorer", nil)),
-			"an executor of no module":  spawnPayload(t, "spawn_agent", spawnInput("spec-proof-other-decider", nil)),
+			"an executor of no module":  spawnPayload(t, "spawn_agent", spawnInput("musthold-other-decider", nil)),
 			"an input that is a string": []byte(`{"hook_event_name":"PreToolUse","tool_name":"spawn_agent","tool_input":"spawn"}`),
 		} {
 			output, err := stateless(codex).Handle(hostproto.HookPreTool, payload)
@@ -242,7 +242,7 @@ func TestCodexStopBlindness(t *testing.T) {
 // The decoded spawn input of a recorded PreToolUse payload asks for a blind child.
 func TestRecordedSpawnPayload(t *testing.T) {
 	t.Run("the recorded spawn of a decider with fork_context false gets no decision [verifies SP-1937~1]", func(t *testing.T) {
-		const recorded = `{"session_id":"01a12286-ded0-79f1-a8d0-73748a01598a","turn_id":"01a12286-e03d-7153-bacc-3d575d25ac3a","transcript_path":"/Users/u/.codex/sessions/2026/10/09/rollout-2026-10-09T23-17-06-01a12286-ded0-79f1-a8d0-73748a01598a.jsonl","cwd":"/work/project","hook_event_name":"PreToolUse","model":"gpt-6-luna","permission_mode":"bypassPermissions","tool_name":"spawn_agent","tool_input":{"agent_type":"spec-proof-dp-decider","fork_context":false,"message":"ticket 864f5e696da12d6944d9380733d5c5a9fba0f0140f3b243c3efae9a6cc74cb38.0.1"},"tool_use_id":"call_dcb31215077b4b80b1c0b8ffff2dcc82"}`
+		const recorded = `{"session_id":"01a12286-ded0-79f1-a8d0-73748a01598a","turn_id":"01a12286-e03d-7153-bacc-3d575d25ac3a","transcript_path":"/Users/u/.codex/sessions/2026/10/09/rollout-2026-10-09T23-17-06-01a12286-ded0-79f1-a8d0-73748a01598a.jsonl","cwd":"/work/project","hook_event_name":"PreToolUse","model":"gpt-6-luna","permission_mode":"bypassPermissions","tool_name":"spawn_agent","tool_input":{"agent_type":"musthold-dp-decider","fork_context":false,"message":"ticket 864f5e696da12d6944d9380733d5c5a9fba0f0140f3b243c3efae9a6cc74cb38.0.1"},"tool_use_id":"call_dcb31215077b4b80b1c0b8ffff2dcc82"}`
 		if !json.Valid([]byte(recorded)) {
 			t.Fatal("the payload is not JSON")
 		}

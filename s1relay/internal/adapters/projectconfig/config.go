@@ -1,4 +1,4 @@
-// Package projectconfig reads the System One settings of `.spec-proof/config.yaml`.
+// Package projectconfig reads the System One settings of `.musthold/config.yaml`.
 // The file is shared with the other modules; the relay reads only `systemone`.
 package projectconfig
 
@@ -14,7 +14,7 @@ import (
 
 // Location of the configuration file under the project root.
 const (
-	Directory = ".spec-proof"
+	Directory = ".musthold"
 	File      = "config.yaml"
 )
 

@@ -5,8 +5,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Vocabulary of the killers a folder offers.
@@ -20,7 +20,7 @@ const (
 	killerHeadingForm  = "## %d. %s"
 	killedByTestForm   = "A test that fails on this mutant: `%s`, which fails %s. Run it with `sh %s`."
 	witnessKillerForm  = "A test that fails on this mutant: witness %s, in `%s`. Run it with `sh %s`."
-	differenceKillForm = "A test that fails on this mutant: a differential run of %s, input %s, reference %s, mutant %s. Re-run it with `spec-proof scan replay %s`."
+	differenceKillForm = "A test that fails on this mutant: a differential run of %s, input %s, reference %s, mutant %s. Re-run it with `musthold scan replay %s`."
 	killerScriptNote   = "# Runs %s on %s with mutant.patch applied; the exit status is non-zero when the test fails on the mutant."
 	killedByTestLabel  = "the test"
 	witnessLabel       = "witness %s"

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/ledger"
-	"github.com/RachidChabane/spec-proof/ledger/internal/testkit"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/ledger"
+	"github.com/RachidChabane/musthold/ledger/internal/testkit"
 )
 
 // rootOf writes a root tree that holds one directory of blobs, the way a ledger

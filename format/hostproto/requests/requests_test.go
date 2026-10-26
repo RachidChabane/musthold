@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
@@ -23,7 +23,7 @@ const (
 	agentIdentifier  = "agent-1"
 	wrongNonce       = "ffffffffffffffffffffffffffffffff"
 	secondEmission   = 2
-	samplePlugin     = "spec-proof-sample"
+	samplePlugin     = "musthold-sample"
 )
 
 // fixture is a host store holding one emitted ticket of the fixture request.

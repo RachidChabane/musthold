@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 // Each fuzz target has a body that states its invariants, a Fuzz function that
@@ -185,7 +185,7 @@ func agentInputSeeds() []string {
 	id := hostprototest.Ticket(hostprototest.Request(), 0, 1).TicketID
 	return []string{
 		``, `{}`, `{"prompt":1}`,
-		`{"subagent_type":"spec-proof-dp:judge","prompt":"` + id.String() + `","model":"x","run_in_background":true}`,
+		`{"subagent_type":"musthold-dp:judge","prompt":"` + id.String() + `","model":"x","run_in_background":true}`,
 		`{"subagent_type":"other:judge","prompt":"` + id.String() + `"}`,
 	}
 }

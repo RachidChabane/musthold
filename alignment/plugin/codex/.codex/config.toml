@@ -1,6 +1,6 @@
-# spec-proof-alignment:begin
-[mcp_servers.spec-proof-alignment-exec]
-command = "spec-proof-alignment"
+# musthold-alignment:begin
+[mcp_servers.musthold-alignment-exec]
+command = "musthold-alignment"
 args = ["mcp", "--role", "executor", "--harness", "codex"]
 default_tools_approval_mode = "approve"
-# spec-proof-alignment:end
+# musthold-alignment:end

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
 )
 
 func decodeCopilot(lines ...string) evidence.CopilotStream {
@@ -99,20 +99,20 @@ func TestCopilotListingDecoder(t *testing.T) {
 }
 
 func TestInspectPluginTree(t *testing.T) {
-	skill := []byte("---\nname: \"spec-proof-dp-fulfil\"\ndescription: d\n---\nbody\n")
+	skill := []byte("---\nname: \"musthold-dp-fulfil\"\ndescription: d\n---\nbody\n")
 	files := evidence.TreeFiles{
-		Manifest:  []byte(`{"name":"spec-proof-dp","version":"0.1.0"}`),
-		MCP:       []byte(`{"mcpServers":{"spec-proof-dp":{"type":"stdio"}}}`),
-		Skills:    map[string][]byte{"spec-proof-dp-fulfil": skill},
+		Manifest:  []byte(`{"name":"musthold-dp","version":"0.1.0"}`),
+		MCP:       []byte(`{"mcpServers":{"musthold-dp":{"type":"stdio"}}}`),
+		Skills:    map[string][]byte{"musthold-dp-fulfil": skill},
 		Namespace: []string{"com.github.copilot/hooks/hooks.json"},
 	}
 
 	t.Run("a tree of the expected shape has no problem [verifies SP-1707~3]", func(t *testing.T) {
 		tree := evidence.InspectPluginTree("/t", files)
-		if len(tree.Problems) != 0 || tree.Name != "spec-proof-dp" || !reflect.DeepEqual(tree.Servers, []string{"spec-proof-dp"}) {
+		if len(tree.Problems) != 0 || tree.Name != "musthold-dp" || !reflect.DeepEqual(tree.Servers, []string{"musthold-dp"}) {
 			t.Fatalf("tree = %+v", tree)
 		}
-		if len(tree.Skills) != 1 || tree.Skills[0].Name != "spec-proof-dp-fulfil" || tree.Skills[0].Dir != "spec-proof-dp-fulfil" {
+		if len(tree.Skills) != 1 || tree.Skills[0].Name != "musthold-dp-fulfil" || tree.Skills[0].Dir != "musthold-dp-fulfil" {
 			t.Fatalf("skills = %+v", tree.Skills)
 		}
 	})
@@ -141,10 +141,10 @@ func TestInspectPluginTree(t *testing.T) {
 
 func TestCopilotHookPayload(t *testing.T) {
 	t.Run("the camelCase payload is read by the module's own decoder, tool arguments as a string included [verifies SP-1501~1]", func(t *testing.T) {
-		call := evidence.HookCall{Module: "spec-proof-dp", Args: []string{"hook", "pre-tool", "--harness", "copilot"},
-			Stdin: json.RawMessage(`{"sessionId":"s","toolName":"spec-proof-dp-exec/fetch_request","toolArgs":"{\"ticket\":\"t\"}","agentId":"a","agentType":"spec-proof-dp-decider"}`)}
+		call := evidence.HookCall{Module: "musthold-dp", Args: []string{"hook", "pre-tool", "--harness", "copilot"},
+			Stdin: json.RawMessage(`{"sessionId":"s","toolName":"musthold-dp-exec/fetch_request","toolArgs":"{\"ticket\":\"t\"}","agentId":"a","agentType":"musthold-dp-decider"}`)}
 		event := call.CopilotHook()
-		if event.ToolName != "spec-proof-dp-exec/fetch_request" || event.AgentType != "spec-proof-dp-decider" || event.AgentID != "a" || string(event.ToolInput) != `{"ticket":"t"}` {
+		if event.ToolName != "musthold-dp-exec/fetch_request" || event.AgentType != "musthold-dp-decider" || event.AgentID != "a" || string(event.ToolInput) != `{"ticket":"t"}` {
 			t.Fatalf("event = %+v", event)
 		}
 	})

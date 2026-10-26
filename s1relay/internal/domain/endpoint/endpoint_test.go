@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/endpoint"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/endpoint"
 )
 
 func parse(t *testing.T, raw string) endpoint.Endpoint {

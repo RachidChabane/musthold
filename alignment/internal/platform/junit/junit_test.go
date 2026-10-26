@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/platform/junit"
+	"github.com/RachidChabane/musthold/alignment/internal/platform/junit"
 )
 
 func sampleTests() []junit.Test {

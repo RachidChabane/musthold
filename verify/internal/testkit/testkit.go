@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 const (
@@ -120,7 +120,7 @@ func PolicyYAML(identities ...Identity) []byte {
 	return policy.Bytes()
 }
 
-// Layout is the directory `.spec-proof` of a repository and what is below it.
+// Layout is the directory `.musthold` of a repository and what is below it.
 type Layout struct {
 	Root     string
 	Verified string
@@ -128,10 +128,10 @@ type Layout struct {
 	Pending  string
 }
 
-// NewLayout creates an empty `.spec-proof` directory in a temporary directory.
+// NewLayout creates an empty `.musthold` directory in a temporary directory.
 func NewLayout(t testing.TB) Layout {
 	t.Helper()
-	root := filepath.Join(t.TempDir(), ".spec-proof")
+	root := filepath.Join(t.TempDir(), ".musthold")
 	if err := os.MkdirAll(root, directoryMode); err != nil {
 		t.Fatal(err)
 	}

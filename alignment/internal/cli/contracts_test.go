@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/alignment/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
 )
 
 const (
-	powerCache    = ".spec-proof/cache/discriminating-power"
+	powerCache    = ".musthold/cache/discriminating-power"
 	pythonTestDir = "tests/test_pricing.py"
 )
 

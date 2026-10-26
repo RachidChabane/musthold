@@ -9,17 +9,17 @@
   "pluginValidation": null,
   "servers": [
     {
-      "binary": "spec-proof-dp",
+      "binary": "musthold-dp",
       "started": true,
       "detail": "fetch_request, submit_response"
     },
     {
-      "binary": "spec-proof-alignment",
+      "binary": "musthold-alignment",
       "started": true,
       "detail": "fetch_request, submit_response"
     },
     {
-      "binary": "spec-proof-completeness",
+      "binary": "musthold-completeness",
       "started": true,
       "detail": "fetch_request, submit_response"
     }

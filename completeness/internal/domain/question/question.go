@@ -10,8 +10,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/dimension"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/prompt"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/dimension"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/prompt"
 )
 
 // Dimensions of the questions that do not come from the checklist: they name the

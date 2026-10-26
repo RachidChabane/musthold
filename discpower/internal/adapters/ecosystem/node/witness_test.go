@@ -9,18 +9,18 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/node"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/junitxml"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/treesitter"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/workspace"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/execution"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/mutantrun"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
-	"github.com/RachidChabane/spec-proof/discpower/internal/testkit/nodeinstall"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/node"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/junitxml"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/process"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/sourceparse/treesitter"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/workspace"
+	"github.com/RachidChabane/musthold/discpower/internal/app/execution"
+	"github.com/RachidChabane/musthold/discpower/internal/app/mutantrun"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
+	"github.com/RachidChabane/musthold/discpower/internal/testkit/nodeinstall"
 )
 
 const (
@@ -179,7 +179,7 @@ func TestWitnessLayout(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !strings.HasPrefix(file.Path, "test/specproof_") || !strings.HasSuffix(file.Path, ".test.ts") {
+			if !strings.HasPrefix(file.Path, "test/musthold_") || !strings.HasSuffix(file.Path, ".test.ts") {
 				t.Fatalf("path %q", file.Path)
 			}
 			content := string(file.Content)
@@ -188,7 +188,7 @@ func TestWitnessLayout(t *testing.T) {
 			}
 			for _, w := range set.Witnesses {
 				test, known := file.Tests[w.ID]
-				renamed := "specproof_witness_" + w.ShortID()
+				renamed := "musthold_witness_" + w.ShortID()
 				if !known || !strings.HasSuffix(test.Name, renamed) || !strings.Contains(content, "function "+renamed+"(") {
 					t.Fatalf("test %+v of %s", test, w.Name)
 				}
@@ -221,7 +221,7 @@ func TestWitnessLayout(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !strings.HasPrefix(string(file.Content), "import { describe as specproofDescribe, test as specproofTest } from 'vitest';\n") {
+		if !strings.HasPrefix(string(file.Content), "import { describe as mustholdDescribe, test as mustholdTest } from 'vitest';\n") {
 			t.Errorf("content %q", file.Content)
 		}
 	})
@@ -232,7 +232,7 @@ func TestWitnessLayout(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !strings.HasPrefix(file.Path, "spec/specproof_") || !strings.HasSuffix(file.Path, ".test.js") {
+		if !strings.HasPrefix(file.Path, "spec/musthold_") || !strings.HasSuffix(file.Path, ".test.js") {
 			t.Errorf("path %q", file.Path)
 		}
 	})
@@ -256,12 +256,12 @@ func assertReporterNames(t *testing.T, name ecosystem.Name, file, renamed string
 	t.Helper()
 	switch name {
 	case ecosystem.Jest:
-		title := "specproof_witnesses " + renamed
+		title := "musthold_witnesses " + renamed
 		if test.Classname != title || test.Name != title {
 			t.Errorf("jest names %q %q", test.Classname, test.Name)
 		}
 	case ecosystem.Vitest:
-		if test.Classname != file || test.Name != "specproof_witnesses > "+renamed {
+		if test.Classname != file || test.Name != "musthold_witnesses > "+renamed {
 			t.Errorf("vitest names %q %q", test.Classname, test.Name)
 		}
 	}

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/memguard"
+	"github.com/RachidChabane/musthold/s1relay/internal/adapters/memguard"
 )
 
 func output(freePercent int) []byte {

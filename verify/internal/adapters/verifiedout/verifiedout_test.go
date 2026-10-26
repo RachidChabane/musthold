@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/verify/internal/adapters/verifiedout"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/proofset"
+	"github.com/RachidChabane/musthold/verify/internal/adapters/verifiedout"
+	"github.com/RachidChabane/musthold/verify/internal/domain/proofset"
 )
 
 const verifiesOutput = " [verifies SP-217~1]"
@@ -30,7 +30,7 @@ func entries(t *testing.T, directory string) []string {
 
 func TestWrite(t *testing.T) {
 	t.Run("the statements and the manifest are written"+verifiesOutput, func(t *testing.T) {
-		out := filepath.Join(t.TempDir(), ".spec-proof", "verified")
+		out := filepath.Join(t.TempDir(), ".musthold", "verified")
 		files := []proofset.File{{Path: "m/S~1/k.json", Content: []byte("one")}, {Path: "m/T~1/k.json", Content: []byte("two")}}
 		if err := (verifiedout.Directory{Path: out}).Write(files, []byte("manifest")); err != nil {
 			t.Fatal(err)

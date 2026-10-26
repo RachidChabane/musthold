@@ -1,4 +1,4 @@
-module github.com/RachidChabane/spec-proof/tools/release
+module github.com/RachidChabane/musthold/tools/release
 
 go 1.26.4
 

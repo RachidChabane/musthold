@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ciseed"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ciseed"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbundle"
 )
 
 const commit = "0123456789abcdef0123456789abcdef01234567"

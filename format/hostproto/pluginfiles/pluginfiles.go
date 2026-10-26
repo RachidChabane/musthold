@@ -15,8 +15,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
 )
 
 // Identity of the shipped plugins.
@@ -24,10 +24,10 @@ const (
 	pluginAuthor  = "Rachid Chabane"
 	pluginLicense = "Apache-2.0"
 	// RelayBinary is the System One relay the fulfil skills run when it is on `PATH`.
-	RelayBinary = "spec-proof-s1"
+	RelayBinary = "musthold-s1"
 	// BinaryPrefix starts the name of every module's binary; the rest names the
 	// module to the relay.
-	BinaryPrefix = "spec-proof-"
+	BinaryPrefix = "musthold-"
 	// SkillSuffix ends the name of every module's fulfil skill.
 	SkillSuffix = "-fulfil"
 )
@@ -36,8 +36,8 @@ const (
 // leaves its statements in the cache; the verifier turns the cache into the
 // verified set that Shallnot's gate reads.
 const (
-	// StateDirectory is the project directory that holds spec-proof state.
-	StateDirectory = ".spec-proof"
+	// StateDirectory is the project directory that holds musthold state.
+	StateDirectory = ".musthold"
 	// CacheDirectory holds the statements the modules write.
 	CacheDirectory = StateDirectory + "/cache"
 	// VerifiedDirectory holds the verified set Shallnot reads.
@@ -45,7 +45,7 @@ const (
 	// PendingDirectory holds the pending files of the modules that wait on an answer.
 	PendingDirectory = StateDirectory + "/pending"
 	// VerifyBinary is the verifier.
-	VerifyBinary = "spec-proof-verify"
+	VerifyBinary = "musthold-verify"
 	// VerifyLocalCommand publishes the local statements of the cache as the
 	// verified set, without signatures, for a gate that reads local proofs.
 	VerifyLocalCommand = VerifyBinary + " --accept-local " + CacheDirectory + " --out " + VerifiedDirectory
@@ -302,7 +302,7 @@ func (m Module) copilotDelegation() string {
 
 // Steps the fulfil skills of every harness share.
 const (
-	skillRelayStep = "1. If `spec-proof-s1` is on `PATH` and `.spec-proof/config.yaml` sets `systemone.endpoint`, run `spec-proof-s1 drain --module {{.Relay}} " + hostproto.FlagSession + " " + string(hostproto.SessionProve) + "`. A failure leaves the requests for the next step.\n" +
+	skillRelayStep = "1. If `musthold-s1` is on `PATH` and `.musthold/config.yaml` sets `systemone.endpoint`, run `musthold-s1 drain --module {{.Relay}} " + hostproto.FlagSession + " " + string(hostproto.SessionProve) + "`. A failure leaves the requests for the next step.\n" +
 		"2. Run `{{.Binary}} " + hostproto.ProveListCommand + "`. Each line is `<ticket> <role>`. When it prints nothing, run `{{.Binary}} prove --changed` once and list again.\n"
 	skillResumeSteps = "4. Run `{{.Binary}} prove --resume`. While it exits with code 3, go back to step 2. Exit code 0 or 1 ends the loop: report the verdict lines. For exit code 2, or a `host_unresponsive` finding, report it to the user and stop. Do not loop.\n" +
 		"5. When the loop ended with exit code 0 or 1, publish the local proofs where Shallnot's gate reads them: run `{{.Verify}}`. When `" + VerifyBinary + "` is not on `PATH`, tell the user: the proofs stay unpublished and the gate reports them stale. Report a rejection by the verifier with its message. Do not loop.\n"

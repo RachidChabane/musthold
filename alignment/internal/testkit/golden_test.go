@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/alignment/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
 )
 
 var update = flag.Bool("update", false, "rewrite the golden discriminating-power Statements")

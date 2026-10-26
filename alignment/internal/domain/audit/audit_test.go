@@ -6,7 +6,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/audit"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/audit"
 )
 
 func TestSelected(t *testing.T) {

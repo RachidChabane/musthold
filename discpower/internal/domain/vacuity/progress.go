@@ -1,6 +1,6 @@
 package vacuity
 
-import "github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+import "github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 
 // Progress follows a scan while its mutants finish and tells which sampled
 // tests no further outcome can move out of their class. A verdict is settled

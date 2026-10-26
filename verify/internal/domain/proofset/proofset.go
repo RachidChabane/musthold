@@ -8,7 +8,7 @@ import (
 	"cmp"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Trust says what stands behind the statements of a verified set.

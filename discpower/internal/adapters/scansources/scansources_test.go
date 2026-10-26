@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/scansources"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/scansources"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
+	"github.com/RachidChabane/musthold/format"
 )
 
 const (
@@ -44,7 +44,7 @@ func TestSaveAndLoad(t *testing.T) {
 				t.Errorf("load %q = %q, %v", source.Name, back, err)
 			}
 		}
-		if _, err := os.Stat(filepath.Join(root, ".spec-proof", "scan", commit, "sources", "README")); err != nil {
+		if _, err := os.Stat(filepath.Join(root, ".musthold", "scan", commit, "sources", "README")); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -56,7 +56,7 @@ func TestSaveAndLoad(t *testing.T) {
 		if back, _ := store.Load(commit, "README"); string(back) != "new" {
 			t.Fatalf("README = %q", back)
 		}
-		entries, _ := os.ReadDir(filepath.Join(root, ".spec-proof", "scan", commit, "sources"))
+		entries, _ := os.ReadDir(filepath.Join(root, ".musthold", "scan", commit, "sources"))
 		for _, entry := range entries {
 			if strings.HasPrefix(entry.Name(), ".source-") {
 				t.Fatalf("leftover %s", entry.Name())
@@ -97,7 +97,7 @@ func TestFileName(t *testing.T) {
 		if !errors.Is(err, scansources.ErrDuplicateName) {
 			t.Fatalf("error = %v", err)
 		}
-		if _, statErr := os.Stat(filepath.Join(root, ".spec-proof")); !os.IsNotExist(statErr) {
+		if _, statErr := os.Stat(filepath.Join(root, ".musthold")); !os.IsNotExist(statErr) {
 			t.Fatal("something was written")
 		}
 	})

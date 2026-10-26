@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format/formattest/parcel"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/formattest/parcel"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // javaOracle plays an honest host for the Java parcel project: it reads the

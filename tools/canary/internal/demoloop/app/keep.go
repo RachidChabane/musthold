@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	canary "github.com/RachidChabane/spec-proof/tools/canary/internal/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/plan"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/record"
+	canary "github.com/RachidChabane/musthold/tools/canary/internal/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 )
 
 // Placeholders a kept recording writes in place of the machine's own paths.

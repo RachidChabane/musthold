@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format/formattest/prompts"
+	"github.com/RachidChabane/musthold/format/formattest/prompts"
 )
 
 // Languages a witness prompt names, as the module's witness hosts write them.

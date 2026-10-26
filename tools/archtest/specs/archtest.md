@@ -29,7 +29,7 @@ module in CI.
   inspected THE SYSTEM SHALL find no import of a product module, the `format`
   library included, and no non-test package of its domain importing `os`,
   `io/fs`, `os/exec` or a package of the `net` family.
-- **SP-39~2**: WHEN the `spec-proof-verify` binary is linked THE SYSTEM SHALL
+- **SP-39~2**: WHEN the `musthold-verify` binary is linked THE SYSTEM SHALL
   hold no symbol of `os/exec`, with and without cgo, no package of the `verify`
   module SHALL import `os/exec`, and the set of packages reachable from the
   binary on linux, darwin and windows that import `os/exec` SHALL equal the

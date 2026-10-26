@@ -1,36 +1,36 @@
-class SpecProofDp < Formula
+class MustholdDp < Formula
   desc "Measures the discriminating power of the tests bound to each requirement"
-  homepage "https://github.com/RachidChabane/spec-proof"
+  homepage "https://github.com/RachidChabane/musthold"
   version "0.2.0"
   license "Apache-2.0"
 
   on_macos do
     on_arm do
-      url "https://github.com/RachidChabane/spec-proof/releases/download/discpower/v0.2.0/spec-proof-dp_0.2.0_darwin_arm64.tar.gz"
-      sha256 "5000c7f94c5f54af4fd639ff7517edec2c08f48f150f46782dd7b651f8af9fa6"
+      url "https://github.com/RachidChabane/musthold/releases/download/discpower/v0.2.0/musthold-dp_0.2.0_darwin_arm64.tar.gz"
+      sha256 "f2dea705444c718966351a4edccb2b087554e759d83fa0f625e5f533c5c5e643"
     end
     on_intel do
-      url "https://github.com/RachidChabane/spec-proof/releases/download/discpower/v0.2.0/spec-proof-dp_0.2.0_darwin_amd64.tar.gz"
-      sha256 "6d866fb48c8d1469a899dfe7fa033047745eb2cad55fe77b8cf8f8036d09ce2d"
+      url "https://github.com/RachidChabane/musthold/releases/download/discpower/v0.2.0/musthold-dp_0.2.0_darwin_amd64.tar.gz"
+      sha256 "c207faa6cd85c6d88098c1cd6560a5c77d44b1749682514b22623931d178b9cb"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/RachidChabane/spec-proof/releases/download/discpower/v0.2.0/spec-proof-dp_0.2.0_linux_arm64.tar.gz"
-      sha256 "2333649c4787ddfc6ad3543dc3b7060859cee5f4a395b06abbd68e90636db4ac"
+      url "https://github.com/RachidChabane/musthold/releases/download/discpower/v0.2.0/musthold-dp_0.2.0_linux_arm64.tar.gz"
+      sha256 "840405e6c147d950a92e28170d9c869e6038ca87f71bfb19ef077f3f84078ec8"
     end
     on_intel do
-      url "https://github.com/RachidChabane/spec-proof/releases/download/discpower/v0.2.0/spec-proof-dp_0.2.0_linux_amd64.tar.gz"
-      sha256 "3f01d95b00e0d2a17130f392ce07ca435c8b1ba51d510042df226f5774972de6"
+      url "https://github.com/RachidChabane/musthold/releases/download/discpower/v0.2.0/musthold-dp_0.2.0_linux_amd64.tar.gz"
+      sha256 "a52162fe488a2ddcb31009d5282e9b9e69ceeb4f6dcaebb7cfeba240491840fa"
     end
   end
 
   def install
-    bin.install "spec-proof-dp"
+    bin.install "musthold-dp"
   end
 
   test do
-    assert_equal version.to_s, shell_output("#{bin}/spec-proof-dp --version").strip
+    assert_equal version.to_s, shell_output("#{bin}/musthold-dp --version").strip
   end
 end

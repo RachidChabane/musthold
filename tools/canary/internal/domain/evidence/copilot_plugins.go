@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // CopilotListing is what `copilot plugin list --json` and `copilot skill list

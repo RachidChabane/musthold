@@ -8,7 +8,7 @@ import (
 	"go/token"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 )
 
 // ErrSyntax is returned for a source that does not parse.

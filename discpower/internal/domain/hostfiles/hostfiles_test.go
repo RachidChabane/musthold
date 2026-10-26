@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostfiles"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostharness"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/hostfiles"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/hostharness"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // update rewrites the committed trees from the generator.
@@ -110,7 +110,7 @@ func TestCommittedFilesAreGenerated(t *testing.T) {
 }
 
 func TestTheModulesOwnFiles(t *testing.T) {
-	t.Run("the plugin is spec-proof-dp with its three executor agents, its server and its skill [verifies SP-242~1]", func(t *testing.T) {
+	t.Run("the plugin is musthold-dp with its three executor agents, its server and its skill [verifies SP-242~1]", func(t *testing.T) {
 		files := generated(t, hostharness.Claude())
 		var paths []string
 		for path := range files {
@@ -119,24 +119,24 @@ func TestTheModulesOwnFiles(t *testing.T) {
 		slices.Sort(paths)
 		want := []string{
 			".claude-plugin/plugin.json", ".mcp.json", "agents/decider.md", "agents/generator.md", "agents/judge.md",
-			"hooks/hooks.json", "hooks/register.ts", "skills/spec-proof-dp-fulfil/SKILL.md",
+			"hooks/hooks.json", "hooks/register.ts", "skills/musthold-dp-fulfil/SKILL.md",
 		}
 		if !slices.Equal(paths, want) {
 			t.Fatalf("files = %v", paths)
 		}
 		for _, agent := range hostproto.Agents() {
 			agentFile := files["agents/"+string(agent)+".md"]
-			if !strings.Contains(agentFile, "tools: mcp__plugin_spec-proof-dp_exec__fetch_request, mcp__plugin_spec-proof-dp_exec__submit_response\n") {
+			if !strings.Contains(agentFile, "tools: mcp__plugin_musthold-dp_exec__fetch_request, mcp__plugin_musthold-dp_exec__submit_response\n") {
 				t.Errorf("%s: %s", agent, agentFile)
 			}
 		}
-		if !strings.Contains(files[".mcp.json"], `"command": "spec-proof-dp"`) || !strings.Contains(files["skills/spec-proof-dp-fulfil/SKILL.md"], "spec-proof-s1 drain --module dp") {
-			t.Fatalf("server or skill: %s %s", files[".mcp.json"], files["skills/spec-proof-dp-fulfil/SKILL.md"])
+		if !strings.Contains(files[".mcp.json"], `"command": "musthold-dp"`) || !strings.Contains(files["skills/musthold-dp-fulfil/SKILL.md"], "musthold-s1 drain --module dp") {
+			t.Fatalf("server or skill: %s %s", files[".mcp.json"], files["skills/musthold-dp-fulfil/SKILL.md"])
 		}
 	})
 
 	t.Run("Codex and Copilot ship an agent file per executor agent of the module [verifies SP-242~1]", func(t *testing.T) {
-		for flag, prefix := range map[string]string{hostharness.FlagCodex: ".codex/agents/spec-proof-dp-", hostharness.FlagCopilot: ".github/agents/spec-proof-dp-"} {
+		for flag, prefix := range map[string]string{hostharness.FlagCodex: ".codex/agents/musthold-dp-", hostharness.FlagCopilot: ".github/agents/musthold-dp-"} {
 			harness, err := hostharness.ByFlag(flag)
 			if err != nil {
 				t.Fatal(err)

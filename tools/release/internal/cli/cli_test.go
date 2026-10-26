@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/cli"
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/cli"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
 )
 
 const (
@@ -127,9 +127,9 @@ func TestPlanVerb(t *testing.T) {
 			t.Fatalf("code %d", code)
 		}
 		for _, want := range []string{
-			"module=alignment\n", "kind=binary+plugin\n", "binary=spec-proof-alignment\n", "semver=1.2.3-rc.1\n",
+			"module=alignment\n", "kind=binary+plugin\n", "binary=musthold-alignment\n", "semver=1.2.3-rc.1\n",
 			"ships_binary=true\n", "ships_plugin=true\n", "ci_modules=format alignment\n",
-			"certificate_identity=https://github.com/RachidChabane/spec-proof/.github/workflows/release.yml@refs/tags/alignment/v1.2.3-rc.1\n",
+			"certificate_identity=https://github.com/RachidChabane/musthold/.github/workflows/release.yml@refs/tags/alignment/v1.2.3-rc.1\n",
 		} {
 			if !strings.Contains(stdout, want) {
 				t.Errorf("plan lacks %q:\n%s", want, stdout)

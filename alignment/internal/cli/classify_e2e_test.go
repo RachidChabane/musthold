@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/cli"
-	"github.com/RachidChabane/spec-proof/alignment/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/alignment/internal/cli"
+	"github.com/RachidChabane/musthold/alignment/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
@@ -59,7 +59,7 @@ func (h *harness) classifyHonestly(answers hostprototest.AnswerSource) []hostpro
 func (h *harness) witnessing() {
 	h.t.Helper()
 	dir := filepath.Join(h.t.TempDir(), "bodies")
-	h.write(".spec-proof/config.yaml", "host:\n  classify:\n    witness_dir: "+dir+"\n")
+	h.write(".musthold/config.yaml", "host:\n  classify:\n    witness_dir: "+dir+"\n")
 	h.rawLog = hostprototest.NewRawAPILog(h.t, dir, h.now)
 }
 

@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
+	"github.com/RachidChabane/musthold/discpower/internal/cli"
 )
 
 const (
 	verifiesHelp       = " [verifies SP-1610~1]"
-	helpBinary         = "spec-proof-dp"
+	helpBinary         = "musthold-dp"
 	helpRequestedError = "help requested"
 	undefinedFlagError = "flag provided but not defined: -zz-undefined"
 )

@@ -9,7 +9,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/_lib"
 "$(dirname "${BASH_SOURCE[0]}")/lint"
 "$(dirname "${BASH_SOURCE[0]}")/test" "$@"
 "$(dirname "${BASH_SOURCE[0]}")/site" --fixtures --check
-if [[ -x "${REPO_ROOT}/.tools/bin/spec-proof-completeness" && -x "${REPO_ROOT}/.tools/bin/shallnot" ]]; then
+if [[ -x "${REPO_ROOT}/.tools/bin/musthold-completeness" && -x "${REPO_ROOT}/.tools/bin/shallnot" ]]; then
   "${REPO_ROOT}/script/regen-bench-recordings" --check
 else
   echo "check: the product is not built; skipping the parcel recordings check (run script/product-build)" >&2

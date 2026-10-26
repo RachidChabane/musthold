@@ -24,10 +24,10 @@
     "Bash(pytest *)",
     "Bash(python3 -m pytest *)",
     "Bash(shallnot *)",
-    "Bash(spec-proof-dp *)",
-    "Bash(spec-proof-alignment *)",
-    "Bash(spec-proof-completeness *)",
-    "Bash(spec-proof-verify *)",
+    "Bash(musthold-dp *)",
+    "Bash(musthold-alignment *)",
+    "Bash(musthold-completeness *)",
+    "Bash(musthold-verify *)",
     "Bash(git status *)",
     "Bash(git diff *)"
   ]

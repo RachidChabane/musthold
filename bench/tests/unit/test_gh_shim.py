@@ -9,7 +9,7 @@ from support.product_world import REPOSITORY
 
 SHIM = REPOSITORY / GH_SHIM_DIRECTORY / "gh"
 RUN = "bench-0123456789abcdef"
-ARTIFACT = "spec-proof-host-discpower"
+ARTIFACT = "musthold-host-discpower"
 EXIT_REFUSED = 2
 EXIT_MISSING = 1
 
@@ -62,7 +62,7 @@ def test_the_repository_flag_is_accepted_and_ignored(tmp_path: Path) -> None:
 def test_an_artifact_the_bench_did_not_stage_is_missing(tmp_path: Path) -> None:
     artifacts = stage(tmp_path / "artifacts")
     done = gh(
-        "run", "download", RUN, "--name", "spec-proof-host-alignment", "--dir", str(tmp_path / "d"), artifacts=artifacts
+        "run", "download", RUN, "--name", "musthold-host-alignment", "--dir", str(tmp_path / "d"), artifacts=artifacts
     )
     assert done.returncode == EXIT_MISSING
     assert "no artifact" in done.stderr

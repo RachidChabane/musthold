@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/discpower/internal/cli"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
@@ -20,14 +20,14 @@ const (
 	fixtureReport     = "../../fixtures/prove/parcel-report.json"
 	fixtureShallnot   = "../../fixtures/prove/shallnot-recorded.sh"
 	reportVariable    = "SHALLNOT_RECORDED_REPORT"
-	shallnotVariable  = "SPEC_PROOF_SHALLNOT"
+	shallnotVariable  = "MUSTHOLD_SHALLNOT"
 	stateVariable     = "XDG_STATE_HOME"
 	cacheVariable     = "XDG_CACHE_HOME"
 	maxWavesPerDrive  = 16
 	directoryMode     = 0o755
 	fileMode          = 0o644
-	binaryName        = "spec-proof-dp"
-	statementsPattern = ".spec-proof/cache/discriminating-power"
+	binaryName        = "musthold-dp"
+	statementsPattern = ".musthold/cache/discriminating-power"
 )
 
 // harness runs the command line in process against a copy of the parcel project,
@@ -125,7 +125,7 @@ func (h *harness) env(stdin []byte) (cli.Env, *bytes.Buffer, *bytes.Buffer) {
 			if value, found := variables[name]; found {
 				return value, true
 			}
-			if strings.HasPrefix(name, "SPEC_PROOF_CI_") {
+			if strings.HasPrefix(name, "MUSTHOLD_CI_") {
 				return os.LookupEnv(name)
 			}
 			return "", false

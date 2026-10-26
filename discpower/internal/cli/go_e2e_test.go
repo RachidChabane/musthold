@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/discpower/internal/cli"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 )
 
 // goConfig is the project configuration of the Go fixture, relative to its root.
-const goConfig = ".spec-proof/config.yaml"
+const goConfig = ".musthold/config.yaml"
 
 // newGoHarness copies the Go fixture project, which binds its three operations.
 func newGoHarness(t *testing.T) *harness {

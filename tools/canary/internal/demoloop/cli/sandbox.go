@@ -6,10 +6,10 @@ import (
 	"net"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/container"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/egress"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/entry"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/probe"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/container"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/egress"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/entry"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/probe"
 )
 
 // listFlag gathers the values of a repeated flag.

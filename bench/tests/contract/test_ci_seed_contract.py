@@ -21,8 +21,8 @@ pytestmark = [
 ]
 
 DIGESTS = ("00" * 32, "ab" * 32, "9f3c" * 16)
-DP_BINARY = BINARIES / "spec-proof-dp"
-SEED_DIRECTORY = ".spec-proof/seeds"
+DP_BINARY = BINARIES / "musthold-dp"
+SEED_DIRECTORY = ".musthold/seeds"
 
 
 def drawn_seed(root: Path, run_id: str, runner: SubprocessRunner) -> tuple[str, int]:
@@ -37,8 +37,8 @@ def drawn_seed(root: Path, run_id: str, runner: SubprocessRunner) -> tuple[str, 
         "XDG_STATE_HOME": str(root / "state"),
         "XDG_CACHE_HOME": str(root / "cache"),
         "PATH": f"{BINARIES}{os.pathsep}{os.environ['PATH']}",
-        "SPEC_PROOF_SHALLNOT": str(BINARIES / "shallnot"),
-        "SPEC_PROOF_CI_RUN_ID": run_id,
+        "MUSTHOLD_SHALLNOT": str(BINARIES / "shallnot"),
+        "MUSTHOLD_CI_RUN_ID": run_id,
     }
     assert (
         runner.run([str(BINARIES / "shallnot"), "init", "--dir", str(tree), "--hooks", "none"], tree, env).returncode

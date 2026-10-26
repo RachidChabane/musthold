@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/pluginfiles"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/pluginfiles"
 )
 
 const (
@@ -24,7 +24,7 @@ func TestModuleNames(t *testing.T) {
 	for _, s := range samples() {
 		t.Run(s.name+": the names derive from the binary and the plugin"+verifiesShipped, func(t *testing.T) {
 			module := s.module
-			relay := strings.TrimPrefix(module.Binary, "spec-proof-")
+			relay := strings.TrimPrefix(module.Binary, "musthold-")
 			if module.Plugin() != module.Identity.Plugin || module.SkillName() != module.Plugin()+"-fulfil" ||
 				module.RelayName() != relay || module.HookCommandMarker() != module.Binary+" hook " {
 				t.Errorf("names = %q, %q, %q, %q", module.Plugin(), module.SkillName(), module.RelayName(), module.HookCommandMarker())
@@ -172,7 +172,7 @@ func TestClaudePlugin(t *testing.T) {
 			allowed, _ := members["allowed-tools"].(string)
 			for _, rule := range []string{
 				"Bash(" + module.Binary + " prove *)", "Bash(" + module.Binary + " request list --session prove)", "Bash(" + pluginfiles.RelayBinary + " drain *)",
-				"Bash(spec-proof-verify --accept-local .spec-proof/cache --out .spec-proof/verified)",
+				"Bash(musthold-verify --accept-local .musthold/cache --out .musthold/verified)",
 			} {
 				if !strings.Contains(allowed, rule) {
 					t.Errorf("allowed-tools lacks %s: %q", rule, allowed)

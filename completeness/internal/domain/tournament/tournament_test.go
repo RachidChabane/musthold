@@ -7,8 +7,8 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/blind"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/tournament"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/blind"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/tournament"
 )
 
 func options(count int) []string {

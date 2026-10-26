@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/app"
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/app"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
 )
 
 const (

@@ -10,10 +10,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/hostfiles"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/hostharness"
-	"github.com/RachidChabane/spec-proof/format"
-	shared "github.com/RachidChabane/spec-proof/format/hostproto/hostinstall"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/hostfiles"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/hostharness"
+	"github.com/RachidChabane/musthold/format"
+	shared "github.com/RachidChabane/musthold/format/hostproto/hostinstall"
 )
 
 // Permissions of what the installer writes.
@@ -28,7 +28,7 @@ type (
 	Change = shared.Change
 	// Action is one file in the state the installer wants.
 	Action = shared.Action
-	// ConfigSeed is the content of a new `.spec-proof/config.yaml`.
+	// ConfigSeed is the content of a new `.musthold/config.yaml`.
 	ConfigSeed = shared.ConfigSeed
 )
 

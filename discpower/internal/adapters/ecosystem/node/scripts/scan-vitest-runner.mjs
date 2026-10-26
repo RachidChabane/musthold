@@ -1,6 +1,6 @@
 // The test runner of a scan's Vitest runs, in the one fork the run uses. It
 // extends Vitest's runner, or the project's own runner when
-// SPEC_PROOF_SCAN_VITEST_RUNNER names it, to:
+// MUSTHOLD_SCAN_VITEST_RUNNER names it, to:
 //   - keep the selected tests alone, skipping every other one once collected;
 //   - open the window of a test recorded alone before its first beforeEach
 //     hook and close it when its test function settles;
@@ -16,8 +16,8 @@ import { pathToFileURL } from 'node:url';
 const require = createRequire(import.meta.url);
 const agent = require('./scan-agent.cjs');
 
-const ROOT_VARIABLE = 'SPEC_PROOF_SCAN_ROOT';
-const RUNNER_VARIABLE = 'SPEC_PROOF_SCAN_VITEST_RUNNER';
+const ROOT_VARIABLE = 'MUSTHOLD_SCAN_ROOT';
+const RUNNER_VARIABLE = 'MUSTHOLD_SCAN_VITEST_RUNNER';
 const RUNNER = 'vitest';
 const ID_SEPARATOR = '::';
 const TITLE_SEPARATOR = ' > ';

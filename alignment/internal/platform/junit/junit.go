@@ -13,7 +13,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/platform/testname"
+	"github.com/RachidChabane/musthold/alignment/internal/platform/testname"
 )
 
 // Kind tells how a test method is run.

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
+	"github.com/RachidChabane/musthold/discpower/internal/cli"
 )
 
 const (
@@ -30,12 +30,12 @@ func TestInstallCommands(t *testing.T) {
 	t.Run("init in the parcel project installs the harness files and enables nothing [verifies SP-243~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		writeFile(t, filepath.Join(f.root, "shallnot.yaml"), shallnotYAML)
-		before := readFile(t, filepath.Join(f.root, ".spec-proof", "config.yaml"))
+		before := readFile(t, filepath.Join(f.root, ".musthold", "config.yaml"))
 		code, stdout, stderr := f.run(nil, "init", "--hooks", "claude,codex")
 		if code != cli.ExitClean {
 			t.Fatalf("exit %d: %s%s", code, stdout, stderr)
 		}
-		for _, want := range []string{"unchanged .spec-proof/config.yaml", "create    .codex/agents/spec-proof-dp-judge.toml", "create    .claude/settings.json", "create    .codex/config.toml", "next: "} {
+		for _, want := range []string{"unchanged .musthold/config.yaml", "create    .codex/agents/musthold-dp-judge.toml", "create    .claude/settings.json", "create    .codex/config.toml", "next: "} {
 			if !strings.Contains(stdout, want) {
 				t.Errorf("output lacks %q:\n%s", want, stdout)
 			}
@@ -43,7 +43,7 @@ func TestInstallCommands(t *testing.T) {
 		if got := readFile(t, filepath.Join(f.root, "shallnot.yaml")); got != shallnotYAML {
 			t.Errorf("shallnot.yaml changed: %q", got)
 		}
-		config := readFile(t, filepath.Join(f.root, ".spec-proof", "config.yaml"))
+		config := readFile(t, filepath.Join(f.root, ".musthold", "config.yaml"))
 		if !strings.Contains(config, "discriminating-power: true") || config != before {
 			t.Errorf("an existing configuration was changed: %q", config)
 		}
@@ -105,7 +105,7 @@ func TestInstallCommands(t *testing.T) {
 		if got := readFile(t, filepath.Join(f.root, "shallnot.yaml")); got != shallnotYAML+"proofs:\n  require:\n    - discriminating-power\n  trust: local\n  code:\n    - parcel\n" {
 			t.Errorf("shallnot.yaml = %q", got)
 		}
-		if got := readFile(t, filepath.Join(f.root, "AGENTS.md")); !strings.Contains(got, "spec-proof-dp prove --changed") {
+		if got := readFile(t, filepath.Join(f.root, "AGENTS.md")); !strings.Contains(got, "musthold-dp prove --changed") {
 			t.Errorf("AGENTS.md = %q", got)
 		}
 		if code, _, stderr := f.run(nil, "disable"); code != cli.ExitClean {

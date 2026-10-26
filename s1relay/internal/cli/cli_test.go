@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/cli"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/version"
+	"github.com/RachidChabane/musthold/s1relay/internal/cli"
+	"github.com/RachidChabane/musthold/s1relay/internal/version"
 )
 
-const binary = "spec-proof-s1"
+const binary = "musthold-s1"
 
 func TestMain(t *testing.T) {
 	cases := []struct {
@@ -17,7 +17,7 @@ func TestMain(t *testing.T) {
 		wantCode   int
 		wantStdout string
 	}{
-		{"spec-proof-s1 prints its version", []string{"version"}, cli.ExitClean, binary + " " + version.Version + "\n"},
+		{"musthold-s1 prints its version", []string{"version"}, cli.ExitClean, binary + " " + version.Version + "\n"},
 		{"no argument is a tool failure", nil, cli.ExitToolFailure, ""},
 		{"an unknown argument is a tool failure", []string{"frobnicate"}, cli.ExitToolFailure, ""},
 	}

@@ -9,11 +9,11 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/masking"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/prompt"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/masking"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/prompt"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 const (
@@ -204,8 +204,8 @@ func TestRequestIdentity(t *testing.T) {
 	requestID := func(t *testing.T, built prompt.Built) hostproto.RequestID {
 		t.Helper()
 		request := hostproto.Request{
-			Type: hostproto.RequestType, Module: format.Module{Name: "spec-proof-alignment", Version: "1"}, Kind: hostproto.KindJudgeAlignment,
-			Role: hostproto.RoleFor("spec-proof-alignment", hostproto.AgentJudge), Shape: hostproto.ShapeOpen,
+			Type: hostproto.RequestType, Module: format.Module{Name: "musthold-alignment", Version: "1"}, Kind: hostproto.KindJudgeAlignment,
+			Role: hostproto.RoleFor("musthold-alignment", hostproto.AgentJudge), Shape: hostproto.ShapeOpen,
 			Prompt: built.Prompt, ResponseSchema: built.Schema, Limits: hostproto.Limits{MaxOutputBytes: hostproto.MaxOutputBytes},
 			Inputs: nil, CacheKey: strings.Repeat("a", 64),
 		}

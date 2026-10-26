@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // Vectors are the golden vectors of the host protocol: the results every
@@ -73,14 +73,14 @@ var hookPayloads = []struct {
 	kind    hostproto.HookKind
 	payload string
 }{
-	{hostproto.HarnessClaudeCode, hostproto.HookPreTool, `{"session_id":"s1","hook_event_name":"PreToolUse","tool_name":"Agent","tool_input":{"subagent_type":"spec-proof-dp:judge","description":"judge","prompt":"ticket x","model":"haiku"},"tool_use_id":"toolu_1"}`},
-	{hostproto.HarnessClaudeCode, hostproto.HookPreTool, `{"hook_event_name":"PreToolUse","tool_name":"mcp__plugin_spec-proof-dp_exec__fetch_request","tool_input":{"ticket":"t","cap":""},"agent_id":"agent-0001","agent_type":"spec-proof-dp:judge"}`},
-	{hostproto.HarnessClaudeCode, hostproto.HookSubagentStart, `{"hook_event_name":"SubagentStart","session_id":"s1","agent_id":"agent-0001","agent_type":"spec-proof-dp:judge"}`},
-	{hostproto.HarnessClaudeCode, hostproto.HookSubagentStop, `{"hook_event_name":"SubagentStop","agent_id":"agent-0001","agent_type":"spec-proof-dp:judge","agent_transcript_path":"/s/subagents/agent-0001.jsonl","last_assistant_message":"receipt"}`},
+	{hostproto.HarnessClaudeCode, hostproto.HookPreTool, `{"session_id":"s1","hook_event_name":"PreToolUse","tool_name":"Agent","tool_input":{"subagent_type":"musthold-dp:judge","description":"judge","prompt":"ticket x","model":"haiku"},"tool_use_id":"toolu_1"}`},
+	{hostproto.HarnessClaudeCode, hostproto.HookPreTool, `{"hook_event_name":"PreToolUse","tool_name":"mcp__plugin_musthold-dp_exec__fetch_request","tool_input":{"ticket":"t","cap":""},"agent_id":"agent-0001","agent_type":"musthold-dp:judge"}`},
+	{hostproto.HarnessClaudeCode, hostproto.HookSubagentStart, `{"hook_event_name":"SubagentStart","session_id":"s1","agent_id":"agent-0001","agent_type":"musthold-dp:judge"}`},
+	{hostproto.HarnessClaudeCode, hostproto.HookSubagentStop, `{"hook_event_name":"SubagentStop","agent_id":"agent-0001","agent_type":"musthold-dp:judge","agent_transcript_path":"/s/subagents/agent-0001.jsonl","last_assistant_message":"receipt"}`},
 	{hostproto.HarnessClaudeCode, hostproto.HookPostTool, `{"hook_event_name":"PostToolUse","tool_name":"Agent","tool_response":{"status":"completed","resolvedModel":"claude-sonnet-5-5","totalTokens":10,"usage":{"input_tokens":6,"output_tokens":4}}}`},
 	{hostproto.HarnessCodex, hostproto.HookPreTool, `{"session_id":"thr_1","hook_event_name":"PreToolUse","turn_id":"turn_4","tool_name":"mcp__exec__fetch_request","tool_use_id":"call_7","tool_input":{"ticket":"t"}}`},
 	{hostproto.HarnessCodex, hostproto.HookSubagentStop, `{"hook_event_name":"SubagentStop","agent_id":"agent_xyz","agent_type":"code_review","agent_transcript_path":"/p/t.jsonl","last_assistant_message":"done"}`},
-	{hostproto.HarnessCopilot, hostproto.HookPreTool, `{"sessionId":"s","timestamp":1,"toolName":"spec-proof-dp-exec/fetch_request","toolArgs":"{\"ticket\":\"t\"}"}`},
+	{hostproto.HarnessCopilot, hostproto.HookPreTool, `{"sessionId":"s","timestamp":1,"toolName":"musthold-dp-exec/fetch_request","toolArgs":"{\"ticket\":\"t\"}"}`},
 	{hostproto.HarnessCopilot, hostproto.HookSubagentStop, `{"sessionId":"s","transcriptPath":"/t.jsonl","agentId":"a1","agentType":"x:judge","response":"receipt"}`},
 }
 

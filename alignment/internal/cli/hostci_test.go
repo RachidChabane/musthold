@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/cli"
-	"github.com/RachidChabane/spec-proof/alignment/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
+	"github.com/RachidChabane/musthold/alignment/internal/cli"
+	"github.com/RachidChabane/musthold/alignment/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbundle"
 )
 
 const (
@@ -17,7 +17,7 @@ const (
 	maxCIRounds    = 8
 	ciFlag         = "--ci"
 	importFlag     = "--import-host"
-	issuedRelative = ".spec-proof/ci-issued/alignment"
+	issuedRelative = ".musthold/ci-issued/alignment"
 	issuedDocument = "issued.json"
 )
 

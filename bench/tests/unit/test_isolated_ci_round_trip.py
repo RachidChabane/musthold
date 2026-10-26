@@ -105,7 +105,7 @@ class RecordingSession:
             "plugins": [],
             "mcp_servers": [],
         }
-        plugins = [{"name": "spec-proof"}, {"name": DP.plugin}]
+        plugins = [{"name": "musthold"}, {"name": DP.plugin}]
         on_event(json.dumps({**init, "plugins": plugins, "mcp_servers": [{"name": DP.server, "status": "connected"}]}))
         result = {"type": "result", "subtype": "success", "is_error": False, "session_id": SESSION_ID, "result": "done"}
         if self.finishes:
@@ -197,7 +197,7 @@ def test_the_pull_sees_the_staged_artifact_through_the_shim_and_the_session_neve
     assert argv[3:5] == ["--ci-run", RUN_ID]
     assert pull_env is not None
     assert pull_env["PATH"].startswith(SHIM + ":")
-    staged = Path(pull_env[ARTIFACTS_ENV]) / RUN_ID / "spec-proof-host-discpower"
+    staged = Path(pull_env[ARTIFACTS_ENV]) / RUN_ID / "musthold-host-discpower"
     assert (staged / "issued.json").is_file()
     assert Path(pull_env[ARTIFACTS_ENV]) == r.area.root / ARTIFACTS_DIRECTORY
     [spec] = r.session.specs

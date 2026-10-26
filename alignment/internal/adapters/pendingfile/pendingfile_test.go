@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/pendingfile"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/pendingfile"
+	"github.com/RachidChabane/musthold/format"
 )
 
 const module = "alignment"
@@ -25,7 +25,7 @@ func TestDirectory(t *testing.T) {
 		if err := directory.Write(want); err != nil {
 			t.Fatal(err)
 		}
-		content, err := os.ReadFile(filepath.Join(directory.Root, ".spec-proof", "pending", "alignment.json"))
+		content, err := os.ReadFile(filepath.Join(directory.Root, ".musthold", "pending", "alignment.json"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -68,14 +68,14 @@ func TestDirectory(t *testing.T) {
 		if err := directory.Write(pending(format.PendingEntry{Criterion: "PAR-1", Reason: format.PendingAwaitingHost})); err == nil {
 			t.Fatal("a criterion without a revision was written")
 		}
-		if _, err := os.Stat(filepath.Join(directory.Root, ".spec-proof")); err == nil {
+		if _, err := os.Stat(filepath.Join(directory.Root, ".musthold")); err == nil {
 			t.Fatal("a refused file left a directory behind")
 		}
 	})
 
 	t.Run("a file that is not a pending file is a read error [verifies SP-333~1]", func(t *testing.T) {
 		directory := pendingfile.Directory{Root: t.TempDir()}
-		path := filepath.Join(directory.Root, ".spec-proof", "pending", "discpower.json")
+		path := filepath.Join(directory.Root, ".musthold", "pending", "discpower.json")
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)
 		}

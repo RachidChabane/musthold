@@ -1,4 +1,4 @@
-# Alignment (`spec-proof-alignment`)
+# Alignment (`musthold-alignment`)
 
 Alignment answers one question per test and requirement: does this test verify
 what the requirement states? A test can run, pass and carry the right tag while
@@ -88,8 +88,8 @@ discriminating-power module still waits for the requirement, the test is listed 
 | 2 | tool failure or usage error |
 | 3 | tickets wait for the host |
 
-The pending file `.spec-proof/pending/alignment.json` lists tests that wait as
-`awaiting_host`, `awaiting_proof` or `host_unresponsive`; `spec-proof-verify` folds
+The pending file `.musthold/pending/alignment.json` lists tests that wait as
+`awaiting_host`, `awaiting_proof` or `host_unresponsive`; `musthold-verify` folds
 it into the manifest Shallnot reads.
 
 ## Languages
@@ -103,18 +103,18 @@ runner reports, including display names, parametrized and repeated expansions, a
 
 | Role | Writes |
 |---|---|
-| `spec-proof-alignment:judge` | the criterion a masked test verifies, with its coverage |
-| `spec-proof-alignment:decider` | answers to closed questions when no System One endpoint answers (`decide_k` votes) |
+| `musthold-alignment:judge` | the criterion a masked test verifies, with its coverage |
+| `musthold-alignment:decider` | answers to closed questions when no System One endpoint answers (`decide_k` votes) |
 
 ## Configuration
 
-Policy lives in `.spec-proof/alignment.yaml`; the proof is switched on in
-`.spec-proof/config.yaml`. See [configuration](configuration.md#spec-proofalignmentyaml).
+Policy lives in `.musthold/alignment.yaml`; the proof is switched on in
+`.musthold/config.yaml`. See [configuration](configuration.md#mustholdalignmentyaml).
 
 ## Files
 
 | Path | Content |
 |---|---|
-| `.spec-proof/cache/alignment/<ID>~<REV>/<cacheKey>.json` | the module's Statements |
-| `.spec-proof/pending/alignment.json` | requests awaited |
-| `$XDG_STATE_HOME/spec-proof/alignment/<repo-digest>/host/` | tickets, responses, journal, secret |
+| `.musthold/cache/alignment/<ID>~<REV>/<cacheKey>.json` | the module's Statements |
+| `.musthold/pending/alignment.json` | requests awaited |
+| `$XDG_STATE_HOME/musthold/alignment/<repo-digest>/host/` | tickets, responses, journal, secret |

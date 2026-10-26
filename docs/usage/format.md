@@ -5,7 +5,7 @@ only contract between the modules and the gate, and the host protocol every proo
 module speaks. A module reads and writes proofs through it; you read this page when
 you consume a proof file or write a module.
 
-Module path: `github.com/RachidChabane/spec-proof/format`.
+Module path: `github.com/RachidChabane/musthold/format`.
 
 ## Statements
 
@@ -62,7 +62,7 @@ them.
 
 ## Scan statements
 
-`spec-proof scan` records what it ran in a scan statement: an in-toto Statement v1
+`musthold scan` records what it ran in a scan statement: an in-toto Statement v1
 with the predicate type `https://rachid-chabane.com/attestations/scan/v1`
 ([ADR 0014](../adr/0014-scan.md)). It is not a proof. It has no `requirement`, its
 subject is the scanned commit with the file-set digest of its tree, and every
@@ -103,7 +103,7 @@ The subject key is the subject name with `%`, `/` and `\` percent-encoded.
 
 ## Pending files
 
-A module's pending file is `.spec-proof/pending/<module>.json`: a module name and
+A module's pending file is `.musthold/pending/<module>.json`: a module name and
 entries, each a requirement `ID~REV` with a reason of the closed set
 `awaiting_host`, `awaiting_proof`, `awaiting_host_judgment`, `host_unresponsive`,
 strictly ascending. See [troubleshooting](troubleshooting.md#pending-reasons).

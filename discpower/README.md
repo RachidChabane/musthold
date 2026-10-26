@@ -1,4 +1,4 @@
-# discpower (`spec-proof-dp`)
+# discpower (`musthold-dp`)
 
 Discriminating power: do the tests bound to a requirement fail on code that
 violates it? The module builds mutants of the code a requirement depends on, runs
@@ -15,24 +15,24 @@ and execution decides.
 ## Install
 
 ```
-nice -n 10 go install -C discpower -p 1 ./cmd/spec-proof-dp
+nice -n 10 go install -C discpower -p 1 ./cmd/musthold-dp
 ```
 
 Run from the repository root; the binary lands in `$GOBIN`, or
 `$(go env GOPATH)/bin`. In Claude Code, install the plugin with
-`/plugin marketplace add RachidChabane/spec-proof` and
-`/plugin install spec-proof-dp@spec-proof`.
+`/plugin marketplace add RachidChabane/musthold` and
+`/plugin install musthold-dp@musthold`.
 
 ## Commands
 
 ```
-spec-proof-dp init
-spec-proof-dp enable
-spec-proof-dp prove --changed
-spec-proof-dp request list --session prove
-spec-proof-dp prove --resume
-spec-proof-dp doctor
-spec-proof-dp scan
+musthold-dp init
+musthold-dp enable
+musthold-dp prove --changed
+musthold-dp request list --session prove
+musthold-dp prove --resume
+musthold-dp doctor
+musthold-dp scan
 ```
 
 `prove` exits 3 while tickets wait for the host. `scan` needs no spec and no

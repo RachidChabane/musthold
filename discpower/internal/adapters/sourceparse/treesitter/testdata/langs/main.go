@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/treesitter"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/sourceparse/treesitter"
 )
 
 type sample struct {

@@ -3,10 +3,10 @@
 package modules
 
 import (
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostinstall"
-	"github.com/RachidChabane/spec-proof/format/hostproto/pluginfiles"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/hostinstall"
+	"github.com/RachidChabane/musthold/format/hostproto/pluginfiles"
 )
 
 // Grammar build tags of the modules that parse several languages; the end-to-end
@@ -66,9 +66,9 @@ func (m Module) PluginDir(harnessFlag string) string {
 // All lists the modules whose plugins a session loads, the primary one first.
 func All() []Module {
 	return []Module{
-		{Dir: "discpower", Binary: "spec-proof-dp", Plugin: "spec-proof-dp", Agents: hostproto.Agents(), Subject: "discriminating power", Required: true},
-		{Dir: "alignment", Binary: "spec-proof-alignment", Plugin: "spec-proof-alignment", Agents: []hostproto.Agent{hostproto.AgentJudge, hostproto.AgentDecider}, BuildTags: grammarSubsetTags, Subject: "alignment", Required: true},
-		{Dir: "completeness", Binary: "spec-proof-completeness", Plugin: "spec-proof-completeness", Agents: []hostproto.Agent{hostproto.AgentDecider}, BuildTags: grammarSubsetTags, Subject: "completeness"},
+		{Dir: "discpower", Binary: "musthold-dp", Plugin: "musthold-dp", Agents: hostproto.Agents(), Subject: "discriminating power", Required: true},
+		{Dir: "alignment", Binary: "musthold-alignment", Plugin: "musthold-alignment", Agents: []hostproto.Agent{hostproto.AgentJudge, hostproto.AgentDecider}, BuildTags: grammarSubsetTags, Subject: "alignment", Required: true},
+		{Dir: "completeness", Binary: "musthold-completeness", Plugin: "musthold-completeness", Agents: []hostproto.Agent{hostproto.AgentDecider}, BuildTags: grammarSubsetTags, Subject: "completeness"},
 	}
 }
 

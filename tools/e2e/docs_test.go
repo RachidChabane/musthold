@@ -293,7 +293,7 @@ func TestDocumentedCommandsExist(t *testing.T) {
 		invocations = append(invocations, invocationsOf(t, root, document)...)
 	}
 	if len(invocations) == 0 {
-		t.Fatal("the documentation shows no command of a spec-proof binary")
+		t.Fatal("the documentation shows no command of a musthold binary")
 	}
 
 	t.Run("every command and verb the documentation names exists in the binary"+verifiesDocumentedCommands, func(t *testing.T) {

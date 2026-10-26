@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/bundlefs"
-	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/bundlefs"
+	"github.com/RachidChabane/musthold/discpower/internal/cli"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbundle"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 // git runs the git binary for a test's own set-up and checks.
@@ -54,7 +54,7 @@ func TestHostPush(t *testing.T) {
 		ticket := f.emit(hostprototest.Request(), 0)
 		answerFromCLI(t, f, ticket)
 		code, stdout, stderr := f.run(nil, "host", "push")
-		if code != cli.ExitClean || !strings.Contains(stdout, "pushed refs/spec-proof/host/discpower/"+head+" 1 responses") {
+		if code != cli.ExitClean || !strings.Contains(stdout, "pushed refs/musthold/host/discpower/"+head+" 1 responses") {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
 		}
 		listing := git(t, f.root, "ls-tree", "-r", "--name-only", hostbundle.RefName("discpower", head))
@@ -209,7 +209,7 @@ func TestProveCIFlags(t *testing.T) {
 		}
 		commitProject(t, h.root)
 		code, _, stderr := h.run(nil, proveCommand, "--ci")
-		if code != cli.ExitBlocked || !strings.Contains(stderr, "SPEC_PROOF_CI_RUN_ID") {
+		if code != cli.ExitBlocked || !strings.Contains(stderr, "MUSTHOLD_CI_RUN_ID") {
 			t.Errorf("without a run: exit %d, %s", code, stderr)
 		}
 	})
@@ -217,7 +217,7 @@ func TestProveCIFlags(t *testing.T) {
 	t.Run("a bundle that is not one is refused [verifies SP-249~2]", func(t *testing.T) {
 		h := newHarness(t, "")
 		commitProject(t, h.root)
-		t.Setenv("SPEC_PROOF_CI_RUN_ID", "1001")
+		t.Setenv("MUSTHOLD_CI_RUN_ID", "1001")
 		if code, _, _ := h.run(nil, proveCommand, "--ci", "--import-host", t.TempDir()); code != cli.ExitBlocked {
 			t.Errorf("an empty directory exit = %d", code)
 		}

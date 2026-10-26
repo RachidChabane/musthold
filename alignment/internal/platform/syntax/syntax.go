@@ -7,7 +7,7 @@ import (
 
 	"github.com/odvcencio/gotreesitter"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/platform/textedit"
+	"github.com/RachidChabane/musthold/alignment/internal/platform/textedit"
 )
 
 // Tree is a parsed source file. The grammar recovers from syntax errors, so a

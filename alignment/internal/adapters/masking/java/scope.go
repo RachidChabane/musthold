@@ -6,10 +6,10 @@ import (
 
 	"github.com/odvcencio/gotreesitter"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/alignment/internal/platform/junit"
-	"github.com/RachidChabane/spec-proof/alignment/internal/platform/syntax"
+	"github.com/RachidChabane/musthold/alignment/internal/app/ports"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/alignment/internal/platform/junit"
+	"github.com/RachidChabane/musthold/alignment/internal/platform/syntax"
 )
 
 // memberKind tells what a member of a class is for the masker.

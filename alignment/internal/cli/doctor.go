@@ -6,11 +6,11 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/hostinstall"
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/shallnot"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/hostinstall"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/process"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/shallnot"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // Check results of `doctor`.

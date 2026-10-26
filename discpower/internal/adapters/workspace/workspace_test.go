@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/workspace"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/workspace"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 )
 
 const (

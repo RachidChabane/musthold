@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/testlabel"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/testlabel"
 )
 
 // marker is the word that opens a citation; the tests write it as `cites` so that

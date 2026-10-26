@@ -7,11 +7,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
-	"github.com/RachidChabane/spec-proof/discpower/internal/platform/witnesskit"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
+	"github.com/RachidChabane/musthold/discpower/internal/platform/witnesskit"
 )
 
 var _ ports.Witnessing = (*Strategy)(nil)
@@ -24,7 +24,7 @@ const (
 		"or with parameters that name fixtures of the project's conftest files. Assert with plain `assert` statements. " +
 		"Import the code under test by the module paths the interface names, and a helper of a test module by its module path. " +
 		"A property draws its inputs from `random.Random(<integer constant>)`, never from the global random state or the clock."
-	witnessFilePrefix   = "test_specproof_"
+	witnessFilePrefix   = "test_musthold_"
 	witnessDefaultDir   = "tests"
 	witnessTestPrefix   = "test_"
 	defKeyword          = "def"

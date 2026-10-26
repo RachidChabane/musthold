@@ -9,9 +9,9 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/pluginfiles"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/pluginfiles"
 )
 
 const (
@@ -39,16 +39,16 @@ type sample struct {
 func samples() []sample {
 	return []sample{
 		{name: "full", module: pluginfiles.Module{
-			Identity: harness.Identity{Plugin: "spec-proof-sample", Agents: hostproto.Agents()},
-			Binary:   "spec-proof-sample", Version: "0.1.0", Subject: "sample proof", ProofPhrase: "the sample proof",
+			Identity: harness.Identity{Plugin: "musthold-sample", Agents: hostproto.Agents()},
+			Binary:   "musthold-sample", Version: "0.1.0", Subject: "sample proof", ProofPhrase: "the sample proof",
 		}},
 		{name: "judge-and-decider", module: pluginfiles.Module{
-			Identity: harness.Identity{Plugin: "spec-proof-pair", Agents: []hostproto.Agent{hostproto.AgentJudge, hostproto.AgentDecider}},
-			Binary:   "spec-proof-pair", Version: "1.2.3", Subject: "pair proof", ProofPhrase: "the pair proof",
+			Identity: harness.Identity{Plugin: "musthold-pair", Agents: []hostproto.Agent{hostproto.AgentJudge, hostproto.AgentDecider}},
+			Binary:   "musthold-pair", Version: "1.2.3", Subject: "pair proof", ProofPhrase: "the pair proof",
 		}},
 		{name: "decider-only", module: pluginfiles.Module{
-			Identity: harness.Identity{Plugin: "spec-proof-solo", Agents: []hostproto.Agent{hostproto.AgentDecider}},
-			Binary:   "spec-proof-solo", Version: "2.0.1", Subject: "solo proof", ProofPhrase: "the solo proof",
+			Identity: harness.Identity{Plugin: "musthold-solo", Agents: []hostproto.Agent{hostproto.AgentDecider}},
+			Binary:   "musthold-solo", Version: "2.0.1", Subject: "solo proof", ProofPhrase: "the solo proof",
 		}},
 	}
 }

@@ -9,16 +9,16 @@
 #   script/install-night-jobs            install or reload the agents
 #   script/install-night-jobs --remove   unload and delete the agents
 #
-# The label prefix is local.<user>.spec-proof; override it with
+# The label prefix is local.<user>.musthold; override it with
 # NIGHT_JOBS_LABEL_PREFIX. PATH holds the directories where the tools resolve on
-# this machine; override it with NIGHT_JOBS_PATH. Logs go to ~/Library/Logs/spec-proof.
+# this machine; override it with NIGHT_JOBS_PATH. Logs go to ~/Library/Logs/musthold.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 readonly REPO="${PWD}"
 readonly AGENTS_DIR="${HOME}/Library/LaunchAgents"
-readonly LOG_DIR="${HOME}/Library/Logs/spec-proof"
-readonly LABEL_PREFIX="${NIGHT_JOBS_LABEL_PREFIX:-local.$(id -un).spec-proof}"
+readonly LOG_DIR="${HOME}/Library/Logs/musthold"
+readonly LABEL_PREFIX="${NIGHT_JOBS_LABEL_PREFIX:-local.$(id -un).musthold}"
 readonly DEFAULT_PATH="${MISE_DATA_DIR:-${HOME}/dev-env/1-tools}/shims:${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 # Tools the night jobs call that mise provides; their install directories go first
 # in PATH, because a shim without a global version does not resolve under launchd.

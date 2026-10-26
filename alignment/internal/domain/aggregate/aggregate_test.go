@@ -5,8 +5,8 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/aggregate"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/masking"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/aggregate"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/masking"
 )
 
 const (

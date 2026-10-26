@@ -6,8 +6,8 @@ package inspect
 import (
 	"errors"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/signing/sigstore"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/ledger/internal/adapters/signing/sigstore"
 )
 
 // ErrUnknownBundle is returned for a document that is neither of the two shapes.

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	canary "github.com/RachidChabane/spec-proof/tools/canary/internal/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/plan"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/record"
+	canary "github.com/RachidChabane/musthold/tools/canary/internal/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 )
 
 // Collector writes into the records what a session left behind.

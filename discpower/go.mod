@@ -1,4 +1,4 @@
-module github.com/RachidChabane/spec-proof/discpower
+module github.com/RachidChabane/musthold/discpower
 
 go 1.26.4
 
@@ -19,7 +19,7 @@ require (
 
 require (
 	filippo.io/hpke v0.4.0 // indirect
-	github.com/RachidChabane/spec-proof/format v0.1.0
+	github.com/RachidChabane/musthold/format v0.1.0
 	github.com/bitfield/gotestdox v0.2.2 // indirect
 	github.com/dnephin/pflag v1.0.7 // indirect
 	github.com/fatih/color v1.18.0 // indirect

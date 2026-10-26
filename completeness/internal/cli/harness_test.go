@@ -12,28 +12,28 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/hoststore"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/xdg"
-	"github.com/RachidChabane/spec-proof/completeness/internal/cli"
-	"github.com/RachidChabane/spec-proof/completeness/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/hoststore"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/xdg"
+	"github.com/RachidChabane/musthold/completeness/internal/cli"
+	"github.com/RachidChabane/musthold/completeness/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
 	reportVariable   = "SHALLNOT_RECORDED_REPORT"
-	shallnotVariable = "SPEC_PROOF_SHALLNOT"
+	shallnotVariable = "MUSTHOLD_SHALLNOT"
 	stateVariable    = "XDG_STATE_HOME"
 	cacheVariable    = "XDG_CACHE_HOME"
 	maxWavesPerDrive = 12
-	binaryName       = "spec-proof-completeness"
+	binaryName       = "musthold-completeness"
 	proveCommand     = "prove"
 	allFlag          = "--all"
 	changedFlag      = "--changed"
 	resumeFlag       = "--resume"
-	completenessDir  = ".spec-proof/cache/completeness"
-	configFile       = ".spec-proof/completeness.yaml"
+	completenessDir  = ".musthold/cache/completeness"
+	configFile       = ".musthold/completeness.yaml"
 	fileMode         = 0o644
 	directoryMode    = 0o755
 )
@@ -276,7 +276,7 @@ func (h *harness) mustStatement() format.Statement[format.Completeness] {
 // pendingFile reads the pending file of the module, empty when there is none.
 func (h *harness) pendingFile() format.Pending {
 	h.t.Helper()
-	content, err := os.ReadFile(filepath.Join(h.root, ".spec-proof", "pending", "completeness.json"))
+	content, err := os.ReadFile(filepath.Join(h.root, ".musthold", "pending", "completeness.json"))
 	if os.IsNotExist(err) {
 		return format.Pending{Module: "completeness"}
 	}

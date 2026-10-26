@@ -9,8 +9,8 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/platform/witnesskit"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/platform/witnesskit"
 )
 
 const (
@@ -223,7 +223,7 @@ func TestTestFiles(t *testing.T) {
 		"conftest.py":                    {},
 		"README.md":                      {},
 		".git/test_git.py":               {},
-		".spec-proof/test_state.py":      {},
+		".musthold/test_state.py":        {},
 		"build/test_built.py":            {},
 		"node_modules/pkg/test_dep.py":   {},
 		".venv/lib/test_venv.py":         {},
@@ -249,7 +249,7 @@ func TestTestFiles(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, file := range got {
-			for _, skipped := range []string{".git/", ".spec-proof/", "build/", "node_modules/", ".venv/"} {
+			for _, skipped := range []string{".git/", ".musthold/", "build/", "node_modules/", ".venv/"} {
 				if strings.HasPrefix(file, skipped) || strings.Contains(file, "/"+skipped) {
 					t.Errorf("%s is listed", file)
 				}

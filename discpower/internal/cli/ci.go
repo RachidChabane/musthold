@@ -6,23 +6,23 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/bundlefs"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ciseed"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/hostgit"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/responsecheck"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/prove"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/projectconfig"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostsync"
-	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/bundlefs"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ciseed"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/hostgit"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/process"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/responsecheck"
+	"github.com/RachidChabane/musthold/discpower/internal/app/prove"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/projectconfig"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbundle"
+	"github.com/RachidChabane/musthold/format/hostproto/hostsync"
+	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
 // Environment variables that name the CI run, in the order they are tried.
 const (
-	envRunID     = "SPEC_PROOF_CI_RUN_ID"
+	envRunID     = "MUSTHOLD_CI_RUN_ID"
 	envGitHubRun = "GITHUB_RUN_ID"
 	// seedsParent is the directory that holds the seed records of the commits, relative to
 	// the project: beside the statement cache and never inside it, so that every file of

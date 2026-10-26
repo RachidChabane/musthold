@@ -12,7 +12,7 @@ from specbench.domain.sessions import SessionOutcome
 from support.coder_rigs import KILL_AFTER_SECONDS, make_claude_rig
 from support.fake_claude import recorded_session_calls
 
-PLUGIN_NAMES = ("spec-proof-dp", "spec-proof-alignment")
+PLUGIN_NAMES = ("musthold-dp", "musthold-alignment")
 
 
 def sources_of(argv: list[str]) -> str:
@@ -46,21 +46,21 @@ def test_plugin_host_arms_read_user_and_project_and_load_the_product_plugins(tmp
 
 
 def test_a_plugin_host_session_without_a_required_plugin_is_misconfigured(tmp_path: Path) -> None:
-    rig = make_claude_rig(tmp_path, [{"plugins": ["spec-proof-dp"]}], required_plugins=PLUGIN_NAMES)
+    rig = make_claude_rig(tmp_path, [{"plugins": ["musthold-dp"]}], required_plugins=PLUGIN_NAMES)
 
     result = rig.harness.run_session(rig.request("t1", arm=Arm.ALL_NATIVE))
 
     assert result.outcome is SessionOutcome.HARNESS_MISCONFIGURED
-    assert "missing plugin:spec-proof-alignment" in result.problems
+    assert "missing plugin:musthold-alignment" in result.problems
 
 
 def test_an_honest_session_that_shows_a_plugin_is_misconfigured(tmp_path: Path) -> None:
-    rig = make_claude_rig(tmp_path, [{"plugins": ["spec-proof-dp"]}])
+    rig = make_claude_rig(tmp_path, [{"plugins": ["musthold-dp"]}])
 
     result = rig.harness.run_session(rig.request("t1", arm=Arm.T))
 
     assert result.outcome is SessionOutcome.HARNESS_MISCONFIGURED
-    assert "unexpected plugin spec-proof-dp" in result.problems
+    assert "unexpected plugin musthold-dp" in result.problems
 
 
 def test_a_session_whose_stream_has_no_init_is_misconfigured(tmp_path: Path) -> None:

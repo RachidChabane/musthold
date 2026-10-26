@@ -3,9 +3,9 @@ package cli_test
 import (
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/cli"
-	"github.com/RachidChabane/spec-proof/alignment/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/alignment/internal/cli"
+	"github.com/RachidChabane/musthold/alignment/internal/testkit"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 func TestSystemOneClassifyPlan(t *testing.T) {
@@ -13,7 +13,7 @@ func TestSystemOneClassifyPlan(t *testing.T) {
 	h := newHarness(t, testkit.PythonParcel)
 	h.withPowers(testkit.PythonPowers())
 	h.run(nil, proveCommand, allFlag)
-	h.write(".spec-proof/config.yaml", "systemone:\n  classify: shadow\n")
+	h.write(".musthold/config.yaml", "systemone:\n  classify: shadow\n")
 
 	t.Run("classify-plan plans every closed request that waits for its first vote [verifies SP-1911~1]", func(t *testing.T) {
 		code, stdout, stderr := h.run(nil, "systemone", "classify-plan", "--model", model)

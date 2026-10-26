@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
 )
 
 // copilotExecutorPayload is the preToolUse payload Copilot CLI sends for a call of
@@ -15,7 +15,7 @@ func copilotExecutorPayload(t *testing.T, ticket string) []byte {
 	t.Helper()
 	return []byte(marshal(t, map[string]any{
 		"sessionId": "00726893-8f86-477f-a613-48e93e4efa1a", "timestamp": 1791420110352, "cwd": "/run/project",
-		"toolName": "spec-proof-dp-exec-fetch_request", "toolArgs": map[string]string{"cap": "", "ticket": ticket},
+		"toolName": "musthold-dp-exec-fetch_request", "toolArgs": map[string]string{"cap": "", "ticket": ticket},
 	}))
 }
 

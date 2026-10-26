@@ -86,7 +86,7 @@ def make_host(
     credentials: ClaudeCredentialSource | None = None,
 ) -> IsolatedCliHost:
     config = IsolatedHostConfig(
-        Path("/repo"), BINARIES, Path("/tools/plugins/spec-proof"), tmp_path / "rooms", FixedClaude()
+        Path("/repo"), BINARIES, Path("/tools/plugins/musthold"), tmp_path / "rooms", FixedClaude()
     )
     return build_isolated_host(
         config,
@@ -102,8 +102,8 @@ def make_host(
     )
 
 
-ALIGNMENT_PLUGINS = ["spec-proof", "spec-proof-alignment"]
-ALIGNMENT_SERVER = ("plugin:spec-proof-alignment:exec", "connected")
+ALIGNMENT_PLUGINS = ["musthold", "musthold-alignment"]
+ALIGNMENT_SERVER = ("plugin:musthold-alignment:exec", "connected")
 
 
 @pytest.mark.parametrize("arm", [Arm.N, Arm.T, Arm.ALL_NATIVE, Arm.CHEAT])
@@ -129,7 +129,7 @@ def test_a_session_without_a_credential_never_starts(tmp_path: Path) -> None:
 
 
 def test_a_missing_plugin_in_system_init_stops_the_session_as_misconfigured(tmp_path: Path) -> None:
-    lines = [init_line(["spec-proof"], [ALIGNMENT_SERVER]), agent_line(1), agent_line(2)]
+    lines = [init_line(["musthold"], [ALIGNMENT_SERVER]), agent_line(1), agent_line(2)]
     session = ScriptedSession(lines)
     outcome = make_host(tmp_path, session).run_gate(make_tree(tmp_path), Arm.AL, tmp_path / "rec", GateMode.LIVE)
     assert outcome.status is GateStatus.HARNESS_MISCONFIGURED
@@ -139,7 +139,7 @@ def test_a_missing_plugin_in_system_init_stops_the_session_as_misconfigured(tmp_
 
 
 def test_a_disconnected_executor_server_is_misconfigured_too(tmp_path: Path) -> None:
-    session = ScriptedSession([init_line(ALIGNMENT_PLUGINS, [("plugin:spec-proof-alignment:exec", "failed")])])
+    session = ScriptedSession([init_line(ALIGNMENT_PLUGINS, [("plugin:musthold-alignment:exec", "failed")])])
     outcome = make_host(tmp_path, session).run_gate(make_tree(tmp_path), Arm.AL, tmp_path / "rec", GateMode.LIVE)
     assert outcome.status is GateStatus.HARNESS_MISCONFIGURED
 
@@ -178,7 +178,7 @@ def test_a_second_attempt_appends_to_the_events_file_of_the_first(tmp_path: Path
 
 
 def test_the_session_runs_in_its_own_copy_of_the_tree_with_an_isolated_configuration(tmp_path: Path) -> None:
-    session = ScriptedSession([init_line(["spec-proof"], [])])
+    session = ScriptedSession([init_line(["musthold"], [])])
     tree = make_tree(tmp_path)
     make_host(tmp_path, session).run_gate(tree, Arm.AL, tmp_path / "rec", GateMode.LIVE)
     [spec] = session.specs
@@ -193,7 +193,7 @@ def test_the_session_runs_in_its_own_copy_of_the_tree_with_an_isolated_configura
 def test_a_session_receives_the_token_of_its_source_in_its_environment_and_not_in_its_representation(
     tmp_path: Path,
 ) -> None:
-    session = ScriptedSession([init_line(["spec-proof"], [])])
+    session = ScriptedSession([init_line(["musthold"], [])])
     make_host(tmp_path, session, token=FAKE_TOKEN).run_gate(
         make_tree(tmp_path), Arm.AL, tmp_path / "rec", GateMode.LIVE
     )
@@ -204,7 +204,7 @@ def test_a_session_receives_the_token_of_its_source_in_its_environment_and_not_i
 
 
 def test_a_source_that_cannot_tell_keeps_the_session_from_starting(tmp_path: Path) -> None:
-    session = ScriptedSession([init_line(["spec-proof"], [])])
+    session = ScriptedSession([init_line(["musthold"], [])])
     host = make_host(tmp_path, session, credentials=FailingCredentialSource())
     outcome = host.run_gate(make_tree(tmp_path), Arm.AL, tmp_path / "rec", GateMode.LIVE)
     assert outcome.status is GateStatus.HARNESS_MISCONFIGURED and session.specs == []

@@ -6,7 +6,7 @@ tests of the module in CI.
 
 ## Binary
 
-- **SP-104~1**: WHEN the `spec-proof-verify` binary is run with the `version`
+- **SP-104~1**: WHEN the `musthold-verify` binary is run with the `version`
   argument THE SYSTEM SHALL print its version.
 - **SP-218~2**: WHEN the binary is run THE SYSTEM SHALL take `--bundles DIR`,
   `--accept-local DIR`, `--offline` and `--out DIR` and nothing else, require
@@ -94,7 +94,7 @@ tests of the module in CI.
 
 ## Release version
 
-- **SP-1855~1**: WHEN `spec-proof-verify` is run with the lone argument `--version` THE SYSTEM
+- **SP-1855~1**: WHEN `musthold-verify` is run with the lone argument `--version` THE SYSTEM
   SHALL print the bare version, the one a release build linked with
   `-X main.version`, else the one `go install` recorded, else `dev`, and the
   `version` command SHALL print the binary name, that version and the linked

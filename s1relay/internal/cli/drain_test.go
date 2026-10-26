@@ -12,11 +12,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/memguard"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/cli"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/endpoint"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/testkit/stubendpoint"
+	"github.com/RachidChabane/musthold/s1relay/internal/adapters/memguard"
+	"github.com/RachidChabane/musthold/s1relay/internal/app/ports"
+	"github.com/RachidChabane/musthold/s1relay/internal/cli"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/endpoint"
+	"github.com/RachidChabane/musthold/s1relay/internal/testkit/stubendpoint"
 )
 
 const (
@@ -87,7 +87,7 @@ func newHarness(t *testing.T) *harness {
 
 func (h *harness) writeConfig(content string) {
 	h.t.Helper()
-	dir := filepath.Join(h.root, ".spec-proof")
+	dir := filepath.Join(h.root, ".musthold")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		h.t.Fatal(err)
 	}
@@ -114,7 +114,7 @@ func (h *harness) run(args ...string) result {
 	h.t.Helper()
 	var stdout, stderr bytes.Buffer
 	env := cli.Env{
-		Binary: "spec-proof-s1", Stdout: &stdout, Stderr: &stderr, WorkDir: h.root, Runner: h.runner,
+		Binary: "musthold-s1", Stdout: &stdout, Stderr: &stderr, WorkDir: h.root, Runner: h.runner,
 		LookupEnv: func(name string) (string, bool) { value, found := h.environ[name]; return value, found },
 		NewGuard: func(minFree int) ports.MemoryGuard {
 			h.guardMins = append(h.guardMins, minFree)
@@ -143,7 +143,7 @@ func TestDrainCommand(t *testing.T) {
 			t.Errorf("first request %s", stub.Requests()[0])
 		}
 		imports := h.runner.imports()
-		if len(imports) != 2 || imports[0].name != "spec-proof-dp" || imports[0].dir != h.root {
+		if len(imports) != 2 || imports[0].name != "musthold-dp" || imports[0].dir != h.root {
 			t.Fatalf("imports %+v", imports)
 		}
 		if imports[0].args != "systemone import aa.0.1 --nonce n1 --source "+source || imports[1].args != "systemone import bb.0.1 --nonce n2 --source "+source {

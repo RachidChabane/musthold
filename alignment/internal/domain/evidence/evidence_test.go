@@ -3,10 +3,10 @@ package evidence_test
 import (
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/evidence"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/matrix"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/matrix"
+	"github.com/RachidChabane/musthold/format"
 )
 
 const (

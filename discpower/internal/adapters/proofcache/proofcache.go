@@ -1,5 +1,5 @@
 // Package proofcache keeps the discriminating-power Statements of a project in
-// its work tree, at `.spec-proof/cache/discriminating-power/<ID>~<REV>/<cacheKey>.json`.
+// its work tree, at `.musthold/cache/discriminating-power/<ID>~<REV>/<cacheKey>.json`.
 // A Statement is validated against the embedded schemas before it is written.
 package proofcache
 
@@ -11,15 +11,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
-	"github.com/RachidChabane/spec-proof/discpower/internal/platform/atomicfile"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/platform/atomicfile"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Location of the cache inside a project and the modes of what it holds.
 const (
-	cacheDirectory  = ".spec-proof"
+	cacheDirectory  = ".musthold"
 	cacheSubdir     = "cache"
 	predicateFolder = "discriminating-power"
 	statementExt    = ".json"

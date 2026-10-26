@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/verdict"
 )
 
 func TestClassificationIsPreparedForAClaudeCodeRun(t *testing.T) {
@@ -19,7 +19,7 @@ func TestClassificationIsPreparedForAClaudeCodeRun(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		config, err := os.ReadFile(filepath.Join(outcome.RunDir, "project", ".spec-proof", "config.yaml"))
+		config, err := os.ReadFile(filepath.Join(outcome.RunDir, "project", ".musthold", "config.yaml"))
 		if err != nil {
 			t.Fatal(err)
 		}

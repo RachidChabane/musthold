@@ -14,9 +14,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/mcpstdio"
-	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/mcpstdio"
+	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
 // Errors the server returns to the executor.

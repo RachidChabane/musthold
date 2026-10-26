@@ -7,7 +7,7 @@ package domain
 // project lives.
 const (
 	RepositoryOwner  = "RachidChabane"
-	RepositoryName   = "spec-proof"
+	RepositoryName   = "musthold"
 	RepositorySlug   = RepositoryOwner + "/" + RepositoryName
 	RepositoryURL    = "https://github.com/" + RepositorySlug
 	ModulePathPrefix = "github.com/" + RepositorySlug + "/"
@@ -82,35 +82,35 @@ func (m Module) ModulePath() string { return ModulePathPrefix + m.Name }
 var releaseTable = []Module{
 	{Name: FormatModuleName, Kind: KindLibrary},
 	{
-		Name: "discpower", Kind: KindBinaryPlugin, Binary: "spec-proof-dp", PluginName: "spec-proof-dp",
+		Name: "discpower", Kind: KindBinaryPlugin, Binary: "musthold-dp", PluginName: "musthold-dp",
 		PluginRoots: []string{"discpower/plugin"},
 		Summary:     "Measures the discriminating power of the tests bound to each requirement",
 	},
 	{
-		Name: "alignment", Kind: KindBinaryPlugin, Binary: "spec-proof-alignment", PluginName: "spec-proof-alignment",
+		Name: "alignment", Kind: KindBinaryPlugin, Binary: "musthold-alignment", PluginName: "musthold-alignment",
 		PluginRoots: []string{"alignment/plugin"},
 		Summary:     "Judges whether the tests bound to a requirement verify what it states",
 	},
 	{
-		Name: "completeness", Kind: KindBinaryPlugin, Binary: "spec-proof-completeness", PluginName: "spec-proof-completeness",
+		Name: "completeness", Kind: KindBinaryPlugin, Binary: "musthold-completeness", PluginName: "musthold-completeness",
 		PluginRoots: []string{"completeness/plugin"},
 		Summary:     "Advises on behaviour the specification leaves unstated",
 	},
 	{
-		Name: "s1relay", Kind: KindBinaryPlugin, Binary: "spec-proof-s1", PluginName: "spec-proof-s1",
+		Name: "s1relay", Kind: KindBinaryPlugin, Binary: "musthold-s1", PluginName: "musthold-s1",
 		PluginRoots: []string{"s1relay/plugin"},
 		Summary:     "Relays closed judgment questions to a System One endpoint",
 	},
 	{
-		Name: "ledger", Kind: KindBinary, Binary: "spec-proof-ledger",
+		Name: "ledger", Kind: KindBinary, Binary: "musthold-ledger",
 		Summary: "Signs proofs and keeps them in the append-only proof ledger",
 	},
 	{
-		Name: "verify", Kind: KindBinary, Binary: "spec-proof-verify",
+		Name: "verify", Kind: KindBinary, Binary: "musthold-verify",
 		Summary: "Checks signed proofs and writes the verified set",
 	},
 	{
-		Name: "umbrella", Kind: KindPlugin, PluginName: "spec-proof",
+		Name: "umbrella", Kind: KindPlugin, PluginName: "musthold",
 		PluginRoots: []string{"umbrella/plugin", "umbrella/plugins"},
 	},
 }

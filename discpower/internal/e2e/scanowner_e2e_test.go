@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // The projects whose tests run shared setup or teardown, and the tests a scan
@@ -62,7 +62,7 @@ func TestScanClaimsOnlyTheLinesATestOwns(t *testing.T) {
 				}
 			})
 			t.Run("a replay holds the findings"+verifiesOwnershipE2E, func(t *testing.T) {
-				replay := s.run(s.binary, "scan", "replay", ".spec-proof/scan/"+s.commit()[:7])
+				replay := s.run(s.binary, "scan", "replay", ".musthold/scan/"+s.commit()[:7])
 				if replay.code != 0 || !strings.Contains(replay.stdout, c.vacuous) || strings.Contains(replay.stdout, "NOT held") {
 					t.Fatalf("exit %d:\n%s", replay.code, replay.output())
 				}
@@ -124,7 +124,7 @@ func TestScanMakesNoClaimOnAFallthroughTargetHeader(t *testing.T) {
 			}
 			t.Fatalf("%s does not verify nothing:\n%s", handlingTest, scan.stdout)
 		}
-		replay := s.run(s.binary, "scan", "replay", ".spec-proof/scan/"+s.commit()[:7])
+		replay := s.run(s.binary, "scan", "replay", ".musthold/scan/"+s.commit()[:7])
 		if replay.code != 0 || !strings.Contains(replay.stdout, handlingTest) || strings.Contains(replay.stdout, "NOT held") {
 			t.Fatalf("exit %d:\n%s", replay.code, replay.output())
 		}

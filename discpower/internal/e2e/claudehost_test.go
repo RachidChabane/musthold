@@ -3,8 +3,8 @@ package e2e_test
 import (
 	"os/exec"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostharness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest/claudecode"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/hostharness"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest/claudecode"
 )
 
 // moduleOf is the module under test as the simulated Claude Code runs it: its

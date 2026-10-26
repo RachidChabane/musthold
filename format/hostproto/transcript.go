@@ -9,7 +9,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Transcript decoding limits and block types.

@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/cli"
-	"github.com/RachidChabane/spec-proof/completeness/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/completeness/internal/cli"
+	"github.com/RachidChabane/musthold/completeness/internal/testkit"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
-	binaryPackage      = "./cmd/spec-proof-completeness"
+	binaryPackage      = "./cmd/musthold-completeness"
 	fakehostPackage    = "./hostproto/hostprototest/cmd/fakehost"
 	formatModule       = "../../../format"
 	completenessModule = "../.."
@@ -54,7 +54,7 @@ func TestFakehostSmoke(t *testing.T) {
 	want := recorder.statementBytes()
 
 	bin := t.TempDir()
-	module := build(t, completenessModule, binaryPackage, bin, "spec-proof-completeness", buildTags)
+	module := build(t, completenessModule, binaryPackage, bin, "musthold-completeness", buildTags)
 	fakehost := build(t, formatModule, fakehostPackage, bin, "fakehost")
 
 	h := newHarness(t, testkit.PythonLedger)

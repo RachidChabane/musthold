@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/projectconfig"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/projectconfig"
+	"github.com/RachidChabane/musthold/format"
 )
 
 func TestSettings(t *testing.T) {

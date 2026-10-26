@@ -27,7 +27,7 @@ var pendingReasons = []PendingReason{
 func PendingReasons() []PendingReason { return append([]PendingReason(nil), pendingReasons...) }
 
 // PendingDirectory and PendingFileExtension locate the pending file of a module:
-// `.spec-proof/pending/<module>.json`, next to the cache and the verified set.
+// `.musthold/pending/<module>.json`, next to the cache and the verified set.
 const (
 	PendingDirectory     = "pending"
 	PendingFileExtension = ".json"

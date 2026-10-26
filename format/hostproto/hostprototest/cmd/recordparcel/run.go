@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/formattest/parcel"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/formattest/parcel"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 // Exit codes of the command, and of the module commands it drives.
@@ -35,7 +35,7 @@ const (
 	hooksNone          = "none"
 	stateEnv           = "XDG_STATE_HOME"
 	pathEnv            = "PATH"
-	shallnotEnv        = "SPEC_PROOF_SHALLNOT"
+	shallnotEnv        = "MUSTHOLD_SHALLNOT"
 	shallnotBinary     = "shallnot"
 	cacheEnv           = "XDG_CACHE_HOME"
 	recordDirectory    = "record"
@@ -55,9 +55,9 @@ type moduleHost struct {
 // moduleHosts lists the proof modules in the order they are proved in.
 func moduleHosts() []moduleHost {
 	return []moduleHost{
-		{"spec-proof-dp", parcel.Oracle{}},
-		{"spec-proof-alignment", parcel.HonestAlignment()},
-		{"spec-proof-completeness", hostprototest.FirstOption{}},
+		{"musthold-dp", parcel.Oracle{}},
+		{"musthold-alignment", parcel.HonestAlignment()},
+		{"musthold-completeness", hostprototest.FirstOption{}},
 	}
 }
 

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/plantedrefactors"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/prove"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/plantedrefactors"
+	"github.com/RachidChabane/musthold/discpower/internal/app/prove"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
 )
 
 const (

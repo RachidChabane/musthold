@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest/claudecode"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest/claudecode"
 )
 
 // Exit codes of the modules and of the gate the flows read.
@@ -82,7 +82,7 @@ func (p *parcelProject) verifyLocal() {
 		p.t.Fatal(err)
 	}
 	if r := p.verify("--accept-local", cachePath, "--out", verifiedPath); r.code != exitClean {
-		p.t.Fatalf("spec-proof-verify: %s", r.output())
+		p.t.Fatalf("musthold-verify: %s", r.output())
 	}
 }
 

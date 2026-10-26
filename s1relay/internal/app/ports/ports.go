@@ -5,7 +5,7 @@ package ports
 import (
 	"context"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/question"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/question"
 )
 
 // Exported is one closed request a module waits to have answered. When the module

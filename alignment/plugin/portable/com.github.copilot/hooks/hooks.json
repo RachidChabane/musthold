@@ -4,16 +4,16 @@
     "preToolUse": [
       {
         "type": "command",
-        "bash": "spec-proof-alignment hook pre-tool --harness copilot",
-        "powershell": "spec-proof-alignment hook pre-tool --harness copilot",
+        "bash": "musthold-alignment hook pre-tool --harness copilot",
+        "powershell": "musthold-alignment hook pre-tool --harness copilot",
         "timeoutSec": 30
       }
     ],
     "subagentStop": [
       {
         "type": "command",
-        "bash": "spec-proof-alignment hook subagent-stop --harness copilot",
-        "powershell": "spec-proof-alignment hook subagent-stop --harness copilot",
+        "bash": "musthold-alignment hook subagent-stop --harness copilot",
+        "powershell": "musthold-alignment hook subagent-stop --harness copilot",
         "timeoutSec": 30
       }
     ]

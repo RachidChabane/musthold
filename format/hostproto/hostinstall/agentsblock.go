@@ -1,6 +1,6 @@
 package hostinstall
 
-import "github.com/RachidChabane/spec-proof/format/hostproto"
+import "github.com/RachidChabane/musthold/format/hostproto"
 
 // Advisory sentence a module whose proof Shallnot cannot require adds to its block.
 const advisorySentence = "\n\nThe result is advisory: Shallnot reports it and never blocks on it."

@@ -4,7 +4,7 @@ import (
 	_ "embed" // the schemas are embedded as byte slices
 	"fmt"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Identifiers of the host-protocol schemas. The request identifier is the URI the

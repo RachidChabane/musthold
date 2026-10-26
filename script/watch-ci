@@ -35,7 +35,7 @@ sha="$(git rev-parse "${1:-HEAD}")"
 # alert raises a desktop notification for a failed run when asked to.
 alert() {
   if ((notify)) && command -v terminal-notifier >/dev/null 2>&1; then
-    terminal-notifier -title "spec-proof CI" -message "CI failed on ${sha:0:7} (run $1)" >/dev/null 2>&1 || true
+    terminal-notifier -title "musthold CI" -message "CI failed on ${sha:0:7} (run $1)" >/dev/null 2>&1 || true
   fi
 }
 

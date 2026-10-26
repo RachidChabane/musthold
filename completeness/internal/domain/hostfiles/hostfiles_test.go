@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/hostfiles"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/hostharness"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/hostfiles"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/hostharness"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // update rewrites the committed trees from the generator.
@@ -110,30 +110,30 @@ func TestCommittedFilesAreGenerated(t *testing.T) {
 }
 
 func TestTheModulesOwnFiles(t *testing.T) {
-	t.Run("the plugin is spec-proof-completeness with its executor agents, its server and its skill [verifies SP-784~1]", func(t *testing.T) {
+	t.Run("the plugin is musthold-completeness with its executor agents, its server and its skill [verifies SP-784~1]", func(t *testing.T) {
 		files := generated(t, hostharness.Claude())
 		var paths []string
 		for path := range files {
 			paths = append(paths, path)
 		}
 		slices.Sort(paths)
-		want := []string{".claude-plugin/plugin.json", ".mcp.json", "agents/decider.md", "hooks/hooks.json", "hooks/register.ts", "skills/spec-proof-completeness-fulfil/SKILL.md"}
+		want := []string{".claude-plugin/plugin.json", ".mcp.json", "agents/decider.md", "hooks/hooks.json", "hooks/register.ts", "skills/musthold-completeness-fulfil/SKILL.md"}
 		if !slices.Equal(paths, want) {
 			t.Fatalf("files = %v", paths)
 		}
 		for _, agent := range hostharness.Identity.Agents {
 			agentFile := files["agents/"+string(agent)+".md"]
-			if !strings.Contains(agentFile, "tools: mcp__plugin_spec-proof-completeness_exec__fetch_request, mcp__plugin_spec-proof-completeness_exec__submit_response\n") {
+			if !strings.Contains(agentFile, "tools: mcp__plugin_musthold-completeness_exec__fetch_request, mcp__plugin_musthold-completeness_exec__submit_response\n") {
 				t.Errorf("%s: %s", agent, agentFile)
 			}
 		}
-		if !strings.Contains(files[".mcp.json"], `"command": "spec-proof-completeness"`) || !strings.Contains(files["skills/spec-proof-completeness-fulfil/SKILL.md"], "spec-proof-s1 drain --module completeness") {
-			t.Fatalf("server or skill: %s %s", files[".mcp.json"], files["skills/spec-proof-completeness-fulfil/SKILL.md"])
+		if !strings.Contains(files[".mcp.json"], `"command": "musthold-completeness"`) || !strings.Contains(files["skills/musthold-completeness-fulfil/SKILL.md"], "musthold-s1 drain --module completeness") {
+			t.Fatalf("server or skill: %s %s", files[".mcp.json"], files["skills/musthold-completeness-fulfil/SKILL.md"])
 		}
 	})
 
 	t.Run("Codex and Copilot ship an agent file per executor agent of the module and none for the others [verifies SP-784~1]", func(t *testing.T) {
-		for flag, prefix := range map[string]string{hostharness.FlagCodex: ".codex/agents/spec-proof-completeness-", hostharness.FlagCopilot: ".github/agents/spec-proof-completeness-"} {
+		for flag, prefix := range map[string]string{hostharness.FlagCodex: ".codex/agents/musthold-completeness-", hostharness.FlagCopilot: ".github/agents/musthold-completeness-"} {
 			harness, err := hostharness.ByFlag(flag)
 			if err != nil {
 				t.Fatal(err)

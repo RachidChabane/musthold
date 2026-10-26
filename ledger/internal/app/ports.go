@@ -6,8 +6,8 @@ package app
 import (
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/ledger"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/ledger"
 )
 
 // Statement is a bare statement as a module cached it.

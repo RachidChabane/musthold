@@ -3,7 +3,7 @@ package format
 import "encoding/json"
 
 // PredicateTypeScan identifies the scan predicate: the executed record of one
-// `spec-proof scan` of a repository. It is not a proof kind: it carries no
+// `musthold scan` of a repository. It is not a proof kind: it carries no
 // requirement, the readers of proofs refuse it as one, and the gate never reads
 // it (ADR 0014).
 const PredicateTypeScan = "https://rachid-chabane.com/attestations/scan/v1"

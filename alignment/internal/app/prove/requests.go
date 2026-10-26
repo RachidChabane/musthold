@@ -5,9 +5,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/prompt"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/prompt"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // assemble builds the request of a built prompt: the module, the role of the

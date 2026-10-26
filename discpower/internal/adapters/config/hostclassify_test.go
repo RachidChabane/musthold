@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 func TestClassifyWitnessDirectory(t *testing.T) {

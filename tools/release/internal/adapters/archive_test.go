@@ -11,8 +11,8 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/adapters"
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/adapters"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
 )
 
 const verifiesArchive = " [verifies SP-1805~3]"

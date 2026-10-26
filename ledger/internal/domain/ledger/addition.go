@@ -3,8 +3,8 @@ package ledger
 import (
 	"regexp"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/refusal"
 )
 
 // ConflictPolicy says what happens when an addition meets a path that exists with

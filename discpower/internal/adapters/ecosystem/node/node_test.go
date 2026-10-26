@@ -10,10 +10,10 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/node"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/treesitter"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/node"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/sourceparse/treesitter"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 )
 
 // recorder is a ProcessRunner that records commands and answers by exit code.

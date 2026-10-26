@@ -8,14 +8,14 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/code"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/justify"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/reach"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
-	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/code"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/justify"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/reach"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbridge"
+	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
 // UseCase is the `prove` use case over its ports and settings.

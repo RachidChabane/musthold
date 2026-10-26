@@ -5,8 +5,8 @@
 package hostfiles
 
 import (
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostharness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/pluginfiles"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/hostharness"
+	"github.com/RachidChabane/musthold/format/hostproto/pluginfiles"
 )
 
 // Identity of the shipped plugin.
@@ -14,7 +14,7 @@ const (
 	// PluginVersion is the version of the shipped files.
 	PluginVersion = "0.1.0"
 	// Binary is the executable the hooks and the server run.
-	Binary = "spec-proof-dp"
+	Binary = "musthold-dp"
 )
 
 // Module describes the module to the shared generator.

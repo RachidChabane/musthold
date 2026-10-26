@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	modulePath      = "github.com/RachidChabane/spec-proof/completeness"
+	modulePath      = "github.com/RachidChabane/musthold/completeness"
 	adaptersPath    = modulePath + "/internal/adapters"
 	domainPattern   = modulePath + "/internal/domain/..."
 	appPattern      = modulePath + "/internal/app/..."

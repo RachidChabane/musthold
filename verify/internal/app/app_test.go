@@ -5,11 +5,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/verify/internal/app"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/proofset"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/refusal"
-	"github.com/RachidChabane/spec-proof/verify/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/verify/internal/app"
+	"github.com/RachidChabane/musthold/verify/internal/domain/proofset"
+	"github.com/RachidChabane/musthold/verify/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/verify/internal/testkit"
 )
 
 const (

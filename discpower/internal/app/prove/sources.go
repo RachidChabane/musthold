@@ -6,14 +6,14 @@ import (
 	"path"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/operatorgen"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/app/operatorgen"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
 )
 
 const (
-	// stateDirectory is where spec-proof keeps its project state; it holds no source.
-	stateDirectory = ".spec-proof"
+	// stateDirectory is where musthold keeps its project state; it holds no source.
+	stateDirectory = ".musthold"
 	// versionControlDirectory is never source.
 	versionControlDirectory = ".git"
 	rootDirectory           = "."

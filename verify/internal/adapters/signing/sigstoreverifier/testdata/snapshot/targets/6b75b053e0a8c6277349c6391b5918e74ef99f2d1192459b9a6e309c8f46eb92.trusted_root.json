@@ -1,0 +1,43 @@
+{
+  "mediaType": "application/vnd.dev.sigstore.trustedroot+json;version=0.1",
+  "tlogs": [
+    {
+      "baseUrl": "https://rekor.localhost",
+      "hashAlgorithm": "SHA2_256",
+      "publicKey": {
+        "rawBytes": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExV8uQQxURF/ZQxOsJYqaAryH3+IYVEQT8nqyOd7oB5ceI+BnOkGqAnFqX512u5WAL1nEi+HVYzgDCOXPNWzOyg==",
+        "keyDetails": "PKIX_ECDSA_P256_SHA_256",
+        "validFor": {
+          "start": "2026-10-26T00:21:49.269243Z",
+          "end": "2026-10-26T02:21:49.269243Z"
+        }
+      },
+      "logId": {
+        "keyId": "LBVmH8Ds6lY98QcisxNC5Ca+stdIctLI4hZPlaGoSww="
+      }
+    }
+  ],
+  "certificateAuthorities": [
+    {
+      "subject": {
+        "organization": "musthold fixtures",
+        "commonName": "fulcio"
+      },
+      "uri": "https://fulcio.fixtures.invalid",
+      "certChain": {
+        "certificates": [
+          {
+            "rawBytes": "MIIByDCCAW6gAwIBAgIBATAKBggqhkjOPQQDAjAqMRUwEwYDVQQKEwxzaWdzdG9yZS5kZXYxETAPBgNVBAMTCHNpZ3N0b3JlMB4XDTI2MTAyNjAxMTk0OVoXDTI2MTAyNjAzMjE0OVowNzEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MR4wHAYDVQQDExVzaWdzdG9yZS1pbnRlcm1lZGlhdGUwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATwig64os2cV+zlIPvnUsYSWkslRdL1eEIF81zn8XcZdXXyiDnmKd52+TOHP5qEfGLZM1dlqzo0aOkrksl8fXrMo3gwdjAOBgNVHQ8BAf8EBAMCAQYwEwYDVR0lBAwwCgYIKwYBBQUHAwMwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUAO3a0eqPsMhYqlrUhZTMfPMFM1owHwYDVR0jBBgwFoAULweabKHgsdEoF5RiJM0T+cfEl9gwCgYIKoZIzj0EAwIDSAAwRQIgJrlpY0Cc8ys5w6N3vyAlPiVL5MkA7EuP7YM5axFHykoCIQC+JvlVJ7XqFJP8GtMmFoRwXxlI+gNSXGp149qMr2S/xA=="
+          },
+          {
+            "rawBytes": "MIIBhDCCASugAwIBAgIBATAKBggqhkjOPQQDAjAqMRUwEwYDVQQKEwxzaWdzdG9yZS5kZXYxETAPBgNVBAMTCHNpZ3N0b3JlMB4XDTI2MTAyNTIwMjE0OVoXDTI2MTAyNjA2MjE0OVowKjEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MREwDwYDVQQDEwhzaWdzdG9yZTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABH2Q2GdAOPk2QpHyUvUC+Q0keeXXMZw5QKVe93AMs9rTPc/n/teFyC3ZYldnwPSRYFmGkA2l+6TtYCIVNy2ZM3KjQjBAMA4GA1UdDwEB/wQEAwIBBjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBQvB5psoeCx0SgXlGIkzRP5x8SX2DAKBggqhkjOPQQDAgNHADBEAiB9rhIjVhYr/NAhdMxdunsVe77Q7ByzJP3Oh12n7lWJJQIgcSYKOkWsLC3gP3terzXqf57z5bD5XJnDMe9YXUKqPoY="
+          }
+        ]
+      },
+      "validFor": {
+        "start": "2026-10-26T00:21:49.269246Z",
+        "end": "2126-10-02T01:21:49.269246Z"
+      }
+    }
+  ]
+}

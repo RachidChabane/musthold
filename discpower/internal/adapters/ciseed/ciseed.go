@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbundle"
 )
 
 const (

@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "exec": {
-      "command": "spec-proof-dp",
+      "command": "musthold-dp",
       "args": [
         "mcp",
         "--role",

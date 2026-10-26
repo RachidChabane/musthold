@@ -43,8 +43,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 MEM_GUARD = REPO / "script" / "mem-guard"
-MEASURE_DIR_VARIABLE = "SPEC_PROOF_MEASURE_DIR"
-SCRUBBED_VARIABLE_PREFIXES = ("SPEC_PROOF_CI_",)
+MEASURE_DIR_VARIABLE = "MUSTHOLD_MEASURE_DIR"
+SCRUBBED_VARIABLE_PREFIXES = ("MUSTHOLD_CI_",)
 SCRUBBED_VARIABLES = ("CI", "GITHUB_ACTIONS")
 MEASURE_TEST_FILE = "zz_measure_test.go"
 DEFAULT_TIMEOUT_MINUTES = 60
@@ -115,7 +115,7 @@ FIXTURES = (
 # ---------------------------------------------------------------------------
 
 GO_COMMON = '''
-const measureDirVariable = "SPEC_PROOF_MEASURE_DIR"
+const measureDirVariable = "MUSTHOLD_MEASURE_DIR"
 
 var measureCriterionLine = regexp.MustCompile(`^(\\S+~\\d+) `)
 
@@ -128,7 +128,7 @@ func measureWrite(t *testing.T, fixture string, code int, output, root, cache st
 	measureCheck(t, os.RemoveAll(target))
 	measureFile(t, filepath.Join(target, "output.txt"), output)
 	measureFile(t, filepath.Join(target, "exit.txt"), strconv.Itoa(code))
-	measureCopy(t, filepath.Join(root, ".spec-proof", "cache", "discriminating-power"), filepath.Join(target, "statements"), func(string) bool { return true })
+	measureCopy(t, filepath.Join(root, ".musthold", "cache", "discriminating-power"), filepath.Join(target, "statements"), func(string) bool { return true })
 	measureCopy(t, cache, filepath.Join(target, "mutants"), func(path string) bool { return filepath.Base(filepath.Dir(path)) == "mutants" })
 	for _, line := range strings.Split(output, "\\n") {
 		if match := measureCriterionLine.FindStringSubmatch(line); match != nil {
@@ -252,10 +252,10 @@ func TestMeasureMaven(t *testing.T) {
 '''
 
 GO_CLI_IMPORTS = (
-    '"github.com/RachidChabane/spec-proof/discpower/internal/cli"',
-    '"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"',
-    '"github.com/RachidChabane/spec-proof/discpower/internal/testkit/nodeinstall"',
-    '"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"',
+    '"github.com/RachidChabane/musthold/discpower/internal/cli"',
+    '"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"',
+    '"github.com/RachidChabane/musthold/discpower/internal/testkit/nodeinstall"',
+    '"github.com/RachidChabane/musthold/format/hostproto/hostprototest"',
 )
 
 GO_HOST = '''
@@ -273,7 +273,7 @@ func TestMeasureHonestHost(t *testing.T) {
 }
 '''
 
-GO_HOST_IMPORTS = ('"github.com/RachidChabane/spec-proof/format/formattest/parcel"',)
+GO_HOST_IMPORTS = ('"github.com/RachidChabane/musthold/format/formattest/parcel"',)
 
 GO_CHAIN = '''
 func TestMeasureHonestChain(t *testing.T) {
@@ -298,7 +298,7 @@ func TestMeasureHonestChain(t *testing.T) {
 }
 '''
 
-GO_CHAIN_IMPORTS = ('"encoding/json"', '"github.com/RachidChabane/spec-proof/format/formattest/parcel"')
+GO_CHAIN_IMPORTS = ('"encoding/json"', '"github.com/RachidChabane/musthold/format/formattest/parcel"')
 
 GO_FILES = {
     ("discpower", "./internal/cli"): ("cli_test", GO_CLI, GO_CLI_IMPORTS),

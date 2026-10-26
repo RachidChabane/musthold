@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/signing/trustroot"
-	"github.com/RachidChabane/spec-proof/ledger/internal/testkit"
+	"github.com/RachidChabane/musthold/ledger/internal/adapters/signing/trustroot"
+	"github.com/RachidChabane/musthold/ledger/internal/testkit"
 )
 
 const verifiesFetch = " [verifies SP-226~1]"

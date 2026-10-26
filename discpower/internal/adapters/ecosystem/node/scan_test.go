@@ -10,14 +10,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/node"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/treesitter"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/footprint"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
-	"github.com/RachidChabane/spec-proof/discpower/internal/testkit/nodeinstall"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/node"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/process"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/sourceparse/treesitter"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation/footprint"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/discpower/internal/testkit/nodeinstall"
 )
 
 const (
@@ -27,7 +27,7 @@ const (
 	scanWorkers    = 2
 	// withoutVariable switches off, by name, preconditions the shipped agent
 	// otherwise checks for itself.
-	withoutVariable = "SPEC_PROOF_SCAN_WITHOUT"
+	withoutVariable = "MUSTHOLD_SCAN_WITHOUT"
 
 	verifiesScanRuns      = " [verifies SP-2292~1]"
 	verifiesScanOwnership = " [verifies SP-2293~1]"

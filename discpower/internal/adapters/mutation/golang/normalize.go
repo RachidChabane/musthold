@@ -5,7 +5,7 @@ import (
 	"go/token"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
 )
 
 const (

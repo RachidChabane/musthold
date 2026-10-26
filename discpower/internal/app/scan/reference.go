@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/mutantrun"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/discpower/internal/app/mutantrun"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
 )
 
 // Timeouts of the runs of a scan.
@@ -35,7 +35,7 @@ const (
 
 // outputDirectory is where scans write their reports in the work tree; it is
 // never copied into a workspace.
-const outputDirectory = ".spec-proof"
+const outputDirectory = ".musthold"
 
 // wholeProject is the source root of a scan: every file of the project, tests
 // and the files a scan never mutates aside.

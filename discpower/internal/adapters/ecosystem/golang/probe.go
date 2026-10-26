@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/golang/probeharness"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/suiterun"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/differential"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/golang/probeharness"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/app/suiterun"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/differential"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
 )
 
 var _ ports.Probing = (*Strategy)(nil)

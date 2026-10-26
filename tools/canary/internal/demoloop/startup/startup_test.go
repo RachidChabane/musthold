@@ -4,19 +4,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/startup"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/startup"
 )
 
 const (
-	initAll       = `{"type":"system","subtype":"init","plugins":[{"name":"spec-proof-dp"},{"name":"shallnot"},{"name":"spec-proof"}],"plugin_errors":[]}`
-	initUmbrella  = `{"type":"system","subtype":"init","plugins":[{"name":"spec-proof-dp"}],"plugin_errors":[{"plugin":"spec-proof@inline","type":"dependency-unsatisfied","message":"Dependency \"shallnot\" is not installed"}]}`
+	initAll       = `{"type":"system","subtype":"init","plugins":[{"name":"musthold-dp"},{"name":"shallnot"},{"name":"musthold"}],"plugin_errors":[]}`
+	initUmbrella  = `{"type":"system","subtype":"init","plugins":[{"name":"musthold-dp"}],"plugin_errors":[{"plugin":"musthold@inline","type":"dependency-unsatisfied","message":"Dependency \"shallnot\" is not installed"}]}`
 	retryNoServer = `{"type":"system","subtype":"api_retry","attempt":1,"max_retries":10,"error_status":null,"error":"unknown"}`
 	retryOverload = `{"type":"system","subtype":"api_retry","attempt":1,"max_retries":10,"error_status":529,"error":"overloaded"}`
 	answer        = `{"type":"assistant","message":{"model":"claude-sonnet-5-5","content":[{"type":"text","text":"ready"}]}}`
 	synthetic     = `{"type":"assistant","message":{"model":"<synthetic>","content":[{"type":"text","text":"API Error"}]}}`
 )
 
-var expected = []string{"spec-proof-dp", "shallnot", "spec-proof"}
+var expected = []string{"musthold-dp", "shallnot", "musthold"}
 
 func feed(check *startup.Check, lines ...string) string {
 	for _, line := range lines {
@@ -40,7 +40,7 @@ func TestStartup(t *testing.T) {
 		if reason := feed(check, initUmbrella); reason != startup.ReasonPlugins {
 			t.Fatalf("reason %q", reason)
 		}
-		for _, wanted := range []string{"spec-proof@inline: dependency-unsatisfied", "plugin shallnot is not loaded", "plugin spec-proof is not loaded"} {
+		for _, wanted := range []string{"musthold@inline: dependency-unsatisfied", "plugin shallnot is not loaded", "plugin musthold is not loaded"} {
 			if !strings.Contains(check.Problem(), wanted) {
 				t.Errorf("the problem lacks %q: %s", wanted, check.Problem())
 			}

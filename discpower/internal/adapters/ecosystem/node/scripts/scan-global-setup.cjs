@@ -1,6 +1,6 @@
 // The global setup of a scan's Jest runs: it runs the project's own global
-// setup module, which SPEC_PROOF_SCAN_GLOBAL_SETUP names, through Jest's own
-// transform, and writes <SPEC_PROOF_SCAN_OUT>/global-setup.failed when it
+// setup module, which MUSTHOLD_SCAN_GLOBAL_SETUP names, through Jest's own
+// transform, and writes <MUSTHOLD_SCAN_OUT>/global-setup.failed when it
 // throws: the positive evidence that no test of the run began.
 'use strict';
 
@@ -9,9 +9,9 @@ const path = require('node:path');
 const { createRequire } = require('node:module');
 const { pathToFileURL } = require('node:url');
 
-const SETUP_VARIABLE = 'SPEC_PROOF_SCAN_GLOBAL_SETUP';
-const OUT_VARIABLE = 'SPEC_PROOF_SCAN_OUT';
-const ROOT_VARIABLE = 'SPEC_PROOF_SCAN_ROOT';
+const SETUP_VARIABLE = 'MUSTHOLD_SCAN_GLOBAL_SETUP';
+const OUT_VARIABLE = 'MUSTHOLD_SCAN_OUT';
+const ROOT_VARIABLE = 'MUSTHOLD_SCAN_ROOT';
 const FAILURE_FILE = 'global-setup.failed';
 const TRANSFORM_PACKAGE = '@jest/transform';
 

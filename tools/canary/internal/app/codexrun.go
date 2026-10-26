@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/codexconfig"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/codexconfig"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
 )
 
 // Places Codex keeps its state in, relative to its home.

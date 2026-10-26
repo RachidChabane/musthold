@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // The scanned repository of the scan fixture.
@@ -13,7 +13,7 @@ const (
 	ScanBase        = "9b1d3f5a7c9e1b3d5f7a9c1e3b5d7f9a1c3e5b7d"
 	ScanRunner      = "pytest"
 	ScanSeed        = "7"
-	ScanModule      = "spec-proof-dp"
+	ScanModule      = "musthold-dp"
 	ScanCodeFile    = "src/invoicing/parse.py"
 	ScanReadme      = "README.md"
 	ScanVacuousTest = "tests/test_parse.py::test_parse_ok"

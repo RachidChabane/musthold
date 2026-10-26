@@ -5,38 +5,38 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/config"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/git"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/hoststore"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/localcache"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/operations"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/pendingfile"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/proofcache"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/proofsource"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/schemacheck"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/shallnot"
-	golangunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/golang"
-	javaunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/java"
-	javascriptunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/javascript"
-	kotlinunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/kotlin"
-	pythonunits "github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/python"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/xdg"
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/prove"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/policy"
-	"github.com/RachidChabane/spec-proof/completeness/internal/version"
-	"github.com/RachidChabane/spec-proof/format"
-	sharedinstall "github.com/RachidChabane/spec-proof/format/hostproto/hostinstall"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/config"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/git"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/hoststore"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/localcache"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/operations"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/pendingfile"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/process"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/proofcache"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/proofsource"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/schemacheck"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/shallnot"
+	golangunits "github.com/RachidChabane/musthold/completeness/internal/adapters/units/golang"
+	javaunits "github.com/RachidChabane/musthold/completeness/internal/adapters/units/java"
+	javascriptunits "github.com/RachidChabane/musthold/completeness/internal/adapters/units/javascript"
+	kotlinunits "github.com/RachidChabane/musthold/completeness/internal/adapters/units/kotlin"
+	pythonunits "github.com/RachidChabane/musthold/completeness/internal/adapters/units/python"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/xdg"
+	"github.com/RachidChabane/musthold/completeness/internal/app/ports"
+	"github.com/RachidChabane/musthold/completeness/internal/app/prove"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/policy"
+	"github.com/RachidChabane/musthold/completeness/internal/version"
+	"github.com/RachidChabane/musthold/format"
+	sharedinstall "github.com/RachidChabane/musthold/format/hostproto/hostinstall"
 )
 
 // Identity of the module in the Statements and the requests it emits.
 const (
-	moduleName = "spec-proof-completeness"
-	pluginName = "spec-proof-completeness"
+	moduleName = "musthold-completeness"
+	pluginName = "musthold-completeness"
 	// pendingModule names the module in its pending file.
 	pendingModule = "completeness"
-	// stateDirectory holds the project's spec-proof state, and the module's
+	// stateDirectory holds the project's musthold state, and the module's
 	// configuration file.
 	stateDirectory = sharedinstall.StateDirectory
 	// sharedConfigFile is the configuration file the modules share, in stateDirectory.
@@ -65,7 +65,7 @@ func (e Env) hostStore(root string) (*hoststore.Store, error) {
 	return hoststore.Open(xdg.HostDir(e.lookupEnv, e.HomeDir, root))
 }
 
-// policyOf reads `.spec-proof/completeness.yaml`; a project without one has the
+// policyOf reads `.musthold/completeness.yaml`; a project without one has the
 // default policy.
 func policyOf(root string) (policy.Policy, error) {
 	data, err := os.ReadFile(filepath.Join(root, stateDirectory, config.FileName))

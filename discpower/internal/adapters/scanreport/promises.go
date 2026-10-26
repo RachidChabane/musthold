@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/promise"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/promise"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Vocabulary of the promises a host established.

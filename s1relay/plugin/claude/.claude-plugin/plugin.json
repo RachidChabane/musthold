@@ -1,7 +1,7 @@
 {
-  "name": "spec-proof-s1",
+  "name": "musthold-s1",
   "version": "0.1.0",
-  "description": "Relays the closed questions of the spec-proof modules to a System One endpoint.",
+  "description": "Relays the closed questions of the musthold modules to a System One endpoint.",
   "author": {
     "name": "Rachid Chabane"
   },

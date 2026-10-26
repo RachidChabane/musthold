@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/proofcache"
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/schemacheck"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/proofcache"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/schemacheck"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/format"
 )
 
 const (
@@ -47,7 +47,7 @@ func TestWrite(t *testing.T) {
 		if err := cache.Write(ref, goldenKey, statement); err != nil {
 			t.Fatal(err)
 		}
-		path := filepath.Join(root, ".spec-proof", "cache", "alignment", format.SubjectName("PAR-1", 1), goldenKey+".json")
+		path := filepath.Join(root, ".musthold", "cache", "alignment", format.SubjectName("PAR-1", 1), goldenKey+".json")
 		got, err := os.ReadFile(path)
 		if err != nil || !bytes.Equal(got, statement) {
 			t.Fatalf("read %s: %v", path, err)
@@ -60,7 +60,7 @@ func TestWrite(t *testing.T) {
 		if !errors.Is(err, proofcache.ErrInvalidStatement) {
 			t.Fatalf("error = %v", err)
 		}
-		if _, statErr := os.Stat(filepath.Join(root, ".spec-proof")); !os.IsNotExist(statErr) {
+		if _, statErr := os.Stat(filepath.Join(root, ".musthold")); !os.IsNotExist(statErr) {
 			t.Fatalf("the cache was created: %v", statErr)
 		}
 	})
@@ -79,7 +79,7 @@ func TestWrite(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		entries, _ := os.ReadDir(filepath.Join(root, ".spec-proof", "cache", "alignment", format.SubjectName("PAR-1", 1)))
+		entries, _ := os.ReadDir(filepath.Join(root, ".musthold", "cache", "alignment", format.SubjectName("PAR-1", 1)))
 		if len(entries) != 1 {
 			t.Fatalf("directory holds %d entries", len(entries))
 		}

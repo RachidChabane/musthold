@@ -6,7 +6,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/ledger"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/ledger"
 )
 
 const verifiesMutantsSeedsTrust = " [verifies SP-204~1]"

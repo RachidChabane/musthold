@@ -1,9 +1,9 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {
-    "spec-proof-dp": {
+    "musthold-dp": {
       "type": "stdio",
-      "command": "spec-proof-dp",
+      "command": "musthold-dp",
       "args": [
         "mcp",
         "--role",

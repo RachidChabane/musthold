@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
+	"github.com/RachidChabane/musthold/completeness/internal/app/ports"
 )
 
 // gh command line.

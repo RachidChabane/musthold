@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	canary "github.com/RachidChabane/spec-proof/tools/canary/internal/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/config"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/container"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/plan"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/record"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
+	canary "github.com/RachidChabane/musthold/tools/canary/internal/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/container"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
 )
 
 // printPlan prints what a live run would do: the window, where the token would
@@ -73,7 +73,7 @@ func (r Runner) planLines(o Options, configured config.Run) []string {
 	}
 	if configured.Arm.WithModules() && len(configured.Task.Operations) > 0 {
 		block, _ := plan.BindOperations(nil, configured.Task.Operations)
-		lines = append(lines, "append to "+filepath.Join(l.Project(), plan.SpecProofConfig)+":\n      "+strings.ReplaceAll(strings.TrimSpace(string(block)), "\n", "\n      "))
+		lines = append(lines, "append to "+filepath.Join(l.Project(), plan.MustholdConfig)+":\n      "+strings.ReplaceAll(strings.TrimSpace(string(block)), "\n", "\n      "))
 	}
 	for _, planned := range plan.CommitEquipSteps() {
 		lines = append(lines, step(planned.Argv))

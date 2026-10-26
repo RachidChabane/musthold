@@ -3,7 +3,7 @@ package operator
 import (
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
 )
 
 // Normalizer is the language-specific half of F1: it reduces the source of one

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/verdict"
 )
 
 func TestCopilotModelSelected(t *testing.T) {
@@ -38,14 +38,14 @@ func TestCopilotModelSelected(t *testing.T) {
 func TestCopilotAgentNamedWithAPluginPrefix(t *testing.T) {
 	t.Run("the executor named with the plugin prefix in the subagent and the task call passes and the report gives the exact name [verifies SP-1515~2]", func(t *testing.T) {
 		v := want(t, evaluate(t, "copilot", readFiles(t, copilotSession)), "executor_agent_starts", verdict.Pass)
-		if !strings.Contains(v.Summary, `the task tool was called with agent_type "spec-proof-dp:spec-proof-dp-decider"`) {
+		if !strings.Contains(v.Summary, `the task tool was called with agent_type "musthold-dp:musthold-dp-decider"`) {
 			t.Errorf("summary = %s", v.Summary)
 		}
 	})
 
 	t.Run("the plain name starts the executor too [verifies SP-1515~2]", func(t *testing.T) {
 		files := readFiles(t, copilotSession)
-		files.Stream = replace(files.Stream, `spec-proof-dp:spec-proof-dp-decider`, `spec-proof-dp-decider`)
+		files.Stream = replace(files.Stream, `musthold-dp:musthold-dp-decider`, `musthold-dp-decider`)
 		want(t, evaluate(t, "copilot", files), "executor_agent_starts", verdict.Pass)
 	})
 }

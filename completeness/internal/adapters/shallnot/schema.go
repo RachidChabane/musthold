@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
+	"github.com/RachidChabane/musthold/completeness/internal/app/ports"
 )
 
 // The report schema command and the versions the module tells apart.

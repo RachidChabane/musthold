@@ -16,9 +16,9 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
-	"github.com/RachidChabane/spec-proof/format/hostproto/mcpstdio"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/hostproto/mcpstdio"
 )
 
 const (
@@ -267,7 +267,7 @@ func TestHandshake(t *testing.T) {
 			if _, ok := result["capabilities"].(map[string]any)["tools"]; !ok {
 				t.Error("the tools capability is not announced")
 			}
-			if info := result["serverInfo"].(map[string]any); info["name"] != "spec-proof-fake" {
+			if info := result["serverInfo"].(map[string]any); info["name"] != "musthold-fake" {
 				t.Errorf("serverInfo = %v", info)
 			}
 		}

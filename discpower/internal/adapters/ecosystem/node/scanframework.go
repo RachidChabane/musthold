@@ -12,9 +12,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/platform/atomicfile"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/platform/atomicfile"
 )
 
 // ErrScanConfig is returned when the runner's configuration cannot be read
@@ -27,10 +27,10 @@ const (
 	scanReporterScript        = "scan-jest-reporter.cjs"
 	scanSequencerScript       = "scan-jest-sequencer.cjs"
 	scanJestGlobalSetupScript = "scan-global-setup.cjs"
-	scanVitestOverlay         = "spec-proof-scan.vitest.config.mjs"
-	scanScriptsVariable       = "SPEC_PROOF_SCAN_SCRIPTS"
-	scanEnvironmentsVariable  = "SPEC_PROOF_SCAN_JEST_ENVIRONMENTS"
-	scanGlobalSetupVariable   = "SPEC_PROOF_SCAN_GLOBAL_SETUP"
+	scanVitestOverlay         = "musthold-scan.vitest.config.mjs"
+	scanScriptsVariable       = "MUSTHOLD_SCAN_SCRIPTS"
+	scanEnvironmentsVariable  = "MUSTHOLD_SCAN_JEST_ENVIRONMENTS"
+	scanGlobalSetupVariable   = "MUSTHOLD_SCAN_GLOBAL_SETUP"
 	jestShowConfigFlag        = "--showConfig"
 	jestForceExitFlag         = "--forceExit"
 	jestNoCoverageFlag        = "--coverage=false"

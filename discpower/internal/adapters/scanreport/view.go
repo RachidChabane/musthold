@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Vocabulary of the reports.
@@ -24,7 +24,7 @@ const (
 	// ShortCommitLength is how many characters of a commit id a report shows.
 	ShortCommitLength = 7
 	// Directory is where the reports of a scan live, under the work tree.
-	Directory = ".spec-proof/scan"
+	Directory = ".musthold/scan"
 
 	reportFile  = "report.md"
 	statement   = "scan.json"

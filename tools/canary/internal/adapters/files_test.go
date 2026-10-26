@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/adapters"
+	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
 )
 
 func TestReplace(t *testing.T) {

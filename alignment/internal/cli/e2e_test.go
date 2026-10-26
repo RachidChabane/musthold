@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/cli"
-	"github.com/RachidChabane/spec-proof/alignment/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/alignment/internal/cli"
+	"github.com/RachidChabane/musthold/alignment/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // What an honest host finds in the Python parcel project: the tests that check
@@ -90,7 +90,7 @@ func TestGoldenStatementsAreRead(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			h.write(".spec-proof/cache/discriminating-power/"+ref+"/"+decoded.Predicate.CacheKey+".json", string(content))
+			h.write(".musthold/cache/discriminating-power/"+ref+"/"+decoded.Predicate.CacheKey+".json", string(content))
 		}
 		h.driveAttested(testkit.Oracle{})
 		for key, statement := range h.statements() {

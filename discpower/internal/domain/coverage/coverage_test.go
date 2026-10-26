@@ -4,9 +4,9 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/coverage"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/footprint"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/coverage"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation/footprint"
 )
 
 const verifiesSP172 = " [verifies SP-172~1]"

@@ -6,7 +6,7 @@ package xdg
 import (
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 const (
@@ -14,7 +14,7 @@ const (
 	cacheHomeVariable = "XDG_CACHE_HOME"
 	defaultStateHome  = ".local/state"
 	defaultCacheHome  = ".cache"
-	suiteDirectory    = "spec-proof"
+	suiteDirectory    = "musthold"
 	moduleDirectory   = "discpower"
 	hostDirectory     = "host"
 	recordsDirectory  = "records"
@@ -49,19 +49,19 @@ func RepoDigest(absRoot string) string {
 }
 
 // HostDir is where the host store of the project lives:
-// `<state>/spec-proof/discpower/<repo-digest>/host`.
+// `<state>/musthold/discpower/<repo-digest>/host`.
 func HostDir(lookup LookupEnv, home, absRoot string) string {
 	return filepath.Join(StateHome(lookup, home), suiteDirectory, moduleDirectory, RepoDigest(absRoot), hostDirectory)
 }
 
 // RecordsDir is where the facts records of the project's Statements live:
-// `<state>/spec-proof/discpower/<repo-digest>/records`.
+// `<state>/musthold/discpower/<repo-digest>/records`.
 func RecordsDir(lookup LookupEnv, home, absRoot string) string {
 	return filepath.Join(StateHome(lookup, home), suiteDirectory, moduleDirectory, RepoDigest(absRoot), recordsDirectory)
 }
 
 // CacheDir is where the local caches of the project live:
-// `<cache>/spec-proof/<repo-digest>`.
+// `<cache>/musthold/<repo-digest>`.
 func CacheDir(lookup LookupEnv, home, absRoot string) string {
 	return filepath.Join(CacheHome(lookup, home), suiteDirectory, RepoDigest(absRoot))
 }

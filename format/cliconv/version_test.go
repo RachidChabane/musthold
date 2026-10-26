@@ -4,7 +4,7 @@ import (
 	"runtime/debug"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/cliconv"
+	"github.com/RachidChabane/musthold/format/cliconv"
 	"pgregory.net/rapid"
 )
 

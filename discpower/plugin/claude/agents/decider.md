@@ -1,7 +1,7 @@
 ---
 name: decider
-description: Executes one closed-question ticket of spec-proof-dp as a blind executor. Launch it only through the spec-proof-dp-fulfil skill, with a prompt that is the ticket.
-tools: mcp__plugin_spec-proof-dp_exec__fetch_request, mcp__plugin_spec-proof-dp_exec__submit_response
+description: Executes one closed-question ticket of musthold-dp as a blind executor. Launch it only through the musthold-dp-fulfil skill, with a prompt that is the ticket.
+tools: mcp__plugin_musthold-dp_exec__fetch_request, mcp__plugin_musthold-dp_exec__submit_response
 model: inherit
 omitClaudeMd: true
 maxTurns: 4

@@ -23,11 +23,11 @@ from support.pinned_claude import TEST_CLAUDE_VERSION
 
 REPOSITORY: Final = Path(__file__).resolve().parents[3]
 BINARIES: Final = REPOSITORY / ".tools" / "bin"
-UMBRELLA_PLUGIN: Final = REPOSITORY / ".tools" / "plugins" / "spec-proof"
+UMBRELLA_PLUGIN: Final = REPOSITORY / ".tools" / "plugins" / "musthold"
 PARCEL_FIXTURE: Final = REPOSITORY / "discpower" / "fixtures" / "prove" / "parcel"
 PARCEL_ANSWERS: Final = Path(__file__).resolve().parents[1] / "fixtures" / "parcel_answers"
 FAKEHOST_PACKAGE: Final = "./hostproto/hostprototest/cmd/fakehost"
-ALIGNMENT_POLICY_FILE: Final = ".spec-proof/alignment.yaml"
+ALIGNMENT_POLICY_FILE: Final = ".musthold/alignment.yaml"
 SHALLNOT_CONFIG_FILE: Final = "shallnot.yaml"
 LOWERED_ISOLATION_FLOOR: Final = {
     ALIGNMENT_POLICY_FILE: "policy:\n  min_isolation: inline\n",
@@ -51,7 +51,7 @@ GIT: Final = "git"
 
 
 def product_is_built() -> bool:
-    needed = [BINARIES / name for name in ("shallnot", "spec-proof-verify", "spec-proof-ledger")]
+    needed = [BINARIES / name for name in ("shallnot", "musthold-verify", "musthold-ledger")]
     needed += [BINARIES / module.binary for module in PROOF_MODULES]
     return all(path.is_file() for path in needed) and UMBRELLA_PLUGIN.is_dir()
 
@@ -112,7 +112,7 @@ def stream_line(body: Mapping[str, object]) -> str:
 
 
 def init_event(modules: tuple[ProofModule, ...], omit_plugin: str | None) -> str:
-    plugins = [{"name": "spec-proof", "path": "/p"}] + [{"name": m.plugin, "path": "/p"} for m in modules]
+    plugins = [{"name": "musthold", "path": "/p"}] + [{"name": m.plugin, "path": "/p"} for m in modules]
     servers = [{"name": m.server, "status": "connected"} for m in modules]
     return stream_line(
         {

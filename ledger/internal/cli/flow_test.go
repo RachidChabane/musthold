@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/signing/ed25519signer"
-	"github.com/RachidChabane/spec-proof/ledger/internal/cli"
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/ledger"
-	"github.com/RachidChabane/spec-proof/ledger/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/ledger/internal/adapters/signing/ed25519signer"
+	"github.com/RachidChabane/musthold/ledger/internal/cli"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/ledger"
+	"github.com/RachidChabane/musthold/ledger/internal/testkit"
 )
 
 type fixedClock struct{}

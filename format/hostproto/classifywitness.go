@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Limits of the raw API log the witness reads.

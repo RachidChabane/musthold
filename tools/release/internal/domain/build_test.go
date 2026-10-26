@@ -7,7 +7,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
 )
 
 const (
@@ -31,16 +31,16 @@ func TestBuildMatrix(t *testing.T) {
 	t.Run("an archive is a tar.gz, or a zip for windows, named after the binary, version and target"+verifiesMatrix, func(t *testing.T) {
 		version := domain.Version{Major: 0, Minor: 2, Patch: 0}
 		cases := map[string]string{
-			"linux/amd64":   "spec-proof-dp_0.2.0_linux_amd64.tar.gz",
-			"darwin/arm64":  "spec-proof-dp_0.2.0_darwin_arm64.tar.gz",
-			"windows/amd64": "spec-proof-dp_0.2.0_windows_amd64.zip",
+			"linux/amd64":   "musthold-dp_0.2.0_linux_amd64.tar.gz",
+			"darwin/arm64":  "musthold-dp_0.2.0_darwin_arm64.tar.gz",
+			"windows/amd64": "musthold-dp_0.2.0_windows_amd64.zip",
 		}
 		for text, want := range cases {
 			target, err := domain.ParseTarget(text)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got := target.ArchiveName("spec-proof-dp", version); got != want {
+			if got := target.ArchiveName("musthold-dp", version); got != want {
 				t.Errorf("%s: %q, want %q", text, got, want)
 			}
 		}
@@ -110,7 +110,7 @@ func TestBuildCommand(t *testing.T) {
 		want := []string{
 			"build", "-trimpath", "-buildvcs=false",
 			"-ldflags", "-s -w -buildid= -X main.version=0.2.0 -X main.commit=abc123",
-			"-o", "/dist/out.exe", "./cmd/spec-proof-dp",
+			"-o", "/dist/out.exe", "./cmd/musthold-dp",
 		}
 		if got := spec.Arguments(); !slices.Equal(got, want) {
 			t.Fatalf("arguments = %v", got)

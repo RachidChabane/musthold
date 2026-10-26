@@ -5,17 +5,17 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/golang"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/pytest"
-	gomutation "github.com/RachidChabane/spec-proof/discpower/internal/adapters/mutation/golang"
-	pythonmutation "github.com/RachidChabane/spec-proof/discpower/internal/adapters/mutation/python"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/goparser"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/treesitter"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
-	"github.com/RachidChabane/spec-proof/discpower/internal/testkit/bindings"
-	"github.com/RachidChabane/spec-proof/discpower/internal/testkit/ecosystemcontract"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/golang"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/pytest"
+	gomutation "github.com/RachidChabane/musthold/discpower/internal/adapters/mutation/golang"
+	pythonmutation "github.com/RachidChabane/musthold/discpower/internal/adapters/mutation/python"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/sourceparse/goparser"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/sourceparse/treesitter"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/testkit/bindings"
+	"github.com/RachidChabane/musthold/discpower/internal/testkit/ecosystemcontract"
 )
 
 const (

@@ -5,11 +5,11 @@
       "request": {
         "type": "https://rachid-chabane.com/host-protocol/request/v1",
         "module": {
-          "name": "spec-proof-dp",
+          "name": "musthold-dp",
           "version": "0.1.0"
         },
         "kind": "judge.validity",
-        "role": "spec-proof-dp:judge",
+        "role": "musthold-dp:judge",
         "shape": "open",
         "prompt": {
           "system": "You judge whether a mutant violates a criterion.",
@@ -48,18 +48,18 @@
         ],
         "cacheKey": "89dd5bff4fb6fd83ee0679edfb07756d0d22222a414f0c3ac6fd92c120e4fe4f"
       },
-      "id": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5"
+      "id": "21ec6c1e59ba8de9c4cfb31fe2b650bd218708537a6d5877bae3ca4e4d46cbfc"
     },
     {
       "name": "another module version",
       "request": {
         "type": "https://rachid-chabane.com/host-protocol/request/v1",
         "module": {
-          "name": "spec-proof-dp",
+          "name": "musthold-dp",
           "version": "9.9.9"
         },
         "kind": "judge.validity",
-        "role": "spec-proof-dp:judge",
+        "role": "musthold-dp:judge",
         "shape": "open",
         "prompt": {
           "system": "You judge whether a mutant violates a criterion.",
@@ -98,18 +98,18 @@
         ],
         "cacheKey": "89dd5bff4fb6fd83ee0679edfb07756d0d22222a414f0c3ac6fd92c120e4fe4f"
       },
-      "id": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5"
+      "id": "21ec6c1e59ba8de9c4cfb31fe2b650bd218708537a6d5877bae3ca4e4d46cbfc"
     },
     {
       "name": "generation",
       "request": {
         "type": "https://rachid-chabane.com/host-protocol/request/v1",
         "module": {
-          "name": "spec-proof-dp",
+          "name": "musthold-dp",
           "version": "0.1.0"
         },
         "kind": "generate.targeted",
-        "role": "spec-proof-dp:generator",
+        "role": "musthold-dp:generator",
         "shape": "open",
         "prompt": {
           "system": "You judge whether a mutant violates a criterion.",
@@ -150,18 +150,18 @@
         ],
         "cacheKey": "89dd5bff4fb6fd83ee0679edfb07756d0d22222a414f0c3ac6fd92c120e4fe4f"
       },
-      "id": "53cd8802a3ddfbbcc7b641768af2ffb5ec970245a9185c64601c5c3c0d3e8d10"
+      "id": "c8bb265b2bf1570b6cb4cc0261970a9c33b7a9293443a298aee5600ecef7ccb2"
     },
     {
       "name": "closed question",
       "request": {
         "type": "https://rachid-chabane.com/host-protocol/request/v1",
         "module": {
-          "name": "spec-proof-dp",
+          "name": "musthold-dp",
           "version": "0.1.0"
         },
         "kind": "decide.closed",
-        "role": "spec-proof-dp:decider",
+        "role": "musthold-dp:decider",
         "shape": "closed",
         "prompt": {
           "system": "You judge whether a mutant violates a criterion.",
@@ -280,7 +280,7 @@
         ],
         "cacheKey": "89dd5bff4fb6fd83ee0679edfb07756d0d22222a414f0c3ac6fd92c120e4fe4f"
       },
-      "id": "efc5ab79983abd60e1ed03894296c105fdf35fb6a42896b0c7300889f3acb580"
+      "id": "bc69037dc125c00beb7c0e4375cd718b95cb458c14268ca91b0c95ff9f8526a2"
     }
   ],
   "capabilities": [
@@ -299,34 +299,34 @@
   ],
   "tickets": [
     {
-      "text": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5.0.1",
+      "text": "21ec6c1e59ba8de9c4cfb31fe2b650bd218708537a6d5877bae3ca4e4d46cbfc.0.1",
       "valid": true,
       "emission": 1
     },
     {
-      "text": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5.2.3",
+      "text": "21ec6c1e59ba8de9c4cfb31fe2b650bd218708537a6d5877bae3ca4e4d46cbfc.2.3",
       "valid": true,
       "vote": 2,
       "emission": 3
     },
     {
-      "text": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5.0.0",
+      "text": "21ec6c1e59ba8de9c4cfb31fe2b650bd218708537a6d5877bae3ca4e4d46cbfc.0.0",
       "valid": false
     },
     {
-      "text": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5.-1.1",
+      "text": "21ec6c1e59ba8de9c4cfb31fe2b650bd218708537a6d5877bae3ca4e4d46cbfc.-1.1",
       "valid": false
     },
     {
-      "text": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5.01.1",
+      "text": "21ec6c1e59ba8de9c4cfb31fe2b650bd218708537a6d5877bae3ca4e4d46cbfc.01.1",
       "valid": false
     },
     {
-      "text": "BBB0107006FAD4ABD4746FC925C050DFF762F20370B46E56C92E74FE9EF5F7A5.0.1",
+      "text": "21EC6C1E59BA8DE9C4CFB31FE2B650BD218708537A6D5877BAE3CA4E4D46CBFC.0.1",
       "valid": false
     },
     {
-      "text": "bbb0107006fad4abd4746fc925c050dff762f20370b46e56c92e74fe9ef5f7a5",
+      "text": "21ec6c1e59ba8de9c4cfb31fe2b650bd218708537a6d5877bae3ca4e4d46cbfc",
       "valid": false
     }
   ],
@@ -746,7 +746,7 @@
         "hook_event_name": "PreToolUse",
         "tool_name": "Agent",
         "tool_input": {
-          "subagent_type": "spec-proof-dp:judge",
+          "subagent_type": "musthold-dp:judge",
           "description": "judge",
           "prompt": "ticket x",
           "model": "haiku"
@@ -759,7 +759,7 @@
         "sessionId": "s1",
         "toolName": "Agent",
         "toolInput": {
-          "subagent_type": "spec-proof-dp:judge",
+          "subagent_type": "musthold-dp:judge",
           "description": "judge",
           "prompt": "ticket x",
           "model": "haiku"
@@ -777,20 +777,20 @@
       "kind": "pre-tool",
       "payload": {
         "hook_event_name": "PreToolUse",
-        "tool_name": "mcp__plugin_spec-proof-dp_exec__fetch_request",
+        "tool_name": "mcp__plugin_musthold-dp_exec__fetch_request",
         "tool_input": {
           "ticket": "t",
           "cap": ""
         },
         "agent_id": "agent-0001",
-        "agent_type": "spec-proof-dp:judge"
+        "agent_type": "musthold-dp:judge"
       },
       "event": {
         "harness": "claude-code",
         "kind": "pre-tool",
         "agentId": "agent-0001",
-        "agentType": "spec-proof-dp:judge",
-        "toolName": "mcp__plugin_spec-proof-dp_exec__fetch_request",
+        "agentType": "musthold-dp:judge",
+        "toolName": "mcp__plugin_musthold-dp_exec__fetch_request",
         "toolInput": {
           "ticket": "t",
           "cap": ""
@@ -809,14 +809,14 @@
         "hook_event_name": "SubagentStart",
         "session_id": "s1",
         "agent_id": "agent-0001",
-        "agent_type": "spec-proof-dp:judge"
+        "agent_type": "musthold-dp:judge"
       },
       "event": {
         "harness": "claude-code",
         "kind": "subagent-start",
         "sessionId": "s1",
         "agentId": "agent-0001",
-        "agentType": "spec-proof-dp:judge",
+        "agentType": "musthold-dp:judge",
         "usage": {
           "inputTokens": 0,
           "outputTokens": 0,
@@ -830,7 +830,7 @@
       "payload": {
         "hook_event_name": "SubagentStop",
         "agent_id": "agent-0001",
-        "agent_type": "spec-proof-dp:judge",
+        "agent_type": "musthold-dp:judge",
         "agent_transcript_path": "/s/subagents/agent-0001.jsonl",
         "last_assistant_message": "receipt"
       },
@@ -838,7 +838,7 @@
         "harness": "claude-code",
         "kind": "subagent-stop",
         "agentId": "agent-0001",
-        "agentType": "spec-proof-dp:judge",
+        "agentType": "musthold-dp:judge",
         "transcriptPath": "/s/subagents/agent-0001.jsonl",
         "lastMessage": "receipt",
         "usage": {
@@ -935,14 +935,14 @@
       "payload": {
         "sessionId": "s",
         "timestamp": 1,
-        "toolName": "spec-proof-dp-exec/fetch_request",
+        "toolName": "musthold-dp-exec/fetch_request",
         "toolArgs": "{\"ticket\":\"t\"}"
       },
       "event": {
         "harness": "copilot-cli",
         "kind": "pre-tool",
         "sessionId": "s",
-        "toolName": "spec-proof-dp-exec/fetch_request",
+        "toolName": "musthold-dp-exec/fetch_request",
         "toolInput": {
           "ticket": "t"
         },

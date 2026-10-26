@@ -2,7 +2,7 @@
 
 This demonstration records one Claude Code session at work in a small project
 equipped with [Shallnot](https://github.com/RachidChabane/shallnot) and the three
-spec-proof modules. Nothing in the transcript is written by hand: the runner starts
+musthold modules. Nothing in the transcript is written by hand: the runner starts
 the real CLI, the real gate and the real modules, records what they print, and
 renders the records.
 
@@ -45,7 +45,7 @@ session stopped at its cap, a block the agent leaves.
 | `container/` | the engine, the Linux build of the product, the session image and its pinned base images |
 | `recording/` | a kept recording and its rendered transcript, once a live run is kept |
 
-The runner is `tools/canary/cmd/spec-proof-demo-loop`. It reuses the live canary's
+The runner is `tools/canary/cmd/musthold-demo-loop`. It reuses the live canary's
 credential, cap, lock and process-group code (`tools/canary`).
 
 ## Replay
@@ -68,7 +68,7 @@ A live run spends the model quota of the account whose token it uses. It needs:
 - [colima](https://github.com/abiosoft/colima) and the docker client, a Go
   toolchain, `npm`, and the Shallnot source that `script/shallnot-src` finds;
 - a long-lived token from `claude setup-token`, stored in the macOS keychain as
-  the generic password of service `spec-proof-claude-oauth` under your login, or
+  the generic password of service `musthold-claude-oauth` under your login, or
   set in `CLAUDE_CODE_OAUTH_TOKEN`.
 
 Print what a run will do first. This starts nothing and reads no token:
@@ -84,7 +84,7 @@ demo/loop/run live
 ```
 
 The run starts the demonstration's own engine, the colima profile
-`spec-proof-loop` (2 CPUs, 3 GiB), which mounts only the work area and the product
+`musthold-loop` (2 CPUs, 3 GiB), which mounts only the work area and the product
 tree. Every docker command goes through `container/docker`, which names that
 engine's socket and an empty client configuration, never your current context.
 The engine stops when the run ends. The run then builds:

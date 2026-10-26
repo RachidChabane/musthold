@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/app"
 )
 
 // ErrSessionRunning is returned when another canary session holds the lock.

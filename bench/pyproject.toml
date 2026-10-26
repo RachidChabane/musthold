@@ -1,7 +1,7 @@
 [project]
 name = "specbench"
 version = "0.1.0"
-description = "Benchmark harness of spec-proof: deterministic core"
+description = "Benchmark harness of musthold: deterministic core"
 requires-python = ">=3.13,<3.14"
 license = "Apache-2.0"
 dependencies = [

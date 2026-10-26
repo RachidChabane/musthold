@@ -1,5 +1,5 @@
 // The test environment of a scan's Jest runs. It wraps the environment each
-// project configures, which SPEC_PROOF_SCAN_JEST_ENVIRONMENTS names, and reads
+// project configures, which MUSTHOLD_SCAN_JEST_ENVIRONMENTS names, and reads
 // jest-circus events to:
 //   - keep the selected tests alone, skipping every other one at run_start;
 //   - open the window of a test recorded alone before its first beforeEach
@@ -15,14 +15,14 @@ const vm = require('node:vm');
 const { createRequire } = require('node:module');
 const agent = require('./scan-agent.cjs');
 
-const ENVIRONMENTS_VARIABLE = 'SPEC_PROOF_SCAN_JEST_ENVIRONMENTS';
-const ROOT_VARIABLE = 'SPEC_PROOF_SCAN_ROOT';
+const ENVIRONMENTS_VARIABLE = 'MUSTHOLD_SCAN_JEST_ENVIRONMENTS';
+const ROOT_VARIABLE = 'MUSTHOLD_SCAN_ROOT';
 const DEFAULT_ENVIRONMENT = 'jest-environment-node';
 const KEY_SEPARATOR = '\u0000';
 const RUNNER = 'jest';
 const ID_SEPARATOR = '::';
 const TITLE_SEPARATOR = ' > ';
-const STATE = Symbol('spec-proof.scan.jest');
+const STATE = Symbol('musthold.scan.jest');
 const SINON_TIMER_KEY = 'func';
 const LEGACY_TIMER_KEY = 'callback';
 

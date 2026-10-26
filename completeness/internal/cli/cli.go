@@ -10,10 +10,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/prove"
-	"github.com/RachidChabane/spec-proof/completeness/internal/version"
-	"github.com/RachidChabane/spec-proof/format/cliconv"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/completeness/internal/app/prove"
+	"github.com/RachidChabane/musthold/completeness/internal/version"
+	"github.com/RachidChabane/musthold/format/cliconv"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // Exit codes of the binary (ADR 0005).
@@ -43,7 +43,7 @@ const flagHelp = "-h"
 
 // Environment variables the binary reads.
 const (
-	envShallnot = "SPEC_PROOF_SHALLNOT"
+	envShallnot = "MUSTHOLD_SHALLNOT"
 )
 
 // Env is everything the binary takes from its surroundings, so that a test can

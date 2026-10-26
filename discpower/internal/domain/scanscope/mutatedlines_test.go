@@ -4,8 +4,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/scanscope"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/scanscope"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
 )
 
 const verifiesMutatedLines = " [verifies SP-2234~1]"

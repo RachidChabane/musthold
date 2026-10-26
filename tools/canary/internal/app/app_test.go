@@ -13,22 +13,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/adapters"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/modules"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/window"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
+	"github.com/RachidChabane/musthold/tools/canary/internal/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/modules"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/verdict"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/window"
 )
 
 const (
 	ticketA = "864f5e696da12d6944d9380733d5c5a9fba0f0140f3b243c3efae9a6cc74cb38.0.1"
 	ticketB = "88ec618dd2f5f5a73120577c8324765babf222a1fe52b144337a61bc9116d709.2.1"
-	decider = "spec-proof-dp:decider"
-	judge   = "spec-proof-dp:judge"
-	gen     = "spec-proof-dp:generator"
+	decider = "musthold-dp:decider"
+	judge   = "musthold-dp:judge"
+	gen     = "musthold-dp:generator"
 
 	fixturesRoot = "../domain/checks/testdata"
 )
@@ -64,7 +64,7 @@ func TestSelectTickets(t *testing.T) {
 	})
 
 	t.Run("a listing with no ticket of the module, or no JSON, is an error [verifies SP-1507~1]", func(t *testing.T) {
-		if _, err := app.SelectTickets([]byte(listing([2]string{ticketA, "spec-proof-alignment:judge"}))); !errors.Is(err, app.ErrNoTicket) {
+		if _, err := app.SelectTickets([]byte(listing([2]string{ticketA, "musthold-alignment:judge"}))); !errors.Is(err, app.ErrNoTicket) {
 			t.Errorf("error = %v", err)
 		}
 		if _, err := app.SelectTickets([]byte(`{"items":[]}`)); !errors.Is(err, app.ErrNoTicket) {
@@ -138,9 +138,9 @@ func (s *fakeSession) Run(spec app.SessionSpec) (app.SessionOutcome, error) {
 			state = value
 		}
 	}
-	copyFile(evidence.JournalFile, filepath.Join(state, "spec-proof", modules.Primary().Dir, "digest", "host", evidence.JournalFile))
+	copyFile(evidence.JournalFile, filepath.Join(state, "musthold", modules.Primary().Dir, "digest", "host", evidence.JournalFile))
 	if _, err := os.Stat(filepath.Join(fixturesRoot, s.fixture, evidence.ClassifyJournalFile)); err == nil {
-		copyFile(evidence.ClassifyJournalFile, filepath.Join(state, "spec-proof", modules.Classified().Dir, "digest", "host", evidence.JournalFile))
+		copyFile(evidence.ClassifyJournalFile, filepath.Join(state, "musthold", modules.Classified().Dir, "digest", "host", evidence.JournalFile))
 	}
 	edit := filepath.Join(spec.Dir, launch.EditFile)
 	content, err := os.ReadFile(edit)
@@ -229,10 +229,10 @@ func newWorld(t *testing.T, flag string, now time.Time) *world {
 	repo := t.TempDir()
 	files := adapters.OSFiles{}
 	for path, content := range map[string]string{
-		"discpower/fixtures/prove/parcel/parcel/rates.py":         "FREE_SHIPPING_FROM = 50\nSHIPPING_FEE = 4.5\nMAX_PERCENT = 100\n",
-		"discpower/fixtures/prove/parcel/.spec-proof/c.yaml":      "proofs: {}\n",
-		"discpower/fixtures/prove/parcel/.spec-proof/config.yaml": "proofs:\n  alignment: false\n  discriminating-power: true\n  completeness: false\n",
-		"script/shallnot.pin": "831c5454a564b8cf4e1e010780f35543831efe7e\n",
+		"discpower/fixtures/prove/parcel/parcel/rates.py":       "FREE_SHIPPING_FROM = 50\nSHIPPING_FEE = 4.5\nMAX_PERCENT = 100\n",
+		"discpower/fixtures/prove/parcel/.musthold/c.yaml":      "proofs: {}\n",
+		"discpower/fixtures/prove/parcel/.musthold/config.yaml": "proofs:\n  alignment: false\n  discriminating-power: true\n  completeness: false\n",
+		"script/shallnot.pin":                                   "831c5454a564b8cf4e1e010780f35543831efe7e\n",
 	} {
 		if err := files.Write(filepath.Join(repo, path), []byte(content), false); err != nil {
 			t.Fatal(err)
@@ -354,7 +354,7 @@ func TestRefusals(t *testing.T) {
 
 	t.Run("a binary that was not built is named, with the script that builds it [verifies SP-1504~2]", func(t *testing.T) {
 		w := newWorld(t, "claude", night)
-		if err := os.Remove(filepath.Join(w.repo, ".tools", "bin", "spec-proof-alignment")); err != nil {
+		if err := os.Remove(filepath.Join(w.repo, ".tools", "bin", "musthold-alignment")); err != nil {
 			t.Fatal(err)
 		}
 		_, err := w.runner.Run(context.Background(), w.options)
@@ -408,7 +408,7 @@ func TestDryRun(t *testing.T) {
 				t.Errorf("the Claude plan lacks %q", want)
 			}
 		}
-		for _, want := range []string{"/repo/.tools/bin/spec-proof-completeness init --hooks codex", "CODEX_HOME=/dedicated", "codex exec -m gpt-6-luna"} {
+		for _, want := range []string{"/repo/.tools/bin/musthold-completeness init --hooks codex", "CODEX_HOME=/dedicated", "codex exec -m gpt-6-luna"} {
 			if !strings.Contains(joinedCodex, want) {
 				t.Errorf("the Codex plan lacks %q", want)
 			}
@@ -466,16 +466,16 @@ func TestPrepareOnly(t *testing.T) {
 				t.Errorf("the report lacks %q:\n%s", want, out)
 			}
 		}
-		for _, path := range []string{"project/shallnot.yaml", "project/.claude/settings.json", "project/parcel/rates.py", "shim/spec-proof-dp", "shim/spec-proof-alignment", "shim/spec-proof-completeness", "records/nocall.json"} {
+		for _, path := range []string{"project/shallnot.yaml", "project/.claude/settings.json", "project/parcel/rates.py", "shim/musthold-dp", "shim/musthold-alignment", "shim/musthold-completeness", "records/nocall.json"} {
 			if _, err := os.Stat(filepath.Join(outcome.RunDir, path)); err != nil {
 				t.Errorf("the run lacks %s", path)
 			}
 		}
-		shim, _ := os.ReadFile(filepath.Join(outcome.RunDir, "shim", "spec-proof-dp"))
-		if !strings.Contains(string(shim), "/bin/canary shim --real "+filepath.Join(w.repo, ".tools/bin/spec-proof-dp")) {
+		shim, _ := os.ReadFile(filepath.Join(outcome.RunDir, "shim", "musthold-dp"))
+		if !strings.Contains(string(shim), "/bin/canary shim --real "+filepath.Join(w.repo, ".tools/bin/musthold-dp")) {
 			t.Errorf("shim = %s", shim)
 		}
-		for _, export := range []string{"export XDG_STATE_HOME=" + outcome.RunDir, "export XDG_CACHE_HOME=", "export TMPDIR=", "export SPEC_PROOF_SHALLNOT=", "export CLAUDE_PROJECT_DIR=" + outcome.RunDir} {
+		for _, export := range []string{"export XDG_STATE_HOME=" + outcome.RunDir, "export XDG_CACHE_HOME=", "export TMPDIR=", "export MUSTHOLD_SHALLNOT=", "export CLAUDE_PROJECT_DIR=" + outcome.RunDir} {
 			if !strings.Contains(string(shim), export) {
 				t.Errorf("the shim does not set %s:\n%s", export, shim)
 			}
@@ -560,8 +560,8 @@ func TestSyntheticSessionOfClaudeCode(t *testing.T) {
 		if environment["CLAUDE_CONFIG_DIR"] != filepath.Join(outcome.RunDir, "claude-config") || environment["CLAUDE_CODE_OAUTH_TOKEN"] != "secret" {
 			t.Errorf("config dir %q, token %q", environment["CLAUDE_CONFIG_DIR"], environment["CLAUDE_CODE_OAUTH_TOKEN"])
 		}
-		if environment["SPEC_PROOF_SHALLNOT"] != filepath.Join(w.repo, ".tools/bin/shallnot") {
-			t.Errorf("SPEC_PROOF_SHALLNOT = %s", environment["SPEC_PROOF_SHALLNOT"])
+		if environment["MUSTHOLD_SHALLNOT"] != filepath.Join(w.repo, ".tools/bin/shallnot") {
+			t.Errorf("MUSTHOLD_SHALLNOT = %s", environment["MUSTHOLD_SHALLNOT"])
 		}
 		if spec.Cap != launch.ClaudeEventCap || spec.Timeout != launch.TimeoutSeconds*time.Second {
 			t.Errorf("cap %d, timeout %s", spec.Cap, spec.Timeout)
@@ -612,7 +612,7 @@ func TestSyntheticSessionOfClaudeCode(t *testing.T) {
 		if err := json.Unmarshal(raw, &recorded); err != nil {
 			t.Fatal(err)
 		}
-		if recorded.Versions["claude"] != claudeVersionLine || recorded.Versions["spec-proof-dp"] == "" || recorded.Versions["shallnot"] != "831c5454a564b8cf4e1e010780f35543831efe7e" {
+		if recorded.Versions["claude"] != claudeVersionLine || recorded.Versions["musthold-dp"] == "" || recorded.Versions["shallnot"] != "831c5454a564b8cf4e1e010780f35543831efe7e" {
 			t.Errorf("versions = %v", recorded.Versions)
 		}
 		if recorded.Ticket != ticketA || recorded.Role != decider || recorded.Model != "claude-sonnet-5-5" || recorded.EventCap != launch.ClaudeEventCap {
@@ -799,7 +799,7 @@ func TestSessionAgainstTheUsersConfiguration(t *testing.T) {
 
 	t.Run("each module's executor server is started in the prepared project and a server that does not start is recorded [verifies SP-1502~1]", func(t *testing.T) {
 		w := newWorld(t, "claude", night)
-		w.prober.startFails = "spec-proof-completeness"
+		w.prober.startFails = "musthold-completeness"
 		outcome, err := w.runner.Run(context.Background(), w.options)
 		if err != nil {
 			t.Fatal(err)
@@ -807,7 +807,7 @@ func TestSessionAgainstTheUsersConfiguration(t *testing.T) {
 		if len(w.prober.handshakes) != len(modules.All()) {
 			t.Fatalf("%d handshakes", len(w.prober.handshakes))
 		}
-		if v := verdictOf(outcome.Report, "executor_servers_start"); v.Status != verdict.Fail || !strings.Contains(v.Summary, "spec-proof-completeness") {
+		if v := verdictOf(outcome.Report, "executor_servers_start"); v.Status != verdict.Fail || !strings.Contains(v.Summary, "musthold-completeness") {
 			t.Fatalf("verdict = %+v", v)
 		}
 	})

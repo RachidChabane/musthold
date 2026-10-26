@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	cacheDirectory   = "spec-proof-test-node"
+	cacheDirectory   = "musthold-test-node"
 	nodeCommand      = "node"
 	npmCommand       = "npm"
 	niceCommand      = "nice"

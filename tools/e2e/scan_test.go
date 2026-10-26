@@ -41,7 +41,7 @@ func inProject(t *testing.T, dir string, env []string, name string, args ...stri
 	return result{code: code, stdout: stdout.String(), stderr: stderr.String()}
 }
 
-func TestSpecProofScan(t *testing.T) {
+func TestMustholdScan(t *testing.T) {
 	requirements := []string{scanRequirement}
 	if testing.Short() {
 		skipRequirements(t, requirements, "builds the binaries and runs a scan")
@@ -71,14 +71,14 @@ func TestSpecProofScan(t *testing.T) {
 	}
 
 	scan := inProject(t, root, env, filepath.Join(bin, dispatcherBinary), "scan", "--budget", "0")
-	t.Run("spec-proof scan runs the module's scan with no configuration and prints the test that verifies nothing"+verifiesScan, func(t *testing.T) {
+	t.Run("musthold scan runs the module's scan with no configuration and prints the test that verifies nothing"+verifiesScan, func(t *testing.T) {
 		if scan.code != 0 || !strings.Contains(scan.stdout, "#1 "+vacuousTest+" passes on all ") || !strings.Contains(scan.stdout, "1/5 verify nothing") {
 			t.Fatalf("exit %d:\n%s", scan.code, scan.output())
 		}
 	})
-	t.Run("spec-proof scan replay re-executes the findings with no model"+verifiesScan, func(t *testing.T) {
+	t.Run("musthold scan replay re-executes the findings with no model"+verifiesScan, func(t *testing.T) {
 		commit := strings.TrimSpace(inProject(t, root, env, "git", "rev-parse", "--short=7", "HEAD").stdout)
-		replay := inProject(t, root, env, filepath.Join(bin, dispatcherBinary), "scan", "replay", filepath.Join(".spec-proof", "scan", commit))
+		replay := inProject(t, root, env, filepath.Join(bin, dispatcherBinary), "scan", "replay", filepath.Join(".musthold", "scan", commit))
 		if replay.code != 0 || !strings.Contains(replay.stdout, vacuousTest) || strings.Contains(replay.stdout, "NOT held") {
 			t.Fatalf("exit %d:\n%s", replay.code, replay.output())
 		}

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // ClassifyOutcomeKind tells what an import of a classification came to.

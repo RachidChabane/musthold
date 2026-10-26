@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Category is the kind of content a ledger path holds.

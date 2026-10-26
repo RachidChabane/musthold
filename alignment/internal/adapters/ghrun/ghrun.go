@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
+	"github.com/RachidChabane/musthold/alignment/internal/app/ports"
 )
 
 // gh command line.

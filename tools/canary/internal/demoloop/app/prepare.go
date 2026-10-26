@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	canary "github.com/RachidChabane/spec-proof/tools/canary/internal/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/config"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/plan"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/record"
+	canary "github.com/RachidChabane/musthold/tools/canary/internal/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 )
 
 // stepTimeout bounds one preparation command; the gate runs the project's tests.
@@ -70,7 +70,7 @@ func (p Preparer) Prepare(ctx context.Context, l plan.Layout, run config.Run, le
 }
 
 func (p Preparer) bindOperations(l plan.Layout, operations map[string]map[string]string) error {
-	path := filepath.Join(l.Project(), plan.SpecProofConfig)
+	path := filepath.Join(l.Project(), plan.MustholdConfig)
 	current, err := p.Files.Read(path)
 	if err != nil {
 		return err

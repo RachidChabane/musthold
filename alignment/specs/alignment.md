@@ -6,7 +6,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 
 ## Binary
 
-- **SP-101~1**: WHEN the `spec-proof-alignment` binary is run with the `version`
+- **SP-101~1**: WHEN the `musthold-alignment` binary is run with the `version`
   argument THE SYSTEM SHALL print its version.
 
 ## Blind input
@@ -146,7 +146,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   when nothing waits.
 - **SP-345~1**: WHEN a Statement is written to the proof cache THE SYSTEM SHALL
   validate it against the embedded schemas first, refuse an invalid one, and
-  write it atomically at `.spec-proof/cache/alignment/<ID>~<REV>/<cacheKey>.json`.
+  write it atomically at `.musthold/cache/alignment/<ID>~<REV>/<cacheKey>.json`.
 - **SP-346~1**: WHEN a decision is memoized THE SYSTEM SHALL return it for its key,
   treat an absent or unreadable entry as a miss and write atomically.
 - **SP-354~1**: WHEN a Statement is validated against its schema THE SYSTEM SHALL
@@ -161,7 +161,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-340~1**: WHEN the host store of a project is opened THE SYSTEM SHALL keep
   `queue.json`, `requests/`, `tickets/`, `responses/`, a digest-chained
   `journal.jsonl` and a `secret` under
-  `$XDG_STATE_HOME/spec-proof/alignment/<repo-digest>/host/`, with directories
+  `$XDG_STATE_HOME/musthold/alignment/<repo-digest>/host/`, with directories
   private to the user and the secret readable by the user only, and SHALL derive
   the repository digest from the absolute path of the project root.
 - **SP-341~1**: WHEN the filesystem store is tested THE SYSTEM SHALL satisfy the
@@ -261,7 +261,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   subagent of its harness with the capability's evidence, and, when attestation is
   waived, journal the answer as restricted.
 - **SP-742~1**: WHEN a host harness is selected THE SYSTEM SHALL ship the judge and the decider of
-  `spec-proof-alignment` as its executor agents, name their types and the executor tools as the
+  `musthold-alignment` as its executor agents, name their types and the executor tools as the
   harness spells them, and map a reported type back to the role of the requests of
   the module.
 - **SP-743~1**: WHEN the host files of the module are generated THE SYSTEM SHALL
@@ -293,7 +293,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   prints accepts version 1.2 and refuses 1.1, and report the check.
 - **SP-748~1**: WHEN `host push` runs THE SYSTEM SHALL publish every answered ticket with
   the profile it is credited with and the marks against it as a tree under the ref
-  `refs/spec-proof/host/alignment/<head>` of the head commit with git plumbing, replace a
+  `refs/musthold/host/alignment/<head>` of the head commit with git plumbing, replace a
   ref that exists, publish the ref to a remote when asked, touch neither the working
   tree nor the current branch, warn when a tracked file differs from the head commit,
   refuse a store whose journal chain is broken and publish nothing when nothing is
@@ -307,7 +307,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   the same checks as any answer, ignore what the bundle holds that it does not ask
   for, leave the other tickets pending, mark again what the pushing host marked,
   refuse a bundle of another version that left requests unanswered, leave the
-  requests that remain in `.spec-proof/ci-issued/alignment`, where the CI job uploads them from, and refuse `--import-host`
+  requests that remain in `.musthold/ci-issued/alignment`, where the CI job uploads them from, and refuse `--import-host`
   without `--ci` and `--ci` with `--record` or `--replay`.
 - **SP-751~1**: WHEN a project is equipped with Shallnot and the module, edited and proved
   THE SYSTEM SHALL let a simulated Claude Code host answer every ticket through the
@@ -488,7 +488,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 ## Portable plugin
 
 - **SP-1711~1**: WHEN the portable plugin of the module is generated THE SYSTEM SHALL
-  give it the manifest, the server of `spec-proof-alignment`, the fulfil skill and the agents and
+  give it the manifest, the server of `musthold-alignment`, the fulfil skill and the agents and
   hooks of Copilot CLI that the shared generator produces, the root server naming
   no harness and the agents' servers named apart from it, and the committed tree
   SHALL equal what the generator produces; the Copilot tree under `plugin/` is the
@@ -500,7 +500,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 
 ## Release version
 
-- **SP-1852~1**: WHEN `spec-proof-alignment` is run with the lone argument `--version` THE SYSTEM
+- **SP-1852~1**: WHEN `musthold-alignment` is run with the lone argument `--version` THE SYSTEM
   SHALL print the bare version, the one a release build linked with
   `-X main.version`, else the one `go install` recorded, else `dev`, and the
   `version` command SHALL print the binary name, that version and the linked

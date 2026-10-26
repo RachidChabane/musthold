@@ -3,8 +3,8 @@ package prove
 import (
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbridge"
 )
 
 func profile(isolation format.Isolation, channel format.Channel, agent string) format.ExecutorProfile {

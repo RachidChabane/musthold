@@ -1,5 +1,5 @@
 // The one reporter of a scan's Jest runs. It appends to
-// <SPEC_PROOF_SCAN_OUT>/reporter.jsonl, per test file, whether the file failed
+// <MUSTHOLD_SCAN_OUT>/reporter.jsonl, per test file, whether the file failed
 // to run and the status Jest gives each of its tests: the outcomes of a file
 // whose tests ran outside the scan's environment, which a docblock can choose.
 'use strict';
@@ -7,8 +7,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const OUT_VARIABLE = 'SPEC_PROOF_SCAN_OUT';
-const ROOT_VARIABLE = 'SPEC_PROOF_SCAN_ROOT';
+const OUT_VARIABLE = 'MUSTHOLD_SCAN_OUT';
+const ROOT_VARIABLE = 'MUSTHOLD_SCAN_ROOT';
 const REPORT_FILE = 'reporter.jsonl';
 const ID_SEPARATOR = '::';
 const TITLE_SEPARATOR = ' > ';

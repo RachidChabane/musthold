@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ghpr"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/gitsource"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
-	"github.com/RachidChabane/spec-proof/discpower/internal/testkit/gitrepo"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ghpr"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/gitsource"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/process"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
+	"github.com/RachidChabane/musthold/discpower/internal/testkit/gitrepo"
 )
 
 const (

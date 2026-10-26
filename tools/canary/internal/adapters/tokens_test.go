@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/adapters"
+	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
 )
 
 var hexToken = regexp.MustCompile(`^[0-9a-f]{32}$`)

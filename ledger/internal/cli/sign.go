@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/digestmanifest"
-	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/filetree"
-	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/schemacheck"
-	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/signing/ed25519signer"
-	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/signing/sigstore"
-	"github.com/RachidChabane/spec-proof/ledger/internal/app"
+	"github.com/RachidChabane/musthold/ledger/internal/adapters/digestmanifest"
+	"github.com/RachidChabane/musthold/ledger/internal/adapters/filetree"
+	"github.com/RachidChabane/musthold/ledger/internal/adapters/schemacheck"
+	"github.com/RachidChabane/musthold/ledger/internal/adapters/signing/ed25519signer"
+	"github.com/RachidChabane/musthold/ledger/internal/adapters/signing/sigstore"
+	"github.com/RachidChabane/musthold/ledger/internal/app"
 )
 
 // Identities `sign` can use.

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
 )
 
 // baselineRunsPerPath is how many times each baseline of a coverage binary

@@ -6,15 +6,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbundle"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const headSHA = "0123456789abcdef0123456789abcdef01234567"
 
-var module = format.Module{Name: "spec-proof-dp", Version: "0.1.0"}
+var module = format.Module{Name: "musthold-dp", Version: "0.1.0"}
 
 func response(request hostproto.Request, vote int) hostproto.Response {
 	ticket := hostprototest.Ticket(request, vote, 1)
@@ -142,16 +142,16 @@ const refModule = "sample"
 
 func TestRulesOfTheBundle(t *testing.T) {
 	t.Run("the ref of a commit sits under the host namespace of the module [verifies SP-713~1]", func(t *testing.T) {
-		if got := hostbundle.RefName(refModule, headSHA); got != "refs/spec-proof/host/"+refModule+"/"+headSHA {
+		if got := hostbundle.RefName(refModule, headSHA); got != "refs/musthold/host/"+refModule+"/"+headSHA {
 			t.Fatalf("ref = %s", got)
 		}
-		if got := hostbundle.IssuedArtifact(refModule); got != "spec-proof-host-"+refModule {
+		if got := hostbundle.IssuedArtifact(refModule); got != "musthold-host-"+refModule {
 			t.Fatalf("artifact = %s", got)
 		}
 	})
 
 	t.Run("a bundle of another version is refused only when requests found no answer, naming both versions [verifies SP-713~1]", func(t *testing.T) {
-		older := format.Module{Name: "spec-proof-dp", Version: "0.0.9"}
+		older := format.Module{Name: "musthold-dp", Version: "0.0.9"}
 		if err := hostbundle.CheckSkew(older, module, 0); err != nil {
 			t.Errorf("every request answered: %v", err)
 		}
@@ -253,7 +253,7 @@ func TestIssuedBundle(t *testing.T) {
 func TestIssuedLocation(t *testing.T) {
 	t.Run("each module leaves its requests in a directory of its own below the issued root [verifies SP-1602~1]", func(t *testing.T) {
 		dp, alignment := hostbundle.IssuedDirectory("discpower"), hostbundle.IssuedDirectory("alignment")
-		if dp != ".spec-proof/ci-issued/discpower" || alignment != ".spec-proof/ci-issued/alignment" || dp == alignment {
+		if dp != ".musthold/ci-issued/discpower" || alignment != ".musthold/ci-issued/alignment" || dp == alignment {
 			t.Fatalf("directories %q and %q", dp, alignment)
 		}
 		if !strings.HasPrefix(dp, hostbundle.IssuedRoot+"/") {

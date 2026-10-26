@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 const (
@@ -15,8 +15,8 @@ const (
 	fixtureAgentID     = "a7e0364c-b934-43d8-9bbb-9744dbf2af35"
 	fixtureCLIVersion  = "1.0.92"
 
-	fixtureFetchTool  = "spec-proof-dp-exec-fetch_request"
-	fixtureSubmitTool = "spec-proof-dp-exec-submit_response"
+	fixtureFetchTool  = "musthold-dp-exec-fetch_request"
+	fixtureSubmitTool = "musthold-dp-exec-submit_response"
 )
 
 func readSessionFixture(t *testing.T) string {
@@ -43,7 +43,7 @@ func TestDecodeCopilotSessionLog(t *testing.T) {
 		if run.CLIVersion != fixtureCLIVersion {
 			t.Errorf("version = %q", run.CLIVersion)
 		}
-		wantSelected := [][]string{{"spec-proof-dp-exec/fetch_request", "spec-proof-dp-exec/submit_response"}}
+		wantSelected := [][]string{{"musthold-dp-exec/fetch_request", "musthold-dp-exec/submit_response"}}
 		if !reflect.DeepEqual(run.Selected, wantSelected) {
 			t.Errorf("selected = %v", run.Selected)
 		}

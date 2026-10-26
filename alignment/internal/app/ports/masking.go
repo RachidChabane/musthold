@@ -7,7 +7,7 @@ import (
 	"errors"
 	"io/fs"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/criterion"
 )
 
 // MaskedTest is a test built blind for a judge.

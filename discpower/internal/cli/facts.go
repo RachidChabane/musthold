@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/factsrecord"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/xdg"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
-	"github.com/RachidChabane/spec-proof/format/cliconv"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/factsrecord"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/xdg"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/format/cliconv"
 )
 
 // The `facts` command prints the facts record of a criterion's last Statement.

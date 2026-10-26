@@ -5,7 +5,7 @@ import (
 	"maps"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
 )
 
 // Vocabulary of the composition of the unproven tests.

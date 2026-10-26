@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/policy"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/policy"
+	"github.com/RachidChabane/musthold/format"
 )
 
 func TestDefault(t *testing.T) {

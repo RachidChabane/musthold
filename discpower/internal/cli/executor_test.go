@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/discpower/internal/cli"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const samplingOnYAML = "host:\n  sampling: on\n"
@@ -185,7 +185,7 @@ func TestHostRoot(t *testing.T) {
 		run := func(workDir, stdin string, args ...string) (int, string) {
 			var out, errOut bytes.Buffer
 			code := cli.Run(cli.Env{
-				Binary: "spec-proof-dp", Stdin: strings.NewReader(stdin), Stdout: &out, Stderr: &errOut, WorkDir: workDir, HomeDir: h.state,
+				Binary: "musthold-dp", Stdin: strings.NewReader(stdin), Stdout: &out, Stderr: &errOut, WorkDir: workDir, HomeDir: h.state,
 				LookupEnv: func(name string) (string, bool) { value, found := variables[name]; return value, found },
 				Now:       func() time.Time { return h.now }, Entropy: h.entropy,
 			}, args)
@@ -223,7 +223,7 @@ func marshalJSON(t *testing.T, value any) string {
 func TestHooksInAProjectWithoutTheModule(t *testing.T) {
 	t.Run("a hook in a project that has no configuration of the module does nothing and creates no state [verifies SP-239~1]", func(t *testing.T) {
 		h := claudeHost(t)
-		if err := os.Remove(filepath.Join(h.root, ".spec-proof", "config.yaml")); err != nil {
+		if err := os.Remove(filepath.Join(h.root, ".musthold", "config.yaml")); err != nil {
 			t.Fatal(err)
 		}
 		if err := os.RemoveAll(h.state); err != nil {
@@ -246,7 +246,7 @@ func TestHooksInAProjectWithoutTheModule(t *testing.T) {
 		variables := map[string]string{"XDG_STATE_HOME": filepath.Join(blocker, "state")}
 		var out, errOut bytes.Buffer
 		code := cli.Run(cli.Env{
-			Binary: "spec-proof-dp", Stdin: strings.NewReader(`{"tool_name":"Agent","tool_input":{"subagent_type":"general-purpose","prompt":"x"}}`),
+			Binary: "musthold-dp", Stdin: strings.NewReader(`{"tool_name":"Agent","tool_input":{"subagent_type":"general-purpose","prompt":"x"}}`),
 			Stdout: &out, Stderr: &errOut, WorkDir: h.root, HomeDir: h.state,
 			LookupEnv: func(name string) (string, bool) { value, found := variables[name]; return value, found },
 			Now:       func() time.Time { return h.now }, Entropy: h.entropy,

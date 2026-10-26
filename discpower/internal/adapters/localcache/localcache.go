@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/platform/atomicfile"
+	"github.com/RachidChabane/musthold/discpower/internal/platform/atomicfile"
 )
 
 // Layout of the cache directory and the modes of what it holds.

@@ -3,7 +3,7 @@
 // drive it: they set the phase the process is in, open and close the window of
 // the test a recording selects alone, and record each test's outcome.
 //
-// It appends one JSON object per line to <SPEC_PROOF_SCAN_OUT>/<pid>.jsonl:
+// It appends one JSON object per line to <MUSTHOLD_SCAN_OUT>/<pid>.jsonl:
 //   {"k":"process",...}       the runner and the capabilities the process showed;
 //   {"k":"capabilities",...}  the capabilities, once the test realm is checked;
 //   {"k":"script",...}        a source file of the project: its generated code,
@@ -29,15 +29,15 @@ const vm = require('node:vm');
 // scheduleImmediate is Node's own setImmediate, kept before a test can fake it.
 const scheduleImmediate = setImmediate;
 
-const AGENT_KEY = Symbol.for('spec-proof.scan.agent');
-const TAG = Symbol.for('spec-proof.scan.origin');
+const AGENT_KEY = Symbol.for('musthold.scan.agent');
+const TAG = Symbol.for('musthold.scan.origin');
 
-const OUT_VARIABLE = 'SPEC_PROOF_SCAN_OUT';
-const ROOT_VARIABLE = 'SPEC_PROOF_SCAN_ROOT';
-const SELECTION_VARIABLE = 'SPEC_PROOF_SCAN_SELECTION';
-const COVERAGE_VARIABLE = 'SPEC_PROOF_SCAN_COVERAGE';
-const HOLLOW_VARIABLE = 'SPEC_PROOF_SCAN_HOLLOW';
-const WITHOUT_VARIABLE = 'SPEC_PROOF_SCAN_WITHOUT';
+const OUT_VARIABLE = 'MUSTHOLD_SCAN_OUT';
+const ROOT_VARIABLE = 'MUSTHOLD_SCAN_ROOT';
+const SELECTION_VARIABLE = 'MUSTHOLD_SCAN_SELECTION';
+const COVERAGE_VARIABLE = 'MUSTHOLD_SCAN_COVERAGE';
+const HOLLOW_VARIABLE = 'MUSTHOLD_SCAN_HOLLOW';
+const WITHOUT_VARIABLE = 'MUSTHOLD_SCAN_WITHOUT';
 // V8_COVERAGE_VARIABLE names the directory Node writes the coverage of a
 // process into, which a process without an inspector session records by.
 const V8_COVERAGE_VARIABLE = 'NODE_V8_COVERAGE';
@@ -80,19 +80,19 @@ const AT_END = 'end';
 // wraps the transformed code in an async arrow whose body opens with `{{`.
 const WRAPPER_PREFIXES = [/^'use strict';async \([^)]*\)=>\{\{/];
 
-const RETENTION_PROBE_FILE = 'spec-proof-scan-retention.js';
-const EVALUATION_PROBE_FILE = 'spec-proof-scan-evaluation.js';
-const PROMISE_PROBE_FILE = 'spec-proof-scan-promise.js';
-const RETAINED_FUNCTION = 'specProofRetained';
-const RETENTION_PROBE = '(function specProofRetention(){ return function ' + RETAINED_FUNCTION + '(){ return 1; }; })';
-const EVALUATION_PROBE = '(function specProofEvaluation(){ return 1; })()';
+const RETENTION_PROBE_FILE = 'musthold-scan-retention.js';
+const EVALUATION_PROBE_FILE = 'musthold-scan-evaluation.js';
+const PROMISE_PROBE_FILE = 'musthold-scan-promise.js';
+const RETAINED_FUNCTION = 'mustholdRetained';
+const RETENTION_PROBE = '(function mustholdRetention(){ return function ' + RETAINED_FUNCTION + '(){ return 1; }; })';
+const EVALUATION_PROBE = '(function mustholdEvaluation(){ return 1; })()';
 const PROMISE_PROBE = 'Promise.resolve(1)';
 const GC_FLAG = '--expose-gc';
 const GC_FUNCTION = 'gc';
 const GC_COLLECTIONS = 2;
 // PROBE_DIRECTORY holds the made-up files of the self-checks, outside every
 // project.
-const PROBE_DIRECTORY = path.join(path.parse(process.cwd()).root, 'spec-proof-scan-probe');
+const PROBE_DIRECTORY = path.join(path.parse(process.cwd()).root, 'musthold-scan-probe');
 
 function readSelection(file) {
   if (!file) return null;

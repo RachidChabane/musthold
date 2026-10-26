@@ -12,8 +12,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
-	"github.com/RachidChabane/spec-proof/tools/release/internal/testkit"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/testkit"
 )
 
 const (

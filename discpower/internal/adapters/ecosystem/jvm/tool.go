@@ -3,7 +3,7 @@ package jvm
 import (
 	"io/fs"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 )
 
 // buildTool is the Strategy of one build tool: the commands it is driven with and

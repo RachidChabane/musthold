@@ -13,9 +13,9 @@ import (
 	"github.com/sigstore/sigstore-go/pkg/root"
 	"github.com/sigstore/sigstore-go/pkg/verify"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/refusal"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/trustpolicy"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/verify/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/verify/internal/domain/trustpolicy"
 )
 
 // What a bundle must prove besides its certificate chain: one Rekor entry whose

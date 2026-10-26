@@ -1,7 +1,7 @@
 {
-  "name": "spec-proof-alignment",
+  "name": "musthold-alignment",
   "version": "0.1.0",
-  "description": "Blind executors and hooks that let a host harness answer the model requests of spec-proof-alignment, the alignment proof.",
+  "description": "Blind executors and hooks that let a host harness answer the model requests of musthold-alignment, the alignment proof.",
   "author": {
     "name": "Rachid Chabane"
   },

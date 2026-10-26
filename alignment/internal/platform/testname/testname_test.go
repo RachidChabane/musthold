@@ -7,7 +7,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/platform/testname"
+	"github.com/RachidChabane/musthold/alignment/internal/platform/testname"
 )
 
 func TestCompact(t *testing.T) {

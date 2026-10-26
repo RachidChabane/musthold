@@ -1,9 +1,9 @@
-module github.com/RachidChabane/spec-proof/s1relay
+module github.com/RachidChabane/musthold/s1relay
 
 go 1.26.4
 
 require (
-	github.com/RachidChabane/spec-proof/format v0.1.0
+	github.com/RachidChabane/musthold/format v0.1.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

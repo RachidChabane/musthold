@@ -33,9 +33,9 @@ def test_the_session_runs_the_frozen_model_and_streams_hook_events() -> None:
 
 def test_each_plugin_of_the_arm_is_loaded_after_the_umbrella_that_holds_prove_all() -> None:
     modules = proof_modules_in_order(frozenset({Module.ALIGNMENT, Module.DISCRIMINATING_POWER}))
-    directories = plugin_directories(Path("/repo"), Path("/tools/plugins/spec-proof"), modules)
+    directories = plugin_directories(Path("/repo"), Path("/tools/plugins/musthold"), modules)
     assert [str(d) for d in directories] == [
-        "/tools/plugins/spec-proof",
+        "/tools/plugins/musthold",
         "/repo/discpower/plugin/claude",
         "/repo/alignment/plugin/claude",
     ]
@@ -44,7 +44,7 @@ def test_each_plugin_of_the_arm_is_loaded_after_the_umbrella_that_holds_prove_al
 
 def test_the_prompt_asks_for_the_skill_and_a_recording_of_every_prove() -> None:
     prompt = session_prompt(RECORD)
-    assert "spec-proof:prove-all" in prompt
+    assert "musthold:prove-all" in prompt
     assert "--record /runs/r1/rec" in prompt
     assert "prove --resume" in prompt
 
@@ -60,8 +60,8 @@ def test_the_environment_isolates_the_configuration_and_drops_the_nesting_variab
 
 
 def test_the_proof_modules_are_listed_in_generate_order() -> None:
-    assert [m.binary for m in PROOF_MODULES] == ["spec-proof-dp", "spec-proof-alignment", "spec-proof-completeness"]
-    assert PROOF_MODULES[0].server == "plugin:spec-proof-dp:exec"
+    assert [m.binary for m in PROOF_MODULES] == ["musthold-dp", "musthold-alignment", "musthold-completeness"]
+    assert PROOF_MODULES[0].server == "plugin:musthold-dp:exec"
 
 
 def test_a_resumed_session_continues_the_session_it_names() -> None:
@@ -74,8 +74,8 @@ def test_a_resumed_session_continues_the_session_it_names() -> None:
 
 def test_the_round_prompt_names_each_modules_fulfil_skill_and_forbids_proving_or_self_answering() -> None:
     prompt = round_prompt(PROOF_MODULES[:2])
-    assert "spec-proof-dp-fulfil" in prompt
-    assert "spec-proof-alignment-fulfil" in prompt
-    assert "spec-proof-completeness" not in prompt
+    assert "musthold-dp-fulfil" in prompt
+    assert "musthold-alignment-fulfil" in prompt
+    assert "musthold-completeness" not in prompt
     assert "Run no `prove` command" in prompt
     assert "--record" not in prompt

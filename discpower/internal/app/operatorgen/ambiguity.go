@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
 )
 
 // unitInFile is a unit key within one file.

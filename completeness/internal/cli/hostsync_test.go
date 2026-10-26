@@ -7,21 +7,21 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/bundlefs"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/hoststore"
-	"github.com/RachidChabane/spec-proof/completeness/internal/cli"
-	"github.com/RachidChabane/spec-proof/completeness/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/bundlefs"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/hoststore"
+	"github.com/RachidChabane/musthold/completeness/internal/cli"
+	"github.com/RachidChabane/musthold/completeness/internal/testkit"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbundle"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
 	honestAnswer       = hostprototest.ClosedHonestAnswer
 	hostModule         = "completeness"
 	editedSource       = "src/invoicing/totals.py"
-	pushedFormat       = "pushed refs/spec-proof/host/completeness/"
-	issuedArtifactName = "spec-proof-host-completeness"
+	pushedFormat       = "pushed refs/musthold/host/completeness/"
+	issuedArtifactName = "musthold-host-completeness"
 	issuedCriterion    = "INV-1~1"
 	issuedPurpose      = "decision"
 )
@@ -261,7 +261,7 @@ func TestHostPull(t *testing.T) {
 		}
 	})
 
-	t.Run("pull asks gh for the artifact of the module, named spec-proof-host-completeness [verifies SP-789~1]", func(t *testing.T) {
+	t.Run("pull asks gh for the artifact of the module, named musthold-host-completeness [verifies SP-789~1]", func(t *testing.T) {
 		f := newHostFixture(t)
 		bin := t.TempDir()
 		argsFile := filepath.Join(bin, "args")

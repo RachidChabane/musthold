@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/operator"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation/operator"
 )
 
 // SentinelCap is how many sentinels a scan runs. A test that fails a change

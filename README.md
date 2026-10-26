@@ -1,4 +1,4 @@
-# spec-proof
+# musthold
 
 **The goal: coding agents whose work you can accept without rereading every line.**
 You review the intent, the spec, and the evidence that the code meets it, not each
@@ -14,11 +14,11 @@ program behavior making bug detection difficult" ([Konstantinou, Degiovanni and
 Papadakis, 2024](https://arxiv.org/abs/2410.21136)).
 A green suite that proves nothing is a review you believe happened.
 
-**What spec-proof does.** Given a spec written in plain language, it proves,
+**What musthold does.** Given a spec written in plain language, it proves,
 requirement by requirement, that the tests verify what the spec asks, and so that
 the code they pass meets it. [Shallnot](https://github.com/RachidChabane/shallnot)
 checks that each acceptance criterion is cited by a test that ran and passed.
-spec-proof adds what that cannot show:
+musthold adds what that cannot show:
 - the test checks what its criterion states;
 - the test fails on code that violates that criterion;
 - the spec says what the change does, or the gaps are listed as questions.
@@ -35,7 +35,7 @@ tests at that input and runs the gate again. A pipeline from spec to shipped cod
 requests. You review the spec and the evidence.
 
 Development automation will not scale while an agent's green means nothing.
-spec-proof's job is to make that green worth trusting.
+musthold's job is to make that green worth trusting.
 
 ## Scan any repository
 
@@ -44,12 +44,12 @@ of your tests still pass when the code they run is broken, and hands you the
 broken code:
 
 ```
-spec-proof scan
+musthold scan
 ```
 
 It needs no spec, no model and no configuration, runs pytest, Go, Jest and
 Vitest suites, and exits 0 whatever it finds. The default quick scan judges 12
-tests within about a minute and a half; `spec-proof scan --full` judges 40 against the whole
+tests within about a minute and a half; `musthold scan --full` judges 40 against the whole
 suite. See [scan](docs/usage/discpower.md#scan).
 
 ## The four proofs
@@ -57,9 +57,9 @@ suite. See [scan](docs/usage/discpower.md#scan).
 | Proof | Question it answers | Module | Binary | Gate effect |
 |---|---|---|---|---|
 | Traceability | Did a test that cites the requirement run and pass? | Shallnot | `shallnot` | blocks |
-| Discriminating power | Would the tests of the requirement fail on a mutant that violates it? | `discpower` | `spec-proof-dp` | blocks (executed evidence) |
-| Alignment | Does each test verify what its requirement states? | `alignment` | `spec-proof-alignment` | escalates (judged evidence) |
-| Completeness | What does the spec leave unstated about what the change does? | `completeness` | `spec-proof-completeness` | advisory, never blocks |
+| Discriminating power | Would the tests of the requirement fail on a mutant that violates it? | `discpower` | `musthold-dp` | blocks (executed evidence) |
+| Alignment | Does each test verify what its requirement states? | `alignment` | `musthold-alignment` | escalates (judged evidence) |
+| Completeness | What does the spec leave unstated about what the change does? | `completeness` | `musthold-completeness` | advisory, never blocks |
 
 A criterion passes only when traceability and every required proof pass. A
 missing or stale proof never passes.
@@ -91,13 +91,13 @@ missing or stale proof never passes.
 | Directory | Binary | Role | Documentation |
 |---|---|---|---|
 | [`format`](format/README.md) | none | the shared proof format and host protocol library | [format](docs/usage/format.md) |
-| [`discpower`](discpower/README.md) | `spec-proof-dp` | discriminating power; executes tests against mutants | [discriminating power](docs/usage/discpower.md) |
-| [`alignment`](alignment/README.md) | `spec-proof-alignment` | alignment of tests with requirements | [alignment](docs/usage/alignment.md) |
-| [`completeness`](completeness/README.md) | `spec-proof-completeness` | advisory completeness questions | [completeness](docs/usage/completeness.md) |
-| [`ledger`](ledger/README.md) | `spec-proof-ledger` | signs CI proofs and keeps them in an append-only ledger | [ledger](docs/usage/ledger.md) |
-| [`verify`](verify/README.md) | `spec-proof-verify` | verifies signatures and writes the verified set Shallnot reads | [verify](docs/usage/verify.md) |
-| [`s1relay`](s1relay/README.md) | `spec-proof-s1` | optional relay of closed questions to a System One endpoint | [System One](docs/usage/system-one.md) |
-| [`umbrella`](umbrella/README.md) | none | marketplace and the `spec-proof` plugin that installs and runs the modules together | [umbrella](docs/usage/umbrella.md) |
+| [`discpower`](discpower/README.md) | `musthold-dp` | discriminating power; executes tests against mutants | [discriminating power](docs/usage/discpower.md) |
+| [`alignment`](alignment/README.md) | `musthold-alignment` | alignment of tests with requirements | [alignment](docs/usage/alignment.md) |
+| [`completeness`](completeness/README.md) | `musthold-completeness` | advisory completeness questions | [completeness](docs/usage/completeness.md) |
+| [`ledger`](ledger/README.md) | `musthold-ledger` | signs CI proofs and keeps them in an append-only ledger | [ledger](docs/usage/ledger.md) |
+| [`verify`](verify/README.md) | `musthold-verify` | verifies signatures and writes the verified set Shallnot reads | [verify](docs/usage/verify.md) |
+| [`s1relay`](s1relay/README.md) | `musthold-s1` | optional relay of closed questions to a System One endpoint | [System One](docs/usage/system-one.md) |
+| [`umbrella`](umbrella/README.md) | none | marketplace and the `musthold` plugin that installs and runs the modules together | [umbrella](docs/usage/umbrella.md) |
 
 ## Supported ecosystems
 
@@ -120,8 +120,8 @@ installs with Go or with the verified installer, which every binary release
 carries:
 
 ```
-go install github.com/RachidChabane/spec-proof/discpower/cmd/spec-proof-dp@v0.2.0
-curl -fsSLO https://github.com/RachidChabane/spec-proof/releases/download/discpower/v0.2.0/install
+go install github.com/RachidChabane/musthold/discpower/cmd/musthold-dp@v0.2.0
+curl -fsSLO https://github.com/RachidChabane/musthold/releases/download/discpower/v0.2.0/install
 bash install discpower 0.2.0
 ```
 
@@ -135,7 +135,7 @@ workflow at the tag, and check the archive against `SHA256SUMS`:
 
 ```
 cosign verify-blob --bundle SHA256SUMS.sigstore.json \
-  --certificate-identity https://github.com/RachidChabane/spec-proof/.github/workflows/release.yml@refs/tags/discpower/v0.2.0 \
+  --certificate-identity https://github.com/RachidChabane/musthold/.github/workflows/release.yml@refs/tags/discpower/v0.2.0 \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   SHA256SUMS
 sha256sum --ignore-missing -c SHA256SUMS
@@ -153,38 +153,38 @@ JSON report schema is 1.2 or later (see [Status](#status)).
 1. Build the binaries from a clone and put them on `PATH`:
 
    ```
-   git clone https://github.com/RachidChabane/spec-proof
-   cd spec-proof
-   nice -n 10 go install -C discpower -p 1 ./cmd/spec-proof-dp
-   nice -n 10 go install -C alignment -p 1 ./cmd/spec-proof-alignment
-   nice -n 10 go install -C completeness -p 1 ./cmd/spec-proof-completeness
-   nice -n 10 go install -C verify -p 1 ./cmd/spec-proof-verify
+   git clone https://github.com/RachidChabane/musthold
+   cd musthold
+   nice -n 10 go install -C discpower -p 1 ./cmd/musthold-dp
+   nice -n 10 go install -C alignment -p 1 ./cmd/musthold-alignment
+   nice -n 10 go install -C completeness -p 1 ./cmd/musthold-completeness
+   nice -n 10 go install -C verify -p 1 ./cmd/musthold-verify
    ```
 
-2. Install the plugins in Claude Code. The `spec-proof` plugin depends on
+2. Install the plugins in Claude Code. The `musthold` plugin depends on
    Shallnot and on every module plugin:
 
    ```
-   /plugin marketplace add RachidChabane/spec-proof
-   /plugin install spec-proof@spec-proof
+   /plugin marketplace add RachidChabane/musthold
+   /plugin install musthold@musthold
    ```
 
-   To use one module, install only it, for example `/plugin install spec-proof-dp@spec-proof`.
+   To use one module, install only it, for example `/plugin install musthold-dp@musthold`.
    The marketplace also lists `shallnot`.
 
 3. In your project, equip it with Shallnot, then with each module you want:
 
    ```
    shallnot init
-   spec-proof-dp init
-   spec-proof-dp enable
-   spec-proof-alignment init
-   spec-proof-alignment enable
-   spec-proof-completeness init
-   spec-proof-completeness enable
+   musthold-dp init
+   musthold-dp enable
+   musthold-alignment init
+   musthold-alignment enable
+   musthold-completeness init
+   musthold-completeness enable
    ```
 
-   `init` writes `.spec-proof/config.yaml` with a commented `operations` example,
+   `init` writes `.musthold/config.yaml` with a commented `operations` example,
    ignores the local proof directories and enables the module's plugin in
    `.claude/settings.json`. `enable` turns the proof on, adds it to
    `proofs.require` in `shallnot.yaml` (except completeness, which is advisory),
@@ -193,7 +193,7 @@ JSON report schema is 1.2 or later (see [Status](#status)).
    `proofs.trust: signed`.
 
 4. Bind the operation names of your spec examples to code: uncomment and edit the
-   `operations` example in `.spec-proof/config.yaml`, as described in
+   `operations` example in `.musthold/config.yaml`, as described in
    [getting started](docs/usage/getting-started.md).
 
 5. Work as usual. Shallnot's end-of-turn hook runs the gate when the agent
@@ -202,13 +202,13 @@ JSON report schema is 1.2 or later (see [Status](#status)).
    The skill runs `prove`, which exits with code 3 and lists tickets; one blind
    executor subagent answers each ticket; `prove --resume` consumes the answers.
    The loop repeats while `prove` exits 3. When it ends, the skill publishes the
-   local statements for the gate with `spec-proof-verify --accept-local
-   .spec-proof/cache --out .spec-proof/verified`.
+   local statements for the gate with `musthold-verify --accept-local
+   .musthold/cache --out .musthold/verified`.
 
 6. To publish by hand after a run of your own, and run the gate:
 
    ```
-   spec-proof-verify --accept-local .spec-proof/cache --out .spec-proof/verified
+   musthold-verify --accept-local .musthold/cache --out .musthold/verified
    shallnot check
    ```
 
@@ -217,7 +217,7 @@ JSON report schema is 1.2 or later (see [Status](#status)).
 System One is an optional accelerator: a service of your environment that answers
 the closed questions of the proof modules (a choice among options, a score, a
 true/false) with a confidence. With an endpoint configured as `systemone.endpoint`
-in `.spec-proof/config.yaml`, `spec-proof-s1 drain --module dp` posts the waiting
+in `.musthold/config.yaml`, `musthold-s1 drain --module dp` posts the waiting
 closed questions to it and imports the answers; the proof modules themselves open
 no connection. Without it, blind host executors vote and the modal share is the
 confidence. See [System One](docs/usage/system-one.md).
@@ -229,7 +229,7 @@ developer share filesystem access, so nothing on disk proves who wrote a local
 proof. Under `proofs.trust: local` Shallnot reads such proofs and labels them
 `local`. Under `proofs.trust: signed` (Shallnot's default) it admits only
 statements produced by CI, signed with a pinned key or a Sigstore identity,
-checked by `spec-proof-verify` against a trust policy and kept in an
+checked by `musthold-verify` against a trust policy and kept in an
 append-only ledger. CI holds no model: it re-executes every executed claim,
 draws fresh mutants, and serves the judged answers the developer's host pushed
 through the same checks as any answer. See [trust model](docs/usage/trust-model.md).
@@ -241,7 +241,7 @@ Every statement here about what a harness does holds as of Claude Code 2.1.295, 
 
 | Harness | Files | Executor isolation | Consequence for judged pass credit |
 |---|---|---|---|
-| Claude Code | plugin per module and the `spec-proof` plugin | `restricted`: the executor holds only `fetch_request` and `submit_response`; hooks issue a per-subagent capability and attest the transcript | full, under the default `proofs.min_isolation: restricted` |
+| Claude Code | plugin per module and the `musthold` plugin | `restricted`: the executor holds only `fetch_request` and `submit_response`; hooks issue a per-subagent capability and attest the transcript | full, under the default `proofs.min_isolation: restricted` |
 | Codex CLI | `.codex/agents`, `.codex/hooks.json` and a skill, written by `init` | `unrestricted`: Codex has no per-agent allowlist of built-in tools; attestation is waived | none: judged answers keep their power to block and escalate, and criteria without examples reach no PASS unless the floor is lowered |
 | Copilot CLI | `.github/agents`, `.github/hooks` and a skill, written by `init` | `restricted` for an unmarked executor run verified by the stop hook from the session log, otherwise `restricted-unverified`; never `restricted-attested` | a verified run meets the default `restricted` floor and is eligible for judged pass credit with executed corroboration; an unverified run earns none at that floor |
 

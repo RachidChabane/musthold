@@ -1,5 +1,5 @@
 // Package proofcache keeps the completeness Statements of a project in its work
-// tree, at `.spec-proof/cache/completeness/<spec path>/<cacheKey>.json`, where the
+// tree, at `.musthold/cache/completeness/<spec path>/<cacheKey>.json`, where the
 // spec path has its separators percent-encoded so that it is one directory name.
 // A Statement is validated against the embedded schemas before it is written.
 package proofcache
@@ -11,14 +11,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/completeness/internal/platform/atomicfile"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/completeness/internal/app/ports"
+	"github.com/RachidChabane/musthold/completeness/internal/platform/atomicfile"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Location of the cache inside a project and the modes of what it holds.
 const (
-	stateDirectory = ".spec-proof"
+	stateDirectory = ".musthold"
 	cacheDirectory = "cache"
 	moduleFolder   = "completeness"
 

@@ -29,7 +29,7 @@ const (
 	CPUs   = "2"
 	Memory = "2560m"
 	// ProductTarget is where the product tree is mounted, read-only.
-	ProductTarget = "/opt/spec-proof"
+	ProductTarget = "/opt/musthold"
 	// ScratchHome is the HOME of every container: an empty tmpfs.
 	ScratchHome = "/home/demo"
 	scratchSize = "size=256m,mode=1777"
@@ -107,7 +107,7 @@ func (b Box) StepName(step int) string {
 }
 
 // Runner is the runner binary as every container sees it.
-func Runner() string { return ProductTarget + "/bin/spec-proof-demo-loop" }
+func Runner() string { return ProductTarget + "/bin/musthold-demo-loop" }
 
 // base are the options every container has.
 func (b Box) base(name string) []string {

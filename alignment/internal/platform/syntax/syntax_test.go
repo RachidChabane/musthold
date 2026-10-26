@@ -6,7 +6,7 @@ import (
 	"github.com/odvcencio/gotreesitter"
 	"github.com/odvcencio/gotreesitter/grammars"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/platform/syntax"
+	"github.com/RachidChabane/musthold/alignment/internal/platform/syntax"
 )
 
 const source = "const total = price(2);\nfunction price(n) {\n  return n * 2;\n}\n"

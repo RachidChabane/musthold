@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/endpoint"
+	"github.com/RachidChabane/musthold/s1relay/internal/app/ports"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/endpoint"
 )
 
 // Routes of an Ollama server outside the closed-question route.

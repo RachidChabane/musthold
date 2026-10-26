@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/adapters"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
+	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
+	"github.com/RachidChabane/musthold/tools/canary/internal/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
 )
 
 const (
@@ -66,7 +66,7 @@ func TestKeychainCredential(t *testing.T) {
 			t.Fatalf("token %q, %v", token, err)
 		}
 		calls, _ := os.ReadFile(log)
-		want := "find-generic-password -s spec-proof-claude-oauth -a someone\nfind-generic-password -s spec-proof-claude-oauth -a someone -w\n"
+		want := "find-generic-password -s musthold-claude-oauth -a someone\nfind-generic-password -s musthold-claude-oauth -a someone -w\n"
 		if string(calls) != want {
 			t.Errorf("calls:\n%s\nwant:\n%s", calls, want)
 		}

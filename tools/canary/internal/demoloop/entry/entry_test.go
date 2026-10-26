@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/entry"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/entry"
 )
 
 const token = "sk-ant-oat01-entry-test-token-0123456789"

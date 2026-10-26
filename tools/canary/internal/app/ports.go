@@ -7,7 +7,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
 )
 
 // Output is what a finished command printed.

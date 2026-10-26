@@ -7,7 +7,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
 )
 
 const (
@@ -101,13 +101,13 @@ func TestReleaseTable(t *testing.T) {
 		}
 		want := map[string]row{
 			"format":       {domain.KindLibrary, "", ""},
-			"discpower":    {domain.KindBinaryPlugin, "spec-proof-dp", "spec-proof-dp"},
-			"alignment":    {domain.KindBinaryPlugin, "spec-proof-alignment", "spec-proof-alignment"},
-			"completeness": {domain.KindBinaryPlugin, "spec-proof-completeness", "spec-proof-completeness"},
-			"s1relay":      {domain.KindBinaryPlugin, "spec-proof-s1", "spec-proof-s1"},
-			"ledger":       {domain.KindBinary, "spec-proof-ledger", ""},
-			"verify":       {domain.KindBinary, "spec-proof-verify", ""},
-			"umbrella":     {domain.KindPlugin, "", "spec-proof"},
+			"discpower":    {domain.KindBinaryPlugin, "musthold-dp", "musthold-dp"},
+			"alignment":    {domain.KindBinaryPlugin, "musthold-alignment", "musthold-alignment"},
+			"completeness": {domain.KindBinaryPlugin, "musthold-completeness", "musthold-completeness"},
+			"s1relay":      {domain.KindBinaryPlugin, "musthold-s1", "musthold-s1"},
+			"ledger":       {domain.KindBinary, "musthold-ledger", ""},
+			"verify":       {domain.KindBinary, "musthold-verify", ""},
+			"umbrella":     {domain.KindPlugin, "", "musthold"},
 		}
 		modules := domain.Modules()
 		if len(modules) != len(want) || modules[0].Name != domain.FormatModuleName {
@@ -144,7 +144,7 @@ func TestReleaseTable(t *testing.T) {
 			got[output.Key] = output.Value
 		}
 		want := map[string]string{
-			"tag": "discpower/v0.2.0", "module": "discpower", "kind": "binary+plugin", "binary": "spec-proof-dp",
+			"tag": "discpower/v0.2.0", "module": "discpower", "kind": "binary+plugin", "binary": "musthold-dp",
 			"semver": "0.2.0", "ships_binary": "true", "ships_plugin": "true", "ci_modules": "format discpower",
 		}
 		for key, value := range want {

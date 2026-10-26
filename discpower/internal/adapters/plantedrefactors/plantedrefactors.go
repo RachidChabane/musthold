@@ -11,8 +11,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/prove"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/app/prove"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
 )
 
 const extension = ".json"

@@ -6,17 +6,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostinstall"
-	"github.com/RachidChabane/spec-proof/format/hostproto/pluginfiles"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/hostinstall"
+	"github.com/RachidChabane/musthold/format/hostproto/pluginfiles"
 )
 
 const (
 	initTag   = "[verifies SP-717~2]"
 	enableTag = "[verifies SP-718~2]"
 
-	configPath    = ".spec-proof/config.yaml"
+	configPath    = ".musthold/config.yaml"
 	shallnotPath  = "shallnot.yaml"
 	agentsPath    = "AGENTS.md"
 	gitignorePath = ".gitignore"
@@ -119,27 +119,27 @@ func (s sample) gitignoreAfterInit() string {
 func (s sample) seedWithExample() string { return s.seed() + "\n" + hostinstall.OperationsExample }
 
 func samples() []sample {
-	pair := harness.Identity{Plugin: "spec-proof-pair", Agents: []hostproto.Agent{hostproto.AgentJudge, hostproto.AgentDecider}}
-	solo := harness.Identity{Plugin: "spec-proof-solo", Agents: []hostproto.Agent{hostproto.AgentDecider}}
-	full := harness.Identity{Plugin: "spec-proof-sample", Agents: hostproto.Agents()}
+	pair := harness.Identity{Plugin: "musthold-pair", Agents: []hostproto.Agent{hostproto.AgentJudge, hostproto.AgentDecider}}
+	solo := harness.Identity{Plugin: "musthold-solo", Agents: []hostproto.Agent{hostproto.AgentDecider}}
+	full := harness.Identity{Plugin: "musthold-sample", Agents: hostproto.Agents()}
 	return []sample{
 		{name: "full", module: hostinstall.Module{
 			Files: pluginfiles.Module{
-				Identity: full, Binary: "spec-proof-sample", Version: "0.1.0",
+				Identity: full, Binary: "musthold-sample", Version: "0.1.0",
 				Subject: "sample proof", ProofPhrase: "the sample proof",
 			},
 			ProofKind: "discriminating-power", ConfigPath: configPath, Required: true,
 		}},
 		{name: "pair", module: hostinstall.Module{
 			Files: pluginfiles.Module{
-				Identity: pair, Binary: "spec-proof-pair", Version: "1.2.3",
+				Identity: pair, Binary: "musthold-pair", Version: "1.2.3",
 				Subject: "pair proof", ProofPhrase: "the pair proof",
 			},
 			ProofKind: "alignment", ConfigPath: configPath, Required: true,
 		}},
 		{name: "advisory", module: hostinstall.Module{
 			Files: pluginfiles.Module{
-				Identity: solo, Binary: "spec-proof-solo", Version: "2.0.1",
+				Identity: solo, Binary: "musthold-solo", Version: "2.0.1",
 				Subject: "solo proof", ProofPhrase: "the solo proof",
 			},
 			ProofKind: "completeness", ConfigPath: configPath, Required: false,

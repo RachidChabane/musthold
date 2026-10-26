@@ -7,8 +7,8 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const testAgent = "agent-0001"
@@ -155,7 +155,7 @@ func TestBinding(t *testing.T) {
 		{"a forged capability", func(b *bound) { b.submission.Cap = mustCap(t, []byte("forged"), testAgent) }, hostproto.ErrBadCap},
 		{"no capability", func(b *bound) { b.submission.Cap = "" }, hostproto.ErrCapMissing},
 		{"an agent that was never started", func(b *bound) { b.verifier.Roster = roster{} }, hostproto.ErrAgentNotStarted},
-		{"an agent started for another role", func(b *bound) { b.verifier.Roster = roster{testAgent: "spec-proof-dp:generator"} }, hostproto.ErrAgentNotStarted},
+		{"an agent started for another role", func(b *bound) { b.verifier.Roster = roster{testAgent: "musthold-dp:generator"} }, hostproto.ErrAgentNotStarted},
 		{"no roster", func(b *bound) { b.verifier.Roster = nil }, hostproto.ErrAgentNotStarted},
 		{"a ticket already bound to another capability", func(b *bound) { b.entry.CapDigest = hostprototest.Digest("another cap") }, hostproto.ErrCapBoundElsewhere},
 		{"a capability already bound to another ticket", func(b *bound) {
@@ -304,7 +304,7 @@ func flip[S ~string](t *rapid.T, value S) S {
 func TestJournal(t *testing.T) {
 	events := []hostproto.Event{
 		{Kind: hostproto.EventEmitted, Ticket: "t"},
-		{Kind: hostproto.EventAgentStarted, AgentID: testAgent, Role: "spec-proof-dp:judge"},
+		{Kind: hostproto.EventAgentStarted, AgentID: testAgent, Role: "musthold-dp:judge"},
 		{Kind: hostproto.EventAccepted, Ticket: "t"},
 	}
 	build := func() []hostproto.Record {
@@ -358,7 +358,7 @@ func TestJournal(t *testing.T) {
 
 	t.Run("the roster is read from agent_started events [verifies SP-126~1]", func(t *testing.T) {
 		roster := hostproto.JournalRoster(build())
-		if !roster.Started(testAgent, "spec-proof-dp:judge") || roster.Started(testAgent, "spec-proof-dp:generator") || roster.Started("agent-0002", "spec-proof-dp:judge") {
+		if !roster.Started(testAgent, "musthold-dp:judge") || roster.Started(testAgent, "musthold-dp:generator") || roster.Started("agent-0002", "musthold-dp:judge") {
 			t.Fatal("the roster does not follow the journal")
 		}
 	})

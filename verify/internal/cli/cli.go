@@ -8,13 +8,13 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/cliconv"
-	"github.com/RachidChabane/spec-proof/verify/internal/adapters/filesource"
-	"github.com/RachidChabane/spec-proof/verify/internal/adapters/verifiedout"
-	"github.com/RachidChabane/spec-proof/verify/internal/app"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/refusal"
-	"github.com/RachidChabane/spec-proof/verify/internal/version"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/cliconv"
+	"github.com/RachidChabane/musthold/verify/internal/adapters/filesource"
+	"github.com/RachidChabane/musthold/verify/internal/adapters/verifiedout"
+	"github.com/RachidChabane/musthold/verify/internal/app"
+	"github.com/RachidChabane/musthold/verify/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/verify/internal/version"
 )
 
 // Exit codes of the binary (ADR 0002): 0 verified, 1 a bundle or statement was
@@ -31,7 +31,7 @@ const versionCommand = "version"
 const helpFlag = "-h"
 
 // trustPolicyFileName is the name of the trust policy below the directory that holds
-// the verified directory (`.spec-proof`).
+// the verified directory (`.musthold`).
 const trustPolicyFileName = "trust-policy.yaml"
 
 const usageText = "usage:\n  %[1]s version\n  %[1]s --bundles DIR [--accept-local DIR] [--offline] --out DIR\n  %[1]s --accept-local DIR --out DIR\n"

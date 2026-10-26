@@ -434,10 +434,10 @@ Go tests of the module in CI.
   with the inherited model, a blind context and four turns, its four hooks under
   matchers that select the executor alone, and a skill that pre-approves what its
   loop runs, relays and lists the tickets of the prove session alone
-  (`spec-proof-s1 drain --module <module> --session prove`, `request list
+  (`musthold-s1 drain --module <module> --session prove`, `request list
   --session prove`) and, once the loop ended with a verdict, publishes the local proofs by
-  running `spec-proof-verify --accept-local .spec-proof/cache --out
-  .spec-proof/verified`; give Codex read-only agents, the executor server in the
+  running `musthold-verify --accept-local .musthold/cache --out
+  .musthold/verified`; give Codex read-only agents, the executor server in the
   project's `config.toml`, hook entries and a skill that ends the same way; give Copilot agents naming
   server and tool pairs, a hooks file and a skill that ends the same way; and
   carry no text about their own authoring.
@@ -455,7 +455,7 @@ Go tests of the module in CI.
   responses in a manifest with the module, the head commit, the journal digest and
   the marks the journal holds, give the same bytes for the same responses in any
   order, refuse files that are not a consistent bundle, name the ref of a commit
-  under `refs/spec-proof/host/<module>`, refuse a bundle of another version only
+  under `refs/musthold/host/<module>`, refuse a bundle of another version only
   when requests found no answer and name both versions, derive the CI seed from
   the commit and the first run only, and carry CI-issued requests in full so that
   their ids can be recomputed.
@@ -509,7 +509,7 @@ Go tests of the module in CI.
   pending ticket with the sessions that hold its request, and show every
   session's tickets when no session is named.
 - **SP-1602~1**: WHEN a module's CI run leaves the requests it issues THE SYSTEM
-  SHALL name one directory per module below `.spec-proof/ci-issued`, so that no
+  SHALL name one directory per module below `.musthold/ci-issued`, so that no
   module overwrites the requests of another, and WHEN the artifact a CI job
   uploaded is read THE SYSTEM SHALL take the issued bundle from the root of the
   artifact or from the directory of the module below it.

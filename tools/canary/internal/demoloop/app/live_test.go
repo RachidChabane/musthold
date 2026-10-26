@@ -12,16 +12,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/adapters"
-	canary "github.com/RachidChabane/spec-proof/tools/canary/internal/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/config"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/container"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/plan"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/record"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/startup"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/window"
+	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
+	canary "github.com/RachidChabane/musthold/tools/canary/internal/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/container"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/startup"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/window"
 )
 
 const (
@@ -220,7 +220,7 @@ func TestLiveRunInContainers(t *testing.T) {
 			}
 			steps++
 			line := joined(argv)
-			for _, wanted := range []string{"--network none", "--read-only", "--cap-drop ALL", "--security-opt no-new-privileges", "--user 501:20", "--cpus 2", "--memory 2560m", "/usr/bin/env -i HOME=/home/demo", "--mount type=bind,source=" + w.options.Product + ",target=/opt/spec-proof,readonly"} {
+			for _, wanted := range []string{"--network none", "--read-only", "--cap-drop ALL", "--security-opt no-new-privileges", "--user 501:20", "--cpus 2", "--memory 2560m", "/usr/bin/env -i HOME=/home/demo", "--mount type=bind,source=" + w.options.Product + ",target=/opt/musthold,readonly"} {
 				if !strings.Contains(line, wanted) {
 					t.Errorf("step %q lacks %q", line, wanted)
 				}
@@ -243,7 +243,7 @@ func TestLiveRunInContainers(t *testing.T) {
 
 	t.Run("the session runs on an internal network behind the egress proxy, its token on the entry's standard input only [verifies SP-2411~2]", func(t *testing.T) {
 		line := joined(spec.Argv)
-		for _, wanted := range []string{"--interactive", "--network " + box.NetworkName(), container.Runner() + " entry -- /opt/spec-proof/claude/claude -p", "HTTPS_PROXY=" + container.ProxyURL(), app.NonessentialTraffic, "--log-driver none", "--init"} {
+		for _, wanted := range []string{"--interactive", "--network " + box.NetworkName(), container.Runner() + " entry -- /opt/musthold/claude/claude -p", "HTTPS_PROXY=" + container.ProxyURL(), app.NonessentialTraffic, "--log-driver none", "--init"} {
 			if !strings.Contains(line, wanted) {
 				t.Errorf("the session lacks %q: %s", wanted, line)
 			}
@@ -311,9 +311,9 @@ func TestFailedStart(t *testing.T) {
 	}{
 		{
 			name:    "a session whose init event reports a plugin error is ended and fails the run, naming the plugin, with its records kept [verifies SP-2419~1]",
-			stream:  `{"type":"system","subtype":"init","plugins":[{"name":"spec-proof-dp"}],"plugin_errors":[{"plugin":"spec-proof@inline","type":"dependency-unsatisfied","message":"Dependency \"shallnot\" is not installed"}]}` + "\n" + `{"type":"assistant","message":{"model":"claude-sonnet-5-5","content":[]}}` + "\n",
+			stream:  `{"type":"system","subtype":"init","plugins":[{"name":"musthold-dp"}],"plugin_errors":[{"plugin":"musthold@inline","type":"dependency-unsatisfied","message":"Dependency \"shallnot\" is not installed"}]}` + "\n" + `{"type":"assistant","message":{"model":"claude-sonnet-5-5","content":[]}}` + "\n",
 			reason:  startup.ReasonPlugins,
-			problem: "spec-proof@inline: dependency-unsatisfied",
+			problem: "musthold@inline: dependency-unsatisfied",
 			lines:   1,
 		},
 		{
@@ -392,7 +392,7 @@ func TestLiveRefusals(t *testing.T) {
 		for _, wanted := range []string{
 			"does not fit (--force-window needed)", "egress allowlist: api.anthropic.com:443",
 			dockerFront + " network create --internal", dockerFront + " run --name 'spdl-proxy-",
-			"(standard input: CLAUDE_CODE_OAUTH_TOKEN=<stdin>)", "--network none", "entry -- /opt/spec-proof/claude/claude -p",
+			"(standard input: CLAUDE_CODE_OAUTH_TOKEN=<stdin>)", "--network none", "entry -- /opt/musthold/claude/claude -p",
 		} {
 			if !strings.Contains(printed, wanted) {
 				t.Errorf("the plan lacks %q:\n%s", wanted, printed)

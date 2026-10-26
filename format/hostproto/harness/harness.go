@@ -15,8 +15,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // Names an executor server goes by.
@@ -55,7 +55,7 @@ var ErrUnknownHarness = errors.New("unknown harness")
 // executor agents it ships. Only the agents named here are executors of the
 // module.
 type Identity struct {
-	// Plugin is the name of the module's plugin, such as `spec-proof-dp`.
+	// Plugin is the name of the module's plugin, such as `musthold-dp`.
 	Plugin string
 	// Agents are the executor agents of the plugin, in the order its files list them.
 	Agents []hostproto.Agent

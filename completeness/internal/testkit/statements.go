@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/format"
 )
 
 const (
-	powerModule      = "spec-proof-dp"
-	alignmentModule  = "spec-proof-alignment"
+	powerModule      = "musthold-dp"
+	alignmentModule  = "musthold-alignment"
 	moduleVersion    = "0.1.0"
 	harnessName      = "fixture-host"
 	harnessVersion   = "1"
@@ -197,14 +197,14 @@ func (a Aligned) Write(t testing.TB, root string) {
 	writeCached(t, root, alignCacheFolder, a.Ref, a.Statement(t, root))
 }
 
-// writeCached stores a Statement under `.spec-proof/cache/<module>/<ref>/<cacheKey>.json`.
+// writeCached stores a Statement under `.musthold/cache/<module>/<ref>/<cacheKey>.json`.
 func writeCached(t testing.TB, root, folder string, ref criterion.Ref, statement []byte) {
 	t.Helper()
 	decoded, err := format.Decode(statement)
 	if err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(root, ".spec-proof", "cache", folder, ref.String(), decoded.Common().CacheKey+".json")
+	path := filepath.Join(root, ".musthold", "cache", folder, ref.String(), decoded.Common().CacheKey+".json")
 	if err := os.MkdirAll(filepath.Dir(path), directoryMode); err != nil {
 		t.Fatal(err)
 	}

@@ -10,18 +10,18 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/jvm"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/junitxml"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/treesitter"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/workspace"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/execution"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/mutantrun"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
-	"github.com/RachidChabane/spec-proof/discpower/internal/testkit/jvmenv"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/jvm"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/junitxml"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/process"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/sourceparse/treesitter"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/workspace"
+	"github.com/RachidChabane/musthold/discpower/internal/app/execution"
+	"github.com/RachidChabane/musthold/discpower/internal/app/mutantrun"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
+	"github.com/RachidChabane/musthold/discpower/internal/testkit/jvmenv"
 )
 
 const (
@@ -157,7 +157,7 @@ func TestWitnessBrief(t *testing.T) {
 	})
 }
 
-var renamedMethod = regexp.MustCompile(`specproof_witness_[0-9a-f]{12}`)
+var renamedMethod = regexp.MustCompile(`musthold_witness_[0-9a-f]{12}`)
 
 func TestWitnessLayout(t *testing.T) {
 	cases := []struct {
@@ -186,7 +186,7 @@ func TestWitnessLayout(t *testing.T) {
 				t.Fatal(err)
 			}
 			className := strings.TrimSuffix(filepath.Base(file.Path), c.extension)
-			if !strings.HasPrefix(file.Path, c.directory+"SpecproofWitness") || !strings.HasSuffix(className, "Test") || !strings.HasSuffix(file.Path, c.extension) {
+			if !strings.HasPrefix(file.Path, c.directory+"MustholdWitness") || !strings.HasSuffix(className, "Test") || !strings.HasSuffix(file.Path, c.extension) {
 				t.Fatalf("path %q", file.Path)
 			}
 			content := string(file.Content)
@@ -275,7 +275,7 @@ func TestWitnessLayout(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !strings.HasPrefix(file.Path, "src/test/java/b/SpecproofWitness") {
+		if !strings.HasPrefix(file.Path, "src/test/java/b/MustholdWitness") {
 			t.Errorf("path %q", file.Path)
 		}
 	})
@@ -286,7 +286,7 @@ func TestWitnessLayout(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !strings.HasPrefix(file.Path, "core/src/test/java/a/SpecproofWitness") {
+		if !strings.HasPrefix(file.Path, "core/src/test/java/a/MustholdWitness") {
 			t.Errorf("path %q", file.Path)
 		}
 	})

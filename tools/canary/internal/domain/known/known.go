@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/verdict"
 )
 
 // DeclaredLayout is the layout of the date an entry was declared on.

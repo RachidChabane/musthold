@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/checks"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/checks"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/verdict"
 )
 
 // copilotSession is a session of Copilot CLI 1.0.92 recorded on the executor's two
@@ -59,7 +59,7 @@ func TestRealCopilotSessionAsTheADRRelies(t *testing.T) {
 
 	t.Run("the executor tool is recognized under the name the payload spells, with the server and the tool joined by a hyphen [verifies SP-1517~1]", func(t *testing.T) {
 		v := want(t, evaluate(t, "copilot", readFiles(t, copilotSession)), "mcp_tool_naming", verdict.Pass)
-		if !strings.Contains(v.Summary, "spec-proof-dp-exec-fetch_request") {
+		if !strings.Contains(v.Summary, "musthold-dp-exec-fetch_request") {
 			t.Errorf("summary = %s", v.Summary)
 		}
 	})
@@ -105,7 +105,7 @@ func TestRealCopilotSessionThatBreaksARule(t *testing.T) {
 		edit   func(*evidence.Files)
 	}{
 		{"a plugin missing from the listing fails the listing check [verifies SP-1707~3]", "plugins_and_skills_listed", verdict.Fail, func(f *evidence.Files) {
-			f.NoCall = replace(f.NoCall, `\"name\": \"spec-proof-alignment\"`, `\"name\": \"other\"`)
+			f.NoCall = replace(f.NoCall, `\"name\": \"musthold-alignment\"`, `\"name\": \"other\"`)
 		}},
 		{"a plugin that is listed but disabled fails the listing check [verifies SP-1707~3]", "plugins_and_skills_listed", verdict.Fail, func(f *evidence.Files) {
 			f.NoCall = replace(f.NoCall, `\"enabled\": true`, `\"enabled\": false`)
@@ -132,7 +132,7 @@ func TestRealCopilotSessionThatBreaksARule(t *testing.T) {
 			f.Stream = dropLines(f.Stream, `"subagent.`)
 		}},
 		{"a pre-tool hook that exits non-zero fails the hooks check [verifies SP-1707~3]", "hooks_fire", verdict.Fail, func(f *evidence.Files) {
-			f.Hooks = replaceInLines(f.Hooks, `"module":"spec-proof-dp","args":["hook","pre-tool"`, `"exitCode":0}`, `"exitCode":2}`)
+			f.Hooks = replaceInLines(f.Hooks, `"module":"musthold-dp","args":["hook","pre-tool"`, `"exitCode":0}`, `"exitCode":2}`)
 		}},
 		{"hooks the recorder never saw leave the hooks check inconclusive [verifies SP-1707~3]", "hooks_fire", verdict.Inconclusive, func(f *evidence.Files) {
 			f.Hooks = dropLines(f.Hooks, `"hook"`)
@@ -148,28 +148,28 @@ func TestRealCopilotSessionThatBreaksARule(t *testing.T) {
 			f.Hooks = dropLines(f.Hooks, `"hook"`)
 		}},
 		{"an executor tool spelled another way fails the naming check [verifies SP-1707~3]", "mcp_tool_naming", verdict.Fail, func(f *evidence.Files) {
-			f.Hooks = replace(f.Hooks, `"toolName":"spec-proof-dp-exec-fetch_request"`, `"toolName":"spec-proof-dp-exec.fetch_request"`)
+			f.Hooks = replace(f.Hooks, `"toolName":"musthold-dp-exec-fetch_request"`, `"toolName":"musthold-dp-exec.fetch_request"`)
 		}},
 		{"the slashed spelling of the allowlist passes the naming check too [verifies SP-1517~1]", "mcp_tool_naming", verdict.Pass, func(f *evidence.Files) {
-			f.Hooks = replace(f.Hooks, `"toolName":"spec-proof-dp-exec-fetch_request"`, `"toolName":"spec-proof-dp-exec/fetch_request"`)
+			f.Hooks = replace(f.Hooks, `"toolName":"musthold-dp-exec-fetch_request"`, `"toolName":"musthold-dp-exec/fetch_request"`)
 		}},
 		{"the root server's tool, which shares the names, is not a misspelling [verifies SP-1707~3]", "mcp_tool_naming", verdict.Inconclusive, func(f *evidence.Files) {
-			f.Hooks = replace(f.Hooks, `"toolName":"spec-proof-dp-exec-fetch_request"`, `"toolName":"spec-proof-dp-fetch_request"`)
-			f.Hooks = replace(f.Hooks, `"toolName":"spec-proof-dp-exec-submit_response"`, `"toolName":"spec-proof-dp-submit_response"`)
+			f.Hooks = replace(f.Hooks, `"toolName":"musthold-dp-exec-fetch_request"`, `"toolName":"musthold-dp-fetch_request"`)
+			f.Hooks = replace(f.Hooks, `"toolName":"musthold-dp-exec-submit_response"`, `"toolName":"musthold-dp-submit_response"`)
 			f.Stream = dropLines(f.Stream, `"mcpServerName"`)
 		}},
 		{"an executor tool the stream puts on another server fails the naming check [verifies SP-1707~3]", "mcp_tool_naming", verdict.Fail, func(f *evidence.Files) {
-			f.Hooks = dropLines(f.Hooks, `spec-proof-dp-exec-`)
-			f.Stream = replace(f.Stream, `"mcpServerName":"spec-proof-dp-exec"`, `"mcpServerName":"spec-proof-dp-exec-2"`)
+			f.Hooks = dropLines(f.Hooks, `musthold-dp-exec-`)
+			f.Stream = replace(f.Stream, `"mcpServerName":"musthold-dp-exec"`, `"mcpServerName":"musthold-dp-exec-2"`)
 		}},
 		{"a payload that carries an agent type the strategy does not declare fails the attribution check [verifies SP-1517~1]", "agent_type_in_pretool", verdict.Fail, func(f *evidence.Files) {
-			f.Hooks = replace(f.Hooks, `"toolName":"spec-proof-dp-exec-fetch_request"`, `"agentType":"spec-proof-dp:spec-proof-dp-decider","toolName":"spec-proof-dp-exec-fetch_request"`)
+			f.Hooks = replace(f.Hooks, `"toolName":"musthold-dp-exec-fetch_request"`, `"agentType":"musthold-dp:musthold-dp-decider","toolName":"musthold-dp-exec-fetch_request"`)
 		}},
 		{"a payload that carries an agent id the strategy does not declare fails the attribution check [verifies SP-1517~1]", "agent_type_in_pretool", verdict.Fail, func(f *evidence.Files) {
-			f.Hooks = replace(f.Hooks, `"toolName":"spec-proof-dp-exec-submit_response"`, `"agentId":"`+executorAgentID+`","toolName":"spec-proof-dp-exec-submit_response"`)
+			f.Hooks = replace(f.Hooks, `"toolName":"musthold-dp-exec-submit_response"`, `"agentId":"`+executorAgentID+`","toolName":"musthold-dp-exec-submit_response"`)
 		}},
 		{"a session whose hooks recorded no executor tool payload leaves the attribution check inconclusive [verifies SP-1517~1]", "agent_type_in_pretool", verdict.Inconclusive, func(f *evidence.Files) {
-			f.Hooks = dropLines(f.Hooks, `spec-proof-dp-exec-`)
+			f.Hooks = dropLines(f.Hooks, `musthold-dp-exec-`)
 		}},
 		{"a refusal of the capability-less fetch fails where attestation is waived [verifies SP-1707~3]", "cap_without_hooks", verdict.Fail, func(f *evidence.Files) {
 			f.NoCall = replace(f.NoCall, `"refused": false`, `"refused": true`)

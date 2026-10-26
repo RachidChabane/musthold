@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
 )
 
 func TestEnvironmentWith(t *testing.T) {

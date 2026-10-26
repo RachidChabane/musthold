@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostinstall"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/modules"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/hostinstall"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/modules"
 )
 
 // Locations, relative to the repository root, and names the run depends on.
@@ -33,7 +33,7 @@ const (
 	copilotCache   = "copilot-cache"
 	copilotLogs    = "copilot-logs"
 	hooksLogName   = evidence.HooksFile
-	runDirPrefix   = "spec-proof-canary-"
+	runDirPrefix   = "musthold-canary-"
 	placeholderRun = "<run-dir>"
 
 	proveTimeout   = 10 * time.Minute
@@ -157,7 +157,7 @@ func (l layout) sessionVariables(base []string, shimmed bool) []string {
 	variables := []string{
 		pathWith(base, dirs...),
 		"XDG_STATE_HOME=" + l.state, "XDG_CACHE_HOME=" + l.cache, "TMPDIR=" + l.tmp,
-		"SPEC_PROOF_SHALLNOT=" + l.shallnot(), "GOMAXPROCS=2",
+		"MUSTHOLD_SHALLNOT=" + l.shallnot(), "GOMAXPROCS=2",
 	}
 	if !shimmed {
 		variables = append(variables, "CLAUDE_PROJECT_DIR="+l.project)

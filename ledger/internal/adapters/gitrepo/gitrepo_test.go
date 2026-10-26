@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/gitrepo"
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/ledger"
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/refusal"
-	"github.com/RachidChabane/spec-proof/ledger/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/ledger/internal/adapters/gitrepo"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/ledger"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/ledger/internal/testkit"
 )
 
 const (
@@ -125,7 +125,7 @@ func TestObjectsAndRefs(t *testing.T) {
 		if branches := testkit.Git(t, directory, "branch", "--list", "--format=%(refname)"); branches != "refs/heads/"+format.LedgerBranch {
 			t.Fatalf("branches %q", branches)
 		}
-		if message := testkit.Git(t, directory, "log", "-1", "--format=%an <%ae> %at %s", "refs/heads/"+format.LedgerBranch); message != "spec-proof ledger <ledger@spec-proof.invalid> 1772366400 test commit" {
+		if message := testkit.Git(t, directory, "log", "-1", "--format=%an <%ae> %at %s", "refs/heads/"+format.LedgerBranch); message != "musthold ledger <ledger@musthold.invalid> 1772366400 test commit" {
 			t.Fatalf("commit %q", message)
 		}
 	})

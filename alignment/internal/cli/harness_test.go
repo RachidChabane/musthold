@@ -12,30 +12,30 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/hoststore"
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/xdg"
-	"github.com/RachidChabane/spec-proof/alignment/internal/cli"
-	"github.com/RachidChabane/spec-proof/alignment/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/hoststore"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/xdg"
+	"github.com/RachidChabane/musthold/alignment/internal/cli"
+	"github.com/RachidChabane/musthold/alignment/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
 	reportVariable   = "SHALLNOT_RECORDED_REPORT"
-	shallnotVariable = "SPEC_PROOF_SHALLNOT"
+	shallnotVariable = "MUSTHOLD_SHALLNOT"
 	stateVariable    = "XDG_STATE_HOME"
 	cacheVariable    = "XDG_CACHE_HOME"
 	maxWavesPerDrive = 12
 	directoryMode    = 0o755
 	fileMode         = 0o644
-	binaryName       = "spec-proof-alignment"
+	binaryName       = "musthold-alignment"
 	proveCommand     = "prove"
 	allFlag          = "--all"
 	changedFlag      = "--changed"
 	resumeFlag       = "--resume"
-	alignmentCache   = ".spec-proof/cache/alignment"
-	configFile       = ".spec-proof/alignment.yaml"
+	alignmentCache   = ".musthold/cache/alignment"
+	configFile       = ".musthold/alignment.yaml"
 )
 
 // harness runs the command line in process against a copy of a fixture project,
@@ -360,7 +360,7 @@ func (h *harness) statementBytes() map[string]string {
 // pendingFile reads the pending file of the module, empty when there is none.
 func (h *harness) pendingFile() format.Pending {
 	h.t.Helper()
-	content, err := os.ReadFile(filepath.Join(h.root, ".spec-proof", "pending", "alignment.json"))
+	content, err := os.ReadFile(filepath.Join(h.root, ".musthold", "pending", "alignment.json"))
 	if os.IsNotExist(err) {
 		return format.Pending{Module: "alignment"}
 	}

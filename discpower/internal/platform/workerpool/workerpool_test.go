@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/platform/workerpool"
+	"github.com/RachidChabane/musthold/discpower/internal/platform/workerpool"
 )
 
 const verifiesWorkers = " [verifies SP-2299~1]"

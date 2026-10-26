@@ -1,13 +1,13 @@
 # Trust model
 
-spec-proof separates what a developer machine can prove from what CI can prove, and
+musthold separates what a developer machine can prove from what CI can prove, and
 separates evidence that was executed from evidence that was judged.
 
 ## Local and signed
 
 | Level | `proofs.trust` | Admits | Guarantee |
 |---|---|---|---|
-| local | `local` | unsigned statements of the local cache, accepted by `spec-proof-verify --accept-local` | feedback for the agent and the developer, labelled `local` in the report. It proves nothing about who wrote it. |
+| local | `local` | unsigned statements of the local cache, accepted by `musthold-verify --accept-local` | feedback for the agent and the developer, labelled `local` in the report. It proves nothing about who wrote it. |
 | signed | `signed` (default) | statements produced by CI, in a set whose manifest the verifier wrote after checking signatures against the trust policy | the statement was produced by a CI run whose signing identity the policy pins |
 
 On a developer machine the agent and the module have the same filesystem access, so

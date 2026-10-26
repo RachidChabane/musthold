@@ -7,7 +7,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 const homeDir = "/home/user"
@@ -84,7 +84,7 @@ func TestDirectories(t *testing.T) {
 
 	t.Run("the host directory sits under the state home [verifies SP-148~1]", func(t *testing.T) {
 		got := HostDir(env(map[string]string{stateHomeVariable: "/var/state"}), homeDir, root)
-		want := filepath.Join("/var/state", "spec-proof", "discpower", digest, "host")
+		want := filepath.Join("/var/state", "musthold", "discpower", digest, "host")
 		if got != want {
 			t.Fatalf("HostDir = %q, want %q", got, want)
 		}
@@ -92,7 +92,7 @@ func TestDirectories(t *testing.T) {
 
 	t.Run("the cache directory sits under the cache home [verifies SP-154~1]", func(t *testing.T) {
 		got := CacheDir(env(nil), homeDir, root)
-		if !strings.HasSuffix(got, filepath.Join(".cache", "spec-proof", digest)) {
+		if !strings.HasSuffix(got, filepath.Join(".cache", "musthold", digest)) {
 			t.Fatalf("CacheDir = %q", got)
 		}
 	})

@@ -6,13 +6,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
-	fetchToolName  = "mcp__plugin_spec-proof-dp_exec__fetch_request"
-	submitToolName = "mcp__plugin_spec-proof-dp_exec__submit_response"
+	fetchToolName  = "mcp__plugin_musthold-dp_exec__fetch_request"
+	submitToolName = "mcp__plugin_musthold-dp_exec__submit_response"
 )
 
 func decode(t *testing.T, harness string, kind hostproto.HookKind, payload string) hostproto.HookEvent {
@@ -32,21 +32,21 @@ func TestClaudeCodeHookDecoder(t *testing.T) {
 	ticket := hostprototest.Ticket(hostprototest.Request(), 0, 1).TicketID
 
 	t.Run("PreToolUse on the Agent tool carries the launch input [verifies SP-127~1]", func(t *testing.T) {
-		payload := `{"session_id":"s1","transcript_path":"/t.jsonl","cwd":"/p","permission_mode":"default","hook_event_name":"PreToolUse","tool_name":"Agent","tool_input":{"subagent_type":"spec-proof-dp:judge","description":"judge","prompt":"ticket ` + ticket.String() + `","model":"haiku","run_in_background":true},"tool_use_id":"toolu_1"}`
+		payload := `{"session_id":"s1","transcript_path":"/t.jsonl","cwd":"/p","permission_mode":"default","hook_event_name":"PreToolUse","tool_name":"Agent","tool_input":{"subagent_type":"musthold-dp:judge","description":"judge","prompt":"ticket ` + ticket.String() + `","model":"haiku","run_in_background":true},"tool_use_id":"toolu_1"}`
 		event := decode(t, hostproto.HarnessClaudeCode, hostproto.HookPreTool, payload)
 		if event.ToolName != "Agent" || event.SessionID != "s1" || event.ToolUseID != "toolu_1" || !hostproto.IsAgentTool(event.ToolName) {
 			t.Fatalf("event = %+v", event)
 		}
 		input, err := hostproto.DecodeAgentInput(event.ToolInput)
-		if err != nil || input.SubagentType != "spec-proof-dp:judge" || input.Model != "haiku" || !input.RunInBackground {
+		if err != nil || input.SubagentType != "musthold-dp:judge" || input.Model != "haiku" || !input.RunInBackground {
 			t.Fatalf("input = %+v, %v", input, err)
 		}
 	})
 
 	t.Run("PreToolUse on an MCP tool inside a subagent carries the agent and the tool [verifies SP-127~1]", func(t *testing.T) {
-		payload := `{"hook_event_name":"PreToolUse","tool_name":"` + fetchToolName + `","tool_input":{"ticket":"` + ticket.String() + `","cap":""},"agent_id":"agent-0001","agent_type":"spec-proof-dp:judge"}`
+		payload := `{"hook_event_name":"PreToolUse","tool_name":"` + fetchToolName + `","tool_input":{"ticket":"` + ticket.String() + `","cap":""},"agent_id":"agent-0001","agent_type":"musthold-dp:judge"}`
 		event := decode(t, hostproto.HarnessClaudeCode, hostproto.HookPreTool, payload)
-		if event.AgentID != "agent-0001" || event.AgentType != "spec-proof-dp:judge" {
+		if event.AgentID != "agent-0001" || event.AgentType != "musthold-dp:judge" {
 			t.Fatalf("event = %+v", event)
 		}
 		tool, ok := hostproto.ParseMCPToolName(event.ToolName)
@@ -54,17 +54,17 @@ func TestClaudeCodeHookDecoder(t *testing.T) {
 			t.Fatalf("tool = %+v", tool)
 		}
 		plugin, server, ok := hostproto.ParsePluginServer(tool.Server)
-		if !ok || plugin != "spec-proof-dp" || server != "exec" {
+		if !ok || plugin != "musthold-dp" || server != "exec" {
 			t.Fatalf("server = %q %q %v", plugin, server, ok)
 		}
-		if !hostproto.IsExecutorToolOf(event.ToolName, "spec-proof-dp") || hostproto.IsExecutorToolOf(event.ToolName, "spec-proof-alignment") {
+		if !hostproto.IsExecutorToolOf(event.ToolName, "musthold-dp") || hostproto.IsExecutorToolOf(event.ToolName, "musthold-alignment") {
 			t.Fatal("the tool is not attributed to its plugin")
 		}
 	})
 
 	t.Run("SubagentStart carries the agent identifier and type [verifies SP-127~1]", func(t *testing.T) {
-		event := decode(t, hostproto.HarnessClaudeCode, hostproto.HookSubagentStart, `{"hook_event_name":"SubagentStart","session_id":"s1","agent_id":"agent_123","agent_type":"spec-proof-dp:judge"}`)
-		if event.AgentID != "agent_123" || event.AgentType != "spec-proof-dp:judge" || event.Kind != hostproto.HookSubagentStart {
+		event := decode(t, hostproto.HarnessClaudeCode, hostproto.HookSubagentStart, `{"hook_event_name":"SubagentStart","session_id":"s1","agent_id":"agent_123","agent_type":"musthold-dp:judge"}`)
+		if event.AgentID != "agent_123" || event.AgentType != "musthold-dp:judge" || event.Kind != hostproto.HookSubagentStart {
 			t.Fatalf("event = %+v", event)
 		}
 	})
@@ -188,8 +188,8 @@ func TestCodexHookDecoder(t *testing.T) {
 
 func TestCopilotHookDecoder(t *testing.T) {
 	t.Run("preToolUse carries the camel-case fields and its arguments as a JSON string [verifies SP-128~1]", func(t *testing.T) {
-		event := decode(t, hostproto.HarnessCopilot, hostproto.HookPreTool, `{"sessionId":"s","timestamp":1234,"cwd":"/p","toolName":"spec-proof-dp-exec/fetch_request","toolArgs":"{\"ticket\":\"t\"}","agentType":"spec-proof-dp:judge"}`)
-		if event.Harness != hostproto.HarnessCopilot || event.ToolName != "spec-proof-dp-exec/fetch_request" || event.AgentType != "spec-proof-dp:judge" {
+		event := decode(t, hostproto.HarnessCopilot, hostproto.HookPreTool, `{"sessionId":"s","timestamp":1234,"cwd":"/p","toolName":"musthold-dp-exec/fetch_request","toolArgs":"{\"ticket\":\"t\"}","agentType":"musthold-dp:judge"}`)
+		if event.Harness != hostproto.HarnessCopilot || event.ToolName != "musthold-dp-exec/fetch_request" || event.AgentType != "musthold-dp:judge" {
 			t.Fatalf("event = %+v", event)
 		}
 		var args map[string]string
@@ -234,24 +234,24 @@ func TestHookDecisions(t *testing.T) {
 	}
 
 	t.Run("an executor launch is rebuilt from its role and its single ticket [verifies SP-129~1]", func(t *testing.T) {
-		got, err := launch("Please note the tests are in tests/. "+ticket.String(), "spec-proof-dp:judge").Sanitize("spec-proof-dp")
+		got, err := launch("Please note the tests are in tests/. "+ticket.String(), "musthold-dp:judge").Sanitize("musthold-dp")
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := hostproto.AgentInput{SubagentType: "spec-proof-dp:judge", Description: "judge", Prompt: "ticket " + ticket.String()}
+		want := hostproto.AgentInput{SubagentType: "musthold-dp:judge", Description: "judge", Prompt: "ticket " + ticket.String()}
 		if got != want {
 			t.Fatalf("got %+v, want %+v", got, want)
 		}
 	})
 
 	t.Run("a launch without a single ticket or of another plugin's role is refused [verifies SP-129~1]", func(t *testing.T) {
-		if _, err := launch("no ticket here", "spec-proof-dp:judge").Sanitize("spec-proof-dp"); !errors.Is(err, hostproto.ErrNoSingleTicket) {
+		if _, err := launch("no ticket here", "musthold-dp:judge").Sanitize("musthold-dp"); !errors.Is(err, hostproto.ErrNoSingleTicket) {
 			t.Errorf("no ticket: %v", err)
 		}
-		if _, err := launch(ticket.String(), "spec-proof-alignment:judge").Sanitize("spec-proof-dp"); !errors.Is(err, hostproto.ErrNotExecutorRole) {
+		if _, err := launch(ticket.String(), "musthold-alignment:judge").Sanitize("musthold-dp"); !errors.Is(err, hostproto.ErrNotExecutorRole) {
 			t.Errorf("another plugin: %v", err)
 		}
-		if _, err := launch(ticket.String(), "general-purpose").Sanitize("spec-proof-dp"); !errors.Is(err, hostproto.ErrNotExecutorRole) {
+		if _, err := launch(ticket.String(), "general-purpose").Sanitize("musthold-dp"); !errors.Is(err, hostproto.ErrNotExecutorRole) {
 			t.Errorf("not a role: %v", err)
 		}
 	})

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // choiceProbabilities gives the picked option the probability `picked` and shares

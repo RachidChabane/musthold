@@ -1,5 +1,5 @@
-github.com/RachidChabane/spec-proof/format v0.1.0 h1:qcKeXNVVO3OP72tYLSAuDtJThkTfa1lr5VCkK7Wx+JM=
-github.com/RachidChabane/spec-proof/format v0.1.0/go.mod h1:KlNNInvI+48CGQzc9/WwipZpPfiBvXt8YsjC8J/bRmA=
+github.com/RachidChabane/musthold/format v0.1.0 h1:qcKeXNVVO3OP72tYLSAuDtJThkTfa1lr5VCkK7Wx+JM=
+github.com/RachidChabane/musthold/format v0.1.0/go.mod h1:KlNNInvI+48CGQzc9/WwipZpPfiBvXt8YsjC8J/bRmA=
 github.com/gowebpki/jcs v1.0.2 h1:IY0Iv76ThSvocWinl2rphYmGLhMufS3ZD1giKqkI6ps=
 github.com/gowebpki/jcs v1.0.2/go.mod h1:caHbxgiKxrUu6KNItCUKoggR5/ZUSNxVCm9ZxWJXR0U=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=

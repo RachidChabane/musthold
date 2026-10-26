@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/window"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/window"
 )
 
 func TestHolds(t *testing.T) {

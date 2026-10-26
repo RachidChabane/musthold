@@ -6,10 +6,10 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/units/golang"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/code"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/hunk"
-	"github.com/RachidChabane/spec-proof/completeness/internal/testkit"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/units/golang"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/code"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/hunk"
+	"github.com/RachidChabane/musthold/completeness/internal/testkit"
 )
 
 func fixture(t *testing.T, side, name string) []byte {

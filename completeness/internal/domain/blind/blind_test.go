@@ -8,8 +8,8 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/blind"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/blind"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/criterion"
 )
 
 func criteria(count int) []criterion.Criterion {

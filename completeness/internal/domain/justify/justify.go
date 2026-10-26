@@ -10,10 +10,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/code"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/reach"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/testlabel"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/code"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/reach"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/testlabel"
 )
 
 // Evidence is a set of entry names, the functions an example probe or an ALIGNED

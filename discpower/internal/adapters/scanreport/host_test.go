@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/scanreport"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/promise"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/scanreport"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/promise"
+	"github.com/RachidChabane/musthold/format"
 )
 
 var updateGolden = flag.Bool("update", false, "rewrite the golden renders of a scan that ran with a host")
@@ -119,7 +119,7 @@ func TestHostText(t *testing.T) {
 			`#P1 "split_fields keeps a trailing field" (README.md) a change that passes the whole suite 3/3 fails a block-bearing witness written for it`,
 			"   src/invoicing/parse.py:3  >= → >",
 			"   proven by: witness 9d1c0e77a4b2 fails on it, reproduced",
-			"   repro: .spec-proof/scan/3f2a9c1/promise-1/killer.sh",
+			"   repro: .musthold/scan/3f2a9c1/promise-1/killer.sh",
 		} {
 			if !strings.Contains(text, want) {
 				t.Errorf("missing %q in\n%s", want, text)
@@ -167,7 +167,7 @@ func TestHostMarkdown(t *testing.T) {
 		}
 	})
 	t.Run("a broken promise shows its change as a diff"+verifiesBroken, func(t *testing.T) {
-		if !strings.Contains(markdown, "- Reproduce: `.spec-proof/scan/3f2a9c1/promise-1/killer.sh`\n\n```diff\n--- a/src/invoicing/parse.py") {
+		if !strings.Contains(markdown, "- Reproduce: `.musthold/scan/3f2a9c1/promise-1/killer.sh`\n\n```diff\n--- a/src/invoicing/parse.py") {
 			t.Fatalf("no diff under the broken promise:\n%s", markdown)
 		}
 	})
@@ -241,14 +241,14 @@ func TestKillerFiles(t *testing.T) {
 	for _, file := range files {
 		byPath[file.Path] = file
 	}
-	const folder = ".spec-proof/scan/3f2a9c1/1/"
+	const folder = ".musthold/scan/3f2a9c1/1/"
 	t.Run("a finding folder lists its killers and holds a script for each that has a command"+verifiesKillers, func(t *testing.T) {
 		goldenCompare(t, "host-finding-folder.golden", dump(files, folder))
 		document := string(byPath[folder+"killers.md"].Content)
 		for _, want := range []string{
 			"A test that fails on this mutant: `tests/test_split.py::test_trailing_comma`, which fails 3/3. Run it with `sh killer-2.sh`.",
 			"witness 9d1c0e77a4b2, in `witness/tests/test_promise_witness.py`. Run it with `sh killer-3.sh`.",
-			`input line="a,", reference "['a,']", mutant raises IndexError. Re-run it with ` + "`spec-proof scan replay .spec-proof/scan/3f2a9c1/1`.",
+			`input line="a,", reference "['a,']", mutant raises IndexError. Re-run it with ` + "`musthold scan replay .musthold/scan/3f2a9c1/1`.",
 		} {
 			if !strings.Contains(document, want) {
 				t.Errorf("missing %q in\n%s", want, document)
@@ -283,7 +283,7 @@ func TestKillerFiles(t *testing.T) {
 		}
 	})
 	t.Run("a broken promise has a folder with its patch, killer, witness, killers and record"+verifiesBrokenDir, func(t *testing.T) {
-		const broken = ".spec-proof/scan/3f2a9c1/promise-1/"
+		const broken = ".musthold/scan/3f2a9c1/promise-1/"
 		goldenCompare(t, "host-broken-folder.golden", dump(files, broken))
 		record, err := scan.DecodeFinding(byPath[broken+"finding.json"].Content)
 		if err != nil || record.Promise == nil || record.Promise.ID != splitPromise.ID || record.Route.Witness != witnessID || record.Commit != commit {

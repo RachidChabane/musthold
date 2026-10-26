@@ -3,7 +3,7 @@ package promise
 import (
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Labels map a promise to the functions of the generation view it may break.

@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/power"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbridge"
 )
 
 func plain(answers []power.ScreenAnswer) []power.ClosedAnswer {

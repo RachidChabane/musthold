@@ -1,9 +1,9 @@
 # umbrella
 
-The Claude Code marketplace `spec-proof`, the thin plugin `spec-proof` that
-installs Shallnot and every spec-proof module and runs them together with one skill,
-`prove-all`, and the `spec-proof` dispatcher, which runs each command in the binary
-of the module that owns it: `spec-proof scan` runs `spec-proof-dp scan`. The plugin
+The Claude Code marketplace `musthold`, the thin plugin `musthold` that
+installs Shallnot and every musthold module and runs them together with one skill,
+`prove-all`, and the `musthold` dispatcher, which runs each command in the binary
+of the module that owns it: `musthold scan` runs `musthold-dp scan`. The plugin
 holds no code, binary, hook, agent, command or server.
 
 ## Alone
@@ -15,8 +15,8 @@ proved.
 ## Install
 
 ```
-/plugin marketplace add RachidChabane/spec-proof
-/plugin install spec-proof@spec-proof
+/plugin marketplace add RachidChabane/musthold
+/plugin install musthold@musthold
 ```
 
 Plugins install no binary; build the module binaries as described in

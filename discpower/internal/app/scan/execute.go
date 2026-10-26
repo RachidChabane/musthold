@@ -8,13 +8,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/differential"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/scanscope"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/differential"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/power"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/scanscope"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
 )
 
 // DefaultWorkers is how many mutants a scan runs at once.

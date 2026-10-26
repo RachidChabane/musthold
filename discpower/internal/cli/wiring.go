@@ -6,44 +6,44 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/config"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/golang"
-	jvmecosystem "github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/jvm"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/node"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/pytest"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/factsrecord"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/hoststore"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/junitxml"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/localcache"
-	gomutation "github.com/RachidChabane/spec-proof/discpower/internal/adapters/mutation/golang"
-	javascriptmutation "github.com/RachidChabane/spec-proof/discpower/internal/adapters/mutation/javascript"
-	jvmmutation "github.com/RachidChabane/spec-proof/discpower/internal/adapters/mutation/jvm"
-	pythonmutation "github.com/RachidChabane/spec-proof/discpower/internal/adapters/mutation/python"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/plantedrefactors"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/proofcache"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/schemacheck"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/shallnot"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/goparser"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/treesitter"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/workspace"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/xdg"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/execution"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/operatorgen"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/prove"
-	domain "github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostharness"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/operator"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/projectconfig"
-	"github.com/RachidChabane/spec-proof/discpower/internal/version"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/config"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/golang"
+	jvmecosystem "github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/jvm"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/node"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/pytest"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/factsrecord"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/hoststore"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/junitxml"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/localcache"
+	gomutation "github.com/RachidChabane/musthold/discpower/internal/adapters/mutation/golang"
+	javascriptmutation "github.com/RachidChabane/musthold/discpower/internal/adapters/mutation/javascript"
+	jvmmutation "github.com/RachidChabane/musthold/discpower/internal/adapters/mutation/jvm"
+	pythonmutation "github.com/RachidChabane/musthold/discpower/internal/adapters/mutation/python"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/plantedrefactors"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/process"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/proofcache"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/schemacheck"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/shallnot"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/sourceparse/goparser"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/sourceparse/treesitter"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/workspace"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/xdg"
+	"github.com/RachidChabane/musthold/discpower/internal/app/execution"
+	"github.com/RachidChabane/musthold/discpower/internal/app/operatorgen"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/app/prove"
+	domain "github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/hostharness"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation/operator"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/projectconfig"
+	"github.com/RachidChabane/musthold/discpower/internal/version"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Identity of the module in the Statements and the requests it emits.
 const (
-	moduleName = "spec-proof-dp"
+	moduleName = "musthold-dp"
 	pluginName = hostharness.PluginName
 )
 
@@ -72,7 +72,7 @@ func (e Env) hostStore(root string) (*hoststore.Store, error) {
 	return hoststore.Open(xdg.HostDir(e.lookupEnv, e.HomeDir, root))
 }
 
-// settingsOf reads `.spec-proof/config.yaml`; a project without one has the
+// settingsOf reads `.musthold/config.yaml`; a project without one has the
 // default settings.
 func settingsOf(root string) (projectconfig.Settings, error) {
 	data, err := os.ReadFile(filepath.Join(root, projectconfig.Directory, projectconfig.FileName))

@@ -3,7 +3,7 @@ package python
 import (
 	"github.com/odvcencio/gotreesitter"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/masking"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/masking"
 )
 
 // Names that a method uses for the object it is called on.

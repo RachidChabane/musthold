@@ -1,4 +1,4 @@
-// Package pendingfile keeps the pending file of a module, `.spec-proof/pending/<module>.json`,
+// Package pendingfile keeps the pending file of a module, `.musthold/pending/<module>.json`,
 // which tells Shallnot what the module still waits for. The file is written in
 // the form the format fixes and read back through the format's own decoder.
 package pendingfile
@@ -10,13 +10,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/alignment/internal/platform/atomicfile"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/alignment/internal/app/ports"
+	"github.com/RachidChabane/musthold/alignment/internal/platform/atomicfile"
+	"github.com/RachidChabane/musthold/format"
 )
 
 const (
-	stateDirectory = ".spec-proof"
+	stateDirectory = ".musthold"
 	dirMode        = 0o755
 	fileMode       = 0o644
 )

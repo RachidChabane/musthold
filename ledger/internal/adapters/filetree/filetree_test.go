@@ -6,12 +6,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/filetree"
-	"github.com/RachidChabane/spec-proof/ledger/internal/app"
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/ledger"
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/refusal"
-	"github.com/RachidChabane/spec-proof/ledger/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/ledger/internal/adapters/filetree"
+	"github.com/RachidChabane/musthold/ledger/internal/app"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/ledger"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/ledger/internal/testkit"
 )
 
 const (

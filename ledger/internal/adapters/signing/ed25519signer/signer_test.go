@@ -13,9 +13,9 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/signing/ed25519signer"
-	"github.com/RachidChabane/spec-proof/ledger/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/ledger/internal/adapters/signing/ed25519signer"
+	"github.com/RachidChabane/musthold/ledger/internal/testkit"
 )
 
 const verifiesEd25519 = " [verifies SP-201~1]"

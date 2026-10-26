@@ -18,15 +18,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 const (
 	repositoryDir  = "../.."
 	goldenDir      = "format/testdata/golden"
-	ledgerBinary   = "spec-proof-ledger"
-	verifyBinary   = "spec-proof-verify"
-	keyVariable    = "SPEC_PROOF_ED25519_KEY"
+	ledgerBinary   = "musthold-ledger"
+	verifyBinary   = "musthold-verify"
+	keyVariable    = "MUSTHOLD_ED25519_KEY"
 	exitRejected   = 1
 	directoryMode  = 0o755
 	fileMode       = 0o644
@@ -68,7 +68,7 @@ type chain struct {
 	cache    string
 	signed   string
 	exported string
-	spec     string // the .spec-proof directory
+	spec     string // the .musthold directory
 }
 
 func newChain(t *testing.T) *chain {
@@ -86,7 +86,7 @@ func newChain(t *testing.T) *chain {
 		t: t, bin: build(t), dir: dir, key: private,
 		keyPEM: string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der})),
 		cache:  filepath.Join(dir, "cache"), signed: filepath.Join(dir, "signed"),
-		exported: filepath.Join(dir, "exported"), spec: filepath.Join(dir, ".spec-proof"),
+		exported: filepath.Join(dir, "exported"), spec: filepath.Join(dir, ".musthold"),
 	}
 	c.writeGoldenCache()
 	c.writePolicy(private.Public().(ed25519.PublicKey))
@@ -232,7 +232,7 @@ func TestProofChain(t *testing.T) {
 		if !strings.Contains(result.stdout, "append-only and content-addressed") {
 			t.Fatalf("audit said %q", result.stdout)
 		}
-		if branch := c.git(repository, "for-each-ref", "--format=%(refname)"); branch != "refs/heads/spec-proof/ledger" {
+		if branch := c.git(repository, "for-each-ref", "--format=%(refname)"); branch != "refs/heads/musthold/ledger" {
 			t.Fatalf("refs %q", branch)
 		}
 	})
@@ -393,7 +393,7 @@ func TestTwoRunnersOneLedger(t *testing.T) {
 			c.mustExecute(ledgerBinary, "sign", "--identity", "ed25519", "--in", runner.cache, "--out", signed)
 			c.mustExecute(ledgerBinary, "ledger", "append", "--repo", runner.repository, "--remote", "origin", "--signed", signed)
 		}
-		if count := c.git(origin, "rev-list", "--count", "refs/heads/spec-proof/ledger"); count != "2" {
+		if count := c.git(origin, "rev-list", "--count", "refs/heads/musthold/ledger"); count != "2" {
 			t.Fatalf("the remote ledger has %s commits, want 2", count)
 		}
 		c.mustExecute(ledgerBinary, "ledger", "audit", "--repo", origin)

@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/proofcache"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/schemacheck"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/proofcache"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/schemacheck"
+	"github.com/RachidChabane/musthold/format"
 )
 
 const (
@@ -39,7 +39,7 @@ func validStatement(t *testing.T) []byte {
 }
 
 func cachedPath(root, spec, key string) string {
-	return filepath.Join(root, ".spec-proof", "cache", "completeness", format.SubjectKey(spec), key+".json")
+	return filepath.Join(root, ".musthold", "cache", "completeness", format.SubjectKey(spec), key+".json")
 }
 
 func TestWrite(t *testing.T) {
@@ -65,7 +65,7 @@ func TestWrite(t *testing.T) {
 		if !errors.Is(err, proofcache.ErrInvalidStatement) {
 			t.Fatalf("error = %v", err)
 		}
-		if _, statErr := os.Stat(filepath.Join(root, ".spec-proof")); !os.IsNotExist(statErr) {
+		if _, statErr := os.Stat(filepath.Join(root, ".musthold")); !os.IsNotExist(statErr) {
 			t.Fatalf("the cache was created: %v", statErr)
 		}
 	})

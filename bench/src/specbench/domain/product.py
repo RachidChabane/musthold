@@ -8,9 +8,9 @@ from typing import Final
 
 from specbench.domain.arms import Module
 
-VERIFY_BINARY: Final = "spec-proof-verify"
-LEDGER_BINARY: Final = "spec-proof-ledger"
-UMBRELLA_PLUGIN_NAME: Final = "spec-proof"
+VERIFY_BINARY: Final = "musthold-verify"
+LEDGER_BINARY: Final = "musthold-ledger"
+UMBRELLA_PLUGIN_NAME: Final = "musthold"
 EXECUTOR_SERVER_SUFFIX: Final = "exec"
 CLAUDE_PLUGIN_SUBDIRECTORY: Final = "plugin/claude"
 
@@ -36,10 +36,10 @@ class ProofModule:
 
 
 PROOF_MODULES: Final = (
-    ProofModule(Module.DISCRIMINATING_POWER, "spec-proof-dp", "spec-proof-dp", "discpower", "discpower"),
-    ProofModule(Module.ALIGNMENT, "spec-proof-alignment", "spec-proof-alignment", "alignment", "alignment"),
+    ProofModule(Module.DISCRIMINATING_POWER, "musthold-dp", "musthold-dp", "discpower", "discpower"),
+    ProofModule(Module.ALIGNMENT, "musthold-alignment", "musthold-alignment", "alignment", "alignment"),
     ProofModule(
-        Module.COMPLETENESS, "spec-proof-completeness", "spec-proof-completeness", "completeness", "completeness"
+        Module.COMPLETENESS, "musthold-completeness", "musthold-completeness", "completeness", "completeness"
     ),
 )
 """In the order the modules generate and are proved in."""

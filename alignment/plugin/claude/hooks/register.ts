@@ -2,7 +2,7 @@ import type { EngineInterface, Register } from "claude-code"
 
 // The binary decides what to classify and what to do with the answers; this
 // module only carries a plan to the session's model and the answers back.
-const BINARY = "spec-proof-alignment"
+const BINARY = "musthold-alignment"
 const PROVE_COMMAND = BINARY + " prove"
 const SYSTEM_ONE_COMMAND = "systemone"
 const PLAN_SUBCOMMAND = "classify-plan"

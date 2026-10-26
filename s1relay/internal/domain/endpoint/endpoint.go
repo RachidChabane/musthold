@@ -12,7 +12,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Route is the path of the closed-question route of a System One endpoint.

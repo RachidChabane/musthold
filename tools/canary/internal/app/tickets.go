@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/modules"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/modules"
 )
 
 // ErrNoTicket is returned when the module's run left no ticket to put an executor on.

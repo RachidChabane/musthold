@@ -1,9 +1,9 @@
-module github.com/RachidChabane/spec-proof/ledger
+module github.com/RachidChabane/musthold/ledger
 
 go 1.26.4
 
 require (
-	github.com/RachidChabane/spec-proof/format v0.1.0
+	github.com/RachidChabane/musthold/format v0.1.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/secure-systems-lab/go-securesystemslib v0.11.0
 	github.com/sigstore/protobuf-specs v0.5.1

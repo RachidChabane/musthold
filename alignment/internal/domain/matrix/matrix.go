@@ -7,7 +7,7 @@ package matrix
 import (
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/criterion"
 )
 
 // Signature is the shape of a test's kills.

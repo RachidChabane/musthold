@@ -1,17 +1,17 @@
-# Ledger (`spec-proof-ledger`)
+# Ledger (`musthold-ledger`)
 
 The ledger module signs the proofs a CI run produced and keeps them, with the data
 needed to verify them offline, in an append-only git branch. It runs in CI. It
 calls no model and reads no project code.
 
 ```
-spec-proof-ledger version
-spec-proof-ledger sign --identity ed25519|sigstore --in DIR --out DIR [--digests FILE] [--key-file FILE] [--fulcio-url URL] [--rekor-url URL]
-spec-proof-ledger ledger append --signed DIR [--mutants DIR] [--trust DIR] [--head-sha SHA --run-id ID] [--repo DIR] [--remote NAME]
-spec-proof-ledger ledger export --to DIR [--repo DIR]
-spec-proof-ledger ledger audit [--repo DIR]
-spec-proof-ledger ledger seed --head-sha SHA --run-id ID [--repo DIR]
-spec-proof-ledger ledger fetch-trust --out DIR [--mirror URL]
+musthold-ledger version
+musthold-ledger sign --identity ed25519|sigstore --in DIR --out DIR [--digests FILE] [--key-file FILE] [--fulcio-url URL] [--rekor-url URL]
+musthold-ledger ledger append --signed DIR [--mutants DIR] [--trust DIR] [--head-sha SHA --run-id ID] [--repo DIR] [--remote NAME]
+musthold-ledger ledger export --to DIR [--repo DIR]
+musthold-ledger ledger audit [--repo DIR]
+musthold-ledger ledger seed --head-sha SHA --run-id ID [--repo DIR]
+musthold-ledger ledger fetch-trust --out DIR [--mirror URL]
 ```
 
 Exit codes: 0 success, 1 a refusal (a statement, a path or a ledger that breaks a
@@ -38,7 +38,7 @@ statement is refused. When any statement is refused nothing is signed or written
 Identities:
 
 - `ed25519` signs the DSSE pre-authentication encoding of the exact statement bytes.
-  The PKCS#8 PEM key comes from `SPEC_PROOF_ED25519_KEY` or from `--key-file`
+  The PKCS#8 PEM key comes from `MUSTHOLD_ED25519_KEY` or from `--key-file`
   (readable by its owner only), never both. A missing key, a key file that group or
   others can read and a key that is not Ed25519 are refused.
 - `sigstore` signs each statement with a fresh ephemeral key, puts the Fulcio
@@ -49,7 +49,7 @@ Identities:
 
 ## ledger append
 
-Adds files to the orphan branch `spec-proof/ledger` of the repository `--repo`
+Adds files to the orphan branch `musthold/ledger` of the repository `--repo`
 (default `.`), with git plumbing only, as one commit that fast-forwards the
 branch:
 
@@ -72,7 +72,7 @@ publish.
 
 Writes the files below `proofs/` of the ledger tip, and the files of the trust
 snapshot with the highest timestamp version, flat below `trust/`, into `--to`. The
-directory must be absent or empty. This is what `spec-proof-verify --bundles`
+directory must be absent or empty. This is what `musthold-verify --bundles`
 reads.
 
 ## ledger audit

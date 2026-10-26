@@ -1,5 +1,5 @@
 // Package operations reads the binding of spec example operations to the
-// functions that implement them, from `.spec-proof/config.yaml`:
+// functions that implement them, from `.musthold/config.yaml`:
 //
 //	operations:
 //	  quote:
@@ -19,12 +19,12 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
+	"github.com/RachidChabane/musthold/completeness/internal/app/ports"
 )
 
 // Location of the file inside a project.
 const (
-	stateDirectory = ".spec-proof"
+	stateDirectory = ".musthold"
 	fileName       = "config.yaml"
 )
 

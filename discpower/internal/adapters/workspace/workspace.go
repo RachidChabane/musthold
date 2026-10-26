@@ -1,6 +1,6 @@
 // Package workspace manages the working copies mutants run in: a reference
 // workspace copied once from the project, mutant workspaces cloned from the
-// built reference, all under $TMPDIR/spec-proof-work/<run>/, outside the
+// built reference, all under $TMPDIR/musthold-work/<run>/, outside the
 // repository.
 package workspace
 
@@ -17,13 +17,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 )
 
 const (
 	// RootDirName is the directory under the temporary directory that holds runs.
-	RootDirName = "spec-proof-work"
+	RootDirName = "musthold-work"
 	runPrefix   = "run-"
 
 	referenceDirName = "reference"

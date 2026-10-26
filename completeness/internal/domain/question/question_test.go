@@ -7,9 +7,9 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/dimension"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/prompt"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/question"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/dimension"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/prompt"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/question"
 )
 
 func TestTemplates(t *testing.T) {

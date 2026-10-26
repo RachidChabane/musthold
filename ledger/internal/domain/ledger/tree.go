@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/refusal"
 )
 
 // TreeStore reads and writes the git objects a ledger tree is made of.

@@ -20,7 +20,7 @@ readonly HERE="demo/loop/container"
 readonly DOCKER="${HERE}/docker"
 readonly PRODUCT=".tools/demo-loop/product"
 readonly STAGE=".tools/demo-loop/work/build"
-readonly IMAGE_NAME="spec-proof-demo-loop-session"
+readonly IMAGE_NAME="musthold-demo-loop-session"
 readonly EXIT_USAGE=64
 # shellcheck source=demo/loop/container/images
 source "${HERE}/images"
@@ -60,7 +60,7 @@ product() {
   cp -R "${stage}/shallnot/plugin" "${PRODUCT}/plugins/shallnot"
   mkdir -p "${PRODUCT}/plugins/s1relay/plugin"
   cp -R "${stage}/src/s1relay/plugin/claude" "${PRODUCT}/plugins/s1relay/plugin/claude"
-  cp -R "${stage}/src/umbrella/plugins/spec-proof" "${PRODUCT}/plugins/spec-proof"
+  cp -R "${stage}/src/umbrella/plugins/musthold" "${PRODUCT}/plugins/musthold"
   stage_tests "${stage}/src"
   write_build_record "$(git rev-parse HEAD)$(git diff --quiet HEAD -- || echo -dirty)"
   echo "build: product in ${PRODUCT}"

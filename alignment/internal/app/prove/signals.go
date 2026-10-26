@@ -5,14 +5,14 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/aggregate"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/masking"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/prompt"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/tournament"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/verdict"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/aggregate"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/masking"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/prompt"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/tournament"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/verdict"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbridge"
 )
 
 // askState is where an ask of the host stands.

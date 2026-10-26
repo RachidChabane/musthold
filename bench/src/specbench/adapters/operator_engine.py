@@ -6,7 +6,7 @@ from typing import Final
 
 from specbench.application.ports import OperatorMutants
 
-PRODUCT_BINARY: Final = "spec-proof-dp"
+PRODUCT_BINARY: Final = "musthold-dp"
 UNAVAILABLE_REASON: Final = (
     f"{PRODUCT_BINARY} exposes no command that emits operator mutants of a diff: its engine runs only inside "
     "`prove`; the survivor listing is not evaluated"

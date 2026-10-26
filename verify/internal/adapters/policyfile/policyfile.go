@@ -1,4 +1,4 @@
-// Package policyfile reads `.spec-proof/trust-policy.yaml`. Unknown members are an
+// Package policyfile reads `.musthold/trust-policy.yaml`. Unknown members are an
 // error: a policy is security configuration, and a misspelled key must not be
 // silently ignored.
 package policyfile
@@ -11,9 +11,9 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/refusal"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/trustpolicy"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/verify/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/verify/internal/domain/trustpolicy"
 )
 
 // ErrNotFound is returned when the policy file does not exist.

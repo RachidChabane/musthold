@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/discpower/internal/cli"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
-	binaryPackage   = "./cmd/spec-proof-dp"
+	binaryPackage   = "./cmd/musthold-dp"
 	fakehostPackage = "./hostproto/hostprototest/cmd/fakehost"
 	formatModule    = "../../../format"
 	discpowerModule = "../.."
@@ -46,7 +46,7 @@ func TestFakehostSmoke(t *testing.T) {
 	recorder.drive(hostprototest.PersonaHonest, oracle{}, "--record", recordings)
 
 	bin := t.TempDir()
-	module := build(t, discpowerModule, binaryPackage, bin, "spec-proof-dp")
+	module := build(t, discpowerModule, binaryPackage, bin, "musthold-dp")
 	fakehost := build(t, formatModule, fakehostPackage, bin, "fakehost")
 
 	h := newHarness(t, shared)

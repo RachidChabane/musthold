@@ -4,8 +4,8 @@ import (
 	"cmp"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // WitnessStanding is what the scan knows of one witness of a promise.

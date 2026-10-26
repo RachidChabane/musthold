@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/suiterun"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/app/suiterun"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
 )
 
 var _ ports.Scanning = (*Strategy)(nil)
@@ -24,10 +24,10 @@ var _ ports.Scanning = (*Strategy)(nil)
 const (
 	scanPluginModule   = "spproof_scan"
 	scanPluginFile     = scanPluginModule + pythonSuffix
-	scanOutputVariable = "SPEC_PROOF_SCAN_OUT"
+	scanOutputVariable = "MUSTHOLD_SCAN_OUT"
 	// scanSelectionVariable names the file that lists, as a JSON array, the
 	// node ids a session of selected tests keeps.
-	scanSelectionVariable = "SPEC_PROOF_SCAN_SELECTION"
+	scanSelectionVariable = "MUSTHOLD_SCAN_SELECTION"
 	scanReportSuffix      = ".json"
 	scanSelectionSuffix   = ".json"
 	rootDirFlag           = "--rootdir=."

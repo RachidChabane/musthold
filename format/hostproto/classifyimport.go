@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Identity of the executor a classification is recorded under.

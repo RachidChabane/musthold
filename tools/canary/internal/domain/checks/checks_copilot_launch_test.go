@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/verdict"
 )
 
 // copilotRelaunchSession is a session of Copilot CLI 1.0.92 in which the main agent

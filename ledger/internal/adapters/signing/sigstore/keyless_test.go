@@ -27,7 +27,7 @@ import (
 	"github.com/sigstore/sigstore-go/pkg/verify"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 
-	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/signing/sigstore"
+	"github.com/RachidChabane/musthold/ledger/internal/adapters/signing/sigstore"
 )
 
 const (

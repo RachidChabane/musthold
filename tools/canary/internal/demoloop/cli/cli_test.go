@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/cli"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/cli"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
 )
 
 const (
@@ -23,7 +23,7 @@ func run(t *testing.T, environ []string, args ...string) (int, string, string) {
 	var stdout, stderr bytes.Buffer
 	code := cli.Run(cli.Env{
 		Args: args, Stdin: strings.NewReader(""), Stdout: &stdout, Stderr: &stderr, Environ: environ,
-		Now: func() time.Time { return time.Date(2026, time.October, 25, 12, 0, 0, 0, time.Local) }, Executable: "/repo/.tools/bin/spec-proof-demo-loop",
+		Now: func() time.Time { return time.Date(2026, time.October, 25, 12, 0, 0, 0, time.Local) }, Executable: "/repo/.tools/bin/musthold-demo-loop",
 	})
 	return code, stdout.String(), stderr.String()
 }
@@ -70,9 +70,9 @@ func TestDryRun(t *testing.T) {
 			"egress allowlist: api.anthropic.com:443",
 			"network create --internal",
 			"--rm --network none",
-			"/opt/spec-proof/bin/spec-proof-demo-loop entry -- /opt/spec-proof/claude/claude -p",
+			"/opt/musthold/bin/musthold-demo-loop entry -- /opt/musthold/claude/claude -p",
 			"(standard input: CLAUDE_CODE_OAUTH_TOKEN=<stdin>)",
-			"/shim/shallnot   (records the hook calls of /opt/spec-proof/bin/shallnot",
+			"/shim/shallnot   (records the hook calls of /opt/musthold/bin/shallnot",
 		} {
 			if !strings.Contains(stdout, wanted) {
 				t.Errorf("the plan lacks %q:\n%s", wanted, stdout)
@@ -94,7 +94,7 @@ func TestDryRun(t *testing.T) {
 			t.Fatalf("exit %d: %s", code, stderr)
 		}
 		work := filepath.Join(repo, ".tools", "demo-loop", "work")
-		if !strings.Contains(stdout, "work: "+work+"\n") || !strings.Contains(stdout, work+"/spec-proof-demo-loop-boxoffice-four-proofs-1-") {
+		if !strings.Contains(stdout, "work: "+work+"\n") || !strings.Contains(stdout, work+"/musthold-demo-loop-boxoffice-four-proofs-1-") {
 			t.Errorf("the plan does not use %s:\n%s", work, stdout)
 		}
 		if tmp := os.TempDir(); strings.Contains(stdout, "work: "+tmp) {

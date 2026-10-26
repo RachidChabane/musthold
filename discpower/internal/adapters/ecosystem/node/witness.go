@@ -9,11 +9,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
-	"github.com/RachidChabane/spec-proof/discpower/internal/platform/witnesskit"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
+	"github.com/RachidChabane/musthold/discpower/internal/platform/witnesskit"
 )
 
 var _ ports.Witnessing = (*Strategy)(nil)
@@ -22,14 +22,14 @@ const (
 	typeScriptName = "TypeScript"
 	javaScriptName = "JavaScript"
 
-	witnessFilePrefix   = "specproof_"
+	witnessFilePrefix   = "musthold_"
 	witnessFileMarker   = ".test"
 	witnessDefaultDir   = "test"
 	witnessDigestLength = 12
 	// witnessSuite is the title of the describe block that registers the
 	// witnesses of a file; it keeps their full titles independent of how the
 	// reporters name a test outside any block.
-	witnessSuite = "specproof_witnesses"
+	witnessSuite = "musthold_witnesses"
 
 	functionKeyword = "function"
 	asyncKeyword    = "async"

@@ -6,7 +6,7 @@ import (
 	"context"
 	"io/fs"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 )
 
 // Ecosystem is the Strategy of one test ecosystem. A Factory in

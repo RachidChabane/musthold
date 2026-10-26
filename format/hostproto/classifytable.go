@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // ErrClassifyTable is returned for a share table or an admission table that

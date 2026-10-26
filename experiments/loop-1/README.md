@@ -31,7 +31,7 @@ A blind oracle, which the agent never sees, then measures three things:
 
 Each verb runs as `script/<verb>`, or as `make <verb>`, from this directory. Run
 `make help` for the list. Every verb except `power` runs the runner
-`spec-proof-demo-loop`, built from `tools/canary`, with the subcommand of the same
+`musthold-demo-loop`, built from `tools/canary`, with the subcommand of the same
 name.
 
 These verbs spend model quota, and run in the nightly window (21:00 to 07:30 local

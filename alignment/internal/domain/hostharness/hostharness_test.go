@@ -4,17 +4,17 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/hostharness"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/hostharness"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 func TestHarnessesOfTheModule(t *testing.T) {
 	t.Run("each harness names the executor tools of the module's plugin as it spells them [verifies SP-742~1]", func(t *testing.T) {
 		want := map[string][]string{
-			hostharness.FlagClaude:  {"mcp__plugin_spec-proof-alignment_exec__fetch_request", "mcp__plugin_spec-proof-alignment_exec__submit_response"},
-			hostharness.FlagCodex:   {"mcp__spec_proof_alignment_exec__fetch_request", "mcp__spec_proof_alignment_exec__submit_response"},
-			hostharness.FlagCopilot: {"spec-proof-alignment-exec/fetch_request", "spec-proof-alignment-exec/submit_response"},
+			hostharness.FlagClaude:  {"mcp__plugin_musthold-alignment_exec__fetch_request", "mcp__plugin_musthold-alignment_exec__submit_response"},
+			hostharness.FlagCodex:   {"mcp__musthold_alignment_exec__fetch_request", "mcp__musthold_alignment_exec__submit_response"},
+			hostharness.FlagCopilot: {"musthold-alignment-exec/fetch_request", "musthold-alignment-exec/submit_response"},
 		}
 		for _, harness := range hostharness.All() {
 			if got := harness.ToolNames(); !slices.Equal(got, want[harness.Flag]) {

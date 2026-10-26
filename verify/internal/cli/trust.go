@@ -4,13 +4,13 @@ import (
 	"context"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/verify/internal/adapters/policyfile"
-	"github.com/RachidChabane/spec-proof/verify/internal/adapters/signing/ed25519verifier"
-	"github.com/RachidChabane/spec-proof/verify/internal/adapters/signing/sigstoreverifier"
-	"github.com/RachidChabane/spec-proof/verify/internal/app"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/proofset"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/trustpolicy"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/verify/internal/adapters/policyfile"
+	"github.com/RachidChabane/musthold/verify/internal/adapters/signing/ed25519verifier"
+	"github.com/RachidChabane/musthold/verify/internal/adapters/signing/sigstoreverifier"
+	"github.com/RachidChabane/musthold/verify/internal/app"
+	"github.com/RachidChabane/musthold/verify/internal/domain/proofset"
+	"github.com/RachidChabane/musthold/verify/internal/domain/trustpolicy"
 )
 
 // bundleTrust is what verifying signed bundles needs: the verifier of each

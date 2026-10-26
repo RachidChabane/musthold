@@ -1,4 +1,4 @@
-## spec-proof scan
+## musthold scan
 
 acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled · seed 7
 
@@ -27,7 +27,7 @@ Not a pass: unproven and unsampled tests are unjudged.
 
 - Change: `src/invoicing/parse.py:3  >= → >   input line="a,": reference "['a,']", mutant raises IndexError`
 - Proven by: a differential run of invoicing.parse:split_fields, reproduced, on a reference that agrees with itself
-- Reproduce: `.spec-proof/scan/3f2a9c1/1/repro.sh`
+- Reproduce: `.musthold/scan/3f2a9c1/1/repro.sh`
 - May break: "split_fields keeps a trailing field", "lines shorter than two characters are skipped"
 
 ```diff
@@ -46,7 +46,7 @@ Not a pass: unproven and unsampled tests are unjudged.
 
 - Change: `src/invoicing/parse.py:3  >= → >`
 - Proven by: tests/test_split.py::test_trailing_comma kills it 3/3
-- Reproduce: `.spec-proof/scan/3f2a9c1/2/repro.sh`
+- Reproduce: `.musthold/scan/3f2a9c1/2/repro.sh`
 
 ```diff
 --- a/src/invoicing/parse.py
@@ -71,7 +71,7 @@ Not a pass: unproven and unsampled tests are unjudged.
 
 - Change: `src/invoicing/parse.py:3  >= → >`
 - Proven by: witness 9d1c0e77a4b2 fails on it, reproduced
-- Reproduce: `.spec-proof/scan/3f2a9c1/promise-1/killer.sh`
+- Reproduce: `.musthold/scan/3f2a9c1/promise-1/killer.sh`
 
 ```diff
 --- a/src/invoicing/parse.py

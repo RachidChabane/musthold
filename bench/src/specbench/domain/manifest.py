@@ -38,12 +38,12 @@ RUN_ID_PATTERN: Final = re.compile(r"^[a-z0-9][a-z0-9-]{2,63}$")
 SHALLNOT_BINARY: Final = "shallnot"
 PRODUCT_BINARIES: Final = (
     SHALLNOT_BINARY,
-    "spec-proof-alignment",
-    "spec-proof-completeness",
-    "spec-proof-dp",
-    "spec-proof-ledger",
-    "spec-proof-s1",
-    "spec-proof-verify",
+    "musthold-alignment",
+    "musthold-completeness",
+    "musthold-dp",
+    "musthold-ledger",
+    "musthold-s1",
+    "musthold-verify",
 )
 """The executables of `.tools/bin` the benchmark drives; `script/product-build` builds them."""
 UMBRELLA_PLUGIN: Final = "umbrella-plugin"

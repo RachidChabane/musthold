@@ -6,11 +6,11 @@ import (
 
 	"github.com/sigstore/sigstore-go/pkg/sign"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/signing/ed25519signer"
-	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/signing/inspect"
-	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/signing/sigstore"
-	"github.com/RachidChabane/spec-proof/ledger/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/ledger/internal/adapters/signing/ed25519signer"
+	"github.com/RachidChabane/musthold/ledger/internal/adapters/signing/inspect"
+	"github.com/RachidChabane/musthold/ledger/internal/adapters/signing/sigstore"
+	"github.com/RachidChabane/musthold/ledger/internal/testkit"
 )
 
 const verifiesInspect = " [verifies SP-203~1]"

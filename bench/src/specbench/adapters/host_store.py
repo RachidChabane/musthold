@@ -10,7 +10,7 @@ from typing import Final
 from specbench.domain.jsonread import mapping, text
 from specbench.domain.product import PROOF_MODULES, ProofModule
 
-STORE_ROOT: Final = "spec-proof"
+STORE_ROOT: Final = "musthold"
 HOST_DIRECTORY: Final = "host"
 REQUESTS_DIRECTORY: Final = "requests"
 
@@ -22,7 +22,7 @@ class StoredRequest:
 
 
 class HostStoreRequests:
-    """Reads `<state>/spec-proof/<module>/<project>/host/requests/<request id>.json` of every proof module."""
+    """Reads `<state>/musthold/<module>/<project>/host/requests/<request id>.json` of every proof module."""
 
     def __init__(self, state: Path) -> None:
         self._state = state

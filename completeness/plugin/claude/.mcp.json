@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "exec": {
-      "command": "spec-proof-completeness",
+      "command": "musthold-completeness",
       "args": [
         "mcp",
         "--role",

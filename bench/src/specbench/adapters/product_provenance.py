@@ -22,7 +22,7 @@ from specbench.domain.sealing import tree_digest
 TOOLS_DIRECTORY: Final = Path(".tools")
 BINARY_DIRECTORY: Final = "bin"
 PLUGIN_DIRECTORY: Final = "plugins"
-UMBRELLA_PLUGIN_DIRECTORY: Final = "spec-proof"
+UMBRELLA_PLUGIN_DIRECTORY: Final = "musthold"
 SHALLNOT_PIN_PATH: Final = Path("script") / "shallnot.pin"
 VERSION_FLAG: Final = "--version"
 BUILD_COMMAND: Final = "script/product-build"

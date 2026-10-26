@@ -9,10 +9,10 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/masking/kotlin"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/masking"
-	"github.com/RachidChabane/spec-proof/alignment/internal/platform/testname"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/masking/kotlin"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/masking"
+	"github.com/RachidChabane/musthold/alignment/internal/platform/testname"
 )
 
 // nameVocabulary holds words that no fixture of the property spells.

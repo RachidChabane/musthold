@@ -33,7 +33,7 @@ jobs:
       ships_plugin: ${{ steps.plan.outputs.ships_plugin }}
       ci_modules: ${{ steps.plan.outputs.ci_modules }}
     steps:
-      - name: Check out spec-proof
+      - name: Check out musthold
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -67,7 +67,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Check out spec-proof with its tags
+      - name: Check out musthold with its tags
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -121,7 +121,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Check out spec-proof with its tags
+      - name: Check out musthold with its tags
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -168,7 +168,7 @@ jobs:
           echo "publish refuses a private repository: attestations need GitHub Enterprise Cloud there and a keyless signature writes the workflow identity to the public Rekor log" >&2
           exit 1
 
-      - name: Check out spec-proof with its tags
+      - name: Check out musthold with its tags
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0

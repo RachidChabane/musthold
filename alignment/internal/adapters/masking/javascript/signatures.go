@@ -8,7 +8,7 @@ import (
 
 	"github.com/odvcencio/gotreesitter"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/platform/textedit"
+	"github.com/RachidChabane/musthold/alignment/internal/platform/textedit"
 )
 
 // Layout of the stubs.

@@ -6,9 +6,9 @@ import (
 
 	"github.com/odvcencio/gotreesitter"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/code"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/testlabel"
-	"github.com/RachidChabane/spec-proof/completeness/internal/platform/treeunits"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/code"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/testlabel"
+	"github.com/RachidChabane/musthold/completeness/internal/platform/treeunits"
 )
 
 // callKind tells what a call statement of a test file is in the vocabulary of the

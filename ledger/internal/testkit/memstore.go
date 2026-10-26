@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/ledger"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/ledger"
 )
 
 // MemoryStore is an in-memory TreeStore: objects are named by the digest of their

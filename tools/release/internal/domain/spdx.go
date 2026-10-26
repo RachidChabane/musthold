@@ -19,7 +19,7 @@ const (
 	spdxDependencyID  = "SPDXRef-Package-%d"
 	spdxUnknown       = "NOASSERTION"
 	spdxCreatedLayout = "2006-01-02T15:04:05Z"
-	spdxCreatorTool   = "Tool: spec-proof-release"
+	spdxCreatorTool   = "Tool: musthold-release"
 	spdxDescribes     = "DESCRIBES"
 	spdxDependsOn     = "DEPENDS_ON"
 	spdxPackageManger = "PACKAGE-MANAGER"

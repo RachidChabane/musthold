@@ -5,7 +5,7 @@ import (
 	"path"
 	"sync"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
 )
 
 // DefaultJobs is how many targets build at once.

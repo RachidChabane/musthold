@@ -1,12 +1,12 @@
 // The global setup of a scan's Vitest runs: it runs the project's own global
-// setup modules, which SPEC_PROOF_SCAN_GLOBAL_SETUP lists as a JSON array, and
-// writes <SPEC_PROOF_SCAN_OUT>/global-setup.failed when one of them throws:
+// setup modules, which MUSTHOLD_SCAN_GLOBAL_SETUP lists as a JSON array, and
+// writes <MUSTHOLD_SCAN_OUT>/global-setup.failed when one of them throws:
 // the positive evidence that no test of the run began.
 import fs from 'node:fs';
 import path from 'node:path';
 
-const SETUP_VARIABLE = 'SPEC_PROOF_SCAN_GLOBAL_SETUP';
-const OUT_VARIABLE = 'SPEC_PROOF_SCAN_OUT';
+const SETUP_VARIABLE = 'MUSTHOLD_SCAN_GLOBAL_SETUP';
+const OUT_VARIABLE = 'MUSTHOLD_SCAN_OUT';
 const FAILURE_FILE = 'global-setup.failed';
 
 export default async function scanGlobalSetup(project) {

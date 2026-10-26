@@ -9,11 +9,11 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/blind"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/closedq"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/dimension"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/prompt"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/blind"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/closedq"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/dimension"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/prompt"
 )
 
 func criteria(count int) []criterion.Criterion {

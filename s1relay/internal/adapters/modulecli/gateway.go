@@ -13,16 +13,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/systemonewire"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/failure"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/s1relay/internal/adapters/systemonewire"
+	"github.com/RachidChabane/musthold/s1relay/internal/app/ports"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/failure"
 )
 
 // Names of the command line of a module binary.
 const (
 	// BinaryPrefix starts the name of every module binary.
-	BinaryPrefix = "spec-proof-"
+	BinaryPrefix = "musthold-"
 
 	commandSystemOne = "systemone"
 	verbExport       = "export"
@@ -76,7 +76,7 @@ type Gateway struct {
 	sessions hostproto.SessionFilter
 }
 
-// BinaryName is the executable of a module: `spec-proof-<module>`.
+// BinaryName is the executable of a module: `musthold-<module>`.
 func BinaryName(module string) (string, error) {
 	if !modulePattern.MatchString(module) {
 		return "", fmt.Errorf("%w: %q", ErrModuleName, module)

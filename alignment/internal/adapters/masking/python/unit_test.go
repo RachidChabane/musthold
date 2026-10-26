@@ -6,9 +6,9 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/masking/python"
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/masking"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/masking/python"
+	"github.com/RachidChabane/musthold/alignment/internal/app/ports"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/masking"
 )
 
 type unitCase struct {

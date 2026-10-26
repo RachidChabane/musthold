@@ -10,10 +10,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/git"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/completeness/internal/testkit"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/git"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/process"
+	"github.com/RachidChabane/musthold/completeness/internal/app/ports"
+	"github.com/RachidChabane/musthold/completeness/internal/testkit"
 )
 
 func changes(t *testing.T, root, base string) (ports.ChangeSet, error) {

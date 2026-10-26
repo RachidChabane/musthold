@@ -5,10 +5,10 @@
 package verdict
 
 import (
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/aggregate"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/matrix"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/policy"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/aggregate"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/matrix"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/policy"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Need names the signal a decision still waits for.

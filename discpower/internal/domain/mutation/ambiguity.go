@@ -1,6 +1,6 @@
 package mutation
 
-import "github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+import "github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 
 // UnitKey names a unit the way an edit targets it: by its kind class and its
 // qualified name. Several units of one file may share a key when the source

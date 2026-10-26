@@ -10,9 +10,9 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Bounds of the generated scans.
@@ -402,7 +402,7 @@ func TestScanStatementOfAResult(t *testing.T) {
 			input := inputGenerator().Draw(t, "input")
 			result := mustClassify(t, input)
 			statement := format.NewScanStatement(strings.Repeat("a", 40), format.SHA256Hex([]byte("tree")), format.Scan{
-				Module: format.Module{Name: "spec-proof-dp", Version: "0.1.0"}, ProducedBy: format.ProducedByLocal,
+				Module: format.Module{Name: "musthold-dp", Version: "0.1.0"}, ProducedBy: format.ProducedByLocal,
 				Mode: format.ScanModeRepository, Runner: "pytest", Seed: "7", PromisesChecked: true,
 				Counts: result.Counts, Tests: result.ScanTests(),
 				Promises: []format.ScanPromise{{ID: generatedPromise, Quote: "keeps empty fields", Source: format.ScanSource{Name: "README.md", Digest: format.Digest{SHA256: format.SHA256Hex([]byte("readme"))}}}},

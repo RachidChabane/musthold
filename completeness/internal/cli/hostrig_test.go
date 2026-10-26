@@ -12,14 +12,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/hoststore"
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/xdg"
-	"github.com/RachidChabane/spec-proof/completeness/internal/cli"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/hostharness"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/hoststore"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/xdg"
+	"github.com/RachidChabane/musthold/completeness/internal/cli"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/hostharness"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbridge"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
@@ -119,7 +119,7 @@ func newCommandHost(t *testing.T, observed hostproto.Observed, policy hostproto.
 		t: t, root: filepath.Join(base, "project"), state: filepath.Join(base, "state"), scratch: filepath.Join(base, "scratch"),
 		hooks: observed.HooksPresent, now: hostprototest.Epoch, entropy: &counterEntropy{}, roles: map[string]string{}, askVotes: 1,
 	}
-	for _, dir := range []string{h.root, h.state, h.scratch, filepath.Join(h.root, ".spec-proof")} {
+	for _, dir := range []string{h.root, h.state, h.scratch, filepath.Join(h.root, ".musthold")} {
 		if err := os.MkdirAll(dir, directoryMode); err != nil {
 			t.Fatal(err)
 		}
@@ -145,7 +145,7 @@ func newCommandHost(t *testing.T, observed hostproto.Observed, policy hostproto.
 
 func (h *commandHost) writeConfig(content string) {
 	h.t.Helper()
-	if err := os.WriteFile(filepath.Join(h.root, ".spec-proof", "config.yaml"), []byte(content), fileMode); err != nil {
+	if err := os.WriteFile(filepath.Join(h.root, ".musthold", "config.yaml"), []byte(content), fileMode); err != nil {
 		h.t.Fatal(err)
 	}
 }

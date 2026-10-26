@@ -1,9 +1,9 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {
-    "spec-proof-completeness": {
+    "musthold-completeness": {
       "type": "stdio",
-      "command": "spec-proof-completeness",
+      "command": "musthold-completeness",
       "args": [
         "mcp",
         "--role",

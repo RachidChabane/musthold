@@ -1,4 +1,4 @@
-// Package trustpolicy is the domain model of `.spec-proof/trust-policy.yaml`: the
+// Package trustpolicy is the domain model of `.musthold/trust-policy.yaml`: the
 // Ed25519 public keys and the Sigstore build signers the verifier trusts. It
 // holds no file or YAML knowledge; an adapter decodes the file into a Spec.
 package trustpolicy
@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // SupportedVersion is the only policy version this verifier reads.

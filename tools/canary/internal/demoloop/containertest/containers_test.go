@@ -5,7 +5,7 @@
 // passed, inside a container with the simulated Claude Code, and whole runs of the
 // pinned Claude Code against a stand-in for the model API. The front door
 // (demo/loop/run test-containers) builds the Linux product and the image, starts
-// the engine, sets SPEC_PROOF_DEMO_CONTAINERS=1 and stops the engine after; without
+// the engine, sets MUSTHOLD_DEMO_CONTAINERS=1 and stops the engine after; without
 // that variable every test skips.
 package containertest
 
@@ -23,24 +23,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/adapters"
-	canary "github.com/RachidChabane/spec-proof/tools/canary/internal/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/config"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/container"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/egress"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/plan"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/probe"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/record"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/window"
+	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
+	canary "github.com/RachidChabane/musthold/tools/canary/internal/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/container"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/egress"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/probe"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/window"
 )
 
 const (
-	enableVariable = "SPEC_PROOF_DEMO_CONTAINERS"
+	enableVariable = "MUSTHOLD_DEMO_CONTAINERS"
 	repoFromHere   = "../../../../.."
 	dockerFront    = "demo/loop/container/docker"
-	engineProfile  = "spec-proof-loop"
+	engineProfile  = "musthold-loop"
 	// fakeToken has a token's shape, so the scans would find it anywhere.
 	fakeToken     = "sk-ant-oat01-container-test-token-0123456789abcdef"
 	deniedHost    = "example.com:443"
@@ -290,7 +290,7 @@ func TestBoxOfficeLoopInAContainer(t *testing.T) {
 	gate := container.ProductTarget + "/tests/tools/canary/internal/demoloop/fixturegate"
 	variables := []string{
 		"HOME=" + container.ScratchHome, "PATH=" + container.ProductTarget + "/bin:" + container.SystemPath,
-		"TMPDIR=" + filepath.Join(box.RunDir, plan.TmpDir), "SPEC_PROOF_DEMO_PRODUCT=" + container.ProductTarget, "PYTHONDONTWRITEBYTECODE=1",
+		"TMPDIR=" + filepath.Join(box.RunDir, plan.TmpDir), "MUSTHOLD_DEMO_PRODUCT=" + container.ProductTarget, "PYTHONDONTWRITEBYTECODE=1",
 	}
 	argv := []string{container.ProductTarget + "/bin/fixturegate.test", "-test.run", "^TestFixtureGate$", "-test.v", "-test.count=1"}
 	stdout, stderr, code := w.run(t, "", box.StepArgv(1, gate, variables, argv)...)

@@ -4,9 +4,9 @@
     script/with-slot N [--wait SECONDS] [--dir DIRECTORY] -- COMMAND [ARGS...]
 
 N is 1 or 2. The slots are exclusive `flock`s on slot-<n>.lock (default directory
-~/Library/Application Support/spec-proof/slots, or $SPEC_PROOF_SLOTS_DIR). The command replaces this process and
+~/Library/Application Support/musthold/slots, or $MUSTHOLD_SLOTS_DIR). The command replaces this process and
 inherits the locks, so the slots are freed when the command and everything it started has exited, or died.
-The command sees SPEC_PROOF_SLOTS_HELD, a comma-separated list of the slot numbers it holds.
+The command sees MUSTHOLD_SLOTS_HELD, a comma-separated list of the slot numbers it holds.
 
 --wait SECONDS  poll for free slots for up to SECONDS (default 0: do not wait).
 Exit status: 75 when the slots did not come free in time, 2 on a usage error, else the command's own.

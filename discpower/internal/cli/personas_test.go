@@ -12,15 +12,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/hoststore"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/xdg"
-	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostharness"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	formatharness "github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/hoststore"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/xdg"
+	"github.com/RachidChabane/musthold/discpower/internal/cli"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/hostharness"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	formatharness "github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbridge"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
@@ -80,7 +80,7 @@ func newCommandHost(t *testing.T, observed hostproto.Observed, policy hostproto.
 		t: t, root: filepath.Join(base, "project"), state: filepath.Join(base, "state"), scratch: filepath.Join(base, "scratch"),
 		hooks: observed.HooksPresent, now: hostprototest.Epoch, entropy: &counterEntropy{}, roles: map[string]string{}, askVotes: 1,
 	}
-	for _, dir := range []string{h.root, h.state, h.scratch, filepath.Join(h.root, ".spec-proof")} {
+	for _, dir := range []string{h.root, h.state, h.scratch, filepath.Join(h.root, ".musthold")} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -111,7 +111,7 @@ func newCommandHost(t *testing.T, observed hostproto.Observed, policy hostproto.
 
 func (h *commandHost) writeConfig(content string) {
 	h.t.Helper()
-	if err := os.WriteFile(filepath.Join(h.root, ".spec-proof", "config.yaml"), []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(h.root, ".musthold", "config.yaml"), []byte(content), 0o644); err != nil {
 		h.t.Fatal(err)
 	}
 }
@@ -122,7 +122,7 @@ func (h *commandHost) run(stdin string, args ...string) (code int, stdout, stder
 	variables := map[string]string{"XDG_STATE_HOME": h.state}
 	var out, errOut bytes.Buffer
 	code = cli.Run(cli.Env{
-		Binary: "spec-proof-dp", Stdin: strings.NewReader(stdin), Stdout: &out, Stderr: &errOut,
+		Binary: "musthold-dp", Stdin: strings.NewReader(stdin), Stdout: &out, Stderr: &errOut,
 		WorkDir: h.root, HomeDir: h.state,
 		LookupEnv: func(name string) (string, bool) { value, found := variables[name]; return value, found },
 		Now:       func() time.Time { return h.now }, Entropy: h.entropy,

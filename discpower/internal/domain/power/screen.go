@@ -1,6 +1,6 @@
 package power
 
-import "github.com/RachidChabane/spec-proof/format"
+import "github.com/RachidChabane/musthold/format"
 
 // ClosedChoice is the answer to one question of the screen.
 type ClosedChoice string

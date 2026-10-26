@@ -1,6 +1,6 @@
 """Where the long-lived Claude Code token comes from: the macOS keychain or the environment.
 
-The owner stores the token once, with `security add-generic-password -s spec-proof-claude-oauth -a "$(id -un)" -w`.
+The owner stores the token once, with `security add-generic-password -s musthold-claude-oauth -a "$(id -un)" -w`.
 A source returns the value or `None` when it holds none; it fails with `CredentialSourceFailed`, whose message never
 carries the value or anything a tool printed. The caller puts the value into the environment of the one subprocess that
 needs it.
@@ -17,7 +17,7 @@ from typing import Final
 from specbench.application.ports import ClaudeCredentialSource, CredentialSourceFailed
 
 OAUTH_TOKEN_VARIABLE: Final = "CLAUDE_CODE_OAUTH_TOKEN"
-KEYCHAIN_SERVICE: Final = "spec-proof-claude-oauth"
+KEYCHAIN_SERVICE: Final = "musthold-claude-oauth"
 SECURITY_EXECUTABLE: Final = "security"
 SECURITY_ITEM_NOT_FOUND: Final = 44
 """The exit code of `security find-generic-password` for an item that does not exist."""

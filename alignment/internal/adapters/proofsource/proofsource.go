@@ -16,14 +16,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/alignment/internal/app/ports"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Locations of the Statements inside a project.
 const (
-	stateDirectory    = ".spec-proof"
+	stateDirectory    = ".musthold"
 	verifiedDirectory = "verified"
 	cacheDirectory    = "cache"
 )

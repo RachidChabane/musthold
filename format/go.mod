@@ -1,4 +1,4 @@
-module github.com/RachidChabane/spec-proof/format
+module github.com/RachidChabane/musthold/format
 
 go 1.26.4
 

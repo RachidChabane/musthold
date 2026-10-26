@@ -2,7 +2,7 @@
 
 ## Exit codes
 
-### Proof modules (`spec-proof-dp`, `spec-proof-alignment`, `spec-proof-completeness`)
+### Proof modules (`musthold-dp`, `musthold-alignment`, `musthold-completeness`)
 
 | Command | 0 | 1 | 2 | 3 |
 |---|---|---|---|---|
@@ -22,9 +22,9 @@ failure and the usage on standard error.
 
 | Program | 0 | 1 | 2 | 4 |
 |---|---|---|---|---|
-| `spec-proof-ledger` | success | a statement, path or ledger that breaks a rule, `ledger audit` found a violation | command line or tool failure | not used |
-| `spec-proof-verify` | verified set written | a bundle, statement or pending file was rejected | command line or tool failure | not used |
-| `spec-proof-s1 drain` | no request unanswered | some requests unanswered | tool failure, including no usable endpoint | the memory rule refused |
+| `musthold-ledger` | success | a statement, path or ledger that breaks a rule, `ledger audit` found a violation | command line or tool failure | not used |
+| `musthold-verify` | verified set written | a bundle, statement or pending file was rejected | command line or tool failure | not used |
+| `musthold-s1 drain` | no request unanswered | some requests unanswered | tool failure, including no usable endpoint | the memory rule refused |
 
 Shallnot's exit codes: 0 clean, 1 blocked, 2 tool failure.
 
@@ -48,8 +48,8 @@ consecutive blocks whose only findings are pending reasons.
 
 | Finding | Meaning | Fix |
 |---|---|---|
-| `stale_proof` | A required proof is missing or stale: an input file changed, a bound test file is not among the proof's inputs, the statement changed, or a consumed proof is not valid. | Run the command the message names, or `prove-all`, then `spec-proof-verify --accept-local ...`. Never edit a proof file. |
-| `malformed_proof` | The manifest or a statement breaks the format. | Re-run `spec-proof-verify`. A `local` manifest needs `proofs.trust: local`. |
+| `stale_proof` | A required proof is missing or stale: an input file changed, a bound test file is not among the proof's inputs, the statement changed, or a consumed proof is not valid. | Run the command the message names, or `prove-all`, then `musthold-verify --accept-local ...`. Never edit a proof file. |
+| `malformed_proof` | The manifest or a statement breaks the format. | Re-run `musthold-verify`. A `local` manifest needs `proofs.trust: local`. |
 | `correct_code_fails`, `example_failed`, `surviving_valid_mutant` | The tests or the code do not meet the requirement. For a surviving mutant, the message names the input the tests do not distinguish: an example of the requirement, or a witness test. | Fix the code, or add a test bound to the requirement that checks that input. |
 | `escalated_mutant`, `no_valid_mutant`, `no_killed_valid_mutant`, `mutation_sensitive_test`, `misaligned_test` | A judged signal that the tests may not check the requirement. | Make the tests check the statement. |
 | `completeness_question` | An advisory question about the spec. | Raise it with the spec's owner. |
@@ -58,18 +58,18 @@ consecutive blocks whose only findings are pending reasons.
 
 **`init` or `enable` fails with "shallnot must speak report schema 1.2 or later".**
 The `shallnot` on `PATH` predates report schema 1.2. Install a Shallnot that has it,
-or point `SPEC_PROOF_SHALLNOT` at one. `doctor` shows the `shallnot` path and the
+or point `MUSTHOLD_SHALLNOT` at one. `doctor` shows the `shallnot` path and the
 `shallnot-schema` check.
 
-**`prove` stays at exit 3.** Tickets are unanswered. `spec-proof-dp request list
+**`prove` stays at exit 3.** Tickets are unanswered. `musthold-dp request list
 --session prove` shows them. Each run of `prove`, including `--resume`, advances one wave; answers
 must exist before `--resume` can consume them.
 
 **The executor server refuses every answer, or tickets never leave `awaiting_host`.**
 The harness hooks did not issue a capability. Check that the module's plugin is
-installed and enabled (`.claude/settings.json` lists it), that `spec-proof-dp` is on
-`PATH` for the hooks, and `spec-proof-dp doctor`. The journal in
-`$XDG_STATE_HOME/spec-proof/<module>/<repo-digest>/host/journal.jsonl` records
+installed and enabled (`.claude/settings.json` lists it), that `musthold-dp` is on
+`PATH` for the hooks, and `musthold-dp doctor`. The journal in
+`$XDG_STATE_HOME/musthold/<module>/<repo-digest>/host/journal.jsonl` records
 `exposure_attempt` and related events.
 
 **On Codex, a spawn of an executor is denied, or its answers count as `inline`.** An
@@ -82,7 +82,7 @@ the message that carried the ticket.
 **`prove --resume` says "nothing to resume: the prove session holds no request".** Run
 `prove` first.
 
-**`--ci needs the CI run`.** Set `SPEC_PROOF_CI_RUN_ID` or `GITHUB_RUN_ID`.
+**`--ci needs the CI run`.** Set `MUSTHOLD_CI_RUN_ID` or `GITHUB_RUN_ID`.
 
 **`--import-host needs --ci`**, **`--changed and --all exclude each other`**,
 **`--record and --replay exclude each other`**. These flag combinations are refused
@@ -103,13 +103,13 @@ stale.
 
 ## Inspecting state
 
-- `spec-proof-dp doctor` checks Shallnot, the ecosystem, the host store and the
+- `musthold-dp doctor` checks Shallnot, the ecosystem, the host store and the
   journal chain.
-- `spec-proof-dp request list --json` shows every pending ticket with its role
+- `musthold-dp request list --json` shows every pending ticket with its role
   and the sessions that want it: `prove`, or `scan:<key>` for a scan. Add
   `--session prove` to see the tickets `prove` waits for.
-- `.spec-proof/cache/` holds the statements and nothing else,
-  `.spec-proof/verified/manifest.json` the verified set, `.spec-proof/pending/` the
-  pending files, `.spec-proof/seeds/` the CI seed records of discriminating power
-  and `.spec-proof/ci-issued/<module>/` the requests a CI run left for the host.
-- `spec-proof-ledger ledger audit` checks a ledger.
+- `.musthold/cache/` holds the statements and nothing else,
+  `.musthold/verified/manifest.json` the verified set, `.musthold/pending/` the
+  pending files, `.musthold/seeds/` the CI seed records of discriminating power
+  and `.musthold/ci-issued/<module>/` the requests a CI run left for the host.
+- `musthold-ledger ledger audit` checks a ledger.

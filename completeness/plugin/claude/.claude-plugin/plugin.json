@@ -1,7 +1,7 @@
 {
-  "name": "spec-proof-completeness",
+  "name": "musthold-completeness",
   "version": "0.1.0",
-  "description": "Blind executors and hooks that let a host harness answer the model requests of spec-proof-completeness, the completeness proof.",
+  "description": "Blind executors and hooks that let a host harness answer the model requests of musthold-completeness, the completeness proof.",
   "author": {
     "name": "Rachid Chabane"
   },

@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/cli"
-	"github.com/RachidChabane/spec-proof/completeness/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/completeness/internal/cli"
+	"github.com/RachidChabane/musthold/completeness/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const classifyModel = "claude-haiku-4-5-20251001"
@@ -17,7 +17,7 @@ const classifyModel = "claude-haiku-4-5-20251001"
 func TestSystemOneClassifyPlan(t *testing.T) {
 	h := newHarness(t, testkit.PythonLedger)
 	h.run(nil, proveCommand, allFlag)
-	h.write(".spec-proof/config.yaml", "systemone:\n  classify: shadow\n")
+	h.write(".musthold/config.yaml", "systemone:\n  classify: shadow\n")
 
 	t.Run("classify-plan plans every closed request that waits for its first vote [verifies SP-1912~1]", func(t *testing.T) {
 		code, stdout, stderr := h.run(nil, "systemone", "classify-plan", "--model", classifyModel)
@@ -48,7 +48,7 @@ func TestSystemOneClassifyPlan(t *testing.T) {
 
 	t.Run("classify-plan plans nothing while the switch is off or nothing is admitted [verifies SP-1912~1]", func(t *testing.T) {
 		for name, config := range map[string]string{"off": "systemone:\n  classify: off\n", "auto with the shipped table": "systemone:\n  classify: auto\n", "unset": ""} {
-			h.write(".spec-proof/config.yaml", config)
+			h.write(".musthold/config.yaml", config)
 			if code, stdout, _ := h.run(nil, "systemone", "classify-plan", "--model", classifyModel); code != cli.ExitClean || strings.TrimSpace(stdout) != "[]" {
 				t.Errorf("%s: exit %d, stdout %q", name, code, stdout)
 			}
@@ -153,7 +153,7 @@ func TestClassifiedAnswersInACompletenessProof(t *testing.T) {
 	t.Run("in shadow the classifications are journaled and the host votes answer [verifies SP-1914~1]", func(t *testing.T) {
 		h := newHarness(t, testkit.PythonLedger)
 		h.admitting()
-		h.write(".spec-proof/config.yaml", "systemone:\n  classify: shadow\n")
+		h.write(".musthold/config.yaml", "systemone:\n  classify: shadow\n")
 		h.run(nil, proveCommand, allFlag)
 		imported := h.classifyHonestly()
 		if len(imported) == 0 {
@@ -212,7 +212,7 @@ func (h *harness) journalCount(kind hostproto.EventKind) int {
 func (h *harness) witnessing() *hostprototest.RawAPILog {
 	h.t.Helper()
 	dir := filepath.Join(h.t.TempDir(), "bodies")
-	h.write(".spec-proof/config.yaml", "host:\n  classify:\n    witness_dir: "+dir+"\n")
+	h.write(".musthold/config.yaml", "host:\n  classify:\n    witness_dir: "+dir+"\n")
 	return hostprototest.NewRawAPILog(h.t, dir, h.now)
 }
 

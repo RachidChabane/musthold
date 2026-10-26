@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/adapters/projectconfig"
+	"github.com/RachidChabane/musthold/s1relay/internal/adapters/projectconfig"
 )
 
 func writeConfig(t *testing.T, content string) string {

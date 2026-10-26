@@ -10,7 +10,7 @@ import (
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
 )
 
 const (
@@ -51,13 +51,13 @@ func sbomInput(t *testing.T) domain.SBOMInput {
 	tag := mustTag(t, "discpower/v0.2.0")
 	return domain.SBOMInput{
 		Tag:         tag,
-		ArchiveName: "spec-proof-dp_0.2.0_linux_amd64.tar.gz",
+		ArchiveName: "musthold-dp_0.2.0_linux_amd64.tar.gz",
 		Created:     commitTime,
 		Build: domain.BuildFacts{
-			GoVersion: "go1.26.4", MainPath: "github.com/RachidChabane/spec-proof/discpower", MainVersion: "(devel)",
+			GoVersion: "go1.26.4", MainPath: "github.com/RachidChabane/musthold/discpower", MainVersion: "(devel)",
 			Dependencies: []domain.Dependency{
 				{Path: "pgregory.net/rapid", Version: "v1.3.0", Sum: "h1:rapid"},
-				{Path: "github.com/RachidChabane/spec-proof/format", Version: "v0.1.0", Sum: "h1:format"},
+				{Path: "github.com/RachidChabane/musthold/format", Version: "v0.1.0", Sum: "h1:format"},
 				{Path: "gopkg.in/yaml.v3", Version: "v3.0.1", Sum: "h1:yaml"},
 			},
 			Settings: []domain.BuildSetting{{Key: "GOOS", Value: "linux"}, {Key: "-trimpath", Value: "true"}, {Key: "CGO_ENABLED", Value: "0"}},
@@ -141,7 +141,7 @@ func TestSBOM(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		wantNamespace := "https://github.com/RachidChabane/spec-proof/discpower/v0.2.0/spec-proof-dp_0.2.0_linux_amd64.tar.gz"
+		wantNamespace := "https://github.com/RachidChabane/musthold/discpower/v0.2.0/musthold-dp_0.2.0_linux_amd64.tar.gz"
 		if header.Version != "SPDX-2.3" || header.Namespace != wantNamespace || header.Created != "2023-11-14T22:13:20Z" {
 			t.Fatalf("header = %+v", header)
 		}
@@ -158,7 +158,7 @@ func TestFormula(t *testing.T) {
 	tag := mustTag(t, "discpower/v0.2.0")
 	var sums []domain.Checksum
 	for _, target := range domain.Targets() {
-		archive := target.ArchiveName("spec-proof-dp", tag.Version)
+		archive := target.ArchiveName("musthold-dp", tag.Version)
 		sums = append(sums, domain.Checksum{Digest: domain.DigestOf([]byte(archive)), Name: archive})
 	}
 
@@ -186,7 +186,7 @@ func TestFormula(t *testing.T) {
 
 	t.Run("the download url keeps the slash of the tag"+verifiesFormula, func(t *testing.T) {
 		got := domain.DownloadURL(tag, "x.tar.gz")
-		if got != "https://github.com/RachidChabane/spec-proof/releases/download/discpower/v0.2.0/x.tar.gz" {
+		if got != "https://github.com/RachidChabane/musthold/releases/download/discpower/v0.2.0/x.tar.gz" {
 			t.Fatalf("url = %q", got)
 		}
 	})

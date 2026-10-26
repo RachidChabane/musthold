@@ -6,7 +6,7 @@ to the Go tests of the module in CI.
 
 ## Binary
 
-- **SP-105~1**: WHEN the `spec-proof-s1` binary is run with the `version`
+- **SP-105~1**: WHEN the `musthold-s1` binary is run with the `version`
   argument THE SYSTEM SHALL print its version.
 - **SP-1660~1**: WHEN the binary is run with `-h`, `--help` or `help`, `drain` with
   `-h` or `--help`, or `help drain` THE SYSTEM SHALL print the commands of the
@@ -17,22 +17,22 @@ to the Go tests of the module in CI.
 ## Drain
 
 - **SP-600~2**: WHEN `drain --module M` runs THE SYSTEM SHALL run
-  `spec-proof-M systemone export` from the project root, post each exported
-  closed request to the endpoint, and run `spec-proof-M systemone import` with the
+  `musthold-M systemone export` from the project root, post each exported
+  closed request to the endpoint, and run `musthold-M systemone import` with the
   reply of the endpoint for each usable answer, with the ticket, its nonce and the source
   `system-one:<model>@<endpointDigest>`, the confidence source a proof records.
 - **SP-2156~1**: WHEN `drain --module M --session S` runs THE SYSTEM SHALL run
-  `spec-proof-M systemone export --session S` so that only the closed requests
+  `musthold-M systemone export --session S` so that only the closed requests
   of the session `S` are relayed, relay those of every session when `drain` is
   given no `--session`, and WHEN `S` names neither
   `prove` nor `scan:<key>` THE SYSTEM SHALL exit 2 without running a module.
 - **SP-601~1**: WHEN `drain` runs THE SYSTEM SHALL take the endpoint and the
   model from `--endpoint` and `--model`, else from `systemone.endpoint` and
-  `systemone.model` of `.spec-proof/config.yaml`, and WHEN no usable endpoint is
+  `systemone.model` of `.musthold/config.yaml`, and WHEN no usable endpoint is
   given THE SYSTEM SHALL exit 2 without running a module or opening a
   connection.
 - **SP-602~1**: WHEN a module is named THE SYSTEM SHALL run the executable
-  `spec-proof-` followed by the module name, accept only a name of lower-case
+  `musthold-` followed by the module name, accept only a name of lower-case
   letters, digits and hyphens, and fail with exit 2 when the executable cannot
   be run.
 - **SP-603~1**: WHEN an endpoint is configured THE SYSTEM SHALL post to its
@@ -112,8 +112,8 @@ to the Go tests of the module in CI.
   SHALL produce its files from one definition, the same bytes on every run, and
   the committed tree under `plugin/claude` SHALL equal what the generator produces.
 - **SP-831~1**: WHEN the plugin files are read against the formats Claude Code
-  documents THE SYSTEM SHALL give a manifest that names the plugin `spec-proof-s1`
-  with a version and a description, and one skill that runs `spec-proof-s1 drain
+  documents THE SYSTEM SHALL give a manifest that names the plugin `musthold-s1`
+  with a version and a description, and one skill that runs `musthold-s1 drain
   --module` for each proof module, pre-approves nothing else, and carries no text
   about its own authoring.
 
@@ -126,7 +126,7 @@ to the Go tests of the module in CI.
 
 ## Release version
 
-- **SP-1856~1**: WHEN `spec-proof-s1` is run with the lone argument `--version` THE SYSTEM
+- **SP-1856~1**: WHEN `musthold-s1` is run with the lone argument `--version` THE SYSTEM
   SHALL print the bare version, the one a release build linked with
   `-X main.version`, else the one `go install` recorded, else `dev`, and the
   `version` command SHALL print the binary name, that version and the linked

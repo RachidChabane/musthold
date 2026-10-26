@@ -8,8 +8,8 @@ const (
 	jestExpectation  = "`expect` is a global: import nothing from jest."
 	vitestDisplay    = "Vitest"
 	vitestExpects    = "Import `expect` from 'vitest' in \"imports\" and nothing else from it."
-	vitestSuiteAlias = "specproofDescribe"
-	vitestTestAlias  = "specproofTest"
+	vitestSuiteAlias = "mustholdDescribe"
+	vitestTestAlias  = "mustholdTest"
 	vitestPreamble   = "import { describe as " + vitestSuiteAlias + ", test as " + vitestTestAlias + " } from 'vitest';"
 )
 

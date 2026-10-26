@@ -4,11 +4,11 @@
 package advice
 
 import (
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/blind"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/closedq"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/dimension"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/prompt"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/tournament"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/blind"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/closedq"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/dimension"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/prompt"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/tournament"
 )
 
 // Gap is a dimension System One found missing from a spec.

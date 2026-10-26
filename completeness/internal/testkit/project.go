@@ -12,7 +12,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/criterion"
 )
 
 // Names of the fixture projects under `fixtures/`.

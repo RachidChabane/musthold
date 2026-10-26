@@ -6,12 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/cli"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/hostharness"
-	"github.com/RachidChabane/spec-proof/alignment/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/alignment/internal/cli"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/hostharness"
+	"github.com/RachidChabane/musthold/alignment/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
@@ -27,7 +27,7 @@ const (
 // it plays a harness whose hooks never fire.
 func hostOver(h *harness, hooks bool) *commandHost {
 	h.t.Helper()
-	h.write(".spec-proof/config.yaml", moduleConfigYAML)
+	h.write(".musthold/config.yaml", moduleConfigYAML)
 	return &commandHost{
 		t: h.t, root: h.root, state: h.state, harness: hostharness.Claude(), hooks: hooks, now: h.now,
 		entropy: &counterEntropy{}, roles: map[string]string{}, store: h.store(), scratch: h.t.TempDir(), askVotes: 1,
@@ -277,7 +277,7 @@ func TestForgerAndHooklessHosts(t *testing.T) {
 		h := newHarness(t, testkit.PythonParcel)
 		h.withPowers(testkit.PythonPowers())
 		host := hostOver(h, false)
-		h.write(".spec-proof/config.yaml", requireOptOutYAML)
+		h.write(".musthold/config.yaml", requireOptOutYAML)
 		code, output, stderr := h.run(nil, proveCommand, allFlag)
 		for wave := 0; code == cli.ExitAwaitingHost && wave < maxHostWaves; wave++ {
 			for _, item := range h.requestsJSON().Items {

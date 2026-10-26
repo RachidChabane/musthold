@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // ErrNotScan is returned when a bridge that does not work for a scan tries to end

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/golang/probeharness"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/differential"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/golang/probeharness"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/differential"
 )
 
 const (

@@ -15,18 +15,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest/claudecode"
+	"github.com/RachidChabane/musthold/completeness/internal/testkit"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest/claudecode"
 )
 
 const (
 	repositoryDir  = "../../.."
 	moduleDir      = "completeness"
 	memGuardScript = "script/mem-guard"
-	binaryName     = "spec-proof-completeness"
-	pluginName     = "spec-proof-completeness"
+	binaryName     = "musthold-completeness"
+	pluginName     = "musthold-completeness"
 	niceLevel      = "10"
 	buildTimeout   = 5 * time.Minute
 	commandTimeout = 5 * time.Minute
@@ -36,7 +36,7 @@ const (
 	exitAwaiting = 3
 	maxWaves     = 12
 
-	shallnotVariable = "SPEC_PROOF_SHALLNOT"
+	shallnotVariable = "MUSTHOLD_SHALLNOT"
 	reportVariable   = "SHALLNOT_RECORDED_REPORT"
 	stateVariable    = "XDG_STATE_HOME"
 	cacheVariable    = "XDG_CACHE_HOME"
@@ -44,11 +44,11 @@ const (
 	projectVariable  = "CLAUDE_PROJECT_DIR"
 	procsVariable    = "GOMAXPROCS=2"
 
-	stateDirectory = "spec-proof"
+	stateDirectory = "musthold"
 	moduleState    = "completeness"
 	hostDirectory  = "host"
 	journalName    = "journal.jsonl"
-	cacheRelative  = ".spec-proof/cache/completeness"
+	cacheRelative  = ".musthold/cache/completeness"
 	gateConfig     = "shallnot.yaml"
 	requireKey     = "require:"
 )
@@ -68,7 +68,7 @@ var identity = harness.Identity{Plugin: pluginName, Agents: []hostproto.Agent{ho
 func builtBinary(t *testing.T) string {
 	t.Helper()
 	buildOnce.Do(func() {
-		dir, err := os.MkdirTemp("", "spec-proof-completeness-bin-")
+		dir, err := os.MkdirTemp("", "musthold-completeness-bin-")
 		if err != nil {
 			buildErr = err
 			return

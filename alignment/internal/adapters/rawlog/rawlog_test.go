@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/rawlog"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/rawlog"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 func TestDirectory(t *testing.T) {

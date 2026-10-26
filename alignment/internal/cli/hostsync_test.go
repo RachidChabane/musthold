@@ -7,19 +7,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/bundlefs"
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/hoststore"
-	"github.com/RachidChabane/spec-proof/alignment/internal/cli"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostbundle"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/bundlefs"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/hoststore"
+	"github.com/RachidChabane/musthold/alignment/internal/cli"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbundle"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
 	honestAnswer    = hostprototest.HonestAnswer
 	hostModule      = "alignment"
 	editedSource    = "src/parcel/pricing.py"
-	pushedFormat    = "pushed refs/spec-proof/host/alignment/"
+	pushedFormat    = "pushed refs/musthold/host/alignment/"
 	issuedCriterion = "PAR-1~1"
 )
 

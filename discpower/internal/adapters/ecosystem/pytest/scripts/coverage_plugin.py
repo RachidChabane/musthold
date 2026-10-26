@@ -6,8 +6,8 @@ import threading
 
 import pytest
 
-OUTPUT_VARIABLE = "SPEC_PROOF_COVERAGE_OUT"
-TRACER_VARIABLE = "SPEC_PROOF_COVERAGE_TRACER"
+OUTPUT_VARIABLE = "MUSTHOLD_COVERAGE_OUT"
+TRACER_VARIABLE = "MUSTHOLD_COVERAGE_TRACER"
 TRACER_SETTRACE = "settrace"
 EXCLUDED_FILE_PATTERNS = ("test_*.py", "*_test.py", "conftest.py")
 EXCLUDED_PATH_PARTS = (".venv", "site-packages")
@@ -26,7 +26,7 @@ CALL_PHASE = "call"
 TEARDOWN_PHASE = "teardown"
 OWNING_PHASES = (SETUP_PHASE, CALL_PHASE)
 FUNCTION_SCOPE = "function"
-MONITORING_TOOL_NAME = "spec-proof-coverage"
+MONITORING_TOOL_NAME = "musthold-coverage"
 MONITORING_TOOL_IDS = range(6)
 
 executed = {}

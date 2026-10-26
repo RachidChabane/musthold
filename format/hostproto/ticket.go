@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Shape of tickets and nonces.

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/capacity"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/capacity"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
 )
 
 const verifiesCapacity = " [verifies SP-2130~1]"

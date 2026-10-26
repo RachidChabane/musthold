@@ -1,40 +1,40 @@
 {
 	"signatures": [
 		{
-			"keyid": "6c5ebf3944948354a2cbb8d593165016d44f4a55c3efec48c3a12914c6180a90",
-			"sig": "3046022100c2c7c5c0027486639af9358919c85d971159a84e69529bcb5d9b999e4ba54301022100898ba5e76337de1bb4ba3279fa7a1e247cd5d4f7cce029728f5903d29f4e938d"
+			"keyid": "323b2694627cb7d7819a1d3dc36c894712c3a631e9457862c13fc97a826e6bfc",
+			"sig": "3046022100ffe930f9b1ff6324c12f8024d2da11b8a96d604e327170dd0591731c64347a800221008126c29f25d6f7e443d97bad41348ee37f239079affd00170078dd37275a5c32"
 		}
 	],
 	"signed": {
 		"_type": "root",
 		"consistent_snapshot": true,
-		"expires": "2126-09-15T14:53:30.801533+02:00",
+		"expires": "2126-10-02T03:21:49.278113+02:00",
 		"keys": {
-			"2b5a53ba8bb78ba86623a620126f7af441ac80eb44db614650c263f7a2c090d0": {
+			"0bb4efa687803ab3844e2213fba28532fafddbf978e6ddb4a64f0072f6ead527": {
 				"keytype": "ecdsa",
 				"keyval": {
-					"public": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEm0jOXJdg/9rxhaZNC3z0itf+7T9f\nPic7MqX7dH3DulrLxGH7uEIuWKxRwJJG4E0E1p7JXfqWabyAlLVflMZ2ZQ==\n-----END PUBLIC KEY-----\n"
+					"public": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFFrF8yHKtMR3mL6bh/PfAR8m4RbE\ni6Jq/MCnHnnTBPIBqTLZYrI7AU+1GFZ/9cm8IymxGoe2kn28p1qFIPNJsg==\n-----END PUBLIC KEY-----\n"
 				},
 				"scheme": "ecdsa-sha2-nistp256"
 			},
-			"5638115b0a229e17ace9ddd9180d3a2d77445b37b4229802f93d273e2384c049": {
+			"323b2694627cb7d7819a1d3dc36c894712c3a631e9457862c13fc97a826e6bfc": {
 				"keytype": "ecdsa",
 				"keyval": {
-					"public": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEg+jyroHB1EwE4pV4ChTweq57gsev\nmYZG0Nd6rwQeEoNDegxW0oxNc3VViTjB8SEFmwymAoRoFt/yRgwVv0LyKQ==\n-----END PUBLIC KEY-----\n"
+					"public": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEx7k3JeOpLw7A2aMfUCyU1pYKO/eS\nrAFZvPPgN7+pWd+E27HAUGos0SJsQ08qvVOyAryI/CIsNENnDuts2y/vkw==\n-----END PUBLIC KEY-----\n"
 				},
 				"scheme": "ecdsa-sha2-nistp256"
 			},
-			"6a1fcd4b72143c8144c44e5bb5dced7784054a2a5354bbf0fd6592b695f7538c": {
+			"77ae71c60ed66def31b7f9c0b443218146a651a05de35513e35960455373aad7": {
 				"keytype": "ecdsa",
 				"keyval": {
-					"public": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUT+D8RL1XkjELgCDVSRz12yjeB10\nXb3fQRDfP3n+vSGwsAXPUerzVexMd8xnusBtMuqEyH/MyjGltHw+F12piA==\n-----END PUBLIC KEY-----\n"
+					"public": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAELn3IgpfdYAeiIGzqRZ1+vehPymyk\nAZ8iGROY4qOZcqi/X4bcUK/LmTeBtUYJXKN+2rJ4CfiqtqAB5UwHmp6YCw==\n-----END PUBLIC KEY-----\n"
 				},
 				"scheme": "ecdsa-sha2-nistp256"
 			},
-			"6c5ebf3944948354a2cbb8d593165016d44f4a55c3efec48c3a12914c6180a90": {
+			"b1432753e5343dbf18724223ca8466311bbb6b531fc28b2f21bb6c0f2eac7c4b": {
 				"keytype": "ecdsa",
 				"keyval": {
-					"public": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEyjhsHTssJFfBOc7GsXUYuuAM3BCt\n6sKYsptI8U9B78GALkkmxbHIMJcdAc+aVRA1HdsjsYWwLtUQ0dXhHKPN2A==\n-----END PUBLIC KEY-----\n"
+					"public": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEnwgWNTSLTV0y8JPTR2meMHfYUN0M\nx8sDQKtruZISvh+i2fFp5W5rGpDzspCVpzJ8tBCiGO5Yhlm/perADSPuyg==\n-----END PUBLIC KEY-----\n"
 				},
 				"scheme": "ecdsa-sha2-nistp256"
 			}
@@ -42,25 +42,25 @@
 		"roles": {
 			"root": {
 				"keyids": [
-					"6c5ebf3944948354a2cbb8d593165016d44f4a55c3efec48c3a12914c6180a90"
+					"323b2694627cb7d7819a1d3dc36c894712c3a631e9457862c13fc97a826e6bfc"
 				],
 				"threshold": 1
 			},
 			"snapshot": {
 				"keyids": [
-					"6a1fcd4b72143c8144c44e5bb5dced7784054a2a5354bbf0fd6592b695f7538c"
+					"77ae71c60ed66def31b7f9c0b443218146a651a05de35513e35960455373aad7"
 				],
 				"threshold": 1
 			},
 			"targets": {
 				"keyids": [
-					"5638115b0a229e17ace9ddd9180d3a2d77445b37b4229802f93d273e2384c049"
+					"b1432753e5343dbf18724223ca8466311bbb6b531fc28b2f21bb6c0f2eac7c4b"
 				],
 				"threshold": 1
 			},
 			"timestamp": {
 				"keyids": [
-					"2b5a53ba8bb78ba86623a620126f7af441ac80eb44db614650c263f7a2c090d0"
+					"0bb4efa687803ab3844e2213fba28532fafddbf978e6ddb4a64f0072f6ead527"
 				],
 				"threshold": 1
 			}

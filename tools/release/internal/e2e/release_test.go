@@ -14,9 +14,9 @@ import (
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/adapters"
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
-	"github.com/RachidChabane/spec-proof/tools/release/internal/testkit"
+	"github.com/RachidChabane/musthold/tools/release/internal/adapters"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/testkit"
 )
 
 const (
@@ -29,7 +29,7 @@ const (
 	throwawaySemver        = "0.0.0-e2e"
 	exitRefused            = 3
 	exitDistInvalid        = 4
-	toolPath               = ".tools/bin/spec-proof-release"
+	toolPath               = ".tools/bin/musthold-release"
 	spdxSchemaRelative     = "tools/release/testdata/spdx-2.3/spdx-schema.json"
 	spdxSchemaID           = "http://spdx.org/rdf/terms/2.3"
 )
@@ -117,7 +117,7 @@ func TestDryRunEndToEnd(t *testing.T) {
 
 	t.Run("the plan names the module, the binary and the version"+verifiesDryRun, func(t *testing.T) {
 		output, code := release(t, repository, "plan", throwawayTag)
-		if code != 0 || !strings.Contains(output, "binary=spec-proof-dp\n") || !strings.Contains(output, "semver="+throwawaySemver+"\n") {
+		if code != 0 || !strings.Contains(output, "binary=musthold-dp\n") || !strings.Contains(output, "semver="+throwawaySemver+"\n") {
 			t.Fatalf("exit %d:\n%s", code, output)
 		}
 	})
@@ -206,7 +206,7 @@ func TestDryRunEndToEnd(t *testing.T) {
 			if err := schema.Validate(instance); err != nil {
 				t.Errorf("%s: %v", name, err)
 			}
-			if !bytes.Contains(data, []byte("github.com/RachidChabane/spec-proof/format")) {
+			if !bytes.Contains(data, []byte("github.com/RachidChabane/musthold/format")) {
 				t.Errorf("%s does not list the linked format module", name)
 			}
 			checked++
@@ -260,8 +260,8 @@ func TestDryRunEndToEnd(t *testing.T) {
 		if output, code := repository.Run(toolPath, nil, "formula", throwawayTag); code != 0 {
 			t.Fatalf("formula: exit %d:\n%s", code, output)
 		}
-		formula, err := os.ReadFile(filepath.Join(repository.Root, "dist", "spec-proof-dp.rb"))
-		if err != nil || !strings.Contains(string(formula), "releases/download/discpower/v"+throwawaySemver+"/spec-proof-dp_"+throwawaySemver+"_darwin_arm64.tar.gz") {
+		formula, err := os.ReadFile(filepath.Join(repository.Root, "dist", "musthold-dp.rb"))
+		if err != nil || !strings.Contains(string(formula), "releases/download/discpower/v"+throwawaySemver+"/musthold-dp_"+throwawaySemver+"_darwin_arm64.tar.gz") {
 			t.Fatalf("formula %q, error %v", formula, err)
 		}
 		if output, code := repository.Run(toolPath, nil, "verify-dist", throwawayTag); code != 0 {

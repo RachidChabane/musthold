@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/pytest"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/junitxml"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/process"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/treesitter"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/workspace"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/pytest"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/junitxml"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/process"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/sourceparse/treesitter"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/workspace"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
 )
 
 const (
@@ -25,7 +25,7 @@ const (
 	acceptsAnyPrice  = discountTests + "::test_discount_accepts_any_percent"
 	waivedFromFifty  = "tests/test_totals.py::test_shipping_is_waived_from_fifty[50-0]"
 	totalsFile       = "invoice/totals.py"
-	tracerVariable   = "SPEC_PROOF_COVERAGE_TRACER"
+	tracerVariable   = "MUSTHOLD_COVERAGE_TRACER"
 	settraceTracer   = "settrace"
 	scanRunTimeout   = 2 * time.Minute
 	verifiesScanRuns = " [verifies SP-2102~4]"

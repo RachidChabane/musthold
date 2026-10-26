@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/hoststore"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/xdg"
-	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/hoststore"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/xdg"
+	"github.com/RachidChabane/musthold/discpower/internal/cli"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/power"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
@@ -46,7 +46,7 @@ const (
 	conflictedExample   = "assert shipping_fee(100) == 4.5"
 	refactorsDir        = "planted"
 	refactorName        = "same_threshold"
-	configFile          = ".spec-proof/config.yaml"
+	configFile          = ".musthold/config.yaml"
 	sameThreshold       = `{"edits":[{"file":"parcel/rates.py","qualname":"shipping_fee","new_source":"def shipping_fee(total):\n    if not total < FREE_SHIPPING_FROM:\n        return 0\n    return SHIPPING_FEE"}]}`
 	admissionSection    = "admission:\n  refactors: planted\n"
 )

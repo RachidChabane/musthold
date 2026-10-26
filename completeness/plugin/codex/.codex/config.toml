@@ -1,6 +1,6 @@
-# spec-proof-completeness:begin
-[mcp_servers.spec-proof-completeness-exec]
-command = "spec-proof-completeness"
+# musthold-completeness:begin
+[mcp_servers.musthold-completeness-exec]
+command = "musthold-completeness"
 args = ["mcp", "--role", "executor", "--harness", "codex"]
 default_tools_approval_mode = "approve"
-# spec-proof-completeness:end
+# musthold-completeness:end

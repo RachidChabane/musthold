@@ -1,7 +1,7 @@
 ---
 name: decider
-description: Executes one closed-question ticket of spec-proof-alignment as a blind executor. Launch it only through the spec-proof-alignment-fulfil skill, with a prompt that is the ticket.
-tools: mcp__plugin_spec-proof-alignment_exec__fetch_request, mcp__plugin_spec-proof-alignment_exec__submit_response
+description: Executes one closed-question ticket of musthold-alignment as a blind executor. Launch it only through the musthold-alignment-fulfil skill, with a prompt that is the ticket.
+tools: mcp__plugin_musthold-alignment_exec__fetch_request, mcp__plugin_musthold-alignment_exec__submit_response
 model: inherit
 omitClaudeMd: true
 maxTurns: 4

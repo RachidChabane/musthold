@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // ScanTests gives the verdicts of the sampled green tests in the form of the

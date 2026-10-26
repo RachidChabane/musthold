@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
 )
 
 // Git command line.
@@ -47,7 +47,7 @@ const (
 	pathspecSeparator  = "--"
 	allPaths           = "."
 	// excludedOutput keeps scan reports out of the dirty check.
-	excludedOutput = ":(exclude).spec-proof"
+	excludedOutput = ":(exclude).musthold"
 	// Markers of `git diff` output.
 	newFilePrefix = "+++ "
 	newFileSide   = "b/"

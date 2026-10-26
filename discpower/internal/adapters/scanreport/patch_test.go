@@ -10,7 +10,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/scanreport"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/scanreport"
 )
 
 const verifiesPatch = " [verifies SP-2117~1]"

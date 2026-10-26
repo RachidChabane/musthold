@@ -1,6 +1,6 @@
 package hostproto
 
-import "github.com/RachidChabane/spec-proof/format"
+import "github.com/RachidChabane/musthold/format"
 
 // ToolAllowlist is what was observed about the harness's per-agent tool allowlist.
 type ToolAllowlist string

@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/pluginfiles"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/pluginfiles"
 )
 
 // Paths and names of what the installer reads and writes.
 const (
-	// StateDirectory is the project directory that holds spec-proof state.
+	// StateDirectory is the project directory that holds musthold state.
 	StateDirectory = pluginfiles.StateDirectory
 	// SharedConfigFile is the configuration file the modules share, inside StateDirectory.
 	SharedConfigFile = "config.yaml"
 	// Marketplace is the marketplace the module plugins are published in.
-	Marketplace = "spec-proof"
+	Marketplace = "musthold"
 
 	shallnotConfig     = "shallnot.yaml"
 	agentsPath         = "AGENTS.md"

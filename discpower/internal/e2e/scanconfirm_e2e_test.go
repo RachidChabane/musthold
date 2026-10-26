@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // The projects whose tests read state another test leaves behind, and what a
@@ -158,7 +158,7 @@ func TestScanConfirmsEachClaimAlone(t *testing.T) {
 				}
 			})
 			t.Run("a replay holds the findings"+verifiesConfirmationE2E, func(t *testing.T) {
-				replay := s.run(s.binary, "scan", "replay", ".spec-proof/scan/"+s.commit()[:7])
+				replay := s.run(s.binary, "scan", "replay", ".musthold/scan/"+s.commit()[:7])
 				if replay.code != 0 || !strings.Contains(replay.stdout, c.vacuous) || strings.Contains(replay.stdout, "NOT held") {
 					t.Fatalf("exit %d:\n%s", replay.code, replay.output())
 				}

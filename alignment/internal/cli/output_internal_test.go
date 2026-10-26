@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/prove"
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/alignment/internal/app/prove"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/criterion"
 )
 
 func TestPrintResultLeavesNoTrailingSpace(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"math"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // ClosedType is the type of one closed question: the three types of the

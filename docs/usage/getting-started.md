@@ -9,8 +9,8 @@ Codex and Copilot CLI use the same commands; the differences are listed in
 - Go, to build the binaries from a clone.
 - Claude Code, to run the plugins.
 - Shallnot whose JSON report schema is 1.2 or later. Check it with
-  `spec-proof-dp doctor`; the `shallnot-schema` line reports the result. Name a
-  specific Shallnot binary with the `SPEC_PROOF_SHALLNOT` environment variable
+  `musthold-dp doctor`; the `shallnot-schema` line reports the result. Name a
+  specific Shallnot binary with the `MUSTHOLD_SHALLNOT` environment variable
   when several are installed.
 - The test runner of your project, configured to write JUnit XML.
 - For discriminating power on the JVM: a Maven or Gradle project (the module uses
@@ -23,24 +23,24 @@ Codex and Copilot CLI use the same commands; the differences are listed in
 The plugins call binaries by name, so each binary must be on `PATH`.
 
 ```
-git clone https://github.com/RachidChabane/spec-proof
-cd spec-proof
-nice -n 10 go install -C discpower -p 1 ./cmd/spec-proof-dp
-nice -n 10 go install -C alignment -p 1 ./cmd/spec-proof-alignment
-nice -n 10 go install -C completeness -p 1 ./cmd/spec-proof-completeness
-nice -n 10 go install -C verify -p 1 ./cmd/spec-proof-verify
+git clone https://github.com/RachidChabane/musthold
+cd musthold
+nice -n 10 go install -C discpower -p 1 ./cmd/musthold-dp
+nice -n 10 go install -C alignment -p 1 ./cmd/musthold-alignment
+nice -n 10 go install -C completeness -p 1 ./cmd/musthold-completeness
+nice -n 10 go install -C verify -p 1 ./cmd/musthold-verify
 ```
 
 `go install` writes to `$GOBIN`, or to `$(go env GOPATH)/bin` when `GOBIN` is
 unset. `-p 1` keeps the build to one compiler job and `nice` keeps the machine
-responsive. Add `ledger` (`spec-proof-ledger`) for CI signing, `s1relay`
-(`spec-proof-s1`) for [System One](system-one.md) and `umbrella` (`spec-proof`)
-for the [dispatcher](umbrella.md#the-spec-proof-dispatcher) the same way.
+responsive. Add `ledger` (`musthold-ledger`) for CI signing, `s1relay`
+(`musthold-s1`) for [System One](system-one.md) and `umbrella` (`musthold`)
+for the [dispatcher](umbrella.md#the-musthold-dispatcher) the same way.
 
 Check the install:
 
 ```
-spec-proof-dp version
+musthold-dp version
 ```
 
 ## 2. Install the plugins
@@ -48,14 +48,14 @@ spec-proof-dp version
 In Claude Code:
 
 ```
-/plugin marketplace add RachidChabane/spec-proof
-/plugin install spec-proof@spec-proof
+/plugin marketplace add RachidChabane/musthold
+/plugin install musthold@musthold
 ```
 
-The `spec-proof` plugin declares Shallnot, the three module plugins and the
+The `musthold` plugin declares Shallnot, the three module plugins and the
 System One relay as dependencies and holds two skills, `prove-all` and `scan`. To install
-modules one at a time use `/plugin install spec-proof-dp@spec-proof`,
-`spec-proof-alignment@spec-proof` or `spec-proof-completeness@spec-proof`. A
+modules one at a time use `/plugin install musthold-dp@musthold`,
+`musthold-alignment@musthold` or `musthold-completeness@musthold`. A
 module installed alone works with Shallnot alone.
 
 ## 3. Write requirements and bind tests
@@ -88,22 +88,22 @@ A spec can also declare what it deliberately leaves out with
 
 ```
 shallnot init
-spec-proof-dp init
-spec-proof-dp enable
-spec-proof-alignment init
-spec-proof-alignment enable
-spec-proof-completeness init
-spec-proof-completeness enable
+musthold-dp init
+musthold-dp enable
+musthold-alignment init
+musthold-alignment enable
+musthold-completeness init
+musthold-completeness enable
 ```
 
 - `shallnot init` writes `shallnot.yaml`, `AGENTS.md` and the Shallnot skills, and
   installs the end-of-turn hook.
-- `<module> init` writes `.spec-proof/config.yaml` with every proof disabled, the
+- `<module> init` writes `.musthold/config.yaml` with every proof disabled, the
   ecosystems it detects and a commented `operations` example, ignores
-  `.spec-proof/cache/`, `.spec-proof/verified/` and `.spec-proof/pending/`, and
+  `.musthold/cache/`, `.musthold/verified/` and `.musthold/pending/`, and
   enables the module's plugin in `.claude/settings.json`. It changes nothing of
   Shallnot's.
-- `<module> enable` sets the proof to `true` in `.spec-proof/config.yaml`, adds
+- `<module> enable` sets the proof to `true` in `.musthold/config.yaml`, adds
   its kind to `proofs.require` in `shallnot.yaml`, sets `proofs.trust: local` and
   fills `proofs.code` with the source roots of the project when `shallnot.yaml`
   sets neither, and adds its block to `AGENTS.md`. Completeness writes none of
@@ -136,7 +136,7 @@ taken from the layout of the project; without it, a proof that names a source fi
 is stale. When `enable` finds no source root it says so, and you list them
 yourself. A value you set before `enable` is kept.
 
-In `.spec-proof/config.yaml`, bind the operation names your spec examples use to
+In `.musthold/config.yaml`, bind the operation names your spec examples use to
 functions of your code. `init` left a commented example at the end of the file;
 uncomment it and edit it (see [configuration](configuration.md#operations)):
 
@@ -167,36 +167,36 @@ exists), and the agent runs the `prove-all` skill, which:
 You can run a module by hand at any time:
 
 ```
-spec-proof-dp prove --changed
-spec-proof-dp request list --session prove
-spec-proof-dp prove --resume
+musthold-dp prove --changed
+musthold-dp request list --session prove
+musthold-dp prove --resume
 ```
 
 `prove` exits with code 3 while tickets wait, 1 when a criterion blocks or
 escalates, 0 when it is clean and 2 on a tool failure. Every exit code and
 pending reason is in [troubleshooting](troubleshooting.md).
 
-A module's statements are written under `.spec-proof/cache/`. The tickets, the
+A module's statements are written under `.musthold/cache/`. The tickets, the
 secret and the journal live outside the work tree, under
-`$XDG_STATE_HOME/spec-proof/<module>/<repo-digest>/host/` (default
-`~/.local/state`), and mutant bodies under `$XDG_CACHE_HOME/spec-proof/`
+`$XDG_STATE_HOME/musthold/<module>/<repo-digest>/host/` (default
+`~/.local/state`), and mutant bodies under `$XDG_CACHE_HOME/musthold/`
 (default `~/.cache`).
 
 ## 7. Publish the local proofs and run the gate
 
-Shallnot reads `.spec-proof/verified`, which `spec-proof-verify` writes. For local
+Shallnot reads `.musthold/verified`, which `musthold-verify` writes. For local
 use it accepts the unsigned statements of the cache. The `*-fulfil` skills and
 `prove-all` run this step themselves when their loop ends with exit code 0 or 1,
 so Shallnot's end-of-turn hook sees the proofs; by hand it is:
 
 ```
-spec-proof-verify --accept-local .spec-proof/cache --out .spec-proof/verified
+musthold-verify --accept-local .musthold/cache --out .musthold/verified
 shallnot check
 ```
 
-Run the verify step after each proof run you make by hand. `.spec-proof/pending/`
+Run the verify step after each proof run you make by hand. `.musthold/pending/`
 holds the pending files of the alignment and completeness modules, which `verify`
-folds into the manifest when `--out` is `.spec-proof/verified`.
+folds into the manifest when `--out` is `.musthold/verified`.
 
 A criterion passes when traceability and every required proof pass. A blocking
 finding names the command that resolves it.
@@ -206,7 +206,7 @@ finding names the command that resolves it.
 Statements about a harness below hold as of Claude Code 2.1.295, Codex CLI 0.155.1 and
 Copilot CLI 1.0.92 (`format/hostproto/harness/harness.go`).
 
-`spec-proof-dp init --hooks claude,codex,copilot` installs the files of several
+`musthold-dp init --hooks claude,codex,copilot` installs the files of several
 harnesses; `--hooks auto` (the default) installs Claude Code's and those of every
 harness whose configuration the project already holds, and `--hooks none`
 installs none.
@@ -233,9 +233,9 @@ installs none.
   corroboration without lowering it. Unverified runs earn no judged pass credit
   at that floor; marked answers earn none under any floor.
 - **Any other harness.** The main agent answers each ticket itself:
-  `spec-proof-dp request list --session prove`, `spec-proof-dp request show <ticket>`, then
-  `spec-proof-dp request submit <ticket> --nonce <nonce>` with the JSON answer on
-  standard input, then `spec-proof-dp prove --resume`. Such answers have the
+  `musthold-dp request list --session prove`, `musthold-dp request show <ticket>`, then
+  `musthold-dp request submit <ticket> --nonce <nonce>` with the JSON answer on
+  standard input, then `musthold-dp prove --resume`. Such answers have the
   isolation `inline` and are marked `exposed`: they block and escalate, and earn no
   pass credit under any floor.
 
@@ -257,7 +257,7 @@ As of Codex CLI 0.155.1, Codex loads a project's `.codex/agents/`, `.codex/confi
 
 2. **Review the hooks.** Start `codex` interactively in the project. The "Hooks need
    review" screen lists the hooks of `.codex/hooks.json`: read each command (every
-   one runs a spec-proof binary with `hook`) and trust them. Codex stores the hash of
+   one runs a musthold binary with `hook`) and trust them. Codex stores the hash of
    each trusted hook under `[hooks.state]` in `~/.codex/config.toml`, so a hook whose
    command changes, for instance after `init` or `enable` rewrites the file, needs
    a new review.

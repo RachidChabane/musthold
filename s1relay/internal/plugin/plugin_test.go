@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/plugin"
+	"github.com/RachidChabane/musthold/s1relay/internal/plugin"
 )
 
 // update rewrites the committed tree from the generator.

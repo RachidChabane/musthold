@@ -6,7 +6,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/dimension"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/dimension"
 )
 
 func TestChecklist(t *testing.T) {

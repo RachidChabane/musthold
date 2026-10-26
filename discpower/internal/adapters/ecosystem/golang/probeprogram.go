@@ -10,14 +10,14 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/golang/probeharness"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/golang/probeharness"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 )
 
 const (
 	// probeDirectory names the package of the probe program. It exists only in
 	// the overlay of the build, never on disk.
-	probeDirectory = "zz_spec_proof_probe"
+	probeDirectory = "zz_musthold_probe"
 	tableFileName  = "main.go"
 	harnessName    = "harness.go"
 	importAlias    = "target"

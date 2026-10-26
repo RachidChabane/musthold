@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostinstall"
+	"github.com/RachidChabane/musthold/format/hostproto/hostinstall"
 )
 
 // layouts are projects of each ecosystem, as the files their layout shows, and the
@@ -188,7 +188,7 @@ func TestInitWritesTheOperationsExample(t *testing.T) {
 		files := repository(t)
 		apply(t, files)(initPlan(s, files))
 		ignored := files.text(gitignorePath)
-		for _, want := range []string{".spec-proof/cache/", ".spec-proof/verified/", ".spec-proof/pending/"} {
+		for _, want := range []string{".musthold/cache/", ".musthold/verified/", ".musthold/pending/"} {
 			if !slices.Contains(strings.Split(ignored, "\n"), want) {
 				t.Errorf(".gitignore = %q lacks %s", ignored, want)
 			}

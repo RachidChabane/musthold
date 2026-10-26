@@ -3,10 +3,10 @@ package codexconfig_test
 import (
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/codexconfig"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/codexconfig"
 )
 
-const project = "/private/var/folders/x/T/spec-proof-canary-codex-4821/project"
+const project = "/private/var/folders/x/T/musthold-canary-codex-4821/project"
 
 func TestRemoveProjectTable(t *testing.T) {
 	t.Run("the table Codex appends is removed and the file is what it was before the append [verifies SP-1512~1]", func(t *testing.T) {

@@ -6,8 +6,8 @@ import (
 
 	"github.com/odvcencio/gotreesitter/grammars"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/code"
-	"github.com/RachidChabane/spec-proof/completeness/internal/platform/treeunits"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/code"
+	"github.com/RachidChabane/musthold/completeness/internal/platform/treeunits"
 )
 
 var rules = treeunits.Rules{Comments: []string{"comment"}, Identifiers: []string{"identifier", "property_identifier"}}

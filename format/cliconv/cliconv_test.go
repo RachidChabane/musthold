@@ -9,7 +9,7 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/format/cliconv"
+	"github.com/RachidChabane/musthold/format/cliconv"
 )
 
 const (

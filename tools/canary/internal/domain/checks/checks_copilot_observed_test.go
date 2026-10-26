@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/verdict"
 )
 
 const (
@@ -14,7 +14,7 @@ const (
 	journalTicket     = "864f5e696da12d6944d9380733d5c5a9fba0f0140f3b243c3efae9a6cc74cb38.0.1"
 	// launchBareFormat is a journal record of launch_bare for the session's ticket and the
 	// agent named by the %s verb.
-	launchBareFormat = `{"seq":98,"prev":"0","event":{"kind":"launch_bare","ticket":"` + journalTicket + `","agentId":"%s","role":"spec-proof-dp:decider"},"digest":"d"}` + "\n"
+	launchBareFormat = `{"seq":98,"prev":"0","event":{"kind":"launch_bare","ticket":"` + journalTicket + `","agentId":"%s","role":"musthold-dp:decider"},"digest":"d"}` + "\n"
 )
 
 func TestCopilotRunObservedJournaled(t *testing.T) {
@@ -30,7 +30,7 @@ func TestCopilotRunObservedJournaled(t *testing.T) {
 			f.Journal = dropLines(f.Journal, `"allowlist_observed"`)
 		}, "no allowlist_observed"},
 		{"an allowlist_observed that records another selection than the stream shows fails", verdict.Fail, func(f *evidence.Files) {
-			f.Journal = replace(f.Journal, `\"spec-proof-dp-exec/submit_response\"]`, `\"spec-proof-dp-exec/submit_response\",\"bash\"]`)
+			f.Journal = replace(f.Journal, `\"musthold-dp-exec/submit_response\"]`, `\"musthold-dp-exec/submit_response\",\"bash\"]`)
 		}, "records the selection"},
 		{"an allowlist_observed whose detail is not the document the product writes fails", verdict.Fail, func(f *evidence.Files) {
 			f.Journal = replace(f.Journal, `"detail":"{\"cliVersion\"`, `"detail":"[{\"cliVersion\"`)
@@ -48,10 +48,10 @@ func TestCopilotRunObservedJournaled(t *testing.T) {
 			f.Journal = append(f.Journal, []byte(launchBare("another-agent"))...)
 		}, "launch_bare was journaled"},
 		{"an allowlist_observed journaled while the allowlist check failed fails", verdict.Fail, func(f *evidence.Files) {
-			f.Stream = replace(f.Stream, `"spec-proof-dp-exec/submit_response"]`, `"spec-proof-dp-exec/submit_response","bash"]`)
+			f.Stream = replace(f.Stream, `"musthold-dp-exec/submit_response"]`, `"musthold-dp-exec/submit_response","bash"]`)
 		}, "allowlist check failed"},
 		{"no allowlist_observed for a run whose allowlist check failed passes", verdict.Pass, func(f *evidence.Files) {
-			f.Stream = replace(f.Stream, `"spec-proof-dp-exec/submit_response"]`, `"spec-proof-dp-exec/submit_response","bash"]`)
+			f.Stream = replace(f.Stream, `"musthold-dp-exec/submit_response"]`, `"musthold-dp-exec/submit_response","bash"]`)
 			f.Journal = dropLines(f.Journal, `"allowlist_observed"`)
 		}, "did not hold"},
 		{"an inconclusive allowlist check leaves the journal with nothing to be compared with", verdict.Inconclusive, func(f *evidence.Files) {

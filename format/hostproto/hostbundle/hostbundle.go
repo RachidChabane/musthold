@@ -16,8 +16,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // Layout of a bundle, relative to its root.
@@ -31,13 +31,13 @@ const (
 	// RequestsDirectory holds one file per CI-issued request.
 	RequestsDirectory = "requests"
 	// RefNamespace is the namespace of the refs a push writes.
-	RefNamespace = "refs/spec-proof/host"
+	RefNamespace = "refs/musthold/host"
 	// IssuedRoot is the project directory that holds the requests CI issues, one
 	// directory per module below it, so that no module overwrites another's.
-	IssuedRoot = ".spec-proof/ci-issued"
+	IssuedRoot = ".musthold/ci-issued"
 	// IssuedArtifactPrefix starts the name of the artifact CI uploads its issued
 	// requests as; the module name ends it.
-	IssuedArtifactPrefix = "spec-proof-host-"
+	IssuedArtifactPrefix = "musthold-host-"
 
 	recordExtension = ".json"
 	keySeparator    = "."

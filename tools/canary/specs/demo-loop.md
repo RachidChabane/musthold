@@ -26,7 +26,7 @@ tests run on the demonstration's own engine and skip where it is not running.
   into a fresh run directory, commit it with a fixed identity and date, run
   `shallnot init` and, for the four-proofs arm, `init` then `enable` of each
   proof module in order, append the task's operations to
-  `.spec-proof/config.yaml` and refuse a file that already binds operations,
+  `.musthold/config.yaml` and refuse a file that already binds operations,
   commit the equipped project, run the gate on it, and record the command, the
   purpose, the exit code and the output of every step, stopping at the first
   step that fails.

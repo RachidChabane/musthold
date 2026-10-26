@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/cli"
-	"github.com/RachidChabane/spec-proof/alignment/internal/version"
+	"github.com/RachidChabane/musthold/alignment/internal/cli"
+	"github.com/RachidChabane/musthold/alignment/internal/version"
 )
 
-const binary = "spec-proof-alignment"
+const binary = "musthold-alignment"
 
 func TestMain(t *testing.T) {
 	cases := []struct {
@@ -17,7 +17,7 @@ func TestMain(t *testing.T) {
 		wantCode   int
 		wantStdout string
 	}{
-		{"spec-proof-alignment prints its version", []string{"version"}, cli.ExitClean, binary + " " + version.Version + "\n"},
+		{"musthold-alignment prints its version", []string{"version"}, cli.ExitClean, binary + " " + version.Version + "\n"},
 		{"no argument is a tool failure", nil, cli.ExitToolFailure, ""},
 		{"an unknown argument is a tool failure", []string{"frobnicate"}, cli.ExitToolFailure, ""},
 	}

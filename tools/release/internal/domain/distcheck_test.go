@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/domain"
+	"github.com/RachidChabane/musthold/tools/release/internal/domain"
 )
 
 const (
@@ -85,7 +85,7 @@ func TestVerifyDist(t *testing.T) {
 	t.Run("the signature bundle and the formula may sit beside the release files"+verifiesDist, func(t *testing.T) {
 		facts := validDist(t, "discpower/v0.2.0", targets)
 		facts.Files[domain.SignatureBundleName] = domain.DistFile{}
-		facts.Files[domain.FormulaFileName("spec-proof-dp")] = domain.DistFile{}
+		facts.Files[domain.FormulaFileName("musthold-dp")] = domain.DistFile{}
 		if findings := domain.VerifyDist(facts); len(findings) != 0 {
 			t.Fatalf("findings = %v", findings)
 		}
@@ -93,7 +93,7 @@ func TestVerifyDist(t *testing.T) {
 
 	t.Run("an archive that lacks the NOTICE is a finding"+verifiesArchiving, func(t *testing.T) {
 		facts := validDist(t, "discpower/v0.2.0", targets)
-		name := targets[0].ArchiveName("spec-proof-dp", facts.Tag.Version)
+		name := targets[0].ArchiveName("musthold-dp", facts.Tag.Version)
 		file := facts.Files[name]
 		file.Entries = slices.DeleteFunc(slices.Clone(file.Entries), func(entry domain.EntryFacts) bool { return entry.Name == domain.NoticeFile })
 		facts.Files[name] = file
@@ -104,7 +104,7 @@ func TestVerifyDist(t *testing.T) {
 
 	t.Run("an archive that lacks the third-party notices is a finding"+verifiesArchiving, func(t *testing.T) {
 		facts := validDist(t, "discpower/v0.2.0", targets)
-		name := targets[0].ArchiveName("spec-proof-dp", facts.Tag.Version)
+		name := targets[0].ArchiveName("musthold-dp", facts.Tag.Version)
 		file := facts.Files[name]
 		file.Entries = slices.DeleteFunc(slices.Clone(file.Entries), func(entry domain.EntryFacts) bool { return entry.Name == domain.ThirdPartyNoticesFile })
 		facts.Files[name] = file
@@ -118,12 +118,12 @@ func TestVerifyDist(t *testing.T) {
 		fragment string
 	}{
 		"a missing archive": {func(f *domain.DistFacts) {
-			delete(f.Files, targets[0].ArchiveName("spec-proof-dp", f.Tag.Version))
+			delete(f.Files, targets[0].ArchiveName("musthold-dp", f.Tag.Version))
 		}, "is missing"},
 		"a missing checksum file": {func(f *domain.DistFacts) { f.Checksums = "" }, "SHA256SUMS is missing"},
 		"an unlisted file":        {func(f *domain.DistFacts) { f.Files["extra.bin"] = domain.DistFile{} }, "extra.bin is in the dist directory"},
 		"a digest that differs": {func(f *domain.DistFacts) {
-			name := domain.SBOMName(targets[0].ArchiveName("spec-proof-dp", f.Tag.Version))
+			name := domain.SBOMName(targets[0].ArchiveName("musthold-dp", f.Tag.Version))
 			file := f.Files[name]
 			file.Digest = strings.Repeat("0", 64)
 			f.Files[name] = file
@@ -132,81 +132,81 @@ func TestVerifyDist(t *testing.T) {
 			f.Checksums += strings.Repeat("a", 64) + "  surprise.zip\n"
 		}, "surprise.zip"},
 		"an archive entry owned by someone": {func(f *domain.DistFacts) {
-			name := targets[0].ArchiveName("spec-proof-dp", f.Tag.Version)
+			name := targets[0].ArchiveName("musthold-dp", f.Tag.Version)
 			file := f.Files[name]
 			file.Entries = append([]domain.EntryFacts(nil), file.Entries...)
 			file.Entries[0].UID = 1000
 			f.Files[name] = file
 		}, "owned by 1000:0"},
 		"an archive entry with another mode": {func(f *domain.DistFacts) {
-			name := targets[0].ArchiveName("spec-proof-dp", f.Tag.Version)
+			name := targets[0].ArchiveName("musthold-dp", f.Tag.Version)
 			file := f.Files[name]
 			file.Entries = append([]domain.EntryFacts(nil), file.Entries...)
 			file.Entries[0].Mode = 0o600
 			f.Files[name] = file
 		}, "has mode 600"},
 		"an archive entry with another time": {func(f *domain.DistFacts) {
-			name := targets[0].ArchiveName("spec-proof-dp", f.Tag.Version)
+			name := targets[0].ArchiveName("musthold-dp", f.Tag.Version)
 			file := f.Files[name]
 			file.Entries = append([]domain.EntryFacts(nil), file.Entries...)
 			file.Entries[1].ModTime = time.Unix(5, 0)
 			f.Files[name] = file
 		}, "commit time"},
 		"an archive with an entry missing": {func(f *domain.DistFacts) {
-			name := targets[1].ArchiveName("spec-proof-dp", f.Tag.Version)
+			name := targets[1].ArchiveName("musthold-dp", f.Tag.Version)
 			file := f.Files[name]
 			file.Entries = file.Entries[:2]
 			f.Files[name] = file
 		}, "entries are"},
 		"a binary linked with another version": {func(f *domain.DistFacts) {
-			name := targets[0].ArchiveName("spec-proof-dp", f.Tag.Version)
+			name := targets[0].ArchiveName("musthold-dp", f.Tag.Version)
 			file := f.Files[name]
 			file.Binary.Contains = func(needle string) bool { return needle == distCommit }
 			f.Files[name] = file
 		}, "linked into main.version"},
 		"a binary built with cgo": {func(f *domain.DistFacts) {
-			name := targets[0].ArchiveName("spec-proof-dp", f.Tag.Version)
+			name := targets[0].ArchiveName("musthold-dp", f.Tag.Version)
 			f.Files[name].Binary.Settings["CGO_ENABLED"] = "1"
 		}, "CGO_ENABLED"},
 		"a binary for another platform": {func(f *domain.DistFacts) {
-			name := targets[0].ArchiveName("spec-proof-dp", f.Tag.Version)
+			name := targets[0].ArchiveName("musthold-dp", f.Tag.Version)
 			f.Files[name].Binary.Settings["GOARCH"] = "riscv64"
 		}, "GOARCH"},
 		"a binary with VCS stamping": {func(f *domain.DistFacts) {
-			name := targets[0].ArchiveName("spec-proof-dp", f.Tag.Version)
+			name := targets[0].ArchiveName("musthold-dp", f.Tag.Version)
 			f.Files[name].Binary.Settings["vcs"] = "git"
 		}, "VCS stamping"},
 		"a binary of another package": {func(f *domain.DistFacts) {
-			name := targets[0].ArchiveName("spec-proof-dp", f.Tag.Version)
+			name := targets[0].ArchiveName("musthold-dp", f.Tag.Version)
 			f.Files[name].Binary.MainPath = "example.com/other"
 		}, "main package is example.com/other"},
 		"an archive with no build information": {func(f *domain.DistFacts) {
-			name := targets[0].ArchiveName("spec-proof-dp", f.Tag.Version)
+			name := targets[0].ArchiveName("musthold-dp", f.Tag.Version)
 			file := f.Files[name]
 			file.Binary = nil
 			f.Files[name] = file
 		}, "no readable build information"},
 		"an archive that cannot be read": {func(f *domain.DistFacts) {
-			name := targets[0].ArchiveName("spec-proof-dp", f.Tag.Version)
+			name := targets[0].ArchiveName("musthold-dp", f.Tag.Version)
 			file := f.Files[name]
 			file.Unreadable = "gzip: invalid checksum"
 			file.Entries, file.Binary = nil, nil
 			f.Files[name] = file
 		}, "cannot be read: gzip: invalid checksum"},
 		"an SBOM of another archive": {func(f *domain.DistFacts) {
-			name := domain.SBOMName(targets[0].ArchiveName("spec-proof-dp", f.Tag.Version))
+			name := domain.SBOMName(targets[0].ArchiveName("musthold-dp", f.Tag.Version))
 			f.Files[name].SBOM.Namespace = "https://example.com/other"
 		}, "documentNamespace"},
 		"an SBOM of another time": {func(f *domain.DistFacts) {
-			name := domain.SBOMName(targets[0].ArchiveName("spec-proof-dp", f.Tag.Version))
+			name := domain.SBOMName(targets[0].ArchiveName("musthold-dp", f.Tag.Version))
 			f.Files[name].SBOM.Created = "2001-01-01T00:00:00Z"
 		}, "created is"},
 		"an SBOM of another SPDX version": {func(f *domain.DistFacts) {
-			name := domain.SBOMName(targets[0].ArchiveName("spec-proof-dp", f.Tag.Version))
+			name := domain.SBOMName(targets[0].ArchiveName("musthold-dp", f.Tag.Version))
 			f.Files[name].SBOM.Version = "SPDX-2.2"
 		}, "spdxVersion"},
 		"an SBOM that cannot be read": {func(f *domain.DistFacts) {
-			name := domain.SBOMName(targets[0].ArchiveName("spec-proof-dp", f.Tag.Version))
+			name := domain.SBOMName(targets[0].ArchiveName("musthold-dp", f.Tag.Version))
 			file := f.Files[name]
 			file.SBOM = nil
 			f.Files[name] = file

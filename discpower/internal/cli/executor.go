@@ -8,16 +8,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/responsecheck"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/transcriptfile"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostharness"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/projectconfig"
-	"github.com/RachidChabane/spec-proof/discpower/internal/version"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/executorhost"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hookhandler"
-	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/responsecheck"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/transcriptfile"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/hostharness"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/projectconfig"
+	"github.com/RachidChabane/musthold/discpower/internal/version"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/executorhost"
+	"github.com/RachidChabane/musthold/format/hostproto/hookhandler"
+	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
 // Flags and values of `mcp` and `hook`.
@@ -31,7 +31,7 @@ const (
 	// maxHookPayloadBytes bounds what a hook reads from standard input.
 	maxHookPayloadBytes = 8 << 20
 	// serverName is the name the executor server announces.
-	serverName = "spec-proof-dp-exec"
+	serverName = "musthold-dp-exec"
 	// drainAlias is the short name `drain` accepts for the module.
 	drainAlias = "dp"
 )

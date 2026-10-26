@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/recordings"
-	"github.com/RachidChabane/spec-proof/alignment/internal/adapters/responsecheck"
-	"github.com/RachidChabane/spec-proof/alignment/internal/app/prove"
-	"github.com/RachidChabane/spec-proof/format/cliconv"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/recordings"
+	"github.com/RachidChabane/musthold/alignment/internal/adapters/responsecheck"
+	"github.com/RachidChabane/musthold/alignment/internal/app/prove"
+	"github.com/RachidChabane/musthold/format/cliconv"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
 // Flags of `prove` and of the commands that share its project flag.

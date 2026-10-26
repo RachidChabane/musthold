@@ -4,13 +4,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/node"
-	javascriptmutation "github.com/RachidChabane/spec-proof/discpower/internal/adapters/mutation/javascript"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/sourceparse/treesitter"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/testkit/ecosystemcontract"
-	"github.com/RachidChabane/spec-proof/discpower/internal/testkit/nodeinstall"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/node"
+	javascriptmutation "github.com/RachidChabane/musthold/discpower/internal/adapters/mutation/javascript"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/sourceparse/treesitter"
+	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/testkit/ecosystemcontract"
+	"github.com/RachidChabane/musthold/discpower/internal/testkit/nodeinstall"
 )
 
 const (

@@ -1,20 +1,20 @@
 # Configuration
 
-spec-proof reads four files and one environment surface.
+musthold reads four files and one environment surface.
 
 | File | Written by | Read by | Purpose |
 |---|---|---|---|
-| `.spec-proof/config.yaml` | `init`, `enable`, `disable`, you | every module, the relay | enabled proofs, ecosystems, operations, discriminating-power policy, host settings, System One endpoint |
-| `.spec-proof/alignment.yaml` | you | `spec-proof-alignment` | decision policy of the alignment module |
-| `.spec-proof/completeness.yaml` | you | `spec-proof-completeness` | decision policy of the completeness module |
+| `.musthold/config.yaml` | `init`, `enable`, `disable`, you | every module, the relay | enabled proofs, ecosystems, operations, discriminating-power policy, host settings, System One endpoint |
+| `.musthold/alignment.yaml` | you | `musthold-alignment` | decision policy of the alignment module |
+| `.musthold/completeness.yaml` | you | `musthold-completeness` | decision policy of the completeness module |
 | `shallnot.yaml` | `shallnot init`, `enable`, you | Shallnot | specs, tests, results and the `proofs:` block that governs the gate |
-| `.spec-proof/trust-policy.yaml` | you | `spec-proof-verify` | pinned keys and signers for signed proofs |
+| `.musthold/trust-policy.yaml` | you | `musthold-verify` | pinned keys and signers for signed proofs |
 
 Unknown keys are refused wherever a module owns the file. An absent member keeps
 its default. Every parameter reaches the policy digest, so changing one makes the
 affected proofs stale.
 
-## `.spec-proof/config.yaml`
+## `.musthold/config.yaml`
 
 ```yaml
 proofs:
@@ -51,7 +51,7 @@ systemone:
 | `host.classify.witness_dir` | path | none | The directory of the user's own raw API log (`OTEL_LOG_RAW_API_BODIES=file:<dir>`), against which classifications are checked at `--resume`. The product never sets the log. |
 
 The `alignment`, `completeness` and `systemone` sections of the file are
-tolerated by the modules that do not own them. `spec-proof-dp` refuses any other
+tolerated by the modules that do not own them. `musthold-dp` refuses any other
 unknown top-level key.
 
 ### Operations
@@ -116,7 +116,7 @@ one exact source: `host-votes(<k>)`, `host-classify(<k>,<scheme>):<voters>` or
 the kind over `default`. A classification counts as the closed signal, or screens
 a survivor out, only when its exact source has an entry of its own.
 
-## `.spec-proof/alignment.yaml`
+## `.musthold/alignment.yaml`
 
 ```yaml
 policy:
@@ -139,7 +139,7 @@ policy:
 | `judge_alone` | `true` | Lets a judge verdict issue ALIGNED without a SPECIFIC or OVERBROAD matrix; when `false` such a verdict is UNDETERMINED. |
 | `min_isolation` | `restricted` | Isolation floor for judged answers. |
 
-## `.spec-proof/completeness.yaml`
+## `.musthold/completeness.yaml`
 
 ```yaml
 policy:
@@ -163,7 +163,7 @@ is authoritative; the keys are:
 
 | Key | Default | Meaning |
 |---|---|---|
-| `verified_dir` | `.spec-proof/verified` | Directory of the verified set, with its `manifest.json`. |
+| `verified_dir` | `.musthold/verified` | Directory of the verified set, with its `manifest.json`. |
 | `require` | `[]` | Kinds every covered requirement must hold a valid proof of: `alignment`, `discriminating-power`. `completeness` is refused. |
 | `code` | `[]` | Files, directories or globs a proof's `code_tree` inputs may name. A proof that names a file outside them is stale. `enable` fills it from the layout of the project when it is empty. |
 | `trust` | `signed` | `signed` admits only statements produced by CI, in a set whose manifest the verifier wrote after checking signatures; `local` also admits unsigned local statements. `enable` sets `local` when the key is absent; the CI configuration of the gate sets `signed`. |
@@ -197,9 +197,9 @@ proofs:
 `shallnot.yaml`. A module applies its own value when it decides; Shallnot applies
 its own value when it composes the result. Keep them equal.
 
-## `.spec-proof/trust-policy.yaml`
+## `.musthold/trust-policy.yaml`
 
-`spec-proof-verify` reads the trust policy from the directory that holds `--out`.
+`musthold-verify` reads the trust policy from the directory that holds `--out`.
 Version 1 pins Ed25519 public keys (base64 raw keys) and, optionally, a Sigstore
 issuer with the build signers allowed:
 
@@ -222,11 +222,11 @@ manifest.
 
 | Variable | Read by | Meaning |
 |---|---|---|
-| `SPEC_PROOF_SHALLNOT` | the three proof modules | Path of the Shallnot binary to use instead of `shallnot` on `PATH`. |
+| `MUSTHOLD_SHALLNOT` | the three proof modules | Path of the Shallnot binary to use instead of `shallnot` on `PATH`. |
 | `XDG_STATE_HOME` | the three proof modules | Root of the host store. Used when absolute; default `~/.local/state`. |
 | `XDG_CACHE_HOME` | the three proof modules | Root of the mutant and decision cache. Used when absolute; default `~/.cache`. |
 | `CLAUDE_PROJECT_DIR` | `hook`, `mcp` | Project root Claude Code exports to hooks and servers. |
-| `SPEC_PROOF_CI_RUN_ID`, `GITHUB_RUN_ID` | `prove --ci` | The CI run that draws the seed of a commit; the first that is set wins. |
-| `SPEC_PROOF_ED25519_KEY` | `spec-proof-ledger sign` | PKCS#8 PEM Ed25519 private key; excludes `--key-file`. |
-| `SIGSTORE_ID_TOKEN` | `spec-proof-ledger sign --identity sigstore` | Identity token; GitHub Actions' token service is used when it is absent. |
-| `MEM_GUARD_MIN_FREE_PCT` | `spec-proof-s1 drain --mem-guard` | Minimum free memory percentage on macOS (default 40). |
+| `MUSTHOLD_CI_RUN_ID`, `GITHUB_RUN_ID` | `prove --ci` | The CI run that draws the seed of a commit; the first that is set wins. |
+| `MUSTHOLD_ED25519_KEY` | `musthold-ledger sign` | PKCS#8 PEM Ed25519 private key; excludes `--key-file`. |
+| `SIGSTORE_ID_TOKEN` | `musthold-ledger sign --identity sigstore` | Identity token; GitHub Actions' token service is used when it is absent. |
+| `MEM_GUARD_MIN_FREE_PCT` | `musthold-s1 drain --mem-guard` | Minimum free memory percentage on macOS (default 40). |

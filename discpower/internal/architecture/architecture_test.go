@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	modulePath      = "github.com/RachidChabane/spec-proof/discpower"
+	modulePath      = "github.com/RachidChabane/musthold/discpower"
 	adaptersPath    = modulePath + "/internal/adapters"
 	domainPattern   = modulePath + "/internal/domain/..."
 	appPattern      = modulePath + "/internal/app/..."

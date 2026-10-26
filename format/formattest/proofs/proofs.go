@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Names and texts of the fixture criterion.
@@ -17,9 +17,9 @@ const (
 	SpecPath            = "specs/parkfee.md"
 	TestName            = "test_grace_period_is_free"
 	moduleVersion       = "0.1.0"
-	moduleAlignment     = "spec-proof-alignment"
-	moduleDiscriminate  = "spec-proof-discriminating-power"
-	moduleCompleteness  = "spec-proof-completeness"
+	moduleAlignment     = "musthold-alignment"
+	moduleDiscriminate  = "musthold-discriminating-power"
+	moduleCompleteness  = "musthold-completeness"
 	judgeModel          = "claude-sonnet-5-5"
 	generatorModel      = "claude-opus-5-5"
 	harnessName         = "claude-code"

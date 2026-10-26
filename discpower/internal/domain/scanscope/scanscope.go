@@ -1,4 +1,4 @@
-// Package scanscope holds the pure rules of what `spec-proof scan` samples and
+// Package scanscope holds the pure rules of what `musthold scan` samples and
 // draws (ADR 0014): the seed a scan draws with, the sample of tests stratified
 // by file, the lines a mutant mutates, the lines a draw may mutate, and what a
 // scan never mutates. It reads no file and runs nothing.
@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"strconv"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/mutation/operator"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation/operator"
 )
 
 // Defaults of a scan without configuration.
@@ -25,7 +25,7 @@ const (
 // seedDomain separates every draw of a scan from the draws of a proof: the
 // operator seed of a scan is derived from it and the scan seed, so a scan seed
 // never yields the seed of a local proof or of a CI run.
-const seedDomain = "spec-proof scan\x00"
+const seedDomain = "musthold scan\x00"
 
 // seedBytes is the size of a seed in bytes.
 const seedBytes = 8

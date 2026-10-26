@@ -81,7 +81,7 @@ def test_the_manifest_schema_names_exactly_the_domains_product_artifacts_and_cli
 
 def test_a_manifest_missing_a_product_digest_or_a_cli_version_is_refused_by_the_schema_and_the_parser() -> None:
     record = manifest().to_record()
-    digests = {k: v for k, v in PROVENANCE.product_digests.items() if k != "spec-proof-s1"}
+    digests = {k: v for k, v in PROVENANCE.product_digests.items() if k != "musthold-s1"}
     versions = {k: v for k, v in PROVENANCE.cli_versions.items() if k != "codex"}
     for field, remaining in (("product_digests", digests), ("cli_versions", versions)):
         broken: dict[str, JsonValue] = {**record, field: remaining}
@@ -92,7 +92,7 @@ def test_a_manifest_missing_a_product_digest_or_a_cli_version_is_refused_by_the_
 
 def test_a_malformed_provenance_is_refused() -> None:
     with pytest.raises(RecordError):
-        Provenance({**PROVENANCE.product_digests, "spec-proof-s1": "short"}, "c" * 40, PROVENANCE.cli_versions)
+        Provenance({**PROVENANCE.product_digests, "musthold-s1": "short"}, "c" * 40, PROVENANCE.cli_versions)
     with pytest.raises(RecordError):
         Provenance(PROVENANCE.product_digests, "not-a-sha", PROVENANCE.cli_versions)
     with pytest.raises(RecordError):

@@ -5,7 +5,7 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
 )
 
 // RecordingsPerTest is how many processes record a test alone: a range is

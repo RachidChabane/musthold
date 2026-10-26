@@ -1,4 +1,4 @@
-=== .spec-proof/scan/3f2a9c1/1/mutant.patch (executable: false)
+=== .musthold/scan/3f2a9c1/1/mutant.patch (executable: false)
 --- a/src/invoicing/parse.py
 +++ b/src/invoicing/parse.py
 @@ -1,5 +1,5 @@
@@ -8,7 +8,7 @@
 +    if len(line) > 2:
          fields.append(line)
      return fields
-=== .spec-proof/scan/3f2a9c1/1/repro.sh (executable: true)
+=== .musthold/scan/3f2a9c1/1/repro.sh (executable: true)
 #!/bin/sh
 # Runs tests/test_parse.py::test_parse_ok on 3f2a9c1 with mutant.patch applied; exit status 0 means the test still passes.
 set -eu
@@ -24,7 +24,7 @@ if [ -d "$work/.venv/bin" ]; then PATH="$work/.venv/bin:$PATH"; export PATH; fi
 cd "$work"
 git apply "$finding/mutant.patch"
 'python3' '-m' 'pytest' 'tests/test_parse.py::test_parse_ok'
-=== .spec-proof/scan/3f2a9c1/1/finding.json (executable: false)
+=== .musthold/scan/3f2a9c1/1/finding.json (executable: false)
 {
   "commit": "3f2a9c1d0b8e7f6a5c4d3e2f1a0b9c8d7e6f5a4b",
   "runner": "pytest",
@@ -50,12 +50,12 @@ git apply "$finding/mutant.patch"
     "mutant": "{\"kind\":\"raises\",\"value\":\"IndexError\"}"
   }
 }
-=== .spec-proof/scan/3f2a9c1/1/killers.md (executable: false)
+=== .musthold/scan/3f2a9c1/1/killers.md (executable: false)
 # Tests that fail on this mutant
 
 ## 1. f3_difference
 
-A test that fails on this mutant: a differential run of invoicing.parse:split_fields, input line="a,", reference "['a,']", mutant raises IndexError. Re-run it with `spec-proof scan replay .spec-proof/scan/3f2a9c1/1`.
+A test that fails on this mutant: a differential run of invoicing.parse:split_fields, input line="a,", reference "['a,']", mutant raises IndexError. Re-run it with `musthold scan replay .musthold/scan/3f2a9c1/1`.
 
 ## 2. killed_by_test
 
@@ -64,7 +64,7 @@ A test that fails on this mutant: `tests/test_split.py::test_trailing_comma`, wh
 ## 3. witness_failure
 
 A test that fails on this mutant: witness 9d1c0e77a4b2, in `witness/tests/test_promise_witness.py`. Run it with `sh killer-3.sh`.
-=== .spec-proof/scan/3f2a9c1/1/killer-2.sh (executable: true)
+=== .musthold/scan/3f2a9c1/1/killer-2.sh (executable: true)
 #!/bin/sh
 # Runs the test on 3f2a9c1 with mutant.patch applied; the exit status is non-zero when the test fails on the mutant.
 set -eu
@@ -80,7 +80,7 @@ if [ -d "$work/.venv/bin" ]; then PATH="$work/.venv/bin:$PATH"; export PATH; fi
 cd "$work"
 git apply "$finding/mutant.patch"
 'python3' '-m' 'pytest' 'tests/test_split.py::test_trailing_comma'
-=== .spec-proof/scan/3f2a9c1/1/killer-3.sh (executable: true)
+=== .musthold/scan/3f2a9c1/1/killer-3.sh (executable: true)
 #!/bin/sh
 # Runs witness 9d1c0e77a4b2 on 3f2a9c1 with mutant.patch applied; the exit status is non-zero when the test fails on the mutant.
 set -eu
@@ -98,7 +98,7 @@ git apply "$finding/mutant.patch"
 mkdir -p "$(dirname 'tests/test_promise_witness.py')"
 cp "$finding"/'witness/tests/test_promise_witness.py' 'tests/test_promise_witness.py'
 'python3' '-m' 'pytest' 'tests/test_promise_witness.py::test_keeps_trailing_field'
-=== .spec-proof/scan/3f2a9c1/1/witness/tests/test_promise_witness.py (executable: false)
+=== .musthold/scan/3f2a9c1/1/witness/tests/test_promise_witness.py (executable: false)
 from invoicing.parse import split_fields
 
 

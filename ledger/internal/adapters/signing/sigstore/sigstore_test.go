@@ -10,7 +10,7 @@ import (
 	"github.com/sigstore/sigstore-go/pkg/sign"
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/ledger/internal/adapters/signing/sigstore"
+	"github.com/RachidChabane/musthold/ledger/internal/adapters/signing/sigstore"
 )
 
 const verifiesSP48 = " [verifies SP-48~1]"

@@ -8,7 +8,7 @@ package tournament
 import (
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/masking"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/masking"
 )
 
 // MaxGroup is the largest number of criteria one question holds, besides NONE.

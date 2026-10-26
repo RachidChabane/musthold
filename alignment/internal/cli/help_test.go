@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/cli"
+	"github.com/RachidChabane/musthold/alignment/internal/cli"
 )
 
 const (
 	verifiesHelp       = " [verifies SP-1620~1]"
-	helpBinary         = "spec-proof-alignment"
+	helpBinary         = "musthold-alignment"
 	helpRequestedError = "help requested"
 	undefinedFlagError = "flag provided but not defined: -zz-undefined"
 )

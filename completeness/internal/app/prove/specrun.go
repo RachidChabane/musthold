@@ -7,16 +7,16 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/advice"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/blind"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/dimension"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/hunk"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/prompt"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/question"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/tournament"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto/requests"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/advice"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/blind"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/dimension"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/hunk"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/prompt"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/question"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/tournament"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
 const (

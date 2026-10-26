@@ -34,7 +34,7 @@ KNOWN_INCONCLUSIVE_FLAG = re.compile(r"\s*--known-inconclusive \S+")
 KNOWN_INCONCLUSIVE_REGISTRY = "tools/canary/known-inconclusive.json"
 CANARY_HARNESSES = ("claude", "codex", "copilot")
 NO_KEYCHAIN_TOKEN_LOG = "canary: claude shares the user's configuration (no keychain token)"
-DEFAULT_TOKEN_SERVICE = "spec-proof-claude-oauth"
+DEFAULT_TOKEN_SERVICE = "musthold-claude-oauth"
 PIN_FILE = REPOSITORY / "script" / "claude-code.pin"
 INSTALL_LINE = "dry-run: {root}: script/claude-code-install"
 PINNED_LOG = "claude: pinned {version}, {root}/.tools/claude-code/{version}/bin leads PATH, DISABLE_AUTOUPDATER=1"
@@ -85,8 +85,8 @@ class Night:
             "NIGHT_JOBS_LOG_DIR": str(self.root / "logs"),
             "NIGHT_BUDGET_PILOT_LEDGER": str(self.pilot_ledger),
             "SPECBENCH_WORK": str(self.root / "work"),
-            "SPEC_PROOF_STATE_DIR": str(self.root / "state"),
-            "SPEC_PROOF_SLOTS_DIR": str(self.slots),
+            "MUSTHOLD_STATE_DIR": str(self.root / "state"),
+            "MUSTHOLD_SLOTS_DIR": str(self.slots),
             **extra,
         }
         done = subprocess.run(

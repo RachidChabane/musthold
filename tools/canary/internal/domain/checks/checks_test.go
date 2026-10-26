@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/checks"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/verdict"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/checks"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/verdict"
 )
 
 const (
@@ -168,13 +168,13 @@ func TestSyntheticClaudeSessionAsTheADRRelies(t *testing.T) {
 func TestSyntheticClaudeSessionThatBreaksARule(t *testing.T) {
 	t.Run("a plugin missing from system/init fails the listing [verifies SP-1502~1]", func(t *testing.T) {
 		files := readFiles(t, claudeSession)
-		files.Stream = replace(files.Stream, `{"name":"spec-proof-completeness","path"`, `{"name":"another-plugin","path"`)
+		files.Stream = replace(files.Stream, `{"name":"musthold-completeness","path"`, `{"name":"another-plugin","path"`)
 		want(t, evaluate(t, "claude", files), "plugin_and_server_listed", verdict.Fail)
 	})
 
 	t.Run("a server that did not connect fails the listing [verifies SP-1502~1]", func(t *testing.T) {
 		files := readFiles(t, claudeSession)
-		files.Stream = replace(files.Stream, `{"name":"plugin:spec-proof-dp:exec","status":"connected"}`, `{"name":"plugin:spec-proof-dp:exec","status":"failed"}`)
+		files.Stream = replace(files.Stream, `{"name":"plugin:musthold-dp:exec","status":"connected"}`, `{"name":"plugin:musthold-dp:exec","status":"failed"}`)
 		want(t, evaluate(t, "claude", files), "plugin_and_server_listed", verdict.Fail)
 	})
 
@@ -194,7 +194,7 @@ func TestSyntheticClaudeSessionThatBreaksARule(t *testing.T) {
 
 	t.Run("a rewrite that keeps the model fails [verifies SP-1502~1]", func(t *testing.T) {
 		files := readFiles(t, claudeSession)
-		files.Hooks = replaceInAnswer(files.Hooks, `"updatedInput":{"subagent_type":"spec-proof-dp:decider","description":"canary run","prompt":"ticket `, `"updatedInput":{"model":"haiku","subagent_type":"spec-proof-dp:decider","description":"canary run","prompt":"ticket `)
+		files.Hooks = replaceInAnswer(files.Hooks, `"updatedInput":{"subagent_type":"musthold-dp:decider","description":"canary run","prompt":"ticket `, `"updatedInput":{"model":"haiku","subagent_type":"musthold-dp:decider","description":"canary run","prompt":"ticket `)
 		want(t, evaluate(t, "claude", files), "rewrite_drops_model", verdict.Fail)
 	})
 
@@ -209,7 +209,7 @@ func TestSyntheticClaudeSessionThatBreaksARule(t *testing.T) {
 
 	t.Run("a Bash call by the executor fails the check on its tools [verifies SP-1502~1]", func(t *testing.T) {
 		files := readFiles(t, claudeSession)
-		files.Stream = replace(files.Stream, `"name":"mcp__plugin_spec-proof-dp_exec__submit_response","input":{"ticket":"864f5e696da12d6944d9380733d5c5a9fba0f0140f3b243c3efae9a6cc74cb38.0.1","nonce"`, `"name":"Bash","input":{"command":"cat secrets","nonce"`)
+		files.Stream = replace(files.Stream, `"name":"mcp__plugin_musthold-dp_exec__submit_response","input":{"ticket":"864f5e696da12d6944d9380733d5c5a9fba0f0140f3b243c3efae9a6cc74cb38.0.1","nonce"`, `"name":"Bash","input":{"command":"cat secrets","nonce"`)
 		want(t, evaluate(t, "claude", files), "executor_without_bash", verdict.Fail)
 	})
 
@@ -301,11 +301,11 @@ func TestSyntheticSessionWhereTheSetupIsInDoubt(t *testing.T) {
 
 	t.Run("an executor server that does not start fails the start check and leaves the listing inconclusive [verifies SP-1502~1]", func(t *testing.T) {
 		files := readFiles(t, claudeSession)
-		files.NoCall = replace(files.NoCall, "\"binary\": \"spec-proof-alignment\",\n      \"started\": true", "\"binary\": \"spec-proof-alignment\",\n      \"started\": false")
-		files.Stream = replace(files.Stream, `{"name":"plugin:spec-proof-alignment:exec","status":"connected"}`, `{"name":"plugin:spec-proof-alignment:exec","status":"failed"}`)
+		files.NoCall = replace(files.NoCall, "\"binary\": \"musthold-alignment\",\n      \"started\": true", "\"binary\": \"musthold-alignment\",\n      \"started\": false")
+		files.Stream = replace(files.Stream, `{"name":"plugin:musthold-alignment:exec","status":"connected"}`, `{"name":"plugin:musthold-alignment:exec","status":"failed"}`)
 		got := evaluate(t, "claude", files)
 		v := want(t, got, "executor_servers_start", verdict.Fail)
-		if !strings.Contains(v.Summary, "spec-proof-alignment") {
+		if !strings.Contains(v.Summary, "musthold-alignment") {
 			t.Errorf("the summary does not name the module: %s", v.Summary)
 		}
 		want(t, got, "plugin_and_server_listed", verdict.Inconclusive)
@@ -313,15 +313,15 @@ func TestSyntheticSessionWhereTheSetupIsInDoubt(t *testing.T) {
 
 	t.Run("a server the harness did not list although the module's own server starts is the harness's failure [verifies SP-1502~1]", func(t *testing.T) {
 		files := readFiles(t, claudeSession)
-		files.Stream = replace(files.Stream, `{"name":"plugin:spec-proof-alignment:exec","status":"connected"}`, `{"name":"plugin:spec-proof-alignment:exec","status":"failed"}`)
+		files.Stream = replace(files.Stream, `{"name":"plugin:musthold-alignment:exec","status":"connected"}`, `{"name":"plugin:musthold-alignment:exec","status":"failed"}`)
 		want(t, evaluate(t, "claude", files), "plugin_and_server_listed", verdict.Fail)
 	})
 
 	t.Run("an isolated session that wrote an entry naming its run fails the configuration check [verifies SP-1502~1]", func(t *testing.T) {
 		files := readFiles(t, claudeSession)
-		files.Touched = replace(files.Touched, `"attributed": []`, `"attributed": ["/home/u/.claude/projects/-tmp-spec-proof-canary-claude-1-project"]`)
+		files.Touched = replace(files.Touched, `"attributed": []`, `"attributed": ["/home/u/.claude/projects/-tmp-musthold-canary-claude-1-project"]`)
 		v := want(t, evaluate(t, "claude", files), "user_config_untouched", verdict.Fail)
-		if !strings.Contains(v.Summary, "spec-proof-canary-claude-1") {
+		if !strings.Contains(v.Summary, "musthold-canary-claude-1") {
 			t.Errorf("the summary does not list the entry: %s", v.Summary)
 		}
 	})
@@ -329,7 +329,7 @@ func TestSyntheticSessionWhereTheSetupIsInDoubt(t *testing.T) {
 	t.Run("a session that shares the user's configuration lists what it wrote and concludes nothing [verifies SP-1502~1]", func(t *testing.T) {
 		files := readFiles(t, claudeSession)
 		files.Session = replace(files.Session, `"configMode": "isolated"`, `"configMode": "shared"`)
-		files.Touched = replace(files.Touched, `"attributed": []`, `"attributed": ["/home/u/.claude/projects/-tmp-spec-proof-canary-claude-1-project"]`)
+		files.Touched = replace(files.Touched, `"attributed": []`, `"attributed": ["/home/u/.claude/projects/-tmp-musthold-canary-claude-1-project"]`)
 		v := want(t, evaluate(t, "claude", files), "user_config_untouched", verdict.Inconclusive)
 		if !strings.Contains(v.Summary, "1 entries") {
 			t.Errorf("the summary does not count the entries: %s", v.Summary)
@@ -440,21 +440,21 @@ func TestSyntheticCodexSessionThatBreaksARule(t *testing.T) {
 
 	t.Run("a payload with no agent type fails the attribution check [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
-		files.Hooks = replace(files.Hooks, `"agent_type":"spec-proof-dp-decider","tool_name"`, `"tool_name"`)
+		files.Hooks = replace(files.Hooks, `"agent_type":"musthold-dp-decider","tool_name"`, `"tool_name"`)
 		want(t, evaluate(t, "codex", files), "agent_type_in_pretool", verdict.Fail)
 	})
 
 	t.Run("a tool spelled another way fails the naming check [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
-		files.Hooks = replace(files.Hooks, `"tool_name":"mcp__spec_proof_dp_exec__fetch_request"`, `"tool_name":"spec-proof-dp-exec.fetch_request"`)
+		files.Hooks = replace(files.Hooks, `"tool_name":"mcp__musthold_dp_exec__fetch_request"`, `"tool_name":"musthold-dp-exec.fetch_request"`)
 		want(t, evaluate(t, "codex", files), "mcp_tool_naming", verdict.Fail)
 	})
 
 	t.Run("the unsanitized spelling of the server name fails the naming check, which expects the name Codex gives the tool [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
-		files.Hooks = replace(files.Hooks, `"tool_name":"mcp__spec_proof_dp_exec__fetch_request"`, `"tool_name":"mcp__spec-proof-dp-exec__fetch_request"`)
+		files.Hooks = replace(files.Hooks, `"tool_name":"mcp__musthold_dp_exec__fetch_request"`, `"tool_name":"mcp__musthold-dp-exec__fetch_request"`)
 		v := want(t, evaluate(t, "codex", files), "mcp_tool_naming", verdict.Fail)
-		if !strings.Contains(v.Summary, "mcp__spec_proof_dp_exec__fetch_request") {
+		if !strings.Contains(v.Summary, "mcp__musthold_dp_exec__fetch_request") {
 			t.Errorf("summary = %s", v.Summary)
 		}
 	})
@@ -521,7 +521,7 @@ func TestSyntheticCodexSessionThatBreaksARule(t *testing.T) {
 
 	t.Run("the main agent's executor tool call, which carries no agent identity, fails the attribution check [verifies SP-1503~2]", func(t *testing.T) {
 		files := readFiles(t, codexSession)
-		files.Hooks = replace(files.Hooks, `"agent_id":"01a11334-f9a0-7c11-8e02-1b3f0c2d4e55","agent_type":"spec-proof-dp-decider","tool_name"`, `"tool_name"`)
+		files.Hooks = replace(files.Hooks, `"agent_id":"01a11334-f9a0-7c11-8e02-1b3f0c2d4e55","agent_type":"musthold-dp-decider","tool_name"`, `"tool_name"`)
 		want(t, evaluate(t, "codex", files), "agent_type_in_pretool", verdict.Fail)
 	})
 

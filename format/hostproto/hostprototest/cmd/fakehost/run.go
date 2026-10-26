@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format/formattest/parcel"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/formattest/parcel"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 // Exit codes of the command.
@@ -32,7 +32,7 @@ const (
 	flagRecordings     = "recordings"
 	flagOracle         = "oracle"
 	oracleParcel       = "parcel"
-	alignmentBinary    = "spec-proof-alignment"
+	alignmentBinary    = "musthold-alignment"
 	flagWait           = "wait"
 	flagList           = "list"
 )

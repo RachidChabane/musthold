@@ -1,4 +1,4 @@
-// Package config reads the module's own configuration, `.spec-proof/alignment.yaml`:
+// Package config reads the module's own configuration, `.musthold/alignment.yaml`:
 // the decision parameters a project sets. An absent member keeps its default.
 package config
 
@@ -10,11 +10,11 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/domain/policy"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/alignment/internal/domain/policy"
+	"github.com/RachidChabane/musthold/format"
 )
 
-// FileName is the configuration file inside the project's `.spec-proof` directory.
+// FileName is the configuration file inside the project's `.musthold` directory.
 const FileName = "alignment.yaml"
 
 // document is the YAML shape of the configuration file.

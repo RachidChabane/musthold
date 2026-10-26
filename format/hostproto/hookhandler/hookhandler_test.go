@@ -8,19 +8,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/executorrun"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hookhandler"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/executorrun"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/hookhandler"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
 	transcriptPath = "/runs/agent-0001.jsonl"
 	agentID        = "agent-0001"
 	otherAgentID   = "agent-0002"
-	judgeRole      = "spec-proof-dp:judge"
-	deciderRole    = "spec-proof-dp:decider"
+	judgeRole      = "musthold-dp:judge"
+	deciderRole    = "musthold-dp:decider"
 )
 
 // identity is the module the hooks are tested for: the plugin of the fixture
@@ -331,7 +331,7 @@ func TestSubagentStart(t *testing.T) {
 
 	t.Run("the start of any other agent is not journaled [verifies SP-706~1]", func(t *testing.T) {
 		f := newFixture(t)
-		for _, agentType := range []string{"general-purpose", "other-plugin:judge", "spec-proof-dp:boss", ""} {
+		for _, agentType := range []string{"general-purpose", "other-plugin:judge", "musthold-dp:boss", ""} {
 			payload := marshal(t, map[string]any{"hook_event_name": "SubagentStart", "agent_id": agentID, "agent_type": agentType})
 			if _, err := f.handler(harness.Claude(identity)).Handle(hostproto.HookSubagentStart, []byte(payload)); err != nil {
 				t.Fatal(err)
@@ -344,7 +344,7 @@ func TestSubagentStart(t *testing.T) {
 
 	t.Run("a payload without an agent identifier is refused [verifies SP-706~1]", func(t *testing.T) {
 		f := newFixture(t)
-		_, err := f.handler(harness.Claude(identity)).Handle(hostproto.HookSubagentStart, []byte(`{"agent_type":"spec-proof-dp:judge"}`))
+		_, err := f.handler(harness.Claude(identity)).Handle(hostproto.HookSubagentStart, []byte(`{"agent_type":"musthold-dp:judge"}`))
 		if !errors.Is(err, hostproto.ErrBadHookPayload) {
 			t.Fatalf("error = %v", err)
 		}
@@ -698,7 +698,7 @@ func TestHooksOfOtherProjectsAndAgents(t *testing.T) {
 			"a launch of another subagent": {hostproto.HookPreTool, agentLaunch(t, "general-purpose", "do things", nil)},
 			"a shell command":              {hostproto.HookPreTool, `{"tool_name":"Bash","tool_input":{"command":"ls"}}`},
 			"a tool of another server":     {hostproto.HookPreTool, `{"tool_name":"mcp__plugin_other_exec__fetch_request","tool_input":{}}`},
-			"the drain tool":               {hostproto.HookPreTool, `{"tool_name":"mcp__plugin_spec-proof-dp_exec__drain","tool_input":{"module":"dp"}}`},
+			"the drain tool":               {hostproto.HookPreTool, `{"tool_name":"mcp__plugin_musthold-dp_exec__drain","tool_input":{"module":"dp"}}`},
 			"the start of another agent":   {hostproto.HookSubagentStart, `{"agent_id":"a","agent_type":"general-purpose"}`},
 			"the stop of another agent":    {hostproto.HookSubagentStop, `{"agent_id":"a","agent_type":"other:judge","agent_transcript_path":"/x"}`},
 			"the end of another launch":    {hostproto.HookPostTool, `{"tool_name":"Agent","tool_input":{"subagent_type":"general-purpose","prompt":"x"}}`},

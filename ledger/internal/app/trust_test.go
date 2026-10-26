@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/ledger/internal/app"
-	"github.com/RachidChabane/spec-proof/ledger/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/ledger/internal/app"
+	"github.com/RachidChabane/musthold/ledger/internal/domain/refusal"
 )
 
 const verifiesFetchTrust = " [verifies SP-226~1]"

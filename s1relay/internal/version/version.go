@@ -4,7 +4,7 @@ package version
 import (
 	"runtime/debug"
 
-	"github.com/RachidChabane/spec-proof/format/cliconv"
+	"github.com/RachidChabane/musthold/format/cliconv"
 )
 
 // Version is the product version. Stamp sets it from the linker values of the

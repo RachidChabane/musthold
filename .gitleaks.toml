@@ -1,6 +1,6 @@
 # Secret scanning configuration for gitleaks: the default rules, minus the
 # content digests and identifiers whose key names look like credentials.
-title = "spec-proof"
+title = "musthold"
 
 [extend]
 useDefault = true

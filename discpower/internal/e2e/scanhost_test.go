@@ -14,11 +14,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/hoststore"
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/xdg"
-	"github.com/RachidChabane/spec-proof/discpower/internal/testkit/gitrepo"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/hoststore"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/xdg"
+	"github.com/RachidChabane/musthold/discpower/internal/testkit/gitrepo"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // The exit-3 loop of a scan that asks its host.
@@ -153,7 +153,7 @@ func (r *hostRepository) short() string {
 
 // reportPath is a path under the folder of the scan's reports.
 func (r *hostRepository) reportPath(parts ...string) string {
-	return filepath.Join(append([]string{r.root, ".spec-proof", "scan", r.short()}, parts...)...)
+	return filepath.Join(append([]string{r.root, ".musthold", "scan", r.short()}, parts...)...)
 }
 
 // statement reads the scan statement and admits it as the format reads it.

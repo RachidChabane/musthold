@@ -15,13 +15,13 @@ import (
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 const (
 	// schemaResource is the URL the schema under check is registered at.
-	schemaResource = "urn:spec-proof:response-schema"
+	schemaResource = "urn:musthold:response-schema"
 	violationLine  = "\n- "
 	rootLocation   = "(root)"
 )

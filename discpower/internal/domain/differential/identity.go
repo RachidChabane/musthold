@@ -1,6 +1,6 @@
 package differential
 
-import "github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
+import "github.com/RachidChabane/musthold/discpower/internal/domain/power"
 
 // CompiledForms are the canonical compiled forms of the units of one program, by
 // site `file::qualname`: what an ecosystem's compiler makes of each unit, with

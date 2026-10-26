@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
 )
 
 // Identity is the module of the fixture request: its plugin and its three
@@ -24,8 +24,8 @@ func ExecutorToolName(tool string) string { return harness.Claude(Identity).Tool
 
 // Names and texts of the fixture request.
 const (
-	PluginName     = "spec-proof-dp"
-	ModuleName     = "spec-proof-dp"
+	PluginName     = "musthold-dp"
+	ModuleName     = "musthold-dp"
 	ModuleVersion  = "0.1.0"
 	systemText     = "You judge whether a mutant violates a criterion."
 	userText       = "Criterion: a stay of 15 minutes or less is free. Mutant diff follows."

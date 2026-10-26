@@ -9,9 +9,9 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 func problemPaths(t *testing.T, err error) []string {
@@ -42,7 +42,7 @@ func TestRequestValidation(t *testing.T) {
 		{"no module", hostprototest.Request(func(r *hostproto.Request) { r.Module = format.Module{} }), []string{"module.name", "module.version"}},
 		{"an unknown kind", hostprototest.Request(func(r *hostproto.Request) { r.Kind = "judge.vibes" }), []string{"kind"}},
 		{"a role that is not plugin:agent", hostprototest.Request(func(r *hostproto.Request) { r.Role = "judge" }), []string{"role"}},
-		{"an agent that does not serve the kind", hostprototest.Request(func(r *hostproto.Request) { r.Role = "spec-proof-dp:generator" }), []string{"role"}},
+		{"an agent that does not serve the kind", hostprototest.Request(func(r *hostproto.Request) { r.Role = "musthold-dp:generator" }), []string{"role"}},
 		{"a closed shape on an open kind", hostprototest.Request(func(r *hostproto.Request) { r.Shape = hostproto.ShapeClosed }), []string{"closed", "shape"}},
 		{"a closed request without its questions", hostprototest.ClosedRequest(func(r *hostproto.Request) { r.Closed = nil }), []string{"closed"}},
 		{"an open request with questions", hostprototest.Request(func(r *hostproto.Request) { r.Closed = json.RawMessage(`{}`) }), []string{"closed"}},
@@ -85,8 +85,8 @@ func TestRequestValidation(t *testing.T) {
 			if kind.Agent() == "" {
 				t.Errorf("%s has no agent", kind)
 			}
-			plugin, agent, err := hostproto.ParseRole(hostproto.RoleFor("spec-proof-dp", kind.Agent()))
-			if err != nil || plugin != "spec-proof-dp" || agent != kind.Agent() {
+			plugin, agent, err := hostproto.ParseRole(hostproto.RoleFor("musthold-dp", kind.Agent()))
+			if err != nil || plugin != "musthold-dp" || agent != kind.Agent() {
 				t.Errorf("%s: %q %q %v", kind, plugin, agent, err)
 			}
 		}
@@ -141,7 +141,7 @@ func TestRequestID(t *testing.T) {
 
 	t.Run("a module version bump keeps the id and a module name change alters it [verifies SP-118~1]", func(t *testing.T) {
 		bumped := hostprototest.Request(func(r *hostproto.Request) { r.Module.Version = "9.9.9" })
-		renamed := hostprototest.Request(func(r *hostproto.Request) { r.Module.Name = "spec-proof-alignment" })
+		renamed := hostprototest.Request(func(r *hostproto.Request) { r.Module.Name = "musthold-alignment" })
 		if hostprototest.MustID(bumped) != hostprototest.MustID(request) {
 			t.Error("a version bump changed the id")
 		}
@@ -187,7 +187,7 @@ func TestRequestID(t *testing.T) {
 			"user":     func(r *hostproto.Request) { r.Prompt.User += "!" },
 			"template": func(r *hostproto.Request) { r.Prompt.TemplateDigest = hostprototest.Digest("another") },
 			"schema":   func(r *hostproto.Request) { r.ResponseSchema = json.RawMessage(`{"type":"object"}`) },
-			"role":     func(r *hostproto.Request) { r.Role = "spec-proof-alignment:judge" },
+			"role":     func(r *hostproto.Request) { r.Role = "musthold-alignment:judge" },
 			"kind":     func(r *hostproto.Request) { r.Kind = hostproto.KindJudgeEquivalent },
 			"cache":    func(r *hostproto.Request) { r.CacheKey = hostprototest.Digest("another") },
 			"limits":   func(r *hostproto.Request) { r.Limits.MaxOutputBytes = 1 },

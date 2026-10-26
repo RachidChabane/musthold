@@ -1,5 +1,5 @@
 {
-  "ticket": "efc5ab79983abd60e1ed03894296c105fdf35fb6a42896b0c7300889f3acb580.0.1",
+  "ticket": "bc69037dc125c00beb7c0e4375cd718b95cb458c14268ca91b0c95ff9f8526a2.0.1",
   "nonce": "07070707070707070707070707070707",
   "source": "host-classify(5,rot1):claude-sonnet-5-5*5",
   "mode": "shadow",

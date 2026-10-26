@@ -43,7 +43,7 @@ def round_prompt(modules: Sequence[ProofModule]) -> str:
     binaries = ", ".join(module.binary for module in modules)
     return (
         "Requests that CI issued were pulled into this project as pending tickets. "
-        f"Answer every pending ticket of {binaries} with its fulfil skill ({skills}): the relay when `spec-proof-s1` "
+        f"Answer every pending ticket of {binaries} with its fulfil skill ({skills}): the relay when `musthold-s1` "
         "is on PATH and an endpoint is configured, then one foreground blind executor per ticket. "
         "Run no `prove` command, change no file of the project, and never answer a request yourself."
     )

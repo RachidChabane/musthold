@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/prove"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/app/prove"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
 )
 
 func TestPrintResultLeavesNoTrailingSpace(t *testing.T) {

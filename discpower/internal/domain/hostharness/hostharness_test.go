@@ -4,17 +4,17 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostharness"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/hostharness"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 func TestHarnessesOfTheModule(t *testing.T) {
 	t.Run("each harness names the executor tools of the module's plugin as it spells them [verifies SP-228~1]", func(t *testing.T) {
 		want := map[string][]string{
-			hostharness.FlagClaude:  {"mcp__plugin_spec-proof-dp_exec__fetch_request", "mcp__plugin_spec-proof-dp_exec__submit_response"},
-			hostharness.FlagCodex:   {"mcp__spec_proof_dp_exec__fetch_request", "mcp__spec_proof_dp_exec__submit_response"},
-			hostharness.FlagCopilot: {"spec-proof-dp-exec/fetch_request", "spec-proof-dp-exec/submit_response"},
+			hostharness.FlagClaude:  {"mcp__plugin_musthold-dp_exec__fetch_request", "mcp__plugin_musthold-dp_exec__submit_response"},
+			hostharness.FlagCodex:   {"mcp__musthold_dp_exec__fetch_request", "mcp__musthold_dp_exec__submit_response"},
+			hostharness.FlagCopilot: {"musthold-dp-exec/fetch_request", "musthold-dp-exec/submit_response"},
 		}
 		for _, harness := range hostharness.All() {
 			if got := harness.ToolNames(); !slices.Equal(got, want[harness.Flag]) {

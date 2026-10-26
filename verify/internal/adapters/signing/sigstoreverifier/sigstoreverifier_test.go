@@ -17,11 +17,11 @@ import (
 
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/verify/internal/adapters/signing/sigstoreverifier"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/refusal"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/trustpolicy"
-	"github.com/RachidChabane/spec-proof/verify/internal/testkit"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/verify/internal/adapters/signing/sigstoreverifier"
+	"github.com/RachidChabane/musthold/verify/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/verify/internal/domain/trustpolicy"
+	"github.com/RachidChabane/musthold/verify/internal/testkit"
 )
 
 const tamperStride = 11

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/launch"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
 )
 
 func copilotInput() launch.Input {
@@ -108,7 +108,7 @@ func TestCopilotCommand(t *testing.T) {
 func TestCopilotPrompt(t *testing.T) {
 	t.Run("the Copilot prompt names the agent type as the harness spells it, asks for a shell command and one edit [verifies SP-1708~2]", func(t *testing.T) {
 		prompt := launch.CopilotPrompt(role, ticket)
-		for _, part := range []string{`"spec-proof-dp-decider"`, "touch " + launch.SandboxProbeFile, launch.EditFile, launch.EditFrom, launch.EditTo} {
+		for _, part := range []string{`"musthold-dp-decider"`, "touch " + launch.SandboxProbeFile, launch.EditFile, launch.EditFrom, launch.EditTo} {
 			if !strings.Contains(prompt, part) {
 				t.Errorf("the prompt lacks %q", part)
 			}

@@ -1,7 +1,7 @@
 // Package plugin is the single source of the Claude Code plugin of the relay: the
 // committed tree under `plugin/claude` is generated here. The plugin holds one
 // skill that runs the relay for each proof module; it holds no logic, since every
-// step goes through the `spec-proof-s1` binary. It knows no I/O.
+// step goes through the `musthold-s1` binary. It knows no I/O.
 package plugin
 
 import (
@@ -11,19 +11,19 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/pluginfiles"
+	"github.com/RachidChabane/musthold/format/hostproto/pluginfiles"
 )
 
 // Identity of the shipped plugin.
 const (
 	// Name is the name of the plugin.
-	Name = "spec-proof-s1"
+	Name = "musthold-s1"
 	// Version is the version of the shipped files.
 	Version = "0.1.0"
 	// Binary is the executable the skill runs.
-	Binary = "spec-proof-s1"
+	Binary = "musthold-s1"
 	// SkillName is the name of the skill that relays the closed requests.
-	SkillName = "spec-proof-s1-drain"
+	SkillName = "musthold-s1-drain"
 
 	author  = "Rachid Chabane"
 	license = "Apache-2.0"
@@ -50,7 +50,7 @@ type manifest struct {
 
 const skillTemplate = `---
 name: {{.Name}}
-description: Relay the closed questions of the spec-proof modules to the System One endpoint of the project. Use when a module has closed requests waiting and ` + "`.spec-proof/config.yaml`" + ` sets ` + "`systemone.endpoint`" + `.
+description: Relay the closed questions of the musthold modules to the System One endpoint of the project. Use when a module has closed requests waiting and ` + "`.musthold/config.yaml`" + ` sets ` + "`systemone.endpoint`" + `.
 {{- if .Allowed}}
 allowed-tools: Bash({{.Binary}} drain *)
 {{- end}}
@@ -58,9 +58,9 @@ allowed-tools: Bash({{.Binary}} drain *)
 
 # Relay the closed requests
 
-` + "`{{.Binary}} drain`" + ` posts the closed questions a module exported to the System One endpoint of the project and hands the answers back to the module. It is the only code of spec-proof that opens a connection to a model service.
+` + "`{{.Binary}} drain`" + ` posts the closed questions a module exported to the System One endpoint of the project and hands the answers back to the module. It is the only code of musthold that opens a connection to a model service.
 
-1. If ` + "`.spec-proof/config.yaml`" + ` sets no ` + "`systemone.endpoint`" + `, stop: the modules answer their closed requests with host votes.
+1. If ` + "`.musthold/config.yaml`" + ` sets no ` + "`systemone.endpoint`" + `, stop: the modules answer their closed requests with host votes.
 2. For each module that is installed, run ` + "`{{.Binary}} drain --module <module>`" + ` with the name of the module: {{.Modules}}. A failure leaves the requests of that module for its own fulfil skill.
 3. Report how many requests were answered and how many remain.
 `
@@ -84,7 +84,7 @@ func Portable() ([]File, error) {
 	return []File{{Path: manifest.Path, Content: manifest.Content}, {Path: pluginfiles.PortableSkillPath(SkillName), Content: skill}}, nil
 }
 
-const description = "Relays the closed questions of the spec-proof modules to a System One endpoint."
+const description = "Relays the closed questions of the musthold modules to a System One endpoint."
 
 func skillFile(allowed bool) ([]byte, error) {
 	parsed, err := template.New("skill").Parse(skillTemplate)

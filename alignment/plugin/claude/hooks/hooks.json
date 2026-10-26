@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "spec-proof-alignment hook post-tool --harness claude",
+            "command": "musthold-alignment hook post-tool --harness claude",
             "timeout": 30
           }
         ]
@@ -14,11 +14,11 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Agent|mcp__plugin_spec-proof-alignment_exec__.*",
+        "matcher": "Agent|mcp__plugin_musthold-alignment_exec__.*",
         "hooks": [
           {
             "type": "command",
-            "command": "spec-proof-alignment hook pre-tool --harness claude",
+            "command": "musthold-alignment hook pre-tool --harness claude",
             "timeout": 30
           }
         ]
@@ -26,11 +26,11 @@
     ],
     "SubagentStart": [
       {
-        "matcher": "^(spec-proof-alignment:judge|spec-proof-alignment:decider)$",
+        "matcher": "^(musthold-alignment:judge|musthold-alignment:decider)$",
         "hooks": [
           {
             "type": "command",
-            "command": "spec-proof-alignment hook subagent-start --harness claude",
+            "command": "musthold-alignment hook subagent-start --harness claude",
             "timeout": 30
           }
         ]
@@ -38,11 +38,11 @@
     ],
     "SubagentStop": [
       {
-        "matcher": "^(spec-proof-alignment:judge|spec-proof-alignment:decider)$",
+        "matcher": "^(musthold-alignment:judge|musthold-alignment:decider)$",
         "hooks": [
           {
             "type": "command",
-            "command": "spec-proof-alignment hook subagent-stop --harness claude",
+            "command": "musthold-alignment hook subagent-stop --harness claude",
             "timeout": 30
           }
         ]

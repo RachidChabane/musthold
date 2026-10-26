@@ -12,7 +12,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 )
 
 // MaxInterfaceEntries bounds the signatures a writer is shown when the spec
@@ -21,11 +21,11 @@ const MaxInterfaceEntries = 200
 
 // RenamedPrefix starts the name every witness test is renamed to; the short id
 // of the witness follows.
-const RenamedPrefix = "specproof_witness_"
+const RenamedPrefix = "musthold_witness_"
 
 const (
 	rootDirectory     = "."
-	stateDirectory    = ".spec-proof"
+	stateDirectory    = ".musthold"
 	versionControlDir = ".git"
 )
 

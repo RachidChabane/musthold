@@ -7,5 +7,5 @@ No change to the module or to `format` since the previous release.
 ### Install
 
 ```
-go get github.com/RachidChabane/spec-proof/format@v1.0.0
+go get github.com/RachidChabane/musthold/format@v1.0.0
 ```

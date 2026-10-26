@@ -43,7 +43,7 @@ type Task struct {
 	// Prompt is what the session is asked, verbatim.
 	Prompt string `json:"prompt"`
 	// Operations binds each operation of the spec's examples to a target per
-	// language, as the `operations` block of `.spec-proof/config.yaml` reads.
+	// language, as the `operations` block of `.musthold/config.yaml` reads.
 	Operations map[string]map[string]string `json:"operations"`
 }
 

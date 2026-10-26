@@ -2,20 +2,20 @@
   "spdxVersion": "SPDX-2.3",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "name": "spec-proof-dp_0.2.0_linux_amd64.tar.gz",
-  "documentNamespace": "https://github.com/RachidChabane/spec-proof/discpower/v0.2.0/spec-proof-dp_0.2.0_linux_amd64.tar.gz",
+  "name": "musthold-dp_0.2.0_linux_amd64.tar.gz",
+  "documentNamespace": "https://github.com/RachidChabane/musthold/discpower/v0.2.0/musthold-dp_0.2.0_linux_amd64.tar.gz",
   "creationInfo": {
     "created": "2023-11-14T22:13:20Z",
     "creators": [
-      "Tool: spec-proof-release"
+      "Tool: musthold-release"
     ]
   },
   "packages": [
     {
-      "name": "github.com/RachidChabane/spec-proof/discpower",
+      "name": "github.com/RachidChabane/musthold/discpower",
       "SPDXID": "SPDXRef-Package-main",
       "versionInfo": "0.2.0",
-      "downloadLocation": "git+https://github.com/RachidChabane/spec-proof@discpower/v0.2.0",
+      "downloadLocation": "git+https://github.com/RachidChabane/musthold@discpower/v0.2.0",
       "filesAnalyzed": false,
       "licenseConcluded": "Apache-2.0",
       "licenseDeclared": "Apache-2.0",
@@ -40,7 +40,7 @@
       ]
     },
     {
-      "name": "github.com/RachidChabane/spec-proof/format",
+      "name": "github.com/RachidChabane/musthold/format",
       "SPDXID": "SPDXRef-Package-1",
       "versionInfo": "v0.1.0",
       "downloadLocation": "NOASSERTION",
@@ -53,7 +53,7 @@
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:golang/github.com/rachidchabane/spec-proof/format@v0.1.0"
+          "referenceLocator": "pkg:golang/github.com/rachidchabane/musthold/format@v0.1.0"
         }
       ]
     },

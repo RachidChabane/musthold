@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/RachidChabane/spec-proof/format/formattest/prompts"
+	"github.com/RachidChabane/musthold/format/formattest/prompts"
 )
 
 const (

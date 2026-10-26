@@ -22,7 +22,7 @@ GIT: Final = "git"
 BENCH_BRANCH: Final = "main"
 AGENT_COMMIT_MESSAGE: Final = "clean room"
 SETUP_COMMIT_MESSAGE: Final = "arm setup"
-HOST_REF_PREFIX: Final = "refs/spec-proof/host"
+HOST_REF_PREFIX: Final = "refs/musthold/host"
 EXPORT_ARCHIVE_NAME: Final = "export.tar"
 
 
@@ -59,7 +59,7 @@ class CleanRoomRepository:
         return bool(self._git(tree, "status", "--porcelain", "--untracked-files=no").strip())
 
     def export_host_ref(self, tree: Path, module_ref: str, destination: Path) -> bool:
-        """Extracts the tree of `refs/spec-proof/host/<module>/<head>` into `destination`; `False` when it is absent."""
+        """Extracts the tree of `refs/musthold/host/<module>/<head>` into `destination`; `False` when it is absent."""
         ref = f"{HOST_REF_PREFIX}/{module_ref}/{self.head(tree)}"
         archive = destination.parent / EXPORT_ARCHIVE_NAME
         destination.mkdir(parents=True, exist_ok=True)

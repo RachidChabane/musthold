@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/cli"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/discpower/internal/cli"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
@@ -349,7 +349,7 @@ func TestProveEndToEnd(t *testing.T) {
 
 	t.Run("a criterion whose tickets run out escalates and is never passed [verifies SP-187~1]", func(t *testing.T) {
 		h := newHarness(t, shared)
-		h.rewrite(".spec-proof/config.yaml", "operations:", "policy:\n  max_host_tickets: 1\noperations:")
+		h.rewrite(".musthold/config.yaml", "operations:", "policy:\n  max_host_tickets: 1\noperations:")
 		_, output := h.drive(hostprototest.PersonaHonest, oracle{})
 		if got := verdicts(output)["PAR-3~1"]; got != provedEscalate {
 			t.Errorf("PAR-3~1: %q, want %q\n%s", got, provedEscalate, output)

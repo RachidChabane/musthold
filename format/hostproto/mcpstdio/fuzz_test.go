@@ -8,8 +8,8 @@ import (
 	"io"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
-	"github.com/RachidChabane/spec-proof/format/hostproto/mcpstdio"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/hostproto/mcpstdio"
 )
 
 // Each fuzz target has a body that states its invariants, a Fuzz function that

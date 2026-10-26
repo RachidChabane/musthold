@@ -8,7 +8,7 @@ import (
 	"io/fs"
 	"os"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/platform/atomicfile"
+	"github.com/RachidChabane/musthold/discpower/internal/platform/atomicfile"
 )
 
 // SecretBytes is the entropy of the secret.

@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/alignment/internal/cli"
-	"github.com/RachidChabane/spec-proof/alignment/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/alignment/internal/cli"
+	"github.com/RachidChabane/musthold/alignment/internal/testkit"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
-	binaryPackage   = "./cmd/spec-proof-alignment"
+	binaryPackage   = "./cmd/musthold-alignment"
 	fakehostPackage = "./hostproto/hostprototest/cmd/fakehost"
 	formatModule    = "../../../format"
 	alignmentModule = "../.."
@@ -55,7 +55,7 @@ func TestFakehostSmoke(t *testing.T) {
 	_, want := recorder.drive(hostprototest.PersonaHonest, testkit.Oracle{}, "--record", recordings)
 
 	bin := t.TempDir()
-	module := build(t, alignmentModule, binaryPackage, bin, "spec-proof-alignment", buildTags)
+	module := build(t, alignmentModule, binaryPackage, bin, "musthold-alignment", buildTags)
 	fakehost := build(t, formatModule, fakehostPackage, bin, "fakehost")
 
 	h := newHarness(t, testkit.PythonParcel)

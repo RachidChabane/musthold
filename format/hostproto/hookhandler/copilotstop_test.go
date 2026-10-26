@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/executorrun"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/executorrun"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 const (
@@ -20,9 +20,9 @@ const (
 	copilotAgentID     = "a7e0364c-b934-43d8-9bbb-9744dbf2af35"
 	copilotTicket      = "864f5e696da12d6944d9380733d5c5a9fba0f0140f3b243c3efae9a6cc74cb38.0.1"
 	copilotAnswer      = `{"answers":[{"id":"q1","choice":"VIOLATES","confidence":1,"probabilities":{"VIOLATES":1,"CONSISTENT":0}}]}`
-	copilotDeciderRole = "spec-proof-dp:decider"
+	copilotDeciderRole = "musthold-dp:decider"
 	// copilotReportedType is the type the payload of subagentStop reports.
-	copilotReportedType = "spec-proof-dp:spec-proof-dp-decider"
+	copilotReportedType = "musthold-dp:musthold-dp-decider"
 )
 
 // copilotStop is a Copilot CLI executor that stopped, with its session log served
@@ -88,7 +88,7 @@ func TestCopilotSubagentStop(t *testing.T) {
 
 	t.Run("the stop of the executor reported with its plain file name is checked as well [verifies SP-1871~1]", func(t *testing.T) {
 		s := newCopilotStop(t)
-		if err := s.stop("spec-proof-dp-decider", s.receipt()); err != nil {
+		if err := s.stop("musthold-dp-decider", s.receipt()); err != nil {
 			t.Fatal(err)
 		}
 		if got := s.kinds(); len(got) != 2 {
@@ -98,7 +98,7 @@ func TestCopilotSubagentStop(t *testing.T) {
 
 	t.Run("a type of another plugin is no executor of the module and journals nothing [verifies SP-1871~1]", func(t *testing.T) {
 		s := newCopilotStop(t)
-		if err := s.stop("other-plugin:spec-proof-dp-decider", s.receipt()); err != nil || len(s.events()) != 0 {
+		if err := s.stop("other-plugin:musthold-dp-decider", s.receipt()); err != nil || len(s.events()) != 0 {
 			t.Fatalf("events %v, error %v", s.events(), err)
 		}
 	})

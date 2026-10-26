@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // The projects whose helper stops some test binaries or modules from starting,
@@ -38,7 +38,7 @@ type startUpCase struct {
 func scannedStatement(t *testing.T, s *scanned) format.ScanStatement {
 	t.Helper()
 	short := s.commit()[:7]
-	raw, err := os.ReadFile(filepath.Join(s.root, ".spec-proof", "scan", short, "scan.json"))
+	raw, err := os.ReadFile(filepath.Join(s.root, ".musthold", "scan", short, "scan.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +138,7 @@ func TestScanSetsApartChangesThatStopATest(t *testing.T) {
 				})
 			}
 			t.Run("a replay holds the finding of a test that verifies nothing beside the changes that stopped it"+verifiesStartUpE2E, func(t *testing.T) {
-				replay := s.run(s.binary, "scan", "replay", ".spec-proof/scan/"+s.commit()[:7])
+				replay := s.run(s.binary, "scan", "replay", ".musthold/scan/"+s.commit()[:7])
 				if replay.code != 0 || !strings.Contains(replay.stdout, c.vacuous) || strings.Contains(replay.stdout, "NOT held") {
 					t.Fatalf("exit %d:\n%s", replay.code, replay.output())
 				}

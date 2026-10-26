@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/proofset"
+	"github.com/RachidChabane/musthold/verify/internal/domain/proofset"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 	stagingPattern = ".verified-staging-"
 )
 
-// Directory is the verified directory, usually `.spec-proof/verified`.
+// Directory is the verified directory, usually `.musthold/verified`.
 type Directory struct {
 	Path string
 }

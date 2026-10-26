@@ -8,13 +8,13 @@ acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled ·
 #1 tests/test_parse.py::test_parse_ok passes on all 9 proven changes in lines it ran
    src/invoicing/parse.py:3  >= → >   input line="a,": reference "['a,']", mutant raises IndexError
    proven by: a differential run of invoicing.parse:split_fields, reproduced, on a reference that agrees with itself
-   repro: .spec-proof/scan/3f2a9c1/1/repro.sh
+   repro: .musthold/scan/3f2a9c1/1/repro.sh
    may break: "split_fields keeps a trailing field", "lines shorter than two characters are skipped"
 
 #2 tests/test_parse.py::test_it's_fine passes on all 5 proven changes in lines it ran
    src/invoicing/parse.py:3  >= → >
    proven by: tests/test_split.py::test_trailing_comma kills it 3/3
-   repro: .spec-proof/scan/3f2a9c1/2/repro.sh
+   repro: .musthold/scan/3f2a9c1/2/repro.sh
 
 promises checked:
   "split_fields keeps a trailing field" (README.md)
@@ -23,7 +23,7 @@ promises checked:
 #P1 "split_fields keeps a trailing field" (README.md) a change that passes the whole suite 3/3 fails a block-bearing witness written for it
    src/invoicing/parse.py:3  >= → >
    proven by: witness 9d1c0e77a4b2 fails on it, reproduced
-   repro: .spec-proof/scan/3f2a9c1/promise-1/killer.sh
+   repro: .musthold/scan/3f2a9c1/promise-1/killer.sh
 
 question: "split_fields keeps a trailing field" (README.md): witness 1a2b3c4d5e6f, the reference fails it
 question: "lines shorter than two characters are skipped" (description): witness 9d1c0e77a4b2, unstable on the reference

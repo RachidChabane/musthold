@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/ledger/internal/cli"
+	"github.com/RachidChabane/musthold/ledger/internal/cli"
 )
 
 const verifiesHelp = " [verifies SP-1650~1]"

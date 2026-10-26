@@ -13,7 +13,7 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/app/ports"
+	"github.com/RachidChabane/musthold/s1relay/internal/app/ports"
 )
 
 // Rule constants shared with script/mem-guard.

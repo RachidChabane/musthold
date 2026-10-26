@@ -1,0 +1,16 @@
+{
+  "name": "musthold",
+  "version": "0.1.0",
+  "description": "Installs Shallnot and the musthold modules and runs their proofs together.",
+  "author": {
+    "name": "Rachid Chabane"
+  },
+  "license": "Apache-2.0",
+  "dependencies": [
+    "shallnot",
+    "musthold-dp",
+    "musthold-alignment",
+    "musthold-completeness",
+    "musthold-s1"
+  ]
+}

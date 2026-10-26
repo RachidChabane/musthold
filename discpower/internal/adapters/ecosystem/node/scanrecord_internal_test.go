@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/vacuity"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/vacuity"
 )
 
 const (
@@ -258,8 +258,8 @@ func TestReadingARecord(t *testing.T) {
 func TestScanIDOfAWitness(t *testing.T) {
 	t.Run("a witness laid out in the witness suite is named by its file and the suite's and its own titles, whichever separator its runner reports"+verifiesWitness, func(t *testing.T) {
 		for _, name := range []string{witnessSuite + jestTitleSeparator + "w_1", witnessSuite + vitestTitleSeparator + "w_1"} {
-			got := scanIDOfBound(ecosystem.BoundTest{File: "test/specproof_1.test.ts", Name: name})
-			if got != "test/specproof_1.test.ts::"+witnessSuite+" > w_1" {
+			got := scanIDOfBound(ecosystem.BoundTest{File: "test/musthold_1.test.ts", Name: name})
+			if got != "test/musthold_1.test.ts::"+witnessSuite+" > w_1" {
 				t.Errorf("%q gives %q", name, got)
 			}
 		}

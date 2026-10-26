@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/s1relay/internal/domain/question"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/s1relay/internal/domain/question"
 )
 
 // MaxQuestions is the most questions one `/v1/systemone` request holds.

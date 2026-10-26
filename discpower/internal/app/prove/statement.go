@@ -7,12 +7,12 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/prompt"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/witness"
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/power"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/prompt"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // Names of the inputs whose role admits only one descriptor.
@@ -24,7 +24,7 @@ const (
 	inputNameModels    = "host-models"
 	inputNameResponses = "host-responses"
 	inputNameWitnesses = "witness-universe"
-	noExecutorHarness  = "spec-proof-dp"
+	noExecutorHarness  = "musthold-dp"
 	noExecutorHarnessV = "none"
 	modelSeparator     = "@"
 	responseSeparator  = "\x00"

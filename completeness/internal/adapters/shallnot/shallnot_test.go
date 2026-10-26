@@ -8,8 +8,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/ports"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/completeness/internal/app/ports"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/criterion"
 )
 
 const (

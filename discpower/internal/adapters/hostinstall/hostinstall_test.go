@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/hostinstall"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostharness"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/hostinstall"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/hostharness"
 )
 
 const (
@@ -64,16 +64,16 @@ func TestInstallOnDisk(t *testing.T) {
 		all := []hostharness.Harness{hostharness.Claude(), hostharness.Codex(), hostharness.Copilot()}
 		plan, err := hostinstall.BuildInit(hostinstall.InitOptions{Root: root, Harnesses: all, Seed: hostinstall.ConfigSeed(seedYAML)})
 		apply(t, plan, err)
-		if got := read(t, root, ".spec-proof/config.yaml"); got != seedYAML+"\n"+hostinstall.OperationsExample {
+		if got := read(t, root, ".musthold/config.yaml"); got != seedYAML+"\n"+hostinstall.OperationsExample {
 			t.Errorf("config = %q", got)
 		}
-		if got := read(t, root, ".gitignore"); got != ".spec-proof/cache/\n.spec-proof/verified/\n.spec-proof/pending/\n" {
+		if got := read(t, root, ".gitignore"); got != ".musthold/cache/\n.musthold/verified/\n.musthold/pending/\n" {
 			t.Errorf(".gitignore = %q", got)
 		}
-		if got := read(t, root, ".claude/settings.json"); !strings.Contains(got, `"spec-proof-dp@spec-proof": true`) {
+		if got := read(t, root, ".claude/settings.json"); !strings.Contains(got, `"musthold-dp@musthold": true`) {
 			t.Errorf("settings = %s", got)
 		}
-		for _, path := range []string{".codex/agents/spec-proof-dp-judge.toml", ".github/agents/spec-proof-dp-decider.agent.md", ".github/hooks/spec-proof-dp.json"} {
+		for _, path := range []string{".codex/agents/musthold-dp-judge.toml", ".github/agents/musthold-dp-decider.agent.md", ".github/hooks/musthold-dp.json"} {
 			if read(t, root, path) == "<absent>" {
 				t.Errorf("%s was not written", path)
 			}
@@ -111,7 +111,7 @@ func TestInstallOnDisk(t *testing.T) {
 		if got := read(t, root, "shallnot.yaml"); got != traceabilityOnly+"proofs:\n  require:\n    - discriminating-power\n  trust: local\n" {
 			t.Fatalf("shallnot.yaml = %q", got)
 		}
-		if agents := read(t, root, "AGENTS.md"); !strings.HasPrefix(agents, shallnotAgents) || !strings.Contains(agents, "spec-proof-dp prove --changed") {
+		if agents := read(t, root, "AGENTS.md"); !strings.HasPrefix(agents, shallnotAgents) || !strings.Contains(agents, "musthold-dp prove --changed") {
 			t.Fatalf("AGENTS.md = %q", agents)
 		}
 		plan, err = hostinstall.BuildDisable(root)

@@ -6,18 +6,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/adapters/hostinstall"
-	"github.com/RachidChabane/spec-proof/completeness/internal/cli"
+	"github.com/RachidChabane/musthold/completeness/internal/adapters/hostinstall"
+	"github.com/RachidChabane/musthold/completeness/internal/cli"
 )
 
 const (
 	oldSchemaScript = "#!/bin/sh\nprintf '%s\\n' '{\"properties\":{\"schema_version\":{\"pattern\":\"^1\\\\.[0-9]+$\"}}}'\n"
 	shallnotYAML    = "version: 1\nspecs:\n  - specs\ntests:\n  - tests\nresults:\n  - build/test-results/*.xml\n"
 	shallnotFile    = "shallnot.yaml"
-	sharedConfig    = ".spec-proof/config.yaml"
+	sharedConfig    = ".musthold/config.yaml"
 	absentFile      = "<absent>"
 	agentsFile      = "AGENTS.md"
-	agentsBegin     = "<!-- spec-proof-completeness:begin -->"
+	agentsBegin     = "<!-- musthold-completeness:begin -->"
 	advisoryText    = "The result is advisory"
 	seededConfig    = "proofs:\n  completeness: false\n"
 )
@@ -65,7 +65,7 @@ func TestInitCommand(t *testing.T) {
 		if code != cli.ExitClean {
 			t.Fatalf("exit %d: %s%s", code, stdout, stderr)
 		}
-		for _, want := range []string{"unchanged " + sharedConfig, "create    .codex/agents/spec-proof-completeness-decider.toml", "create    .claude/settings.json", "create    .codex/config.toml", "next: "} {
+		for _, want := range []string{"unchanged " + sharedConfig, "create    .codex/agents/musthold-completeness-decider.toml", "create    .claude/settings.json", "create    .codex/config.toml", "next: "} {
 			if !strings.Contains(stdout, want) {
 				t.Errorf("output lacks %q:\n%s", want, stdout)
 			}
@@ -90,7 +90,7 @@ func TestInitCommand(t *testing.T) {
 			t.Errorf("configuration = %q", got)
 		}
 		ignored := readFile(t, filepath.Join(f.root, ".gitignore"))
-		for _, line := range []string{".spec-proof/cache/", ".spec-proof/verified/", ".spec-proof/pending/"} {
+		for _, line := range []string{".musthold/cache/", ".musthold/verified/", ".musthold/pending/"} {
 			if !strings.Contains(ignored, line+"\n") {
 				t.Errorf(".gitignore lacks %q: %q", line, ignored)
 			}

@@ -1,4 +1,4 @@
-# s1relay (`spec-proof-s1`)
+# s1relay (`musthold-s1`)
 
 The optional relay of closed questions to a System One endpoint, and the only
 program of the project that opens a connection to one. It exports the closed
@@ -9,25 +9,25 @@ it, the proof modules take host votes instead.
 ## Alone
 
 Needs a proof module binary on `PATH` and an endpoint, from `--endpoint` or from
-`systemone.endpoint` in `.spec-proof/config.yaml`.
+`systemone.endpoint` in `.musthold/config.yaml`.
 
 ## Install
 
 ```
-nice -n 10 go install -C s1relay -p 1 ./cmd/spec-proof-s1
+nice -n 10 go install -C s1relay -p 1 ./cmd/musthold-s1
 ```
 
 Run from the repository root; the binary lands in `$GOBIN`, or
 `$(go env GOPATH)/bin`. In Claude Code, install the plugin with
-`/plugin marketplace add RachidChabane/spec-proof` and
-`/plugin install spec-proof-s1@spec-proof`.
+`/plugin marketplace add RachidChabane/musthold` and
+`/plugin install musthold-s1@musthold`.
 
 ## Commands
 
 ```
-spec-proof-s1 drain --module dp --session prove
-spec-proof-s1 drain --module alignment --max-requests 10 --mem-guard
-spec-proof-s1 version
+musthold-s1 drain --module dp --session prove
+musthold-s1 drain --module alignment --max-requests 10 --mem-guard
+musthold-s1 version
 ```
 
 Exit codes: 0 no request unanswered, 1 some unanswered, 2 tool failure, 4 the memory

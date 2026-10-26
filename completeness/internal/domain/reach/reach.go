@@ -7,7 +7,7 @@ package reach
 import (
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/code"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/code"
 )
 
 // constructorName is the method a class instantiation reaches.

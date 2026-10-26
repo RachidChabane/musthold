@@ -3,7 +3,7 @@ package spec_test
 import (
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
 )
 
 func TestExampleText(t *testing.T) {

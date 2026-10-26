@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/platform/witnesskit"
+	"github.com/RachidChabane/musthold/discpower/internal/platform/witnesskit"
 )
 
 const (

@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"path/filepath"
 
-	canary "github.com/RachidChabane/spec-proof/tools/canary/internal/app"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/record"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/render"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/transcript"
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/domain/evidence"
+	canary "github.com/RachidChabane/musthold/tools/canary/internal/app"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/render"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/transcript"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
 )
 
 // Errors of a recording that cannot be rendered, or of a rendered transcript

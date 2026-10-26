@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/tools/canary/internal/demoloop/egress"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/egress"
 )
 
 // syncBuffer is a log the proxy and the test share.

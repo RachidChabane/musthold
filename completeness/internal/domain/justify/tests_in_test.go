@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/code"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/justify"
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/reach"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/code"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/justify"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/reach"
 )
 
 // marker is the word that opens a citation; the tests write it as `cites` so that

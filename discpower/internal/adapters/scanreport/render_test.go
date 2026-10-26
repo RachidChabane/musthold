@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/scanreport"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/scanreport"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/format"
 )
 
 const (
@@ -138,7 +138,7 @@ func TestText(t *testing.T) {
 			"#1 tests/test_parse.py::test_parse_ok passes on all 9 proven changes in lines it ran",
 			`   src/invoicing/parse.py:3  >= → >   input line="a,": reference "['a,']", mutant raises IndexError`,
 			"   proven by: a differential run of invoicing.parse:split_fields, reproduced, on a reference that agrees with itself",
-			"   repro: .spec-proof/scan/3f2a9c1/1/repro.sh",
+			"   repro: .musthold/scan/3f2a9c1/1/repro.sh",
 			"   proven by: tests/test_split.py::test_trailing_comma kills it 3/3",
 		} {
 			if !strings.Contains(text, want+"\n") {
@@ -324,31 +324,31 @@ func TestFiles(t *testing.T) {
 	}
 	t.Run("the reports of a commit hold the Markdown report, the statement and one folder per finding"+verifiesFolders, func(t *testing.T) {
 		for _, path := range []string{
-			".spec-proof/scan/3f2a9c1/report.md", ".spec-proof/scan/3f2a9c1/scan.json",
-			".spec-proof/scan/3f2a9c1/1/mutant.patch", ".spec-proof/scan/3f2a9c1/1/repro.sh", ".spec-proof/scan/3f2a9c1/1/finding.json",
-			".spec-proof/scan/3f2a9c1/2/repro.sh",
+			".musthold/scan/3f2a9c1/report.md", ".musthold/scan/3f2a9c1/scan.json",
+			".musthold/scan/3f2a9c1/1/mutant.patch", ".musthold/scan/3f2a9c1/1/repro.sh", ".musthold/scan/3f2a9c1/1/finding.json",
+			".musthold/scan/3f2a9c1/2/repro.sh",
 		} {
 			if _, found := byPath[path]; !found {
 				t.Errorf("no %s", path)
 			}
 		}
-		if string(byPath[".spec-proof/scan/3f2a9c1/scan.json"].Content) != string(r.Encoded) {
+		if string(byPath[".musthold/scan/3f2a9c1/scan.json"].Content) != string(r.Encoded) {
 			t.Fatal("the statement is not the encoded one")
 		}
 	})
 	t.Run("the finding record names the commit, the test, the mutant and the route"+verifiesFolders, func(t *testing.T) {
-		record, err := scan.DecodeFinding(byPath[".spec-proof/scan/3f2a9c1/1/finding.json"].Content)
+		record, err := scan.DecodeFinding(byPath[".musthold/scan/3f2a9c1/1/finding.json"].Content)
 		if err != nil || record.Commit != commit || record.Test != "tests/test_parse.py::test_parse_ok" || record.Route.Kind != format.ScanRouteDifferential {
 			t.Fatalf("record %+v, %v", record, err)
 		}
 		var raw map[string]any
-		content := byPath[".spec-proof/scan/3f2a9c1/1/finding.json"].Content
+		content := byPath[".musthold/scan/3f2a9c1/1/finding.json"].Content
 		if json.Unmarshal(content, &raw) != nil || !strings.Contains(string(content), "len(line) > 2") {
 			t.Fatalf("the record escapes its source:\n%s", content)
 		}
 	})
 	t.Run("the repro script checks the commit out elsewhere, applies the patch and runs the one test, quoted"+verifiesFolders, func(t *testing.T) {
-		script := string(byPath[".spec-proof/scan/3f2a9c1/2/repro.sh"].Content)
+		script := string(byPath[".musthold/scan/3f2a9c1/2/repro.sh"].Content)
 		for _, want := range []string{
 			"#!/bin/sh\n", "set -eu\n", "git -C \"$root\" archive " + commit + " | tar -x -C \"$work\"\n",
 			"git apply \"$finding/mutant.patch\"\n", `'python3' '-m' 'pytest' 'tests/test_parse.py::test_it'\''s_fine'` + "\n",
@@ -357,13 +357,13 @@ func TestFiles(t *testing.T) {
 				t.Errorf("missing %q in\n%s", want, script)
 			}
 		}
-		if !byPath[".spec-proof/scan/3f2a9c1/2/repro.sh"].Executable {
+		if !byPath[".musthold/scan/3f2a9c1/2/repro.sh"].Executable {
 			t.Fatal("the script is not executable")
 		}
 	})
 	t.Run("writing replaces the earlier reports of the commit and makes the script executable"+verifiesFolders, func(t *testing.T) {
 		root := t.TempDir()
-		stale := filepath.Join(root, ".spec-proof", "scan", "3f2a9c1", "9", "repro.sh")
+		stale := filepath.Join(root, ".musthold", "scan", "3f2a9c1", "9", "repro.sh")
 		if err := os.MkdirAll(filepath.Dir(stale), 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -376,7 +376,7 @@ func TestFiles(t *testing.T) {
 		if _, err := os.Stat(stale); !os.IsNotExist(err) {
 			t.Fatalf("stale finding kept: %v", err)
 		}
-		info, err := os.Stat(filepath.Join(root, ".spec-proof", "scan", "3f2a9c1", "1", "repro.sh"))
+		info, err := os.Stat(filepath.Join(root, ".musthold", "scan", "3f2a9c1", "1", "repro.sh"))
 		if err != nil || info.Mode().Perm()&0o100 == 0 {
 			t.Fatalf("repro.sh %v, %v", info, err)
 		}

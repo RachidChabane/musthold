@@ -40,7 +40,7 @@ from specbench.domain.sessions import ci_round_call_id
 ARTIFACTS_DIRECTORY: Final = "ci-artifacts"
 EXPORTS_DIRECTORY: Final = "ci-exports"
 ARTIFACTS_ENV: Final = "SPECBENCH_CI_ARTIFACTS"
-ARTIFACT_PREFIX: Final = "spec-proof-host-"
+ARTIFACT_PREFIX: Final = "musthold-host-"
 
 
 class IsolatedCiRoundTrip:

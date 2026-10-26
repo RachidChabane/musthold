@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/s1relay/internal/cli"
+	"github.com/RachidChabane/musthold/s1relay/internal/cli"
 )
 
 const verifiesHelp = " [verifies SP-1660~1]"

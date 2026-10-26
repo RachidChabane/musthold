@@ -18,12 +18,12 @@ import (
 	"io/fs"
 	"os"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 const (
 	// KeyEnvironmentVariable holds the PKCS#8 PEM private key of the identity.
-	KeyEnvironmentVariable = "SPEC_PROOF_ED25519_KEY"
+	KeyEnvironmentVariable = "MUSTHOLD_ED25519_KEY"
 
 	pemTypePrivateKey = "PRIVATE KEY"
 	// forbiddenKeyFileBits are the permission bits of group and others: a key

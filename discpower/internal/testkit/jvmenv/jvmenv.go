@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/ecosystem/jvm"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/jvm"
 )
 
 const (

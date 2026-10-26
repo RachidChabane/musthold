@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/cli"
-	"github.com/RachidChabane/spec-proof/completeness/internal/testkit"
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/completeness/internal/cli"
+	"github.com/RachidChabane/musthold/completeness/internal/testkit"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 func TestProveExitCodes(t *testing.T) {
@@ -102,7 +102,7 @@ func TestRequestCommands(t *testing.T) {
 	ticket := item.Ticket.TicketID.String()
 
 	t.Run("request list prints the tickets in state emitted with the role and the view of an executor [verifies SP-545~1]", func(t *testing.T) {
-		if item.Role != "spec-proof-completeness:decider" || item.View.User == "" || item.View.Ticket != ticket || item.View.Nonce != item.Ticket.Nonce || len(item.View.ResponseSchema) == 0 || len(item.View.Closed) == 0 {
+		if item.Role != "musthold-completeness:decider" || item.View.User == "" || item.View.Ticket != ticket || item.View.Nonce != item.Ticket.Nonce || len(item.View.ResponseSchema) == 0 || len(item.View.Closed) == 0 {
 			t.Fatalf("item %+v", item)
 		}
 		code, text, _ := h.run(nil, "request", "list")

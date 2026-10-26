@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format"
-	"github.com/RachidChabane/spec-proof/verify/internal/app"
-	"github.com/RachidChabane/spec-proof/verify/internal/domain/refusal"
+	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/verify/internal/app"
+	"github.com/RachidChabane/musthold/verify/internal/domain/refusal"
 )
 
 // walkFiles calls visit with the slash-separated path relative to root and the
@@ -91,7 +91,7 @@ func (c LocalCache) LocalStatements() ([]app.LocalStatement, error) {
 	return statements, err
 }
 
-// PendingDir is `.spec-proof/pending`: one `<module>.json` per module.
+// PendingDir is `.musthold/pending`: one `<module>.json` per module.
 type PendingDir struct {
 	Root string
 }

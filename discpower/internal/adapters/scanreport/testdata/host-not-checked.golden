@@ -8,12 +8,12 @@ acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled ·
 #1 tests/test_parse.py::test_parse_ok passes on all 9 proven changes in lines it ran
    src/invoicing/parse.py:3  >= → >   input line="a,": reference "['a,']", mutant raises IndexError
    proven by: a differential run of invoicing.parse:split_fields, reproduced, on a reference that agrees with itself
-   repro: .spec-proof/scan/3f2a9c1/1/repro.sh
+   repro: .musthold/scan/3f2a9c1/1/repro.sh
 
 #2 tests/test_parse.py::test_it's_fine passes on all 5 proven changes in lines it ran
    src/invoicing/parse.py:3  >= → >
    proven by: tests/test_split.py::test_trailing_comma kills it 3/3
-   repro: .spec-proof/scan/3f2a9c1/2/repro.sh
+   repro: .musthold/scan/3f2a9c1/2/repro.sh
 
 promises not checked: the host did not answer the extraction
 150 mutants (61 proven, 4 identical when compiled, 2 did not build or start) · 4m12s (reference 1m0s, coverage 30s, draw 2s, mutants 2m30s, confirmation 10s) · 2 of 18 model calls · promises not checked

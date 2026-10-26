@@ -3,7 +3,7 @@ package hoststore
 import (
 	"errors"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 var errNoQueue = errors.New("no queue yet")

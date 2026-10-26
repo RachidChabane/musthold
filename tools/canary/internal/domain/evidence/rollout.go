@@ -7,7 +7,7 @@ import (
 	"path"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // A Codex session keeps a rollout file per thread: the main agent's and each

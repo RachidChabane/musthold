@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/completeness/internal/app/prove"
+	"github.com/RachidChabane/musthold/completeness/internal/app/prove"
 )
 
 func TestPrintResultLeavesNoTrailingSpace(t *testing.T) {

@@ -3,7 +3,7 @@ package cli
 import (
 	"io"
 
-	"github.com/RachidChabane/spec-proof/tools/release/internal/adapters"
+	"github.com/RachidChabane/musthold/tools/release/internal/adapters"
 )
 
 // Main runs the command against the real repository, toolchain and file system.

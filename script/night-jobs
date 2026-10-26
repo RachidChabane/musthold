@@ -11,7 +11,7 @@
 #
 # Every step keeps its own guards: the run window, the nightly call budget and
 # script/mem-guard. Output goes to $NIGHT_JOBS_LOG_DIR (default
-# ~/Library/Logs/spec-proof).
+# ~/Library/Logs/musthold).
 #
 # The canaries and construction run the pinned Claude Code (script/claude-code.pin): the job installs it with
 # script/claude-code-install, puts its directory first on PATH and sets DISABLE_AUTOUPDATER=1, so the nightly canary
@@ -27,13 +27,13 @@
 #   NIGHT_JOBS_BUDGET_DELEGATE=0 compute construction's budget here instead of in bench/script/night-budget
 #   NIGHT_JOBS_CLAUDE_TOKEN_SERVICE / NIGHT_JOBS_CLAUDE_TOKEN_ACCOUNT
 #                                the keychain item that holds the Claude Code token (default service
-#                                spec-proof-claude-oauth, account the macOS login); its presence, never its
+#                                musthold-claude-oauth, account the macOS login); its presence, never its
 #                                value, decides whether the Claude canary runs isolated
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 readonly ROOT="${PWD}"
-readonly LOG_DIR="${NIGHT_JOBS_LOG_DIR:-${HOME}/Library/Logs/spec-proof}"
+readonly LOG_DIR="${NIGHT_JOBS_LOG_DIR:-${HOME}/Library/Logs/musthold}"
 readonly PILOT_DIR="experiments/limits-1-3"
 readonly PILOT_RUN="run-02"
 readonly CANARY_STAMP_DIR="${LOG_DIR}/canary-nights"
@@ -54,7 +54,7 @@ readonly EXIT_NO_SLOT=75
 readonly PILOT_SLOTS=2
 readonly CANARY_SLOTS=1
 readonly CONSTRUCT_SLOTS=1
-readonly CLAUDE_TOKEN_SERVICE="${NIGHT_JOBS_CLAUDE_TOKEN_SERVICE:-spec-proof-claude-oauth}"
+readonly CLAUDE_TOKEN_SERVICE="${NIGHT_JOBS_CLAUDE_TOKEN_SERVICE:-musthold-claude-oauth}"
 CLAUDE_TOKEN_ACCOUNT="${NIGHT_JOBS_CLAUDE_TOKEN_ACCOUNT:-$(id -un)}"
 readonly CLAUDE_TOKEN_ACCOUNT
 readonly SLOT_WAIT_SECONDS="${NIGHT_JOBS_SLOT_WAIT_SECONDS:-0}"
@@ -238,7 +238,7 @@ run_construct() {
 # of the slot holder; a job already inside its slots runs directly. No free slot pauses the job with exit 3.
 run_job_in_slots() {
   local job="$1" slots="$2" status=0
-  if [[ "${NIGHT_JOBS_SLOTS:-0}" != 1 || -n "${SPEC_PROOF_SLOTS_HELD:-}" ]]; then
+  if [[ "${NIGHT_JOBS_SLOTS:-0}" != 1 || -n "${MUSTHOLD_SLOTS_HELD:-}" ]]; then
     "run_${job}"
     return
   fi

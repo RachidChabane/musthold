@@ -9,8 +9,8 @@ import (
 	"cmp"
 	"slices"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/power"
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/power"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
 )
 
 // MaxWitnesses is the number of shrunk witnesses a search keeps.

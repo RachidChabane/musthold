@@ -5,8 +5,8 @@
 package hostfiles
 
 import (
-	"github.com/RachidChabane/spec-proof/completeness/internal/domain/hostharness"
-	"github.com/RachidChabane/spec-proof/format/hostproto/pluginfiles"
+	"github.com/RachidChabane/musthold/completeness/internal/domain/hostharness"
+	"github.com/RachidChabane/musthold/format/hostproto/pluginfiles"
 )
 
 // Identity of the shipped plugin.
@@ -14,7 +14,7 @@ const (
 	// PluginVersion is the version of the shipped files.
 	PluginVersion = "0.1.0"
 	// Binary is the executable the hooks and the server run.
-	Binary = "spec-proof-completeness"
+	Binary = "musthold-completeness"
 )
 
 // Module describes the module to the shared generator.

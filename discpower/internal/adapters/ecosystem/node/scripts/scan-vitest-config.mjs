@@ -6,16 +6,16 @@
 // coverage in Node.
 import path from 'node:path';
 import { mergeConfig } from 'vitest/config';
-// spec-proof:base
+// musthold:base
 
-const SCRIPTS_VARIABLE = 'SPEC_PROOF_SCAN_SCRIPTS';
-const RUNNER_VARIABLE = 'SPEC_PROOF_SCAN_VITEST_RUNNER';
-const SETUP_VARIABLE = 'SPEC_PROOF_SCAN_GLOBAL_SETUP';
+const SCRIPTS_VARIABLE = 'MUSTHOLD_SCAN_SCRIPTS';
+const RUNNER_VARIABLE = 'MUSTHOLD_SCAN_VITEST_RUNNER';
+const SETUP_VARIABLE = 'MUSTHOLD_SCAN_GLOBAL_SETUP';
 const RUNNER_SCRIPT = 'scan-vitest-runner.mjs';
 const SETUP_SCRIPT = 'scan-vitest-global-setup.mjs';
 const REPORTER = 'dot';
 const POOL = 'forks';
-const BROWSER_REFUSED = 'spec-proof scan runs Vitest in Node: browser mode is not supported';
+const BROWSER_REFUSED = 'musthold scan runs Vitest in Node: browser mode is not supported';
 
 class PathSequencer {
   constructor(context) {

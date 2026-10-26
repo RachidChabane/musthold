@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/adapters/scanreport"
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/scanreport"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
 )
 
 const (

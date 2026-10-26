@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Identity and limits of the request format.
@@ -171,7 +171,7 @@ func (s *problemSink) err() error {
 }
 
 // RoleFor builds the executor role of a plugin and an agent, such as
-// `spec-proof-dp:judge`.
+// `musthold-dp:judge`.
 func RoleFor(plugin string, agent Agent) string { return plugin + RoleSeparator + string(agent) }
 
 // ParseRole splits an executor role into its plugin and agent.

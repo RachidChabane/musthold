@@ -15,7 +15,7 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 readonly URI_BASE="https://rachid-chabane.com/"
-readonly FORMAT_DOCUMENTATION="https://github.com/RachidChabane/spec-proof/blob/main/docs/architecture.md#the-proof-format"
+readonly FORMAT_DOCUMENTATION="https://github.com/RachidChabane/musthold/blob/main/docs/architecture.md#the-proof-format"
 readonly SCHEMA_DIRECTORIES=(format/schemas format/hostproto/schemas)
 readonly EXIT_DIFFERENT=1
 readonly EXIT_USAGE=2
@@ -37,7 +37,7 @@ page() {
     "</head>\n<body>\n<h1>\($title | @html)</h1>\n" +
     "<p>Identifier: <code>\($uri | @html)</code></p>\n" +
     "<p>JSON schema: <a href=\"\($schema | @html)\">\($schema | @html)</a></p>\n" +
-    "<p>This identifier belongs to the spec-proof proof format. " +
+    "<p>This identifier belongs to the musthold proof format. " +
     "<a href=\"\($documentation | @html)\">Documentation of the format</a>.</p>\n" +
     "</body>\n</html>"'
 }
@@ -75,7 +75,7 @@ write_site() {
   done
   for namespace in $(printf '%s' "${listing}" | cut -f1 | sort -u); do
     printf '%s' "${listing}" | awk -F'\t' -v ns="${namespace}" '$1 == ns {print $2 "\t" $3}' | sort |
-      index "spec-proof: ${namespace}" >"${out}/${namespace}/index.html"
+      index "musthold: ${namespace}" >"${out}/${namespace}/index.html"
   done
 }
 

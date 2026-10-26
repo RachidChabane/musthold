@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 )
 
 // Command is one process to run.

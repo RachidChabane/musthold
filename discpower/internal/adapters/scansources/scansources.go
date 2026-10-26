@@ -1,5 +1,5 @@
 // Package scansources keeps the quotable sources of a scan under
-// `.spec-proof/scan/<commit>/sources/` of the repository, so that a reader can
+// `.musthold/scan/<commit>/sources/` of the repository, so that a reader can
 // re-run the quote check on the bytes the scan used.
 package scansources
 
@@ -10,13 +10,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
-	"github.com/RachidChabane/spec-proof/format"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Layout of the folder.
 const (
-	outputFolder  = ".spec-proof"
+	outputFolder  = ".musthold"
 	scanFolder    = "scan"
 	sourcesFolder = "sources"
 	dirMode       = 0o755

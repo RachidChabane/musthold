@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/RachidChabane/spec-proof/discpower/internal/app/scan"
+	"github.com/RachidChabane/musthold/discpower/internal/app/scan"
 )
 
 // Layout of the terminal headline.
@@ -62,7 +62,7 @@ func Text(report scan.Report) string {
 func Markdown(report scan.Report) string {
 	var out strings.Builder
 	line := func(format string, args ...any) { fmt.Fprintf(&out, format+newline, args...) }
-	line("## spec-proof scan")
+	line("## musthold scan")
 	line("")
 	line("%s", header(report))
 	line("")

@@ -22,8 +22,8 @@ CODEX_WORKSPACE = "/run/project"
 MAIN_THREAD = "01a11334-f5df-7a33-ba1e-3dd65b19d059"
 CHILD_THREAD = "01a11334-f9a0-7c11-8e02-1b3f0c2d4e55"
 CODEX_RECORDED_VERSION = "0.155.1"
-PLUGINS = ("spec-proof-dp", "spec-proof-alignment", "spec-proof-completeness")
-SERVERS = ("plugin:spec-proof-dp:exec", "plugin:spec-proof-alignment:exec", "plugin:spec-proof-completeness:exec")
+PLUGINS = ("musthold-dp", "musthold-alignment", "musthold-completeness")
+SERVERS = ("plugin:musthold-dp:exec", "plugin:musthold-alignment:exec", "plugin:musthold-completeness:exec")
 
 
 def lines(name: str) -> list[str]:
@@ -68,7 +68,7 @@ def test_the_same_session_under_an_honest_arm_shows_plugins_that_arm_must_not_ha
 
 
 def test_a_required_server_that_did_not_connect_is_a_misconfigured_harness() -> None:
-    setup = claude_setup(servers=(*SERVERS, "plugin:spec-proof-extra:exec"))
+    setup = claude_setup(servers=(*SERVERS, "plugin:musthold-extra:exec"))
     assessment = assess_claude_session(
         claude_lines("claude_session.jsonl"),
         policy_for(Arm.CHEAT),
@@ -78,7 +78,7 @@ def test_a_required_server_that_did_not_connect_is_a_misconfigured_harness() -> 
         TEST_CLAUDE_VERSION,
     )
     assert assessment.outcome is SessionOutcome.HARNESS_MISCONFIGURED
-    assert assessment.problems == ("missing mcp:plugin:spec-proof-extra:exec",)
+    assert assessment.problems == ("missing mcp:plugin:musthold-extra:exec",)
 
 
 def test_a_recorded_result_without_init_is_a_misconfigured_harness() -> None:

@@ -1,8 +1,8 @@
 package pluginfiles
 
 import (
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/harness"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
 )
 
 // The portable plugin: the files of the Agent Plugins standard, which every
@@ -24,12 +24,12 @@ const (
 	// CopilotNamespace is the extension namespace of Copilot CLI.
 	CopilotNamespace = "com.github.copilot"
 
-	pluginRepository = "https://github.com/RachidChabane/spec-proof"
+	pluginRepository = "https://github.com/RachidChabane/musthold"
 	transportStdio   = "stdio"
 )
 
 // PortableKeywords describe every plugin of the repository to a plugin directory.
-var PortableKeywords = []string{"spec-proof", "proof", "tests", "requirements"}
+var PortableKeywords = []string{"musthold", "proof", "tests", "requirements"}
 
 // PortableManifest is the identity a plugin of the repository gives its
 // `plugin.json`.

@@ -23,8 +23,8 @@ const (
 	// when the remote has no matching ref.
 	exitCodeNoMatchingRemoteRef = 2
 
-	authorName  = "spec-proof ledger"
-	authorEmail = "ledger@spec-proof.invalid"
+	authorName  = "musthold ledger"
+	authorEmail = "ledger@musthold.invalid"
 )
 
 // runner runs git in one repository.

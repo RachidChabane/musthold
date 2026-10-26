@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/RachidChabane/spec-proof/format/hostproto"
-	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
 
 func TestARejectedCallLeavesItsQuestionWithoutAPrediction(t *testing.T) {

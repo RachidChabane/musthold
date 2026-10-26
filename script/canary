@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run the live canary of one harness: build what it needs, then run it under
 # script/mem-guard (a memory check first, nice, and a stop if the pressure leaves
-# normal). Usage: script/canary <claude|codex|copilot> [spec-proof-canary run flags]. The
+# normal). Usage: script/canary <claude|codex|copilot> [musthold-canary run flags]. The
 # front doors are script/canary-claude, script/canary-codex and script/canary-copilot.
 #
 #   --dry-run        print the exact command lines and run nothing
@@ -11,7 +11,7 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-readonly CANARY=".tools/bin/spec-proof-canary"
+readonly CANARY=".tools/bin/musthold-canary"
 readonly HARNESS="${1:?usage: script/canary <claude|codex|copilot> [flags]}"
 shift
 
