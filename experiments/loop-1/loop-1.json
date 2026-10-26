@@ -30,6 +30,7 @@
     "Bash(musthold-completeness *)",
     "Bash(musthold-verify *)",
     "Bash(git status *)",
-    "Bash(git diff *)"
+    "Bash(git diff *)",
+    "Skill"
   ]
 }

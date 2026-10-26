@@ -23,7 +23,7 @@ const valid = `{
   "seed": 7,
   "model": "claude-sonnet-5-5",
   "caps": {"assistant_messages": 100, "seconds": 600, "budget_usd": "2.50"},
-  "allowed_tools": ["Bash(pytest *)"]
+  "allowed_tools": ["Bash(pytest *)", "Skill"]
 }`
 
 func TestParse(t *testing.T) {
@@ -41,7 +41,7 @@ func TestParse(t *testing.T) {
 		if parsed.Model != "claude-sonnet-5-5" || parsed.Caps != (config.Caps{AssistantMessages: 100, Seconds: 600, BudgetUSD: "2.50"}) {
 			t.Errorf("model %q, caps %+v", parsed.Model, parsed.Caps)
 		}
-		if !slices.Equal(parsed.AllowedTools, []string{"Bash(pytest *)"}) {
+		if !slices.Equal(parsed.AllowedTools, []string{"Bash(pytest *)", config.SkillRule}) {
 			t.Errorf("rules %v", parsed.AllowedTools)
 		}
 	})
@@ -83,6 +83,13 @@ func TestParse(t *testing.T) {
 			if !strings.Contains(err.Error(), member) {
 				t.Errorf("the error does not name %s: %v", member, err)
 			}
+		}
+	})
+
+	t.Run("permission rules that do not allow the Skill tool are refused [verifies SP-2426~1]", func(t *testing.T) {
+		_, err := config.Parse([]byte(strings.Replace(valid, `, "Skill"]`, `]`, 1)))
+		if !errors.Is(err, config.ErrInvalid) || !strings.Contains(err.Error(), `must allow "Skill"`) {
+			t.Fatalf("error %v", err)
 		}
 	})
 

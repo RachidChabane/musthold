@@ -27,6 +27,10 @@ const (
 	ArmFourProofs Arm = "four-proofs"
 )
 
+// SkillRule is the permission rule that lets the session run the skills of the
+// plugins its project is equipped with.
+const SkillRule = "Skill"
+
 // Arms lists every arm, in a fixed order.
 func Arms() []Arm { return []Arm{ArmTraceability, ArmFourProofs} }
 
@@ -155,6 +159,9 @@ func (c Config) problems() []string {
 		if rule == "" {
 			add("allowed_tools[%d]: empty rule", index)
 		}
+	}
+	if !slices.Contains(c.AllowedTools, SkillRule) {
+		add("allowed_tools: must allow %q, through which the session runs the plugins' protocols", SkillRule)
 	}
 	return found
 }

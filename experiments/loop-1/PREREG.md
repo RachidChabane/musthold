@@ -442,6 +442,7 @@ claude -p <prompt> --model claude-sonnet-5-5 --output-format stream-json --verbo
   - `Bash(musthold-dp *)`, `Bash(musthold-alignment *)`,
     `Bash(musthold-completeness *)`, `Bash(musthold-verify *)`;
   - `Bash(git status *)`, `Bash(git diff *)`;
+  - `Skill`, through which the session runs the plugins' skills;
 - `permissions.deny`: `WebFetch` and `WebSearch`.
 
 **Agent instructions.** For each task and arm, `resolve` records in `inputs.json`

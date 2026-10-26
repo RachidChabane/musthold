@@ -19,6 +19,9 @@ tests run on the demonstration's own engine and skip where it is not running.
   an invalid value, naming every member at fault; and SHALL list every run of
   each task in each arm for each repetition in an order that the seed alone
   decides.
+- **SP-2426~1**: WHEN a configuration is read THE SYSTEM SHALL refuse one whose
+  permission rules do not allow the `Skill` tool, through which the session runs
+  the protocols of the plugins it is equipped with.
 
 ## Preparation and session
 
