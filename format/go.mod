@@ -3,6 +3,7 @@ module github.com/RachidChabane/musthold/format
 go 1.26.4
 
 require (
+	github.com/dlclark/regexp2 v1.11.0
 	github.com/gowebpki/jcs v1.0.2
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	gopkg.in/yaml.v3 v3.0.1
@@ -11,7 +12,6 @@ require (
 
 require (
 	github.com/bitfield/gotestdox v0.2.2 // indirect
-	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/dnephin/pflag v1.0.7 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
