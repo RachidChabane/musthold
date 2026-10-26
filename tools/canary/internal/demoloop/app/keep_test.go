@@ -13,6 +13,16 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 )
 
+// dashed spells a path the way Claude Code names a directory after it.
+func dashed(path string) string {
+	return strings.Map(func(r rune) rune {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			return r
+		}
+		return '-'
+	}, path)
+}
+
 func TestKeep(t *testing.T) {
 	keeper := app.Keeper{Files: adapters.OSFiles{}}
 	const (
@@ -30,7 +40,8 @@ func TestKeep(t *testing.T) {
 		files := map[string]string{
 			record.MetaFile:   `{"argv":["` + repo + `/.tools/claude-code/2.1.295/bin/claude","--plugin-dir","` + repo + `/discpower/plugin/claude"],"task":"boxoffice"}`,
 			record.StreamFile: `{"type":"system","cwd":"` + run + `/project"}` + "\n" + `{"type":"user","text":"` + strings.TrimPrefix(run, "/private") + `/project/tests/test_prices.py"}` + "\n",
-			record.HooksFile:  `{"stdin":{"transcript_path":"` + home + `/.claude/projects/x.jsonl"}}` + "\n",
+			record.HooksFile: `{"stdin":{"transcript_path":"` + home + `/.claude/projects/x.jsonl"}}` + "\n" +
+				`{"session_dir":"` + run + `/claude-config/projects/` + dashed(run) + `-project","repo_dir":"` + home + `/.claude/projects/` + dashed(repo) + `"}` + "\n",
 		}
 		for name, content := range files {
 			if err := (adapters.OSFiles{}).Write(filepath.Join(records, name), []byte(content), false); err != nil {
@@ -40,7 +51,7 @@ func TestKeep(t *testing.T) {
 		return root
 	}
 
-	t.Run("the records are kept with the run directory, the repository and the home written as placeholders [verifies SP-2409~2]", func(t *testing.T) {
+	t.Run("the records are kept with the run directory, the repository and the home written as placeholders [verifies SP-2409~3]", func(t *testing.T) {
 		root := runOn(t)
 		run := root
 		to := filepath.Join(t.TempDir(), "recording")
@@ -62,13 +73,18 @@ func TestKeep(t *testing.T) {
 				}
 			}
 		}
+		dashed, _ := os.ReadFile(filepath.Join(to, record.HooksFile))
+		if !strings.Contains(string(dashed), `"session_dir":"<run>/claude-config/projects/<run>-project"`) ||
+			!strings.Contains(string(dashed), `"repo_dir":"~/.claude/projects/<repo>"`) {
+			t.Errorf("a dash-encoded path was not replaced: %s", dashed)
+		}
 		stream, _ := os.ReadFile(filepath.Join(to, record.StreamFile))
 		if !strings.Contains(string(stream), `"text":"<run>/project/tests/test_prices.py"`) {
 			t.Errorf("the run directory outside /private was not replaced: %s", stream)
 		}
 	})
 
-	t.Run("records that hold the token, exactly or by its shape, are refused and nothing is kept [verifies SP-2409~2]", func(t *testing.T) {
+	t.Run("records that hold the token, exactly or by its shape, are refused and nothing is kept [verifies SP-2409~3]", func(t *testing.T) {
 		for name, leak := range map[string]struct{ content, exact string }{
 			"by shape": {content: "sk-ant-oat01-" + strings.Repeat("x", 40), exact: ""},
 			"exactly":  {content: "the value is correct-horse-battery-staple-42", exact: "correct-horse-battery-staple-42"},
@@ -88,7 +104,7 @@ func TestKeep(t *testing.T) {
 		}
 	})
 
-	t.Run("a destination that holds a recording is refused [verifies SP-2409~2]", func(t *testing.T) {
+	t.Run("a destination that holds a recording is refused [verifies SP-2409~3]", func(t *testing.T) {
 		root := runOn(t)
 		to := filepath.Join(t.TempDir(), "recording")
 		if err := keeper.Keep(root, repo, home, to, ""); err != nil {

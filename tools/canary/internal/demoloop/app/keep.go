@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
+	"unicode"
 
 	canary "github.com/RachidChabane/musthold/tools/canary/internal/app"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
@@ -72,19 +74,35 @@ func (k Keeper) Keep(run, repo, home, destination, token string) error {
 type replacement struct{ from, to []byte }
 
 // placeholders orders the replacements from the longest path down, each with
-// its form outside /private, so that a path inside another keeps its own name.
+// its form outside /private, so that a path inside another keeps its own name;
+// the dash-encoded forms follow, in the same order.
 func placeholders(run, repo, home string) []replacement {
-	var found []replacement
+	var paths []replacement
 	for _, pair := range [][2]string{{run, PlaceholderRun}, {repo, PlaceholderRepo}, {home, PlaceholderHome}} {
 		if pair[0] == "" {
 			continue
 		}
-		found = append(found, replacement{[]byte(pair[0]), []byte(pair[1])})
+		paths = append(paths, replacement{[]byte(pair[0]), []byte(pair[1])})
 		if trimmed, trimmedFound := strings.CutPrefix(pair[0], privateRoot); trimmedFound {
-			found = append(found, replacement{[]byte(trimmed), []byte(pair[1])})
+			paths = append(paths, replacement{[]byte(trimmed), []byte(pair[1])})
 		}
 	}
+	found := slices.Clone(paths)
+	for _, path := range paths {
+		found = append(found, replacement{[]byte(dashEncoded(string(path.from))), path.to})
+	}
 	return found
+}
+
+// dashEncoded is the name Claude Code gives a directory it names after a path:
+// every character other than an ASCII letter or digit becomes a dash.
+func dashEncoded(path string) string {
+	return strings.Map(func(r rune) rune {
+		if r < unicode.MaxASCII && (unicode.IsLetter(r) || unicode.IsDigit(r)) {
+			return r
+		}
+		return '-'
+	}, path)
 }
 
 func redact(content []byte, replacements []replacement) []byte {
