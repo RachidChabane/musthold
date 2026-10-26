@@ -12,6 +12,7 @@ from pilot.domain.amendment import AMENDMENT_FILENAME, IMPORT_DIGESTS_PLACEHOLDE
 from pilot.domain.preregistration import PREREG_TAG, SUPERSEDED_PREREG_TAG
 
 EXPERIMENT = Path(__file__).resolve().parents[3]
+ARCHIVE_COMMITS = EXPERIMENT.parent / "archive-commits.tsv"
 FIXTURE_PATHS = ("fixture/", "prereg/oracle/", "prereg/labels.yaml", "prereg/label_matrix.csv", "prereg/violations/", "prereg/planted/", "prereg/refactor/")
 
 
@@ -24,6 +25,17 @@ def amendment():
     return json.loads((EXPERIMENT / "prereg" / AMENDMENT_FILENAME).read_text())
 
 
+def published_commit(commit):
+    """The commit of this repository that carries `commit`, when it names a commit of the archive it was published from."""
+    if not ARCHIVE_COMMITS.exists():
+        return commit
+    for row in ARCHIVE_COMMITS.read_text().splitlines()[1:]:
+        archive, public = row.split("\t")[:2]
+        if archive == commit:
+            return public
+    return commit
+
+
 def require_tag():
     if git("rev-parse", "--verify", "--quiet", f"{SUPERSEDED_PREREG_TAG}^{{commit}}").returncode != 0:
         pytest.skip("superseded tag not available")
@@ -32,8 +44,9 @@ def require_tag():
 def test_the_amendment_names_the_superseded_tag_and_its_peeled_commit(amendment):
     require_tag()
     assert amendment["superseded_tag"] == SUPERSEDED_PREREG_TAG
-    assert amendment["superseded_commit"] == git("rev-parse", f"{SUPERSEDED_PREREG_TAG}^{{commit}}").stdout.strip()
     assert amendment["superseded_commit"].startswith("e95f551")
+    peeled = git("rev-parse", f"{SUPERSEDED_PREREG_TAG}^{{commit}}").stdout.strip()
+    assert published_commit(amendment["superseded_commit"]) == peeled
 
 
 def test_the_import_digests_hold_a_placeholder_until_the_seal_fills_them(amendment):
