@@ -1657,17 +1657,17 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   patch and runs the one test, quoted, so that its exit status is the test's,
   and `finding.json`, which names the commit, the runner, the test, the mutant
   with its edits and the route.
-- **SP-2119~3**: WHEN `musthold-dp scan` runs THE SYSTEM SHALL need no
-  configuration, scan the first pytest, Go, Jest or Vitest suite it detects,
-  quickly unless
+- **SP-2119~4**: WHEN `musthold-dp scan` runs THE SYSTEM SHALL need no
+  configuration, scan the first pytest, Go, Jest or Vitest suite it detects
+  that collects a test, in that order, quickly unless
   `--full` is given (SP-2131), `--sample`, `--mutants` and `--budget` replacing
   what the depth presets, write the reports,
   print the headline, the Markdown report with `--format md` or the scan statement
   with `--format json`, and exit 0 whatever the counts; SHALL fail, writing no
   report, on a tree with no such suite, a dirty tree, an unknown format or an
-  extra argument; and `musthold-dp scan replay <dir>` SHALL replay the finding
-  of a finding folder or every finding of a scan folder and exit 1 when a claim
-  does not hold.
+  extra argument; and `musthold-dp scan replay <dir>` SHALL replay, with the
+  runner each finding names, the finding of a finding folder or every finding
+  of a scan folder and exit 1 when a claim does not hold.
 - **SP-2425~1**: WHEN `musthold-dp scan` finds no suite in a tree whose root
   holds a Go workspace file, `go.work`, THE SYSTEM SHALL fail naming the modules
   the file uses, in its order, and that `--root` scans one module at a time.

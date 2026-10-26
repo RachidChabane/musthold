@@ -20,13 +20,14 @@ const (
 	goRatesFixture    = "fixtures/scan/go-rates"
 	jestScanFixture   = "fixtures/scan/jest"
 	vitestScanFixture = "fixtures/scan/vitest"
+	polyglotFixture   = "fixtures/scan/vitest-polyglot"
 	vacuousPytest     = "tests/test_discount.py::test_discount_accepts_any_percent"
 	vacuousGo         = "discount_test.go::TestDiscountAcceptsAnyPercent"
 	vacuousNode       = "test/discount.test.ts::discount accepts any percent"
 	nodeTool          = "node"
 	verifiesScanE2E   = " [verifies SP-2122~3]"
 	verifiesReplay    = " [verifies SP-2114~2]"
-	verifiesCommand   = " [verifies SP-2119~3]"
+	verifiesCommand   = " [verifies SP-2119~4]"
 	verifiesOrder     = " [verifies SP-2140~1]"
 )
 
@@ -230,6 +231,21 @@ func TestQuickAndFullScansOfANodeProject(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestScanOfAProjectWhoseFirstDetectedSuiteCollectsNothing(t *testing.T) {
+	for _, tool := range []string{"python3", nodeTool} {
+		if _, err := exec.LookPath(tool); err != nil {
+			t.Skipf("no %s: %v", tool, err)
+		}
+	}
+	s := newScanned(t, polyglotFixture)
+	scan := s.run(s.binary, "scan")
+	t.Run("a scan runs the Vitest suite when the pytest suite the project also declares collects no test"+verifiesScanE2E, func(t *testing.T) {
+		if scan.code != 0 || !strings.Contains(scan.stdout, "#1 "+vacuousNode+" passes on all ") {
+			t.Fatalf("exit %d:\n%s", scan.code, scan.output())
+		}
+	})
 }
 
 func TestScanRefusesADirtyTree(t *testing.T) {

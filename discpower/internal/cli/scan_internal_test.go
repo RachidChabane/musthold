@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -17,7 +19,7 @@ import (
 )
 
 func TestDepthRequest(t *testing.T) {
-	t.Run("a scan is quick unless --full is given [verifies SP-2119~3]", func(t *testing.T) {
+	t.Run("a scan is quick unless --full is given [verifies SP-2119~4]", func(t *testing.T) {
 		quick := depthRequest(false, nil, scan.Preset{})
 		if quick.Depth != scan.DepthQuick || quick.SampleSize != scan.QuickSampleSize || quick.Mutants != scan.QuickMutants ||
 			quick.Budget != scan.QuickBudget || quick.Coverage != scan.CoverSampled {
@@ -29,7 +31,7 @@ func TestDepthRequest(t *testing.T) {
 			t.Fatalf("full %+v", full)
 		}
 	})
-	t.Run("--sample, --mutants and --budget replace what the depth sets, even with zero [verifies SP-2119~3]", func(t *testing.T) {
+	t.Run("--sample, --mutants and --budget replace what the depth sets, even with zero [verifies SP-2119~4]", func(t *testing.T) {
 		given := map[string]bool{flagSample: true, flagMutants: true, flagBudget: true}
 		request := depthRequest(false, given, scan.Preset{SampleSize: 3, Mutants: 9})
 		if request.SampleSize != 3 || request.Mutants != 9 || request.Budget != 0 || request.Depth != scan.DepthQuick {
@@ -103,11 +105,11 @@ func TestWitnessRecorder(t *testing.T) {
 	}
 	strategyOf := func(t *testing.T, fixture string) ports.Ecosystem {
 		t.Helper()
-		strategy, _, err := scanStrategy(strategies, fixture)
+		candidates, err := scanCandidates(strategies, fixture)
 		if err != nil {
 			t.Fatal(err)
 		}
-		return strategy
+		return candidates[0].strategy
 	}
 	goStrategy, pytestStrategy := strategyOf(t, goScanFixture), strategyOf(t, pytestScanFixture)
 	t.Run("a Go module records the coverage of its witnesses running them alone [verifies SP-2271~1]", func(t *testing.T) {
@@ -148,6 +150,47 @@ func TestWitnessRecorder(t *testing.T) {
 	})
 }
 
+func TestScanCandidates(t *testing.T) {
+	strategies, err := newStrategies(process.New(), junitxml.NewReader())
+	if err != nil {
+		t.Fatal(err)
+	}
+	polyglot := t.TempDir()
+	if err := os.WriteFile(filepath.Join(polyglot, "pyproject.toml"), []byte("[tool.pytest.ini_options]\ntestpaths = [\"tooling\"]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(polyglot, "vitest.config.ts"), []byte("export default {};\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	candidates, err := scanCandidates(strategies, polyglot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Run("a tree that declares several test tools offers each of them, in registration order [verifies SP-2119~4]", func(t *testing.T) {
+		var names []domain.Name
+		for _, candidate := range candidates {
+			names = append(names, candidate.strategy.Name())
+		}
+		if want := []domain.Name{domain.Pytest, domain.Vitest}; !slices.Equal(names, want) {
+			t.Fatalf("candidates %v, want %v", names, want)
+		}
+	})
+	t.Run("a replay runs the ecosystem its finding names, the first one when it names none [verifies SP-2119~4]", func(t *testing.T) {
+		tree := scanTree{candidates: candidates}
+		if got := tree.candidateRunning(string(domain.Vitest)).strategy.Name(); got != domain.Vitest {
+			t.Fatalf("runs %s", got)
+		}
+		if got := tree.candidateRunning("").strategy.Name(); got != domain.Pytest {
+			t.Fatalf("runs %s", got)
+		}
+	})
+	t.Run("a tree no scan ecosystem recognizes has no candidate [verifies SP-2119~4]", func(t *testing.T) {
+		if _, err := scanCandidates(strategies, t.TempDir()); !errors.Is(err, errScanEcosystem) {
+			t.Fatalf("error %v", err)
+		}
+	})
+}
+
 // Scan fixtures whose ecosystem the scan detects.
 const (
 	goScanFixture     = "../../fixtures/scan/go"
@@ -166,13 +209,13 @@ func TestScanStrategyRefusal(t *testing.T) {
 		if err := os.WriteFile(root+"/go.work", []byte("go 1.26\n\nuse (\n\t./format\n\t./discpower\n)\n"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		_, _, err := scanStrategy(strategies, root)
+		_, err := scanCandidates(strategies, root)
 		if !errors.Is(err, errScanEcosystem) || !strings.Contains(err.Error(), "--root <module>: format, discpower") {
 			t.Fatalf("refusal %v", err)
 		}
 	})
 	t.Run("a tree with no suite and no workspace is refused as before [verifies SP-2425~1]", func(t *testing.T) {
-		if _, _, err := scanStrategy(strategies, t.TempDir()); !errors.Is(err, errScanEcosystem) || err.Error() != errScanEcosystem.Error() {
+		if _, err := scanCandidates(strategies, t.TempDir()); !errors.Is(err, errScanEcosystem) || err.Error() != errScanEcosystem.Error() {
 			t.Fatalf("refusal %v", err)
 		}
 	})

@@ -128,24 +128,46 @@ func (e Env) scan(args []string) outcome {
 		return outcome{err: errScanFormat}
 	}
 	asksHost := *host || *resume
-	wired, err := e.openScan(*root, asksHost)
+	tree, err := e.detectScan(*root)
 	if err != nil {
 		return outcome{err: err}
 	}
-	defer wired.close()
 	niceness.Lower(scanNiceness)
 	request := depthRequest(*full, givenFlags(set.FlagSet), scan.Preset{SampleSize: *sample, Mutants: *mutants, Budget: *budget})
-	request.Root, request.Base, request.Seed, request.Workers, request.CoverageTimeout = wired.root, *base, *seed, *workers, *coverageTimeout
+	request.Root, request.Base, request.Seed, request.Workers, request.CoverageTimeout = tree.root, *base, *seed, *workers, *coverageTimeout
 	request.PullRequest, request.Resume = pull, *resume
 	request.Module = format.Module{Name: moduleName, Version: version.Version}
-	if asksHost {
-		return e.hostScan(wired, request, *outputFormat)
+	return e.scanFirstSuite(tree, asksHost, func(wired scanProject) outcome {
+		if asksHost {
+			return e.hostScan(wired, request, *outputFormat)
+		}
+		report, err := wired.service.Run(context.Background(), request)
+		if err != nil {
+			return outcome{err: scanFailure(err)}
+		}
+		return e.reportScan(wired.root, report, *outputFormat)
+	})
+}
+
+// scanFirstSuite runs a scan on each ecosystem detected in the tree, in
+// registration order, and stops at the first whose suite collects a test: a
+// tree can declare a test tool whose suite collects nothing beside the suite
+// that holds the tests, and the scan's outcome is the last attempt's when none
+// collects any.
+func (e Env) scanFirstSuite(tree scanTree, asksHost bool, run func(scanProject) outcome) outcome {
+	var attempt outcome
+	for _, candidate := range tree.candidates {
+		wired, err := e.openScan(tree, candidate, asksHost)
+		if err != nil {
+			return outcome{err: err}
+		}
+		attempt = run(wired)
+		wired.close()
+		if !errors.Is(attempt.err, scan.ErrNoTests) {
+			return attempt
+		}
 	}
-	report, err := wired.service.Run(context.Background(), request)
-	if err != nil {
-		return outcome{err: scanFailure(err)}
-	}
-	return e.reportScan(wired.root, report, *outputFormat)
+	return attempt
 }
 
 // pullRequestOf reads the one positional argument a scan takes: the number of
@@ -260,7 +282,11 @@ func (e Env) scanReplay(args []string) outcome {
 	if err != nil {
 		return outcome{err: err}
 	}
-	wired, err := e.openScan(*root, false)
+	tree, err := e.detectScan(*root)
+	if err != nil {
+		return outcome{err: err}
+	}
+	wired, err := e.openScan(tree, tree.candidateRunning(records[0].Runner), false)
 	if err != nil {
 		return outcome{err: err}
 	}
@@ -334,25 +360,56 @@ type scanProject struct {
 
 func (p scanProject) close() { _ = p.workspaces.Close() }
 
-// openScan wires a scan of the work tree: the first detected ecosystem a scan
-// runs, its prober, form compiler and witness host when it has them, git, the
-// pull requests through gh, and workspaces outside the tree; a scan that asks
-// the host also gets the host store, the memo of its witness facts and the
-// store of its sources. A replay asks no host and holds neither.
-func (e Env) openScan(rootFlag string, asksHost bool) (scanProject, error) {
+// scanCandidate is an ecosystem a scan runs, with the suite it runs.
+type scanCandidate struct {
+	strategy ports.Ecosystem
+	suite    ports.ScanSuite
+}
+
+// scanTree is the work tree of a scan and the ecosystems a scan runs in it, in
+// registration order.
+type scanTree struct {
+	root       string
+	runner     ports.ProcessRunner
+	candidates []scanCandidate
+}
+
+// candidateRunning is the candidate whose runner is named, the first one when
+// none is.
+func (t scanTree) candidateRunning(runner string) scanCandidate {
+	for _, candidate := range t.candidates {
+		if string(candidate.strategy.Name()) == runner {
+			return candidate
+		}
+	}
+	return t.candidates[0]
+}
+
+// detectScan finds the ecosystems a scan runs in the work tree.
+func (e Env) detectScan(rootFlag string) (scanTree, error) {
 	root, err := e.rootOf(rootFlag)
 	if err != nil {
-		return scanProject{}, err
+		return scanTree{}, err
 	}
 	runner := process.New()
 	strategies, err := newStrategies(runner, junitxml.NewReader())
 	if err != nil {
-		return scanProject{}, err
+		return scanTree{}, err
 	}
-	strategy, suite, err := scanStrategy(strategies, root)
+	candidates, err := scanCandidates(strategies, root)
 	if err != nil {
-		return scanProject{}, err
+		return scanTree{}, err
 	}
+	return scanTree{root: root, runner: runner, candidates: candidates}, nil
+}
+
+// openScan wires a scan of the work tree on an ecosystem: its prober, form
+// compiler and witness host when it has them, git, the pull requests through
+// gh, and workspaces outside the tree; a scan that asks the host also gets the
+// host store, the memo of its witness facts and the store of its sources. A
+// replay asks no host and holds neither.
+func (e Env) openScan(tree scanTree, candidate scanCandidate, asksHost bool) (scanProject, error) {
+	root, runner, strategy, suite := tree.root, tree.runner, candidate.strategy, candidate.suite
 	engines, err := newEngines()
 	if err != nil {
 		return scanProject{}, err
@@ -427,15 +484,19 @@ func (e Env) scanHost(root string, repository gitsource.Repository) (*scan.HostD
 	}, nil
 }
 
-// scanStrategy is the first ecosystem detected in the tree that a scan runs.
-func scanStrategy(strategies *ecosystem.Registry, root string) (ports.Ecosystem, ports.ScanSuite, error) {
+// scanCandidates are the ecosystems detected in the tree that a scan runs.
+func scanCandidates(strategies *ecosystem.Registry, root string) ([]scanCandidate, error) {
 	tree := os.DirFS(root)
-	for _, candidate := range strategies.Detect(tree) {
-		if scanning, ok := candidate.Strategy.(ports.Scanning); ok {
-			return candidate.Strategy, scanning.Scan(), nil
+	var candidates []scanCandidate
+	for _, detected := range strategies.Detect(tree) {
+		if scanning, ok := detected.Strategy.(ports.Scanning); ok {
+			candidates = append(candidates, scanCandidate{strategy: detected.Strategy, suite: scanning.Scan()})
 		}
 	}
-	return nil, nil, noScanEcosystem(tree)
+	if len(candidates) == 0 {
+		return nil, noScanEcosystem(tree)
+	}
+	return candidates, nil
 }
 
 // noScanEcosystem is the refusal of a tree with no suite a scan runs; at the

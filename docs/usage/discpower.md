@@ -169,6 +169,8 @@ and sees only its ticket.
 `musthold-dp scan` asks of any pytest, Go, Jest or Vitest repository, with no
 spec, no model and no configuration, which tests still pass when the code they
 run is broken (ADR 0014). `musthold scan` runs it through the [umbrella](umbrella.md).
+A tree that declares several of these test tools is scanned on the first, in the
+order pytest, Go, Jest, Vitest, whose suite collects a test.
 
 ```
 musthold-dp scan [--full] [--host [--resume]] [--base REV] [--seed N] [--sample N] [--mutants N] [--budget DURATION] [--workers N] [--coverage-timeout DURATION] [--format text|md|json] [--root DIR] [<PR>]
