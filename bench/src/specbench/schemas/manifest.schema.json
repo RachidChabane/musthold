@@ -29,23 +29,23 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "shallnot",
         "musthold-alignment",
         "musthold-completeness",
         "musthold-dp",
         "musthold-ledger",
         "musthold-s1",
         "musthold-verify",
+        "shallnot",
         "umbrella-plugin"
       ],
       "properties": {
-        "shallnot": {"$ref": "#/$defs/sha256"},
         "musthold-alignment": {"$ref": "#/$defs/sha256"},
         "musthold-completeness": {"$ref": "#/$defs/sha256"},
         "musthold-dp": {"$ref": "#/$defs/sha256"},
         "musthold-ledger": {"$ref": "#/$defs/sha256"},
         "musthold-s1": {"$ref": "#/$defs/sha256"},
         "musthold-verify": {"$ref": "#/$defs/sha256"},
+        "shallnot": {"$ref": "#/$defs/sha256"},
         "umbrella-plugin": {"$ref": "#/$defs/sha256"}
       }
     },
