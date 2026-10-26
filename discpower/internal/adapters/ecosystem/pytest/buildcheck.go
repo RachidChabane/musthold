@@ -25,12 +25,13 @@ const (
 )
 
 type buildCheck struct {
+	ports.NoBuildBaseline
 	deps Dependencies
 }
 
 // Check compiles the changed files with `py -m py_compile`, then imports each
 // changed module. A failure of either turns every test outcome into "error".
-func (b buildCheck) Check(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, changed []string) (ecosystem.BuildResult, error) {
+func (b buildCheck) Check(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, changed []string, _ ecosystem.BuildBaseline) (ecosystem.BuildResult, error) {
 	sources := pythonSources(changed)
 	if len(sources) == 0 {
 		return ecosystem.BuildResult{OK: true}, nil

@@ -138,7 +138,7 @@ func TestBuildCheckCommands(t *testing.T) {
 
 	t.Run("changed files are compiled, then each module is imported [verifies SP-74~1]", func(t *testing.T) {
 		process := &recorder{}
-		result, err := strategy(process, nil, found).BuildCheck().Check(ctx, workspace, toolchain, []string{"parcel/rates.py", "src/shop/__init__.py", "README.md"})
+		result, err := strategy(process, nil, found).BuildCheck().Check(ctx, workspace, toolchain, []string{"parcel/rates.py", "src/shop/__init__.py", "README.md"}, ecosystem.BuildBaseline{})
 		if err != nil || !result.OK || len(process.commands) != 3 {
 			t.Fatalf("%+v %v commands=%v", result, err, process.commands)
 		}
@@ -159,7 +159,7 @@ func TestBuildCheckCommands(t *testing.T) {
 
 	t.Run("a compile failure is a failed build with diagnostics and no import [verifies SP-74~1]", func(t *testing.T) {
 		process := &recorder{exit: func(ports.Command) int { return 1 }}
-		result, err := strategy(process, nil, found).BuildCheck().Check(ctx, workspace, toolchain, []string{"parcel/rates.py"})
+		result, err := strategy(process, nil, found).BuildCheck().Check(ctx, workspace, toolchain, []string{"parcel/rates.py"}, ecosystem.BuildBaseline{})
 		if err != nil || result.OK || !strings.Contains(result.Diagnostics, "SyntaxError") || len(process.commands) != 1 {
 			t.Fatalf("%+v %v", result, err)
 		}
@@ -172,7 +172,7 @@ func TestBuildCheckCommands(t *testing.T) {
 			}
 			return 0
 		}}
-		result, err := strategy(process, nil, found).BuildCheck().Check(ctx, workspace, toolchain, []string{"parcel/rates.py"})
+		result, err := strategy(process, nil, found).BuildCheck().Check(ctx, workspace, toolchain, []string{"parcel/rates.py"}, ecosystem.BuildBaseline{})
 		if err != nil || result.OK {
 			t.Fatalf("%+v %v", result, err)
 		}
@@ -180,7 +180,7 @@ func TestBuildCheckCommands(t *testing.T) {
 
 	t.Run("no Python file changed means nothing to check [verifies SP-74~1]", func(t *testing.T) {
 		process := &recorder{}
-		result, err := strategy(process, nil, found).BuildCheck().Check(ctx, workspace, toolchain, []string{"notes.md"})
+		result, err := strategy(process, nil, found).BuildCheck().Check(ctx, workspace, toolchain, []string{"notes.md"}, ecosystem.BuildBaseline{})
 		if err != nil || !result.OK || len(process.commands) != 0 {
 			t.Fatalf("%+v %v", result, err)
 		}

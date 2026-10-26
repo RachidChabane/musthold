@@ -79,7 +79,7 @@ func TestBuildCheckCommand(t *testing.T) {
 
 	t.Run("the test binaries of the changed packages are compiled without running tests [verifies SP-75~1]", func(t *testing.T) {
 		process := &recorder{}
-		result, err := strategy(process, nil, found).BuildCheck().Check(context.Background(), workspace, toolchain, []string{"rates.go", "internal/tax/tax.go", "internal/tax/rate.go", "README.md"})
+		result, err := strategy(process, nil, found).BuildCheck().Check(context.Background(), workspace, toolchain, []string{"rates.go", "internal/tax/tax.go", "internal/tax/rate.go", "README.md"}, ecosystem.BuildBaseline{})
 		want := []string{"go", "test", "-count=1", "-run", "^$", ".", "./internal/tax"}
 		if err != nil || !result.OK || !reflect.DeepEqual(process.commands[0].Argv, want) || process.commands[0].Dir != workspace.Dir {
 			t.Fatalf("%+v %v argv=%v", result, err, process.commands[0].Argv)
@@ -88,7 +88,7 @@ func TestBuildCheckCommand(t *testing.T) {
 
 	t.Run("no changed Go file checks every package [verifies SP-75~1]", func(t *testing.T) {
 		process := &recorder{}
-		if _, err := strategy(process, nil, found).BuildCheck().Check(context.Background(), workspace, toolchain, nil); err != nil {
+		if _, err := strategy(process, nil, found).BuildCheck().Check(context.Background(), workspace, toolchain, nil, ecosystem.BuildBaseline{}); err != nil {
 			t.Fatal(err)
 		}
 		if got := process.commands[0].Argv; got[len(got)-1] != "./..." {
@@ -98,7 +98,7 @@ func TestBuildCheckCommand(t *testing.T) {
 
 	t.Run("a failing compilation is a failed build with its output [verifies SP-75~1]", func(t *testing.T) {
 		process := &recorder{exit: 1}
-		result, err := strategy(process, nil, found).BuildCheck().Check(context.Background(), workspace, toolchain, []string{"rates.go"})
+		result, err := strategy(process, nil, found).BuildCheck().Check(context.Background(), workspace, toolchain, []string{"rates.go"}, ecosystem.BuildBaseline{})
 		if err != nil || result.OK || result.Diagnostics != "build failed" {
 			t.Fatalf("%+v %v", result, err)
 		}

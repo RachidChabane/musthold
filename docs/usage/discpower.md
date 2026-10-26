@@ -137,6 +137,12 @@ Before running tests the module checks that the changed code builds: `tsc
 compile of main and test sources with no daemon left behind on the JVM, an
 import of the changed modules on pytest, and a compile of the test binaries on
 Go. A mutant that does not build is classified `error` and never counts.
+The TypeScript check judges a mutant by what it adds: a project whose `tsc`
+already reports diagnostics on the unmodified code, as a deprecated option in
+`tsconfig.json` or a type error that Vitest never checks does, has them recorded
+once before any mutant runs, and a mutant fails the check only on a diagnostic
+the reference does not report, compared by file, code and message wherever it
+sits in the file.
 
 Operator mutants and sentinels exist for Python, Go, JavaScript and TypeScript, Java
 and Kotlin sources. The module probes code by calling the targets of your
@@ -282,7 +288,7 @@ acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled ·
    src/invoicing/parse.py:41  >= → >   input line="a,": reference "a", mutant ""
    proven by: a differential run of invoicing.parse:split_fields, reproduced, on a reference that agrees with itself
    repro: .musthold/scan/3f2a9c1/1/repro.sh
-150 mutants (61 proven) · 4m12s (reference 41s, coverage 1m2s, draw 1s, mutants 2m16s, confirmation 12s) · no model used · promises not checked
+150 mutants (150 ran: 61 proven) · 4m12s (reference 41s, coverage 1m2s, draw 1s, mutants 2m16s, confirmation 12s) · no model used · promises not checked
 7/40 sampled tests stay green on every proven change in lines they ran: on those lines, their green is no evidence the code is right.
 ```
 
@@ -292,8 +298,11 @@ differential search found no difference, had no function to call or could not
 call it, whether the only killing test fails a sentinel, or whether the mutant
 compiled to the reference's form, did not build or start, or did not run within
 the budget. The Markdown report lists each unproven test on its own row. The
-mutant count names the sentinels that stopped a test binary: a sentinel keeps
-behaviour, so such a stop is a fault of the harness, never of a test.
+mutant count is the number of mutants drawn, the sum of those that ran, those
+that did not build or start and those the budget left unrun; of the ones that ran
+it names the proven ones, those identical when compiled and the sentinels that
+stopped a test binary: a sentinel keeps behaviour, so such a stop is a fault of
+the harness, never of a test.
 
 When a sampled test verifies nothing, the last line says what its green
 leaves unshown, over the sampled tests; a scan in which none does ends on the

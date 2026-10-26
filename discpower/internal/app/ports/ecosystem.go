@@ -54,7 +54,20 @@ type AssignmentLocator interface {
 
 // BuildCheck compiles or imports the changed files of a workspace.
 type BuildCheck interface {
-	Check(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, changed []string) (ecosystem.BuildResult, error)
+	// Baseline records what the check already reports on the unmutated
+	// reference workspace; it is empty for a check that cannot fail on a
+	// reference whose tests run.
+	Baseline(ctx context.Context, reference ecosystem.Workspace, toolchain ecosystem.Toolchain) (ecosystem.BuildBaseline, error)
+	// Check fails on the diagnostics the workspace adds to the baseline.
+	Check(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, changed []string, baseline ecosystem.BuildBaseline) (ecosystem.BuildResult, error)
+}
+
+// NoBuildBaseline is embedded by a build check whose reference always passes.
+type NoBuildBaseline struct{}
+
+// Baseline is empty.
+func (NoBuildBaseline) Baseline(context.Context, ecosystem.Workspace, ecosystem.Toolchain) (ecosystem.BuildBaseline, error) {
+	return ecosystem.BuildBaseline{}, nil
 }
 
 // TestSelector builds a runner selection from bound tests and the definitions of

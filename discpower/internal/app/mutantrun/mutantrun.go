@@ -23,10 +23,13 @@ type Executor struct {
 	Policy mutation.Policy
 }
 
-// Reference is the reference workspace and the toolchain resolved in it.
+// Reference is the reference workspace, the toolchain resolved in it and what
+// its build check already reports.
 type Reference struct {
 	Workspace ecosystem.Workspace
 	Toolchain ecosystem.Toolchain
+	// Baseline is computed once; a mutant fails the build check on what it adds.
+	Baseline ecosystem.BuildBaseline
 }
 
 // Request is one mutant execution.
@@ -46,7 +49,8 @@ type Result struct {
 	Diagnostics string
 }
 
-// PrepareReference copies the project once and resolves the toolchain.
+// PrepareReference copies the project once, resolves the toolchain and records
+// the build baseline of the unmutated copy.
 func (e Executor) PrepareReference(ctx context.Context, source string) (Reference, error) {
 	workspace, err := e.Workspaces.Prepare(ctx, source, e.Ecosystem.Layout())
 	if err != nil {
@@ -56,13 +60,17 @@ func (e Executor) PrepareReference(ctx context.Context, source string) (Referenc
 	if err != nil {
 		return Reference{}, fmt.Errorf("resolve the toolchain: %w", err)
 	}
-	return Reference{Workspace: workspace, Toolchain: toolchain}, nil
+	baseline, err := e.Ecosystem.BuildCheck().Baseline(ctx, workspace, toolchain)
+	if err != nil {
+		return Reference{}, fmt.Errorf("record the build baseline: %w", err)
+	}
+	return Reference{Workspace: workspace, Toolchain: toolchain, Baseline: baseline}, nil
 }
 
 // BuildReference runs the build check over the whole reference workspace, so
 // that build outputs exist before mutants are cloned from it.
 func (e Executor) BuildReference(ctx context.Context, reference Reference, sources []string) (ecosystem.BuildResult, error) {
-	return e.Ecosystem.BuildCheck().Check(ctx, reference.Workspace, reference.Toolchain, sources)
+	return e.Ecosystem.BuildCheck().Check(ctx, reference.Workspace, reference.Toolchain, sources, reference.Baseline)
 }
 
 // RunReference runs the selection of the bound tests, or the whole suite, on
@@ -136,7 +144,7 @@ func (e Executor) Mutate(ctx context.Context, reference Reference, edits mutatio
 	if diagnostics != "" {
 		return BuildStatus{Diagnostics: diagnostics}, nil
 	}
-	build, err := e.Ecosystem.BuildCheck().Check(ctx, mutant, reference.Toolchain, changed)
+	build, err := e.Ecosystem.BuildCheck().Check(ctx, mutant, reference.Toolchain, changed, reference.Baseline)
 	if err != nil {
 		return BuildStatus{}, err
 	}

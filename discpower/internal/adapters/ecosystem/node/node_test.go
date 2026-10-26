@@ -158,7 +158,7 @@ func TestBuildCheck(t *testing.T) {
 	ctx := context.Background()
 	toolchain := ecosystem.Toolchain{Command: []string{"npx", "--no-install"}}
 	check := func(process ports.ProcessRunner, workspace ecosystem.Workspace, lookPath func(string) (string, error), changed ...string) (ecosystem.BuildResult, error) {
-		return node.NewVitest(dependencies(process, nil, lookPath)).BuildCheck().Check(ctx, workspace, toolchain, changed)
+		return node.NewVitest(dependencies(process, nil, lookPath)).BuildCheck().Check(ctx, workspace, toolchain, changed, ecosystem.BuildBaseline{})
 	}
 
 	t.Run("a changed TypeScript file is type-checked with the project's tsconfig [verifies SP-1012~1]", func(t *testing.T) {

@@ -45,6 +45,7 @@ const wholeProject = "."
 type reference struct {
 	workspace ecosystem.Workspace
 	toolchain ecosystem.Toolchain
+	baseline  ecosystem.BuildBaseline
 	layout    ecosystem.Layout
 	executor  mutantrun.Executor
 	cases     []ports.ScanCase
@@ -66,7 +67,7 @@ type reference struct {
 
 // referenceOf is the reference as the mutant executor takes it.
 func (r reference) referenceOf() mutantrun.Reference {
-	return mutantrun.Reference{Workspace: r.workspace, Toolchain: r.toolchain}
+	return mutantrun.Reference{Workspace: r.workspace, Toolchain: r.toolchain, Baseline: r.baseline}
 }
 
 // runReference runs the whole suite three times on the built reference, which
@@ -140,7 +141,7 @@ func (s *Service) buildReference(ctx context.Context, root string) (reference, e
 		_ = s.deps.Workspaces.Release(prepared.Workspace)
 		return reference{}, fmt.Errorf("%w: %s", ErrReferenceBuild, built.Diagnostics)
 	}
-	return reference{workspace: prepared.Workspace, toolchain: prepared.Toolchain, layout: layout, executor: executor}, nil
+	return reference{workspace: prepared.Workspace, toolchain: prepared.Toolchain, baseline: prepared.Baseline, layout: layout, executor: executor}, nil
 }
 
 // runTimeout bounds one run of a mutant's tests by the time one reference run

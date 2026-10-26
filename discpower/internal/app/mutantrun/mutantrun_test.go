@@ -20,6 +20,8 @@ const (
 	original   = "def f():\n    return 1"
 	mutated    = "def f():\n    return 2"
 	broken     = "def f():\n    BROKEN"
+
+	brokenDiagnostic = "NameError"
 )
 
 var boundTest = ecosystem.NewBoundTest("test_app", "test_f", testFile, 1)
@@ -103,6 +105,10 @@ type fakeEcosystem struct {
 	workspaces  *memoryWorkspaces
 	selections  []ecosystem.Selection
 	assignments ports.AssignmentLocator
+	// reported is what the build check reports on the reference.
+	reported []string
+	// baselines counts the times the build check recorded a baseline.
+	baselines int
 }
 
 // takenName is the module assignment a fake assignment locator reports.
@@ -153,17 +159,28 @@ func (toolchain) Resolve(context.Context, ecosystem.Workspace) (ecosystem.Toolch
 
 type buildCheck struct{ f *fakeEcosystem }
 
-func (b buildCheck) Check(_ context.Context, w ecosystem.Workspace, _ ecosystem.Toolchain, _ []string) (ecosystem.BuildResult, error) {
-	if strings.Contains(string(b.f.workspaces.files[w.Dir][sourceFile]), "BROKEN") {
-		return ecosystem.BuildResult{Diagnostics: "NameError"}, nil
+func (b buildCheck) Baseline(context.Context, ecosystem.Workspace, ecosystem.Toolchain) (ecosystem.BuildBaseline, error) {
+	b.f.baselines++
+	return ecosystem.NewBuildBaseline(b.f.reported), nil
+}
+
+func (b buildCheck) Check(_ context.Context, w ecosystem.Workspace, _ ecosystem.Toolchain, _ []string, baseline ecosystem.BuildBaseline) (ecosystem.BuildResult, error) {
+	if strings.Contains(string(b.f.workspaces.files[w.Dir][sourceFile]), "BROKEN") && len(baseline.Introduced([]string{brokenDiagnostic})) > 0 {
+		return ecosystem.BuildResult{Diagnostics: brokenDiagnostic}, nil
 	}
 	return ecosystem.BuildResult{OK: true}, nil
 }
 
 func setup(t *testing.T) (mutantrun.Executor, mutantrun.Reference, *fakeEcosystem, *memoryWorkspaces) {
 	t.Helper()
+	return setupReporting(t, nil)
+}
+
+// setupReporting is setup for a reference whose build check reports diagnostics.
+func setupReporting(t *testing.T, reported []string) (mutantrun.Executor, mutantrun.Reference, *fakeEcosystem, *memoryWorkspaces) {
+	t.Helper()
 	workspaces := &memoryWorkspaces{}
-	eco := &fakeEcosystem{workspaces: workspaces}
+	eco := &fakeEcosystem{workspaces: workspaces, reported: reported}
 	executor := mutantrun.Executor{
 		Ecosystem: eco, Workspaces: workspaces,
 		Policy: mutation.Policy{SourceRoots: []string{"."}, Layout: eco.Layout()},
@@ -207,8 +224,28 @@ func TestExecute(t *testing.T) {
 	t.Run("a failing build check is the outcome error with its diagnostics [verifies SP-82~1]", func(t *testing.T) {
 		executor, reference, eco, _ := setup(t)
 		result, err := executor.Execute(ctx, reference, request(broken))
-		if err != nil || result.Outcome != format.OutcomeError || result.Diagnostics != "NameError" || len(eco.selections) != 0 {
+		if err != nil || result.Outcome != format.OutcomeError || result.Diagnostics != brokenDiagnostic || len(eco.selections) != 0 {
 			t.Fatalf("%+v %v", result, err)
+		}
+	})
+
+	t.Run("a build check the reference already fails is not held against a mutant [verifies SP-2440~1]", func(t *testing.T) {
+		executor, reference, eco, _ := setupReporting(t, []string{brokenDiagnostic})
+		result, err := executor.Execute(ctx, reference, request(broken))
+		if err != nil || result.Outcome == format.OutcomeError || len(eco.selections) != 1 {
+			t.Fatalf("%+v %v", result, err)
+		}
+	})
+
+	t.Run("the build baseline is recorded once for every mutant run on the reference [verifies SP-2440~1]", func(t *testing.T) {
+		executor, reference, eco, _ := setupReporting(t, []string{brokenDiagnostic})
+		for _, source := range []string{mutated, broken, original} {
+			if _, err := executor.Execute(ctx, reference, request(source)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if eco.baselines != 1 {
+			t.Fatalf("baselines recorded = %d", eco.baselines)
 		}
 	})
 

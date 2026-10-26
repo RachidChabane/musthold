@@ -71,7 +71,7 @@ func openProject(t *testing.T, directory string, newStrategy func(jvm.Dependenci
 	if err != nil {
 		t.Fatal(err)
 	}
-	if build, err := strategy.BuildCheck().Check(ctx, prepared, toolchain, nil); err != nil || !build.OK {
+	if build, err := strategy.BuildCheck().Check(ctx, prepared, toolchain, nil, ecosystem.BuildBaseline{}); err != nil || !build.OK {
 		t.Fatalf("build the project: %+v %v", build, err)
 	}
 	return liveProject{strategy: strategy, manager: manager, process: counting, workspace: prepared, toolchain: toolchain}

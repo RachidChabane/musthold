@@ -194,26 +194,33 @@ func round(duration time.Duration) string { return duration.Round(durationUnit).
 
 // footer is the last line: the draw, the time, the model and the promises.
 func footer(report scan.Report) string {
-	mutants := report.Mutants
-	parts := []string{fmt.Sprintf("%d mutants (%d proven", mutants.Ran, mutants.Proven)}
+	parts := []string{mutantCount(report.Mutants), elapsed(report)}
+	return strings.Join(append(parts, modelAndPromises(report)...), separator)
+}
+
+// mutantCount counts the drawn mutants by what became of each: ran, did not
+// build or start, or not run within the budget. The proven ones, the ones
+// identical when compiled and the sentinels that stopped a test binary are of
+// those that ran. The definitions a draw left out are not mutants.
+func mutantCount(mutants scan.MutantCounts) string {
+	ran := fmt.Sprintf(ranFormat, mutants.Ran, mutants.Proven)
 	if mutants.CompiledIdentical > 0 {
-		parts[0] += fmt.Sprintf(", %d identical when compiled", mutants.CompiledIdentical)
-	}
-	if mutants.DidNotBuild > 0 {
-		parts[0] += fmt.Sprintf(", %d did not build or start", mutants.DidNotBuild)
-	}
-	if mutants.AmbiguousUnits > 0 {
-		parts[0] += fmt.Sprintf(ambiguousUnitsFormat, mutants.AmbiguousUnits, plural(mutants.AmbiguousUnits, unitNoun, unitsNoun))
+		ran += fmt.Sprintf(identicalFormat, mutants.CompiledIdentical)
 	}
 	if mutants.StoppedSentinels > 0 {
-		parts[0] += fmt.Sprintf(stoppedSentinelsFormat, mutants.StoppedSentinels, plural(mutants.StoppedSentinels, sentinelNoun, sentinelsNoun))
+		ran += fmt.Sprintf(stoppedSentinelsFormat, mutants.StoppedSentinels, plural(mutants.StoppedSentinels, sentinelNoun, sentinelsNoun))
+	}
+	clauses := []string{ran}
+	if mutants.DidNotBuild > 0 {
+		clauses = append(clauses, fmt.Sprintf(didNotBuildFormat, mutants.DidNotBuild))
 	}
 	if mutants.NotRun > 0 {
-		parts[0] += fmt.Sprintf(notRunFormat, mutants.NotRun, scan.GapNotRun)
+		clauses = append(clauses, fmt.Sprintf(notRunFormat, mutants.NotRun, scan.GapNotRun))
 	}
-	parts[0] += ")"
-	parts = append(parts, elapsed(report))
-	return strings.Join(append(parts, modelAndPromises(report)...), separator)
+	if mutants.AmbiguousUnits > 0 {
+		clauses = append(clauses, fmt.Sprintf(ambiguousUnitsFormat, mutants.AmbiguousUnits, plural(mutants.AmbiguousUnits, unitNoun, unitsNoun)))
+	}
+	return fmt.Sprintf(mutantCountFormat, mutants.Drawn, strings.Join(clauses, clauseSeparator))
 }
 
 // modelAndPromises are the last parts of the footer: that no model ran and no
@@ -230,13 +237,21 @@ func modelAndPromises(report scan.Report) []string {
 	return []string{fmt.Sprintf(callsFormat, report.Promises.Calls, report.Promises.Budget), checked}
 }
 
-// notRunFormat counts the drawn mutants the budget left unrun.
-const notRunFormat = ", %d %s"
+// Vocabulary of the count of mutants: the total is the mutants drawn, and each
+// clause counts a share of them.
+const (
+	mutantCountFormat = "%d mutants (%s)"
+	clauseSeparator   = "; "
+	ranFormat         = "%d ran: %d proven"
+	identicalFormat   = ", %d identical when compiled"
+	didNotBuildFormat = "%d did not build or start"
+	notRunFormat      = "%d %s"
+)
 
 // Vocabulary of the units a draw left out because their name is defined more
 // than once in their file.
 const (
-	ambiguousUnitsFormat = ", %d %s with a repeated name left out"
+	ambiguousUnitsFormat = "%d %s with a repeated name left out"
 	unitNoun             = "definition"
 	unitsNoun            = "definitions"
 )

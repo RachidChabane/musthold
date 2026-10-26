@@ -21,12 +21,13 @@ const (
 )
 
 type buildCheck struct {
+	ports.NoBuildBaseline
 	deps Dependencies
 }
 
 // Check compiles the test binaries of the packages holding the changed files
 // with `go test -count=1 -run '^$' <pkgs>`; no test body runs.
-func (b buildCheck) Check(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, changed []string) (ecosystem.BuildResult, error) {
+func (b buildCheck) Check(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, changed []string, _ ecosystem.BuildBaseline) (ecosystem.BuildResult, error) {
 	argv := append(append([]string{}, toolchain.Command...), testSubcommand, countFlag, runFlag, matchNothing)
 	argv = append(argv, packagesOf(changed)...)
 	result, err := b.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: workspace.Dir, Timeout: b.deps.Timeout})

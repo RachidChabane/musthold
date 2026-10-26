@@ -104,6 +104,15 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   splice, build-check, select, run and classify, report a splice or build
   failure as the outcome error, refuse a path the policy forbids before any
   clone, and release the mutant workspace.
+- **SP-2440~1**: WHEN a mutant is built and the build check of the reference
+  workspace already reports diagnostics, as `tsc` does on a TypeScript project
+  whose tests pass, THE SYSTEM SHALL record those diagnostics once for the run,
+  before any mutant, and fail the mutant's build check only on the diagnostics
+  it adds to them, each compared by file, code and message with the workspace
+  directory and the line and column left out, and a diagnostic the mutant
+  reports more often than the reference counting as added; and WHEN the
+  reference reports none THE SYSTEM SHALL fail the build check on every
+  diagnostic.
 
 ## Architecture
 
@@ -1621,7 +1630,7 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   in a selection of its own, and that the input of a difference
   gives each recorded result twice on its side; and SHALL report every claim
   that does not hold.
-- **SP-2115~4**: WHEN a scan is printed for a terminal THE SYSTEM SHALL print the
+- **SP-2115~5**: WHEN a scan is printed for a terminal THE SYSTEM SHALL print the
   repository, the short commit, the runner, the tests and the green ones, the
   sampled ones and the seed; on the next line the depth, the budget or "no
   budget", the time, how many of the green tests were sampled and the workers,
@@ -1636,10 +1645,11 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   when k proven changes stopped it from starting, by "; k more stopped it from
   starting", the site and the change, with the input and both results of a
   difference, what proves it and its repro script; a note when the scan is
-  partial; and the mutants that ran and were proven, with those identical when
-  compiled, those that did not build or start, the sentinels that stopped a
-  test binary and the mutants not run within the budget, the time with the
-  time of each phase, "no model used" and "promises not checked"; and SHALL
+  partial; the mutants drawn, as the sum of those that ran, those that did not
+  build or start and those not run within the budget, with, of those that ran,
+  the proven ones, those identical when compiled and the sentinels that stopped
+  a test binary; the time with the time of each phase, "no model used" and
+  "promises not checked"; and SHALL
   never print "bug", "PASS" or a score.
 - **SP-2116~3**: WHEN a scan is written as Markdown THE SYSTEM SHALL write the
   same header and depth line, the four counts as a table, the unproven reasons,

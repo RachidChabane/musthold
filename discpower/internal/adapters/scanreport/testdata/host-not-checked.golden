@@ -16,5 +16,5 @@ acme/invoicing @ 3f2a9c1 · pytest · 412 tests (409 green 3/3) · 40 sampled ·
    repro: .musthold/scan/3f2a9c1/2/repro.sh
 
 promises not checked: the host did not answer the extraction
-150 mutants (61 proven, 4 identical when compiled, 2 did not build or start) · 4m12s (reference 1m0s, coverage 30s, draw 2s, mutants 2m30s, confirmation 10s) · 2 of 18 model calls · promises not checked
+152 mutants (150 ran: 61 proven, 4 identical when compiled; 2 did not build or start) · 4m12s (reference 1m0s, coverage 30s, draw 2s, mutants 2m30s, confirmation 10s) · 2 of 18 model calls · promises not checked
 7/40 sampled tests stay green on every proven change in lines they ran: on those lines, their green is no evidence the code is right.

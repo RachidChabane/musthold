@@ -150,7 +150,7 @@ func TestBuildCheckCommand(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name+" compiles main and test sources offline with one process [verifies SP-1112~1]", func(t *testing.T) {
 			process := &recorder{}
-			result, err := c.strategy(process).BuildCheck().Check(context.Background(), workspace, ecosystem.Toolchain{Command: []string{c.tool}}, []string{"src/main/java/a/Rates.java"})
+			result, err := c.strategy(process).BuildCheck().Check(context.Background(), workspace, ecosystem.Toolchain{Command: []string{c.tool}}, []string{"src/main/java/a/Rates.java"}, ecosystem.BuildBaseline{})
 			if err != nil || !result.OK {
 				t.Fatalf("%+v %v", result, err)
 			}
@@ -160,11 +160,11 @@ func TestBuildCheckCommand(t *testing.T) {
 		})
 
 		t.Run(c.name+" turns a failing build into diagnostics [verifies SP-1112~1]", func(t *testing.T) {
-			result, err := c.strategy(&recorder{exit: 1}).BuildCheck().Check(context.Background(), workspace, ecosystem.Toolchain{Command: []string{c.tool}}, nil)
+			result, err := c.strategy(&recorder{exit: 1}).BuildCheck().Check(context.Background(), workspace, ecosystem.Toolchain{Command: []string{c.tool}}, nil, ecosystem.BuildBaseline{})
 			if err != nil || result.OK || !strings.Contains(result.Diagnostics, "compilation failed") {
 				t.Fatalf("%+v %v", result, err)
 			}
-			timedOut, err := c.strategy(&recorder{timedOut: true}).BuildCheck().Check(context.Background(), workspace, ecosystem.Toolchain{Command: []string{c.tool}}, nil)
+			timedOut, err := c.strategy(&recorder{timedOut: true}).BuildCheck().Check(context.Background(), workspace, ecosystem.Toolchain{Command: []string{c.tool}}, nil, ecosystem.BuildBaseline{})
 			if err != nil || timedOut.OK {
 				t.Fatalf("a timed out build passed: %+v %v", timedOut, err)
 			}

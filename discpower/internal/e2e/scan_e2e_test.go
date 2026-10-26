@@ -20,15 +20,19 @@ const (
 	goRatesFixture    = "fixtures/scan/go-rates"
 	jestScanFixture   = "fixtures/scan/jest"
 	vitestScanFixture = "fixtures/scan/vitest"
-	polyglotFixture   = "fixtures/scan/vitest-polyglot"
-	vacuousPytest     = "tests/test_discount.py::test_discount_accepts_any_percent"
-	vacuousGo         = "discount_test.go::TestDiscountAcceptsAnyPercent"
-	vacuousNode       = "test/discount.test.ts::discount accepts any percent"
-	nodeTool          = "node"
-	verifiesScanE2E   = " [verifies SP-2122~3]"
-	verifiesReplay    = " [verifies SP-2114~2]"
-	verifiesCommand   = " [verifies SP-2119~4]"
-	verifiesOrder     = " [verifies SP-2140~1]"
+	// vitestLooseTypesFixture is the vitest project whose tests pass a string
+	// where a number is typed, which Vitest runs and tsc rejects.
+	vitestLooseTypesFixture = "fixtures/scan/vitest-loose-types"
+	verifiesTypeCheckE2E    = " [verifies SP-2440~1]"
+	polyglotFixture         = "fixtures/scan/vitest-polyglot"
+	vacuousPytest           = "tests/test_discount.py::test_discount_accepts_any_percent"
+	vacuousGo               = "discount_test.go::TestDiscountAcceptsAnyPercent"
+	vacuousNode             = "test/discount.test.ts::discount accepts any percent"
+	nodeTool                = "node"
+	verifiesScanE2E         = " [verifies SP-2122~3]"
+	verifiesReplay          = " [verifies SP-2114~2]"
+	verifiesCommand         = " [verifies SP-2119~4]"
+	verifiesOrder           = " [verifies SP-2140~1]"
 )
 
 // scanned is a copy of a scan fixture committed in a repository of its own.
@@ -166,6 +170,19 @@ func TestScanIsQuickByDefault(t *testing.T) {
 	})
 }
 
+func TestScanOfAProjectWhoseReferenceFailsTheTypeCheck(t *testing.T) {
+	if _, err := exec.LookPath(nodeTool); err != nil {
+		t.Skipf("no node: %v", err)
+	}
+	s := newScanned(t, vitestLooseTypesFixture)
+	scan := s.run(s.binary, "scan", "--budget", "0")
+	t.Run("the scan judges the mutants and names the test that verifies nothing, whatever the type check says of the unmodified project"+verifiesTypeCheckE2E, func(t *testing.T) {
+		if scan.code != 0 || !strings.Contains(scan.stdout, "#1 "+vacuousNode+" passes on all ") {
+			t.Fatalf("exit %d:\n%s", scan.code, scan.output())
+		}
+	})
+}
+
 func TestScanStatementOfAnyWorkers(t *testing.T) {
 	for _, c := range []struct{ name, fixture, tool string }{
 		{"go", goRatesFixture, "go"},
@@ -241,7 +258,7 @@ func TestScanOfAProjectWhoseFirstDetectedSuiteCollectsNothing(t *testing.T) {
 	}
 	s := newScanned(t, polyglotFixture)
 	scan := s.run(s.binary, "scan")
-	t.Run("a scan runs the Vitest suite when the pytest suite the project also declares collects no test"+verifiesScanE2E, func(t *testing.T) {
+	t.Run("a scan runs the Vitest suite when the pytest suite the project also declares collects no test"+verifiesCommand, func(t *testing.T) {
 		if scan.code != 0 || !strings.Contains(scan.stdout, "#1 "+vacuousNode+" passes on all ") {
 			t.Fatalf("exit %d:\n%s", scan.code, scan.output())
 		}

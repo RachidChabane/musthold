@@ -10,7 +10,7 @@ acme/invoicing @ c0ffee0 · pytest · 4 tests (3 green 3/3) · 2 sampled · seed
    invoice/totals.py:3  total → None   input percent=0, total=0: reference "d2cd7f9f", mutant "8c4f69bf"
    proven by: a differential run of invoice.totals:discount, reproduced, on a reference that agrees with itself
    repro: .musthold/scan/c0ffee0/1/repro.sh
-28 mutants (26 proven) · 0s (reference 0s, coverage 0s, draw 0s, mutants 0s, confirmation 0s) · no model used · promises not checked
+28 mutants (28 ran: 26 proven) · 0s (reference 0s, coverage 0s, draw 0s, mutants 0s, confirmation 0s) · no model used · promises not checked
 1/2 sampled tests stay green on every proven change in lines they ran: on those lines, their green is no evidence the code is right.
 === markdown
 ## musthold scan
@@ -47,7 +47,7 @@ Not a pass: unproven and unsampled tests are unjudged.
  
 ```
 
-28 mutants (26 proven) · 0s (reference 0s, coverage 0s, draw 0s, mutants 0s, confirmation 0s) · no model used · promises not checked
+28 mutants (28 ran: 26 proven) · 0s (reference 0s, coverage 0s, draw 0s, mutants 0s, confirmation 0s) · no model used · promises not checked
 
 1/2 sampled tests stay green on every proven change in lines they ran: on those lines, their green is no evidence the code is right.
 === file .musthold/scan/c0ffee0/report.md (executable false)
@@ -85,7 +85,7 @@ Not a pass: unproven and unsampled tests are unjudged.
  
 ```
 
-28 mutants (26 proven) · 0s (reference 0s, coverage 0s, draw 0s, mutants 0s, confirmation 0s) · no model used · promises not checked
+28 mutants (28 ran: 26 proven) · 0s (reference 0s, coverage 0s, draw 0s, mutants 0s, confirmation 0s) · no model used · promises not checked
 
 1/2 sampled tests stay green on every proven change in lines they ran: on those lines, their green is no evidence the code is right.
 

@@ -9,6 +9,7 @@ import (
 )
 
 type buildCheck struct {
+	ports.NoBuildBaseline
 	s *Strategy
 }
 
@@ -16,7 +17,7 @@ type buildCheck struct {
 // offline; the changed files are compiled with it, since both tools compile
 // incrementally by what changed. A failure turns every test outcome into
 // "error".
-func (b buildCheck) Check(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, _ []string) (ecosystem.BuildResult, error) {
+func (b buildCheck) Check(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, _ []string, _ ecosystem.BuildBaseline) (ecosystem.BuildResult, error) {
 	argv := append(append([]string{}, toolchain.Command...), b.s.tool.buildCheckArgs()...)
 	result, err := b.s.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: workspace.Dir, Timeout: b.s.deps.Timeout})
 	if err != nil {

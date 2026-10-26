@@ -183,7 +183,11 @@ type fakeToolchain struct{}
 
 type fakeBuild fakeEcosystem
 
-func (b fakeBuild) Check(_ context.Context, workspace ecosystem.Workspace, _ ecosystem.Toolchain, _ []string) (ecosystem.BuildResult, error) {
+func (b fakeBuild) Baseline(context.Context, ecosystem.Workspace, ecosystem.Toolchain) (ecosystem.BuildBaseline, error) {
+	return ecosystem.BuildBaseline{}, nil
+}
+
+func (b fakeBuild) Check(_ context.Context, workspace ecosystem.Workspace, _ ecosystem.Toolchain, _ []string, _ ecosystem.BuildBaseline) (ecosystem.BuildResult, error) {
 	if b.broken != nil && b.broken(b.workspaces.source(workspace)) {
 		return ecosystem.BuildResult{Diagnostics: "SyntaxError"}, nil
 	}

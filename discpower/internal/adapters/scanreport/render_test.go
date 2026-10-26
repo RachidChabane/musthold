@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	verifiesText     = " [verifies SP-2115~4]"
+	verifiesText     = " [verifies SP-2115~5]"
 	verifiesMarkdown = " [verifies SP-2116~3]"
 	verifiesGaps     = " [verifies SP-2129~3]"
 	verifiesFolders  = " [verifies SP-2117~1]"
@@ -147,9 +147,17 @@ func TestText(t *testing.T) {
 		}
 	})
 	t.Run("the last line counts the mutants and says no model ran and no promise was checked"+verifiesText, func(t *testing.T) {
-		want := "150 mutants (61 proven, 4 identical when compiled, 2 did not build or start) · 4m12s (reference 1m0s, coverage 30s, draw 2s, mutants 2m30s, confirmation 10s) · no model used · promises not checked"
+		want := "152 mutants (150 ran: 61 proven, 4 identical when compiled; 2 did not build or start) · 4m12s (reference 1m0s, coverage 30s, draw 2s, mutants 2m30s, confirmation 10s) · no model used · promises not checked"
 		if lines[len(lines)-3] != want {
 			t.Fatalf("footer %q", lines[len(lines)-3])
+		}
+	})
+	t.Run("the total of the mutant count is the mutants drawn, the sum of those that ran, did not build or start and were not run"+verifiesText, func(t *testing.T) {
+		mostlyUnbuilt := report(t)
+		mostlyUnbuilt.Mutants = scan.MutantCounts{Drawn: 162, Ran: 19, Proven: 12, DidNotBuild: 143}
+		want := "162 mutants (19 ran: 12 proven; 143 did not build or start) · "
+		if text, markdown := scanreport.Text(mostlyUnbuilt), scanreport.Markdown(mostlyUnbuilt); !strings.Contains(text, want) || !strings.Contains(markdown, want) {
+			t.Fatalf("missing %q in\n%s", want, text)
 		}
 	})
 	t.Run("a scan with a test that verifies nothing ends on what its green leaves unshown, over the sampled tests"+verifiesStake, func(t *testing.T) {
@@ -183,8 +191,8 @@ func TestText(t *testing.T) {
 	})
 	t.Run("the mutant count names the mutants the budget left unrun, in the text and the Markdown"+verifiesText, func(t *testing.T) {
 		partial := report(t)
-		partial.Partial, partial.Mutants.NotRun = true, 21
-		want := "150 mutants (61 proven, 4 identical when compiled, 2 did not build or start, 21 not run within the budget) · "
+		partial.Partial, partial.Mutants.NotRun, partial.Mutants.Drawn = true, 21, 173
+		want := "173 mutants (150 ran: 61 proven, 4 identical when compiled; 2 did not build or start; 21 not run within the budget) · "
 		if text, markdown := scanreport.Text(partial), scanreport.Markdown(partial); !strings.Contains(text, want) || !strings.Contains(markdown, want) {
 			t.Fatalf("missing %q in\n%s", want, text)
 		}
@@ -256,7 +264,7 @@ func TestNotStarted(t *testing.T) {
 		}
 	})
 	t.Run("the sentinels that stopped a test binary are counted with the mutants"+verifiesGaps, func(t *testing.T) {
-		if want := "2 did not build or start, 1 sentinel stopped a test binary)"; !strings.Contains(text, want) || !strings.Contains(markdown, want) {
+		if want := "4 identical when compiled, 1 sentinel stopped a test binary; 2 did not build or start)"; !strings.Contains(text, want) || !strings.Contains(markdown, want) {
 			t.Fatalf("missing %q in\n%s", want, text)
 		}
 	})

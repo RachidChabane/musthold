@@ -178,6 +178,41 @@ type BuildResult struct {
 	Diagnostics string
 }
 
+// BuildBaseline is the set of diagnostics a build check already reports on the
+// unmutated reference, as keys that do not depend on the workspace or on the
+// position in a file. A mutant fails the build check on the diagnostics it adds
+// to the baseline, not on the ones the reference has.
+type BuildBaseline struct {
+	known map[string]int
+}
+
+// NewBuildBaseline counts the diagnostics of the reference by key.
+func NewBuildBaseline(diagnostics []string) BuildBaseline {
+	known := make(map[string]int, len(diagnostics))
+	for _, diagnostic := range diagnostics {
+		known[diagnostic]++
+	}
+	return BuildBaseline{known: known}
+}
+
+// Introduced returns the diagnostics of a mutant the reference does not have:
+// each key more often than the reference reports it.
+func (b BuildBaseline) Introduced(diagnostics []string) []string {
+	remaining := make(map[string]int, len(b.known))
+	for key, count := range b.known {
+		remaining[key] = count
+	}
+	var introduced []string
+	for _, diagnostic := range diagnostics {
+		if remaining[diagnostic] > 0 {
+			remaining[diagnostic]--
+			continue
+		}
+		introduced = append(introduced, diagnostic)
+	}
+	return introduced
+}
+
 // RunResult is what a suite run reports.
 type RunResult struct {
 	Outcomes         map[TestID]TestOutcome
