@@ -36,7 +36,8 @@ type Keeper struct {
 
 // Keep copies the records of the run directory into the destination, with the
 // run directory, the repository root and the home directory written as
-// placeholders, so that a recording names no path of the machine it was made on.
+// placeholders, so that a recording names no path of the machine it was made on,
+// and renders the transcript of the copy.
 // It refuses a destination that already holds a recording, and records that hold
 // the token, given exactly, or any text of a token's shape.
 func (k Keeper) Keep(run, repo, home, destination, token string) error {
@@ -60,6 +61,9 @@ func (k Keeper) Keep(run, repo, home, destination, token string) error {
 		return err
 	}
 	for _, path := range paths {
+		if slices.Contains(renderedFiles, filepath.Base(path)) {
+			continue
+		}
 		content, err := k.Files.Read(path)
 		if err != nil || content == nil {
 			continue
@@ -68,8 +72,12 @@ func (k Keeper) Keep(run, repo, home, destination, token string) error {
 			return err
 		}
 	}
-	return nil
+	return Renderer{Files: k.Files}.Write(destination, destination, false)
 }
+
+// renderedFiles are the records a recording renders from the others instead of
+// copying: text substituted into rendered HTML would not be escaped.
+var renderedFiles = []string{record.TranscriptMarkdown, record.TranscriptHTML}
 
 type replacement struct{ from, to []byte }
 

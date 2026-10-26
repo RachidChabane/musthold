@@ -51,7 +51,7 @@ func TestKeep(t *testing.T) {
 		return root
 	}
 
-	t.Run("the records are kept with the run directory, the repository and the home written as placeholders [verifies SP-2409~3]", func(t *testing.T) {
+	t.Run("the records are kept with the run directory, the repository and the home written as placeholders [verifies SP-2409~4]", func(t *testing.T) {
 		root := runOn(t)
 		run := root
 		to := filepath.Join(t.TempDir(), "recording")
@@ -84,7 +84,28 @@ func TestKeep(t *testing.T) {
 		}
 	})
 
-	t.Run("records that hold the token, exactly or by its shape, are refused and nothing is kept [verifies SP-2409~3]", func(t *testing.T) {
+	t.Run("the kept transcript is rendered from the kept records, never copied from the run [verifies SP-2409~4]", func(t *testing.T) {
+		root := runOn(t)
+		records := filepath.Join(root, plan.RecordsDir)
+		for _, name := range []string{record.TranscriptMarkdown, record.TranscriptHTML} {
+			if err := (adapters.OSFiles{}).Write(filepath.Join(records, name), []byte("<pre>"+repo+"</pre>"), false); err != nil {
+				t.Fatal(err)
+			}
+		}
+		to := filepath.Join(t.TempDir(), "recording")
+		if err := keeper.Keep(root, repo, home, to, ""); err != nil {
+			t.Fatal(err)
+		}
+		if err := (app.Renderer{Files: adapters.OSFiles{}}).Write(to, to, true); err != nil {
+			t.Fatalf("the kept transcript is not what its records render: %v", err)
+		}
+		html, _ := os.ReadFile(filepath.Join(to, record.TranscriptHTML))
+		if strings.Contains(string(html), "<pre><repo></pre>") {
+			t.Fatalf("the run's transcript was copied: %s", html)
+		}
+	})
+
+	t.Run("records that hold the token, exactly or by its shape, are refused and nothing is kept [verifies SP-2409~4]", func(t *testing.T) {
 		for name, leak := range map[string]struct{ content, exact string }{
 			"by shape": {content: "sk-ant-oat01-" + strings.Repeat("x", 40), exact: ""},
 			"exactly":  {content: "the value is correct-horse-battery-staple-42", exact: "correct-horse-battery-staple-42"},
@@ -104,7 +125,7 @@ func TestKeep(t *testing.T) {
 		}
 	})
 
-	t.Run("a destination that holds a recording is refused [verifies SP-2409~3]", func(t *testing.T) {
+	t.Run("a destination that holds a recording is refused [verifies SP-2409~4]", func(t *testing.T) {
 		root := runOn(t)
 		to := filepath.Join(t.TempDir(), "recording")
 		if err := keeper.Keep(root, repo, home, to, ""); err != nil {

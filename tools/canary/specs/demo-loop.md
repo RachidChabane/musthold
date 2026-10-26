@@ -131,11 +131,12 @@ tests run on the demonstration's own engine and skip where it is not running.
   and start no process, give the same bytes on every rendering, and WHEN a check
   is requested SHALL write nothing and fail when a transcript beside the
   recording differs from what it renders.
-- **SP-2409~3**: WHEN the records of a run are kept as a recording THE SYSTEM
+- **SP-2409~4**: WHEN the records of a run are kept as a recording THE SYSTEM
   SHALL copy them with the run directory, the repository root and the home
   directory written as `<run>`, `<repo>` and `~`, in their resolved and their
   `/private`-less forms, each also as the dash-encoded name Claude Code gives a
-  directory it names after a path, SHALL refuse a destination that already holds a
+  directory it names after a path, and render the transcript from the copied
+  records rather than copy the run's, SHALL refuse a destination that already holds a
   recording, and SHALL refuse, keeping nothing, records that hold the token a
   credential source holds or any text of a token's shape.
 
