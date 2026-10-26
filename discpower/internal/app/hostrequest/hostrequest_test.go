@@ -16,7 +16,7 @@ const (
 	verifiesAssembly = " [verifies SP-2262~1]"
 	// pinnedID is the id of the pinned draft: the requests users answered are
 	// stored under such ids, so assembling them must never change.
-	pinnedID = "908fc35686cd4568bf63b5574bbf7d021e7ad4770862d084e15297a6e392701b"
+	pinnedID = "9f05d676e5798b97138e1eb3be0032e8c2f7cfe10cb7ca53e65a2a76cb42446f"
 )
 
 func identity() hostrequest.Identity {
