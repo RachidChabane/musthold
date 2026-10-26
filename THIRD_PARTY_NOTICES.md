@@ -125,8 +125,8 @@ uses them unmodified.
 | `golang.org/x/term` | `v0.45.0` | BSD-3-Clause | binary |
 | `golang.org/x/text` | `v0.42.0` | BSD-3-Clause | binary |
 | `google.golang.org/genproto/googleapis/api` | `v0.0.0-20260526163538-3dc84a4a5aaa` | Apache-2.0 | binary |
-| `google.golang.org/genproto/googleapis/rpc` | `v0.0.0-20260523011958-0a33c5d7ca68` | Apache-2.0 | binary |
-| `google.golang.org/grpc` | `v1.82.1` | Apache-2.0 | binary |
+| `google.golang.org/genproto/googleapis/rpc` | `v0.0.0-20260526163538-3dc84a4a5aaa` | Apache-2.0 | binary |
+| `google.golang.org/grpc` | `v1.83.1` | Apache-2.0 | binary |
 | `google.golang.org/protobuf` | `v1.36.11` | BSD-3-Clause | binary |
 | `gopkg.in/yaml.v3` | `v3.0.1` | Apache-2.0 | binary |
 | `k8s.io/klog/v2` | `v2.140.0` | Apache-2.0 | binary |
