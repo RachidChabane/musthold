@@ -38,9 +38,7 @@ class ProofModule:
 PROOF_MODULES: Final = (
     ProofModule(Module.DISCRIMINATING_POWER, "musthold-dp", "musthold-dp", "discpower", "discpower"),
     ProofModule(Module.ALIGNMENT, "musthold-alignment", "musthold-alignment", "alignment", "alignment"),
-    ProofModule(
-        Module.COMPLETENESS, "musthold-completeness", "musthold-completeness", "completeness", "completeness"
-    ),
+    ProofModule(Module.COMPLETENESS, "musthold-completeness", "musthold-completeness", "completeness", "completeness"),
 )
 """In the order the modules generate and are proved in."""
 
