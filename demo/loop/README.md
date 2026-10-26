@@ -152,8 +152,10 @@ demo/loop/run keep <run directory>
 ```
 
 `keep` writes the run directory, the repository root and your home directory as
-`<run>`, `<repo>` and `~`. It scans every record for the token and for any text of
-a token's shape first, and keeps nothing on a hit.
+`<run>`, `<repo>` and `~`, also where Claude Code spells them as a directory name,
+with every character other than a letter or digit as a dash. It renders the
+transcript from the kept records. It scans every record for the token and for any
+text of a token's shape first, and keeps nothing on a hit.
 
 ## The records
 

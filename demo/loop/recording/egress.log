@@ -1,0 +1,6 @@
+{"time":"2026-10-26T11:11:25.133638532Z","method":"CONNECT","target":"api.anthropic.com:443","decision":"allowed"}
+{"time":"2026-10-26T11:11:25.135728504Z","method":"CONNECT","target":"api.anthropic.com:443","decision":"allowed"}
+{"time":"2026-10-26T11:11:26.020554723Z","method":"CONNECT","target":"api.anthropic.com:443","decision":"allowed"}
+{"time":"2026-10-26T11:11:50.247938808Z","method":"CONNECT","target":"api.anthropic.com:443","decision":"allowed"}
+{"time":"2026-10-26T11:11:51.097708398Z","method":"CONNECT","target":"api.anthropic.com:443","decision":"allowed"}
+{"time":"2026-10-26T11:11:52.536420948Z","method":"CONNECT","target":"api.anthropic.com:443","decision":"allowed"}
