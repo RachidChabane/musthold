@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# Runs one shard of a module's tests, so CI can spread a module whose suite is too
+# long for one job over several jobs, then check their results together
+# (script/ci --check MODULE).
+#
+#   script/test-shard --list MODULE              print the module's shards, one per line
+#   script/test-shard --packages MODULE SHARD    print the packages of one shard
+#   script/test-shard MODULE SHARD               run them into build/test-results/go-SHARD.xml
+#
+# A named shard runs one package. The shard `rest` runs every other package of the
+# module, so each package runs in exactly one shard. The command is the module's own
+# test command (the one entry of test_commands in its shallnot.yaml), with its
+# package pattern and its JUnit file replaced.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+readonly REST_SHARD="rest"
+readonly ALL_PACKAGES="./..."
+readonly RESULTS_FILE="build/test-results/go.xml"
+readonly EXIT_USAGE=2
+
+usage() {
+  echo "usage: script/test-shard --list MODULE | --packages MODULE SHARD | MODULE SHARD" >&2
+  exit "${EXIT_USAGE}"
+}
+
+# The named shards of a module: "<shard> <package>" per line.
+named_shards() {
+  case "./${1#./}" in
+    ./discpower)
+      echo "cli ./internal/cli"
+      echo "e2e ./internal/e2e"
+      ;;
+  esac
+}
+
+list_shards() {
+  named_shards "$1" | cut -d' ' -f1
+  echo "${REST_SHARD}"
+}
+
+shard_packages() {
+  local module="$1" shard="$2" named
+  named="$(named_shards "${module}")"
+  if [ "${shard}" != "${REST_SHARD}" ]; then
+    local package
+    package="$(awk -v shard="${shard}" '$1 == shard { print $2 }' <<<"${named}")"
+    if [ -z "${package}" ]; then
+      echo "test-shard: ${module} has no shard ${shard}" >&2
+      exit "${EXIT_USAGE}"
+    fi
+    (cd "${module}" && go list "${package}")
+    return
+  fi
+  local excluded=""
+  if [ -n "${named}" ]; then
+    excluded="$(cd "${module}" && awk '{ print $2 }' <<<"${named}" | xargs go list)"
+  fi
+  (cd "${module}" && go list "${ALL_PACKAGES}") | grep -vxF -f <(printf '%s\n' "${excluded}") || true
+}
+
+# The module's test command with the shard's packages and JUnit file.
+shard_command() {
+  local module="$1" shard="$2" count command
+  count="$(yq '.test_commands | length' "${module}/shallnot.yaml")"
+  command="$(yq '.test_commands[0]' "${module}/shallnot.yaml")"
+  if [ "${count}" != 1 ] || [[ "${command}" != *" ${ALL_PACKAGES}" ]] || [[ "${command}" != *" ${RESULTS_FILE} "* ]]; then
+    echo "test-shard: ${module}/shallnot.yaml must hold one test command that writes ${RESULTS_FILE} and ends with ${ALL_PACKAGES}" >&2
+    exit "${EXIT_USAGE}"
+  fi
+  local results=" ${RESULTS_FILE} " shard_results=" build/test-results/go-${shard}.xml "
+  command="${command% "${ALL_PACKAGES}"}"
+  echo "${command/${results}/${shard_results}}"
+}
+
+run_shard() {
+  local module="$1" shard="$2" words packages
+  read -r -a words <<<"$(shard_command "${module}" "${shard}")"
+  read -r -a packages <<<"$(shard_packages "${module}" "${shard}" | tr '\n' ' ')"
+  echo "== test shard ${shard} of ${module}: ${#packages[@]} packages"
+  (cd "${module}" && mkdir -p build/test-results && "${words[@]}" "${packages[@]}")
+}
+
+case "${1:-}" in
+  --list)
+    [ $# -eq 2 ] || usage
+    list_shards "$2"
+    ;;
+  --packages)
+    [ $# -eq 3 ] || usage
+    shard_packages "$2" "$3"
+    ;;
+  -*)
+    usage
+    ;;
+  *)
+    [ $# -eq 2 ] || usage
+    run_shard "$1" "$2"
+    ;;
+esac

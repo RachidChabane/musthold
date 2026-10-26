@@ -4,18 +4,46 @@
 # module's tests and traces its specs to their results. Arguments name the modules to
 # run; with none, every module of the workspace runs.
 #
+#   script/ci [MODULE...]                 lint and self-gate each module
+#   script/ci --shard SHARD MODULE...     run one shard of each module's tests (script/test-shard)
+#   script/ci --check [MODULE...]         lint each module and check the results its shards wrote
+#
+# A shard and the check split the self-gate of a module whose suite is too long for
+# one CI job: the shards run in parallel jobs, and the check traces the specs to all
+# their results at once (shallnot check), as the gate would.
+#
 # The product (script/product-build: the pinned Shallnot and every product binary)
 # is built with the Shallnot source script/shallnot-src names ($SHALLNOT_SRC, else
 # shallnot-proof-gate next to the main working tree), because end-to-end tests of
 # several modules drive those binaries. Without that source nothing is built, and
 # those tests record a skip that names the reason; the gate reports a requirement
 # whose bound tests were all skipped, so the requirement is never dropped silently.
+# The check runs no test, so it builds only the pinned Shallnot (script/shallnot-build).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
+readonly EXIT_USAGE=2
+
+mode="gate"
+shard=""
+case "${1:-}" in
+  --shard)
+    [ $# -ge 3 ] || { echo "usage: script/ci --shard SHARD MODULE..." >&2; exit "${EXIT_USAGE}"; }
+    mode="shard"
+    shard="$2"
+    shift 2
+    ;;
+  --check)
+    mode="check"
+    shift
+    ;;
+esac
+
 shallnot_src="$(script/shallnot-src)"
 
-if [ -d "${shallnot_src}" ]; then
+if [ "${mode}" = "check" ]; then
+  SHALLNOT_SRC="${shallnot_src}" script/shallnot-build
+elif [ -d "${shallnot_src}" ]; then
   SHALLNOT_SRC="${shallnot_src}" script/product-build
 else
   echo "ci: no Shallnot source at ${shallnot_src} (set SHALLNOT_SRC): the end-to-end tests that need the product binaries are skipped" >&2
@@ -27,16 +55,20 @@ fi
 
 if ! command -v shallnot >/dev/null 2>&1; then
   echo "shallnot is required for the self-gate: install it or put it on PATH" >&2
-  exit 2
+  exit "${EXIT_USAGE}"
 fi
 
 modules="${*:-$(script/modules)}"
 for module in $modules; do
+  if [ "${mode}" = "shard" ]; then
+    script/test-shard "$module" "$shard"
+    continue
+  fi
   script/lint "$module"
-  echo "== gate $module"
+  echo "== ${mode} $module"
   (
     cd "$module"
     mkdir -p build/test-results
-    shallnot gate
+    shallnot "${mode}"
   )
 done

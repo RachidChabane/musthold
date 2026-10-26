@@ -4,6 +4,7 @@ package contract_test
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -53,7 +54,16 @@ type step struct {
 }
 
 type strategy struct {
-	Matrix map[string][]string `yaml:"matrix"`
+	Matrix matrix `yaml:"matrix"`
+}
+
+type matrix struct {
+	Include []matrixEntry `yaml:"include"`
+}
+
+type matrixEntry struct {
+	Group string `yaml:"group"`
+	Shard string `yaml:"shard"`
 }
 
 func readRepositoryFile(t *testing.T, relative string) []byte {
@@ -72,6 +82,31 @@ func parseWorkflow(t *testing.T, relative string) workflow {
 		t.Fatalf("%s: %v", relative, err)
 	}
 	return parsed
+}
+
+func anyStepRuns(j job, fragments ...string) bool {
+	for _, s := range j.Steps {
+		all := true
+		for _, fragment := range fragments {
+			all = all && strings.Contains(s.Run, fragment)
+		}
+		if all {
+			return true
+		}
+	}
+	return false
+}
+
+// discpowerShards are the shards script/test-shard defines for the discriminating-power module.
+func discpowerShards(t *testing.T) []string {
+	t.Helper()
+	command := exec.Command("script/test-shard", "--list", "./discpower")
+	command.Dir = testkit.RepositoryRoot(t)
+	output, err := command.Output()
+	if err != nil {
+		t.Fatalf("script/test-shard --list ./discpower: %v", err)
+	}
+	return strings.Fields(string(output))
 }
 
 func needsOf(j job) []string {
@@ -295,7 +330,7 @@ func TestCIWorkflowKeepsItsTriggers(t *testing.T) {
 		}
 	})
 
-	t.Run("a call with modules runs only the product job, a push or pull request runs every job, and CI can be dispatched by hand"+verifiesWorkflow, func(t *testing.T) {
+	t.Run("a call with modules runs only the product jobs, a push or pull request runs every job, and CI can be dispatched by hand"+verifiesWorkflow, func(t *testing.T) {
 		for _, name := range []string{"pilot", "bench", "calibration"} {
 			if parsed.Jobs[name].If != "inputs.modules == ''" {
 				t.Errorf("job %s runs when %q", name, parsed.Jobs[name].If)
@@ -307,17 +342,25 @@ func TestCIWorkflowKeepsItsTriggers(t *testing.T) {
 		if _, dispatchable := parsed.On["workflow_dispatch"]; !dispatchable {
 			t.Error("CI cannot be dispatched by hand")
 		}
-		if groups := parsed.Jobs["product"].Strategy.Matrix["group"]; !slices.Equal(groups, []string{"discpower", "rest"}) {
-			t.Errorf("the product job gates the module groups %v", groups)
+		want := []matrixEntry{{Group: "rest"}}
+		for _, shard := range discpowerShards(t) {
+			want = append(want, matrixEntry{Group: "discpower", Shard: shard})
 		}
-		gates := false
-		for _, s := range parsed.Jobs["product"].Steps {
-			if strings.Contains(s.Run, `script/module-group "$GROUP" $MODULES`) && strings.Contains(s.Run, `make ci MODULES="$modules"`) {
-				gates = true
-			}
+		if entries := parsed.Jobs["product"].Strategy.Matrix.Include; !slices.Equal(entries, want) {
+			t.Errorf("the product job runs %v, want the rest group and each discpower shard: %v", entries, want)
 		}
-		if !gates {
-			t.Errorf("no step of the product job gates the modules of its group among those the call names")
+		if !anyStepRuns(parsed.Jobs["product"], `script/module-group "$GROUP" $MODULES`, `make ci MODULES="$modules"`, `script/ci --shard "$SHARD" $modules`) {
+			t.Errorf("no step of the product job gates the modules of its group, or runs their shard, among those the call names")
+		}
+	})
+
+	t.Run("the discpower shards' results are checked together once every shard has run"+verifiesWorkflow, func(t *testing.T) {
+		check := parsed.Jobs["product-check"]
+		if needs := needsOf(check); !slices.Equal(needs, []string{"product"}) || check.If != "" {
+			t.Errorf("product-check needs %v and runs when %q", needs, check.If)
+		}
+		if !anyStepRuns(check, `script/module-group discpower $MODULES`, `script/ci --check $modules`) {
+			t.Errorf("no step of product-check checks the discpower module among those the call names")
 		}
 	})
 }

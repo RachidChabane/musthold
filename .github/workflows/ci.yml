@@ -32,15 +32,24 @@ permissions:
 
 jobs:
   product:
-    name: product modules (${{ matrix.group }})
+    name: product modules (${{ matrix.group }}${{ matrix.shard && format(' {0} tests', matrix.shard) || '' }})
     runs-on: ubuntu-latest
     timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
-        # The discriminating-power module's end-to-end runs take most of the gate's
-        # time, so it gates in its own job, beside every other module.
-        group: [discpower, rest]
+        # The discriminating-power module's suite is too long for one job: its
+        # shards (script/test-shard --list ./discpower) run in parallel, and
+        # product-check traces its specs to their results. Every other module gates
+        # in one job.
+        include:
+          - group: rest
+          - group: discpower
+            shard: cli
+          - group: discpower
+            shard: e2e
+          - group: discpower
+            shard: rest
     steps:
       - name: Check out musthold
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -102,12 +111,13 @@ jobs:
           claude_code_version="$(tr -d '[:space:]' < musthold/script/claude-code.pin)"
           npm install --global --no-fund --no-audit "@anthropic-ai/claude-code@${claude_code_version}"
 
-      - name: Lint and self-gate the modules
+      - name: Lint and self-gate the modules, or run their shard of tests
         working-directory: musthold
         env:
           SHALLNOT_SRC: ${{ github.workspace }}/shallnot
           MODULES: ${{ inputs.modules }}
           GROUP: ${{ matrix.group }}
+          SHARD: ${{ matrix.shard }}
         run: |
           # shellcheck disable=SC2086 # MODULES is a space-separated list
           modules="$(script/module-group "$GROUP" $MODULES | tr '\n' ' ')"
@@ -115,7 +125,72 @@ jobs:
             echo "no module of the ${GROUP} group to gate"
             exit 0
           fi
-          make ci MODULES="$modules"
+          if [ -n "$SHARD" ]; then
+            # shellcheck disable=SC2086 # modules is a space-separated list
+            script/ci --shard "$SHARD" $modules
+          else
+            make ci MODULES="$modules"
+          fi
+
+      - name: Keep the shard's test results for product-check
+        if: matrix.shard != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-${{ matrix.group }}-${{ matrix.shard }}
+          path: musthold/${{ matrix.group }}/build/test-results/go-${{ matrix.shard }}.xml
+          if-no-files-found: ignore
+          retention-days: 7
+
+  product-check:
+    name: product modules (discpower)
+    needs: product
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out musthold
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: musthold
+
+      - name: Read the pinned Shallnot commit
+        id: pin
+        run: echo "sha=$(tr -d '[:space:]' < musthold/script/shallnot.pin)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the pinned Shallnot
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: RachidChabane/shallnot
+          ref: ${{ steps.pin.outputs.sha }}
+          path: shallnot
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: musthold/go.work
+          cache-dependency-path: musthold/**/go.sum
+
+      - name: Gather the shards' test results
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: test-results-discpower-*
+          path: musthold/discpower/build/test-results
+          merge-multiple: true
+
+      - name: Lint the module and check its specs against the shards' results
+        working-directory: musthold
+        env:
+          SHALLNOT_SRC: ${{ github.workspace }}/shallnot
+          MODULES: ${{ inputs.modules }}
+        run: |
+          # shellcheck disable=SC2086 # MODULES is a space-separated list
+          modules="$(script/module-group discpower $MODULES | tr '\n' ' ')"
+          if [ -z "${modules// /}" ]; then
+            echo "no module of the discpower group to check"
+            exit 0
+          fi
+          # shellcheck disable=SC2086 # modules is a space-separated list
+          script/ci --check $modules
 
   pilot:
     if: inputs.modules == ''

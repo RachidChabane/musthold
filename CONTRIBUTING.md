@@ -28,6 +28,7 @@ Every verb is a shebang script in `script/` and a `make` target that calls it, s
 | `make go-lint` | `script/lint [MODULE...]` | `gofmt` check and `go vet` per module |
 | `make go-test` | `script/test [MODULE...]` | the Go tests of each module, writing JUnit XML to `<module>/build/test-results/go.xml` |
 | `make ci` | `script/ci [MODULE...]` | build the pinned Shallnot, then lint and self-gate each module with `shallnot gate`, which runs its tests and traces its specs to the results |
+| none | `script/ci --shard SHARD MODULE...`, `script/ci --check [MODULE...]` | the self-gate split in two, as CI runs it for `discpower`: each shard of the module's tests (`script/test-shard --list MODULE`) runs in its own job, then `shallnot check` traces the specs to all their results |
 | `make gate-changed` | `script/gate-changed [BASE [HEAD]]` | self-gate the modules a range of commits touches (every module when `format` or `go.work` changes, `tools/e2e` for changes outside the modules) |
 | `make install-git-hooks` | `script/install-git-hooks` | install the pre-push hook that runs `script/gate-changed` on what a push carries and refuses the push when a gate fails |
 | `make watch-ci` | `script/watch-ci [COMMIT]` | wait for the CI run of a commit and report its outcome |
