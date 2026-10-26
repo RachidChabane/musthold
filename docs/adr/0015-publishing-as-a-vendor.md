@@ -83,8 +83,10 @@ this record fixes them before the repository is made public.
   - `notes/`, the maintainer's working notes;
   - the raw model outputs of the pilot runs (`experiments/*/runs/*/raw`): they
     carry session ids and per-call costs;
-  - `bench/mining/`, the archived GitHub responses of the abandoned campaign: they
-    carry third-party logins;
+  - `bench/mining/*/archive/`, the archived GitHub responses of the abandoned
+    campaign: they carry third-party logins. The candidate, attrition and sample
+    files drawn from them name only public repositories and pull requests, and
+    stay;
   - the names of internal working sessions and the author's local paths, wherever
     they appear in messages or files.
 - **What stays published:** the pre-registrations, fixtures, oracles, harness code,
@@ -110,8 +112,8 @@ this record fixes them before the repository is made public.
 - The replication kit and the frozen protocols are the invitation to third parties.
   A refutation by a third party is a result the project reports.
 - The archive repository stays the only place where the original commits, the raw
-  outputs and the mining data can be checked. Losing it loses that evidence, not
-  the published results.
+  outputs and the archived GitHub responses can be checked. Losing it loses that
+  evidence, not the published results.
 - The URIs depend on the author's site staying online. Losing the site breaks no
   execution, since every schema is embedded in the binaries, but the URIs stop
   resolving.
