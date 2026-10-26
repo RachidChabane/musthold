@@ -8,6 +8,7 @@ import (
 	"github.com/odvcencio/gotreesitter/grammars"
 
 	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/platform/syntaxtree"
 )
 
 // Node types of the tree-sitter Python grammar.
@@ -91,7 +92,7 @@ type parsed struct {
 
 func parse(source []byte) (*parsed, error) {
 	lang := grammars.PythonLanguage()
-	tree, err := gotreesitter.NewParser(lang).Parse(source)
+	tree, err := syntaxtree.Parse(lang, source)
 	if err != nil {
 		return nil, fmt.Errorf("parse: %w", err)
 	}

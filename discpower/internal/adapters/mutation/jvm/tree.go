@@ -7,6 +7,7 @@ import (
 	"github.com/odvcencio/gotreesitter"
 
 	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/platform/syntaxtree"
 )
 
 // Field names shared by the Java and Kotlin grammars.
@@ -57,7 +58,7 @@ type parsed struct {
 
 func parse(d dialect, source []byte) (*parsed, error) {
 	lang := d.language()
-	tree, err := gotreesitter.NewParser(lang).Parse(source)
+	tree, err := syntaxtree.Parse(lang, source)
 	if err != nil {
 		return nil, fmt.Errorf("parse: %w", err)
 	}

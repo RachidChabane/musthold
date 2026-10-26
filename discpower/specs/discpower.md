@@ -128,6 +128,10 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   a program linking the full registry SHALL be larger.
 - **SP-44~1**: WHEN a file has an extension no grammar covers THE SYSTEM SHALL
   refuse it.
+- **SP-2427~1**: WHEN a source that holds a NUL byte is parsed, to be located,
+  mutated or read for a signature, THE SYSTEM SHALL read each NUL as one byte of
+  its text, so that a literal holding one parses as its language reads it, and
+  every node keeps its offsets in the file.
 - **SP-45~1**: WHEN a project configuration is decoded from YAML THE SYSTEM
   SHALL read the proofs and the ecosystems, and refuse an unknown proof.
 - **SP-46~1**: WHEN glob patterns are expanded over a tree THE SYSTEM SHALL

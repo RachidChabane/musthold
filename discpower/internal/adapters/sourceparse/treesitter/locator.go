@@ -12,6 +12,7 @@ import (
 
 	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
 	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/platform/syntaxtree"
 )
 
 // ErrUnsupportedLanguage is returned for a file whose extension no grammar covers.
@@ -52,7 +53,7 @@ func (*Locator) Locate(path string, source []byte) ([]ecosystem.Definition, erro
 		return nil, fmt.Errorf("%w: %q", ErrUnsupportedLanguage, path)
 	}
 	lang := spec.load()
-	tree, err := gotreesitter.NewParser(lang).Parse(source)
+	tree, err := syntaxtree.Parse(lang, source)
 	if err != nil {
 		return nil, fmt.Errorf("parse %q: %w", path, err)
 	}

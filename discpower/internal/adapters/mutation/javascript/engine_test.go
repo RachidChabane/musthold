@@ -383,3 +383,12 @@ func assertEverySpliceParses(t testing.TB, source mutation.SourceFile) {
 		}
 	}
 }
+
+func TestATemplateLiteralHoldingANulByte(t *testing.T) {
+	t.Run("a function whose template literal holds a NUL byte is mutated like any other [verifies SP-2427~1]", func(t *testing.T) {
+		source := "export function pairKey(a: string, b: string): string {\n  return a < b ? `${a}\x00${b}` : `${b}\x00${a}`;\n}\n"
+		if got := sourcesOf(candidatesOf(t, source), operator.FamilyRelational); len(got) == 0 {
+			t.Fatal("no relational mutant of pairKey")
+		}
+	})
+}

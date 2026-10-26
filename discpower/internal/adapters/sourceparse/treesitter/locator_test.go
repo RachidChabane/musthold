@@ -205,3 +205,23 @@ func pythonProgram() *rapid.Generator[string] {
 		return strings.Join(rapid.SliceOfN(line, 0, 12).Draw(t, "lines"), "")
 	})
 }
+
+func TestLocateReadsANulByteAsText(t *testing.T) {
+	t.Run("a Java string literal holding a NUL byte keeps every definition and its span [verifies SP-2427~1]", func(t *testing.T) {
+		source := []byte("class K {\n  String a() { return \"x\x00y\"; }\n  int b() { return 1; }\n}\n")
+		definitions, err := NewLocator().Locate("K.java", source)
+		if err != nil {
+			t.Fatalf("Locate: %v", err)
+		}
+		want := map[string]string{"K.a": "String a() { return \"x\x00y\"; }", "K.b": "int b() { return 1; }"}
+		if len(definitions) != len(want) {
+			t.Fatalf("definitions %+v", definitions)
+		}
+		for _, definition := range definitions {
+			text, err := definition.Span.Slice(source)
+			if err != nil || string(text) != want[definition.Qualname] {
+				t.Errorf("%s spans %q (%v), want %q", definition.Qualname, text, err, want[definition.Qualname])
+			}
+		}
+	})
+}

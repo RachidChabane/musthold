@@ -8,6 +8,8 @@ import (
 
 	"github.com/odvcencio/gotreesitter"
 	"github.com/odvcencio/gotreesitter/grammars"
+
+	"github.com/RachidChabane/musthold/discpower/internal/platform/syntaxtree"
 )
 
 // Errors of the signature reading.
@@ -77,7 +79,7 @@ func Parameters(filePath string, source []byte, classes []string, method string)
 	default:
 		return nil, fmt.Errorf("%w: %q", ErrUnsupportedSource, filePath)
 	}
-	tree, err := gotreesitter.NewParser(language).Parse(source)
+	tree, err := syntaxtree.Parse(language, source)
 	if err != nil {
 		return nil, fmt.Errorf("parse %q: %w", filePath, err)
 	}

@@ -7,6 +7,7 @@ import (
 	"github.com/odvcencio/gotreesitter"
 
 	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/platform/syntaxtree"
 )
 
 // Node types of the tree-sitter JavaScript and TypeScript grammars.
@@ -114,7 +115,7 @@ func parse(filePath string, source []byte) (*parsed, error) {
 	if err != nil {
 		return nil, err
 	}
-	tree, err := gotreesitter.NewParser(lang).Parse(source)
+	tree, err := syntaxtree.Parse(lang, source)
 	if err != nil {
 		return nil, fmt.Errorf("parse: %w", err)
 	}
