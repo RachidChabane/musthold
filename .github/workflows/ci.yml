@@ -229,11 +229,21 @@ jobs:
     name: calibration harness
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      # The frozen builders import the product by the module paths of their
+      # freeze, so they compile against the product tree of the freeze tag.
+      CALIBRATION_FREEZE_TAG: prereg-calibration-a1
     steps:
       - name: Check out musthold with its tags
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+
+      - name: Check that the study is the one its freeze tag holds
+        run: git diff --exit-code "${CALIBRATION_FREEZE_TAG}" HEAD -- experiments/calibration ':!experiments/calibration/freeze'
+
+      - name: Check out the study with the product of its freeze
+        run: git checkout --quiet --detach "${CALIBRATION_FREEZE_TAG}"
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
