@@ -702,11 +702,12 @@ func TestEnableAndDisable(t *testing.T) {
 	})
 
 	eachModule(t, "the replacement of the module's block keeps the text around it", enableTag, func(t *testing.T, s sample) {
+		const staleBody = "the stale body of the block"
 		files := prepared(t, s, traceabilityOnly)
-		files.put(t, agentsPath, "before\n\n"+s.blockBegin()+"\nold\n"+s.blockEnd()+"\nafter\n")
+		files.put(t, agentsPath, "before\n\n"+s.blockBegin()+"\n"+staleBody+"\n"+s.blockEnd()+"\nafter\n")
 		enable(t, s, files)
 		updated := files.text(agentsPath)
-		if !strings.HasPrefix(updated, "before\n\n") || !strings.HasSuffix(updated, "\nafter\n") || strings.Contains(updated, "old") ||
+		if !strings.HasPrefix(updated, "before\n\n") || !strings.HasSuffix(updated, "\nafter\n") || strings.Contains(updated, staleBody) ||
 			strings.Count(updated, s.blockBegin()) != 1 {
 			t.Fatalf("updated = %q", updated)
 		}
