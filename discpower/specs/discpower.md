@@ -1664,6 +1664,9 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   extra argument; and `musthold-dp scan replay <dir>` SHALL replay the finding
   of a finding folder or every finding of a scan folder and exit 1 when a claim
   does not hold.
+- **SP-2425~1**: WHEN `musthold-dp scan` finds no suite in a tree whose root
+  holds a Go workspace file, `go.work`, THE SYSTEM SHALL fail naming the modules
+  the file uses, in its order, and that `--root` scans one module at a time.
 - **SP-2120~1**: WHEN the git state of a scanned project is read THE SYSTEM SHALL
   resolve the head and a base revision to full commit ids, list the tracked
   files, report the tree dirty only for a changed tracked file outside the scan

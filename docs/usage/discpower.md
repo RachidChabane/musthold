@@ -175,7 +175,9 @@ musthold-dp scan [--full] [--host [--resume]] [--base REV] [--seed N] [--sample 
 ```
 
 The work tree must have no uncommitted change to a tracked file: a scan names
-the commit it ran on. It copies the tree into a workspace outside it, runs the
+the commit it ran on. A Go workspace is scanned one module at a time: at the
+root of a `go.work`, the refusal names its modules, and `--root <module>` scans
+one of them. It copies the tree into a workspace outside it, runs the
 whole suite three times and records, per test, the lines its run executed and,
 among them, the lines the test owns, which exclude what it shares with other
 tests. For Go, a test owns the blocks it ran more often than its parent test

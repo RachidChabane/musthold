@@ -155,3 +155,25 @@ const (
 	jestScanFixture   = "../../fixtures/scan/jest"
 	vitestScanFixture = "../../fixtures/scan/vitest"
 )
+
+func TestScanStrategyRefusal(t *testing.T) {
+	strategies, err := newStrategies(process.New(), junitxml.NewReader())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Run("the root of a Go workspace is refused with its modules and --root [verifies SP-2425~1]", func(t *testing.T) {
+		root := t.TempDir()
+		if err := os.WriteFile(root+"/go.work", []byte("go 1.26\n\nuse (\n\t./format\n\t./discpower\n)\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		_, _, err := scanStrategy(strategies, root)
+		if !errors.Is(err, errScanEcosystem) || !strings.Contains(err.Error(), "--root <module>: format, discpower") {
+			t.Fatalf("refusal %v", err)
+		}
+	})
+	t.Run("a tree with no suite and no workspace is refused as before [verifies SP-2425~1]", func(t *testing.T) {
+		if _, _, err := scanStrategy(strategies, t.TempDir()); !errors.Is(err, errScanEcosystem) || err.Error() != errScanEcosystem.Error() {
+			t.Fatalf("refusal %v", err)
+		}
+	})
+}

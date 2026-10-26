@@ -10,9 +10,11 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/RachidChabane/musthold/discpower/internal/adapters/capacity"
 	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem"
+	"github.com/RachidChabane/musthold/discpower/internal/adapters/ecosystem/golang"
 	"github.com/RachidChabane/musthold/discpower/internal/adapters/ghpr"
 	"github.com/RachidChabane/musthold/discpower/internal/adapters/gitsource"
 	"github.com/RachidChabane/musthold/discpower/internal/adapters/junitxml"
@@ -427,10 +429,25 @@ func (e Env) scanHost(root string, repository gitsource.Repository) (*scan.HostD
 
 // scanStrategy is the first ecosystem detected in the tree that a scan runs.
 func scanStrategy(strategies *ecosystem.Registry, root string) (ports.Ecosystem, ports.ScanSuite, error) {
-	for _, candidate := range strategies.Detect(os.DirFS(root)) {
+	tree := os.DirFS(root)
+	for _, candidate := range strategies.Detect(tree) {
 		if scanning, ok := candidate.Strategy.(ports.Scanning); ok {
 			return candidate.Strategy, scanning.Scan(), nil
 		}
 	}
-	return nil, nil, errScanEcosystem
+	return nil, nil, noScanEcosystem(tree)
+}
+
+// noScanEcosystem is the refusal of a tree with no suite a scan runs; at the
+// root of a Go workspace it names the modules --root scans one at a time.
+func noScanEcosystem(tree fs.FS) error {
+	modules, found, err := golang.WorkspaceModules(tree)
+	if err != nil {
+		return fmt.Errorf("%w: %w", errScanEcosystem, err)
+	}
+	if !found {
+		return errScanEcosystem
+	}
+	return fmt.Errorf("%w; this is a Go workspace, scanned one module at a time with --root <module>: %s",
+		errScanEcosystem, strings.Join(modules, ", "))
 }
