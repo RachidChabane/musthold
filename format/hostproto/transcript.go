@@ -37,6 +37,9 @@ const (
 	// TranscriptAgentJSONL is one JSON line per message, the tool calls being the
 	// `tool_use` blocks of the assistant messages; DecodeTranscript reads it.
 	TranscriptAgentJSONL TranscriptFormat = "agent-jsonl"
+	// TranscriptCopilotSession is the session event log of Copilot CLI;
+	// DecodeCopilotSessionLog reads the events of one agent.
+	TranscriptCopilotSession TranscriptFormat = "copilot-session"
 	// TranscriptCodexRollout is the rollout of a spawned Codex thread;
 	// ReadCodexChildRollout reads it.
 	TranscriptCodexRollout TranscriptFormat = "codex-rollout"

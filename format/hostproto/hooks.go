@@ -339,11 +339,21 @@ func (in AgentInput) Sanitize(plugin string) (AgentInput, error) {
 	return AgentInput{SubagentType: in.SubagentType, Description: in.Description, Prompt: ExecutorPrompt(ticket)}, nil
 }
 
+// ExecutorInstructions is the body of every executor agent the module ships.
+const ExecutorInstructions = "Fetch the ticket in your task, follow its instructions, submit JSON matching its schema, reply only with the receipt."
+
 // executorPromptPrefix starts the only prompt an executor is given.
 const executorPromptPrefix = "ticket "
 
 // ExecutorPrompt is the whole prompt of an executor launch.
-func ExecutorPrompt(ticket TicketID) string { return executorPromptPrefix + ticket.String() }
+func ExecutorPrompt(ticket TicketID) string { return ExecutorPromptOf(ticket.String()) }
+
+// TicketPlaceholder stands for a ticket in the text that tells an agent how to
+// launch an executor.
+const TicketPlaceholder = "<ticket>"
+
+// ExecutorPromptOf is the prompt of an executor launch for a ticket spelled as text.
+func ExecutorPromptOf(ticket string) string { return executorPromptPrefix + ticket }
 
 // InjectCap sets the `cap` member of an MCP tool input, which is how the hook
 // hands the executor's capability to the server.

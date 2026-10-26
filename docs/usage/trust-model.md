@@ -106,14 +106,25 @@ escalate. So does an answer marked `leaked`, `exposed`, `resubmission_conflict`,
 |---|---|---|
 | Claude Code | `restricted`, `restricted-attested` when attested | the executor is a plugin subagent whose `tools` list names exactly `fetch_request` and `submit_response`; it holds no shell and no file tool |
 | Codex CLI | `unrestricted`, `inline` when the executor's rollout does not show a blind start | Codex has no per-agent allowlist of built-in tools; the executor keeps the shell, and attestation is waived. The hooks deny a spawn of an executor that does not set `fork_turns: "none"` or `fork_context: false`, and the stop hook reads the executor's rollout: an answer whose executor started with the main agent's history (`history_inherited`), or whose rollout cannot show it did not (`blindness_unproven`), is credited `inline` and marked |
-| Copilot CLI | `restricted-unverified` | the allowlist is written, but its enforcement is not verified |
+| Copilot CLI | recorded `restricted-unverified`, raised to `restricted` for an unmarked executor run verified from the session log; never `restricted-attested` | the stop hook verifies the pinned CLI, exactly the two executor tools, only the fetch and submit of its own ticket, submitted output matching the stored response, a bare receipt, and the bare ticket prompt with the shipped agent body as the sole system message; both observations must identify the same answering agent |
 | any other harness | `inline`, marked `exposed` | the main agent answers through `request show` and `request submit`: the agent whose work is judged gives the answer |
 
-Consequences: on Codex and Copilot, requirements without examples reach no PASS,
-local or signed, unless the floor is lowered. On any other harness they reach no
-PASS under any floor, because every answer there is marked `exposed`. Requirements
-with examples pass on executed evidence everywhere. Judged answers still block and
-escalate on every harness.
+Consequences: at the default `min_isolation: restricted`, a verified Copilot run
+is credited `restricted` and can earn judged pass credit with executed
+corroboration, without lowering the floor. Other Copilot answers remain
+`restricted-unverified`; like Codex answers, they earn no judged pass credit at
+that floor, so requirements without examples reach no PASS, local or signed,
+unless the floor is lowered. Marks still deny judged pass credit under every
+floor: this includes main-agent and outside-executor answers marked `exposed`,
+and Codex answers whose blindness is lost. On any other harness, inline answers
+are marked `exposed` and requirements without examples reach no PASS under any
+floor. Requirements with examples pass on executed evidence everywhere. Judged
+answers still block and escalate on every harness.
+
+For Copilot, extra selected tools, extra calls or another ticket mark the run
+`exposed`; a non-receipt reply marks it `leaked`. Other failed conditions leave it
+`restricted-unverified`. The sole system message must begin with the shipped agent
+body; the CLI's own sections after its first blank line are allowed.
 
 ## Classification by the host
 

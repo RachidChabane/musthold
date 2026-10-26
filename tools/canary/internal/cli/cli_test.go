@@ -19,7 +19,7 @@ const (
 
 	recordedCopilotSession = "../domain/checks/testdata/copilot-session"
 	// copilotChecks is the number of checks of Copilot CLI.
-	copilotChecks = 15
+	copilotChecks = 16
 )
 
 // securityNotFound is the exit code of `security` for an item that does not exist.

@@ -221,7 +221,17 @@ installs none.
   [Codex: trust the project and its hooks](#codex-trust-the-project-and-its-hooks).
 - **Copilot CLI.** `init` writes `.github/agents/*.agent.md`,
   `.github/hooks/<module>.json` and `.github/skills/<module>-fulfil/SKILL.md`.
-  Isolation is `restricted-unverified`.
+  An answer is stored `restricted-unverified` and credited `restricted` when the
+  stop hook verifies the answering executor's session log: pinned CLI, exactly
+  the two executor tools, only the fetch and submit of its own ticket, submitted
+  output matching the stored response, a bare receipt, and a bare ticket prompt
+  with the shipped agent body as the sole system message (the CLI's appended
+  sections are allowed). Both observation events must name the same agent and
+  no mark may be present. Other Copilot answers stay `restricted-unverified`;
+  Copilot never reaches `restricted-attested`. A verified run meets the default
+  `min_isolation: restricted` floor and can earn judged pass credit with executed
+  corroboration without lowering it. Unverified runs earn no judged pass credit
+  at that floor; marked answers earn none under any floor.
 - **Any other harness.** The main agent answers each ticket itself:
   `spec-proof-dp request list --session prove`, `spec-proof-dp request show <ticket>`, then
   `spec-proof-dp request submit <ticket> --nonce <nonce>` with the JSON answer on

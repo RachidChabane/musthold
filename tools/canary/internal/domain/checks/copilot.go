@@ -16,15 +16,16 @@ import (
 // Names of the Copilot checks. The names of the checks that mean what a Codex check
 // of the same name means are shared.
 const (
-	checkCopilotListed    = "plugins_and_skills_listed"
-	checkCopilotTrees     = "plugin_trees_valid"
-	checkCopilotAgent     = "executor_agent_starts"
-	checkCopilotModel     = "session_model"
-	checkCopilotHooks     = "hooks_fire"
-	checkCopilotStop      = "subagent_stop_fires"
-	checkCopilotNaming    = "mcp_tool_naming"
-	checkCopilotAgentType = "agent_type_in_pretool"
-	checkCopilotAllowlist = "agent_allowlist_honoured"
+	checkCopilotListed      = "plugins_and_skills_listed"
+	checkCopilotTrees       = "plugin_trees_valid"
+	checkCopilotAgent       = "executor_agent_starts"
+	checkCopilotModel       = "session_model"
+	checkCopilotHooks       = "hooks_fire"
+	checkCopilotStop        = "subagent_stop_fires"
+	checkCopilotNaming      = "mcp_tool_naming"
+	checkCopilotAgentType   = "agent_type_in_pretool"
+	checkCopilotAllowlist   = "agent_allowlist_honoured"
+	checkCopilotRunObserved = "run_observed_journaled"
 
 	fulfilSkillSuffix  = "-fulfil"
 	copilotAgentSuffix = ".agent.md"
@@ -51,6 +52,7 @@ func copilotChecks() []Check {
 		unlessRefused(copilotToolNamingCheck()),
 		unlessRefused(copilotAgentTypeCheck()),
 		unlessRefused(allowlistCheck()),
+		unlessRefused(runObservedJournaledCheck()),
 		unlessRefused(failsOnlyAfterNormalEnd(editAppliedCheck())),
 		withinCapsCheck(copilotSummary),
 		configUntouchedCheck(),
@@ -245,10 +247,12 @@ func executorAgentStartsCheck() Check {
 		func(found evidence.Evidence) verdict.Verdict {
 			agentType := copilotStrategy().AgentType(found.Session.Role)
 			stream := copilotStream(found)
-			named := func(event evidence.CopilotEvent) bool { return strings.Contains(event.AgentName, agentType) }
+			named := func(event evidence.CopilotEvent) bool {
+				return copilotStrategy().NamesRole(found.Session.Role, event.AgentName)
+			}
 			for _, event := range stream.Of(evidence.CopilotEventSubagentStarted) {
 				if named(event) {
-					return verdict.Passed(fmt.Sprintf("subagent %q started for the executor type %s%s", event.AgentName, agentType, taskCallNote(stream, agentType)), evidence.StreamAt(event.Line, event.Type))
+					return verdict.Passed(fmt.Sprintf("subagent %q started for the executor type %s%s", event.AgentName, agentType, taskCallNote(stream, found.Session.Role)), evidence.StreamAt(event.Line, event.Type))
 				}
 			}
 			for _, event := range stream.Of(evidence.CopilotEventSubagentFailed) {
@@ -415,7 +419,7 @@ func identityExpected(found evidence.Evidence, calls []evidence.HookCall) verdic
 	for _, call := range calls {
 		payload := call.CopilotHook()
 		pointer := evidence.HooksAt(call.Line, "pre-tool payload")
-		if namesAgent(payload.AgentType, want) {
+		if copilotStrategy().NamesRole(found.Session.Role, payload.AgentType) {
 			return verdict.Passed(fmt.Sprintf("the payload names agentType %q for the agent %q", payload.AgentType, want), pointer)
 		}
 	}
@@ -438,25 +442,11 @@ func identityNotDeclared(calls []evidence.HookCall) verdict.Verdict {
 		evidence.HooksAt(calls[0].Line, "pre-tool payload"))
 }
 
-// pluginPrefixSeparators are the characters a client may put between a plugin's
-// name and the name of one of its agents.
-const pluginPrefixSeparators = ":/.-_@"
-
-// namesAgent reports whether a name is the agent's plain name or the name with a
-// plugin prefix in front of it.
-func namesAgent(got, want string) bool {
-	if got == want {
-		return true
-	}
-	prefix, found := strings.CutSuffix(got, want)
-	return found && prefix != "" && strings.ContainsRune(pluginPrefixSeparators, rune(prefix[len(prefix)-1]))
-}
-
 // taskCallNote names the agent_type the main agent passed to the task tool for
 // the executor, which shows whether the client spells a plugin's agent with a prefix.
-func taskCallNote(stream evidence.CopilotStream, agentType string) string {
+func taskCallNote(stream evidence.CopilotStream, role string) string {
 	for _, event := range stream.Of(evidence.CopilotEventToolStart) {
-		if got, isTask := event.TaskAgentType(); isTask && namesAgent(got, agentType) {
+		if got, isTask := event.TaskAgentType(); isTask && copilotStrategy().NamesRole(role, got) {
 			return fmt.Sprintf("; the task tool was called with agent_type %q", got)
 		}
 	}

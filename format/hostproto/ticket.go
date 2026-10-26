@@ -3,6 +3,7 @@ package hostproto
 import (
 	"crypto/subtle"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -156,4 +157,15 @@ func OutputDigest(output []byte) (string, error) {
 		return "", err
 	}
 	return format.SHA256Hex(canonical), nil
+}
+
+// TicketOfInput reads the ticket an executor tool call names.
+func TicketOfInput(toolInput json.RawMessage) (TicketID, error) {
+	var input struct {
+		Ticket string `json:"ticket"`
+	}
+	if err := json.Unmarshal(toolInput, &input); err != nil {
+		return TicketID{}, err
+	}
+	return ParseTicketID(input.Ticket)
 }

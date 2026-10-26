@@ -10,11 +10,9 @@
 package hookhandler
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/RachidChabane/spec-proof/format/hostproto"
 	"github.com/RachidChabane/spec-proof/format/hostproto/executorrun"
@@ -28,7 +26,6 @@ const (
 	reasonMainAgent         = "the executor tools belong to the executor subagents"
 	reasonInternal          = "the module could not check the call"
 	reasonLaunchRole        = "the ticket belongs to another role than the subagent"
-	reasonNotBareReceipt    = "the reply is not the bare receipt"
 )
 
 // Details the stop hook journals about a transcript it could not use.
@@ -40,6 +37,7 @@ const (
 // Store is what the hooks read and write of the host directory.
 type Store interface {
 	hostproto.Tickets
+	hostproto.Responses
 	hostproto.Secrets
 	hostproto.Journal
 }
@@ -113,23 +111,6 @@ func (h Handler) decide(permission hostproto.Permission, reason string, updated 
 
 func (h Handler) deny(reason string) ([]byte, error) {
 	return h.decide(hostproto.PermissionDeny, reason, nil)
-}
-
-// isReceipt reports whether a reply is the bare receipt of the ticket, whatever
-// whitespace the model put around it.
-func isReceipt(reply string, ticket hostproto.TicketID) bool {
-	return strings.TrimSpace(reply) == executorrun.Receipt(ticket)
-}
-
-// ticketOfInput reads the ticket an executor tool call names.
-func ticketOfInput(toolInput json.RawMessage) (hostproto.TicketID, error) {
-	var input struct {
-		Ticket string `json:"ticket"`
-	}
-	if err := json.Unmarshal(toolInput, &input); err != nil {
-		return hostproto.TicketID{}, err
-	}
-	return hostproto.ParseTicketID(input.Ticket)
 }
 
 // roleOfAgent is the role an agent runs as: the role of the type the harness
@@ -233,7 +214,7 @@ func (h Handler) rewriteLaunch(input hostproto.AgentInput, role string) ([]byte,
 // tools, with its capability added, and refuses anyone else, journaling the
 // attempt.
 func (h Handler) guardExecutorTool(event hostproto.HookEvent) ([]byte, error) {
-	ticket, err := ticketOfInput(event.ToolInput)
+	ticket, err := hostproto.TicketOfInput(event.ToolInput)
 	if err != nil {
 		return h.refuse(event, hostproto.TicketID{}, reasonNotExecutorTicket)
 	}
@@ -314,8 +295,9 @@ type runCheck func(h Handler, event hostproto.HookEvent, role string) error
 
 // runChecks are the checks of a stopped executor, one per transcript format.
 var runChecks = map[hostproto.TranscriptFormat]runCheck{
-	hostproto.TranscriptAgentJSONL:   Handler.checkRun,
-	hostproto.TranscriptCodexRollout: Handler.checkBlindness,
+	hostproto.TranscriptAgentJSONL:     Handler.checkRun,
+	hostproto.TranscriptCopilotSession: Handler.checkRun,
+	hostproto.TranscriptCodexRollout:   Handler.checkBlindness,
 }
 
 // ErrUnsupportedTranscript is returned for a harness whose transcript format no
@@ -338,29 +320,26 @@ func (h Handler) subagentStop(event hostproto.HookEvent) error {
 	return check(bound, event, role)
 }
 
-// checkRun reads the transcript of a stopped executor: its calls must be exactly
-// the fetch and the submit of one ticket and its reply the bare receipt.
+// checkRun reads the record of a stopped executor and journals what it shows: the
+// findings of the stop check, each bound to the agent and the role.
 func (h Handler) checkRun(event hostproto.HookEvent, role string) error {
-	transcript, err := h.Transcripts.Read(event.TranscriptPath)
+	record, err := h.Transcripts.Read(event.TranscriptPath)
 	if err != nil {
 		return h.journal(hostproto.EventRestricted, "", event.AgentID, role, reasonTranscriptUnreadable+err.Error())
 	}
-	calls, err := hostproto.DecodeTranscript(bytes.NewReader(transcript))
+	run, err := h.Harness.ReadRun(record, event.AgentID)
 	if err != nil {
 		return h.journal(hostproto.EventRestricted, "", event.AgentID, role, "transcript undecodable: "+err.Error())
 	}
-	ticket, found := fetchedTicket(calls)
-	if !found {
-		return h.journal(hostproto.EventExposed, "", event.AgentID, role, "the run never fetched a ticket")
+	findings := executorrun.CheckStop(executorrun.StopInput{
+		Harness: h.Harness, Run: run, Record: record, Reply: event.LastMessage, Stored: h.storedOutput,
+	})
+	for _, finding := range findings {
+		if err := h.journal(finding.Kind, finding.Ticket, event.AgentID, role, finding.Detail); err != nil {
+			return err
+		}
 	}
-	if err := hostproto.CheckExecutorTranscript(calls, ticket); err != nil {
-		return h.journal(hostproto.EventExposed, ticket.String(), event.AgentID, role, err.Error())
-	}
-	if !isReceipt(event.LastMessage, ticket) {
-		return h.journal(hostproto.EventLeaked, ticket.String(), event.AgentID, role, reasonNotBareReceipt)
-	}
-	detail := executorrun.AttestationDetail(hostproto.TranscriptDigest(transcript))
-	return h.journal(hostproto.EventAttested, ticket.String(), event.AgentID, role, detail)
+	return nil
 }
 
 // blindnessEvents are the events that record a run not shown to be blind, by
@@ -391,8 +370,8 @@ func (h Handler) checkBlindness(event hostproto.HookEvent, role string) error {
 			return err
 		}
 	}
-	if found && !isReceipt(event.LastMessage, ticket) {
-		return h.journal(hostproto.EventLeaked, ticketText, event.AgentID, role, reasonNotBareReceipt)
+	if found && !executorrun.IsReceipt(event.LastMessage, ticket) {
+		return h.journal(hostproto.EventLeaked, ticketText, event.AgentID, role, executorrun.ConditionNotReceipt)
 	}
 	return nil
 }
@@ -411,28 +390,13 @@ func (h Handler) readChildRun(event hostproto.HookEvent) hostproto.CodexChildRun
 	return run
 }
 
-// fetchedTicket is the ticket of the first fetch an executor made.
-func fetchedTicket(calls []hostproto.ToolCall) (hostproto.TicketID, bool) {
-	for _, call := range calls {
-		if toolBase(call.Name) != hostproto.ToolFetchRequest {
-			continue
-		}
-		if ticket, err := ticketOfInput(call.Input); err == nil {
-			return ticket, true
-		}
+// storedOutput is the output the module accepted for a ticket, nil when none.
+func (h Handler) storedOutput(ticket hostproto.TicketID) json.RawMessage {
+	response, err := h.store.GetResponse(ticket.Key())
+	if err != nil {
+		return nil
 	}
-	return hostproto.TicketID{}, false
-}
-
-// toolBase is a tool's own name, whatever server prefix the harness gives it.
-func toolBase(name string) string {
-	if tool, ok := hostproto.ParseMCPToolName(name); ok {
-		return tool.Tool
-	}
-	if cut := strings.LastIndex(name, "/"); cut >= 0 {
-		return name[cut+1:]
-	}
-	return name
+	return response.Output
 }
 
 // postTool records what the harness reported about a finished executor launch:
@@ -457,8 +421,8 @@ func (h Handler) postTool(event hostproto.HookEvent) error {
 	if err != nil {
 		return err
 	}
-	if event.Reply != "" && !isReceipt(event.Reply, ticket) {
-		if err := bound.journal(hostproto.EventLeaked, ticket.String(), "", role, reasonNotBareReceipt); err != nil {
+	if event.Reply != "" && !executorrun.IsReceipt(event.Reply, ticket) {
+		if err := bound.journal(hostproto.EventLeaked, ticket.String(), "", role, executorrun.ConditionNotReceipt); err != nil {
 			return err
 		}
 	}

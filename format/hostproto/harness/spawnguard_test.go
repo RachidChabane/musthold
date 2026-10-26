@@ -13,7 +13,7 @@ func TestSpawnGuard(t *testing.T) {
 		want := map[string]hostproto.TranscriptFormat{
 			harness.FlagClaude:  hostproto.TranscriptAgentJSONL,
 			harness.FlagCodex:   hostproto.TranscriptCodexRollout,
-			harness.FlagCopilot: hostproto.TranscriptAgentJSONL,
+			harness.FlagCopilot: hostproto.TranscriptCopilotSession,
 		}
 		for _, h := range harness.All(sample) {
 			if h.Behaviours.GuardsSpawn != (h.Flag == harness.FlagCodex) || h.Transcript != want[h.Flag] {

@@ -18,6 +18,7 @@ import (
 	"github.com/RachidChabane/spec-proof/discpower/internal/domain/hostharness"
 	"github.com/RachidChabane/spec-proof/format"
 	"github.com/RachidChabane/spec-proof/format/hostproto"
+	formatharness "github.com/RachidChabane/spec-proof/format/hostproto/harness"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostbridge"
 	"github.com/RachidChabane/spec-proof/format/hostproto/hostprototest"
 )
@@ -33,6 +34,7 @@ const (
 	usageTotalTokens   = 12450
 	nonceStep          = 7
 	transcriptFileName = "agent-transcript.jsonl"
+	sessionLogFileName = "events.jsonl"
 )
 
 // counterEntropy yields different bytes on every read, so that nonces are
@@ -268,6 +270,17 @@ func (h *commandHost) Launch(input hostproto.AgentInput) (hostproto.AgentInput, 
 	return launched, nil
 }
 
+// copilot reports whether the host runs the Copilot CLI strategy, whose hook
+// payloads are camelCase and which has no start hook.
+func (h *commandHost) copilot() bool { return h.harness.Flag == formatharness.FlagCopilot }
+
+// runCopilotHook runs a hook with the payload Copilot CLI sends.
+func (h *commandHost) runCopilotHook(kind hostproto.HookKind, payload map[string]any) (stdout string, code int) {
+	h.t.Helper()
+	payload["sessionId"] = sessionID
+	return h.runHook(kind, payload)
+}
+
 // StartExecutor implements hostprototest.Host.
 func (h *commandHost) StartExecutor(role string) string {
 	if !h.hooks {
@@ -276,6 +289,9 @@ func (h *commandHost) StartExecutor(role string) string {
 	h.counter++
 	agentID := fmt.Sprintf(agentIDFormat, h.counter)
 	h.roles[agentID] = role
+	if h.copilot() {
+		return agentID
+	}
 	if _, code := h.runHook(hostproto.HookSubagentStart, map[string]any{
 		"hook_event_name": "SubagentStart", "session_id": sessionID, "agent_id": agentID, "agent_type": h.harness.AgentType(role),
 	}); code != cli.ExitClean {
@@ -287,6 +303,12 @@ func (h *commandHost) StartExecutor(role string) string {
 // Cap implements hostprototest.Host.
 func (h *commandHost) Cap(agentID string) string {
 	if !h.hooks || agentID == "" {
+		return ""
+	}
+	if h.copilot() {
+		h.runCopilotHook(hostproto.HookPreTool, map[string]any{
+			"toolName": h.harness.ToolName(hostproto.ToolFetchRequest), "toolArgs": map[string]string{"ticket": h.current.TicketID.String(), "cap": ""},
+		})
 		return ""
 	}
 	stdout, code := h.runHook(hostproto.HookPreTool, map[string]any{
@@ -346,6 +368,9 @@ func (h *commandHost) AfterRun(run hostprototest.Run) error {
 	if !h.hooks {
 		return nil
 	}
+	if run.SessionLog != nil {
+		return h.afterCopilotRun(run)
+	}
 	path := filepath.Join(h.scratch, fmt.Sprintf("%s-%s", run.AgentID, transcriptFileName))
 	transcript, err := hostprototest.RunTranscript(h.harness, h.roles[run.AgentID], run, run.Transcript)
 	if err != nil {
@@ -371,6 +396,27 @@ func (h *commandHost) AfterRun(run hostprototest.Run) error {
 		},
 	}); code != cli.ExitClean {
 		h.t.Fatalf("post-tool exited %d", code)
+	}
+	for _, event := range h.Journal() {
+		if event.Kind == hostproto.EventExposed && event.Ticket == run.Ticket.String() {
+			return hostproto.ErrTranscriptDeviation
+		}
+	}
+	return nil
+}
+
+// afterCopilotRun runs the subagentStop hook of Copilot CLI on the session log of
+// the run, which the CLI keeps under its session state.
+func (h *commandHost) afterCopilotRun(run hostprototest.Run) error {
+	path := filepath.Join(h.scratch, fmt.Sprintf("%s-%s", run.AgentID, sessionLogFileName))
+	if err := os.WriteFile(path, run.SessionLog, 0o644); err != nil {
+		h.t.Fatal(err)
+	}
+	agentType := hostprototest.CopilotAgentType(h.roles[run.AgentID])
+	if _, code := h.runCopilotHook(hostproto.HookSubagentStop, map[string]any{
+		"agentId": run.AgentID, "agentType": agentType, "agentName": agentType, "transcriptPath": path, "response": run.Reply,
+	}); code != cli.ExitClean {
+		h.t.Fatalf("subagent-stop exited %d", code)
 	}
 	for _, event := range h.Journal() {
 		if event.Kind == hostproto.EventExposed && event.Ticket == run.Ticket.String() {
@@ -426,6 +472,22 @@ func TestPersonasAgainstTheCommandLine(t *testing.T) {
 	}
 	for _, name := range hostprototest.PersonaNames() {
 		t.Run(name+" receives the asserted verdict from the module as it ships [verifies SP-240~1]", func(t *testing.T) {
+			persona, err := hostprototest.NewPersona(name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			outcome, err := hostprototest.Drive(persona, factory(t))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := hostprototest.Check(persona, outcome); err != nil {
+				t.Fatalf("%v\noutcome: %+v", err, outcome)
+			}
+		})
+	}
+
+	for _, name := range hostprototest.CopilotPersonaNames() {
+		t.Run(name+" receives the asserted verdict from the module as it ships on the session log [verifies SP-1874~3]", func(t *testing.T) {
 			persona, err := hostprototest.NewPersona(name)
 			if err != nil {
 				t.Fatal(err)

@@ -91,8 +91,10 @@ func containsKind(events []hostproto.Event, kinds []hostproto.EventKind) bool {
 // acceptance, lowered to `inline` when the run that gave it was not shown to be
 // blind, raised to `restricted-attested` when the stop hook attested the very
 // agent that answered and nothing marks the run, and carrying the model the
-// harness resolved. The events are those JournalIndex.Response gives for the
-// response.
+// harness resolved. An unmarked Copilot subagent answer stored as
+// `restricted-unverified` reaches `restricted` when both observations identify
+// its answering agent; it never reaches `restricted-attested`. The events are
+// those JournalIndex.Response gives for the response.
 func Effective(stored format.ExecutorProfile, events []hostproto.Event) format.ExecutorProfile {
 	profile := stored
 	if report, found := lastReport(events); found && report.Model != "" {
@@ -105,6 +107,14 @@ func Effective(stored format.ExecutorProfile, events []hostproto.Event) format.E
 	if raised, witnessed := witnessedProfile(profile, events); witnessed {
 		return raised
 	}
+	if profile.Harness.Name == hostproto.HarnessCopilot {
+		if profile.Channel == format.ChannelHostSubagent && profile.Isolation == format.IsolationRestrictedUnverified &&
+			!Marked(events) && observedRun(events, profile.Attestation.AgentID) {
+			profile.Isolation = format.IsolationRestricted
+		}
+		// Observations grant no attestation, even if this profile is read again.
+		return profile
+	}
 	if profile.Isolation != format.IsolationRestricted || Marked(events) {
 		return profile
 	}
@@ -113,6 +123,24 @@ func Effective(stored format.ExecutorProfile, events []hostproto.Event) format.E
 		profile.Attestation.TranscriptDigest = digest
 	}
 	return profile
+}
+
+// observedRun requires both observations for the same ticket and nonempty agent.
+// The stop hook binds that agent to the stored answer by checking its submitted
+// output. Copilot issues no capability, so acceptance normally records no agent;
+// when a stored identity exists, the observations must name that agent.
+func observedRun(events []hostproto.Event, answeringAgent string) bool {
+	type run struct{ ticket, agent string }
+	allowed := map[run]bool{}
+	for _, event := range events {
+		if event.Kind == hostproto.EventAllowlistObserved && event.Ticket != "" && event.AgentID != "" &&
+			(answeringAgent == "" || event.AgentID == answeringAgent) {
+			allowed[run{event.Ticket, event.AgentID}] = true
+		}
+	}
+	return slices.ContainsFunc(events, func(event hostproto.Event) bool {
+		return event.Kind == hostproto.EventLaunchBare && allowed[run{event.Ticket, event.AgentID}]
+	})
 }
 
 // witnessedProfile raises a classification from `restricted-unverified` to

@@ -616,6 +616,42 @@ Go tests of the module in CI.
   input, open no state to decide, leave a tool of that name alone on a harness
   that does not guard spawns, and the hook entries generated for Codex SHALL
   select the spawn tool under each of its names beside the executor tools.
+- **SP-1870~1**: WHEN the stop hook of Copilot CLI is given the session log of an
+  executor THE SYSTEM SHALL read the run of the agent whose `agentId` the payload
+  names: the version of the CLI from `session.start`, the tool list of every
+  `subagent.selected`, the content of every system and user message and the
+  tools it started, with the CLI's `report_intent` bookkeeping call left out,
+  ignore an incomplete last line and refuse any other line that is not JSON, read
+  nothing of the main agent's events, refuse a read for no agent, and resolve an
+  agent type of the form `<plugin>:<agent file name>` to the role of the agent
+  besides the plain file name and no other prefix.
+- **SP-1871~1**: WHEN the stop hook observes an executor run of a harness that
+  records its selections THE SYSTEM SHALL journal `allowlist_observed` for the
+  ticket and the agent, with the version, the selection and the digest of the log,
+  only when the version is the pinned one, the log shows exactly one selection and
+  it is exactly the two executor tools, the calls, whose tool names are resolved
+  in every spelling the harness uses, are exactly the fetch and the
+  submit of one ticket and at most one correction, the last submitted output is
+  the answer stored for the ticket and the reply is the bare receipt; journal
+  `launch_bare` for the ticket and the agent only when the agent's only user
+  message is the bare ticket and its only system message begins with the shipped
+  profile of the executor, ending the profile at the first blank line; name the
+  condition a run fails in the detail of an `exposed` event for a selection
+  beyond the two tools, a call other than the fetch and the submit, or a call for
+  another ticket, of a `leaked` event for a reply other than the receipt, and of a
+  `restricted` event for any other failure; and attest no run of such a harness.
+- **SP-1872~3**: WHEN a response is read for a proof THE SYSTEM SHALL raise
+  only a Copilot `host-subagent` answer stored as `restricted-unverified` to
+  `restricted` when its response events hold both `allowlist_observed` and
+  `launch_bare` for the same ticket and the same nonempty answering agent,
+  matching the stored agent identity when present, in any event order, and no
+  leak, exposure, conflict or blindness mark is present; SHALL never raise a
+  Copilot answer to `restricted-attested`, even when the raised profile is read
+  again; SHALL leave other harnesses, channels and stored levels unaffected by
+  these observations, including main-agent, outside-executor and `host-inline`
+  answers marked `exposed`; and SHALL preserve the existing attestation and
+  classification-witness rules and the lowering to `inline` for blindness marks,
+  including those journaled without a ticket against the answering agent.
 - **SP-720~1**: WHEN recorded answers are replayed THE SYSTEM SHALL answer each
   pending ticket from the recording of its vote, falling back on the first vote's
   recording, keep the recorded executor and give the inline profile when there is

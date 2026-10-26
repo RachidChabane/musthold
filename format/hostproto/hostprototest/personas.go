@@ -121,6 +121,9 @@ func NewPersona(name string) (Persona, error) {
 	}
 	construct, known := constructors[name]
 	if !known {
+		if persona, copilot := newCopilotPersona(name); copilot {
+			return persona, nil
+		}
 		return nil, fmt.Errorf("%w: %q", ErrUnknownPersona, name)
 	}
 	return construct(), nil

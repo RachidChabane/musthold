@@ -83,6 +83,9 @@ type Run struct {
 	// InheritedHistory is set for a run that started with history of the agent
 	// that spawned it, which the rollout of a Codex thread shows.
 	InheritedHistory bool
+	// SessionLog is the session log of a harness that records its sessions, which
+	// the stop hook reads in place of Transcript.
+	SessionLog []byte
 }
 
 // ReferenceHost implements Host in memory over the pure protocol, the way a
@@ -307,6 +310,10 @@ func (h *ReferenceHost) profile(binding hostproto.Binding) format.ExecutorProfil
 	selection := hostproto.SelectChannel(h.Observed, h.Policy)
 	profile := Profile()
 	profile.Channel = selection.Channel
+	if h.Observed.Allowlist == hostproto.AllowlistUnverified {
+		copilot := copilotHarness()
+		profile.Harness = format.Harness{Name: copilot.Name, Version: copilot.Version}
+	}
 	profile.Isolation = selection.Isolation
 	if selection.Isolation == format.IsolationRestrictedAttested {
 		profile.Isolation = format.IsolationRestricted
@@ -317,6 +324,9 @@ func (h *ReferenceHost) profile(binding hostproto.Binding) format.ExecutorProfil
 
 // AfterRun implements Host.
 func (h *ReferenceHost) AfterRun(run Run) error {
+	if run.SessionLog != nil {
+		return h.observeSession(run)
+	}
 	ticket := run.Ticket.String()
 	if run.InheritedHistory {
 		h.journal(hostproto.Event{Kind: hostproto.EventHistoryInherited, Ticket: ticket, AgentID: run.AgentID})
@@ -331,6 +341,35 @@ func (h *ReferenceHost) AfterRun(run Run) error {
 	}
 	h.journal(hostproto.Event{Kind: hostproto.EventAttested, Ticket: ticket, AgentID: run.AgentID, Detail: run.ResolvedModel})
 	return nil
+}
+
+// observeSession runs the stop check of the harness on the session log of the run
+// and journals what it finds, the way the stop hook does.
+func (h *ReferenceHost) observeSession(run Run) error {
+	copilot := copilotHarness()
+	session, err := copilot.ReadRun(run.SessionLog, run.AgentID)
+	if err != nil {
+		h.journal(hostproto.Event{Kind: hostproto.EventRestricted, AgentID: run.AgentID, Detail: err.Error()})
+		return nil
+	}
+	findings := executorrun.CheckStop(executorrun.StopInput{Harness: copilot, Run: session, Record: run.SessionLog, Reply: run.Reply, Stored: h.storedOutput})
+	exposed := false
+	for _, finding := range findings {
+		h.journal(hostproto.Event{Kind: finding.Kind, Ticket: finding.Ticket, AgentID: run.AgentID, Detail: finding.Detail})
+		exposed = exposed || finding.Kind == hostproto.EventExposed
+	}
+	if exposed {
+		return hostproto.ErrTranscriptDeviation
+	}
+	return nil
+}
+
+func (h *ReferenceHost) storedOutput(ticket hostproto.TicketID) json.RawMessage {
+	response, err := h.store.GetResponse(ticket.Key())
+	if err != nil {
+		return nil
+	}
+	return response.Output
 }
 
 // Advance implements Host.
@@ -404,6 +443,9 @@ func (h *ReferenceHost) Profile(key hostproto.Key) (format.ExecutorProfile, erro
 	}
 	if executorrun.BlindnessLost(h.responseEvents(key, response.Executor)) {
 		profile.Isolation = format.IsolationInline
+	}
+	if profile.Harness.Name == hostproto.HarnessCopilot {
+		profile = executorrun.Effective(profile, h.responseEvents(key, response.Executor))
 	}
 	return profile, nil
 }

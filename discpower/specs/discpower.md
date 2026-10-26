@@ -1239,6 +1239,15 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   decision for a blind spawn or a spawn of another agent, and the committed Codex
   hook entries SHALL select the spawn tool under each of its names beside the
   executor tools.
+- **SP-1874~3**: WHEN the fake-host personas of Copilot CLI drive the module
+  through its hooks and its executor server THE SYSTEM SHALL journal the
+  allowlist and bare-launch observations for an executor whose session log shows
+  the pinned CLI, exactly the two executor tools, only the fetch and submit of
+  its own ticket, submitted output matching the stored response, a bare launch
+  with the shipped agent body and a bare receipt; credit that unmarked answer
+  as `restricted`, never `restricted-attested`; and leave the wide-selection,
+  stale-cli and padded-launch answers `restricted-unverified`, journaling their
+  failures and retaining every mark.
 - **SP-241~1**: WHEN the host files are generated THE SYSTEM SHALL produce them from
   one definition, the same bytes on every run, and the committed trees of the
   plugin and the harness scaffolds SHALL equal what the generator produces.
