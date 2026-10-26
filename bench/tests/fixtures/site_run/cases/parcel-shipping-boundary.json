@@ -15,7 +15,7 @@
     "file": "parcel/rates.py",
     "before": "discpower/fixtures/prove/parcel/parcel/rates.py",
     "after": "bench/tests/fixtures/site_run/evidence/parcel-shipping-boundary/mutant-rates.py",
-    "answer": "bench/tests/fixtures/parcel_answers/5d4b08cd931d435d5ed834ea18275a025eab5733a64593ace8e6b1b4ddbf3c41.json",
+    "answer": "bench/tests/fixtures/parcel_answers/2d5524abea87839cf5f2dbf62958715fc5dac9597dde2dbb7baf7ca6e14bd4fe.json",
     "index": 1,
     "witness": null,
     "results": [
