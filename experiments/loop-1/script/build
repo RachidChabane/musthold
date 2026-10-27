@@ -20,7 +20,6 @@ source "${LOOP1_DIR}/image/images"
 readonly EXIT_USAGE=64
 (($# == 0)) || { echo "usage: script/build" >&2; exit "${EXIT_USAGE}"; }
 
-readonly ENGINE="${LOOP1_DIR}/script/engine"
 readonly DOCKER="${LOOP1_DIR}/script/docker"
 readonly WITH_SLOT="${REPO_ROOT}/script/with-slot"
 readonly IMAGE_DIR="${LOOP1_DIR}/image"
@@ -92,9 +91,8 @@ write_manifest() {
 
 SHALLNOT_PIN="$(tr -d '[:space:]' <"${SHALLNOT_PIN_FILE}")"
 readonly SHALLNOT_PIN
-trap '"${ENGINE}" stop' EXIT
 mkdir -p "${LOOP1_WORK}" "${LOOP1_PRODUCT}"
-"${ENGINE}" start
+with_engine
 stage_sources
 compile
 image_id="$(build_image)"

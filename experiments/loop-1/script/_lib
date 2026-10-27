@@ -11,11 +11,11 @@
 LOOP1_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="$(cd "${LOOP1_DIR}/../.." && pwd)"
 RUNNER="${REPO_ROOT}/.tools/bin/musthold-demo-loop"
-ENGINE="${LOOP1_DIR}/script/engine"
+STUDY_ENGINE="${LOOP1_DIR}/script/engine"
 MEM_GUARD="${REPO_ROOT}/script/mem-guard"
 CONFIG="${LOOP1_CONFIG:-${LOOP1_DIR}/loop-1.json}"
 WORK="${LOOP1_WORK:-${HOME}/.musthold-loop-1}"
-readonly LOOP1_DIR REPO_ROOT RUNNER ENGINE MEM_GUARD CONFIG WORK
+readonly LOOP1_DIR REPO_ROOT RUNNER STUDY_ENGINE MEM_GUARD CONFIG WORK
 readonly BUILD_PROCS=1 BUILD_GOMAXPROCS=2 BUILD_NICE=10
 
 # build_runner: compile the runner from tools/canary, one job at a time.
@@ -41,6 +41,6 @@ loop1_heavy() {
 
 # with_engine: start the study's engine now and stop it when the verb's shell exits, whatever its exit.
 with_engine() {
-  trap '"${ENGINE}" stop' EXIT
-  "${ENGINE}" start
+  trap '"${STUDY_ENGINE}" stop' EXIT
+  "${STUDY_ENGINE}" start
 }
