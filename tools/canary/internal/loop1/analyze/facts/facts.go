@@ -8,6 +8,7 @@ package facts
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"path"
 	"path/filepath"
@@ -175,10 +176,27 @@ type Block struct {
 	Left         bool  `json:"left"`
 }
 
-// Fraction is k of n.
-type Fraction struct {
-	K int `json:"k"`
-	N int `json:"n"`
+// Fraction is k of n. It is written k/n in JSON, which is how a report shows it
+// and how the report lint finds it.
+type Fraction struct{ K, N int }
+
+func (f Fraction) String() string { return fmt.Sprintf("%d/%d", f.K, f.N) }
+
+// MarshalText writes the fraction as k/n.
+func (f Fraction) MarshalText() ([]byte, error) { return []byte(f.String()), nil }
+
+// UnmarshalText reads k/n.
+func (f *Fraction) UnmarshalText(text []byte) error {
+	if _, err := fmt.Sscanf(string(text), "%d/%d", &f.K, &f.N); err != nil {
+		return fmt.Errorf("fraction %q: %w", text, err)
+	}
+	return nil
+}
+
+// Float is the fraction's value; 0 of 0 is 0.
+func (f Fraction) Float() float64 {
+	value, _ := f.Rat().Float64()
+	return value
 }
 
 // Rat is the fraction as an exact rational; 0 of 0 is 0.
