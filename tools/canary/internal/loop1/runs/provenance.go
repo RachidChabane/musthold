@@ -48,8 +48,7 @@ func sortedKeys(entries map[string]string) []string {
 	return keys
 }
 
-// Deviation is the entry of the deviation log an attempt's outcome or finding
-// calls for.
+// deviation is an entry of the deviation log for one run.
 func deviation(kind study.Kind, scope, section, says, happened string) study.Deviation {
 	return study.Deviation{Kind: kind, Scope: []string{scope}, Section: section, Says: says, Happened: oneLine(happened)}
 }

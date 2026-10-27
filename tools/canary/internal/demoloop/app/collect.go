@@ -59,7 +59,7 @@ func (c Collector) Steps(ctx context.Context, prepared *Prepared, steps []plan.S
 
 // Describe writes the run's description, run.json.
 func (c Collector) Describe(l plan.Layout, description any) error {
-	encoded, err := encodeJSON(description)
+	encoded, err := EncodeJSON(description)
 	if err != nil {
 		return err
 	}

@@ -28,7 +28,7 @@ not running.
 - **SP-2513~1**: WHEN a run of the study starts THE SYSTEM SHALL launch the Claude
   Code CLI of the study's image at the configured path, and SHALL refuse, before any
   attempt starts, a CLI whose `--version` does not begin with the pin of
-  `script/claude-code.pin`.
+  `script/claude-code.pin` as its first word.
 - **SP-2514~1**: WHEN a container of a run of the study is built THE SYSTEM SHALL
   give it 3 GiB of memory and of memory and swap, at most 1024 processes, a HOME
   of its own under the run directory, created empty, and `NO_PROXY` naming the
@@ -104,7 +104,7 @@ not running.
 - **SP-2527~1**: WHEN the attempts of a run are counted THE SYSTEM SHALL number them
   from 1 in fresh run directories, count harness errors toward the limit of three
   and quota stops not, make the run harness-blocked at its third harness error,
-  and count an attempt directory with no `run.json` as a harness error.
+  and record and log an attempt directory with no `run.json` as a harness error.
 - **SP-2528~1**: WHEN an attempt is a quota stop THE SYSTEM SHALL start no further
   attempt in that invocation; and WHEN the next invocation starts THE SYSTEM SHALL
   resume the order at that run in a fresh attempt directory, and refuse to start
@@ -123,7 +123,8 @@ not running.
   and the protocol's section, write the title first in a new log, hand the
   timestamped kinds to the timestamping writer, and never log a blocked run twice.
 - **SP-2532~1**: WHEN a dry run of the study is requested THE SYSTEM SHALL print the
-  order and, for the next run to start, every command of its attempt, each docker
+  order with each run's state and, for each run that still needs an attempt,
+  every command of that attempt, each docker
   command in full with the token shown as reaching the session's standard input,
   and SHALL start nothing and read no credential value.
 - **SP-2533~1**: WHEN a run of the study is prepared THE SYSTEM SHALL let no truth

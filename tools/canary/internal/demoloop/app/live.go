@@ -403,9 +403,6 @@ type Session struct {
 // Argv is the docker command that runs the session.
 func (s *Session) Argv() []string { return append([]string(nil), s.argv...) }
 
-// Command is the session's command line inside its container.
-func (s *Session) Command() launch.Command { return s.command }
-
 // Token is the token the session's entry received, once the session has run.
 func (s *Session) Token() string { return s.token }
 
@@ -623,11 +620,8 @@ func (c *containerSteps) removeAll(ctx context.Context) {
 	_, _ = c.host.Run(ctx, canary.CommandSpec{Argv: argv, Env: c.env, Timeout: supportTimeout})
 }
 
-// encodeJSON indents a value as the records write it.
-func encodeJSON(value any) ([]byte, error) {
+// EncodeJSON indents a value as the records write it.
+func EncodeJSON(value any) ([]byte, error) {
 	encoded, err := json.MarshalIndent(value, "", "  ")
 	return append(encoded, '\n'), err
 }
-
-// EncodeJSON indents a value as the records write it.
-func EncodeJSON(value any) ([]byte, error) { return encodeJSON(value) }

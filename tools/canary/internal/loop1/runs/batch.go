@@ -64,7 +64,40 @@ func (b Batch) Run(ctx context.Context, inv Invocation) error {
 		return err
 	}
 	defer lock.Release()
+	if err := b.recordInterrupted(ctx, inv, ledgers); err != nil {
+		return err
+	}
 	return b.runOrder(ctx, inv, ledgers)
+}
+
+// recordInterrupted writes the run.json of each attempt whose invocation ended
+// before it was recorded, as a harness error, and logs it.
+func (b Batch) recordInterrupted(ctx context.Context, inv Invocation, ledgers []Ledger) error {
+	runs := runsByName(inv.Config)
+	for index := range ledgers {
+		ledger := &ledgers[index]
+		for at, attempt := range ledger.Attempts {
+			if attempt.Run != nil {
+				continue
+			}
+			configured := runs[ledger.Name]
+			run := study.Run{Attempt: attempt.Number, Outcome: study.OutcomeHarnessError, Reason: ReasonInterruptedAttempt}
+			run.Task, run.Arm, run.Repetition = configured.Task.Name, string(configured.Arm), configured.Repetition
+			run.Model, run.Prompt = inv.Config.Model, configured.Task.Prompt
+			encoded, err := app.EncodeJSON(run)
+			if err != nil {
+				return err
+			}
+			if err := b.Runner.App.Files.Write(filepath.Join(inv.Layout.Records(ledger.Name, attempt.Number), record.MetaFile), encoded, false); err != nil {
+				return err
+			}
+			ledger.Attempts[at].Run = &run
+			if err := b.log(ctx, ledger, Result{Run: run}); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // checkInputs refuses a freeze without an allowlist, quota patterns or the entry

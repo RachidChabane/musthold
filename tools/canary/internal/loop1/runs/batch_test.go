@@ -214,10 +214,13 @@ func TestInterruptedAttempt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Run("an attempt directory without run.json counts as a harness error and the next attempt takes the next number [verifies SP-2527~1]", func(t *testing.T) {
+	t.Run("an attempt directory without run.json is recorded and logged as a harness error, and the next attempt takes the next number [verifies SP-2527~1]", func(t *testing.T) {
 		ledger := w.Ledgers(t)[0]
-		if len(ledger.Attempts) != 2 || ledger.Attempts[0].Run != nil || ledger.Attempts[1].Number != 2 || ledger.HarnessErrors() != 1 {
+		if len(ledger.Attempts) != 2 || ledger.Attempts[0].Run == nil || ledger.Attempts[0].Run.Reason != runs.ReasonInterruptedAttempt || ledger.Attempts[1].Number != 2 || ledger.HarnessErrors() != 1 {
 			t.Errorf("ledger %+v", ledger)
+		}
+		if got := kinds(w.Deviations(t)); !slices.Equal(got, []study.Kind{study.KindHarnessError}) {
+			t.Errorf("deviations %v", got)
 		}
 	})
 }
