@@ -182,6 +182,18 @@ func Read(path string) (Log, error) {
 	return Parse(data)
 }
 
+// Decode reads a whole log as Log's JSON encoding holds it, as the inputs freeze
+// records it, refusing unknown members.
+func Decode(data []byte) (Log, error) {
+	var log Log
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&log); err != nil {
+		return Log{}, fmt.Errorf("%w: %v", ErrMalformedRecords, err)
+	}
+	return log, nil
+}
+
 // Parse reads the lines of a records file.
 func Parse(data []byte) (Log, error) {
 	var log Log

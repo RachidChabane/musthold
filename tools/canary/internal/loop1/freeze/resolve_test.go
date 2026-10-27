@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/deviation"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/freeze"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/product"
@@ -16,7 +17,7 @@ import (
 
 func resolved(t *testing.T, built studyRepo) study.Inputs {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join(built.root, filepath.FromSlash(freeze.InputsFile)))
+	data, err := os.ReadFile(filepath.Join(built.root, filepath.FromSlash(study.InputsPath)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,13 +94,13 @@ func TestResolve(t *testing.T) {
 		}
 	})
 
-	t.Run("the Codex versions, the construction records and the canary's findings are copied [verifies SP-2620~1]", func(t *testing.T) {
+	t.Run("the Codex versions, the construction records and the canary's findings are copied [verifies SP-2620~2]", func(t *testing.T) {
 		if !slices.Equal(inputs.Codex, []string{"codex-cli 0.9.0"}) {
 			t.Errorf("codex %v", inputs.Codex)
 		}
-		calls, err := freeze.ConstructionCalls(inputs.Construction)
-		if err != nil || len(calls) != 2 || calls[0].Start.IsZero() {
-			t.Errorf("calls %+v, %v", calls, err)
+		log, err := records.Decode(inputs.Construction)
+		if err != nil || len(log.Calls) != 2 || log.Calls[0].Start.IsZero() || len(log.Drops) != 1 {
+			t.Errorf("construction %+v, %v", log, err)
 		}
 		if !slices.Equal(inputs.CLIAuxiliaryModels, []string{"claude-haiku-4-5"}) || !slices.Equal(inputs.EgressAllowlist, []string{"api.anthropic.com"}) ||
 			len(inputs.EgressObserved) != 2 || !slices.Equal(inputs.QuotaPatterns, []string{"usage limit reached"}) || len(inputs.Canary) != 1 {
@@ -170,14 +171,14 @@ func TestResolve(t *testing.T) {
 		for _, file := range []string{
 			"experiments/loop-1/loop-1.json", "experiments/loop-1/tasks/alpha/task.json", "experiments/loop-1/tasks/alpha/oracle/test_a.py",
 			"experiments/loop-1/tasks/alpha/violations/a/1/x.py", "experiments/loop-1/image/Dockerfile", "experiments/loop-1/image/requirements.lock",
-			"fixtures/alpha/alpha.py", freeze.InputsFile,
+			"fixtures/alpha/alpha.py", study.InputsPath,
 		} {
 			if listed[file] == "" {
 				t.Errorf("%s is not listed", file)
 			}
 		}
-		document, _ := os.ReadFile(filepath.Join(built.root, filepath.FromSlash(freeze.InputsFile)))
-		if listed[freeze.InputsFile] != deviation.Imprint(document) || string(text) != freeze.FormatSums(sums) {
+		document, _ := os.ReadFile(filepath.Join(built.root, filepath.FromSlash(study.InputsPath)))
+		if listed[study.InputsPath] != deviation.Imprint(document) || string(text) != freeze.FormatSums(sums) {
 			t.Error("the sums are not the SHA-256 of the written files in shasum's format")
 		}
 		if listed["experiments/loop-1/PREREG.md"] != "" {

@@ -5,6 +5,22 @@ import (
 	"path/filepath"
 )
 
+// Locations in the repository, slash-separated from its root.
+const (
+	StudyDir   = "experiments/loop-1"
+	ConfigFile = StudyDir + "/loop-1.json"
+	FreezeDir  = StudyDir + "/freeze"
+	InputsPath = FreezeDir + "/" + InputsFile
+	TasksDir   = StudyDir + "/tasks"
+	// DockerClient is the docker command that names the study's engine, and
+	// WithSlot the script that holds the machine-wide execution slots.
+	DockerClient = StudyDir + "/script/docker"
+	WithSlot     = "script/with-slot"
+)
+
+// TaskDir is the directory of a task's truth files.
+func TaskDir(name string) string { return TasksDir + "/" + name }
+
 // WorkEnv names the environment variable that holds the work directory, and
 // DefaultWorkName the directory under the home directory used when it is unset
 // (PREREG §1).

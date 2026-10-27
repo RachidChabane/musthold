@@ -29,7 +29,6 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/container"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
-	"github.com/RachidChabane/musthold/tools/canary/internal/domain/window"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/phase"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box/docker"
@@ -45,7 +44,7 @@ const (
 	Pin         = "2.1.295"
 	DockerFront = "/repo/experiments/loop-1/script/docker"
 	Image       = "sha256:1111111111111111111111111111111111111111111111111111111111111111"
-	Claude      = "/usr/local/bin/claude"
+	Claude      = freeze.ClaudeProgram
 	Model       = "claude-sonnet-5-5"
 	AllowedHost = "api.anthropic.com"
 	recording   = "demo/loop/recording"
@@ -53,7 +52,7 @@ const (
 )
 
 // SlotWrapper is the wrapper every `docker run` of a world starts under.
-func SlotWrapper() []string { return docker.SlotWrapper("/repo/"+runs.WithSlotRelative, runs.SlotWait) }
+func SlotWrapper() []string { return docker.SlotWrapper("/repo/"+study.WithSlot, docker.SlotWait) }
 
 // Start is when every world's clock starts.
 var Start = time.Date(2026, time.November, 2, 22, 0, 0, 0, time.UTC)
@@ -467,7 +466,7 @@ type World struct {
 func NewWorld(t *testing.T) *World {
 	t.Helper()
 	repo := RepoRoot(t)
-	data, err := os.ReadFile(filepath.Join(repo, runs.DefaultConfig))
+	data, err := os.ReadFile(filepath.Join(repo, study.ConfigFile))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -482,7 +481,7 @@ func NewWorld(t *testing.T) *World {
 		Clock: &Clock{at: Start}, Stamps: &Stamps{}, Reads: &reads, Stdout: &bytes.Buffer{}, Config: parsed,
 	}
 	appRunner := app.Runner{
-		Clock: w.Clock, Window: window.Nightly(), Processes: w.Engine, Sessions: w.Session, Files: adapters.OSFiles{}, Locker: noLock{},
+		Clock: w.Clock, Processes: w.Engine, Sessions: w.Session, Files: adapters.OSFiles{}, Locker: noLock{},
 		Credentials: []canary.ClaudeCredential{Credential{Reads: &reads}},
 		Env:         []string{"HOME=/Users/someone", "PATH=/usr/bin", launch.OAuthTokenVariable + "=" + Token}, Stdout: w.Stdout,
 	}

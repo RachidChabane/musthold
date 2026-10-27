@@ -16,24 +16,16 @@ import (
 // repository, which the engine does not mount.
 const HostPathRelative = "experiments/loop-1/PREREG.md"
 
-// Refusals of the canary verb before its first session.
-var (
-	ErrNoDetectors = errors.New("no cheating detectors are wired for the canary's C3")
-	ErrNoImage     = errors.New("--image is required before the inputs freeze names the image")
-)
+// ErrNoImage refuses the canary verb before its first session when neither the
+// flags, the inputs freeze nor the product's manifest names the image.
+var ErrNoImage = errors.New("--image is required when neither the inputs freeze nor the product's manifest names the image")
 
 // Command is the canary verb wired to its adapters.
 type Command struct {
-	// Detectors are the cheating detectors C3 runs; the detect verb provides them.
+	// Detectors are the cheating detectors C3 runs.
 	Detectors Detectors
 	// Environ is the process's environment; nil reads it.
 	Environ []string
-}
-
-// CanaryMain is the canary verb with no detectors wired: it prints a dry run,
-// and refuses to start a session.
-func CanaryMain(ctx context.Context, args []string, stdout, stderr io.Writer) int {
-	return Command{}.Main(ctx, args, stdout, stderr)
 }
 
 // Main runs the canary verb and returns its exit code: 0 when C1 to C3 hold.
@@ -50,8 +42,8 @@ func (c Command) Main(ctx context.Context, args []string, stdout, stderr io.Writ
 	if err != nil {
 		return fail(stderr, err)
 	}
-	if err := c.refuse(setup, flags.DryRun); err != nil {
-		return fail(stderr, err)
+	if !flags.DryRun && setup.Options.Image == "" {
+		return fail(stderr, ErrNoImage)
 	}
 	canary := Canary{
 		Runner:    runs.StudyRunner(environ, stdout, setup.Options),
@@ -68,20 +60,6 @@ func (c Command) Main(ctx context.Context, args []string, stdout, stderr io.Writ
 		return runs.ExitOK
 	}
 	return runs.ExitFailure
-}
-
-// refuse refuses, before any session spends quota, a canary with no image or no
-// detectors; a dry run needs neither.
-func (c Command) refuse(setup runs.Setup, dryRun bool) error {
-	switch {
-	case dryRun:
-		return nil
-	case setup.Options.Image == "":
-		return ErrNoImage
-	case c.Detectors == nil:
-		return ErrNoDetectors
-	}
-	return nil
 }
 
 func fail(stderr io.Writer, err error) int {

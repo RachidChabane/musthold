@@ -139,6 +139,11 @@ func (t Task) problems() []string {
 	return found
 }
 
+// TruthBase is the directory of the fixture, slash-separated, that the files of
+// the reference, of each violation and of each refactor are relative to: the
+// directory of the source file.
+func (t Task) TruthBase() string { return path.Dir(t.Source) }
+
 // relative reports whether a path is clean, relative and inside its root.
 func relative(p string) bool {
 	return p != "" && !path.IsAbs(p) && path.Clean(p) == p && p != ".." && !strings.HasPrefix(p, "../")

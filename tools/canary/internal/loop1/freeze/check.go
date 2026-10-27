@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/deviation"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/product"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
@@ -112,7 +113,7 @@ func (c Checker) freezes(ctx context.Context, report func(string, ...string)) ma
 }
 
 func (c Checker) inputs(ctx context.Context) (study.Inputs, error) {
-	data, err := c.Repo.Show(ctx, InputsTag, InputsFile)
+	data, err := c.Repo.Show(ctx, InputsTag, study.InputsPath)
 	if err != nil {
 		return study.Inputs{}, err
 	}
@@ -131,7 +132,7 @@ func (c Checker) inputsCommitFailures(ctx context.Context, inputs study.Inputs) 
 	if parent, err := c.Repo.Parent(ctx, tagged); err != nil || parent != inputs.Commits.Inputs {
 		failures = append(failures, fmt.Sprintf("the parent of %s is %q, commits.inputs is %s", InputsTag, parent, inputs.Commits.Inputs))
 	}
-	if changed, err := c.Repo.Changed(ctx, tagged); err != nil || !slices.Equal(slices.Sorted(slices.Values(changed)), slices.Sorted(slices.Values([]string{InputsFile, InputsSumsFile}))) {
+	if changed, err := c.Repo.Changed(ctx, tagged); err != nil || !slices.Equal(slices.Sorted(slices.Values(changed)), slices.Sorted(slices.Values([]string{study.InputsPath, InputsSumsFile}))) {
 		failures = append(failures, fmt.Sprintf("%s changes %v, not the inputs and their sums alone", InputsTag, changed))
 	}
 	prereg, err := c.Repo.PeelTag(ctx, PreregTag)
@@ -148,7 +149,7 @@ func (c Checker) inputsCommitFailures(ctx context.Context, inputs study.Inputs) 
 }
 
 func (c Checker) orderFailures(ctx context.Context, inputs study.Inputs, times map[string]time.Time) []string {
-	calls, err := ConstructionCalls(inputs.Construction)
+	log, err := records.Decode(inputs.Construction)
 	if err != nil {
 		return []string{err.Error()}
 	}
@@ -158,7 +159,7 @@ func (c Checker) orderFailures(ctx context.Context, inputs study.Inputs, times m
 	}
 	return OrderFailures(Timeline{
 		Prereg: times[PreregTag], Amendment: times[AmendmentTag], Inputs: times[InputsTag],
-		Calls: calls, Canary: inputs.Canary, Runs: starts,
+		Calls: log.Calls, Canary: inputs.Canary, Runs: starts,
 	})
 }
 
@@ -230,7 +231,7 @@ func (c Checker) preregExpected(ctx context.Context) ([]string, error) {
 
 // inputsExpected are the files resolve lists, at the inputs tag.
 func (c Checker) inputsExpected(ctx context.Context) ([]string, error) {
-	data, err := c.Repo.Show(ctx, InputsTag, ConfigFile)
+	data, err := c.Repo.Show(ctx, InputsTag, study.ConfigFile)
 	if err != nil {
 		return nil, err
 	}
@@ -238,11 +239,11 @@ func (c Checker) inputsExpected(ctx context.Context) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	roots := []string{ConfigFile, ImageDir}
+	roots := []string{study.ConfigFile, ImageDir}
 	for _, task := range configured.Tasks {
-		roots = append(roots, path.Join(TasksDir, task.Name), task.Fixture)
+		roots = append(roots, path.Join(study.TasksDir, task.Name), task.Fixture)
 	}
-	files := []string{InputsFile}
+	files := []string{study.InputsPath}
 	for _, root := range roots {
 		listed, err := c.Repo.TreeFiles(ctx, InputsTag, root)
 		if err != nil {

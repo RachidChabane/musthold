@@ -17,10 +17,10 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
-	"github.com/RachidChabane/musthold/tools/canary/internal/domain/window"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box/docker"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/deviation"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/freeze"
+	productpkg "github.com/RachidChabane/musthold/tools/canary/internal/loop1/product"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -31,24 +31,12 @@ const (
 	ExitUsage   = 2
 )
 
-// Defaults of the verbs' flags, relative to the repository root or the home
-// directory, and the variables that override the work and product directories.
-const (
-	DefaultConfig = "experiments/loop-1/loop-1.json"
-	DefaultInputs = "experiments/loop-1/freeze/" + study.InputsFile
-	DefaultDocker = "experiments/loop-1/script/docker"
-	DefaultClaude = "/usr/local/bin/claude"
-	homeVariable  = "HOME"
-)
+const homeVariable = "HOME"
 
-// The bounds of every container of the study (PREREG §7.3), and the slots each
-// `docker run` holds (PREREG §7.7): the script, relative to the repository root,
-// and how long a run waits for them.
+// The bounds of every container of the study (PREREG §7.3).
 const (
-	StudyMemory      = "3g"
-	StudyPidsLimit   = 1024
-	WithSlotRelative = "script/with-slot"
-	SlotWait         = time.Hour
+	StudyMemory    = docker.Memory
+	StudyPidsLimit = 1024
 )
 
 // Flags are what the run and canary verbs read from their command line.
@@ -65,13 +53,13 @@ func ParseFlags(name string, args []string, environ []string, stderr io.Writer) 
 	home := variable(environ, homeVariable)
 	var f Flags
 	set.StringVar(&f.Repo, "repo", ".", "the repository root")
-	set.StringVar(&f.Config, "config", DefaultConfig, "the study's configuration, relative to the repository root")
+	set.StringVar(&f.Config, "config", study.ConfigFile, "the study's configuration, relative to the repository root")
 	set.StringVar(&f.Work, "work", orElse(variable(environ, study.WorkEnv), filepath.Join(home, study.DefaultWorkName)), "the work directory ($"+study.WorkEnv+")")
-	set.StringVar(&f.Inputs, "inputs", DefaultInputs, "the inputs freeze, relative to the repository root")
+	set.StringVar(&f.Inputs, "inputs", study.InputsPath, "the inputs freeze, relative to the repository root")
 	set.StringVar(&f.Product, "product", orElse(variable(environ, study.ProductEnv), filepath.Join(home, study.DefaultProductName)), "the Linux product the containers mount read-only ($"+study.ProductEnv+")")
-	set.StringVar(&f.Image, "image", "", "the study's image (default: images.built of the inputs freeze)")
-	set.StringVar(&f.Claude, "claude", DefaultClaude, "the Claude Code CLI inside the image")
-	set.StringVar(&f.Docker, "docker", DefaultDocker, "the docker command that names the study's engine, relative to the repository root")
+	set.StringVar(&f.Image, "image", "", "the study's image (default: images.built of the inputs freeze, else of the product's manifest)")
+	set.StringVar(&f.Claude, "claude", freeze.ClaudeProgram, "the Claude Code CLI inside the image")
+	set.StringVar(&f.Docker, "docker", study.DockerClient, "the docker command that names the study's engine, relative to the repository root")
 	set.BoolVar(&f.DryRun, "dry-run", false, "print every command and start nothing")
 	if err := set.Parse(args); err != nil {
 		return Flags{}, err
@@ -142,14 +130,32 @@ func (f Flags) Resolve(files canary.Files, absentOK bool) (Setup, error) {
 		return Setup{}, fmt.Errorf("%s: cannot be read: %v", plan.ClaudePinRelative, err)
 	}
 	work, product := resolved(f.Work), resolved(f.Product)
+	images := inputs.Images
+	if images.Built == "" {
+		images = manifestImages(files, product)
+	}
 	options := app.Options{
-		RepoRoot: root, Config: parsed, Work: work, Product: product, Image: orElse(f.Image, inputs.Images.Built),
+		RepoRoot: root, Config: parsed, Work: work, Product: product, Image: orElse(f.Image, images.Built),
 		Docker: []string{at(f.Docker)}, UID: os.Getuid(), GID: os.Getgid(), ClaudePin: strings.TrimSpace(string(pin)), DryRun: f.DryRun,
 		Profile: StudyProfile(f.Claude),
 	}
-	options.Profile.ProxyImage = inputs.Images.Proxy
-	options.Profile.RunWrapper = docker.SlotWrapper(filepath.Join(root, WithSlotRelative), SlotWait)
+	options.Profile.ProxyImage = images.Proxy
+	options.Profile.RunWrapper = docker.SlotWrapper(filepath.Join(root, study.WithSlot), docker.SlotWait)
 	return Setup{Config: parsed, Inputs: inputs, Options: options, Layout: study.Layout{Root: work}}, nil
+}
+
+// manifestImages are the images of the product's manifest, as resolve records
+// them, before the inputs freeze exists; none when the product has no manifest.
+func manifestImages(files canary.Files, product string) study.Images {
+	data, err := files.Read(filepath.Join(product, productpkg.ManifestFile))
+	if err != nil || data == nil {
+		return study.Images{}
+	}
+	manifest, err := productpkg.Parse(data)
+	if err != nil {
+		return study.Images{}
+	}
+	return freeze.DescribeImages(manifest)
 }
 
 // resolved is a directory as the engine mounts it: absolute, with its symbolic
@@ -198,7 +204,7 @@ func (systemClock) Now() time.Time { return time.Now() }
 // AppRunner is the agent-loop runner wired to the canary's adapters.
 func AppRunner(environ []string, stdout io.Writer) app.Runner {
 	return app.Runner{
-		Clock: systemClock{}, Window: window.Nightly(),
+		Clock:     systemClock{},
 		Processes: adapters.Exec{}, Sessions: adapters.Sessions{}, Files: adapters.OSFiles{}, Locker: adapters.FileLocker{},
 		Credentials: []canary.ClaudeCredential{adapters.EnvironmentCredential{Environ: environ}, adapters.NewKeychainCredential()},
 		Env:         launch.WithoutOAuthToken(environ), Stdout: stdout,

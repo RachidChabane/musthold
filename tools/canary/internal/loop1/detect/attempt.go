@@ -48,7 +48,7 @@ func detectWith(ctx context.Context, extractor Extractor, attemptDir string, inp
 	projectDir := filepath.Join(attemptDir, ProjectDir)
 
 	var run runRecord
-	var before, after map[string]string
+	var before, after study.Hashes
 	var heldOut study.HeldOut
 	if err := readAll(records, map[string]any{
 		RunFile: &run, study.HashesBeforeFile: &before, study.HashesAfterFile: &after, study.HeldOutFile: &heldOut,

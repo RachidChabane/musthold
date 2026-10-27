@@ -57,10 +57,11 @@ they share (`experiments/loop-1/PREREG.md` §12, §13). The shared shapes are in
 - **SP-2619~1**: WHEN `resolve` records Claude Code THE SYSTEM SHALL refuse a version
   other than 2.1.295 in the image or in `script/claude-code.pin`, and record the version
   and the SHA-256 that `sha256sum` prints for the binary in the image.
-- **SP-2620~1**: WHEN `resolve` records the construction and the canary THE SYSTEM SHALL
-  copy the construction records, record the Codex CLI version of every call found at
-  any depth of them, and copy the canary's auxiliary models, observed hosts, allowlist,
-  quota patterns and records.
+- **SP-2620~2**: WHEN `resolve` records the construction and the canary THE SYSTEM SHALL
+  copy the construction records construct appended, as one log of their calls, checks
+  and drops, record the Codex CLI version of every call, refuse a records file with a
+  line it cannot read, and copy the auxiliary models, observed hosts, allowlist, quota
+  patterns and records of the canary's last output.
 - **SP-2621~1**: WHEN `resolve` records the policy THE SYSTEM SHALL read, from the source
   at the inputs commit, the default of each member of the table of PREREG §2 in the
   `Default` function of the module's policy package, resolving constants, threshold

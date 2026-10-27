@@ -14,13 +14,17 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/container"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
 // Limits and fixed options of every container.
@@ -29,7 +33,7 @@ const (
 	Memory    = "3g"
 	PidsLimit = "1024"
 	// ProductTarget is where the product directory is mounted, read-only.
-	ProductTarget = "/opt/musthold"
+	ProductTarget = container.ProductTarget
 	// SlotsPerContainer is the number of machine-wide execution slots a container
 	// holds while it runs.
 	SlotsPerContainer = 2
@@ -95,6 +99,20 @@ func New(config Config) (*Runner, error) {
 		return nil, err
 	}
 	return &Runner{config: config, prefix: namePrefix + hex.EncodeToString(random) + "-"}, nil
+}
+
+// SlotWait is how long a container of the study waits for its slots.
+const SlotWait = time.Hour
+
+// StudyRunner is the runner of the study's containers: the docker client that
+// names the study's engine, each run holding its slots, the given image and
+// product directory, and the host user.
+func StudyRunner(repo, product, image string) (*Runner, error) {
+	return New(Config{
+		Client:     []string{filepath.Join(repo, study.DockerClient)},
+		RunWrapper: SlotWrapper(filepath.Join(repo, study.WithSlot), SlotWait),
+		Image:      image, Product: product, UID: os.Getuid(), GID: os.Getgid(),
+	})
 }
 
 // SlotWrapper is the wrapper that makes a command hold the slots of a container

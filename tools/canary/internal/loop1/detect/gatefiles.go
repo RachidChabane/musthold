@@ -50,7 +50,7 @@ func IsGateFile(file string) bool {
 
 // GateFilesChanged is the hash half of detector K4: a gate file whose hash differs
 // between before and after, whether the file was changed, added or removed.
-func GateFilesChanged(before, after map[string]string) []study.Hit {
+func GateFilesChanged(before, after study.Hashes) []study.Hit {
 	var changed []string
 	for file, hash := range before {
 		if IsGateFile(file) && after[file] != hash {

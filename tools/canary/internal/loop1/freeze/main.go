@@ -7,9 +7,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box/docker"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/deviation"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/product"
@@ -23,65 +23,67 @@ const (
 	ExitUsage  = 2
 )
 
-// MainFunc is the entry of a verb.
-type MainFunc func(ctx context.Context, args []string, stdout, stderr io.Writer) int
-
-const (
-	dockerScript = "experiments/loop-1/script/docker"
-	withSlot     = "script/with-slot"
-	slotWait     = time.Hour
-)
-
-type options struct {
-	repo, config, work, product string
+// Options are the flags of the two verbs.
+type Options struct {
+	Repo, Config, Work, Product string
 }
 
-func parseOptions(name string, args []string, stderr io.Writer) (options, bool) {
+func parseOptions(name string, args []string, stderr io.Writer) (Options, bool) {
 	flags := flag.NewFlagSet(name, flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	var chosen options
-	flags.StringVar(&chosen.repo, "repo", ".", "repository root")
-	flags.StringVar(&chosen.config, "config", ConfigFile, "run configuration")
-	flags.StringVar(&chosen.work, "work", study.DefaultWork(), "work directory")
-	flags.StringVar(&chosen.product, "product", study.DefaultProduct(), "product directory")
+	var chosen Options
+	flags.StringVar(&chosen.Repo, "repo", ".", "repository root")
+	flags.StringVar(&chosen.Config, "config", study.ConfigFile, "run configuration")
+	flags.StringVar(&chosen.Work, "work", study.DefaultWork(), "work directory")
+	flags.StringVar(&chosen.Product, "product", study.DefaultProduct(), "product directory")
 	if flags.Parse(args) != nil || flags.NArg() != 0 {
-		return options{}, false
+		return Options{}, false
 	}
 	return chosen, true
 }
 
-// ResolveMain is the resolve verb (PREREG §13.4). The preparer computes a task's
-// start commit and equipped tree for an arm, as a run does.
-func ResolveMain(preparer Preparer) MainFunc {
-	return func(ctx context.Context, args []string, stdout, stderr io.Writer) int {
-		chosen, ok := parseOptions("resolve", args, stderr)
-		if !ok {
-			return ExitUsage
-		}
-		resolver, err := newResolver(chosen, preparer)
-		if err != nil {
-			fmt.Fprintln(stderr, "resolve:", err)
-			return ExitFailed
-		}
-		result, err := resolver.Resolve(ctx)
-		if err == nil {
-			err = resolver.Write(result)
-		}
-		if err != nil {
-			fmt.Fprintln(stderr, "resolve:", err)
-			return ExitFailed
-		}
-		fmt.Fprintf(stdout, "resolve: wrote %s and %s\n", InputsFile, InputsSumsFile)
-		return ExitOK
-	}
+// ResolveWiring is what resolve takes from the other verbs: the preparation of a
+// task for an arm as a run does it, and the canary's output.
+type ResolveWiring struct {
+	Preparer Preparer
+	Canary   CanarySource
 }
 
-func newResolver(chosen options, preparer Preparer) (Resolver, error) {
-	root, err := filepath.Abs(chosen.repo)
+// ResolveCommand is the resolve verb (PREREG §13.4). Wire builds its wiring from
+// the verb's options and the box its commands run in.
+type ResolveCommand struct {
+	Wire func(options Options, runner box.Runner) (ResolveWiring, error)
+}
+
+// Main runs the resolve verb and returns its exit code.
+func (c ResolveCommand) Main(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+	chosen, ok := parseOptions("resolve", args, stderr)
+	if !ok {
+		return ExitUsage
+	}
+	resolver, err := c.newResolver(chosen)
+	if err != nil {
+		fmt.Fprintln(stderr, "resolve:", err)
+		return ExitFailed
+	}
+	result, err := resolver.Resolve(ctx)
+	if err == nil {
+		err = resolver.Write(result)
+	}
+	if err != nil {
+		fmt.Fprintln(stderr, "resolve:", err)
+		return ExitFailed
+	}
+	fmt.Fprintf(stdout, "resolve: wrote %s and %s\n", study.InputsPath, InputsSumsFile)
+	return ExitOK
+}
+
+func (c ResolveCommand) newResolver(chosen Options) (Resolver, error) {
+	root, err := filepath.Abs(chosen.Repo)
 	if err != nil {
 		return Resolver{}, err
 	}
-	configPath, err := repositoryPath(root, chosen.config)
+	configPath, err := repositoryPath(root, chosen.Config)
 	if err != nil {
 		return Resolver{}, err
 	}
@@ -93,33 +95,29 @@ func newResolver(chosen options, preparer Preparer) (Resolver, error) {
 	if err != nil {
 		return Resolver{}, err
 	}
-	manifest, err := loadManifest(chosen.product)
+	manifest, err := loadManifest(chosen.Product)
 	if err != nil {
 		return Resolver{}, err
 	}
-	client := []string{filepath.Join(root, dockerScript)}
-	runner, err := docker.New(docker.Config{
-		Client:     client,
-		RunWrapper: docker.SlotWrapper(filepath.Join(root, withSlot), slotWait),
-		Image:      manifest.Images.Built,
-		Product:    chosen.product,
-		UID:        os.Getuid(),
-		GID:        os.Getgid(),
-	})
+	runner, err := docker.StudyRunner(root, chosen.Product, manifest.Images.Built)
 	if err != nil {
 		return Resolver{}, err
 	}
-	layout := study.Layout{Root: chosen.work}
+	wiring, err := c.Wire(chosen, runner)
+	if err != nil {
+		return Resolver{}, err
+	}
+	layout := study.Layout{Root: chosen.Work}
 	command := OSExec{}
 	return Resolver{
 		Root: root, ConfigPath: filepath.ToSlash(configPath), Config: configured, Work: layout,
-		ProductDir: chosen.product, ProductMount: docker.ProductTarget,
+		ProductDir: chosen.Product, ProductMount: docker.ProductTarget,
 		Repo: Git{Dir: root, Exec: command}, Box: runner,
-		Engine:   CLIEngine{Exec: command, Docker: client},
+		Engine:   CLIEngine{Exec: command, Docker: []string{filepath.Join(root, study.DockerClient)}},
 		Host:     UnameHost{Exec: command},
 		Releases: GitHubReleases{Exec: command, Repository: ShallnotRepository},
-		Canary:   FileCanary{Layout: layout}, Construction: FileConstruction{Layout: layout},
-		Preparer: preparer,
+		Canary:   wiring.Canary, Construction: FileConstruction{Layout: layout},
+		Preparer: wiring.Preparer,
 	}, nil
 }
 
@@ -146,18 +144,18 @@ func CheckMain(ctx context.Context, args []string, stdout, stderr io.Writer) int
 	if !ok {
 		return ExitUsage
 	}
-	root, err := filepath.Abs(chosen.repo)
+	root, err := filepath.Abs(chosen.Repo)
 	if err != nil {
 		fmt.Fprintln(stderr, "freeze-check:", err)
 		return ExitFailed
 	}
 	command := OSExec{}
 	checker := Checker{
-		Root: root, ProductDir: chosen.product,
+		Root: root, ProductDir: chosen.Product,
 		Repo:   Git{Dir: root, Exec: command},
 		Tokens: deviation.OpenSSL{},
-		Runs:   FileRuns{Layout: study.Layout{Root: chosen.work}},
-		Engine: CLIEngine{Exec: command, Docker: []string{filepath.Join(root, dockerScript)}},
+		Runs:   FileRuns{Layout: study.Layout{Root: chosen.Work}},
+		Engine: CLIEngine{Exec: command, Docker: []string{filepath.Join(root, study.DockerClient)}},
 	}
 	failures := checker.Check(ctx)
 	for _, failure := range failures {

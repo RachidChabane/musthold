@@ -2,7 +2,6 @@ package freeze_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/deviation"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/freeze"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/product"
@@ -297,21 +297,23 @@ func (fakeReleases) Contains(_ context.Context, tag, _ string) (bool, error) {
 
 type fakeCanary struct{ records []study.CanaryRecord }
 
-func (f fakeCanary) Findings(context.Context) (freeze.CanaryFindings, error) {
-	return freeze.CanaryFindings{
-		AuxiliaryModels: []string{"claude-haiku-4-5"}, EgressObserved: []string{"api.anthropic.com", "statsig.anthropic.com"},
+func (f fakeCanary) Output(context.Context) (study.CanaryOutput, error) {
+	held := study.CanaryCheck{Held: true}
+	return study.CanaryOutput{
+		C1: held, C2: held, C3: held,
+		CLIAuxiliaryModels: []string{"claude-haiku-4-5"}, EgressObserved: []string{"api.anthropic.com", "statsig.anthropic.com"},
 		EgressAllowlist: []string{"api.anthropic.com"}, QuotaPatterns: []string{"usage limit reached"}, Records: f.records,
 	}, nil
 }
 
 type fakeConstruction struct{ start time.Time }
 
-func (f fakeConstruction) Records(context.Context) ([]json.RawMessage, error) {
-	call := func(version string, offset time.Duration) json.RawMessage {
+func (f fakeConstruction) Records(context.Context) (records.Log, error) {
+	call := func(version string, offset time.Duration) records.Call {
 		start := f.start.Add(offset)
-		return json.RawMessage(fmt.Sprintf(`{"call":{"role":"author","codex_version":%q,"start":%q,"end":%q}}`, version, start.Format(time.RFC3339), start.Add(time.Minute).Format(time.RFC3339)))
+		return records.Call{Role: records.RoleAuthor, CodexVersion: version, Start: start, End: start.Add(time.Minute)}
 	}
-	return []json.RawMessage{call("codex-cli 0.9.0", 0), call("codex-cli 0.9.0", time.Hour), json.RawMessage(`{"drop":{"domain":"x"}}`)}, nil
+	return records.Log{Calls: []records.Call{call("codex-cli 0.9.0", 0), call("codex-cli 0.9.0", time.Hour)}, Drops: []records.Drop{{Domain: "x"}}}, nil
 }
 
 type fakePreparer struct {
@@ -366,7 +368,7 @@ func resolver(t *testing.T, root, productDir, work string, sc scenario) freeze.R
 		start = sc.constructionStart
 	}
 	return freeze.Resolver{
-		Root: root, ConfigPath: freeze.ConfigFile, Config: configured, Work: layout, ProductDir: productDir, ProductMount: "/opt/musthold",
+		Root: root, ConfigPath: study.ConfigFile, Config: configured, Work: layout, ProductDir: productDir, ProductMount: "/opt/musthold",
 		Repo: freeze.Git{Dir: root, Exec: freeze.OSExec{}}, Box: boxAnswers{claude: sc.claudeOutput}, Engine: fakeEngine{}, Host: fakeHost{}, Releases: fakeReleases{},
 		Canary:       fakeCanary{records: []study.CanaryRecord{{Name: "c1.jsonl", SHA256: strings.Repeat("d", 64), Start: t0.Add(3 * time.Hour)}}},
 		Construction: fakeConstruction{start: start}, Preparer: fakePreparer{files: sc.armFiles},

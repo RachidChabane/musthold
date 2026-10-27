@@ -18,16 +18,12 @@ const (
 	InputsTag    = "loop-1-inputs"
 )
 
-// Locations in the repository, slash-separated from its root.
+// Locations in the repository, slash-separated from its root, beside those of
+// the study package.
 const (
-	StudyDir          = "experiments/loop-1"
-	FreezeDir         = StudyDir + "/freeze"
-	TasksDir          = StudyDir + "/tasks"
-	ImageDir          = StudyDir + "/image"
-	ConfigFile        = StudyDir + "/loop-1.json"
-	PreregSumsFile    = FreezeDir + "/SHA256SUMS"
-	InputsFile        = FreezeDir + "/" + study.InputsFile
-	InputsSumsFile    = FreezeDir + "/inputs-SHA256SUMS"
+	ImageDir          = study.StudyDir + "/image"
+	PreregSumsFile    = study.FreezeDir + "/SHA256SUMS"
+	InputsSumsFile    = study.FreezeDir + "/inputs-SHA256SUMS"
 	ShallnotPinFile   = "script/shallnot.pin"
 	ClaudeCodePinFile = "script/claude-code.pin"
 	commitFileSuffix  = "-commit.txt"
@@ -41,7 +37,7 @@ type Freeze struct {
 }
 
 // CommitFile is the repository path of the file that holds the tagged commit.
-func (f Freeze) CommitFile() string { return path.Join(FreezeDir, f.Stem+commitFileSuffix) }
+func (f Freeze) CommitFile() string { return path.Join(study.FreezeDir, f.Stem+commitFileSuffix) }
 
 // The freezes, in the order of their tags.
 var (
@@ -56,13 +52,13 @@ func Freezes() []Freeze { return []Freeze{Prereg, Amendment, Inputs} }
 // PreregRoots are the paths whose files the pre-registration's sums list
 // (PREREG §13.1), and PreregExcluded the prefix they leave out.
 var PreregRoots = []string{
-	StudyDir,
+	study.StudyDir,
 	"demo/loop/fixture/boxoffice",
 	"tools/canary/internal/demoloop/fixturegate/testdata/task",
 }
 
 // PreregExcluded is the directory the pre-registration's sums do not list.
-const PreregExcluded = FreezeDir + "/"
+const PreregExcluded = study.FreezeDir + "/"
 
 // ProductDirs are the directories whose commits between the two tags enter
 // commits.between (PREREG §2).

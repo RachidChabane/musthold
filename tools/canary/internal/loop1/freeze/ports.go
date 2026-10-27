@@ -2,10 +2,10 @@ package freeze
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -48,23 +48,14 @@ type Releases interface {
 	Contains(ctx context.Context, tag, commit string) (bool, error)
 }
 
-// CanaryFindings are what the canary sessions recorded (PREREG §13.3).
-type CanaryFindings struct {
-	AuxiliaryModels []string             `json:"auxiliary_models"`
-	EgressObserved  []string             `json:"egress_observed"`
-	EgressAllowlist []string             `json:"egress_allowlist"`
-	QuotaPatterns   []string             `json:"quota_patterns"`
-	Records         []study.CanaryRecord `json:"records"`
-}
-
-// CanarySource reads the canary's output.
+// CanarySource reads the output of the canary's last invocation (PREREG §13.3).
 type CanarySource interface {
-	Findings(ctx context.Context) (CanaryFindings, error)
+	Output(ctx context.Context) (study.CanaryOutput, error)
 }
 
-// ConstructionSource reads the construction records, one JSON document each.
+// ConstructionSource reads the construction records.
 type ConstructionSource interface {
-	Records(ctx context.Context) ([]json.RawMessage, error)
+	Records(ctx context.Context) (records.Log, error)
 }
 
 // Prepared is what the preparation of one task for one arm produced: the start

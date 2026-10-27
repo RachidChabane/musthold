@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -268,17 +269,34 @@ func TestCanary(t *testing.T) {
 		}
 	})
 
-	t.Run("the output is written in the canary's directory with the runner's quota patterns, and is what resolve reads [verifies SP-2538~1]", func(t *testing.T) {
+	t.Run("the output is written in the canary's directory with the runner's quota patterns, and is what resolve reads [verifies SP-2538~2]", func(t *testing.T) {
 		var written map[string]json.RawMessage
-		_ = json.Unmarshal([]byte(runstest.Read(t, filepath.Join(dir, canary.OutputFile))), &written)
-		for _, key := range []string{"c1", "c2", "c3", "egress_observed", "egress_allowlist", "cli_auxiliary_models", "quota_patterns"} {
+		_ = json.Unmarshal([]byte(runstest.Read(t, filepath.Join(dir, study.CanaryOutputFile))), &written)
+		for _, key := range []string{"c1", "c2", "c3", "egress_observed", "egress_allowlist", "cli_auxiliary_models", "quota_patterns", "records"} {
 			if _, found := written[key]; !found {
 				t.Errorf("output.json lacks %s", key)
 			}
 		}
-		latest, err := canary.LatestOutput(adapters.OSFiles{}, study.Layout{Root: w.Work})
+		latest, err := canary.Latest{Files: adapters.OSFiles{}, Layout: study.Layout{Root: w.Work}}.Output(context.Background())
 		if err != nil || !slices.Equal(latest.QuotaPatterns, runs.QuotaPatterns()) || !latest.Held() {
 			t.Errorf("latest %+v, %v", latest, err)
+		}
+		sessions := map[string]bool{}
+		for _, recorded := range latest.Records {
+			content := runstest.Read(t, filepath.Join(w.Work, study.CanaryDir, filepath.FromSlash(recorded.Name)))
+			if recorded.SHA256 != runs.SHA256([]byte(content)) || recorded.Start.IsZero() {
+				t.Errorf("record %+v", recorded)
+			}
+			sessions[strings.SplitN(recorded.Name, "/", 3)[1]] = true
+		}
+		if len(sessions) != 3 {
+			t.Errorf("the records name the sessions %v", sessions)
+		}
+		if err := os.WriteFile(filepath.Join(dir, study.CanaryOutputFile), []byte(`{"unknown":1}`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := canary.LatestOutput(adapters.OSFiles{}, study.Layout{Root: w.Work}); !errors.Is(err, canary.ErrMalformedOutput) {
+			t.Errorf("an unknown member: %v", err)
 		}
 		for _, session := range []string{"c1", "c2", "c3"} {
 			if _, err := os.Stat(filepath.Join(dir, session, plan.RecordsDir, record.MetaFile)); err != nil {
@@ -328,7 +346,7 @@ func TestCanaryMain(t *testing.T) {
 		return code, stdout.String(), stderr.String()
 	}
 
-	t.Run("a dry run prints the three sessions and exits 0, an unknown flag exits 2, and a run with no image or no detectors exits 1 before any session [verifies SP-2539~1]", func(t *testing.T) {
+	t.Run("a dry run prints the three sessions and exits 0, an unknown flag exits 2, and a run with no image exits 1 before any session [verifies SP-2539~2]", func(t *testing.T) {
 		code, stdout, stderr := main("--repo", repo, "--dry-run", "--inputs", filepath.Join(work, "absent.json"))
 		if code != runs.ExitOK || !strings.Contains(stdout, "C1, in ") || !strings.Contains(stdout, "C3, in ") || !strings.Contains(stdout, "--allow '*'") {
 			t.Errorf("dry run: %d\n%s\n%s", code, stdout, stderr)
@@ -338,9 +356,6 @@ func TestCanaryMain(t *testing.T) {
 		}
 		if code, _, stderr := main("--repo", repo, "--inputs", filepath.Join(work, "absent.json")); code != runs.ExitFailure || !strings.Contains(stderr, "--image") {
 			t.Errorf("no image: %d %s", code, stderr)
-		}
-		if code, _, stderr := main("--repo", repo, "--inputs", filepath.Join(work, "absent.json"), "--image", runstest.Image); code != runs.ExitFailure || !strings.Contains(stderr, "detectors") {
-			t.Errorf("no detectors: %d %s", code, stderr)
 		}
 	})
 }

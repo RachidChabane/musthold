@@ -78,7 +78,7 @@ func (r Resolver) task(ctx context.Context, configured config.Task, manifest pro
 // description reads the task's task.json and checks it against the configuration
 // the runs use.
 func (r Resolver) description(configured config.Task) (study.Task, error) {
-	data, err := os.ReadFile(filepath.Join(r.Root, filepath.FromSlash(path.Join(TasksDir, configured.Name, study.TaskFile))))
+	data, err := os.ReadFile(filepath.Join(r.Root, filepath.FromSlash(path.Join(study.TasksDir, configured.Name, study.TaskFile))))
 	if err != nil {
 		return study.Task{}, err
 	}

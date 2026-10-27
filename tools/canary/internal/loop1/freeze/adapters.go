@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -20,8 +22,9 @@ var ErrUnreadable = errors.New("unreadable output")
 
 var versionNumber = regexp.MustCompile(`[0-9]+(\.[0-9]+)+`)
 
-// versionOf is the first dotted number of a tool's version line.
-func versionOf(line string) (string, error) {
+// VersionOf is the first dotted number of a tool's version line, as the inputs
+// freeze records a version.
+func VersionOf(line string) (string, error) {
 	version := versionNumber.FindString(line)
 	if version == "" {
 		return "", fmt.Errorf("%w: no version in %q", ErrUnreadable, line)
@@ -67,7 +70,7 @@ func (e CLIEngine) ColimaVersion(ctx context.Context) (string, error) {
 		return "", err
 	}
 	first, _, _ := strings.Cut(string(output), "\n")
-	return versionOf(first)
+	return VersionOf(first)
 }
 
 // ImageID implements Engine.
@@ -155,59 +158,14 @@ func (g GitHubReleases) Contains(ctx context.Context, tag, commit string) (bool,
 	return status == compareAhead || status == compareIdentical, nil
 }
 
-// Files of the work directory the freeze reads.
-const (
-	canaryOutputFile  = "output.json"
-	constructionFile  = "records.jsonl"
-	runFile           = "run.json"
-	maxRecordLineSize = 64 << 20
-)
-
-// FileCanary reads the canary's output from the canary directory.
-type FileCanary struct{ Layout study.Layout }
-
-var _ CanarySource = FileCanary{}
-
-// Findings implements CanarySource.
-func (f FileCanary) Findings(context.Context) (CanaryFindings, error) {
-	data, err := os.ReadFile(filepath.Join(f.Layout.Canary(), canaryOutputFile))
-	if err != nil {
-		return CanaryFindings{}, err
-	}
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	var findings CanaryFindings
-	if err := decoder.Decode(&findings); err != nil {
-		return CanaryFindings{}, fmt.Errorf("%w: the canary output: %v", ErrUnreadable, err)
-	}
-	return findings, nil
-}
-
-// FileConstruction reads the construction records file, one document per line.
+// FileConstruction reads the construction records file of the work directory.
 type FileConstruction struct{ Layout study.Layout }
 
 var _ ConstructionSource = FileConstruction{}
 
 // Records implements ConstructionSource.
-func (f FileConstruction) Records(context.Context) ([]json.RawMessage, error) {
-	data, err := os.ReadFile(filepath.Join(f.Layout.Construction(), constructionFile))
-	if err != nil {
-		return nil, err
-	}
-	scanner := bufio.NewScanner(bytes.NewReader(data))
-	scanner.Buffer(nil, maxRecordLineSize)
-	records := []json.RawMessage{}
-	for scanner.Scan() {
-		line := bytes.TrimSpace(scanner.Bytes())
-		if len(line) == 0 {
-			continue
-		}
-		if !json.Valid(line) {
-			return nil, fmt.Errorf("%w: a construction record is not JSON", ErrUnreadable)
-		}
-		records = append(records, json.RawMessage(bytes.Clone(line)))
-	}
-	return records, scanner.Err()
+func (f FileConstruction) Records(context.Context) (records.Log, error) {
+	return records.Read(records.Path(f.Layout))
 }
 
 // FileRuns reads the starts of the runs from the run directories of the work
@@ -218,7 +176,7 @@ var _ Runs = FileRuns{}
 
 // Starts implements Runs.
 func (f FileRuns) Starts(context.Context) ([]RunStart, error) {
-	files, err := filepath.Glob(filepath.Join(f.Layout.Root, study.RunsDir, "*", runFile))
+	files, err := filepath.Glob(filepath.Join(f.Layout.Root, study.RunsDir, "*", study.RecordsDir, record.MetaFile))
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +190,7 @@ func (f FileRuns) Starts(context.Context) ([]RunStart, error) {
 		if err := json.Unmarshal(data, &run); err != nil {
 			return nil, fmt.Errorf("%w: %s: %v", ErrUnreadable, file, err)
 		}
-		starts = append(starts, RunStart{Name: filepath.Base(filepath.Dir(file)), Start: run.StartedAt})
+		starts = append(starts, RunStart{Name: filepath.Base(filepath.Dir(filepath.Dir(file))), Start: run.StartedAt})
 	}
 	return starts, nil
 }

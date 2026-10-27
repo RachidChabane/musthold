@@ -7,7 +7,13 @@ package box
 import (
 	"context"
 	"time"
+
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/container"
 )
+
+// SystemPath is the PATH variable of a command that needs only the image's
+// programs.
+const SystemPath = "PATH=" + container.SystemPath
 
 // Mount is a host directory the container sees at the same path.
 type Mount struct {

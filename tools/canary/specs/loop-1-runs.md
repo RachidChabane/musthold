@@ -164,11 +164,13 @@ not running.
   acceptance gate passes with both proofs required and no alignment verdict below
   the isolation floor, and the detectors find no hit; the other models of its
   usage SHALL be `cli_auxiliary_models`.
-- **SP-2538~1**: WHEN the canary ends THE SYSTEM SHALL keep its records under the
+- **SP-2538~2**: WHEN the canary ends THE SYSTEM SHALL keep its records under the
   work directory's `canary/`, and write there the canary's output: whether each of
-  C1 to C3 held, `egress_observed`, `egress_allowlist`, `cli_auxiliary_models`, and
-  the runner's fixed `quota_patterns`.
-- **SP-2539~1**: WHEN the `canary` verb is invoked THE SYSTEM SHALL read its flags
-  as the `run` verb does, refuse before any session when no image is named or no
-  detectors are wired, exit 0 when C1 to C3 hold, 1 when one fails or a check
-  refuses, and 2 on a usage error.
+  C1 to C3 held, `egress_observed`, `egress_allowlist`, `cli_auxiliary_models`, the
+  runner's fixed `quota_patterns`, and every record of every session that ran, by
+  its path under `canary/`, with its SHA-256 and the start of its session; and WHEN
+  the output is read THE SYSTEM SHALL read the canary's last output and refuse an
+  unknown member.
+- **SP-2539~2**: WHEN the `canary` verb is invoked THE SYSTEM SHALL read its flags
+  as the `run` verb does, refuse before any session when no image is named, exit 0
+  when C1 to C3 hold, 1 when one fails or a check refuses, and 2 on a usage error.

@@ -32,6 +32,10 @@ const (
 	FactsFile     = "facts.json"
 )
 
+// Hashes is hashes-before.json or hashes-after.json: every file of the project,
+// by its slash-separated path, mapped to the hex SHA-256 of its content.
+type Hashes map[string]string
+
 // Run is run.json of one attempt: the agent-loop runner's description of the run,
 // with what the study adds.
 type Run struct {

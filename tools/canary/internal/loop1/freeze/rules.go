@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -15,7 +16,7 @@ import (
 type Timeline struct {
 	// Prereg, Amendment and Inputs are the generation times of the three tokens.
 	Prereg, Amendment, Inputs time.Time
-	Calls                     []ConstructionCall
+	Calls                     []records.Call
 	Canary                    []study.CanaryRecord
 	Runs                      []RunStart
 }

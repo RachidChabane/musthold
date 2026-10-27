@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/freeze"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
@@ -112,48 +114,31 @@ func TestWorkFiles(t *testing.T) {
 	layout := study.Layout{Root: work}
 	start := time.Date(2026, 11, 1, 10, 0, 0, 0, time.UTC)
 
-	t.Run("the canary's output is read strictly [verifies SP-2620~1]", func(t *testing.T) {
-		write(t, work, "canary/output.json", `{"auxiliary_models":["m"],"egress_observed":["a.example"],"egress_allowlist":[],"quota_patterns":["q"],"records":[{"name":"c1","sha256":"d","start":"2026-11-01T10:00:00Z"}]}`)
-		findings, err := freeze.FileCanary{Layout: layout}.Findings(t.Context())
-		if err != nil || findings.AuxiliaryModels[0] != "m" || !findings.Records[0].Start.Equal(start) {
-			t.Fatalf("findings %+v, %v", findings, err)
+	t.Run("the construction records are the lines construct appends, blank lines skipped, and a broken line is refused [verifies SP-2620~2]", func(t *testing.T) {
+		writer := records.NewFileWriter(layout)
+		for _, entry := range []records.Entry{{Call: &records.Call{CodexVersion: "c", Start: start}}, {Drop: &records.Drop{Domain: "d"}}} {
+			if err := writer.Append(entry); err != nil {
+				t.Fatal(err)
+			}
 		}
-		write(t, work, "canary/output.json", `{"unknown":1}`)
-		if _, err := (freeze.FileCanary{Layout: layout}).Findings(t.Context()); !errors.Is(err, freeze.ErrUnreadable) {
-			t.Errorf("an unknown member: %v", err)
-		}
-	})
-
-	t.Run("the construction records are one document per line, blank lines skipped [verifies SP-2620~1]", func(t *testing.T) {
-		write(t, work, "construction/records.jsonl", "{\"call\":{\"codex_version\":\"c\"}}\n\n{\"drop\":{}}\n")
-		records, err := freeze.FileConstruction{Layout: layout}.Records(t.Context())
-		if err != nil || len(records) != 2 {
-			t.Fatalf("records %v, %v", records, err)
+		log, err := freeze.FileConstruction{Layout: layout}.Records(t.Context())
+		if err != nil || len(log.Calls) != 1 || !log.Calls[0].Start.Equal(start) || len(log.Drops) != 1 {
+			t.Fatalf("records %+v, %v", log, err)
 		}
 		write(t, work, "construction/records.jsonl", "not json\n")
-		if _, err := (freeze.FileConstruction{Layout: layout}).Records(t.Context()); !errors.Is(err, freeze.ErrUnreadable) {
+		if _, err := (freeze.FileConstruction{Layout: layout}).Records(t.Context()); !errors.Is(err, records.ErrMalformedRecords) {
 			t.Errorf("a broken line: %v", err)
 		}
 	})
 
-	t.Run("a construction call is any object with a codex version, at any depth, and a malformed time is refused [verifies SP-2620~1]", func(t *testing.T) {
-		calls, err := freeze.ConstructionCalls([]byte(`[{"call":{"codex_version":"x","start":"2026-11-01T10:00:00Z","end":"2026-11-01T10:05:00Z"}},{"nested":[{"codex_version":"y"}]},{"drop":{"domain":"d"}}]`))
-		if err != nil || len(calls) != 2 || calls[0].CodexVersion != "x" || !calls[0].End.Equal(start.Add(5*time.Minute)) || !calls[1].Start.IsZero() {
-			t.Errorf("calls %+v, %v", calls, err)
-		}
-		if _, err := freeze.ConstructionCalls([]byte(`[{"codex_version":"x","start":"yesterday"}]`)); !errors.Is(err, freeze.ErrUnreadable) {
-			t.Errorf("a malformed time: %v", err)
-		}
-	})
-
 	t.Run("the starts of the runs come from the run directories [verifies SP-2625~1]", func(t *testing.T) {
-		write(t, work, "runs/alpha-control-1-1/run.json", `{"startedAt":"2026-11-02T08:00:00Z"}`)
-		write(t, work, "runs/alpha-control-1-2/run.json", `{"startedAt":"2026-11-02T09:00:00Z"}`)
+		write(t, work, "runs/alpha-control-1-1/records/run.json", `{"startedAt":"2026-11-02T08:00:00Z"}`)
+		write(t, work, "runs/alpha-control-1-2/records/run.json", `{"startedAt":"2026-11-02T09:00:00Z"}`)
 		starts, err := freeze.FileRuns{Layout: layout}.Starts(t.Context())
 		if err != nil || len(starts) != 2 || starts[0].Name != "alpha-control-1-1" || !starts[1].Start.Equal(time.Date(2026, 11, 2, 9, 0, 0, 0, time.UTC)) {
 			t.Errorf("starts %+v, %v", starts, err)
 		}
-		write(t, work, "runs/broken/run.json", "{")
+		write(t, work, "runs/broken/records/run.json", "{")
 		if _, err := (freeze.FileRuns{Layout: layout}).Starts(t.Context()); !errors.Is(err, freeze.ErrUnreadable) {
 			t.Errorf("a broken record: %v", err)
 		}
@@ -240,7 +225,9 @@ func TestGit(t *testing.T) {
 func TestMains(t *testing.T) {
 	t.Run("resolve exits 2 on a usage error and 1 when the product or the repository cannot be read [verifies SP-2623~1]", func(t *testing.T) {
 		var stdout, stderr strings.Builder
-		main := freeze.ResolveMain(fakePreparer{})
+		main := freeze.ResolveCommand{Wire: func(freeze.Options, box.Runner) (freeze.ResolveWiring, error) {
+			return freeze.ResolveWiring{Preparer: fakePreparer{}, Canary: fakeCanary{}}, nil
+		}}.Main
 		if code := main(t.Context(), []string{"--nonsense"}, &stdout, &stderr); code != freeze.ExitUsage {
 			t.Errorf("usage: code %d", code)
 		}

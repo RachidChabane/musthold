@@ -27,25 +27,35 @@ import (
 // pin.
 const ShallnotRepository = "RachidChabane/shallnot"
 
-// Programs the toolchain probes run in the study's image, by absolute path since
-// the box runs them under `env -i`.
+// The programs of the study's image, by absolute path since the box runs them
+// under `env -i`. Claude Code is the image's, never the product's.
 const (
-	boxPath         = "PATH=/usr/local/bin:/usr/bin:/bin"
-	boxLimit        = 2 * time.Minute
-	pythonProgram   = "/usr/local/bin/python3"
-	pytestProgram   = "/usr/local/bin/pytest"
-	uvProgram       = "/usr/local/bin/uv"
-	nodeProgram     = "/usr/local/bin/node"
-	gitProgram      = "/usr/bin/git"
-	claudeProgram   = "/usr/local/bin/claude"
-	sha256sumProg   = "/usr/bin/sha256sum"
-	versionFlag     = "--version"
-	jsonIndent      = "  "
-	outputFileMode  = 0o644
-	outputDirMode   = 0o755
-	codexVersionKey = "codex_version"
-	startKey        = "start"
-	endKey          = "end"
+	ClaudeProgram = "/usr/local/bin/claude"
+	pythonProgram = "/usr/local/bin/python3"
+	pytestProgram = "/usr/local/bin/pytest"
+	uvProgram     = "/usr/local/bin/uv"
+	nodeProgram   = "/usr/local/bin/node"
+	gitProgram    = "/usr/bin/git"
+	sha256sumProg = "/usr/bin/sha256sum"
+)
+
+// ImageToolchains maps each toolchain of the inputs freeze that the image holds
+// to its program, which prints its version given VersionFlag.
+func ImageToolchains() map[string]string {
+	return map[string]string{
+		ToolchainPython: pythonProgram, ToolchainPytest: pytestProgram, ToolchainUV: uvProgram,
+		ToolchainNode: nodeProgram, ToolchainGit: gitProgram,
+	}
+}
+
+// VersionFlag makes a program print its version.
+const VersionFlag = "--version"
+
+const (
+	boxLimit       = 2 * time.Minute
+	jsonIndent     = "  "
+	outputFileMode = 0o644
+	outputDirMode  = 0o755
 )
 
 // Errors of a resolve that cannot complete.
@@ -133,7 +143,7 @@ func (r Resolver) requireCleanTree(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	modified = slices.DeleteFunc(modified, func(file string) bool { return file == InputsFile || file == InputsSumsFile })
+	modified = slices.DeleteFunc(modified, func(file string) bool { return file == study.InputsPath || file == InputsSumsFile })
 	if len(modified) > 0 {
 		return fmt.Errorf("%w: %s", ErrDirtyTree, strings.Join(modified, ", "))
 	}
@@ -192,14 +202,19 @@ func describeProduct(manifest product.Manifest) (map[string]string, study.Images
 	for plugin, digest := range manifest.Plugins {
 		binaries[PluginKeyPrefix+plugin] = digest
 	}
-	images := study.Images{Build: manifest.Images.Build, Base: manifest.Images.Base, UV: manifest.Images.UV, Built: manifest.Images.Built, Proxy: manifest.Images.Built}
-	return binaries, images
+	return binaries, DescribeImages(manifest)
+}
+
+// DescribeImages are the images of a product's manifest as the inputs freeze
+// records them: the built image also runs the egress proxy.
+func DescribeImages(manifest product.Manifest) study.Images {
+	return study.Images{Build: manifest.Images.Build, Base: manifest.Images.Base, UV: manifest.Images.UV, Built: manifest.Images.Built, Proxy: manifest.Images.Built}
 }
 
 func (r Resolver) inBox(ctx context.Context, argv ...string) (string, error) {
 	result, err := r.Box.Run(ctx, box.Command{
 		Argv:   argv,
-		Env:    []string{boxPath},
+		Env:    []string{box.SystemPath},
 		Dir:    r.Work.Root,
 		Mounts: []box.Mount{{Path: r.Work.Root, ReadOnly: true}},
 		Limit:  boxLimit,
@@ -215,18 +230,12 @@ func (r Resolver) inBox(ctx context.Context, argv ...string) (string, error) {
 
 func (r Resolver) toolchains(ctx context.Context, manifest product.Manifest) (map[string]string, error) {
 	versions := map[string]string{}
-	for key, argv := range map[string][]string{
-		ToolchainPython: {pythonProgram, versionFlag},
-		ToolchainPytest: {pytestProgram, versionFlag},
-		ToolchainUV:     {uvProgram, versionFlag},
-		ToolchainNode:   {nodeProgram, versionFlag},
-		ToolchainGit:    {gitProgram, versionFlag},
-	} {
-		line, err := r.inBox(ctx, argv...)
+	for key, program := range ImageToolchains() {
+		line, err := r.inBox(ctx, program, VersionFlag)
 		if err != nil {
 			return nil, err
 		}
-		if versions[key], err = versionOf(line); err != nil {
+		if versions[key], err = VersionOf(line); err != nil {
 			return nil, err
 		}
 	}
@@ -268,7 +277,7 @@ func (r Resolver) engineVersions(ctx context.Context, versions map[string]string
 
 func (r Resolver) shallnot(ctx context.Context, manifest product.Manifest) (study.Shallnot, error) {
 	binary := plan.Layout{Product: r.ProductMount}.Bin(plan.ShallnotBinary)
-	version, err := r.inBox(ctx, binary, versionFlag)
+	version, err := r.inBox(ctx, binary, VersionFlag)
 	if err != nil {
 		return study.Shallnot{}, err
 	}
@@ -280,11 +289,11 @@ func (r Resolver) shallnot(ctx context.Context, manifest product.Manifest) (stud
 }
 
 func (r Resolver) claudeCode(ctx context.Context) (study.ClaudeCode, error) {
-	line, err := r.inBox(ctx, claudeProgram, versionFlag)
+	line, err := r.inBox(ctx, ClaudeProgram, VersionFlag)
 	if err != nil {
 		return study.ClaudeCode{}, err
 	}
-	version, err := versionOf(line)
+	version, err := VersionOf(line)
 	if err != nil {
 		return study.ClaudeCode{}, err
 	}
@@ -295,7 +304,7 @@ func (r Resolver) claudeCode(ctx context.Context) (study.ClaudeCode, error) {
 	if version != ExpectedClaudeVersion || pin != ExpectedClaudeVersion {
 		return study.ClaudeCode{}, fmt.Errorf("%w: Claude Code %s in the image, %s in %s, %s in the protocol", ErrPin, version, pin, ClaudeCodePinFile, ExpectedClaudeVersion)
 	}
-	sums, err := r.inBox(ctx, sha256sumProg, claudeProgram)
+	sums, err := r.inBox(ctx, sha256sumProg, ClaudeProgram)
 	if err != nil {
 		return study.ClaudeCode{}, err
 	}
@@ -307,21 +316,17 @@ func (r Resolver) claudeCode(ctx context.Context) (study.ClaudeCode, error) {
 }
 
 func (r Resolver) construction(ctx context.Context, inputs *study.Inputs) error {
-	records, err := r.Construction.Records(ctx)
+	log, err := r.Construction.Records(ctx)
 	if err != nil {
 		return err
 	}
-	raw, err := json.Marshal(records)
-	if err != nil {
-		return err
-	}
-	calls, err := ConstructionCalls(raw)
+	raw, err := json.Marshal(log)
 	if err != nil {
 		return err
 	}
 	seen := map[string]bool{}
 	inputs.Codex = []string{}
-	for _, call := range calls {
+	for _, call := range log.Calls {
 		if !seen[call.CodexVersion] {
 			seen[call.CodexVersion] = true
 			inputs.Codex = append(inputs.Codex, call.CodexVersion)
@@ -333,15 +338,15 @@ func (r Resolver) construction(ctx context.Context, inputs *study.Inputs) error 
 }
 
 func (r Resolver) canary(ctx context.Context, inputs *study.Inputs) error {
-	findings, err := r.Canary.Findings(ctx)
+	output, err := r.Canary.Output(ctx)
 	if err != nil {
 		return err
 	}
-	inputs.CLIAuxiliaryModels = nonNil(findings.AuxiliaryModels)
-	inputs.EgressObserved = nonNil(findings.EgressObserved)
-	inputs.EgressAllowlist = nonNil(findings.EgressAllowlist)
-	inputs.QuotaPatterns = nonNil(findings.QuotaPatterns)
-	inputs.Canary = findings.Records
+	inputs.CLIAuxiliaryModels = nonNil(output.CLIAuxiliaryModels)
+	inputs.EgressObserved = nonNil(output.EgressObserved)
+	inputs.EgressAllowlist = nonNil(output.EgressAllowlist)
+	inputs.QuotaPatterns = nonNil(output.QuotaPatterns)
+	inputs.Canary = output.Records
 	if inputs.Canary == nil {
 		inputs.Canary = []study.CanaryRecord{}
 	}
@@ -363,66 +368,6 @@ func nonNil(values []string) []string {
 	return values
 }
 
-// ConstructionCall is the part of a construction call that the freeze reads: the
-// Codex CLI version, and when the call started and ended. A call is any JSON
-// object, at any depth of the records, that has a "codex_version" member.
-type ConstructionCall struct {
-	CodexVersion string
-	Start, End   time.Time
-}
-
-// ConstructionCalls finds the calls in the construction records.
-func ConstructionCalls(records json.RawMessage) ([]ConstructionCall, error) {
-	var tree any
-	if err := json.Unmarshal(records, &tree); err != nil {
-		return nil, fmt.Errorf("%w: construction: %v", ErrUnreadable, err)
-	}
-	var calls []ConstructionCall
-	var failure error
-	var walk func(node any)
-	walk = func(node any) {
-		switch value := node.(type) {
-		case []any:
-			for _, element := range value {
-				walk(element)
-			}
-		case map[string]any:
-			if version, ok := value[codexVersionKey].(string); ok {
-				call, err := callOf(version, value)
-				calls, failure = append(calls, call), errors.Join(failure, err)
-				return
-			}
-			for _, member := range value {
-				walk(member)
-			}
-		}
-	}
-	walk(tree)
-	return calls, failure
-}
-
-func callOf(version string, members map[string]any) (ConstructionCall, error) {
-	call := ConstructionCall{CodexVersion: version}
-	var err error
-	if call.Start, err = timeMember(members, startKey); err != nil {
-		return call, err
-	}
-	call.End, err = timeMember(members, endKey)
-	return call, err
-}
-
-func timeMember(members map[string]any, key string) (time.Time, error) {
-	text, ok := members[key].(string)
-	if !ok {
-		return time.Time{}, nil
-	}
-	parsed, err := time.Parse(time.RFC3339Nano, text)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("%w: construction call %s %q", ErrUnreadable, key, text)
-	}
-	return parsed.UTC(), nil
-}
-
 func digestOf(content []byte) string {
 	sum := sha256.Sum256(content)
 	return hex.EncodeToString(sum[:])
@@ -439,7 +384,7 @@ func (r Resolver) Render(ctx context.Context, inputs study.Inputs) (Result, erro
 	if err != nil {
 		return Result{}, err
 	}
-	return Result{Inputs: inputs, Files: map[string][]byte{InputsFile: document, InputsSumsFile: []byte(FormatSums(sums))}}, nil
+	return Result{Inputs: inputs, Files: map[string][]byte{study.InputsPath: document, InputsSumsFile: []byte(FormatSums(sums))}}, nil
 }
 
 // sums lists the SHA-256 of every file of every task directory and fixture, of
@@ -447,7 +392,7 @@ func (r Resolver) Render(ctx context.Context, inputs study.Inputs) (Result, erro
 func (r Resolver) sums(ctx context.Context, inputsDocument []byte) ([]Sum, error) {
 	roots := []string{r.ConfigPath, ImageDir}
 	for _, task := range r.Config.Tasks {
-		roots = append(roots, path.Join(TasksDir, task.Name), task.Fixture)
+		roots = append(roots, path.Join(study.TasksDir, task.Name), task.Fixture)
 	}
 	listed := map[string]bool{}
 	var sums []Sum
@@ -468,7 +413,7 @@ func (r Resolver) sums(ctx context.Context, inputsDocument []byte) ([]Sum, error
 			sums = append(sums, Sum{Digest: digestOf(content), Path: file})
 		}
 	}
-	return append(sums, Sum{Digest: digestOf(inputsDocument), Path: InputsFile}), nil
+	return append(sums, Sum{Digest: digestOf(inputsDocument), Path: study.InputsPath}), nil
 }
 
 // Write stores the files of a result under the repository root.

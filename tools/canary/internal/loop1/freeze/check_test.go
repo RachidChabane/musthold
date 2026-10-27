@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/freeze"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/product"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
@@ -71,7 +72,7 @@ func TestCheckOrder(t *testing.T) {
 		if got := freeze.OrderFailures(stamped); len(got) != 2 {
 			t.Errorf("no call and no session: %v", got)
 		}
-		stamped.Calls = []freeze.ConstructionCall{{CodexVersion: "c"}}
+		stamped.Calls = []records.Call{{CodexVersion: "c"}}
 		stamped.Canary = []study.CanaryRecord{{Name: "c1", Start: t0.Add(2 * time.Minute)}}
 		if got := freeze.OrderFailures(stamped); len(got) != 1 || !strings.Contains(got[0], "has no start") {
 			t.Errorf("a call without a start: %v", got)

@@ -23,7 +23,7 @@ import (
 
 func TestStudyConfiguration(t *testing.T) {
 	t.Run("loop-1.json parses with its toolchain and the arms control and treatment, and its order is the seeded order of the agent-loop runner [verifies SP-2510~1]", func(t *testing.T) {
-		data, err := os.ReadFile(filepath.Join(runstest.RepoRoot(t), runs.DefaultConfig))
+		data, err := os.ReadFile(filepath.Join(runstest.RepoRoot(t), study.ConfigFile))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -193,7 +193,7 @@ func TestLedger(t *testing.T) {
 	})
 
 	t.Run("an order that is not the configuration's is refused [verifies SP-2530~1]", func(t *testing.T) {
-		data, _ := os.ReadFile(filepath.Join(runstest.RepoRoot(t), runs.DefaultConfig))
+		data, _ := os.ReadFile(filepath.Join(runstest.RepoRoot(t), study.ConfigFile))
 		parsed, _ := config.Parse(data)
 		order := runs.Order(parsed)
 		if err := runs.CheckOrder(parsed, study.Inputs{Order: order}); err != nil {

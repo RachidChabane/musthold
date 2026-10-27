@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"maps"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -91,7 +90,6 @@ const (
 	// ShallnotVersionKey is the versions entry of `shallnot --version`.
 	ShallnotVersionKey = "shallnot --version"
 	sha256Program      = "sha256sum"
-	versionFlag        = "--version"
 	gitDirName         = ".git"
 	attemptTimeout     = 5 * time.Minute
 )
@@ -161,7 +159,7 @@ func (a *attempt) prepare(ctx context.Context) string {
 	if err != nil {
 		return err.Error()
 	}
-	versions[ShallnotVersionKey] = a.ask(ctx, l.Bin(plan.ShallnotBinary), versionFlag)
+	versions[ShallnotVersionKey] = a.ask(ctx, l.Bin(plan.ShallnotBinary), freeze.VersionFlag)
 	a.meta.ClaudeSHA256, _, _ = strings.Cut(a.ask(ctx, sha256Program, l.Claude()), " ")
 	a.toolchains(ctx, versions)
 	if a.spec.Empty {
@@ -178,8 +176,8 @@ func (a *attempt) prepare(ctx context.Context) string {
 // toolchains records, under the keys of the inputs freeze, the version of each
 // toolchain of the image and of the engine (PREREG §2).
 func (a *attempt) toolchains(ctx context.Context, versions map[string]string) {
-	for key, program := range ImageToolchains() {
-		versions[key] = DottedVersion(a.ask(ctx, program, versionFlag))
+	for key, program := range freeze.ImageToolchains() {
+		versions[key] = dottedVersion(a.ask(ctx, program, freeze.VersionFlag))
 	}
 	maps.Copy(versions, a.r.EngineVersions(ctx))
 }
@@ -193,7 +191,7 @@ func unavailable(err error) string { return "unavailable: " + err.Error() }
 func (r Runner) EngineVersions(ctx context.Context) map[string]string {
 	found := map[string]string{}
 	if docker, err := r.Engine.DockerVersion(ctx); err == nil {
-		found[freeze.ToolchainDocker] = DottedVersion(docker)
+		found[freeze.ToolchainDocker] = dottedVersion(docker)
 	} else {
 		found[freeze.ToolchainDocker] = unavailable(err)
 	}
@@ -215,22 +213,11 @@ func (r Runner) EngineVersions(ctx context.Context) map[string]string {
 	return found
 }
 
-// ImageToolchains are the programs of the image whose version each run records,
-// by the key of the inputs freeze.
-func ImageToolchains() map[string]string {
-	return map[string]string{
-		freeze.ToolchainPython: "python3", freeze.ToolchainPytest: "pytest", freeze.ToolchainUV: "uv",
-		freeze.ToolchainNode: "node", freeze.ToolchainGit: plan.GitBinary,
-	}
-}
-
-// dottedVersion is the first dotted number of a version line.
-var dottedVersion = regexp.MustCompile(`[0-9]+(\.[0-9]+)+`)
-
-// DottedVersion is the first dotted number of a version line, as the inputs
-// freeze records a toolchain's version, or the line itself when it holds none.
-func DottedVersion(line string) string {
-	if version := dottedVersion.FindString(line); version != "" {
+// dottedVersion is the version a run records of a version line: the first
+// dotted number, as the inputs freeze records it, or the line itself when it
+// holds none.
+func dottedVersion(line string) string {
+	if version, err := freeze.VersionOf(line); err == nil {
 		return version
 	}
 	return line
@@ -378,7 +365,7 @@ func (a *attempt) hashes(name string) error {
 	if err != nil {
 		return err
 	}
-	hashes := map[string]string{}
+	hashes := study.Hashes{}
 	for _, file := range files {
 		content, err := a.r.Tree.Read(filepath.Join(project, filepath.FromSlash(file)))
 		if err != nil {
@@ -509,7 +496,7 @@ func (r Runner) PlanLines(o app.Options, s Spec) []string {
 	l := planned.Layout
 	lines := append([]string{
 		filepath.Join(o.RepoRoot, plan.MemGuardRelative) + " check   (on the host)",
-		planned.Step([]string{l.Bin(plan.ShallnotBinary), versionFlag}),
+		planned.Step([]string{l.Bin(plan.ShallnotBinary), freeze.VersionFlag}),
 		planned.Step([]string{sha256Program, l.Claude()}) + "   (recorded in run.json)",
 	}, planned.Lines...)
 	if !s.Empty {
