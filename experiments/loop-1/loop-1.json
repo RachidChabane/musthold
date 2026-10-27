@@ -9,6 +9,56 @@
           "python": "boxoffice.prices:ticket_price"
         }
       }
+    },
+    {
+      "name": "library-late-fees",
+      "fixture": "experiments/loop-1/tasks/library-late-fees/fixture",
+      "prompt": "Implement requirement LATE-5 of specs/late-fees.md, charge 10 from 21 overdue days, in library_fees/late_fees.py, and add a test that verifies it. Tell me when the task is done.",
+      "operations": {
+        "late_fee": {
+          "python": "library_fees.late_fees:late_fee"
+        }
+      }
+    },
+    {
+      "name": "train-fare",
+      "fixture": "experiments/loop-1/tasks/train-fare/fixture",
+      "prompt": "Implement requirement FARE-4 of specs/fares.md, free trips across zero or fewer zones, in railfare/fares.py, and add a test that verifies it. Tell me when the task is done.",
+      "operations": {
+        "train_fare": {
+          "python": "railfare.fares:train_fare"
+        }
+      }
+    },
+    {
+      "name": "bicycle-rental",
+      "fixture": "experiments/loop-1/tasks/bicycle-rental/fixture",
+      "prompt": "Implement requirement BIKE-4 of specs/prices.md, charge 45 for rentals of 81 hours or more, in bikeshare/pricing.py, and add a test that verifies it. Tell me when the task is done.",
+      "operations": {
+        "rental_price": {
+          "python": "bikeshare.pricing:rental_price"
+        }
+      }
+    },
+    {
+      "name": "exam-grade",
+      "fixture": "experiments/loop-1/tasks/exam-grade/fixture",
+      "prompt": "Implement requirement GRADE-5 of specs/grades.md, return F below 60, in exams/grading.py, and add a test that verifies it. Tell me when the task is done.",
+      "operations": {
+        "exam_grade": {
+          "python": "exams.grading:exam_grade"
+        }
+      }
+    },
+    {
+      "name": "electricity-tariff",
+      "fixture": "experiments/loop-1/tasks/electricity-tariff/fixture",
+      "prompt": "Implement requirement HOUR-4 of specs/hourly_tariffs.md, apply late-evening rate through hour 23, in electricity/tariffs.py, and add a test that verifies it. Tell me when the task is done.",
+      "operations": {
+        "electricity_tariff": {
+          "python": "electricity.tariffs:electricity_tariff"
+        }
+      }
     }
   ],
   "arms": ["control", "treatment"],

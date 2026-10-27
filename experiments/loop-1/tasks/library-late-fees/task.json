@@ -1,0 +1,24 @@
+{
+  "name": "library-late-fees",
+  "fixture": "experiments/loop-1/tasks/library-late-fees/fixture",
+  "spec": "specs/late-fees.md",
+  "source": "library_fees/late_fees.py",
+  "criterion": "LATE-5",
+  "prompt": "Implement requirement LATE-5 of specs/late-fees.md, charge 10 from 21 overdue days, in library_fees/late_fees.py, and add a test that verifies it. Tell me when the task is done.",
+  "operations": {
+    "late_fee": {
+      "python": "library_fees.late_fees:late_fee"
+    }
+  },
+  "interface": {
+    "module": "library_fees.late_fees",
+    "operation": "late_fee",
+    "signature": "late_fee(days_overdue)"
+  },
+  "truth": {
+    "reference": "experiments/loop-1/tasks/library-late-fees/reference",
+    "violations": "experiments/loop-1/tasks/library-late-fees/violations",
+    "refactors": "experiments/loop-1/tasks/library-late-fees/refactors",
+    "oracle": "experiments/loop-1/tasks/library-late-fees/oracle"
+  }
+}

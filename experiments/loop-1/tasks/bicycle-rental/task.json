@@ -1,0 +1,24 @@
+{
+  "name": "bicycle-rental",
+  "fixture": "experiments/loop-1/tasks/bicycle-rental/fixture",
+  "spec": "specs/prices.md",
+  "source": "bikeshare/pricing.py",
+  "criterion": "BIKE-4",
+  "prompt": "Implement requirement BIKE-4 of specs/prices.md, charge 45 for rentals of 81 hours or more, in bikeshare/pricing.py, and add a test that verifies it. Tell me when the task is done.",
+  "operations": {
+    "rental_price": {
+      "python": "bikeshare.pricing:rental_price"
+    }
+  },
+  "interface": {
+    "module": "bikeshare.pricing",
+    "operation": "rental_price",
+    "signature": "rental_price(*, hours)"
+  },
+  "truth": {
+    "reference": "experiments/loop-1/tasks/bicycle-rental/reference",
+    "violations": "experiments/loop-1/tasks/bicycle-rental/violations",
+    "refactors": "experiments/loop-1/tasks/bicycle-rental/refactors",
+    "oracle": "experiments/loop-1/tasks/bicycle-rental/oracle"
+  }
+}

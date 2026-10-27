@@ -1,0 +1,24 @@
+{
+  "name": "electricity-tariff",
+  "fixture": "experiments/loop-1/tasks/electricity-tariff/fixture",
+  "spec": "specs/hourly_tariffs.md",
+  "source": "electricity/tariffs.py",
+  "criterion": "HOUR-4",
+  "prompt": "Implement requirement HOUR-4 of specs/hourly_tariffs.md, apply late-evening rate through hour 23, in electricity/tariffs.py, and add a test that verifies it. Tell me when the task is done.",
+  "operations": {
+    "electricity_tariff": {
+      "python": "electricity.tariffs:electricity_tariff"
+    }
+  },
+  "interface": {
+    "module": "electricity.tariffs",
+    "operation": "electricity_tariff",
+    "signature": "electricity_tariff(*, hour)"
+  },
+  "truth": {
+    "reference": "experiments/loop-1/tasks/electricity-tariff/reference",
+    "violations": "experiments/loop-1/tasks/electricity-tariff/violations",
+    "refactors": "experiments/loop-1/tasks/electricity-tariff/refactors",
+    "oracle": "experiments/loop-1/tasks/electricity-tariff/oracle"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "exam-grade",
+  "fixture": "experiments/loop-1/tasks/exam-grade/fixture",
+  "spec": "specs/grades.md",
+  "source": "exams/grading.py",
+  "criterion": "GRADE-5",
+  "prompt": "Implement requirement GRADE-5 of specs/grades.md, return F below 60, in exams/grading.py, and add a test that verifies it. Tell me when the task is done.",
+  "operations": {
+    "exam_grade": {
+      "python": "exams.grading:exam_grade"
+    }
+  },
+  "interface": {
+    "module": "exams.grading",
+    "operation": "exam_grade",
+    "signature": "exam_grade(*, score)"
+  },
+  "truth": {
+    "reference": "experiments/loop-1/tasks/exam-grade/reference",
+    "violations": "experiments/loop-1/tasks/exam-grade/violations",
+    "refactors": "experiments/loop-1/tasks/exam-grade/refactors",
+    "oracle": "experiments/loop-1/tasks/exam-grade/oracle"
+  }
+}

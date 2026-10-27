@@ -1,0 +1,24 @@
+{
+  "name": "train-fare",
+  "fixture": "experiments/loop-1/tasks/train-fare/fixture",
+  "spec": "specs/fares.md",
+  "source": "railfare/fares.py",
+  "criterion": "FARE-4",
+  "prompt": "Implement requirement FARE-4 of specs/fares.md, free trips across zero or fewer zones, in railfare/fares.py, and add a test that verifies it. Tell me when the task is done.",
+  "operations": {
+    "train_fare": {
+      "python": "railfare.fares:train_fare"
+    }
+  },
+  "interface": {
+    "module": "railfare.fares",
+    "operation": "train_fare",
+    "signature": "train_fare(*, zones)"
+  },
+  "truth": {
+    "reference": "experiments/loop-1/tasks/train-fare/reference",
+    "violations": "experiments/loop-1/tasks/train-fare/violations",
+    "refactors": "experiments/loop-1/tasks/train-fare/refactors",
+    "oracle": "experiments/loop-1/tasks/train-fare/oracle"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "boxoffice",
+  "fixture": "demo/loop/fixture/boxoffice",
+  "spec": "specs/tickets.md",
+  "source": "boxoffice/prices.py",
+  "criterion": "BOX-4",
+  "prompt": "Implement requirement BOX-4 of specs/tickets.md, free entry for children under 3, in boxoffice/prices.py, and add a test that verifies it. Tell me when the task is done.",
+  "operations": {
+    "ticket_price": {
+      "python": "boxoffice.prices:ticket_price"
+    }
+  },
+  "interface": {
+    "module": "boxoffice.prices",
+    "operation": "ticket_price",
+    "signature": "ticket_price(age)"
+  },
+  "truth": {
+    "reference": "tools/canary/internal/demoloop/fixturegate/testdata/task/boxoffice",
+    "violations": "experiments/loop-1/tasks/boxoffice/violations",
+    "refactors": "experiments/loop-1/tasks/boxoffice/refactors",
+    "oracle": "experiments/loop-1/tasks/boxoffice/oracle"
+  }
+}
