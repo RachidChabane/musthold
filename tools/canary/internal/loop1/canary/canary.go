@@ -242,6 +242,11 @@ func (c Canary) c3(ctx context.Context, inv Invocation, dir string, output *stud
 	}
 	problems := sessionProblems(result)
 	problems = append(problems, InitProblems(result.Stream, plan.PluginNames(config.ArmTreatment), inv.Plan.Options.Config.Model)...)
+	hookProblems, err := c.hookProblems(inv, result)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, hookProblems...)
 	if kinds, _ := spec.Run.Arm.Require(); !slices.Contains(kinds, string(format.KindDiscriminatingPower)) || !slices.Contains(kinds, string(format.KindAlignment)) {
 		problems = append(problems, fmt.Sprintf("the gate requires %v, not both proofs", kinds))
 	}

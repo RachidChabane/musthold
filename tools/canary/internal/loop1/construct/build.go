@@ -47,6 +47,9 @@ type builder struct {
 	testFiles   []File
 	// testsSpec is the digest of the spec the current tests were written from.
 	testsSpec string
+	// replay holds the calls and rounds an earlier invocation already recorded
+	// for this task; nil when there are none.
+	replay *replay
 }
 
 // outcome is how a task's construction ended.
@@ -55,8 +58,11 @@ type outcome struct {
 	drop     *records.Drop
 }
 
-func newBuilder(c *Constructor, author authorRole) *builder {
-	return &builder{c: c, author: author, attempts: map[records.Role]int{}, repairs: map[records.Role]int{}}
+func newBuilder(c *Constructor, author authorRole, history records.Log) *builder {
+	return &builder{
+		c: c, author: author, attempts: map[records.Role]int{}, repairs: map[records.Role]int{},
+		replay: newReplay(history, author.name()),
+	}
 }
 
 // run writes the task, then evaluates and repairs it until it passes, cannot be
@@ -93,6 +99,9 @@ func (b *builder) run(ctx context.Context) (outcome, error) {
 // evaluate runs the acceptance checks, or reports the failure of a call that
 // left nothing to check.
 func (b *builder) evaluate(ctx context.Context, round int, failures []records.Finding) (accept.Report, error) {
+	if report, recorded := b.replay.report(b.author.name(), round); recorded {
+		return report, nil
+	}
 	if len(failures) == 0 {
 		return b.c.Acceptor.Accept(ctx, b.author.name(), round)
 	}
@@ -243,25 +252,61 @@ func (b *builder) writeTests(ctx context.Context, purpose records.Purpose, probl
 }
 
 // call makes one model call and records it. A call the model could not answer is
-// returned as a failure on the role; only a failure to record is an error.
+// returned as a failure on the role and counts as an attempt; a call that failed
+// on the harness side is recorded, counts as nothing, and is returned as an
+// error so that construction stops where it is. Only a failure to record is
+// otherwise an error.
 func (b *builder) call(ctx context.Context, role records.Role, purpose records.Purpose, prompt string) ([]File, []records.Finding, error) {
-	b.attempts[role]++
-	if purpose == records.PurposeRepair {
-		b.repairs[role]++
-	}
 	schema, err := FilesSchema()
 	if err != nil {
 		return nil, nil, err
 	}
-	request := Request{Role: role, Purpose: purpose, Domain: b.author.name(), Attempt: b.attempts[role], Prompt: prompt, Schema: schema}
-	reply, callErr := b.c.Model.Complete(ctx, request)
-	if err := b.c.Records.Append(records.Entry{Call: callRecord(request, reply, callErr)}); err != nil {
+	request := Request{Role: role, Purpose: purpose, Domain: b.author.name(), Attempt: b.attempts[role] + 1, Prompt: prompt, Schema: schema}
+	recorded, err := b.replay.nextCall(request)
+	if err != nil {
 		return nil, nil, err
+	}
+	reply, callErr := b.answer(ctx, request, recorded)
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
+	var harness *HarnessFailure
+	if errors.As(callErr, &harness) {
+		return nil, nil, b.stopOnHarness(request, reply, callErr, harness)
+	}
+	b.attempts[role]++
+	if purpose == records.PurposeRepair {
+		b.repairs[role]++
+	}
+	if recorded == nil {
+		if err := b.c.Records.Append(records.Entry{Call: callRecord(request, reply, callErr)}); err != nil {
+			return nil, nil, err
+		}
 	}
 	if callErr != nil {
 		return nil, []records.Finding{{Role: role, Target: records.TargetOutput, Text: "the call failed: " + callErr.Error()}}, nil
 	}
 	return reply.Files, nil, nil
+}
+
+// answer returns the recorded answer of a call that an earlier invocation made,
+// or asks the model.
+func (b *builder) answer(ctx context.Context, request Request, recorded *answer) (Reply, error) {
+	if recorded != nil {
+		return recorded.reply, recorded.callErr
+	}
+	return b.c.Model.Complete(ctx, request)
+}
+
+// stopOnHarness records a call that failed on the harness side and returns the
+// error that stops construction, naming where it stopped.
+func (b *builder) stopOnHarness(request Request, reply Reply, callErr error, harness *HarnessFailure) error {
+	entry := callRecord(request, reply, callErr)
+	entry.HarnessFailure = string(harness.Kind)
+	if err := b.c.Records.Append(records.Entry{Call: entry}); err != nil {
+		return err
+	}
+	return fmt.Errorf("%s %s attempt %d (%s): %w", request.Domain, request.Role, request.Attempt, request.Purpose, callErr)
 }
 
 func callRecord(request Request, reply Reply, callErr error) *records.Call {
@@ -292,6 +337,9 @@ type Constructor struct {
 	Records  records.Writer
 	Prompts  Prompts
 	Domains  []Domain
+	// History reads the records back so that construction resumes where an earlier
+	// invocation stopped; nil means there is nothing to resume.
+	History records.Reader
 	// Target is how many domains must pass; zero means PassTarget.
 	Target   int
 	Now      func() time.Time

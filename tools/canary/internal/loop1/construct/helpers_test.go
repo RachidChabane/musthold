@@ -37,7 +37,11 @@ func (s *scripted) Complete(_ context.Context, request construct.Request) (const
 	s.mu.Unlock()
 	files, err := s.handler(request)
 	at := time.Date(2026, time.October, 27, 12, 0, 0, 0, time.UTC)
-	return construct.Reply{Files: files, Output: []byte("raw output"), CodexVersion: fakeVersion, Start: at, End: at.Add(time.Second)}, err
+	output := "raw output"
+	if err == nil {
+		output = filesJSON(files)
+	}
+	return construct.Reply{Files: files, Output: []byte(output), CodexVersion: fakeVersion, Start: at, End: at.Add(time.Second)}, err
 }
 
 func (s *scripted) callsOf(role records.Role) []construct.Request {
@@ -117,7 +121,7 @@ func newWorld(t *testing.T, domains []construct.Domain, handler func(construct.R
 	}
 	w.constructor = &construct.Constructor{
 		Repo: repo, Config: acceptor.Config, Store: construct.Store{Repo: repo}, Model: w.model, Acceptor: acceptor,
-		Records: writer, Prompts: prompts, Domains: domains, Now: func() time.Time { return time.Date(2026, time.October, 27, 13, 0, 0, 0, time.UTC) },
+		Records: writer, History: writer, Prompts: prompts, Domains: domains, Now: func() time.Time { return time.Date(2026, time.October, 27, 13, 0, 0, 0, time.UTC) },
 	}
 	return w
 }

@@ -49,7 +49,7 @@ func newThreeDomainWorld(t *testing.T) *world {
 }
 
 func TestConstructAndAccept(t *testing.T) {
-	t.Run("one domain passes, one is repaired, one is dropped after two failed repairs of each role [verifies SP-2540~1]", func(t *testing.T) {
+	t.Run("one domain passes, one is repaired, one is dropped after two failed repairs of each role [verifies SP-2540~2]", func(t *testing.T) {
 		w := newThreeDomainWorld(t)
 		summary, err := w.constructor.Run(t.Context())
 		if !errors.Is(err, construct.ErrTooFewTasks) {
@@ -70,7 +70,7 @@ func TestConstructAndAccept(t *testing.T) {
 		}
 	})
 
-	t.Run("every call, every check and the drop are recorded with their provenance [verifies SP-2549~1]", func(t *testing.T) {
+	t.Run("every call, every check and the drop are recorded with their provenance [verifies SP-2549~2]", func(t *testing.T) {
 		w := newThreeDomainWorld(t)
 		_, _ = w.constructor.Run(t.Context())
 		log := w.log()
@@ -105,7 +105,7 @@ func TestConstructAndAccept(t *testing.T) {
 		}
 	})
 
-	t.Run("repair calls go to the role a check concerns, at most two per role and domain [verifies SP-2547~1]", func(t *testing.T) {
+	t.Run("repair calls go to the role a check concerns, at most two per role and domain [verifies SP-2547~2]", func(t *testing.T) {
 		w := newThreeDomainWorld(t)
 		_, _ = w.constructor.Run(t.Context())
 		repairs := map[string]int{}
@@ -156,7 +156,7 @@ func TestConstructAndAccept(t *testing.T) {
 		}
 	})
 
-	t.Run("what a repair tells the test writer names tests and criteria, and the author is told the details [verifies SP-2547~1]", func(t *testing.T) {
+	t.Run("what a repair tells the test writer names tests and criteria, and the author is told the details [verifies SP-2547~2]", func(t *testing.T) {
 		w := newThreeDomainWorld(t)
 		_, _ = w.constructor.Run(t.Context())
 		var oracleRepair, authorRepair string
@@ -182,7 +182,7 @@ func TestConstructAndAccept(t *testing.T) {
 }
 
 func TestConstructionStopsAtFiveDomains(t *testing.T) {
-	t.Run("domains are processed in order and construction stops once five have passed [verifies SP-2540~1]", func(t *testing.T) {
+	t.Run("domains are processed in order and construction stops once five have passed [verifies SP-2540~2]", func(t *testing.T) {
 		names := []string{"d1", "d2", "d3", "d4", "d5", "d6", "d7"}
 		var w *world
 		w = newWorld(t, domains(names...), func(request construct.Request) ([]construct.File, error) {
@@ -210,7 +210,7 @@ func TestConstructionStopsAtFiveDomains(t *testing.T) {
 		}
 	})
 
-	t.Run("a domain already built and listed counts as passed and is not built again [verifies SP-2540~1]", func(t *testing.T) {
+	t.Run("a domain already built and listed counts as passed and is not built again [verifies SP-2540~2]", func(t *testing.T) {
 		var w *world
 		w = newWorld(t, domains("d1", "d2"), func(request construct.Request) ([]construct.File, error) {
 			if request.Role == records.RoleOracle {
@@ -232,7 +232,7 @@ func TestConstructionStopsAtFiveDomains(t *testing.T) {
 }
 
 func TestACallThatFailsIsRepairedAsTheRoleItConcerns(t *testing.T) {
-	t.Run("a call that returns no usable files consumes a repair call, then the domain passes [verifies SP-2547~1]", func(t *testing.T) {
+	t.Run("a call that returns no usable files consumes a repair call, then the domain passes [verifies SP-2547~2]", func(t *testing.T) {
 		var w *world
 		w = newWorld(t, domains("d1"), func(request construct.Request) ([]construct.File, error) {
 			switch {

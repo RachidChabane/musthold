@@ -60,7 +60,7 @@ func boxofficeRound(t *testing.T, oracle string) *round {
 }
 
 func TestLeakOnTheCommittedFixture(t *testing.T) {
-	t.Run("the cinema fixture and an independent oracle do not leak, whatever imports and inline examples they share [verifies SP-2556~1]", func(t *testing.T) {
+	t.Run("the cinema fixture and an independent oracle do not leak, whatever imports and inline examples they share [verifies SP-2556~2]", func(t *testing.T) {
 		r := boxofficeRound(t, oracleSample)
 		result, err := r.leak(context.Background())
 		if err != nil {
@@ -71,9 +71,21 @@ func TestLeakOnTheCommittedFixture(t *testing.T) {
 		}
 	})
 
-	t.Run("an identical assertion line is a leak, reported to the author and, by position only, to the test writer [verifies SP-2556~1]", func(t *testing.T) {
-		oracle := oracleSample + "\n\ndef test_adults_pay_twelve():\n    assert ticket_price(age=12) == 12\n"
+	t.Run("an oracle line that a test file of the fixture holds too is a coincidence of two tests of one spec, not a leak [verifies SP-2556~2]", func(t *testing.T) {
+		oracle := oracleSample + "\n\ndef test_seniors_pay_eight():\n    assert ticket_price(age=70) == 8\n"
 		result, err := boxofficeRound(t, oracle).leak(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !result.Passed {
+			t.Fatalf("A8 fails on a line the fixture's tests hold: %+v", result.Findings)
+		}
+	})
+
+	t.Run("an oracle line copied into a fixture file that is not a test is a leak, reported to the author and, by position only, to the test writer [verifies SP-2556~2]", func(t *testing.T) {
+		r := boxofficeRound(t, oracleSample+"\n\ndef test_seniors_pay_eight():\n    assert ticket_price(age=70) == 8\n")
+		r.m.fixture["boxoffice/prices.py"] = append(r.m.fixture["boxoffice/prices.py"], []byte("\nfor age in range(0, 3):\n")...)
+		result, err := r.leak(context.Background())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -88,12 +100,12 @@ func TestLeakOnTheCommittedFixture(t *testing.T) {
 				oracleText += finding.Text
 			}
 		}
-		if !strings.Contains(author, "tests/test_prices.py") || strings.Contains(oracleText, "ticket_price") || !strings.Contains(oracleText, "test_box_4.py") {
+		if !strings.Contains(author, "boxoffice/prices.py") || strings.Contains(oracleText, "range") || !strings.Contains(oracleText, "test_box_4.py") {
 			t.Fatalf("author %q oracle %q", author, oracleText)
 		}
 	})
 
-	t.Run("a line that a violation adds and a fixture file holds is a leak, a line it shares with the reference is not [verifies SP-2556~1]", func(t *testing.T) {
+	t.Run("a line that a violation adds and a fixture file holds is a leak, a line it shares with the reference is not [verifies SP-2556~2]", func(t *testing.T) {
 		r := boxofficeRound(t, oracleSample)
 		r.m.fixture["tests/test_prices.py"] = append(r.m.fixture["tests/test_prices.py"], []byte("\nSENIOR_FROM_AGE = 66\n")...)
 		result, err := r.leak(context.Background())
@@ -119,7 +131,7 @@ func TestLeakWordsAndPaths(t *testing.T) {
 		"a truth path":        "see experiments/loop-1/tasks/boxoffice/violations\n",
 	}
 	for name, line := range cases {
-		t.Run(name+" is a leak [verifies SP-2556~1]", func(t *testing.T) {
+		t.Run(name+" is a leak [verifies SP-2556~2]", func(t *testing.T) {
 			r := boxofficeRound(t, oracleSample)
 			r.m.fixture["README.txt"] = []byte(line)
 			result, err := r.leak(context.Background())

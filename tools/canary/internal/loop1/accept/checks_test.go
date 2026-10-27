@@ -120,7 +120,7 @@ func TestTheSampleTaskPasses(t *testing.T) {
 		}
 	})
 
-	t.Run("the output of every check is appended to the construction records [verifies SP-2549~1]", func(t *testing.T) {
+	t.Run("the output of every check is appended to the construction records [verifies SP-2549~2]", func(t *testing.T) {
 		h := newHarness(t)
 		h.accept()
 		log, err := records.Read(records.Path(study.Layout{Root: h.work}))
@@ -332,7 +332,7 @@ func TestBehaviourChecks(t *testing.T) {
 }
 
 func TestOracleFindingsNeverQuoteTheProject(t *testing.T) {
-	t.Run("what the test writer is told about a failing check names tests and criteria and no code of the project [verifies SP-2547~1]", func(t *testing.T) {
+	t.Run("what the test writer is told about a failing check names tests and criteria and no code of the project [verifies SP-2547~2]", func(t *testing.T) {
 		h := newHarness(t)
 		h.edit("reference/zones.py", "    return 5\n", "    return 5  # BREAKS: FARE-2\n")
 		report := h.accept()

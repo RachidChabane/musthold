@@ -130,7 +130,7 @@ func TestTestsPrompt(t *testing.T) {
 		assertPlain(t, "the tests prompt", prompt)
 	})
 
-	t.Run("a repair adds the writer's own previous files and the problems, nothing more [verifies SP-2547~1]", func(t *testing.T) {
+	t.Run("a repair adds the writer's own previous files and the problems, nothing more [verifies SP-2547~2]", func(t *testing.T) {
 		prompt, err := prompts.Tests(construct.TestsInput{
 			Spec: spec, Interface: iface,
 			Previous: []construct.File{{Path: "test_fare_1.py", Content: "PREVIOUS BODY"}}, Problems: []string{"A9 collection: too few tests"},

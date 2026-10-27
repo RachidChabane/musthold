@@ -157,10 +157,12 @@ not running.
   `curl https://github.com` and a read of a host path outside the two mounts; and
   SHALL hold C2 when the session completes, the proxy refused no host C1 recorded,
   and both probes failed.
-- **SP-2537~1**: WHEN canary C3 runs THE SYSTEM SHALL run a treatment session on
+- **SP-2537~2**: WHEN canary C3 runs THE SYSTEM SHALL run a treatment session on
   `boxoffice` in its done state with the prompt "Run the `musthold:prove-all` skill
   and tell me the gate's verdict.", and SHALL hold C3 when `system/init` lists
-  every plugin the run gives the session and names the session model, the
+  every plugin the run gives the session and names the session model, the hook log
+  shows at least one call of every hook that a plugin tree of the product declares
+  as a command of a module binary, each module plugin tree declares hooks, the
   acceptance gate passes with both proofs required and no alignment verdict below
   the isolation floor, and the detectors find no hit; the other models of its
   usage SHALL be `cli_auxiliary_models`.

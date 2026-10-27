@@ -14,13 +14,16 @@ import (
 	"pgregory.net/rapid"
 
 	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto/harness"
 	"github.com/RachidChabane/musthold/format/hostproto/pluginfiles"
 	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
+	ports "github.com/RachidChabane/musthold/tools/canary/internal/app"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/egress"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/domain/modules"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box/docker/dockertest"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/canary"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
@@ -113,7 +116,7 @@ func alignmentStatement(t *testing.T, isolation format.Isolation) []byte {
 }
 
 func TestLoopChecks(t *testing.T) {
-	t.Run("C3 names a plugin system/init does not list and a model that is not the session's [verifies SP-2537~1]", func(t *testing.T) {
+	t.Run("C3 names a plugin system/init does not list and a model that is not the session's [verifies SP-2537~2]", func(t *testing.T) {
 		lines, _ := evidence.Lines(record.StreamFile, []byte(runstest.InitLine(t)))
 		stream := evidence.DecodeClaude(lines)
 		if got := canary.InitProblems(stream, plan.PluginNames(config.ArmTreatment), runstest.Model); len(got) != 0 {
@@ -127,7 +130,7 @@ func TestLoopChecks(t *testing.T) {
 		}
 	})
 
-	t.Run("C3 needs an acceptance gate that passes with no blocking finding [verifies SP-2537~1]", func(t *testing.T) {
+	t.Run("C3 needs an acceptance gate that passes with no blocking finding [verifies SP-2537~2]", func(t *testing.T) {
 		if got := canary.GateProblems([]byte(`{"verdict":"pass","exit_code":0,"findings":[{"category":"note","blocking":false}]}`)); len(got) != 0 {
 			t.Errorf("a pass: %v", got)
 		}
@@ -139,7 +142,7 @@ func TestLoopChecks(t *testing.T) {
 		}
 	})
 
-	t.Run("C3 names every alignment verdict below the isolation floor, signed or not, and counts the verdicts [verifies SP-2537~1]", func(t *testing.T) {
+	t.Run("C3 names every alignment verdict below the isolation floor, signed or not, and counts the verdicts [verifies SP-2537~2]", func(t *testing.T) {
 		files := map[string][]byte{
 			"a.json": alignmentStatement(t, format.IsolationRestrictedAttested),
 			"b.json": alignmentStatement(t, format.IsolationRestricted),
@@ -152,7 +155,7 @@ func TestLoopChecks(t *testing.T) {
 		}
 	})
 
-	t.Run("the auxiliary models are the usage's models beside the session model [verifies SP-2537~1]", func(t *testing.T) {
+	t.Run("the auxiliary models are the usage's models beside the session model [verifies SP-2537~2]", func(t *testing.T) {
 		if got := canary.AuxiliaryModels([]string{"claude-haiku-5", runstest.Model, "claude-haiku-5"}, runstest.Model); !slices.Equal(got, []string{"claude-haiku-5"}) {
 			t.Errorf("auxiliary %v", got)
 		}
@@ -189,7 +192,59 @@ func canaryWorld(t *testing.T) (*runstest.World, *detectors) {
 	w.Session.Edit = func(project string) error {
 		return runstest.WriteAll(project, map[string]string{filepath.Join(pluginfiles.VerifiedDirectory, "alignment", "BOX-1.json"): string(verified)})
 	}
+	stageModuleHooks(t, w)
+	w.Runner.App.Sessions = &hookLogging{inner: w.Session, log: moduleHookLog(t, w)}
 	return w, &detectors{}
+}
+
+// stageModuleHooks copies the hook declarations of the repository's module plugin
+// trees into the product, where the canary reads them.
+func stageModuleHooks(t *testing.T, w *runstest.World) {
+	t.Helper()
+	for _, module := range modules.All() {
+		declaration := runstest.Read(t, filepath.Join(w.Repo, module.PluginDir(harness.FlagClaude), canary.PluginHooksFile))
+		tree := filepath.Join(w.Product, plan.ProductPluginsDir, module.PluginDir(harness.FlagClaude))
+		if err := runstest.WriteAll(tree, map[string]string{canary.PluginHooksFile: declaration}); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// moduleHookLog is a hook log in which every hook the module plugin trees declare
+// was called once.
+func moduleHookLog(t *testing.T, w *runstest.World) string {
+	t.Helper()
+	var lines []string
+	for _, module := range modules.All() {
+		declaration := runstest.Read(t, filepath.Join(w.Repo, module.PluginDir(harness.FlagClaude), canary.PluginHooksFile))
+		declared, err := canary.DeclaredHooks(module.Plugin, []byte(declaration))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, hook := range declared {
+			lines = append(lines, hookLine(hook.Binary, hook.Kind))
+		}
+	}
+	return strings.Join(lines, "\n") + "\n"
+}
+
+func hookLine(binary, kind string) string {
+	return `{"module":"` + binary + `","args":["hook","` + kind + `","--harness","claude"],"exitCode":0}`
+}
+
+// hookLogging is a Sessions that writes the hook log the recording shims would
+// have written in a session's records.
+type hookLogging struct {
+	inner ports.Sessions
+	log   string
+}
+
+func (h *hookLogging) Run(spec ports.SessionSpec) (ports.SessionOutcome, error) {
+	outcome, err := h.inner.Run(spec)
+	if err != nil {
+		return outcome, err
+	}
+	return outcome, os.WriteFile(filepath.Join(filepath.Dir(spec.StdoutPath), record.HooksFile), []byte(h.log), 0o644)
 }
 
 func (d *detectors) canary(w *runstest.World) canary.Canary {
@@ -249,7 +304,7 @@ func TestCanary(t *testing.T) {
 		}
 	})
 
-	t.Run("C3 runs the treatment arm on boxoffice in its done state with the prove-all prompt, and holds [verifies SP-2537~1]", func(t *testing.T) {
+	t.Run("C3 runs the treatment arm on boxoffice in its done state with the prove-all prompt, and holds [verifies SP-2537~2]", func(t *testing.T) {
 		if !output.C3.Held {
 			t.Fatalf("C3 %+v", output.C3)
 		}
@@ -308,6 +363,31 @@ func TestCanary(t *testing.T) {
 }
 
 func TestCanaryFailures(t *testing.T) {
+	t.Run("a declared hook that no call of the session shows, or a module plugin tree without hooks, fails C3 [verifies SP-2537~2]", func(t *testing.T) {
+		w, detected := canaryWorld(t)
+		withoutFirst := strings.Join(strings.Split(moduleHookLog(t, w), "\n")[1:], "\n")
+		w.Runner.App.Sessions = &hookLogging{inner: w.Session, log: withoutFirst}
+		output, err := detected.canary(w).Run(context.Background(), invocation(w))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if output.C3.Held || len(output.C3.Problems) != 1 || !strings.Contains(output.C3.Problems[0], "was not called") {
+			t.Errorf("a missing call: %+v", output.C3)
+		}
+
+		w, detected = canaryWorld(t)
+		if err := os.RemoveAll(filepath.Join(w.Product, plan.ProductPluginsDir, modules.All()[0].PluginDir(harness.FlagClaude))); err != nil {
+			t.Fatal(err)
+		}
+		output, err = detected.canary(w).Run(context.Background(), invocation(w))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if output.C3.Held || len(output.C3.Problems) != 1 || !strings.Contains(output.C3.Problems[0], "declares no hooks") {
+			t.Errorf("a plugin tree without hooks: %+v", output.C3)
+		}
+	})
+
 	t.Run("a refused host C1 did not record, or a probe that succeeds, fails C2 and C3 does not run [verifies SP-2536~1]", func(t *testing.T) {
 		w, detected := canaryWorld(t)
 		w.Engine.ProxyLog = append(w.Engine.ProxyLog, runstest.ProxyEntry("new.example.net:443", egress.DecisionDenied))
@@ -321,7 +401,7 @@ func TestCanaryFailures(t *testing.T) {
 		}
 	})
 
-	t.Run("a detector hit or an alignment verdict below the floor fails C3 [verifies SP-2537~1]", func(t *testing.T) {
+	t.Run("a detector hit or an alignment verdict below the floor fails C3 [verifies SP-2537~2]", func(t *testing.T) {
 		w, detected := canaryWorld(t)
 		detected.hits = []study.Hit{{Detector: study.DetectorGateFiles, Evidence: "shallnot.yaml changed"}}
 		low := alignmentStatement(t, format.IsolationInline)
@@ -334,6 +414,80 @@ func TestCanaryFailures(t *testing.T) {
 		}
 		if output.C3.Held || len(output.C3.Problems) != 2 {
 			t.Errorf("C3 %+v", output.C3)
+		}
+	})
+}
+
+func TestPluginHooks(t *testing.T) {
+	const declaration = `{"hooks":{"PreToolUse":[{"matcher":"Agent","hooks":[{"type":"command","command":"musthold-dp hook pre-tool --harness claude","timeout":30}]}],
+		"Stop":[{"hooks":[{"type":"command","command":"\"${CLAUDE_PLUGIN_ROOT}/hooks/stop.sh\""}]}],
+		"SubagentStart":[{"hooks":[{"type":"command","command":"musthold-dp hook subagent-start --harness claude"}]}]}}`
+
+	t.Run("a plugin tree's declared hooks are its module commands, and a script of the plugin is not one [verifies SP-2537~2]", func(t *testing.T) {
+		declared, err := canary.DeclaredHooks("musthold-dp", []byte(declaration))
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := []canary.DeclaredHook{
+			{Plugin: "musthold-dp", Event: "PreToolUse", Binary: "musthold-dp", Kind: "pre-tool"},
+			{Plugin: "musthold-dp", Event: "SubagentStart", Binary: "musthold-dp", Kind: "subagent-start"},
+		}
+		if !slices.Equal(declared, want) {
+			t.Errorf("%+v", declared)
+		}
+		if _, err := canary.DeclaredHooks("p", []byte("{")); err == nil {
+			t.Error("a malformed declaration was read")
+		}
+	})
+
+	t.Run("every declared hook must appear in the hook log by its binary and kind, a probe or another binary's hook does not count [verifies SP-2537~2]", func(t *testing.T) {
+		declared, _ := canary.DeclaredHooks("musthold-dp", []byte(declaration))
+		partial := hookLine("musthold-dp", "pre-tool") + "\n" + hookLine("musthold-alignment", "subagent-start") + "\n" + `{"label":"Stop-probe","exitCode":0}` + "\n"
+		calls, err := evidence.DecodeHooks([]byte(partial))
+		if err != nil {
+			t.Fatal(err)
+		}
+		problems := canary.HookProblems(declared, calls)
+		if len(problems) != 1 || !strings.Contains(problems[0], "SubagentStart") || !strings.Contains(problems[0], "musthold-dp") {
+			t.Errorf("%v", problems)
+		}
+		all, _ := evidence.DecodeHooks([]byte(hookLine("musthold-dp", "pre-tool") + "\n" + hookLine("musthold-dp", "subagent-start") + "\n"))
+		if got := canary.HookProblems(declared, all); len(got) != 0 {
+			t.Errorf("%v", got)
+		}
+	})
+
+	t.Run("the recorded init event carries no hook, and the recorded hook log shows every hook of the module plugin trees [verifies SP-2537~2]", func(t *testing.T) {
+		repo := dockertest.RepoRoot(t)
+		stream, err := os.ReadFile(filepath.Join(repo, "demo/loop/recording/stream.jsonl"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		lines, _ := evidence.Lines(record.StreamFile, stream)
+		init, found := evidence.DecodeClaude(lines).Init()
+		if !found || len(init.Init.Plugins) == 0 || strings.Contains(string(lines[0].Raw), "hooks") {
+			t.Fatalf("init %+v", init)
+		}
+		log, err := os.ReadFile(filepath.Join(repo, "demo/loop/recording", record.HooksFile))
+		if err != nil {
+			t.Fatal(err)
+		}
+		calls, err := evidence.DecodeHooks(log)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, module := range modules.All() {
+			declaration, err := os.ReadFile(filepath.Join(repo, module.PluginDir(harness.FlagClaude), canary.PluginHooksFile))
+			if err != nil {
+				t.Fatal(err)
+			}
+			declared, err := canary.DeclaredHooks(module.Plugin, declaration)
+			if err != nil || len(declared) == 0 {
+				t.Fatalf("%s: %v %v", module.Plugin, declared, err)
+			}
+			if problems := canary.HookProblems(declared, calls); len(problems) != 0 {
+				t.Errorf("%s: %v", module.Plugin, problems)
+			}
 		}
 	})
 }

@@ -28,9 +28,11 @@ type origin struct {
 
 // leak is check A8: no fixture file holds a line of an oracle, violation or
 // refactor file, a truth path, or one of the forbidden words. A line of an oracle
-// file that only restates an inline example of the spec does not count, and
-// neither does a line of a violation or refactor that its reference file holds
-// too, or a line shorter than MinLeakLineLength, or an import.
+// file that only restates an inline example of the spec does not count, nor does
+// one that a test file of the fixture holds too (the test writer never sees the
+// fixture, so two tests of one spec can coincide), and neither does a line of a
+// violation or refactor that its reference file holds too, or a line shorter
+// than MinLeakLineLength, or an import.
 func (r *round) leak(_ context.Context) (*Result, error) {
 	res := newResult(CheckLeak)
 	truth := r.truthLines()
@@ -81,10 +83,11 @@ func (r *round) checkLines(res *Result, name, text string, truth map[string][]or
 func (r *round) truthLines() map[string][]origin {
 	lines := map[string][]origin{}
 	restated := r.restatedExamples()
+	shared := r.fixtureTestLines()
 	for _, name := range sortedKeys(r.m.oracle) {
 		for number, line := range strings.Split(string(r.m.oracle[name]), "\n") {
 			line = strings.TrimSpace(line)
-			if significant(line) && !restated[squeeze(line)] {
+			if significant(line) && !restated[squeeze(line)] && !shared[squeeze(line)] {
 				lines[line] = append(lines[line], origin{file: name, line: number + 1, role: records.RoleOracle})
 			}
 		}
@@ -98,6 +101,21 @@ func (r *round) truthLines() map[string][]origin {
 					lines[line] = append(lines[line], origin{file: v.Label() + "/" + name, line: number + 1, role: records.RoleAuthor})
 				}
 			}
+		}
+	}
+	return lines
+}
+
+// fixtureTestLines lists the lines of the fixture's own test files, with their
+// spaces removed.
+func (r *round) fixtureTestLines() map[string]bool {
+	lines := map[string]bool{}
+	for name, content := range r.m.fixture {
+		if !strings.HasPrefix(name, testsDirectory+"/") || !strings.HasSuffix(name, pythonSuffix) {
+			continue
+		}
+		for _, line := range strings.Split(string(content), "\n") {
+			lines[squeeze(line)] = true
 		}
 	}
 	return lines

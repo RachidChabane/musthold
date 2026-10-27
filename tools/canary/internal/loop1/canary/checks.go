@@ -153,7 +153,9 @@ func ProbeProblems(output []byte) []string {
 }
 
 // InitProblems says how a session's init event falls short: every plugin named
-// must be listed and the model must be the session model.
+// must be listed and the model must be the session model. The event lists
+// plugins by name, path, source and version and carries no hook, so the hooks of
+// those plugins are checked against the hook log (HookProblems).
 func InitProblems(stream evidence.ClaudeStream, plugins []string, model string) []string {
 	init, found := stream.Init()
 	if !found {

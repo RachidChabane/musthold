@@ -24,6 +24,7 @@ const (
 	schemaFileName  = "schema.json"
 	messageFileName = "last-message.json"
 	scratchPattern  = "loop1-codex-*"
+	killWaitDelay   = 10 * time.Second
 	scratchMode     = 0o700
 	fileMode        = 0o600
 )
@@ -56,6 +57,7 @@ type ExecProcess struct{}
 func (ExecProcess) Run(ctx context.Context, argv []string) (ProcessResult, error) {
 	command := exec.CommandContext(ctx, argv[0], argv[1:]...)
 	command.Stdin = nil
+	command.WaitDelay = killWaitDelay
 	var stdout, stderr bytes.Buffer
 	command.Stdout, command.Stderr = &stdout, &stderr
 	err := command.Run()
@@ -73,6 +75,15 @@ func (ExecProcess) Run(ctx context.Context, argv []string) (ProcessResult, error
 type CodexModel struct {
 	Process Process
 	Now     func() time.Time
+	// Timeout bounds one call; zero means CallTimeout.
+	Timeout time.Duration
+}
+
+func (m CodexModel) timeout() time.Duration {
+	if m.Timeout > 0 {
+		return m.Timeout
+	}
+	return CallTimeout
 }
 
 // VersionArgs is the command that prints the Codex version.
@@ -97,13 +108,20 @@ func ExecArgs(emptyDir, schemaFile, messageFile, prompt string) []string {
 	}
 }
 
-// Complete records the Codex version, runs one call and reads the files of its
-// final message.
+// Complete records the Codex version, runs one call under its time limit and
+// reads the files of its final message. A failure of the harness is an error
+// that matches ErrHarnessFailure.
 func (m CodexModel) Complete(ctx context.Context, request Request) (Reply, error) {
+	callCtx, cancel := context.WithTimeout(ctx, m.timeout())
+	defer cancel()
 	var reply Reply
-	version, err := m.Process.Run(ctx, VersionArgs())
+	version, err := m.Process.Run(callCtx, VersionArgs())
+	if stop := interruption(ctx, callCtx, m.timeout()); stop != nil {
+		return reply, stop
+	}
 	if err != nil || version.ExitCode != 0 {
-		return reply, fmt.Errorf("%w: %v (exit %d)", ErrCodexVersion, err, version.ExitCode)
+		unavailable := &HarnessFailure{Kind: HarnessUnavailable, Detail: ErrCodexVersion.Error()}
+		return reply, fmt.Errorf("%w: %v (exit %d): %w", ErrCodexVersion, err, version.ExitCode, unavailable)
 	}
 	reply.CodexVersion = strings.TrimSpace(string(version.Stdout))
 	scratch, err := os.MkdirTemp("", scratchPattern)
@@ -121,13 +139,19 @@ func (m CodexModel) Complete(ctx context.Context, request Request) (Reply, error
 		return reply, fmt.Errorf("write the output schema: %w", err)
 	}
 	reply.Start = m.Now().UTC()
-	result, err := m.Process.Run(ctx, ExecArgs(emptyDir, schemaFile, messageFile, request.Prompt))
+	result, err := m.Process.Run(callCtx, ExecArgs(emptyDir, schemaFile, messageFile, request.Prompt))
 	reply.End = m.Now().UTC()
 	reply.Stderr, reply.Exit = result.Stderr, result.ExitCode
-	if err != nil {
-		return reply, err
-	}
 	reply.Output, _ = os.ReadFile(messageFile)
+	if stop := interruption(ctx, callCtx, m.timeout()); stop != nil {
+		return reply, stop
+	}
+	if err != nil {
+		return reply, fmt.Errorf("%w: %w", err, &HarnessFailure{Kind: HarnessUnavailable, Detail: err.Error()})
+	}
+	if failure := ClassifyOutcome(result, reply.Output); failure != nil {
+		return reply, failure
+	}
 	if result.ExitCode != 0 {
 		return reply, fmt.Errorf("%w: exit %d", ErrCodexExit, result.ExitCode)
 	}

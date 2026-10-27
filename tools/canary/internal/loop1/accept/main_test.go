@@ -30,7 +30,7 @@ func TestAcceptMain(t *testing.T) {
 		return []string{"--repo", h.repo, "--work", h.work}
 	}
 
-	t.Run("accept prints the report of each task and exits 0 when all pass [verifies SP-2559~1]", func(t *testing.T) {
+	t.Run("accept prints the report of each task and exits 0 when all pass [verifies SP-2559~2]", func(t *testing.T) {
 		h := newHarness(t)
 		code, stdout, stderr := runMain(simulation(h), append(flags(h), sampleName)...)
 		if code != accept.ExitOK {
@@ -43,7 +43,7 @@ func TestAcceptMain(t *testing.T) {
 		}
 	})
 
-	t.Run("accept exits 1 and prints the findings when a check fails [verifies SP-2559~1]", func(t *testing.T) {
+	t.Run("accept exits 1 and prints the findings when a check fails [verifies SP-2559~2]", func(t *testing.T) {
 		h := newHarness(t)
 		h.edit("violations/FARE-1/1/zones.py", "# BREAKS: FARE-1", "# harmless")
 		code, stdout, _ := runMain(simulation(h), append(flags(h), sampleName)...)
@@ -52,7 +52,7 @@ func TestAcceptMain(t *testing.T) {
 		}
 	})
 
-	t.Run("with no task named, every task directory is checked in name order [verifies SP-2559~1]", func(t *testing.T) {
+	t.Run("with no task named, every task directory is checked in name order [verifies SP-2559~2]", func(t *testing.T) {
 		h := newHarness(t)
 		acceptest.NewSample("route").Write(t, h.repo)
 		code, stdout, _ := runMain(simulation(h), flags(h)...)
@@ -61,7 +61,7 @@ func TestAcceptMain(t *testing.T) {
 		}
 	})
 
-	t.Run("a wiring that fails refuses to run, and a bad flag is a usage error [verifies SP-2559~1]", func(t *testing.T) {
+	t.Run("a wiring that fails refuses to run, and a bad flag is a usage error [verifies SP-2559~2]", func(t *testing.T) {
 		failing := accept.Command{Wire: func(accept.Flags) (accept.Wiring, error) { return accept.Wiring{}, errWiring }}
 		if code, _, stderr := runMain(failing, "--repo", t.TempDir()); code != accept.ExitFailure || !strings.Contains(stderr, errWiring.Error()) {
 			t.Errorf("exit %d: %s", code, stderr)

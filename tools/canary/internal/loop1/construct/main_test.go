@@ -21,7 +21,7 @@ func runMain(args ...string) (int, string, string) {
 }
 
 func TestConstructMain(t *testing.T) {
-	t.Run("a bad flag or a stray argument is a usage error [verifies SP-2559~1]", func(t *testing.T) {
+	t.Run("a bad flag or a stray argument is a usage error [verifies SP-2559~2]", func(t *testing.T) {
 		for _, args := range [][]string{{"--nonsense"}, {"extra"}} {
 			if code, _, _ := runMain(args...); code != accept.ExitUsage {
 				t.Errorf("%v exited %d", args, code)
@@ -29,7 +29,7 @@ func TestConstructMain(t *testing.T) {
 		}
 	})
 
-	t.Run("a wiring that fails is a failure [verifies SP-2559~1]", func(t *testing.T) {
+	t.Run("a wiring that fails is a failure [verifies SP-2559~2]", func(t *testing.T) {
 		if code, _, stderr := runMain("--repo", t.TempDir()); code != accept.ExitFailure || !strings.Contains(stderr, errWiring.Error()) {
 			t.Errorf("exit %d: %s", code, stderr)
 		}

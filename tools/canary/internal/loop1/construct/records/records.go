@@ -71,6 +71,10 @@ type Call struct {
 	Start        time.Time `json:"start"`
 	End          time.Time `json:"end"`
 	Exit         int       `json:"exit"`
+	// HarnessFailure names the kind of failure of the machinery around the model
+	// when the call failed on that side; it is empty for a call the model answered
+	// or answered badly. A harness failure uses no repair call.
+	HarnessFailure string `json:"harness_failure,omitempty"`
 	// Error is why the call produced no usable files.
 	Error string `json:"error,omitempty"`
 }
@@ -119,9 +123,24 @@ type Log struct {
 	Drops  []Drop  `json:"drops"`
 }
 
+// DropOf returns the drop recorded for a domain.
+func (l Log) DropOf(domain string) (Drop, bool) {
+	for _, drop := range l.Drops {
+		if drop.Domain == domain {
+			return drop, true
+		}
+	}
+	return Drop{}, false
+}
+
 // Writer appends entries to the records.
 type Writer interface {
 	Append(entry Entry) error
+}
+
+// Reader reads back everything the records hold.
+type Reader interface {
+	ReadLog() (Log, error)
 }
 
 // ErrMalformedRecords is returned for a records file that cannot be read.
@@ -168,6 +187,13 @@ func (w *FileWriter) Append(entry Entry) error {
 		return fmt.Errorf("append a construction record: %w", err)
 	}
 	return file.Close()
+}
+
+// ReadLog reads the records file the writer appends to.
+func (w *FileWriter) ReadLog() (Log, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return Read(w.path)
 }
 
 // Read parses a records file. A missing file is an empty log.

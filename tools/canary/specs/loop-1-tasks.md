@@ -8,11 +8,12 @@ container by a simulated one and make no model call.
 
 ## Construction
 
-- **SP-2540~1**: WHEN construction runs THE SYSTEM SHALL build the fixed task, then
+- **SP-2540~2**: WHEN construction runs THE SYSTEM SHALL build the fixed task, then
   the domains in the order the protocol lists them, count a domain whose directory is
   complete and which the run configuration lists as passed without building it again,
-  stop once five domains have passed, and end with an error naming how many passed
-  when the domains run out first.
+  count a domain the construction records show as dropped as dropped without building
+  it again, stop once five domains have passed, and end with an error naming how many
+  passed when the domains run out first.
 - **SP-2541~1**: WHEN the model is called THE SYSTEM SHALL run `codex exec` for
   gpt-5.6-terra at high reasoning effort, in a read-only sandbox, without the user's
   configuration or a kept session or a git check, in an empty working directory,
@@ -49,21 +50,23 @@ container by a simulated one and make no model call.
 
 ## Repair and records
 
-- **SP-2547~1**: WHEN an acceptance check fails THE SYSTEM SHALL send each finding to
+- **SP-2547~2**: WHEN an acceptance check fails THE SYSTEM SHALL send each finding to
   the role it concerns; SHALL tell the test writer test names and criteria without
   the code or the messages of the project; SHALL make at most two repair calls per
-  role and domain, a call that produced no usable files included; and SHALL write
-  the tests again from the new spec, without using a repair call, when a repair of
-  the author changed the spec.
+  role and domain, a call that produced no usable files included and a call that
+  failed on the harness side (SP-2650) excluded; and SHALL write the tests again from
+  the new spec, without using a repair call, when a repair of the author changed the
+  spec.
 - **SP-2548~1**: WHEN a domain still fails after its repairs THE SYSTEM SHALL drop it,
   log the failing check with its reason, remove its files and repair nothing by
   hand; and WHEN the fixed task is dropped THE SYSTEM SHALL stop with an error
   naming the failing check.
-- **SP-2549~1**: WHEN construction or acceptance runs THE SYSTEM SHALL append to the
+- **SP-2549~2**: WHEN construction or acceptance runs THE SYSTEM SHALL append to the
   construction records every call with its role, purpose, domain, attempt, prompt
   digest, schema, raw output, Codex version, start and end times in UTC and exit
   status, the output of every check of every round, and every dropped domain with
-  its reason; and SHALL read the records back whole, refusing a line that holds no
+  its reason, marking a call that failed on the harness side with its kind of
+  failure; and SHALL read the records back whole, refusing a line that holds no
   record.
 
 ## Acceptance
@@ -93,11 +96,12 @@ container by a simulated one and make no model call.
 - **SP-2555~1**: WHEN check A7 runs THE SYSTEM SHALL require a violation of the task
   criterion that passes a test made of the task criterion's inline examples alone,
   and a violation of an implemented criterion that passes the fixture's tests.
-- **SP-2556~1**: WHEN check A8 runs THE SYSTEM SHALL require that no fixture file
+- **SP-2556~2**: WHEN check A8 runs THE SYSTEM SHALL require that no fixture file
   holds a significant line of an oracle file, a line a violation or refactor adds to
   the reference, one of the truth paths, or one of the words oracle, mutant,
   planted, weak and deliberate; a line is significant from twenty characters, and
-  an import or a line that restates an inline example is not.
+  an import, a line that restates an inline example, or an oracle line that a test
+  file of the fixture holds too is not.
 - **SP-2557~1**: WHEN check A9 runs THE SYSTEM SHALL require that `pytest
   --collect-only` collects at least two tests for each criterion and that the
   oracle skips none on the reference tree.
@@ -108,7 +112,32 @@ container by a simulated one and make no model call.
 
 ## Verbs
 
-- **SP-2559~1**: WHEN `accept` or `construct` is run THE SYSTEM SHALL read `--repo`,
+- **SP-2559~2**: WHEN `accept` or `construct` is run THE SYSTEM SHALL read `--repo`,
   `--config` and `--work`, print the report of each check with its findings, exit 0
   when everything passed, exit 1 when a check failed, a step could not run or no
-  container runner is wired in, and exit 2 for a usage error.
+  container runner is wired in, exit 2 for a usage error, and, for `construct`, exit 3
+  when a call failed on the harness side.
+
+## Harness failures
+
+- **SP-2650~1**: WHEN a call to the model ends THE SYSTEM SHALL class it as a harness
+  failure when the process exceeded its time limit of thirty minutes, when `codex`
+  could not be started or reported no version, when it exited non-zero and left no
+  final message or an empty one, or when it produced no usable final message and its
+  standard error or output shows a sign-in error (not logged in, 401, unauthorized),
+  a usage or rate limit (usage limit, rate limit, 429, try again) or a network
+  failure; SHALL class a final message that is not the expected JSON document, and
+  any other failed call, as a failure of the model; and SHALL never class a call that
+  exited cleanly with a final message as a harness failure, whatever its output text
+  says.
+- **SP-2651~1**: WHEN a call fails on the harness side THE SYSTEM SHALL stop
+  construction at once with an error that names the domain, the role and the attempt,
+  use no repair call, drop no domain, append the call to the construction records
+  with its kind of harness failure, and make `construct` exit with its own status and
+  a message that says the run can be resumed.
+- **SP-2652~1**: WHEN construction runs again after it stopped THE SYSTEM SHALL read
+  the construction records and resume at the call where it stopped, with the same
+  domain, role, purpose and attempt number: the model answers no call that the records
+  already hold, the checks of a failed round the records hold are not run again, the
+  calls that failed on the harness side use no attempt number, and records that do
+  not match the calls to repeat refuse the resume.

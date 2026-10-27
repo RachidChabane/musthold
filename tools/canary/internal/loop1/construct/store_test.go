@@ -141,7 +141,7 @@ func TestStore(t *testing.T) {
 }
 
 func TestRecords(t *testing.T) {
-	t.Run("entries appended to the records file are read back whole and in order, a missing file is an empty log [verifies SP-2549~1]", func(t *testing.T) {
+	t.Run("entries appended to the records file are read back whole and in order, a missing file is an empty log [verifies SP-2549~2]", func(t *testing.T) {
 		layout := study.Layout{Root: t.TempDir()}
 		if log, err := records.Read(records.Path(layout)); err != nil || len(log.Calls) != 0 {
 			t.Fatalf("%v %+v", err, log)
@@ -164,7 +164,7 @@ func TestRecords(t *testing.T) {
 		}
 	})
 
-	t.Run("a line that holds no record, or a field the records do not have, is refused [verifies SP-2549~1]", func(t *testing.T) {
+	t.Run("a line that holds no record, or a field the records do not have, is refused [verifies SP-2549~2]", func(t *testing.T) {
 		for _, bad := range []string{"{}\n", `{"call":{"unknown":1}}` + "\n", "not json\n"} {
 			if _, err := records.Parse([]byte(bad)); !errors.Is(err, records.ErrMalformedRecords) {
 				t.Errorf("%q: %v", bad, err)

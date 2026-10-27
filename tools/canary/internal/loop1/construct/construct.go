@@ -28,15 +28,22 @@ type Summary struct {
 
 // Run builds the fixed task, then the domains in order, until PassTarget of them
 // have passed acceptance. A domain whose task directory is already built and
-// listed in the run configuration counts as passed.
+// listed in the run configuration counts as passed; one the records show as
+// dropped stays dropped; one an earlier invocation left unfinished resumes at
+// the call where it stopped, from the records. A call that fails on the harness
+// side ends the run with an error that matches ErrHarnessFailure.
 func (c *Constructor) Run(ctx context.Context) (Summary, error) {
 	var summary Summary
 	listed, err := c.listedTasks()
 	if err != nil {
 		return summary, err
 	}
+	history, err := c.history()
+	if err != nil {
+		return summary, err
+	}
 	if !c.built(BoxofficeName, listed) {
-		if err := c.BuildFixed(ctx); err != nil {
+		if err := c.buildFixed(ctx, history); err != nil {
 			return summary, err
 		}
 	}
@@ -50,7 +57,11 @@ func (c *Constructor) Run(ctx context.Context) (Summary, error) {
 			passed++
 			continue
 		}
-		outcome, err := c.buildDomain(ctx, domain)
+		if drop, found := history.DropOf(domain.Name); found {
+			summary.Dropped = append(summary.Dropped, drop)
+			continue
+		}
+		outcome, err := c.buildDomain(ctx, domain, history)
 		if err != nil {
 			return summary, err
 		}
@@ -82,13 +93,33 @@ func (c *Constructor) built(name string, listed []string) bool {
 	return slices.Contains(listed, name) && c.Store.Complete(name)
 }
 
+// history reads the records of the earlier invocations.
+func (c *Constructor) history() (records.Log, error) {
+	if c.History == nil {
+		return records.Log{}, nil
+	}
+	return c.History.ReadLog()
+}
+
 func (c *Constructor) listedTasks() ([]string, error) { return accept.ListedTasks(c.Config) }
 
 // BuildFixed writes the violations, refactors and tests of the task whose
 // fixture and reference are fixed. It stops with ErrFixtureAmendment when a check
 // can only be satisfied by changing either, and with ErrFixedTaskDropped when the
-// task fails acceptance after its repairs.
+// task fails acceptance after its repairs, which the records of an earlier
+// invocation may already show.
 func (c *Constructor) BuildFixed(ctx context.Context) error {
+	history, err := c.history()
+	if err != nil {
+		return err
+	}
+	return c.buildFixed(ctx, history)
+}
+
+func (c *Constructor) buildFixed(ctx context.Context, history records.Log) error {
+	if drop, found := history.DropOf(BoxofficeName); found {
+		return fmt.Errorf("%w: %s: %s", ErrFixedTaskDropped, drop.Check, drop.Reason)
+	}
 	data, err := os.ReadFile(c.Config)
 	if err != nil {
 		return fmt.Errorf("read the run configuration: %w", err)
@@ -113,7 +144,7 @@ func (c *Constructor) BuildFixed(ctx context.Context) error {
 	}
 	role := variantsOnly{task: task, prompts: c.Prompts, reference: reference, spec: string(spec)}
 	c.progress("%s: writing the violations and refactors", task.Name)
-	outcome, err := newBuilder(c, role).run(ctx)
+	outcome, err := newBuilder(c, role, history).run(ctx)
 	if err == nil && outcome.accepted {
 		return nil
 	}
@@ -126,7 +157,7 @@ func (c *Constructor) BuildFixed(ctx context.Context) error {
 	return fmt.Errorf("%w: %s: %s", ErrFixedTaskDropped, outcome.drop.Check, outcome.drop.Reason)
 }
 
-func (c *Constructor) buildDomain(ctx context.Context, domain Domain) (outcome, error) {
+func (c *Constructor) buildDomain(ctx context.Context, domain Domain, history records.Log) (outcome, error) {
 	data, err := os.ReadFile(c.Config)
 	if err != nil {
 		return outcome{}, fmt.Errorf("read the run configuration: %w", err)
@@ -144,7 +175,7 @@ func (c *Constructor) buildDomain(ctx context.Context, domain Domain) (outcome, 
 		return outcome{}, err
 	}
 	c.progress("%s: writing the task", domain.Name)
-	result, err := newBuilder(c, role).run(ctx)
+	result, err := newBuilder(c, role, history).run(ctx)
 	if err != nil {
 		return outcome{}, err
 	}
@@ -167,6 +198,6 @@ func NewConstructor(flags accept.Flags, wiring accept.Wiring, model Model, progr
 	return &Constructor{
 		Repo: flags.Repo, Config: flags.ConfigPath(), Store: Store{Repo: flags.Repo},
 		Model: model, Acceptor: accept.NewAcceptor(flags, wiring, writer),
-		Records: writer, Prompts: prompts, Domains: DomainOrder(), Now: time.Now, Progress: progress,
+		Records: writer, History: writer, Prompts: prompts, Domains: DomainOrder(), Now: time.Now, Progress: progress,
 	}, nil
 }
