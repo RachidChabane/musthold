@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/container"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
 )
 
@@ -26,7 +28,8 @@ const (
 )
 
 // containerEnv is the environment of the extraction command: the interpreter and
-// git, and no home directory or system configuration.
+// git, and no home directory or system configuration. The project is trusted by
+// git besides, since the engine shows the mounted project under another owner.
 var containerEnv = []string{
 	box.SystemPath,
 	"HOME=/nonexistent",
@@ -56,7 +59,7 @@ type BoxExtractor struct {
 func (e BoxExtractor) Extract(ctx context.Context, projectDir, equippedCommit string) (Snapshot, error) {
 	result, err := e.Runner.Run(ctx, box.Command{
 		Argv:   []string{pythonBinary, isolatedFlag, commandFlag, helperSource, projectDir, equippedCommit},
-		Env:    containerEnv,
+		Env:    append(slices.Clone(containerEnv), container.TrustedRepository(projectDir)...),
 		Dir:    projectDir,
 		Mounts: []box.Mount{{Path: projectDir, ReadOnly: true}},
 		Limit:  extractLimit,

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -112,6 +113,9 @@ func TestBoxExtractorRefusesAFailedHelper(t *testing.T) {
 		}
 		if seen.Argv[0] != "python3" || seen.Argv[1] != "-I" || seen.Argv[len(seen.Argv)-2] != "/p" || seen.Argv[len(seen.Argv)-1] != "abc" {
 			t.Fatalf("argv = %q", seen.Argv)
+		}
+		if !slices.Contains(seen.Env, "GIT_CONFIG_VALUE_0=/p") {
+			t.Fatalf("git does not trust the mounted project: env = %q", seen.Env)
 		}
 		if len(seen.Mounts) != 1 || seen.Mounts[0] != (box.Mount{Path: "/p", ReadOnly: true}) {
 			t.Fatalf("mounts = %+v", seen.Mounts)
