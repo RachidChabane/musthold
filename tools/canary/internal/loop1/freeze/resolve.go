@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/app"
 	"maps"
 	"os"
 	"path"
@@ -82,6 +83,9 @@ type Resolver struct {
 	ConfigPath string
 	Config     config.Config
 	Work       study.Layout
+	// Home is the host user's home directory, written as ~ in what resolve copies
+	// from the work directory.
+	Home string
 	// ProductDir is the host's product directory and ProductMount where the
 	// study's containers see it.
 	ProductDir   string
@@ -324,6 +328,10 @@ func (r Resolver) construction(ctx context.Context, inputs *study.Inputs) error 
 	if err != nil {
 		return err
 	}
+	raw = app.Redact(raw,
+		app.Placeholder{Path: r.Work.Root, Name: app.PlaceholderWork},
+		app.Placeholder{Path: r.Root, Name: app.PlaceholderRepo},
+		app.Placeholder{Path: r.Home, Name: app.PlaceholderHome})
 	seen := map[string]bool{}
 	inputs.Codex = []string{}
 	for _, call := range log.Calls {

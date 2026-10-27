@@ -94,7 +94,7 @@ func TestResolve(t *testing.T) {
 		}
 	})
 
-	t.Run("the Codex versions, the construction records and the canary's findings are copied [verifies SP-2620~2]", func(t *testing.T) {
+	t.Run("the Codex versions, the construction records and the canary's findings are copied [verifies SP-2620~3]", func(t *testing.T) {
 		if !slices.Equal(inputs.Codex, []string{"codex-cli 0.9.0"}) {
 			t.Errorf("codex %v", inputs.Codex)
 		}
@@ -105,6 +105,17 @@ func TestResolve(t *testing.T) {
 		if !slices.Equal(inputs.CLIAuxiliaryModels, []string{"claude-haiku-4-5"}) || !slices.Equal(inputs.EgressAllowlist, []string{"api.anthropic.com"}) ||
 			len(inputs.EgressObserved) != 2 || !slices.Equal(inputs.QuotaPatterns, []string{"usage limit reached"}) || len(inputs.Canary) != 1 {
 			t.Errorf("canary %+v", inputs)
+		}
+	})
+
+	t.Run("the construction records name the work directory, the repository and the home directory by placeholders [verifies SP-2620~3]", func(t *testing.T) {
+		log, err := records.Decode(inputs.Construction)
+		if err != nil || len(log.Checks) != 1 {
+			t.Fatalf("construction %+v, %v", log, err)
+		}
+		want := "<work>/construction/accept/x/round-1/junit.xml; <repo>/experiments; ~/.cache"
+		if got := log.Checks[0].Output; got != want {
+			t.Errorf("output %q, want %q", got, want)
 		}
 	})
 

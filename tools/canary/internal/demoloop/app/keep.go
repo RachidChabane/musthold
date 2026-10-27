@@ -19,6 +19,8 @@ const (
 	PlaceholderRun  = "<run>"
 	PlaceholderRepo = "<repo>"
 	PlaceholderHome = "~"
+	// PlaceholderWork stands for a study's work directory.
+	PlaceholderWork = "<work>"
 	// privateRoot is the prefix macOS resolves its temporary directories under.
 	privateRoot = "/private"
 )
@@ -83,15 +85,15 @@ type replacement struct{ from, to []byte }
 // placeholders orders the replacements from the longest path down, each with
 // its form outside /private, so that a path inside another keeps its own name;
 // the dash-encoded forms follow, in the same order.
-func placeholders(run, repo, home string) []replacement {
+func placeholders(named []Placeholder) []replacement {
 	var paths []replacement
-	for _, pair := range [][2]string{{run, PlaceholderRun}, {repo, PlaceholderRepo}, {home, PlaceholderHome}} {
-		if pair[0] == "" {
+	for _, p := range named {
+		if p.Path == "" {
 			continue
 		}
-		paths = append(paths, replacement{[]byte(pair[0]), []byte(pair[1])})
-		if trimmed, trimmedFound := strings.CutPrefix(pair[0], privateRoot); trimmedFound {
-			paths = append(paths, replacement{[]byte(trimmed), []byte(pair[1])})
+		paths = append(paths, replacement{[]byte(p.Path), []byte(p.Name)})
+		if trimmed, trimmedFound := strings.CutPrefix(p.Path, privateRoot); trimmedFound {
+			paths = append(paths, replacement{[]byte(trimmed), []byte(p.Name)})
 		}
 	}
 	found := slices.Clone(paths)
@@ -117,7 +119,20 @@ func dashEncoded(path string) string {
 // path first, each also in its form outside /private and in its dash-encoded
 // form.
 func RedactPaths(content []byte, run, repo, home string) []byte {
-	for _, r := range placeholders(run, repo, home) {
+	return Redact(content, Placeholder{run, PlaceholderRun}, Placeholder{repo, PlaceholderRepo}, Placeholder{home, PlaceholderHome})
+}
+
+// Placeholder is a machine path and the name written in its place.
+type Placeholder struct {
+	Path string
+	Name string
+}
+
+// Redact writes each path of the content as its placeholder's name, in the order
+// given, each path also in its form outside /private and in its dash-encoded form.
+// A path listed first wins over a path it lies inside, so list the longest first.
+func Redact(content []byte, named ...Placeholder) []byte {
+	for _, r := range placeholders(named) {
 		content = bytes.ReplaceAll(content, r.from, r.to)
 	}
 	return content

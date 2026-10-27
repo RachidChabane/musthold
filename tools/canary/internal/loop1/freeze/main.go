@@ -107,10 +107,14 @@ func (c ResolveCommand) newResolver(chosen Options) (Resolver, error) {
 	if err != nil {
 		return Resolver{}, err
 	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return Resolver{}, err
+	}
 	layout := study.Layout{Root: chosen.Work}
 	command := OSExec{}
 	return Resolver{
-		Root: root, ConfigPath: filepath.ToSlash(configPath), Config: configured, Work: layout,
+		Root: root, ConfigPath: filepath.ToSlash(configPath), Config: configured, Work: layout, Home: home,
 		ProductDir: chosen.Product, ProductMount: docker.ProductTarget,
 		Repo: Git{Dir: root, Exec: command}, Box: runner,
 		Engine:   CLIEngine{Exec: command, Docker: []string{filepath.Join(root, study.DockerClient)}},

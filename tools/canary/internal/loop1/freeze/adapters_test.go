@@ -114,7 +114,7 @@ func TestWorkFiles(t *testing.T) {
 	layout := study.Layout{Root: work}
 	start := time.Date(2026, 11, 1, 10, 0, 0, 0, time.UTC)
 
-	t.Run("the construction records are the lines construct appends, blank lines skipped, and a broken line is refused [verifies SP-2620~2]", func(t *testing.T) {
+	t.Run("the construction records are the lines construct appends, blank lines skipped, and a broken line is refused [verifies SP-2620~3]", func(t *testing.T) {
 		writer := records.NewFileWriter(layout)
 		for _, entry := range []records.Entry{{Call: &records.Call{CodexVersion: "c", Start: start}}, {Drop: &records.Drop{Domain: "d"}}} {
 			if err := writer.Append(entry); err != nil {

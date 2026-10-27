@@ -306,15 +306,32 @@ func (f fakeCanary) Output(context.Context) (study.CanaryOutput, error) {
 	}, nil
 }
 
-type fakeConstruction struct{ start time.Time }
+type fakeConstruction struct {
+	start time.Time
+	// output is a check's output, which names the machine's paths.
+	output string
+}
 
 func (f fakeConstruction) Records(context.Context) (records.Log, error) {
 	call := func(version string, offset time.Duration) records.Call {
 		start := f.start.Add(offset)
 		return records.Call{Role: records.RoleAuthor, CodexVersion: version, Start: start, End: start.Add(time.Minute)}
 	}
-	return records.Log{Calls: []records.Call{call("codex-cli 0.9.0", 0), call("codex-cli 0.9.0", time.Hour)}, Drops: []records.Drop{{Domain: "x"}}}, nil
+	return records.Log{
+		Calls:  []records.Call{call("codex-cli 0.9.0", 0), call("codex-cli 0.9.0", time.Hour)},
+		Checks: []records.Check{{Domain: "x", Round: 1, ID: "A2", Output: f.output}},
+		Drops:  []records.Drop{{Domain: "x"}},
+	}, nil
 }
+
+// machineOutput is a check output that names the work directory, the repository
+// and the home directory.
+func machineOutput(work, root, home string) string {
+	return work + "/construction/accept/x/round-1/junit.xml; " + root + "/experiments; " + home + "/.cache"
+}
+
+// fixtureHome is the home directory the fixture's resolver redacts.
+const fixtureHome = "/home/owner"
 
 type fakePreparer struct {
 	files func(arm config.Arm) map[string]string
@@ -368,10 +385,10 @@ func resolver(t *testing.T, root, productDir, work string, sc scenario) freeze.R
 		start = sc.constructionStart
 	}
 	return freeze.Resolver{
-		Root: root, ConfigPath: study.ConfigFile, Config: configured, Work: layout, ProductDir: productDir, ProductMount: "/opt/musthold",
+		Root: root, ConfigPath: study.ConfigFile, Config: configured, Work: layout, Home: fixtureHome, ProductDir: productDir, ProductMount: "/opt/musthold",
 		Repo: freeze.Git{Dir: root, Exec: freeze.OSExec{}}, Box: boxAnswers{claude: sc.claudeOutput}, Engine: fakeEngine{}, Host: fakeHost{}, Releases: fakeReleases{},
 		Canary:       fakeCanary{records: []study.CanaryRecord{{Name: "c1.jsonl", SHA256: strings.Repeat("d", 64), Start: t0.Add(3 * time.Hour)}}},
-		Construction: fakeConstruction{start: start}, Preparer: fakePreparer{files: sc.armFiles},
+		Construction: fakeConstruction{start: start, output: machineOutput(work, root, fixtureHome)}, Preparer: fakePreparer{files: sc.armFiles},
 	}
 }
 
