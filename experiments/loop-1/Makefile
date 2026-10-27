@@ -17,7 +17,7 @@ construct:  ## PREREG 3.3 author and oracle calls, domain by domain (spends Code
 accept:  ## PREREG 3.4 acceptance checks A1-A9 of every task
 	script/accept $(ARGS)
 
-canary:  ## PREREG 13.3 canary sessions C1-C3 (spends model quota, nightly window)
+canary:  ## PREREG 13.3 canary sessions C1-C3 (spends model quota)
 	script/canary $(ARGS)
 
 resolve:  ## PREREG 13.4 freeze/inputs.json and freeze/inputs-SHA256SUMS
@@ -26,7 +26,7 @@ resolve:  ## PREREG 13.4 freeze/inputs.json and freeze/inputs-SHA256SUMS
 freeze-check:  ## PREREG 13.5 tags, timestamps, sums, pins and digests
 	script/freeze-check $(ARGS)
 
-run:  ## PREREG 6 the runs in the frozen order, resumable (ARGS="--dry-run" starts nothing)
+run:  ## PREREG 6 the runs in the frozen order, resumable (spends model quota; ARGS="--dry-run" starts nothing)
 	script/run $(ARGS)
 
 oracle:  ## PREREG 4 blind oracle and held-out violations, after the run phase

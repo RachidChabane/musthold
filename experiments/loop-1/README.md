@@ -30,12 +30,12 @@ A blind oracle, which the agent never sees, then measures three things:
 ## Front door
 
 Each verb runs as `script/<verb>`, or as `make <verb>`, from this directory. Run
-`make help` for the list. Every verb except `power` runs the runner
+`make help` for the list. Every verb except `power` and `build` runs the runner
 `musthold-demo-loop`, built from `tools/canary`, with the subcommand of the same
-name.
+name. `build` builds the product, the runner and the image; `power` prints the
+power table.
 
-These verbs spend model quota, and run in the nightly window (21:00 to 07:30 local
-time):
+These verbs spend model quota:
 
 - `construct`;
 - `canary`;

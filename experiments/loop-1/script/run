@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# PREREG 6: the runs in the frozen order, one container at a time, inside the nightly window; resumable at the
-# first run that is neither counted nor blocked. --dry-run prints every command and starts nothing.
+# PREREG 6: the runs in the frozen order, one container at a time; resumable at the first run that is neither
+# counted nor blocked. --dry-run prints every command and starts nothing.
 # Usage: script/run [ARGS...]
 set -euo pipefail
 # shellcheck source=experiments/loop-1/script/_lib
