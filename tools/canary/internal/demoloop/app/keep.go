@@ -55,7 +55,6 @@ func (k Keeper) Keep(run, repo, home, destination, token string) error {
 	if hits := record.TokenHits(files, token); len(hits) > 0 {
 		return fmt.Errorf("%w: %s; nothing was kept", ErrTokenInRecord, strings.Join(hits, ", "))
 	}
-	replacements := placeholders(run, repo, home)
 	paths, err := k.Files.Glob(filepath.Join(records, recordingPattern))
 	if err != nil {
 		return err
@@ -68,7 +67,7 @@ func (k Keeper) Keep(run, repo, home, destination, token string) error {
 		if err != nil || content == nil {
 			continue
 		}
-		if err := k.Files.Write(filepath.Join(destination, filepath.Base(path)), redact(content, replacements), false); err != nil {
+		if err := k.Files.Write(filepath.Join(destination, filepath.Base(path)), RedactPaths(content, run, repo, home), false); err != nil {
 			return err
 		}
 	}
@@ -113,8 +112,12 @@ func dashEncoded(path string) string {
 	}, path)
 }
 
-func redact(content []byte, replacements []replacement) []byte {
-	for _, r := range replacements {
+// RedactPaths writes the run directory, the repository root and the home
+// directory of the content as the placeholders <run>, <repo> and ~, the longest
+// path first, each also in its form outside /private and in its dash-encoded
+// form.
+func RedactPaths(content []byte, run, repo, home string) []byte {
+	for _, r := range placeholders(run, repo, home) {
 		content = bytes.ReplaceAll(content, r.from, r.to)
 	}
 	return content

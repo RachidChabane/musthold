@@ -176,11 +176,9 @@ func runEntry(state phase.RunState, all map[string]facts.Facts) RunEntry {
 			StartedAt: attempt.Run.StartedAt, EndedAt: attempt.Run.EndedAt,
 		})
 	}
-	if counted, ok := state.CountedAttempt(); ok {
-		entry.Task, entry.Arm, entry.Repetition = counted.Run.Task, counted.Run.Arm, counted.Run.Repetition
-		if found, ok := all[state.Name]; ok {
-			entry.Facts = &found
-		}
+	if found, ok := all[state.Name]; ok && state.Counted >= 0 {
+		entry.Task, entry.Arm, entry.Repetition = found.Task, found.Arm, found.Repetition
+		entry.Facts = &found
 	}
 	return entry
 }
