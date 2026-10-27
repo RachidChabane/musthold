@@ -48,7 +48,7 @@ func (w *world) runOnce(t *testing.T) (runs.Result, string) {
 
 func TestCompletedAttempt(t *testing.T) {
 	w := newWorld(t)
-	w.session.edit = agentEdit
+	w.session.edit, w.session.stream = agentEdit, recordedStream(t)
 	result, dir := w.runOnce(t)
 	records := filepath.Join(dir, plan.RecordsDir)
 	run := result.Run

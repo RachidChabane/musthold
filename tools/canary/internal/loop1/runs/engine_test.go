@@ -329,7 +329,7 @@ func newWorld(t *testing.T) *world {
 	parsed.Repetitions = 1
 	reads := 0
 	w := &world{
-		repo: repo, work: tempDir(t), product: tempDir(t), engine: newEngine(), session: &session{stream: recordedStream(t)},
+		repo: repo, work: tempDir(t), product: tempDir(t), engine: newEngine(), session: &session{stream: shortStream(t, resultLine("success", false, "done"))},
 		clock: &tickingClock{at: start}, stamps: &stamps{}, reads: &reads, stdout: &bytes.Buffer{}, config: parsed,
 	}
 	appRunner := app.Runner{
@@ -344,6 +344,7 @@ func newWorld(t *testing.T) *world {
 		UID: 501, GID: 20, ClaudePin: testPin, Profile: runs.StudyProfile(testClaude),
 	}
 	w.inputs = w.freeze(t)
+	w.engine.calls = nil
 	return w
 }
 
