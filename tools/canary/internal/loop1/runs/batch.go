@@ -47,7 +47,7 @@ type Batch struct {
 // inputs freeze, the credential, the image or the CLI is not what the study
 // fixes; a quota stop ends it with no error.
 func (b Batch) Run(ctx context.Context, inv Invocation) error {
-	if err := checkInputs(inv); err != nil {
+	if err := CheckOrder(inv.Config, inv.Plan.Inputs); err != nil {
 		return err
 	}
 	ledgers, err := ReadLedgers(b.Runner.App.Files, inv.Layout, inv.Plan.Inputs.Order)
@@ -56,6 +56,9 @@ func (b Batch) Run(ctx context.Context, inv Invocation) error {
 	}
 	if inv.DryRun {
 		return b.printPlan(inv, ledgers)
+	}
+	if err := checkInputs(inv); err != nil {
+		return err
 	}
 	source, err := canary.FirstCredential(ctx, b.Runner.App.Credentials)
 	if err := app.Present(source, err); err != nil {
@@ -73,12 +76,9 @@ func (b Batch) Run(ctx context.Context, inv Invocation) error {
 	return b.runOrder(ctx, inv, ledgers)
 }
 
-// checkInputs refuses an order that is not the configuration's or the freeze's,
-// and a freeze without an allowlist, quota patterns or the entry of a task.
+// checkInputs refuses a freeze without an allowlist, quota patterns or the entry
+// of a task.
 func checkInputs(inv Invocation) error {
-	if err := CheckOrder(inv.Config, inv.Plan.Inputs); err != nil {
-		return err
-	}
 	inputs := inv.Plan.Inputs
 	if len(inputs.EgressAllowlist) == 0 || len(inputs.QuotaPatterns) == 0 {
 		return fmt.Errorf("%w: egress_allowlist and quota_patterns are required", ErrInputs)

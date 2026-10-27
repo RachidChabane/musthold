@@ -18,11 +18,12 @@ import (
 func QuotaPatterns() []string {
 	return []string{
 		`(?i)usage limit`,
+		`(?i)usage_limit_reached`,
 		`(?i)rate[ _-]?limit`,
 		`(?i)hit your( [a-z]+)? limit`,
 		`(?i)limit (reached|exceeded)`,
 		`(?i)out of (extra )?usage`,
-		`(?i)quota`,
+		`(?i)spend limit reached`,
 		`\b429\b`,
 	}
 }
@@ -119,16 +120,22 @@ func raw(member json.RawMessage) string {
 
 // Forms of a reset time in an error's wording.
 var (
-	resetEpoch = regexp.MustCompile(`\|(\d{10})\b`)
+	resetEpoch = regexp.MustCompile(`(?:\||"resets_?[aA]t(?:_?[sS]econds)?"\s*:\s*)(\d{10})\b`)
 	resetISO   = regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})`)
+	resetUTC   = regexp.MustCompile(`(\d{4}-\d{2}-\d{2} \d{2}:\d{2}) UTC`)
 	resetClock = regexp.MustCompile(`(?i)resets?(?: at)? (\d{1,2})(?::(\d{2}))?\s*(am|pm)(?:\s*\(([^)]+)\))?`)
 )
 
-// hoursHalfDay is how many hours a 12-hour clock counts.
-const hoursHalfDay = 12
+// hoursHalfDay is how many hours a 12-hour clock counts; utcMinuteLayout is a
+// UTC time to the minute, as a spend limit names its reset.
+const (
+	hoursHalfDay    = 12
+	utcMinuteLayout = "2006-01-02 15:04"
+)
 
-// ParseReset reads the reset time an error names: a Unix time after a `|`, an
-// RFC 3339 time, or a time of day such as "resets 3pm (Europe/Paris)", taken as
+// ParseReset reads the reset time an error names: a Unix time after a `|` or as
+// a `resetsAt` member, an RFC 3339 time, a UTC time such as "2026-08-08 00:00
+// UTC", or a time of day such as "resets 3pm (Europe/Paris)", taken as
 // its next occurrence after now in the zone it names, or in now's zone. It
 // returns nil when the error names none.
 func ParseReset(text string, now time.Time) *time.Time {
@@ -140,6 +147,11 @@ func ParseReset(text string, now time.Time) *time.Time {
 	if match := resetISO.FindString(text); match != "" {
 		if at, err := time.Parse(time.RFC3339, match); err == nil {
 			at = at.UTC()
+			return &at
+		}
+	}
+	if match := resetUTC.FindStringSubmatch(text); match != nil {
+		if at, err := time.Parse(utcMinuteLayout, match[1]); err == nil {
 			return &at
 		}
 	}

@@ -320,6 +320,9 @@ func (a *attempt) writeRecord(name string, value any) error {
 // the token scan and the transcript.
 func (a *attempt) finish(ctx context.Context) (Result, error) {
 	l := a.current.Layout
+	if err := app.WriteSteps(a.r.App.Files, l.Record(record.StepsFile), a.prepared.Steps); err != nil {
+		return a.result, err
+	}
 	if a.result.Ran {
 		if err := a.readStream(); err != nil {
 			return a.result, err
