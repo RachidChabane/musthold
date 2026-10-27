@@ -184,3 +184,29 @@ func TestRecords(t *testing.T) {
 		}
 	})
 }
+
+func TestInputs(t *testing.T) {
+	doc := `{"commits":{"prereg":"a","inputs":"b","between":[]},"egress_allowlist":["api.anthropic.com"],
+	"quota_patterns":["usage limit"],"order":["boxoffice-control-1"],
+	"tasks":[{"name":"boxoffice","base_commit":"c","equipped_tree":{"control":"d","treatment":"e"}}]}`
+	t.Run("the members of the freeze are read and a task is found by name [verifies SP-2504~1]", func(t *testing.T) {
+		in, err := ParseInputs([]byte(doc))
+		if err != nil {
+			t.Fatal(err)
+		}
+		task, ok := in.Task("boxoffice")
+		if !ok || task.BaseCommit != "c" || task.EquippedTree["treatment"] != "e" || in.EgressAllowlist[0] != "api.anthropic.com" || in.Order[0] != "boxoffice-control-1" {
+			t.Fatalf("read %+v", in)
+		}
+		if _, ok := in.Task("library"); ok {
+			t.Fatal("found a task the freeze does not hold")
+		}
+	})
+	t.Run("an unknown member and a second document are refused [verifies SP-2504~1]", func(t *testing.T) {
+		for _, bad := range []string{`{"orders":[]}`, `{}{}`} {
+			if _, err := ParseInputs([]byte(bad)); !errors.Is(err, ErrMalformedInputs) {
+				t.Errorf("%s: got %v", bad, err)
+			}
+		}
+	})
+}
