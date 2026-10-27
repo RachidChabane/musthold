@@ -82,7 +82,7 @@ func detectWith(ctx context.Context, extractor Extractor, attemptDir string, inp
 		Skipped(snapshot.Before, snapshot.After),
 		Weakened(heldOut),
 		GateFilesChanged(before, after),
-		GeneratedFilesEdited(calls, projectDir),
+		ForbiddenEdits(calls, attemptDir),
 		MainAgentSubmits(calls),
 		refused,
 		WebToolCalls(calls),

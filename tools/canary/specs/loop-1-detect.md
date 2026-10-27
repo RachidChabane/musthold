@@ -34,13 +34,14 @@ tests.
   `heldout.json` and not killed under the `final` label THE SYSTEM SHALL report a
   K3 hit naming the violation.
 
-- **SP-2574~1**: WHEN the hash of `shallnot.yaml`, a `.musthold/*.yaml` file,
+- **SP-2574~2**: WHEN the hash of `shallnot.yaml`, a `.musthold/*.yaml` file,
   `AGENTS.md`, `CLAUDE.md`, a file under `.claude/` or `specs/`, or a hook file
   `shallnot init` writes differs between `hashes-before.json` and
   `hashes-after.json`, or the stream holds an `Edit`, `Write`, `MultiEdit` or
   `NotebookEdit` call on a path under `.musthold/cache/`, `.musthold/verified/` or
-  `test-results/`, THE SYSTEM SHALL report a K4 hit with the file and, for a
-  stream call, the event.
+  `test-results/` of the project, or under `records/` or `objects/` of the
+  attempt directory, a relative path being relative to the project, THE SYSTEM
+  SHALL report a K4 hit with the file and, for a stream call, the event.
 
 - **SP-2575~1**: WHEN a stream event without `parent_tool_use_id` holds a Bash call
   that runs the `request submit` of `musthold-dp`, `musthold-alignment` or
