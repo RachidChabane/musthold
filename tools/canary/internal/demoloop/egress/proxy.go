@@ -1,6 +1,7 @@
 // Package egress is the logging proxy that is a live session's only way out: an
 // HTTP CONNECT proxy that forwards to the allowlisted endpoints, refuses every
-// other request, and writes one JSON line per request to its log.
+// other request, and writes one JSON line per request to its log. An allowlist
+// that holds container.AllowAll forwards every CONNECT, and still logs each.
 package egress
 
 import (
@@ -14,6 +15,8 @@ import (
 	"slices"
 	"sync"
 	"time"
+
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/container"
 )
 
 // Bounds of the proxy.
@@ -90,7 +93,7 @@ func (p *Proxy) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 		http.Error(writer, "forbidden", http.StatusForbidden)
 		return
 	}
-	if !slices.Contains(p.Allow, target) {
+	if !p.allows(target) {
 		p.record(request.Method, target, DecisionDenied, "not allowlisted")
 		http.Error(writer, "forbidden", http.StatusForbidden)
 		return
@@ -115,6 +118,11 @@ func (p *Proxy) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	p.record(request.Method, target, DecisionAllowed, "")
 	_, _ = client.Write([]byte("HTTP/1.1 200 Connection Established\r\n\r\n"))
 	splice(client, buffered, upstream)
+}
+
+// allows reports whether the proxy forwards a CONNECT to the target.
+func (p *Proxy) allows(target string) bool {
+	return slices.Contains(p.Allow, container.AllowAll) || slices.Contains(p.Allow, target)
 }
 
 // splice copies both ways until either side closes.

@@ -66,7 +66,27 @@ func (p Preparer) Prepare(ctx context.Context, l plan.Layout, run config.Run, le
 			return prepared, err
 		}
 	}
+	if kinds, explicit := run.Arm.Require(); explicit {
+		if err := p.setRequire(l, kinds); err != nil {
+			return prepared, err
+		}
+	}
 	return prepared, p.steps(ctx, &prepared, plan.CommitEquipSteps())
+}
+
+// setRequire writes the arm's `proofs.require` into Shallnot's configuration,
+// once every module is enabled.
+func (p Preparer) setRequire(l plan.Layout, kinds []string) error {
+	path := filepath.Join(l.Project(), plan.ShallnotConfig)
+	current, err := p.Files.Read(path)
+	if err != nil {
+		return err
+	}
+	set, err := plan.SetRequire(current, kinds)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrPrepare, err)
+	}
+	return p.Files.Write(path, set, false)
 }
 
 func (p Preparer) bindOperations(l plan.Layout, operations map[string]map[string]string) error {

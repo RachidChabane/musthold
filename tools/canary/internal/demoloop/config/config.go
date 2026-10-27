@@ -12,6 +12,8 @@ import (
 	"math/rand/v2"
 	"regexp"
 	"slices"
+
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Arm is what a project is equipped with before the session starts.
@@ -25,6 +27,12 @@ const (
 	// ArmFourProofs adds the discriminating-power, alignment and completeness
 	// modules to Shallnot.
 	ArmFourProofs Arm = "four-proofs"
+	// ArmControl and ArmTreatment are the arms of the loop-1 study. Both equip the
+	// project with Shallnot and the proof modules, the same way; the gate of the
+	// control arm requires traceability alone, the gate of the treatment arm also
+	// requires discriminating power and alignment.
+	ArmControl   Arm = "control"
+	ArmTreatment Arm = "treatment"
 )
 
 // SkillRule is the permission rule that lets the session run the skills of the
@@ -32,10 +40,23 @@ const (
 const SkillRule = "Skill"
 
 // Arms lists every arm, in a fixed order.
-func Arms() []Arm { return []Arm{ArmTraceability, ArmFourProofs} }
+func Arms() []Arm { return []Arm{ArmTraceability, ArmFourProofs, ArmControl, ArmTreatment} }
 
 // WithModules reports whether the arm installs the proof modules.
-func (a Arm) WithModules() bool { return a == ArmFourProofs }
+func (a Arm) WithModules() bool { return a != ArmTraceability }
+
+// Require is the `proofs.require` list of Shallnot's configuration the arm
+// sets once the modules are enabled, and whether it sets one at all: the arms of
+// the loop-1 study set it explicitly, the others keep what `enable` writes.
+func (a Arm) Require() ([]string, bool) {
+	switch a {
+	case ArmControl:
+		return []string{}, true
+	case ArmTreatment:
+		return []string{string(format.KindDiscriminatingPower), string(format.KindAlignment)}, true
+	}
+	return nil, false
+}
 
 // Task is one piece of work given to an agent: the project it starts from, what
 // it is asked, and how the operations its spec's examples name bind to code.
@@ -76,6 +97,9 @@ type Config struct {
 	// AllowedTools are the permission rules of the session, in Claude Code's
 	// `permissions.allow` syntax.
 	AllowedTools []string `json:"allowed_tools"`
+	// Toolchain names the commands of the project's toolchain the session runs,
+	// such as python3; a run records the version each reports.
+	Toolchain []string `json:"toolchain,omitempty"`
 }
 
 // Run is one session the configuration asks for.
@@ -96,8 +120,9 @@ var (
 )
 
 var (
-	namePattern   = regexp.MustCompile(`^[a-z][a-z0-9-]{0,39}$`)
-	budgetPattern = regexp.MustCompile(`^[0-9]+\.[0-9]{2}$`)
+	commandPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._+-]*$`)
+	namePattern    = regexp.MustCompile(`^[a-z][a-z0-9-]{0,39}$`)
+	budgetPattern  = regexp.MustCompile(`^[0-9]+\.[0-9]{2}$`)
 )
 
 // Parse reads a configuration and checks every member a run depends on. Unknown
@@ -158,6 +183,11 @@ func (c Config) problems() []string {
 	for index, rule := range c.AllowedTools {
 		if rule == "" {
 			add("allowed_tools[%d]: empty rule", index)
+		}
+	}
+	for index, command := range c.Toolchain {
+		if !commandPattern.MatchString(command) {
+			add("toolchain[%d]: %q is not the name of a command", index, command)
 		}
 	}
 	if !slices.Contains(c.AllowedTools, SkillRule) {

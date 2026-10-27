@@ -27,8 +27,24 @@ const (
 	TmpDir          = "tmp"
 	ShimDir         = "shim"
 	ClaudeConfigDir = "claude-config"
+	// HomeDir is the run's own HOME, for a layout that has one.
+	HomeDir = "home"
 	// SessionSettings is the settings file the session reads besides the project's.
 	SessionSettings = "session-settings.json"
+	// StopObjectsDir is the run's own git object store, which holds the project's
+	// tree at each end-of-turn hook call; StopIndexFile is the index those trees
+	// are written with, apart from the project's.
+	StopObjectsDir = "objects"
+	StopIndexFile  = "stop.index"
+	// StopsRecordDir holds, in the records, one numbered directory per
+	// end-of-turn hook call, with the gate's report and the project's tree.
+	StopsRecordDir  = "stops"
+	StopReportFile  = "report.json"
+	StopTreeFile    = "tree.txt"
+	stopCaptureFile = "stop-capture.log"
+	// AcceptAsideDir holds, while the acceptance gate runs, the files of the
+	// project it restores from the equipped commit.
+	AcceptAsideDir = "accept-aside"
 )
 
 // Locations relative to the repository root.
@@ -72,6 +88,12 @@ type Layout struct {
 	// container mounts it: its binaries, the Claude Code CLI and the plugin
 	// trees. Empty, the binaries are the repository's own.
 	Product string
+	// ClaudePath is the Claude Code CLI the session runs, as its container sees it;
+	// empty, it is the product tree's.
+	ClaudePath string
+	// OwnHome gives the run a HOME of its own under the run directory, created
+	// empty, in place of the containers' scratch HOME.
+	OwnHome bool
 }
 
 // Parts of a product tree.
@@ -128,8 +150,20 @@ func (l Layout) Bin(name string) string {
 // BinDir is the directory of the binaries Bin names.
 func (l Layout) BinDir() string { return filepath.Dir(l.Bin(ShallnotBinary)) }
 
-// Claude is the Claude Code CLI of the product tree.
-func (l Layout) Claude() string { return filepath.Join(l.Product, ProductClaudeDir, ClaudeBinary) }
+// Claude is the Claude Code CLI the session runs: the layout's own, or the
+// product tree's.
+func (l Layout) Claude() string {
+	if l.ClaudePath != "" {
+		return l.ClaudePath
+	}
+	return filepath.Join(l.Product, ProductClaudeDir, ClaudeBinary)
+}
+
+// Home is the run's own HOME.
+func (l Layout) Home() string { return l.Path(HomeDir) }
+
+// Stops is the records' directory of the end-of-turn hook calls.
+func (l Layout) Stops() string { return l.Record(StopsRecordDir) }
 
 // pluginDir is a plugin tree of the product.
 func (l Layout) pluginDir(relative string) string {
@@ -138,7 +172,11 @@ func (l Layout) pluginDir(relative string) string {
 
 // Dirs lists the directories a run creates before it starts anything.
 func (l Layout) Dirs() []string {
-	return []string{l.Path(StateDir), l.Path(CacheDir), l.Path(TmpDir), l.Path(ShimDir), l.Records(), l.Path(ClaudeConfigDir)}
+	dirs := []string{l.Path(StateDir), l.Path(CacheDir), l.Path(TmpDir), l.Path(ShimDir), l.Records(), l.Path(ClaudeConfigDir)}
+	if l.OwnHome {
+		dirs = append(dirs, l.Home())
+	}
+	return dirs
 }
 
 // Step is one command of the preparation, run in the project.
@@ -289,10 +327,27 @@ func Shimmed(arm config.Arm) []string {
 	return names
 }
 
+// The tools of the session that reach the web.
+const (
+	WebFetchTool  = "WebFetch"
+	WebSearchTool = "WebSearch"
+)
+
+// WebTools are the tools a session that must reach no host but the model's is
+// denied.
+func WebTools() []string { return []string{WebFetchTool, WebSearchTool} }
+
+// permissions is the `permissions` block of the session settings.
+type permissions struct {
+	Allow []string `json:"allow"`
+	Deny  []string `json:"deny,omitempty"`
+}
+
 // SessionSettingsJSON is the settings file the session reads on top of the
-// project's: the permission rules of the configuration, and nothing else.
-func SessionSettingsJSON(rules []string) ([]byte, error) {
-	settings := map[string]map[string][]string{"permissions": {"allow": append([]string{}, rules...)}}
+// project's: the permission rules that allow, those that deny when any are
+// given, and nothing else.
+func SessionSettingsJSON(allow, deny []string) ([]byte, error) {
+	settings := map[string]permissions{"permissions": {Allow: append([]string{}, allow...), Deny: append([]string(nil), deny...)}}
 	encoded, err := json.MarshalIndent(settings, "", "  ")
 	return append(encoded, '\n'), err
 }
@@ -397,15 +452,97 @@ func ShimExports(l Layout, variables []string) []string {
 // hook calls of the real binary.
 func ShimScript(runner, real, hooksLog string, exports []string) string {
 	var script strings.Builder
+	writeShimExports(&script, exports)
+	fmt.Fprintf(&script, "exec %s\n", shimCall(runner, real, hooksLog))
+	return script.String()
+}
+
+func writeShimExports(script *strings.Builder, exports []string) {
 	script.WriteString("#!/bin/sh\n")
 	for _, variable := range exports {
 		name, value, _ := strings.Cut(variable, "=")
 		if name == pathVariable {
 			continue
 		}
-		fmt.Fprintf(&script, "export %s=%s\n", name, launch.Quote(value))
+		fmt.Fprintf(script, "export %s=%s\n", name, launch.Quote(value))
 	}
-	fmt.Fprintf(&script, "exec %s %s %s %s %s %s -- \"$@\"\n",
+}
+
+// shimCall hands the arguments over to the runner's shim.
+func shimCall(runner, real, hooksLog string) string {
+	return fmt.Sprintf("%s %s %s %s %s %s -- \"$@\"",
 		launch.Quote(runner), launch.ShimSubcommand, launch.FlagReal, launch.Quote(real), launch.FlagRecord, launch.Quote(hooksLog))
+}
+
+// The arguments of Shallnot's end-of-turn hook as a Claude Code session calls it.
+const (
+	hookArgument      = "hook"
+	claudeStopHook    = "claude-stop"
+	checkSubcommand   = "check"
+	jsonOutFlag       = "--json-out"
+	gitIndexVariable  = "GIT_INDEX_FILE"
+	gitObjectsVar     = "GIT_OBJECT_DIRECTORY"
+	gitAlternatesVar  = "GIT_ALTERNATE_OBJECT_DIRECTORIES"
+	projectObjectsRel = ".git/objects"
+)
+
+// StopShimScript is the shim of Shallnot for a run that records each end-of-turn
+// hook call: once the hook has returned, it numbers the call from 1, writes
+// Shallnot's JSON report on the same files with `check --json-out`, and writes
+// the project's tree id into the run's own object store through an index of its
+// own, so that neither the project's index nor its work tree changes. What the
+// capture prints goes to a log of the run, never to the harness, and the shim
+// exits with the hook's exit code.
+func StopShimScript(runner, real, hooksLog string, exports []string, l Layout) string {
+	var script strings.Builder
+	writeShimExports(&script, exports)
+	stops, project := launch.Quote(l.Stops()), launch.Quote(l.Project())
+	fmt.Fprintf(&script, "%s\nstatus=$?\n", shimCall(runner, real, hooksLog))
+	fmt.Fprintf(&script, "if [ \"${1:-}\" = %s ] && [ \"${2:-}\" = %s ]; then\n{\n", hookArgument, claudeStopHook)
+	fmt.Fprintf(&script, "  mkdir -p %s %s\n", stops, launch.Quote(l.Path(StopObjectsDir)))
+	fmt.Fprintf(&script, "  n=1\n  while [ -e %s/$n ]; do n=$((n + 1)); done\n  mkdir %s/$n\n", stops, stops)
+	fmt.Fprintf(&script, "  cd %s\n", project)
+	fmt.Fprintf(&script, "  %s %s %s %s/$n/%s\n", launch.Quote(real), checkSubcommand, jsonOutFlag, stops, StopReportFile)
+	fmt.Fprintf(&script, "  rm -f %s\n", launch.Quote(l.Path(StopIndexFile)))
+	fmt.Fprintf(&script, "  export %s=%s %s=%s %s=%s\n",
+		gitIndexVariable, launch.Quote(l.Path(StopIndexFile)),
+		gitObjectsVar, launch.Quote(l.Path(StopObjectsDir)),
+		gitAlternatesVar, launch.Quote(filepath.Join(l.Project(), projectObjectsRel)))
+	fmt.Fprintf(&script, "  %s add --all && %s write-tree > %s/$n/%s\n", GitBinary, GitBinary, stops, StopTreeFile)
+	fmt.Fprintf(&script, "} >>%s 2>&1 </dev/null\nfi\nexit $status\n", launch.Quote(l.Record(stopCaptureFile)))
 	return script.String()
 }
+
+// The files the acceptance gate restores from the equipped commit, and the shell
+// that moves them.
+var acceptRestored = []string{ShallnotConfig, "specs", "AGENTS.md"}
+
+const shellBinary = "sh"
+
+// AcceptanceSteps run the acceptance gate on the project a session left: the
+// first moves the session's Shallnot configuration, specs and AGENTS.md aside and
+// writes those of the equipped commit in their place; the second is the gate; the
+// third puts the session's own back, so that the project is again what the
+// session left.
+func AcceptanceSteps(l Layout, equipped, report string) []Step {
+	aside := l.Path(AcceptAsideDir)
+	paths := strings.Join(acceptRestored, " ")
+	restore := "set -eu\nmkdir -p \"$1\"\nfor p in " + paths + "; do if [ -e \"$p\" ] || [ -L \"$p\" ]; then mv \"$p\" \"$1/\"; fi; done\n" +
+		"kept=$(" + GitBinary + " ls-tree --name-only \"$2\" -- " + paths + ")\n" +
+		"if [ -n \"$kept\" ]; then " + GitBinary + " archive --format=tar \"$2\" -- $kept | tar -xf -; fi\n"
+	putBack := "set -eu\nfor p in " + paths + "; do rm -rf \"$p\"; if [ -e \"$1/$p\" ] || [ -L \"$1/$p\" ]; then mv \"$1/$p\" \"$p\"; fi; done\nrmdir \"$1\"\n"
+	return []Step{
+		{Argv: []string{shellBinary, "-c", restore, shellBinary, aside, equipped}, Purpose: "restore shallnot.yaml, specs/ and AGENTS.md from the equipped commit"},
+		{Argv: GateArgv(l, report), Purpose: "run the acceptance gate on the project the session left"},
+		{Argv: []string{shellBinary, "-c", putBack, shellBinary, aside}, Purpose: "put back the session's shallnot.yaml, specs/ and AGENTS.md"},
+	}
+}
+
+// BaseCommitArgv names the base commit of a prepared project, its root commit.
+func BaseCommitArgv() []string { return []string{GitBinary, "rev-list", "--max-parents=0", "HEAD"} }
+
+// HeadCommitArgv names the commit the project is at.
+func HeadCommitArgv() []string { return []string{GitBinary, "rev-parse", "HEAD"} }
+
+// TrackedFilesArgv lists the files of the commit the project is at, NUL-separated.
+func TrackedFilesArgv() []string { return []string{GitBinary, "ls-files", "-z"} }

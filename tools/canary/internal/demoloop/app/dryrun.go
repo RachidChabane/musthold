@@ -35,7 +35,7 @@ func (r Runner) printPlan(o Options, now time.Time, source canary.ClaudeCredenti
 		fmt.Fprintf(r.Stdout, "credentials: source %s, read once per session and written to the entry's standard input (%s)\n", source.Source(), container.TokenPlaceholder)
 	}
 	fmt.Fprintf(r.Stdout, "lock: %s\nwork: %s\nproduct (read-only): %s\nimage: %s\negress allowlist: %s\n",
-		filepath.Join(o.RepoRoot, canary.LockRelative), o.Work, o.Product, o.Image, strings.Join(container.ModelEndpoints(), ", "))
+		filepath.Join(o.RepoRoot, canary.LockRelative), o.Work, o.Product, o.Image, strings.Join(r.layout(o, o.Work).Box.Endpoints(), ", "))
 	runs := o.Config.Runs()
 	fmt.Fprintf(r.Stdout, "runs, in order: %d\n", len(runs))
 	for index, configured := range runs {
@@ -51,8 +51,38 @@ func (r Runner) printPlan(o Options, now time.Time, source canary.ClaudeCredenti
 // planLines are the commands of one run, in order.
 func (r Runner) planLines(o Options, configured config.Run) []string {
 	dir := filepath.Join(o.Work, runDirPrefix+configured.Name()+"-"+placeholderRun)
-	current := r.newRun(o, dir)
-	l := current.layout
+	planned := r.SessionPlan(o, configured, dir)
+	l := planned.Layout
+	lines := append([]string{
+		quoted(filepath.Join(o.RepoRoot, plan.MemGuardRelative), "check") + "   (on the host)",
+		"sha256 " + filepath.Join(o.Product, plan.ProductClaudeDir, plan.ClaudeBinary) + "   (recorded in run.json)",
+	}, planned.Lines...)
+	for _, argv := range plan.ChangeArgv() {
+		lines = append(lines, planned.Step(argv))
+	}
+	return append(lines,
+		"write "+l.Record(record.ChangeFile)+"   (what the git diff printed)",
+		planned.Step(plan.GateArgv(l, l.Record(record.FinalGateFile))),
+		"scan every record for the token and for any text of a token's shape; a hit fails the run",
+		"write "+l.Record(record.TranscriptMarkdown)+" and "+l.Record(record.TranscriptHTML),
+	)
+}
+
+// Planned is what a run starts up to the removal of its session's containers,
+// as the lines a dry run prints, with what renders any further step the same way.
+type Planned struct {
+	Layout plan.Layout
+	Lines  []string
+	// Step renders a command run in the project, in a step container of its own.
+	Step func(argv []string) string
+}
+
+// SessionPlan lists, in order, the commands of one run in the run directory
+// given, from the version check of the CLI to the removal of the session's
+// containers and network.
+func (r Runner) SessionPlan(o Options, configured config.Run, dir string) Planned {
+	current := r.layout(o, dir)
+	l := current.Layout
 	docker := strings.Join(o.Docker, " ")
 	step := func(argv []string) string {
 		current.steps.count++
@@ -60,12 +90,10 @@ func (r Runner) planLines(o Options, configured config.Run) []string {
 		if argv[0] == plan.GitBinary {
 			env = append(env, plan.GitEnvironment()...)
 		}
-		return container.Line(docker, current.box.StepArgv(current.steps.count, l.Project(), env, argv), false)
+		return container.Line(docker, current.Box.StepArgv(current.steps.count, l.Project(), env, argv), false)
 	}
 	lines := []string{
-		quoted(filepath.Join(o.RepoRoot, plan.MemGuardRelative), "check") + "   (on the host)",
-		"sha256 " + filepath.Join(o.Product, plan.ProductClaudeDir, plan.ClaudeBinary) + "   (recorded in run.json)",
-		step([]string{l.Claude(), versionArgument}) + "   (must report " + o.ClaudePin + ")",
+		step([]string{l.Claude(), versionArgument}) + "   (must begin with " + o.ClaudePin + ")",
 		fmt.Sprintf("copy %s -> %s   (on the host)", filepath.Join(o.RepoRoot, configured.Task.Fixture), l.Project()),
 	}
 	for _, planned := range append(plan.BaseSteps(), plan.EquipSteps(l, configured.Arm)...) {
@@ -75,38 +103,46 @@ func (r Runner) planLines(o Options, configured config.Run) []string {
 		block, _ := plan.BindOperations(nil, configured.Task.Operations)
 		lines = append(lines, "append to "+filepath.Join(l.Project(), plan.MustholdConfig)+":\n      "+strings.ReplaceAll(strings.TrimSpace(string(block)), "\n", "\n      "))
 	}
+	if kinds, explicit := configured.Arm.Require(); explicit {
+		lines = append(lines, "set proofs.require of "+filepath.Join(l.Project(), plan.ShallnotConfig)+" to ["+strings.Join(kinds, ", ")+"]")
+	}
 	for _, planned := range plan.CommitEquipSteps() {
 		lines = append(lines, step(planned.Argv))
+	}
+	settings := "permissions.allow: " + strings.Join(o.Config.AllowedTools, ", ")
+	if len(o.Profile.Deny) > 0 {
+		settings += "; permissions.deny: " + strings.Join(o.Profile.Deny, ", ")
 	}
 	lines = append(lines,
 		step(plan.GateArgv(l, l.Record(record.InitialGateFile))),
 		"write "+l.Path(plan.ClaudeConfigDir, launch.ClaudeGlobalConfigFile)+"   (the project trusted)",
-		"write "+l.Path(plan.SessionSettings)+"   (permissions.allow: "+strings.Join(o.Config.AllowedTools, ", ")+")",
+		"write "+l.Path(plan.SessionSettings)+"   ("+settings+")",
 	)
 	for _, name := range plan.Shimmed(configured.Arm) {
-		lines = append(lines, "write "+l.Path(plan.ShimDir, name)+"   (records the hook calls of "+l.Bin(name)+" in "+l.Record(record.HooksFile)+")")
+		line := "write " + l.Path(plan.ShimDir, name) + "   (records the hook calls of " + l.Bin(name) + " in " + l.Record(record.HooksFile)
+		if o.Profile.CaptureStops && name == plan.ShallnotBinary {
+			line += "; after each end-of-turn call, `" + plan.ShallnotBinary + " check --json-out` into " + filepath.Join(l.Stops(), "<n>", plan.StopReportFile) +
+				" and the project's tree id into " + filepath.Join(l.Stops(), "<n>", plan.StopTreeFile)
+		}
+		lines = append(lines, line+")")
 	}
-	session := sessionOf(o, l, current.box, configured)
+	session := SessionOf(o, current, configured)
 	lines = append(lines,
-		container.Line(docker, current.box.NetworkArgv(), false)+"   (no route out)",
-		container.Line(docker, current.box.ProxyArgv(l.Record(record.EgressFile)), false),
-		container.Line(docker, current.box.ConnectArgv(), false),
+		container.Line(docker, current.Box.NetworkArgv(), false)+"   (no route out)",
+		container.Line(docker, current.Box.ProxyArgv(l.Record(record.EgressFile)), false),
+		container.Line(docker, current.Box.ConnectArgv(), false),
 		container.Line(session.argv[0], session.argv[1:], true),
 		fmt.Sprintf("caps: %d assistant messages (the subagents' included), %d s, %s USD; the docker client's process group ends at a cap",
 			o.Config.Caps.AssistantMessages, o.Config.Caps.Seconds, o.Config.Caps.BudgetUSD),
-		container.Line(docker, current.box.RemoveArgv(), false),
-		container.Line(docker, current.box.NetworkRemoveArgv(), false),
 	)
-	for _, argv := range plan.ChangeArgv() {
-		lines = append(lines, step(argv))
+	if o.Profile.InspectSession {
+		lines = append(lines, container.Line(docker, container.StateArgv(current.Box.SessionName()), false)+"   (the exit code and OOMKilled alone)")
 	}
 	lines = append(lines,
-		"write "+l.Record(record.ChangeFile)+"   (what the git diff printed)",
-		step(plan.GateArgv(l, l.Record(record.FinalGateFile))),
-		"scan every record for the token and for any text of a token's shape; a hit fails the run",
-		"write "+l.Record(record.TranscriptMarkdown)+" and "+l.Record(record.TranscriptHTML),
+		container.Line(docker, current.Box.RemoveArgv(), false),
+		container.Line(docker, current.Box.NetworkRemoveArgv(), false),
 	)
-	return lines
+	return Planned{Layout: l, Lines: lines, Step: step}
 }
 
 func quoted(words ...string) string {

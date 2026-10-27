@@ -21,23 +21,45 @@ type Collector struct {
 // left, the outcomes of the steps and the run's description.
 func (c Collector) Collect(ctx context.Context, prepared *Prepared, meta record.Meta) error {
 	l := prepared.Layout
+	if err := c.Change(ctx, prepared); err != nil {
+		return err
+	}
+	gate := plan.Step{Argv: plan.GateArgv(l, l.Record(record.FinalGateFile)), Purpose: "run the gate on the project the session left"}
+	if _, err := c.Steps(ctx, prepared, []plan.Step{gate}); err != nil {
+		return err
+	}
+	return c.Describe(l, meta)
+}
+
+// Change records the session's change against the equipped commit, new files
+// included.
+func (c Collector) Change(ctx context.Context, prepared *Prepared) error {
 	change, err := c.change(ctx, prepared)
 	if err != nil {
 		return err
 	}
-	if err := c.Files.Write(l.Record(record.ChangeFile), []byte(change), false); err != nil {
-		return err
+	return c.Files.Write(prepared.Layout.Record(record.ChangeFile), []byte(change), false)
+}
+
+// Steps runs collection steps in the project, records them with the
+// preparation's, and returns their outcomes; a step that exits non-zero is an
+// outcome, not an error.
+func (c Collector) Steps(ctx context.Context, prepared *Prepared, steps []plan.Step) ([]record.Step, error) {
+	var outcomes []record.Step
+	for _, step := range steps {
+		outcome, err := c.Preparer.Run(ctx, prepared.Layout, prepared.Environment, step)
+		prepared.Steps = append(prepared.Steps, outcome)
+		outcomes = append(outcomes, outcome)
+		if err != nil {
+			return outcomes, err
+		}
 	}
-	gate := plan.Step{Argv: plan.GateArgv(l, l.Record(record.FinalGateFile)), Purpose: "run the gate on the project the session left"}
-	outcome, err := c.Preparer.Run(ctx, l, prepared.Environment, gate)
-	prepared.Steps = append(prepared.Steps, outcome)
-	if err != nil {
-		return err
-	}
-	if err := WriteSteps(c.Files, l.Record(record.StepsFile), prepared.Steps); err != nil {
-		return err
-	}
-	encoded, err := encodeJSON(meta)
+	return outcomes, WriteSteps(c.Files, prepared.Layout.Record(record.StepsFile), prepared.Steps)
+}
+
+// Describe writes the run's description, run.json.
+func (c Collector) Describe(l plan.Layout, description any) error {
+	encoded, err := encodeJSON(description)
 	if err != nil {
 		return err
 	}
