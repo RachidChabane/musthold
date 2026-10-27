@@ -4,13 +4,13 @@ The `oracle` verb of the loop-1 study (`experiments/loop-1/PREREG.md`, §4).
 
 ## Oracle run
 
-- **SP-2560~1**: WHEN the oracle judges an attempt THE SYSTEM SHALL build a
+- **SP-2560~2**: WHEN the oracle judges an attempt THE SYSTEM SHALL build a
   temporary tree from the project the session left, without its `tests/`,
   `.musthold/`, `test-results/` and `.git` entries and without any `oracle`
   directory of its own, add the task's `oracle/` to it, and run the command of
   PREREG §4.1 in it three times through the box runner, each run under the
   300 s limit; and SHALL fail with an error, and write no verdict, when the box
-  cannot run the command or kills the container for memory.
+  cannot run the command.
 
 - **SP-2561~1**: WHEN an oracle test's result is read from a pytest run THE
   SYSTEM SHALL count the test as failed when its JUnit case has a failure or an
@@ -19,9 +19,10 @@ The `oracle` verb of the loop-1 study (`experiments/loop-1/PREREG.md`, §4).
   missing, unreadable or without a case, and count a test the run did not list as
   failed.
 
-- **SP-2562~1**: WHEN an oracle run reaches its limit THE SYSTEM SHALL count
-  every oracle test as failing in that run, whatever report the run wrote, and
-  record the run as timed out.
+- **SP-2562~2**: WHEN an oracle or held-out run reaches its limit, or its
+  container is killed for memory, THE SYSTEM SHALL count every test as failing in
+  that run, whatever report the run wrote, and record an oracle run as timed out
+  or killed for memory.
 
 - **SP-2563~1**: WHEN the oracle tests of an attempt are judged THE SYSTEM SHALL
   map each test to the criterion named by its file, `test_<criterion>.py` with

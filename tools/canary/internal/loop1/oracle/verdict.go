@@ -3,6 +3,8 @@ package oracle
 import (
 	"slices"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
+
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -25,6 +27,9 @@ const (
 	RunCollectionFailed
 	// RunTimedOut: the run reached its limit.
 	RunTimedOut
+	// RunOOMKilled: the container was killed for memory, which counts as a run
+	// that reached its limit.
+	RunOOMKilled
 )
 
 // RunReport is what one pytest run established: the failed flag of every test it
@@ -35,15 +40,18 @@ type RunReport struct {
 }
 
 // ClassifyRun turns the end of a pytest command into a report. The rule: a run
-// that reached its limit is timed out; a run whose exit code is neither 0 nor 1,
-// or whose JUnit report is missing, unreadable or empty, failed at collection or
-// import; any other run lists its cases, each failing when it has a failure or
-// error child.
-func ClassifyRun(timedOut bool, exitCode int, junit []byte) RunReport {
-	if timedOut {
+// that reached its limit is timed out, and a run killed for memory counts the
+// same; a run whose exit code is neither 0 nor 1, or whose JUnit report is
+// missing, unreadable or empty, failed at collection or import; any other run
+// lists its cases, each failing when it has a failure or error child.
+func ClassifyRun(result box.Result, junit []byte) RunReport {
+	switch {
+	case result.TimedOut:
 		return RunReport{State: RunTimedOut}
+	case result.OOMKilled:
+		return RunReport{State: RunOOMKilled}
 	}
-	if exitCode != exitAllPassed && exitCode != exitSomeFailed {
+	if exitCode := result.ExitCode; exitCode != exitAllPassed && exitCode != exitSomeFailed {
 		return RunReport{State: RunCollectionFailed}
 	}
 	cases, err := ParseJUnit(junit)
@@ -97,6 +105,7 @@ func OracleVerdict(reports [study.OracleRuns]RunReport, files []string) study.Or
 	oracle := study.Oracle{Tests: make([]study.OracleTest, 0, len(ids)), Violated: []string{}, Flaky: []string{}}
 	for run, report := range reports {
 		oracle.TimedOut[run] = report.State == RunTimedOut
+		oracle.OOMKilled[run] = report.State == RunOOMKilled
 	}
 	violated := map[string]bool{}
 	for _, id := range ids {

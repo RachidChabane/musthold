@@ -7,6 +7,7 @@ import (
 
 	"pgregory.net/rapid"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -32,7 +33,7 @@ func TestClassifyRun(t *testing.T) {
 			if name != "pass" {
 				exit = exitSomeFailed
 			}
-			report := ClassifyRun(false, exit, []byte(tc.junit))
+			report := ClassifyRun(box.Result{ExitCode: exit}, []byte(tc.junit))
 			if report.State != RunExecuted || len(report.Failed) != len(tc.want) {
 				t.Fatalf("%s: report %+v", name, report)
 			}
@@ -47,12 +48,12 @@ func TestClassifyRun(t *testing.T) {
 	t.Run("a collection or import failure leaves no result [verifies SP-2561~1]", func(t *testing.T) {
 		const interrupted, noTests, internalError = 2, 5, 3
 		for name, report := range map[string]RunReport{
-			"interrupted by collection": ClassifyRun(false, interrupted, []byte(junitError)),
-			"nothing collected":         ClassifyRun(false, noTests, nil),
-			"internal error":            ClassifyRun(false, internalError, []byte(junitPass)),
-			"missing report":            ClassifyRun(false, exitAllPassed, nil),
-			"unreadable report":         ClassifyRun(false, exitSomeFailed, []byte("<testsuite>")),
-			"empty report":              ClassifyRun(false, exitAllPassed, []byte("<testsuite/>")),
+			"interrupted by collection": ClassifyRun(box.Result{ExitCode: interrupted}, []byte(junitError)),
+			"nothing collected":         ClassifyRun(box.Result{ExitCode: noTests}, nil),
+			"internal error":            ClassifyRun(box.Result{ExitCode: internalError}, []byte(junitPass)),
+			"missing report":            ClassifyRun(box.Result{ExitCode: exitAllPassed}, nil),
+			"unreadable report":         ClassifyRun(box.Result{ExitCode: exitSomeFailed}, []byte("<testsuite>")),
+			"empty report":              ClassifyRun(box.Result{ExitCode: exitAllPassed}, []byte("<testsuite/>")),
 		} {
 			if report.State != RunCollectionFailed || !report.failedTest("any") {
 				t.Errorf("%s: %+v", name, report)
@@ -60,9 +61,16 @@ func TestClassifyRun(t *testing.T) {
 		}
 	})
 
-	t.Run("a run at its limit is timed out whatever it wrote [verifies SP-2562~1]", func(t *testing.T) {
-		report := ClassifyRun(true, exitAllPassed, []byte(junitPass))
+	t.Run("a run at its limit is timed out whatever it wrote [verifies SP-2562~2]", func(t *testing.T) {
+		report := ClassifyRun(box.Result{TimedOut: true, ExitCode: exitAllPassed}, []byte(junitPass))
 		if report.State != RunTimedOut || !report.failedTest("oracle.test_box_4::test_a") {
+			t.Fatalf("%+v", report)
+		}
+	})
+
+	t.Run("a run killed for memory fails every test whatever it wrote [verifies SP-2562~2]", func(t *testing.T) {
+		report := ClassifyRun(box.Result{OOMKilled: true, ExitCode: exitAllPassed}, []byte(junitPass))
+		if report.State != RunOOMKilled || !report.failedTest("oracle.test_box_4::test_a") {
 			t.Fatalf("%+v", report)
 		}
 	})
@@ -93,7 +101,7 @@ func TestOracleVerdict(t *testing.T) {
 		}
 	})
 
-	t.Run("a run at its limit counts as every test failing [verifies SP-2562~1]", func(t *testing.T) {
+	t.Run("a run at its limit counts as every test failing [verifies SP-2562~2]", func(t *testing.T) {
 		verdict := OracleVerdict([3]RunReport{passing, {State: RunTimedOut}, {State: RunTimedOut}}, nil)
 		if !verdict.Defective || verdict.TimedOut != [3]bool{false, true, true} ||
 			!slices.Equal(verdict.Violated, []string{"BOX-4", "BOX-5"}) {

@@ -16,7 +16,7 @@ import (
 )
 
 func TestOracleRun(t *testing.T) {
-	t.Run("the oracle tree and its command are those of PREREG 4.1 [verifies SP-2560~1]", func(t *testing.T) {
+	t.Run("the oracle tree and its command are those of PREREG 4.1 [verifies SP-2560~2]", func(t *testing.T) {
 		s := newScenario(t)
 		var trees []map[string]string
 		s.box.pytest = func(call pytestCall) fakeOutcome {
@@ -64,7 +64,7 @@ func TestOracleRun(t *testing.T) {
 		}
 	})
 
-	t.Run("a defective and a flaky test reach oracle.json [verifies SP-2560~1, SP-2563~1]", func(t *testing.T) {
+	t.Run("a defective and a flaky test reach oracle.json [verifies SP-2560~2, SP-2563~1]", func(t *testing.T) {
 		s := newScenario(t)
 		write(t, s.runDir, "project/pkg/mod.py", "BAD2 FLAKY\n")
 		if err := s.verb.Execute(context.Background()); err != nil {
@@ -82,7 +82,7 @@ func TestOracleRun(t *testing.T) {
 		}
 	})
 
-	t.Run("a run at its limit fails every test [verifies SP-2562~1]", func(t *testing.T) {
+	t.Run("a run at its limit fails every test [verifies SP-2562~2]", func(t *testing.T) {
 		s := newScenario(t)
 		s.box.pytest = func(call pytestCall) fakeOutcome {
 			if call.Kind == kindOracle && call.Run >= 2 {
@@ -116,15 +116,20 @@ func TestOracleRun(t *testing.T) {
 		}
 	})
 
-	t.Run("a container killed for memory is an error, not a verdict [verifies SP-2560~1]", func(t *testing.T) {
+	t.Run("a container killed for memory fails every test of its run [verifies SP-2562~2]", func(t *testing.T) {
 		s := newScenario(t)
-		s.box.pytest = func(pytestCall) fakeOutcome { return fakeOutcome{OOM: true} }
-		err := s.verb.Execute(context.Background())
-		if !errors.Is(err, ErrOOMKilled) {
-			t.Fatalf("%v", err)
+		s.box.pytest = func(call pytestCall) fakeOutcome {
+			if call.Kind == kindOracle && call.Run >= 2 {
+				return fakeOutcome{OOM: true}
+			}
+			return s.behave(call)
 		}
-		if _, statErr := os.Stat(OraclePath(s.runDir)); !os.IsNotExist(statErr) {
-			t.Fatal("oracle.json written")
+		if err := s.verb.Execute(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		oracle := s.readOracle()
+		if !oracle.Defective || oracle.OOMKilled != [3]bool{false, true, true} || oracle.TimedOut != [3]bool{} || !slices.Equal(oracle.Violated, []string{"DEMO-1", "DEMO-2"}) {
+			t.Fatalf("%+v", oracle)
 		}
 	})
 }
@@ -160,6 +165,22 @@ func TestHeldOut(t *testing.T) {
 		wantStop2 := map[string]bool{"DEMO-1/1": true, "DEMO-1/2": true, "DEMO-2/1": true}
 		if !maps.Equal(heldOut[study.StopDir(2)].Killed, wantStop2) {
 			t.Errorf("stop 2 kills %v", heldOut[study.StopDir(2)].Killed)
+		}
+	})
+
+	t.Run("a held-out run killed for memory fails every test of its run [verifies SP-2562~2]", func(t *testing.T) {
+		s := newScenario(t)
+		s.box.pytest = func(call pytestCall) fakeOutcome {
+			if call.Kind == kindHeldOut && strings.Contains(call.Dir, "violation-"+study.DirFinal+"-DEMO-1_2") && call.Run >= 2 {
+				return fakeOutcome{OOM: true}
+			}
+			return s.behave(call)
+		}
+		if err := s.verb.Execute(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		if !s.readHeldOut()[study.DirFinal].Killed["DEMO-1/2"] {
+			t.Fatal("a violation whose runs were killed for memory is not killed")
 		}
 	})
 

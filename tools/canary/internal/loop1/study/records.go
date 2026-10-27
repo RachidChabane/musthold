@@ -86,7 +86,8 @@ type OracleTest struct {
 	ID        string `json:"id"`
 	Criterion string `json:"criterion"`
 	// Failed holds, per run, whether the test failed: a failure or error child,
-	// a failed collection or import, or a run past its limit.
+	// a failed collection or import, a run past its limit or a run killed for
+	// memory.
 	Failed [OracleRuns]bool `json:"failed"`
 }
 
@@ -99,8 +100,11 @@ func (t OracleTest) Flaky() bool { return count(t.Failed[:]) == 1 }
 // Oracle is oracle.json of a run (PREREG §4.1, §4.2).
 type Oracle struct {
 	Tests []OracleTest `json:"tests"`
-	// TimedOut holds, per run, whether the run reached its limit.
-	TimedOut [OracleRuns]bool `json:"timedOut"`
+	// TimedOut holds, per run, whether the run reached its limit; OOMKilled
+	// whether its container was killed for memory. Either fails every test of
+	// the run.
+	TimedOut  [OracleRuns]bool `json:"timedOut"`
+	OOMKilled [OracleRuns]bool `json:"oomKilled"`
 	// Defective is whether the final change is defective; Violated the criteria
 	// with a defective test; Flaky the tests that failed in exactly one run.
 	Defective bool     `json:"defective"`

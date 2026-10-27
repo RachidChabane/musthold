@@ -80,9 +80,6 @@ func (p pytestRunner) runOnce(ctx context.Context, dir, out string, argv []strin
 	if err != nil {
 		return RunReport{}, fmt.Errorf("%w: %v", ErrBox, err)
 	}
-	if result.OOMKilled {
-		return RunReport{}, fmt.Errorf("%w: exit %d", ErrOOMKilled, result.ExitCode)
-	}
 	junit, _ := os.ReadFile(out)
-	return ClassifyRun(result.TimedOut, result.ExitCode, junit), nil
+	return ClassifyRun(result, junit), nil
 }

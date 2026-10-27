@@ -49,7 +49,6 @@ var (
 	ErrPhaseNotEnded = errors.New("the run phase has not ended: the oracle runs only after it (PREREG §6.6)")
 	ErrNotWired      = errors.New("the oracle verb has no box runner or phase gate wired")
 	ErrBox           = errors.New("the box could not run the command")
-	ErrOOMKilled     = errors.New("the container was killed for memory")
 	ErrRecords       = errors.New("the attempt's records cannot be read")
 	ErrTruth         = errors.New("the task's truth files cannot be read")
 	ErrArchive       = errors.New("the repository archive cannot be read")

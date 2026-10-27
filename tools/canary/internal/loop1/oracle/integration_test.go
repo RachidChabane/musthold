@@ -48,7 +48,7 @@ func TestOracleInContainers(t *testing.T) {
 	truth := Truth{Oracle: oracleDir}
 	judge := NewJudge(wiring.Runner, filepath.Join(scratch, "jobs"))
 
-	t.Run("the fixture passes the oracle [verifies SP-2560~1]", func(t *testing.T) {
+	t.Run("the fixture passes the oracle [verifies SP-2560~2]", func(t *testing.T) {
 		verdict, err := judge.Oracle(context.Background(), runDir, truth)
 		if err != nil {
 			t.Fatal(err)
@@ -58,7 +58,7 @@ func TestOracleInContainers(t *testing.T) {
 		}
 	})
 
-	t.Run("a broken operation fails the oracle in three runs [verifies SP-2560~1]", func(t *testing.T) {
+	t.Run("a broken operation fails the oracle in three runs [verifies SP-2560~2]", func(t *testing.T) {
 		source := filepath.Join(runDir, ProjectDir, "boxoffice", "prices.py")
 		if err := os.WriteFile(source, []byte("def ticket_price(age):\n    return 0\n"), 0o644); err != nil {
 			t.Fatal(err)
