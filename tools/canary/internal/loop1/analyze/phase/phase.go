@@ -16,12 +16,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
 // CalendarCap ends the run phase this long after the start of the first run.
 const CalendarCap = 28 * 24 * time.Hour
+
+// RecordsDir is the directory of an attempt that holds its records and the
+// analysis's files.
+const RecordsDir = plan.RecordsDir
+
+// Records is the records directory of an attempt directory.
+func Records(attemptDir string) string { return filepath.Join(attemptDir, RecordsDir) }
 
 // Attempt is one attempt of a run: its number, from 1, its directory and its
 // run.json.
@@ -30,6 +38,9 @@ type Attempt struct {
 	Dir    string
 	Run    study.Run
 }
+
+// Records is the directory of the attempt's records.
+func (a Attempt) Records() string { return Records(a.Dir) }
 
 // RunState is a run of the order with its attempts and its state.
 type RunState struct {
@@ -147,7 +158,8 @@ func (p Phase) Require() error {
 const attemptSeparator = "-"
 
 // Load reads the attempts of every run of the order from the work directory: each
-// directory of runs/ named <run>-<attempt>, ordered by attempt number.
+// directory of runs/ named <run>-<attempt>, ordered by attempt number, with the
+// run.json of its records.
 func Load(work study.Layout, order []string) (map[string][]Attempt, error) {
 	root := filepath.Join(work.Root, study.RunsDir)
 	entries, err := os.ReadDir(root)
@@ -167,7 +179,7 @@ func Load(work study.Layout, order []string) (map[string][]Attempt, error) {
 			continue
 		}
 		dir := filepath.Join(root, entry.Name())
-		run, err := readRun(dir)
+		run, err := readRun(Records(dir))
 		if err != nil {
 			return nil, err
 		}
@@ -194,7 +206,7 @@ func attemptOf(dir string, order []string) (string, int, bool) {
 	return name, number, true
 }
 
-// readRun reads an attempt's run.json; an attempt that has not written it yet
+// readRun reads the run.json of a records directory; an attempt that has not written it yet
 // has no outcome.
 func readRun(dir string) (study.Run, error) {
 	var run study.Run

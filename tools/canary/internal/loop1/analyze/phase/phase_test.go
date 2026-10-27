@@ -106,7 +106,7 @@ func TestLoad(t *testing.T) {
 		root := t.TempDir()
 		layout := study.Layout{Root: root}
 		write := func(run string, attempt int, outcome study.Outcome) {
-			dir := layout.RunDir(run, attempt)
+			dir := Records(layout.RunDir(run, attempt))
 			if err := os.MkdirAll(dir, 0o755); err != nil {
 				t.Fatal(err)
 			}
