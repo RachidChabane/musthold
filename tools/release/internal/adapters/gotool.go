@@ -9,8 +9,11 @@ import (
 )
 
 const (
-	goBinary        = "go"
-	testTimeout     = "45m"
+	goBinary = "go"
+	// testTimeout is the per-package limit of discpower's own test command (its
+	// shallnot.yaml), the module with the longest packages: its end-to-end
+	// packages run for more than an hour on a hosted runner.
+	testTimeout     = "240m"
 	testParallelism = "1"
 )
 

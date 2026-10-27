@@ -63,7 +63,9 @@ jobs:
     name: build
     needs: [plan, ci]
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    # The pre-flight runs the module's whole suite outside the workspace, one
+    # package at a time; for discpower that is about three hours on a hosted runner.
+    timeout-minutes: 330
     permissions:
       contents: read
     steps:
