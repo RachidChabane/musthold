@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Run the docker client against the study's engine, never against the user's current context,
+# and with a client configuration of its own, which names no credential helper, so that no
+# registry credential of the user is read or used. It is the demonstration's docker script
+# (demo/loop/container/docker) with the study's profile and client configuration.
+#
+#   script/docker ARGS...
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=experiments/loop-1/script/_engine
+source "${here}/_engine"
+exec "${here}/../../../demo/loop/container/docker" "$@"

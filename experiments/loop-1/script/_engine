@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# The machine and client configuration of the study's engine, as the demonstration's engine and
+# docker scripts (demo/loop/container) take them from the environment; source it, never run it.
+
+export ENGINE_PROFILE="musthold-loop-1"
+export ENGINE_CPUS=2
+export ENGINE_MEMORY_GIB=4
+export ENGINE_DISK_GIB=30
+ENGINE_CLIENT_CONFIG="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/.tools/loop-1/docker-config"
+export ENGINE_CLIENT_CONFIG

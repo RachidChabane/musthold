@@ -6,7 +6,9 @@
 #   demo/loop/container/docker ARGS...
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly CLIENT_CONFIG="${here}/../../../.tools/demo-loop/docker-config"
+# ENGINE_CLIENT_CONFIG replaces the client configuration directory, for another study; the
+# engine's own ENGINE_PROFILE selects the socket.
+readonly CLIENT_CONFIG="${ENGINE_CLIENT_CONFIG:-${here}/../../../.tools/demo-loop/docker-config}"
 mkdir -p "${CLIENT_CONFIG}"
 [[ -f "${CLIENT_CONFIG}/config.json" ]] || echo '{}' >"${CLIENT_CONFIG}/config.json"
 DOCKER_HOST="$("${here}/engine" host)"

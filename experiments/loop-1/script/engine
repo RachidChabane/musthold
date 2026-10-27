@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# The container engine of the agent-loop study (PREREG 7.1): one colima machine of its own
+# profile, with 2 CPUs, 4 GiB of memory and a 30 GiB disk, whose only mounts are $LOOP1_WORK,
+# read-write, and $LOOP1_PRODUCT, read-only. It is the demonstration's engine script
+# (demo/loop/container/engine) with the study's machine and mounts.
+#
+#   script/engine start    start the machine (a no-op when it runs)
+#   script/engine stop     stop the machine whatever its state
+#   script/engine host     print the DOCKER_HOST every docker command names
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=experiments/loop-1/script/_paths
+source "${here}/_paths"
+# shellcheck source=experiments/loop-1/script/_engine
+source "${here}/_engine"
+
+mkdir -p "${LOOP1_WORK}" "${LOOP1_PRODUCT}"
+ENGINE_WORK="$(cd "${LOOP1_WORK}" && pwd -P)"
+ENGINE_PRODUCT="$(cd "${LOOP1_PRODUCT}" && pwd -P)"
+export ENGINE_WORK ENGINE_PRODUCT
+exec "${here}/../../../demo/loop/container/engine" "$@"
