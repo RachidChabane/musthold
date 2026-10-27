@@ -4,15 +4,18 @@
 # A verb runs as `musthold-demo-loop <verb> --config experiments/loop-1/loop-1.json --work $LOOP1_WORK`,
 # from the repository root. The runner is built from tools/canary into .tools/bin. Heavy verbs go through
 # script/mem-guard run, which applies nice and refuses to start, or stops, when the laptop's free memory or
-# pressure level is not safe. $LOOP1_WORK (default ~/.musthold-loop-1) holds every raw record.
+# pressure level is not safe. $LOOP1_WORK (default ~/.musthold-loop-1) holds every raw record. A verb that
+# runs containers starts the study's engine (script/engine) before its first container and stops it when it
+# ends, whatever its exit (PREREG 7.1).
 
 LOOP1_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="$(cd "${LOOP1_DIR}/../.." && pwd)"
 RUNNER="${REPO_ROOT}/.tools/bin/musthold-demo-loop"
+ENGINE="${LOOP1_DIR}/script/engine"
 MEM_GUARD="${REPO_ROOT}/script/mem-guard"
 CONFIG="${LOOP1_CONFIG:-${LOOP1_DIR}/loop-1.json}"
 WORK="${LOOP1_WORK:-${HOME}/.musthold-loop-1}"
-readonly LOOP1_DIR REPO_ROOT RUNNER MEM_GUARD CONFIG WORK
+readonly LOOP1_DIR REPO_ROOT RUNNER ENGINE MEM_GUARD CONFIG WORK
 readonly BUILD_PROCS=1 BUILD_GOMAXPROCS=2 BUILD_NICE=10
 
 # build_runner: compile the runner from tools/canary, one job at a time.
@@ -34,4 +37,10 @@ loop1_heavy() {
   build_runner
   cd "${REPO_ROOT}" || return
   "${MEM_GUARD}" run -- "${RUNNER}" "$1" --config "${CONFIG}" --work "${WORK}" "${@:2}"
+}
+
+# with_engine: start the study's engine now and stop it when the verb's shell exits, whatever its exit.
+with_engine() {
+  trap '"${ENGINE}" stop' EXIT
+  "${ENGINE}" start
 }

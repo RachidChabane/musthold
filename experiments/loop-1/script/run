@@ -5,4 +5,5 @@
 set -euo pipefail
 # shellcheck source=experiments/loop-1/script/_lib
 source "$(dirname "${BASH_SOURCE[0]}")/_lib"
+with_engine
 loop1_heavy run "$@"
