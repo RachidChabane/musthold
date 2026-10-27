@@ -15,6 +15,13 @@ const fixtureFromRepo = "demo/loop/fixture/boxoffice"
 // TestOracleInContainers runs the real command of PREREG §4.1 through the
 // study's runner, on the boxoffice fixture with a hand-written oracle.
 func TestOracleInContainers(t *testing.T) {
+	const (
+		passCheck   = "the fixture passes the oracle [verifies SP-2560~2]"
+		brokenCheck = "a broken operation fails the oracle in three runs [verifies SP-2560~2]"
+	)
+	if !dockertest.Ready(t, passCheck, brokenCheck) {
+		return
+	}
 	world := dockertest.New(t)
 	runDir := filepath.Join(world.Work, "run")
 	if err := copyTree(filepath.Join(world.Repo, fixtureFromRepo), filepath.Join(runDir, study.ProjectDir), skipNothing); err != nil {
@@ -26,7 +33,7 @@ func TestOracleInContainers(t *testing.T) {
 	truth := Truth{Oracle: oracleDir}
 	judge := NewJudge(world.Runner, filepath.Join(world.Work, "jobs"))
 
-	t.Run("the fixture passes the oracle [verifies SP-2560~2]", func(t *testing.T) {
+	t.Run(passCheck, func(t *testing.T) {
 		verdict, err := judge.Oracle(context.Background(), runDir, truth)
 		if err != nil {
 			t.Fatal(err)
@@ -36,7 +43,7 @@ func TestOracleInContainers(t *testing.T) {
 		}
 	})
 
-	t.Run("a broken operation fails the oracle in three runs [verifies SP-2560~2]", func(t *testing.T) {
+	t.Run(brokenCheck, func(t *testing.T) {
 		source := filepath.Join(runDir, study.ProjectDir, "boxoffice", "prices.py")
 		if err := os.WriteFile(source, []byte("def ticket_price(age):\n    return 0\n"), 0o644); err != nil {
 			t.Fatal(err)

@@ -45,6 +45,20 @@ func Skip(t testing.TB) {
 	}
 }
 
+// Ready reports whether the container tests run; while they do not, it reports
+// each named check as a skipped subtest, so that the results still name what was
+// not checked.
+func Ready(t *testing.T, checks ...string) bool {
+	t.Helper()
+	if Enabled() {
+		return true
+	}
+	for _, check := range checks {
+		t.Run(check, func(t *testing.T) { Skip(t) })
+	}
+	return false
+}
+
 // New readies the world, or skips the test while the container tests are not
 // enabled. A missing product fails the test.
 func New(t testing.TB) World {

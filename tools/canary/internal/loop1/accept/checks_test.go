@@ -266,54 +266,54 @@ func writeFile(t *testing.T, location, content string) {
 
 func TestBehaviourChecks(t *testing.T) {
 	cases := []struct {
-		requirement string
-		check       string
-		name        string
-		mutate      func(h *harness)
-		author      string
-		oracle      string
+		tag    string
+		check  string
+		name   string
+		mutate func(h *harness)
+		author string
+		oracle string
 	}{
-		{"SP-2552~1", accept.CheckFixture, "fixture tests that fail", func(h *harness) {
+		{"[verifies SP-2552~1]", accept.CheckFixture, "fixture tests that fail", func(h *harness) {
 			h.edit("fixture/fare/zones.py", "return 2\n", "return 2  # BREAKS: FARE-1\n")
 		}, "do not pass", ""},
-		{"SP-2553~1", accept.CheckReference, "a reference that fails the oracle", func(h *harness) {
+		{"[verifies SP-2553~1]", accept.CheckReference, "a reference that fails the oracle", func(h *harness) {
 			h.edit("reference/zones.py", "    return 5\n", "    return 5  # BREAKS: FARE-2\n")
 		}, "fails spec tests", "these tests fail"},
-		{"SP-2553~1", accept.CheckBase, "a fixture that already satisfies the task criterion", func(h *harness) {
+		{"[verifies SP-2553~1]", accept.CheckBase, "a fixture that already satisfies the task criterion", func(h *harness) {
 			h.edit("fixture/fare/zones.py", "  # BREAKS: FARE-4", "")
 		}, "already behaves", "no test of FARE-4 fails"},
-		{"SP-2553~1", accept.CheckBase, "a fixture that fails the oracle of another criterion", func(h *harness) {
+		{"[verifies SP-2553~1]", accept.CheckBase, "a fixture that fails the oracle of another criterion", func(h *harness) {
 			h.edit("fixture/fare/zones.py", "return 5\n", "return 5  # BREAKS: FARE-2\n")
 		}, "fails spec tests of other criteria", "these tests fail"},
-		{"SP-2554~1", accept.CheckDiagonal, "a violation no oracle test notices", func(h *harness) {
+		{"[verifies SP-2554~1]", accept.CheckDiagonal, "a violation no oracle test notices", func(h *harness) {
 			h.edit("violations/FARE-1/1/zones.py", "# BREAKS: FARE-1", "# harmless")
 		}, "fails no spec test of FARE-1", "no test of FARE-1 fails"},
-		{"SP-2554~1", accept.CheckDiagonal, "a violation that breaks another criterion too", func(h *harness) {
+		{"[verifies SP-2554~1]", accept.CheckDiagonal, "a violation that breaks another criterion too", func(h *harness) {
 			h.edit("violations/FARE-1/1/zones.py", "# BREAKS: FARE-1", "# BREAKS: FARE-1\n# BREAKS: FARE-3")
 		}, "other criteria", "violates only FARE-1"},
-		{"SP-2554~1", accept.CheckRefactors, "a refactor that breaks a criterion", func(h *harness) {
+		{"[verifies SP-2554~1]", accept.CheckRefactors, "a refactor that breaks a criterion", func(h *harness) {
 			h.edit("refactors/1/zones.py", "return 1 + 1", "return 1 + 1  # BREAKS: FARE-1")
 		}, "refactor-1 fails spec tests", "these tests fail"},
-		{"SP-2555~1", accept.CheckRoom, "no violation of the task criterion that the inline examples miss", func(h *harness) {
+		{"[verifies SP-2555~1]", accept.CheckRoom, "no violation of the task criterion that the inline examples miss", func(h *harness) {
 			h.edit("violations/FARE-4/2/zones.py", "  # INLINE-MISS: FARE-4", "")
 		}, "inline examples", ""},
-		{"SP-2555~1", accept.CheckRoom, "no violation of an implemented criterion that the tests miss", func(h *harness) {
+		{"[verifies SP-2555~1]", accept.CheckRoom, "no violation of an implemented criterion that the tests miss", func(h *harness) {
 			for _, criterion := range []string{"FARE-1", "FARE-2", "FARE-3"} {
 				h.edit("violations/"+criterion+"/2/zones.py", "  # TESTS-MISS: "+criterion, "")
 			}
 		}, "passes the tests of the fixture", ""},
-		{"SP-2557~1", accept.CheckCollection, "an oracle file with one test", func(h *harness) {
+		{"[verifies SP-2557~1]", accept.CheckCollection, "an oracle file with one test", func(h *harness) {
 			writeFile(h.t, filepath.Join(h.repo, study.TaskDir(sampleName), "oracle/test_fare_2.py"), "def test_only():\n    assert True\n")
 		}, "", "collects 1 tests"},
-		{"SP-2557~1", accept.CheckCollection, "a skipped test", func(h *harness) {
+		{"[verifies SP-2557~1]", accept.CheckCollection, "a skipped test", func(h *harness) {
 			h.edit("oracle/test_fare_3.py", "def test_three_example", "# SKIPPED\ndef test_three_example")
 		}, "", "skipped"},
-		{"SP-2557~1", accept.CheckCollection, "an oracle file that does not collect", func(h *harness) {
+		{"[verifies SP-2557~1]", accept.CheckCollection, "an oracle file that does not collect", func(h *harness) {
 			h.edit("oracle/test_fare_3.py", "def test_three_example", "# SYNTAX_ERROR\ndef test_three_example")
 		}, "", "cannot be collected"},
 	}
 	for _, tc := range cases {
-		t.Run(tc.check+" fails for "+tc.name+" [verifies "+tc.requirement+"]", func(t *testing.T) {
+		t.Run(tc.check+" fails for "+tc.name+" "+tc.tag, func(t *testing.T) {
 			h := newHarness(t)
 			tc.mutate(h)
 			report := h.accept()

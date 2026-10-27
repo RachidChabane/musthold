@@ -9,11 +9,15 @@ import (
 )
 
 func TestDetectInTheStudysContainer(t *testing.T) {
+	const helperCheck = "[verifies SP-2570~1] the helper reads the project in the container"
+	if !dockertest.Ready(t, helperCheck) {
+		return
+	}
 	world := dockertest.New(t)
 	requireHostTools(t)
 	attempt := newAttempt(t, world.Work, "container", attemptSpec{end: removeSeniorTest})
 
-	t.Run("[verifies SP-2570~1] the helper reads the project in the container", func(t *testing.T) {
+	t.Run(helperCheck, func(t *testing.T) {
 		detection, err := Detect(context.Background(), world.Runner, attempt, egressObserved)
 		if err != nil {
 			t.Fatal(err)

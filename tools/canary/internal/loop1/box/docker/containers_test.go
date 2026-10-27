@@ -2,9 +2,11 @@ package docker_test
 
 import (
 	"context"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -48,16 +50,14 @@ func (w engineWorld) run(t *testing.T, limit time.Duration, argv ...string) box.
 // containerChecks run each check on the engine when the container tests are enabled, and
 // report it as skipped otherwise, so that the results still name what was not checked.
 func containerChecks(t *testing.T, checks map[string]func(t *testing.T, w engineWorld)) {
-	var w engineWorld
-	if dockertest.Enabled() {
-		world := dockertest.New(t)
-		w = engineWorld{runner: world.Runner, client: world.Client, work: world.Work, repo: world.Repo}
+	names := slices.Sorted(maps.Keys(checks))
+	if !dockertest.Ready(t, names...) {
+		return
 	}
-	for name, check := range checks {
-		t.Run(name, func(t *testing.T) {
-			dockertest.Skip(t)
-			check(t, w)
-		})
+	world := dockertest.New(t)
+	w := engineWorld{runner: world.Runner, client: world.Client, work: world.Work, repo: world.Repo}
+	for _, name := range names {
+		t.Run(name, func(t *testing.T) { checks[name](t, w) })
 	}
 }
 

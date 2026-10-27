@@ -20,10 +20,7 @@ import (
 // product's manifest, or skips each check named.
 func engineSetup(t *testing.T, checks ...string) (runs.Setup, bool) {
 	t.Helper()
-	if !dockertest.Enabled() {
-		for _, check := range checks {
-			t.Run(check, func(t *testing.T) { dockertest.Skip(t) })
-		}
+	if !dockertest.Ready(t, checks...) {
 		return runs.Setup{}, false
 	}
 	flags, err := runs.ParseFlags("containers", []string{"--repo", dockertest.RepoRoot(t), "--inputs", filepath.Join(t.TempDir(), study.InputsFile)}, os.Environ(), os.Stderr)
