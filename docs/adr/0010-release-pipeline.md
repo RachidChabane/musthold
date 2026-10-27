@@ -105,7 +105,9 @@ The judge checked the decisive claims against GoReleaser's source:
 7. **Install.** `script/install <module> <semver>` checks the signature, either
    with `cosign verify-blob` against the release workflow's identity at that tag
    or with `gh attestation verify`. It then checks the archive's checksum, and the
-   binary's `--version`. Any failure, or no verifier at all, aborts the install.
+   binary's `--version` when the target platform is the machine's own; a binary for
+   another platform (`--os`, `--arch`) is installed without being run, its version
+   bound by the verified signature and checksum. Any failure, or no verifier at all, aborts the install.
 8. **Local front door.** The local entry points are `script/release <tag>
    [--dry-run]`, `make release-dry-run TAG=…` and `make release TAG=…`. They run
    under `nice`, with at most two builds at once, after `script/mem-guard check`.

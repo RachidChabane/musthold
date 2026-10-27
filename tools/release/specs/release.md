@@ -107,11 +107,16 @@ the network.
   a time, verify the dist directory, build again and find the same SHA256SUMS,
   install from the dist directory and run the installed binary, which SHALL print
   exactly the version of the tag.
-- **SP-1821~1**: WHEN the installer is run THE SYSTEM SHALL refuse a tampered
-  archive, a binary whose version differs from the one asked for, an unsupported
+- **SP-1821~2**: WHEN the installer is run THE SYSTEM SHALL refuse a tampered
+  archive, a binary for the machine's own platform whose version differs from the
+  one asked for, an unsupported
   platform and, without a dist directory, the absence of both cosign and gh, and
   SHALL leave nothing installed.
 - **SP-1822~1**: WHEN the release workflow is read THE SYSTEM SHALL start on tags
   `*/v*` only, deny every permission by default, grant each job only what it names,
   pin every action by a full commit SHA, and name in the installer the certificate
   identity of that workflow file at the tag.
+- **SP-1825~1**: WHEN the installer is asked for a platform other than the
+  machine's THE SYSTEM SHALL install the verified binary without running it and
+  SHALL say on stderr that its version is bound by the signature and checksum of
+  the release.

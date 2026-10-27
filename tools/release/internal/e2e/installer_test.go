@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	verifiesInstaller = " [verifies SP-1821~1]"
+	verifiesInstaller = " [verifies SP-1821~2]"
+	verifiesForeign   = " [verifies SP-1825~1]"
 	installerVersion  = "0.1.0"
 	installerModule   = "discpower"
 	installerBinary   = "musthold-dp"
@@ -40,10 +41,25 @@ func hostTarget(t *testing.T) domain.Target {
 // whose binary is a shell script that prints reported, with its SHA256SUMS.
 func releaseDirectory(t *testing.T, reported string) (directory, archive string) {
 	t.Helper()
-	target := hostTarget(t)
+	return releaseDirectoryFor(t, hostTarget(t), []byte("#!/bin/sh\necho "+reported+"\n"))
+}
+
+// foreignTarget is a unix release target of the matrix other than the host's.
+func foreignTarget(t *testing.T) domain.Target {
+	t.Helper()
+	host := hostTarget(t)
+	if host.OS == domain.OSLinux && host.Arch == domain.ArchArm64 {
+		return domain.Target{OS: domain.OSLinux, Arch: domain.ArchAmd64}
+	}
+	return domain.Target{OS: domain.OSLinux, Arch: domain.ArchArm64}
+}
+
+// releaseDirectoryFor writes a release directory holding one archive for the
+// target whose binary is the given bytes, with its SHA256SUMS.
+func releaseDirectoryFor(t *testing.T, target domain.Target, binary []byte) (directory, archive string) {
+	t.Helper()
 	directory = t.TempDir()
-	script := "#!/bin/sh\necho " + reported + "\n"
-	entries := domain.ArchiveEntries(target, installerBinary, domain.ArchiveContent{Binary: []byte(script), License: []byte("licence\n"), Readme: []byte("readme\n"), ThirdPartyNotices: []byte("third party\n")})
+	entries := domain.ArchiveEntries(target, installerBinary, domain.ArchiveContent{Binary: binary, License: []byte("licence\n"), Readme: []byte("readme\n"), ThirdPartyNotices: []byte("third party\n")})
 	packed, err := adapters.ArchivePacker{}.Pack(target.Format(), entries, time.Unix(1_700_000_000, 0))
 	if err != nil {
 		t.Fatal(err)
@@ -94,6 +110,23 @@ func TestInstaller(t *testing.T) {
 		reported, err := exec.Command(filepath.Join(prefix, "bin", installerBinary), "--version").Output()
 		if err != nil || strings.TrimSpace(string(reported)) != installerVersion {
 			t.Fatalf("installed binary reports %q, error %v", reported, err)
+		}
+	})
+
+	t.Run("a binary for another platform than the host's is installed without being run, and a line says so"+verifiesForeign, func(t *testing.T) {
+		target := foreignTarget(t)
+		directory, _ := releaseDirectoryFor(t, target, []byte("not an executable of this machine\n"))
+		prefix := t.TempDir()
+		output, code := install(t, nil, installerModule, installerVersion, "--from", directory, "--prefix", prefix, "--os", target.OS, "--arch", target.Arch)
+		if code != 0 {
+			t.Fatalf("exit %d: %s", code, output)
+		}
+		want := "is for " + target.OS + "/" + target.Arch + "; its version is bound by the verified signature and checksum of the release, not checked by running it"
+		if !strings.Contains(output, want) {
+			t.Errorf("output lacks %q: %s", want, output)
+		}
+		if _, err := os.Stat(filepath.Join(prefix, "bin", installerBinary)); err != nil {
+			t.Errorf("the binary is not installed: %v", err)
 		}
 	})
 

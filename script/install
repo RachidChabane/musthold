@@ -10,7 +10,11 @@
 #   1. checks the signature of SHA256SUMS with cosign, against the release workflow
 #      of this repository at the tag, or the attestation of the archive with gh;
 #   2. checks the archive against its line of SHA256SUMS;
-#   3. runs the extracted binary with --version and requires exactly <semver>.
+#   3. runs the extracted binary with --version and requires exactly <semver>, when
+#      the target platform is the platform of this machine. A binary built for
+#      another platform (--os, --arch) cannot run here: it is not run, a line on
+#      stderr says so, and its version is bound by the verified signature and
+#      checksum of the release.
 # Any failure, or no verifier at all, aborts the install and leaves nothing behind.
 #
 # --from DIR installs from a directory that holds the release files (a dist
@@ -58,6 +62,8 @@ from_dir=""
 work_dir=""
 target_os=""
 target_arch=""
+host_os=""
+host_arch=""
 
 parse_arguments() {
   local positional=()
@@ -85,23 +91,33 @@ require_verifier() {
 }
 
 detect_platform() {
-  if [[ -z "${target_os}" ]]; then
-    case "$(uname -s)" in
-      Darwin) target_os="darwin" ;;
-      Linux) target_os="linux" ;;
-      MINGW* | MSYS* | CYGWIN*) target_os="windows" ;;
-      *) target_os="$(uname -s)" ;;
-    esac
-  fi
-  if [[ -z "${target_arch}" ]]; then
-    case "$(uname -m)" in
-      x86_64 | amd64) target_arch="amd64" ;;
-      arm64 | aarch64) target_arch="arm64" ;;
-      *) target_arch="$(uname -m)" ;;
-    esac
-  fi
+  case "$(uname -s)" in
+    Darwin) host_os="darwin" ;;
+    Linux) host_os="linux" ;;
+    MINGW* | MSYS* | CYGWIN*) host_os="windows" ;;
+    *) host_os="$(uname -s)" ;;
+  esac
+  case "$(uname -m)" in
+    x86_64 | amd64) host_arch="amd64" ;;
+    arm64 | aarch64) host_arch="arm64" ;;
+    *) host_arch="$(uname -m)" ;;
+  esac
+  [[ -n "${target_os}" ]] || target_os="${host_os}"
+  [[ -n "${target_arch}" ]] || target_arch="${host_arch}"
   case "${target_os}" in linux | darwin | windows) ;; *) die "${EXIT_UNSUPPORTED}" "unsupported operating system ${target_os}" ;; esac
   case "${target_arch}" in amd64 | arm64) ;; *) die "${EXIT_UNSUPPORTED}" "unsupported architecture ${target_arch}" ;; esac
+}
+
+target_is_host() { [[ "${target_os}" == "${host_os}" && "${target_arch}" == "${host_arch}" ]]; }
+
+check_version() { # <executable path> <executable name>
+  if ! target_is_host; then
+    echo "install: $2 is for ${target_os}/${target_arch}; its version is bound by the verified signature and checksum of the release, not checked by running it" >&2
+    return 0
+  fi
+  local reported
+  reported="$("$1" --version 2>/dev/null)" || die "${EXIT_VERSION}" "$2 does not run on this machine"
+  [[ "${reported}" == "${semver}" ]] || die "${EXIT_VERSION}" "$2 reports version ${reported}, expected ${semver}"
 }
 
 sha256_of() { # <file>
@@ -189,9 +205,7 @@ main() {
   verify_checksum "${work}" "${archive}"
   extract "${work}" "${archive}" "${work}/tree"
 
-  local reported
-  reported="$("${work}/tree/${executable}" --version 2>/dev/null)" || die "${EXIT_VERSION}" "${executable} does not run on this machine"
-  [[ "${reported}" == "${semver}" ]] || die "${EXIT_VERSION}" "${executable} reports version ${reported}, expected ${semver}"
+  check_version "${work}/tree/${executable}" "${executable}"
 
   mkdir -p "${prefix}/bin"
   cp "${work}/tree/${executable}" "${prefix}/bin/${executable}"

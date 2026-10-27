@@ -197,6 +197,9 @@ bash install ledger 0.2.0
 The installer is listed in `SHA256SUMS` and attested like an archive. It needs `cosign` or `gh`. It downloads the archive and `SHA256SUMS`,
 verifies the signature, checks the archive against its line of `SHA256SUMS`, runs
 the extracted binary with `--version` and requires exactly the version asked for.
+A binary for another platform than the machine's (`--os`, `--arch`) is not run: the
+installer says so on stderr, and the version is bound by the verified signature and
+checksum of the release.
 Any failure, or the absence of both verifiers, aborts the install and leaves
 nothing installed. `--prefix DIR` sets the install prefix (`~/.local` by default).
 `--from DIR` installs from a directory that holds the release files and checks the
