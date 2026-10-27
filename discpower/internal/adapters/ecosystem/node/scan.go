@@ -28,6 +28,16 @@ var _ ports.Scanning = (*Strategy)(nil)
 // browser: a scan records V8 coverage in Node.
 var ErrBrowserMode = errors.New("musthold scan runs Vitest in Node: browser mode is not supported")
 
+// ErrUnsupportedVersion is returned for a Jest or a Vitest project whose
+// installed runner is outside the major versions the shipped scripts extend.
+// It wraps the refusal the scripts gave, naming the supported majors and the
+// installed version.
+var ErrUnsupportedVersion = errors.New("unsupported test runner version")
+
+// versionRefusalPrefix opens the refusal the shipped scripts give for an
+// unsupported runner version.
+const versionRefusalPrefix = "musthold scan does not support "
+
 // The variables the shipped scripts read, and what a scan's runs set them to.
 const (
 	scanOutVariable       = "MUSTHOLD_SCAN_OUT"
@@ -49,7 +59,7 @@ const (
 // cleanExit is the exit code of a run whose runner raised nothing.
 const cleanExit = 0
 
-//go:embed scripts/scan-agent.cjs scripts/scan-jest-environment.cjs scripts/scan-jest-reporter.cjs scripts/scan-jest-sequencer.cjs scripts/scan-global-setup.cjs scripts/scan-vitest-runner.mjs scripts/scan-vitest-global-setup.mjs
+//go:embed scripts/scan-agent.cjs scripts/scan-runner-version.cjs scripts/scan-jest-environment.cjs scripts/scan-jest-reporter.cjs scripts/scan-jest-sequencer.cjs scripts/scan-global-setup.cjs scripts/scan-vitest-runner.mjs scripts/scan-vitest-global-setup.mjs
 var scanScripts embed.FS
 
 //go:embed scripts/scan-vitest-config.mjs
@@ -139,6 +149,9 @@ func (s scanSuite) runProcess(ctx context.Context, workspace ecosystem.Workspace
 	if bytes.Contains(executed.Stdout, []byte(ErrBrowserMode.Error())) || bytes.Contains(executed.Stderr, []byte(ErrBrowserMode.Error())) {
 		return ranProcess{}, ErrBrowserMode
 	}
+	if refusal, refused := versionRefusal(executed); refused {
+		return ranProcess{}, fmt.Errorf("%w: %s", ErrUnsupportedVersion, refusal)
+	}
 	if process.coverage && executed.KilledFromOutside() {
 		return ranProcess{}, fmt.Errorf("%w: %s", ports.ErrRunnerKilled, suiterun.Failure(command, executed))
 	}
@@ -150,6 +163,19 @@ func (s scanSuite) runProcess(ctx context.Context, workspace ecosystem.Workspace
 		return ranProcess{}, fmt.Errorf("remove the scan record %s: %w", out, err)
 	}
 	return ran, nil
+}
+
+// versionRefusal is the refusal of an unsupported runner version a run's
+// output holds, from its opening to the end of its line.
+func versionRefusal(executed ports.CommandResult) (string, bool) {
+	for _, output := range [][]byte{executed.Stderr, executed.Stdout} {
+		_, refusal, found := bytes.Cut(output, []byte(versionRefusalPrefix))
+		if found {
+			line, _, _ := bytes.Cut(refusal, []byte{lineFeed})
+			return versionRefusalPrefix + strings.TrimSpace(string(line)), true
+		}
+	}
+	return "", false
 }
 
 // installScanScripts writes the shipped scripts into a fresh directory of the

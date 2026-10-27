@@ -7,23 +7,25 @@
 //   - tell a hook failure from a failure of the test function, and spot
 //     retries;
 //   - record a test file that stopped before any test began.
-import fs from 'node:fs';
-import path from 'node:path';
 import vm from 'node:vm';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 
 const require = createRequire(import.meta.url);
 const agent = require('./scan-agent.cjs');
+const versions = require('./scan-runner-version.cjs');
 
 const ROOT_VARIABLE = 'MUSTHOLD_SCAN_ROOT';
 const RUNNER_VARIABLE = 'MUSTHOLD_SCAN_VITEST_RUNNER';
 const RUNNER = 'vitest';
 const ID_SEPARATOR = '::';
 const TITLE_SEPARATOR = ' > ';
-const SINON_TIMER_KEY = 'func';
-const VITEST_PACKAGE = 'vitest';
-const PACKAGE_MANIFEST = 'package.json';
+const RUNNERS_EXPORT = './runners';
+const SUITE_EXPORT = './suite';
+// UNRESOLVED_VERSION stands for the version of a Vitest the project's root
+// does not resolve.
+const UNRESOLVED_VERSION = '(unresolved)';
+const NO_RUNNER_CLASS = 'it exports no test runner class from vitest/runners or vitest, or no test function getter';
 
 const STATE_PASS = 'pass';
 const STATE_FAIL = 'fail';
@@ -35,17 +37,26 @@ const OUTCOME_FAILED = 'failed';
 const OUTCOME_ERRORED = 'errored';
 const OUTCOME_SKIPPED = 'skipped';
 
-// exportOf is the file an ES import of a package's subpath loads.
-function exportOf(root, name) {
-  const manifestFile = createRequire(path.join(root, PACKAGE_MANIFEST)).resolve(name + '/' + PACKAGE_MANIFEST);
-  const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
-  const pick = (entry) => (typeof entry === 'string' ? entry : entry && (pick(entry.import) || pick(entry.default)));
-  const target = pick(manifest.exports && manifest.exports['.']) || manifest.module || manifest.main;
-  return pathToFileURL(path.join(path.dirname(manifestFile), target)).href;
+async function importExport(root, subpath) {
+  const url = versions.exportURL(root, versions.VITEST, subpath);
+  return url ? import(url) : {};
+}
+
+// vitestRunnerAPI is the test runner class a scan's runner extends and the
+// getter of a test's function, from where the installed major version of
+// Vitest exports them: `VitestTestRunner` of `vitest/runners`, else
+// `TestRunner` of the package itself; the runner's static `getTestFn`, else
+// `getFn` of `vitest/suite`.
+async function vitestRunnerAPI(root) {
+  const version = versions.requireSupported(root, versions.VITEST);
+  const TestRunner = (await importExport(root, RUNNERS_EXPORT)).VitestTestRunner || (await importExport(root, versions.MAIN_EXPORT)).TestRunner;
+  const getTestFn = (TestRunner && TestRunner.getTestFn) || (await importExport(root, SUITE_EXPORT)).getFn;
+  if (!TestRunner || !getTestFn) throw new Error(versions.refusal(versions.VITEST, version || UNRESOLVED_VERSION, NO_RUNNER_CLASS));
+  return { TestRunner, getTestFn };
 }
 
 const root = process.env[ROOT_VARIABLE] || process.cwd();
-const { TestRunner } = await import(exportOf(root, VITEST_PACKAGE));
+const { TestRunner, getTestFn } = await vitestRunnerAPI(root);
 const Base = process.env[RUNNER_VARIABLE] ? (await import(pathToFileURL(process.env[RUNNER_VARIABLE]).href)).default : TestRunner;
 
 function titlesOf(task) {
@@ -94,13 +105,7 @@ export default class ScanRunner extends Base {
 
   timers() {
     const clock = globalThis.setTimeout && globalThis.setTimeout.clock;
-    if (clock) {
-      return {
-        faked: true,
-        pending: () => [...(clock.timers ? clock.timers.values() : []), ...(clock.jobs || [])].map((holder) => ({ holder, key: SINON_TIMER_KEY })),
-        count: () => clock.countTimers(),
-      };
-    }
+    if (clock) return agent.clockTimers(clock);
     return { faked: globalThis.setTimeout !== this.scanRealTimeout };
   }
 
@@ -150,7 +155,7 @@ export default class ScanRunner extends Base {
     try {
       if (record.hollow) return;
       if (super.runTask) await super.runTask(test);
-      else await TestRunner.getTestFn(test)();
+      else await getTestFn(test)();
     } catch (error) {
       threw = true;
       record.fnFailed = true;

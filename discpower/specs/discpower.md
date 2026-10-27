@@ -1942,6 +1942,16 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   give a test not started only when the run's global setup failed or the
   test's file stopped before any of its tests began; and give the tests of a
   process that timed out, and of every later run, timed out.
+- **SP-2659~1**: WHEN a scan runs a Jest or a Vitest suite THE SYSTEM SHALL
+  read the version of the runner's package that the project's root resolves
+  and refuse, before any test runs, a Jest outside majors 29 to 30 or a Vitest
+  outside majors 3 to 5, naming the installed version and the supported
+  majors; SHALL extend the test runner class of the installed Vitest from
+  where its major version exports it, `VitestTestRunner` of `vitest/runners`,
+  else `TestRunner` of `vitest`, and call a test's function through that
+  class's `getTestFn`, else `getFn` of `vitest/suite`, refusing, naming the
+  version, a Vitest that exports neither; and SHALL run a project whose root
+  resolves no such package.
 - **SP-2655~1**: WHEN Jest runs for a scan, for a mutant's tests or for the
   reproduction of a finding THE SYSTEM SHALL run it in band, so that one run
   is one process and starts no worker.

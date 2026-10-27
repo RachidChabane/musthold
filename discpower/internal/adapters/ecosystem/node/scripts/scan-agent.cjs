@@ -49,6 +49,9 @@ const FILE_URL_PREFIX = 'file://';
 const DATA_URL_PREFIX = 'data:';
 const BASE64_MARKER = ';base64,';
 const PROMISE_TYPE = 'PROMISE';
+// SINON_TIMER_KEY is the key a @sinonjs/fake-timers timer keeps its callback
+// under.
+const SINON_TIMER_KEY = 'func';
 
 // The capabilities a process shows: each names a precondition of the ownership
 // rule, which the reader of the record replaces by its fallback when it is false.
@@ -127,6 +130,14 @@ function prefixOf(source) {
     if (match) return match[0].length;
   }
   return 0;
+}
+
+// sinonPending lists the pending timers and jobs of a @sinonjs/fake-timers
+// clock, whose timers are a Map in recent releases and an object keyed by id
+// in older ones.
+function sinonPending(clock) {
+  const timers = !clock.timers ? [] : typeof clock.timers.values === 'function' ? [...clock.timers.values()] : Object.values(clock.timers);
+  return [...timers, ...(clock.jobs || [])];
 }
 
 function rangesOf(script) {
@@ -558,6 +569,15 @@ function createAgent() {
     // bounds only where the process shows bounded windows.
     concurrent(id) {
       if (window !== null && window.id === id && !capabilities[CAP_BOUNDS]) window.concurrentUnbounded = true;
+    },
+    // clockTimers describes the fake timers of a realm that a
+    // @sinonjs/fake-timers clock fakes, as open takes them.
+    clockTimers(clock) {
+      return {
+        faked: true,
+        pending: () => sinonPending(clock).map((holder) => ({ holder, key: SINON_TIMER_KEY })),
+        count: () => clock.countTimers(),
+      };
     },
     // result records the outcome of the test the key stands for; a later one
     // replaces it.

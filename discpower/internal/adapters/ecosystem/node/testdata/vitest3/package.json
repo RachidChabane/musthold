@@ -1,0 +1,10 @@
+{
+  "name": "invoice",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Invoice totals: line totals, discounts and shipping.",
+  "devDependencies": {
+    "vitest": "3.2.4"
+  }
+}

@@ -2,10 +2,13 @@
 // <MUSTHOLD_SCAN_OUT>/reporter.jsonl, per test file, whether the file failed
 // to run and the status Jest gives each of its tests: the outcomes of a file
 // whose tests ran outside the scan's environment, which a docblock can choose.
+// Jest loads it before any test runs, so it refuses a Jest outside the
+// supported major versions.
 'use strict';
 
 const fs = require('node:fs');
 const path = require('node:path');
+const versions = require('./scan-runner-version.cjs');
 
 const OUT_VARIABLE = 'MUSTHOLD_SCAN_OUT';
 const ROOT_VARIABLE = 'MUSTHOLD_SCAN_ROOT';
@@ -14,6 +17,10 @@ const ID_SEPARATOR = '::';
 const TITLE_SEPARATOR = ' > ';
 
 class ScanReporter {
+  constructor() {
+    versions.requireSupported(path.resolve(process.env[ROOT_VARIABLE] || process.cwd()), versions.JEST);
+  }
+
   onTestResult(test, result) {
     const out = process.env[OUT_VARIABLE];
     if (!out) return;

@@ -226,7 +226,8 @@ bodies or another hook, and a fake timer set before the window, run in the
 window but are none of its own. A line is owned when every code unit of it the
 test ran counted in that window, with the same counts in the three processes,
 so a line `afterEach` also runs is never owned; a window in which a module is
-evaluated owns nothing. A process that cannot check one of these conditions
+evaluated owns nothing, and so does a concurrent Jest 29 test, whose function
+Jest 29 starts before its window opens. A process that cannot check one of these conditions
 owns less, never more: without an inspector session the test gets the whole
 of each file it ran and owns nothing.
 Without `--base` it samples green tests, stratified by file; with `--base` it
@@ -294,8 +295,10 @@ runs in band and Vitest in one fork, each run one process with coverage,
 bail and retries off, and each recording of a test alone is read as its process
 ends and its record removed; a Jest or Vitest test is named `file::titles`, its
 describe titles and its own joined by ` > `, and a hook failure, a retry, or a
-name another test shares, for Jest ignoring case, gives an error. A Vitest
-project that runs its tests in a browser is refused. The
+name another test shares, for Jest ignoring case, gives an error. A scan
+runs Jest 29 to 30 and Vitest 3 to 5, the major versions whose runner its
+shipped scripts extend, and refuses any other version the project installs,
+naming it; a Vitest project that runs its tests in a browser is refused too. The
 headline gives each class over its denominator and never reads as a pass:
 
 ```

@@ -23,7 +23,6 @@ const RUNNER = 'jest';
 const ID_SEPARATOR = '::';
 const TITLE_SEPARATOR = ' > ';
 const STATE = Symbol('musthold.scan.jest');
-const SINON_TIMER_KEY = 'func';
 const LEGACY_TIMER_KEY = 'callback';
 
 const OUTCOME_PASSED = 'passed';
@@ -103,13 +102,7 @@ function hollowed(fn) {
 function timersOf(environment, realTimeout) {
   const modern = environment.fakeTimersModern;
   const clock = modern && modern._fakingTime ? modern._clock : null;
-  if (clock) {
-    return {
-      faked: true,
-      pending: () => [...(clock.timers ? clock.timers.values() : []), ...(clock.jobs || [])].map((holder) => ({ holder, key: SINON_TIMER_KEY })),
-      count: () => clock.countTimers(),
-    };
-  }
+  if (clock) return agent.clockTimers(clock);
   const legacy = environment.fakeTimers;
   if (legacy && legacy._fakingTime) {
     return {

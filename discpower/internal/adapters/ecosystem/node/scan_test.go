@@ -23,6 +23,10 @@ import (
 
 const (
 	scanKit        = "testdata/scankit"
+	vitest3Fixture = "testdata/vitest3"
+	vitest3Label   = "vitest 3"
+	jest29Fixture  = "testdata/jest29"
+	jest29Label    = "jest 29"
 	ledgerFile     = "src/ledger.ts"
 	scanRunTimeout = 2 * time.Minute
 	scanWorkers    = 2
@@ -75,18 +79,37 @@ const (
 )
 
 // scanRunner is a Node runner a scan runs, with the installed project whose
-// node_modules its kit links to.
+// node_modules its kit links to, and the label its subtests carry.
 type scanRunner struct {
+	label     string
 	name      ecosystem.Name
 	installed string
 	strategy  func(node.Dependencies) *node.Strategy
+	// startsConcurrentEarly is whether the runner starts the function of a
+	// concurrent test before the test starts, outside its window.
+	startsConcurrentEarly bool
 }
 
+// scanRunners are the runners a scan runs: Jest and Vitest at the newest
+// major version a scan supports, then at the oldest.
 func scanRunners() []scanRunner {
 	return []scanRunner{
-		{name: ecosystem.Jest, installed: jestFixture, strategy: node.NewJest},
-		{name: ecosystem.Vitest, installed: vitestFixture, strategy: node.NewVitest},
+		{label: string(ecosystem.Jest), name: ecosystem.Jest, installed: jestFixture, strategy: node.NewJest},
+		{label: string(ecosystem.Vitest), name: ecosystem.Vitest, installed: vitestFixture, strategy: node.NewVitest},
+		{label: jest29Label, name: ecosystem.Jest, installed: jest29Fixture, strategy: node.NewJest, startsConcurrentEarly: true},
+		{label: vitest3Label, name: ecosystem.Vitest, installed: vitest3Fixture, strategy: node.NewVitest},
 	}
+}
+
+// scanRunnersOf are the runners a scan runs of one framework.
+func scanRunnersOf(name ecosystem.Name) []scanRunner {
+	var runners []scanRunner
+	for _, runner := range scanRunners() {
+		if runner.name == name {
+			runners = append(runners, runner)
+		}
+	}
+	return runners
 }
 
 // scanned is a copy of the runner's scan kit in a workspace of the test.
@@ -100,7 +123,13 @@ type scanned struct {
 
 func scanProject(t *testing.T, runner scanRunner) *scanned {
 	t.Helper()
-	modules := filepath.Join(nodeinstall.Installed(t, runner.installed), nodeModules)
+	return scanProjectLinked(t, runner, filepath.Join(nodeinstall.Installed(t, runner.installed), nodeModules))
+}
+
+// scanProjectLinked copies the runner's scan kit into a workspace whose
+// node_modules links to the given directory.
+func scanProjectLinked(t *testing.T, runner scanRunner, modules string) *scanned {
+	t.Helper()
 	source := filepath.Join(scanKit, string(runner.name))
 	dir := t.TempDir()
 	err := filepath.WalkDir(source, func(path string, entry fs.DirEntry, walkErr error) error {
@@ -180,7 +209,7 @@ func expectLines(t *testing.T, name string, lines []vacuity.Line, holds, lacks [
 
 func TestScanRunsOfJestAndVitest(t *testing.T) {
 	for _, runner := range scanRunners() {
-		t.Run(string(runner.name), func(t *testing.T) {
+		t.Run(runner.label, func(t *testing.T) {
 			s := scanProject(t, runner)
 			ran := s.run(t)
 			runs := func(test ecosystem.TestID) []vacuity.Run { return ran.Runs[test] }
@@ -231,7 +260,7 @@ func TestScanRunsOfJestAndVitest(t *testing.T) {
 
 func TestScanRunnerEndingsOnJestAndVitest(t *testing.T) {
 	for _, runner := range scanRunners() {
-		t.Run(string(runner.name), func(t *testing.T) {
+		t.Run(runner.label, func(t *testing.T) {
 			t.Run("a suite with no test file reports no test and no failure"+verifiesReferenceEnding, func(t *testing.T) {
 				s := scanProject(t, runner)
 				testFiles, err := filepath.Glob(filepath.Join(s.workspace.Dir, "test", "*.test.ts"))
@@ -273,7 +302,7 @@ func TestScanRecordingKilledFromOutside(t *testing.T) {
 
 func TestScanLetsGoOfItsRecordings(t *testing.T) {
 	for _, runner := range scanRunners() {
-		t.Run(string(runner.name)+": a recording of tests alone keeps their lines and leaves no record behind"+verifiesRecordingsRead, func(t *testing.T) {
+		t.Run(runner.label+": a recording of tests alone keeps their lines and leaves no record behind"+verifiesRecordingsRead, func(t *testing.T) {
 			s := scanProject(t, runner)
 			covered := s.alone(t, credits, routesUrgent)
 			expectLines(t, credits, covered[credits].Lines, []int{creditLine}, nil)
@@ -293,7 +322,7 @@ func TestScanLetsGoOfItsRecordings(t *testing.T) {
 
 func TestScanOwnershipOnJestAndVitest(t *testing.T) {
 	for _, runner := range scanRunners() {
-		t.Run(string(runner.name), func(t *testing.T) {
+		t.Run(runner.label, func(t *testing.T) {
 			s := scanProject(t, runner)
 			covered := s.alone(t, credits, routesUrgent, waitsPastATimer, leavesWorkBehind, loadsLazily, creditsConcurrently, timerItDidNotSet, itsOwnTimer, readsAfterSetup)
 			t.Run("a test owns the lines its body and its beforeEach ran, never those only afterEach ran"+verifiesScanOwnership, func(t *testing.T) {
@@ -315,7 +344,13 @@ func TestScanOwnershipOnJestAndVitest(t *testing.T) {
 					t.Fatalf("owned %v", owned)
 				}
 			})
-			t.Run("a concurrent test recorded alone owns its body"+verifiesScanOwnership, func(t *testing.T) {
+			t.Run("a concurrent test recorded alone owns its body, and nothing where its function starts before its window"+verifiesScanOwnership, func(t *testing.T) {
+				if runner.startsConcurrentEarly {
+					if owned := covered[creditsConcurrently].Owned; len(owned) != 0 {
+						t.Fatalf("owned %v", owned)
+					}
+					return
+				}
 				expectLines(t, "credits concurrently owned", covered[creditsConcurrently].Owned, []int{creditLine}, nil)
 			})
 			t.Run("a fake timer pending when the window opens is cut out of it, one the body sets and advances is owned"+verifiesScanOwnership, func(t *testing.T) {
@@ -339,15 +374,17 @@ func TestScanOwnershipOnJestAndVitest(t *testing.T) {
 }
 
 func TestScanCutsOutJestLegacyFakeTimers(t *testing.T) {
-	t.Run("a legacy fake timer pending when the window opens is cut out of it"+verifiesScanOwnership, func(t *testing.T) {
-		s := scanProject(t, scanRunners()[0])
-		expectLines(t, "legacy timer owned", s.alone(t, legacyTimer)[legacyTimer].Owned, []int{creditLine}, []int{tickLine})
-	})
+	for _, runner := range scanRunnersOf(ecosystem.Jest) {
+		t.Run(runner.label+": a legacy fake timer pending when the window opens is cut out of it"+verifiesScanOwnership, func(t *testing.T) {
+			s := scanProject(t, runner)
+			expectLines(t, "legacy timer owned", s.alone(t, legacyTimer)[legacyTimer].Owned, []int{creditLine}, []int{tickLine})
+		})
+	}
 }
 
 func TestScanFallbacksOnJestAndVitest(t *testing.T) {
 	for _, runner := range scanRunners() {
-		t.Run(string(runner.name), func(t *testing.T) {
+		t.Run(runner.label, func(t *testing.T) {
 			s := scanProject(t, runner)
 			t.Run("without an inspector session a test runs the whole of each file it ran and owns nothing"+verifiesScanFallbacks, func(t *testing.T) {
 				t.Setenv(withoutVariable, "inspector")
@@ -399,7 +436,7 @@ func TestScanFallbacksOnJestAndVitest(t *testing.T) {
 
 func TestScanWitnessCoverageOnJestAndVitest(t *testing.T) {
 	for _, runner := range scanRunners() {
-		t.Run(string(runner.name)+": a witness records the definitions it runs in its window, alone"+verifiesScanWitnesses, func(t *testing.T) {
+		t.Run(runner.label+": a witness records the definitions it runs in its window, alone"+verifiesScanWitnesses, func(t *testing.T) {
 			s := scanProject(t, runner)
 			test := ecosystem.BoundTest{ID: "credits", File: "test/ownership.test.ts", Name: "ownership > credits"}
 			recorded, err := s.strategy.WitnessCoverage().Record(context.Background(), s.workspace, s.toolchain, []ecosystem.BoundTest{test})
@@ -416,7 +453,7 @@ func TestScanWitnessCoverageOnJestAndVitest(t *testing.T) {
 
 func TestScanRefusesVitestBrowserMode(t *testing.T) {
 	t.Run("a Vitest project that runs its tests in a browser is refused with the reason"+verifiesScanBrowser, func(t *testing.T) {
-		s := scanProject(t, scanRunners()[1])
+		s := scanProject(t, scanRunnersOf(ecosystem.Vitest)[0])
 		t.Setenv("SCANKIT_BROWSER", "1")
 		_, err := s.suite.Run(context.Background(), s.workspace, s.toolchain, ports.ScanRunRequest{Runs: 1, Timeout: scanRunTimeout})
 		if !errors.Is(err, node.ErrBrowserMode) {
