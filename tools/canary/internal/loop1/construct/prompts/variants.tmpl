@@ -1,0 +1,21 @@
+Below are the spec of a small Python project and the source file of its implementation. Write variants of that source file.
+
+# Spec
+{{.Spec}}
+# Implementation
+
+The module is {{.Source}}.
+{{template "files" .Reference}}
+# Violations
+
+For every criterion of the spec write at least two violations, as violations/<ID>/<k>/{{.ModuleFile}} with k = 1, 2, ... Each is the whole module, edited so that it breaks that criterion alone and still satisfies every other one. Vary them: some break the behaviour at the criterion's inline example, others break it only elsewhere in the criterion's range, such as at a boundary.
+
+# Refactors
+
+Write at least one refactor, as refactors/<k>/{{.ModuleFile}}: the whole module rewritten with the same behaviour for every input, for example with other names, another structure of conditions or extracted constants.
+
+Every file is named by its path relative to the directory of the module, so the module itself is {{.ModuleFile}} there.
+{{template "repair" .}}
+# Reply
+
+{{template "reply"}} Write every file under violations/ and refactors/.

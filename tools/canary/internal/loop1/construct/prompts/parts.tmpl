@@ -1,0 +1,17 @@
+{{define "files"}}{{range .}}
+--- file: {{.Path}}
+{{.Content}}
+--- end file
+{{end}}{{end}}
+
+{{define "reply"}}Reply with one JSON object of the form {"files": [{"path": "...", "content": "..."}]}. Each entry is one complete file. Paths use forward slashes and are relative. Content is the whole text of the file.{{end}}
+
+{{define "repair"}}{{if .Problems}}
+# Previous answer
+{{template "files" .Previous}}
+# Problems found in the previous answer
+{{range .Problems}}
+- {{.}}{{end}}
+
+Answer again with every file of the set, corrected. A file that was fine stays as it was.
+{{end}}{{end}}

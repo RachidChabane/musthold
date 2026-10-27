@@ -1,0 +1,64 @@
+Write a small Python project for the domain below, together with the files that go with it.
+
+Domain: {{.Domain.Line}}
+
+# The project
+
+The project lives under fixture/.
+
+- It is a Python package of one module and one public operation. The operation is called with keyword arguments. The package directory holds __init__.py, which re-exports the operation, and the module.
+- fixture/pytest.ini has a [pytest] section with testpaths = tests and pythonpath = .
+- fixture/.gitignore holds the lines __pycache__/ and test-results/
+- fixture/specs/ holds one spec file, in Markdown, with 4 to 6 criteria. A criterion is a list item with its examples as sub-items:
+
+      - **<ID>~1**: WHEN <condition> THE SYSTEM SHALL <behaviour>.
+        - Example: <operation>(<argument>=<value>) => <result>
+
+  A criterion is one WHEN ... THE SYSTEM SHALL ... sentence with at least one example. The ID is upper-case letters, a hyphen and a number, such as LATE-1, numbered from 1. In an example the operation is the project's operation, every argument is passed by name, and the result is a Python expression. The last criterion is the task criterion.
+- The source implements every criterion except the task criterion. Where the task criterion applies, the source behaves as if the criterion were absent.
+- fixture/tests/ holds the tests of every criterion except the task criterion. Each test carries @pytest.mark.verifies("<ID>~1"), naming the criterion it checks. No test names the task criterion.
+- At least one implemented criterion has tests that check only the examples written inline in the spec, nothing beyond them.
+- The task criterion states at least one boundary or case beyond its inline examples.
+- Every file reads as part of an ordinary project. Comments and names concern the domain. No file mentions how the project was produced or anything outside its subject.
+
+# The reference
+
+reference/ holds the module with the task criterion implemented. It is the whole module, otherwise identical to the one under fixture/. Its path is relative to the package directory: for fixture/<package>/<module>.py the file is reference/<module>.py.
+
+# Violations
+
+For every criterion, the task criterion included, write at least two violations, as violations/<ID>/<k>/<module>.py with k = 1, 2, ... Each is the whole reference module, edited so that it breaks that criterion alone and still satisfies every other one. Vary them: some break the behaviour at the criterion's inline example, others break it only elsewhere in the criterion's range, such as at a boundary.
+
+# Refactors
+
+Write at least one refactor, as refactors/<k>/<module>.py: the whole reference module rewritten with the same behaviour for every input, for example with other names, another structure of conditions or extracted constants.
+
+# task.json
+
+task.json is a JSON object with these members:
+
+    {
+      "spec": "specs/<file>.md",
+      "source": "<package>/<module>.py",
+      "criterion": "<ID of the task criterion>",
+      "prompt": "<prompt>",
+      "operations": {"<operation>": {"python": "<package>.<module>:<operation>"}},
+      "interface": {"module": "<package>.<module>", "operation": "<operation>", "signature": "<operation>(<parameters>)"}
+    }
+
+spec and source are relative to fixture/. The prompt is exactly this sentence with its four parts filled in:
+
+    {{.PromptTemplate}}
+
+<ID> is the task criterion, <spec path> the spec member, <source file> the source member, and <statement in a few words> at most 12 words that say what the task criterion requires.
+
+# A project of the same shape
+
+This project has the shape described above. Its task criterion is BOX-4, which its source does not implement yet. Its prompt is:
+
+    {{.ExamplePrompt}}
+{{template "files" .Example}}
+{{template "repair" .}}
+# Reply
+
+{{template "reply"}} Write every file of the set: task.json, everything under fixture/, reference/, violations/ and refactors/.

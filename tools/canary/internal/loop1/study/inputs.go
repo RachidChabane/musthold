@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 )
 
 // InputsFile is the inputs freeze, written by resolve under experiments/loop-1/freeze
@@ -66,6 +67,14 @@ type TaskInputs struct {
 	Truth map[string]string `json:"truth"`
 }
 
+// CanaryRecord is one canary record: its name under the canary directory, its
+// SHA-256 and the start of the session it records (PREREG §13.3).
+type CanaryRecord struct {
+	Name   string    `json:"name"`
+	SHA256 string    `json:"sha256"`
+	Start  time.Time `json:"start"`
+}
+
 // Inputs is inputs.json (PREREG §13.4). Construction holds the construction
 // records as construct wrote them.
 type Inputs struct {
@@ -80,6 +89,7 @@ type Inputs struct {
 	EgressObserved     []string                     `json:"egress_observed"`
 	EgressAllowlist    []string                     `json:"egress_allowlist"`
 	QuotaPatterns      []string                     `json:"quota_patterns"`
+	Canary             []CanaryRecord               `json:"canary"`
 	Policy             map[string]map[string]string `json:"policy"`
 	Tasks              []TaskInputs                 `json:"tasks"`
 	Construction       json.RawMessage              `json:"construction"`
