@@ -20,18 +20,18 @@ ENV UV_PYTHON_INSTALL_DIR=/opt/python \
     DISABLE_AUTOUPDATER=1
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends git ca-certificates \
+ && apt-get install -y --no-install-recommends git curl ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=uv /uv /usr/local/bin/uv
 
 COPY requirements.lock /tmp/requirements.lock
 RUN uv python install "${PYTHON_VERSION}" \
- && uv venv /opt/venv --python "${PYTHON_VERSION}" \
- && uv pip install --python /opt/venv/bin/python --require-hashes --no-deps -r /tmp/requirements.lock \
- && ln -s /opt/venv/bin/python /usr/local/bin/python \
- && ln -s /opt/venv/bin/python /usr/local/bin/python3 \
- && ln -s /opt/venv/bin/pytest /usr/local/bin/pytest \
+ && PYTHON="$(uv python find "${PYTHON_VERSION}")" \
+ && uv pip install --python "${PYTHON}" --break-system-packages --require-hashes --no-deps -r /tmp/requirements.lock \
+ && ln -s "${PYTHON}" /usr/local/bin/python \
+ && ln -s "${PYTHON}" /usr/local/bin/python3 \
+ && ln -s "$(dirname "${PYTHON}")/pytest" /usr/local/bin/pytest \
  && rm /tmp/requirements.lock
 
 RUN npm install --global --no-audit --no-fund "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
