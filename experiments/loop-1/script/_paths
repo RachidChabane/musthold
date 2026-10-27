@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# The directories every loop-1 engine script shares; source it, never run it.
+#
+# LOOP1_WORK holds every raw record (default ~/.musthold-loop-1) and is the engine's
+# read-write mount. LOOP1_PRODUCT holds the Linux product, the plugin trees and the
+# manifest (default ~/.musthold-loop-1-product) and is the engine's read-only mount.
+
+LOOP1_WORK="${LOOP1_WORK:-${HOME}/.musthold-loop-1}"
+LOOP1_PRODUCT="${LOOP1_PRODUCT:-${HOME}/.musthold-loop-1-product}"
+export LOOP1_WORK LOOP1_PRODUCT

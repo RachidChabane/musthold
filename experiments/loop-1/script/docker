@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Run the docker client against the study's engine, never against the user's current context,
+# and with a client configuration of its own, which names no credential helper, so that no
+# registry credential of the user is read or used:
+#
+#   script/docker ARGS...
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly CLIENT_CONFIG="${here}/../../../.tools/loop-1/docker-config"
+mkdir -p "${CLIENT_CONFIG}"
+[[ -f "${CLIENT_CONFIG}/config.json" ]] || echo '{}' >"${CLIENT_CONFIG}/config.json"
+DOCKER_HOST="$("${here}/engine" host)"
+DOCKER_CONFIG="$(cd "${CLIENT_CONFIG}" && pwd)"
+export DOCKER_HOST DOCKER_CONFIG
+unset DOCKER_CONTEXT
+exec docker "$@"

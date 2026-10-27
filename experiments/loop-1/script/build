@@ -1,7 +1,99 @@
 #!/usr/bin/env bash
-# PREREG 2, 7.2: the linux product binaries, the runner and the plugin trees, then the image, from source images resolved to digests.
-# Usage: script/build [ARGS...]
+# PREREG 2, 7.2: the Linux product, the plugin trees and the session image of the agent-loop study.
+# It starts the study's engine (script/engine) and stops it when it ends, whatever the exit. In the
+# pinned Go image, with -p 1 and GOMAXPROCS=2, it compiles for linux/<host architecture> into
+# $LOOP1_PRODUCT/bin: the pinned Shallnot (from the tree of its pinned commit in $SHALLNOT_SRC, never
+# a working tree), the three proof modules, musthold-verify, the umbrella musthold and the runner
+# musthold-demo-loop. The repository's sources are those of HEAD. It then builds the session image
+# (image/Dockerfile) and writes $LOOP1_PRODUCT/manifest.json: the SHA-256 of every binary, the digest
+# of every plugin tree and the digests of the build, base, uv and built images.
+#
+# Usage: script/build
 set -euo pipefail
 # shellcheck source=experiments/loop-1/script/_lib
 source "$(dirname "${BASH_SOURCE[0]}")/_lib"
-loop1_heavy build "$@"
+# shellcheck source=experiments/loop-1/script/_paths
+source "${LOOP1_DIR}/script/_paths"
+# shellcheck source=experiments/loop-1/image/images
+source "${LOOP1_DIR}/image/images"
+
+readonly ENGINE="${LOOP1_DIR}/script/engine"
+readonly DOCKER="${LOOP1_DIR}/script/docker"
+readonly WITH_SLOT="${REPO_ROOT}/script/with-slot"
+readonly IMAGE_DIR="${LOOP1_DIR}/image"
+readonly CLAUDE_PIN_FILE="${REPO_ROOT}/script/claude-code.pin"
+readonly SHALLNOT_PIN_FILE="${REPO_ROOT}/script/shallnot.pin"
+readonly BUILD_LINUX="demo/loop/container/build-linux"
+readonly IMAGE_NAME="musthold-loop-1-session"
+readonly IMAGE_TAG_LENGTH=12
+readonly SLOT_COUNT=2
+readonly SLOT_WAIT_S=3600
+readonly COMPILE_CPUS=2
+readonly COMPILE_MEMORY="2560m"
+readonly MANIFEST_PACKAGE="./internal/loop1/product/cmd/loop1-manifest"
+# <module dir> <binary> of the binaries compiled besides the proof modules and Shallnot.
+readonly EXTRA_BINARIES="verify musthold-verify
+umbrella musthold
+tools/canary musthold-demo-loop"
+
+STAGE="${LOOP1_WORK}/build"
+readonly STAGE
+
+# stage_sources: the sources of HEAD and the tree of the pinned Shallnot commit, in the stage.
+stage_sources() {
+  rm -rf "${STAGE}/src" "${STAGE}/shallnot" "${STAGE}/out"
+  mkdir -p "${STAGE}/src" "${STAGE}/shallnot" "${STAGE}/out" "${STAGE}/cache"
+  git -C "${REPO_ROOT}" archive HEAD | tar -x -C "${STAGE}/src"
+  git -C "$("${REPO_ROOT}/script/shallnot-src")" archive "${SHALLNOT_PIN}" | tar -x -C "${STAGE}/shallnot"
+}
+
+# compile: the Linux binaries, in the pinned Go image, into ${STAGE}/out.
+compile() {
+  local stage
+  stage="$(cd "${STAGE}" && pwd -P)"
+  "${WITH_SLOT}" "${SLOT_COUNT}" --wait "${SLOT_WAIT_S}" -- "${MEM_GUARD}" run -- \
+    "${DOCKER}" run --rm --user "$(id -u):$(id -g)" --cpus "${COMPILE_CPUS}" \
+    --memory "${COMPILE_MEMORY}" --memory-swap "${COMPILE_MEMORY}" \
+    --mount "type=bind,source=${stage},target=${stage}" --workdir "${stage}/src" \
+    --env HOME="${stage}/cache/home" --env GOCACHE="${stage}/cache/go-build" \
+    --env GOMODCACHE="${stage}/cache/go-mod" --env GOFLAGS=-modcacherw --env GOTOOLCHAIN=local \
+    --env BUILD_FIXTURE_TEST=0 --env "BUILD_EXTRA_BINARIES=${EXTRA_BINARIES}" "${GO_IMAGE}" \
+    bash "${BUILD_LINUX}" "${stage}/out" "${stage}/shallnot" "${SHALLNOT_PIN}"
+  rm -rf "${LOOP1_PRODUCT:?}/bin"
+  mkdir -p "${LOOP1_PRODUCT}/bin"
+  cp "${stage}/out/"* "${LOOP1_PRODUCT}/bin/"
+}
+
+# build_image: the session image, tagged by the content of its definition; prints its id.
+build_image() {
+  local claude tag
+  claude="$(tr -d '[:space:]' <"${CLAUDE_PIN_FILE}")"
+  tag="${IMAGE_NAME}:$(cat "${IMAGE_DIR}/Dockerfile" "${IMAGE_DIR}/images" "${IMAGE_DIR}/requirements.lock" "${CLAUDE_PIN_FILE}" |
+    shasum -a 256 | cut -c1-"${IMAGE_TAG_LENGTH}")"
+  "${WITH_SLOT}" "${SLOT_COUNT}" --wait "${SLOT_WAIT_S}" -- "${MEM_GUARD}" run -- \
+    "${DOCKER}" build --quiet --build-arg NODE_IMAGE="${NODE_IMAGE}" --build-arg UV_IMAGE="${UV_IMAGE}" \
+    --build-arg CLAUDE_CODE_VERSION="${claude}" --tag "${tag}" --file "${IMAGE_DIR}/Dockerfile" "${IMAGE_DIR}" >&2
+  "${DOCKER}" image inspect --format '{{.Id}}' "${tag}"
+}
+
+# write_manifest BUILT_IMAGE_ID: copy the plugin trees and write the manifest.
+write_manifest() {
+  local dirty=()
+  [[ -z "$(git -C "${REPO_ROOT}" status --porcelain)" ]] || dirty=(-dirty)
+  GOMAXPROCS="${BUILD_GOMAXPROCS}" nice -n "${BUILD_NICE}" \
+    go run -C "${REPO_ROOT}/tools/canary" -p "${BUILD_PROCS}" "${MANIFEST_PACKAGE}" \
+    -product "${LOOP1_PRODUCT}" -source "${STAGE}/src" -shallnot-tree "${STAGE}/shallnot" \
+    -commit "$(git -C "${REPO_ROOT}" rev-parse HEAD)" ${dirty[@]+"${dirty[@]}"} -shallnot-pin "${SHALLNOT_PIN}" \
+    -build-image "${GO_IMAGE}" -base-image "${NODE_IMAGE}" -uv-image "${UV_IMAGE}" -built-image "$1"
+}
+
+SHALLNOT_PIN="$(tr -d '[:space:]' <"${SHALLNOT_PIN_FILE}")"
+readonly SHALLNOT_PIN
+trap '"${ENGINE}" stop' EXIT
+mkdir -p "${LOOP1_WORK}" "${LOOP1_PRODUCT}"
+"${ENGINE}" start
+stage_sources
+compile
+image_id="$(build_image)"
+write_manifest "${image_id}"
+echo "build: product in ${LOOP1_PRODUCT}, image ${image_id}"
