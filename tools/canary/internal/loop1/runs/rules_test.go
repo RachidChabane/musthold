@@ -18,12 +18,13 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/startup"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs/runstest"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
 func TestStudyConfiguration(t *testing.T) {
 	t.Run("loop-1.json parses with its toolchain and the arms control and treatment, and its order is the seeded order of the agent-loop runner [verifies SP-2510~1]", func(t *testing.T) {
-		data, err := os.ReadFile(filepath.Join(repoFromHere, runs.DefaultConfig))
+		data, err := os.ReadFile(filepath.Join(runstest.RepoRoot(t), runs.DefaultConfig))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -200,7 +201,7 @@ func TestLedger(t *testing.T) {
 	})
 
 	t.Run("a run waits for the reset its last quota stop recorded, and only then [verifies SP-2528~1]", func(t *testing.T) {
-		reset := start.Add(time.Hour)
+		reset := runstest.Start.Add(time.Hour)
 		stop := attemptOf(1, study.OutcomeQuotaStop)
 		stop.Run.QuotaReset = &reset
 		if at := (runs.Ledger{Attempts: []runs.Attempt{stop}}).NotBefore(); at == nil || !at.Equal(reset) {
@@ -213,17 +214,17 @@ func TestLedger(t *testing.T) {
 
 	t.Run("the calendar cap ends the phase 28 days after the first start, and each run takes its state after its last attempt [verifies SP-2529~1]", func(t *testing.T) {
 		first := runs.Attempt{Number: 1, Run: &study.Run{Outcome: study.OutcomeQuotaStop}}
-		first.Run.StartedAt = start
+		first.Run.StartedAt = runstest.Start
 		later := runs.Attempt{Number: 1, Run: &study.Run{Outcome: study.OutcomeHarnessError}}
-		later.Run.StartedAt = start.Add(48 * time.Hour)
+		later.Run.StartedAt = runstest.Start.Add(48 * time.Hour)
 		ledgers := []runs.Ledger{{Name: "a", Attempts: []runs.Attempt{first}}, {Name: "b", Attempts: []runs.Attempt{later}}, {Name: "c"}}
-		if got := runs.FirstStart(ledgers); got == nil || !got.Equal(start) {
+		if got := runs.FirstStart(ledgers); got == nil || !got.Equal(runstest.Start) {
 			t.Fatalf("first start %v", got)
 		}
-		if runs.Capped(runs.FirstStart(ledgers), start.Add(runs.CalendarCap-time.Second)) || !runs.Capped(runs.FirstStart(ledgers), start.Add(runs.CalendarCap)) {
+		if runs.Capped(runs.FirstStart(ledgers), runstest.Start.Add(runs.CalendarCap-time.Second)) || !runs.Capped(runs.FirstStart(ledgers), runstest.Start.Add(runs.CalendarCap)) {
 			t.Error("the cap is not at 28 days")
 		}
-		if runs.PhaseOver(ledgers, start.Add(time.Hour)) || !runs.PhaseOver(ledgers, start.Add(runs.CalendarCap)) {
+		if runs.PhaseOver(ledgers, runstest.Start.Add(time.Hour)) || !runs.PhaseOver(ledgers, runstest.Start.Add(runs.CalendarCap)) {
 			t.Error("the phase ends before the cap or not at it")
 		}
 		want := []study.Outcome{study.OutcomeQuotaBlocked, study.OutcomeHarnessBlocked, study.OutcomeNotRun}
@@ -238,7 +239,7 @@ func TestLedger(t *testing.T) {
 	})
 
 	t.Run("an order that is not the configuration's is refused [verifies SP-2530~1]", func(t *testing.T) {
-		data, _ := os.ReadFile(filepath.Join(repoFromHere, runs.DefaultConfig))
+		data, _ := os.ReadFile(filepath.Join(runstest.RepoRoot(t), runs.DefaultConfig))
 		parsed, _ := config.Parse(data)
 		order := runs.Order(parsed)
 		if err := runs.CheckOrder(parsed, study.Inputs{Order: order}); err != nil {
@@ -280,20 +281,20 @@ func TestEquippedDigest(t *testing.T) {
 
 func TestProvenance(t *testing.T) {
 	inputs := study.Inputs{
-		ClaudeCode: study.ClaudeCode{Version: testPin, SHA256: "abc"}, Shallnot: study.Shallnot{Version: "shallnot 0.5.1"},
+		ClaudeCode: study.ClaudeCode{Version: runstest.Pin, SHA256: "abc"}, Shallnot: study.Shallnot{Version: "shallnot 0.5.1"},
 		Toolchains: map[string]string{"python3": "Python 3.13.14"}, CLIAuxiliaryModels: []string{"claude-haiku-5"},
 	}
-	versions := map[string]string{"claude": testPin + " (Claude Code)", runs.ShallnotVersionKey: "shallnot 0.5.1", "python3": "Python 3.13.14"}
+	versions := map[string]string{"claude": runstest.Pin + " (Claude Code)", runs.ShallnotVersionKey: "shallnot 0.5.1", "python3": "Python 3.13.14"}
 
 	t.Run("an attempt that records the frozen versions and models has no provenance difference [verifies SP-2526~1]", func(t *testing.T) {
-		if got := runs.Provenance(inputs, versions, "abc", testModel, []string{"claude-haiku-5", testModel}); len(got) != 0 {
+		if got := runs.Provenance(inputs, versions, "abc", runstest.Model, []string{"claude-haiku-5", runstest.Model}); len(got) != 0 {
 			t.Errorf("differences %v", got)
 		}
 	})
 
 	t.Run("a toolchain version, the binary and a model beyond the auxiliary ones are each a difference [verifies SP-2526~1]", func(t *testing.T) {
-		skewed := map[string]string{"claude": testPin, runs.ShallnotVersionKey: "shallnot 0.5.1", "python3": "Python 3.13.15"}
-		got := runs.Provenance(inputs, skewed, "def", testModel, []string{"claude-opus-9", testModel})
+		skewed := map[string]string{"claude": runstest.Pin, runs.ShallnotVersionKey: "shallnot 0.5.1", "python3": "Python 3.13.15"}
+		got := runs.Provenance(inputs, skewed, "def", runstest.Model, []string{"claude-opus-9", runstest.Model})
 		if len(got) != 3 || !strings.Contains(strings.Join(got, "\n"), "claude-opus-9") || !strings.Contains(strings.Join(got, "\n"), "python3") {
 			t.Errorf("differences %v", got)
 		}
@@ -301,11 +302,11 @@ func TestProvenance(t *testing.T) {
 }
 
 func TestDeviationLog(t *testing.T) {
-	dir := tempDir(t)
-	stamped := &stamps{}
+	dir := runstest.TempDir(t)
+	stamped := &runstest.Stamps{}
 	log := runs.DeviationLog{Files: adapters.OSFiles{}, Path: filepath.Join(dir, study.DeviationsFile), Stamper: stamped}
 	entry := func(kind study.Kind) study.Deviation {
-		return study.Deviation{Time: start, Kind: kind, Scope: []string{"boxoffice-control-1"}, Section: "6.4", Says: "the rule", Happened: "what happened"}
+		return study.Deviation{Time: runstest.Start, Kind: kind, Scope: []string{"boxoffice-control-1"}, Section: "6.4", Says: "the rule", Happened: "what happened"}
 	}
 	for _, kind := range []study.Kind{study.KindHarnessError, study.KindTokenExposed} {
 		if err := log.Log(context.Background(), entry(kind)); err != nil {
@@ -314,7 +315,7 @@ func TestDeviationLog(t *testing.T) {
 	}
 
 	t.Run("entries are appended under the log's title in the log's format, and the timestamped kinds reach the stamper [verifies SP-2531~1]", func(t *testing.T) {
-		text := read(t, log.Path)
+		text := runstest.Read(t, log.Path)
 		if !strings.HasPrefix(text, study.DeviationsTitle+"\n") {
 			t.Errorf("log:\n%s", text)
 		}
@@ -322,8 +323,8 @@ func TestDeviationLog(t *testing.T) {
 		if len(parsed) != 2 || parsed[0].Kind != study.KindHarnessError || parsed[1].Kind != study.KindTokenExposed || parsed[1].Raw != "" {
 			t.Errorf("entries %+v", parsed)
 		}
-		if len(stamped.lines) != 1 || !strings.Contains(stamped.lines[0], "token-exposed") {
-			t.Errorf("stamped %v", stamped.lines)
+		if len(stamped.Lines) != 1 || !strings.Contains(stamped.Lines[0], "token-exposed") {
+			t.Errorf("stamped %v", stamped.Lines)
 		}
 		if logged, _ := log.Logged(study.KindHarnessError, "boxoffice-control-1"); !logged {
 			t.Error("the logged entry is not found")

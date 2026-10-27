@@ -421,6 +421,39 @@ func (a *attempt) scan() (int, error) {
 	return total, a.writeRecord(study.TokenScanFile, scan)
 }
 
+// PlanLines are the commands of one attempt, in order, as a dry run prints them.
+func (r Runner) PlanLines(o app.Options, s Spec) []string {
+	o.Profile.Egress, o.Profile.Probes = s.Egress, s.Probes
+	planned := r.App.SessionPlan(o, s.Run, s.Dir, !s.Empty)
+	l := planned.Layout
+	lines := append([]string{
+		filepath.Join(o.RepoRoot, plan.MemGuardRelative) + " check   (on the host)",
+		planned.Step([]string{l.Bin(plan.ShallnotBinary), versionFlag}),
+		planned.Step([]string{sha256Program, l.Claude()}) + "   (recorded in run.json)",
+	}, planned.Lines...)
+	if !s.Empty {
+		for _, argv := range [][]string{plan.BaseCommitArgv(), plan.HeadCommitArgv(), plan.TrackedFilesArgv()} {
+			lines = append(lines, planned.Step(argv)+"   (compared with inputs.json)")
+		}
+	}
+	for _, overlay := range s.Overlays {
+		lines = append(lines, "copy "+overlay+" over "+l.Project()+"   (on the host, uncommitted)")
+	}
+	lines = append(lines, "write "+l.Record(study.HashesBeforeFile)+" and, once the session has ended, "+l.Record(study.HashesAfterFile))
+	if !s.Empty {
+		for _, argv := range plan.ChangeArgv() {
+			lines = append(lines, planned.Step(argv))
+		}
+		for _, step := range plan.AcceptanceSteps(l, "<equipped commit>", l.Record(record.FinalGateFile)) {
+			lines = append(lines, planned.Step(step.Argv)+"   ("+step.Purpose+")")
+		}
+	}
+	return append(lines,
+		"write "+l.Record(study.ContainerFile)+", "+l.Record(record.MetaFile)+" and "+l.Record(study.TokenScanFile)+", every match of the token replaced by "+record.TokenPlaceholder,
+		"write "+l.Record(record.TranscriptMarkdown)+" and "+l.Record(record.TranscriptHTML),
+	)
+}
+
 // token is the token the session received, or empty when no session ran.
 func (a *attempt) token() string {
 	if a.session == nil {

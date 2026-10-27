@@ -51,7 +51,7 @@ func (r Runner) printPlan(o Options, now time.Time, source canary.ClaudeCredenti
 // planLines are the commands of one run, in order.
 func (r Runner) planLines(o Options, configured config.Run) []string {
 	dir := filepath.Join(o.Work, runDirPrefix+configured.Name()+"-"+placeholderRun)
-	planned := r.SessionPlan(o, configured, dir)
+	planned := r.SessionPlan(o, configured, dir, true)
 	l := planned.Layout
 	lines := append([]string{
 		quoted(filepath.Join(o.RepoRoot, plan.MemGuardRelative), "check") + "   (on the host)",
@@ -79,8 +79,9 @@ type Planned struct {
 
 // SessionPlan lists, in order, the commands of one run in the run directory
 // given, from the version check of the CLI to the removal of the session's
-// containers and network.
-func (r Runner) SessionPlan(o Options, configured config.Run, dir string) Planned {
+// containers and network. Without prepare, the session starts in an empty
+// project.
+func (r Runner) SessionPlan(o Options, configured config.Run, dir string, prepare bool) Planned {
 	current := r.layout(o, dir)
 	l := current.Layout
 	docker := strings.Join(o.Docker, " ")
@@ -92,22 +93,11 @@ func (r Runner) SessionPlan(o Options, configured config.Run, dir string) Planne
 		}
 		return container.Line(docker, current.Box.StepArgv(current.steps.count, l.Project(), env, argv), false)
 	}
-	lines := []string{
-		step([]string{l.Claude(), versionArgument}) + "   (must begin with " + o.ClaudePin + ")",
-		fmt.Sprintf("copy %s -> %s   (on the host)", filepath.Join(o.RepoRoot, configured.Task.Fixture), l.Project()),
-	}
-	for _, planned := range append(plan.BaseSteps(), plan.EquipSteps(l, configured.Arm)...) {
-		lines = append(lines, step(planned.Argv))
-	}
-	if configured.Arm.WithModules() && len(configured.Task.Operations) > 0 {
-		block, _ := plan.BindOperations(nil, configured.Task.Operations)
-		lines = append(lines, "append to "+filepath.Join(l.Project(), plan.MustholdConfig)+":\n      "+strings.ReplaceAll(strings.TrimSpace(string(block)), "\n", "\n      "))
-	}
-	if kinds, explicit := configured.Arm.Require(); explicit {
-		lines = append(lines, "set proofs.require of "+filepath.Join(l.Project(), plan.ShallnotConfig)+" to ["+strings.Join(kinds, ", ")+"]")
-	}
-	for _, planned := range plan.CommitEquipSteps() {
-		lines = append(lines, step(planned.Argv))
+	lines := []string{step([]string{l.Claude(), versionArgument}) + "   (must begin with " + o.ClaudePin + ")"}
+	if prepare {
+		lines = append(lines, prepareLines(o, configured, l, step)...)
+	} else {
+		lines = append(lines, "create the empty project "+l.Project()+"   (on the host)")
 	}
 	settings := "permissions.allow: " + strings.Join(o.Config.AllowedTools, ", ")
 	if len(o.Profile.Deny) > 0 {
@@ -143,6 +133,25 @@ func (r Runner) SessionPlan(o Options, configured config.Run, dir string) Planne
 		container.Line(docker, current.Box.NetworkRemoveArgv(), false),
 	)
 	return Planned{Layout: l, Lines: lines, Step: step}
+}
+
+// prepareLines are the commands that equip the run's project.
+func prepareLines(o Options, configured config.Run, l plan.Layout, step func([]string) string) []string {
+	lines := []string{fmt.Sprintf("copy %s -> %s   (on the host)", filepath.Join(o.RepoRoot, configured.Task.Fixture), l.Project())}
+	for _, planned := range append(plan.BaseSteps(), plan.EquipSteps(l, configured.Arm)...) {
+		lines = append(lines, step(planned.Argv))
+	}
+	if configured.Arm.WithModules() && len(configured.Task.Operations) > 0 {
+		block, _ := plan.BindOperations(nil, configured.Task.Operations)
+		lines = append(lines, "append to "+filepath.Join(l.Project(), plan.MustholdConfig)+":\n      "+strings.ReplaceAll(strings.TrimSpace(string(block)), "\n", "\n      "))
+	}
+	if kinds, explicit := configured.Arm.Require(); explicit {
+		lines = append(lines, "set proofs.require of "+filepath.Join(l.Project(), plan.ShallnotConfig)+" to ["+strings.Join(kinds, ", ")+"]")
+	}
+	for _, planned := range plan.CommitEquipSteps() {
+		lines = append(lines, step(planned.Argv))
+	}
+	return lines
 }
 
 func quoted(words ...string) string {

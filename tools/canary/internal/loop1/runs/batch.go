@@ -16,7 +16,6 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/app"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/container"
-	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
@@ -60,19 +59,11 @@ func (b Batch) Run(ctx context.Context, inv Invocation) error {
 	if err := checkInputs(inv); err != nil {
 		return err
 	}
-	source, err := canary.FirstCredential(ctx, b.Runner.App.Credentials)
-	if err := app.Present(source, err); err != nil {
-		return err
-	}
-	inv.Plan.Source = source
-	lock, err := b.Runner.App.Lock(inv.Plan.Options)
+	lock, err := b.Runner.Start(ctx, &inv.Plan, inv.Layout.Root)
 	if err != nil {
 		return err
 	}
 	defer lock.Release()
-	if err := b.preflight(ctx, &inv); err != nil {
-		return err
-	}
 	return b.runOrder(ctx, inv, ledgers)
 }
 
@@ -91,25 +82,42 @@ func checkInputs(inv Invocation) error {
 	return nil
 }
 
-// preflight reads the image's id and refuses a CLI that is not the pin, before
-// any attempt.
-func (b Batch) preflight(ctx context.Context, inv *Invocation) error {
-	app := b.Runner.App
-	imageID, err := app.ImageID(ctx, inv.Plan.Options)
+// Start readies an invocation before its first attempt: it finds the credential
+// source, takes the session lock, reads the image's id, and refuses a CLI that
+// is not the pin. The caller releases the lock.
+func (r Runner) Start(ctx context.Context, p *Plan, root string) (canary.Lock, error) {
+	source, err := canary.FirstCredential(ctx, r.App.Credentials)
+	if err := app.Present(source, err); err != nil {
+		return nil, err
+	}
+	p.Source = source
+	lock, err := r.App.Lock(p.Options)
+	if err != nil {
+		return nil, err
+	}
+	if err := r.preflight(ctx, p, root); err != nil {
+		lock.Release()
+		return nil, err
+	}
+	return lock, nil
+}
+
+func (r Runner) preflight(ctx context.Context, p *Plan, root string) error {
+	imageID, err := r.App.ImageID(ctx, p.Options)
 	if err != nil {
 		return err
 	}
-	inv.Plan.ImageID = imageID
-	dir := filepath.Join(inv.Layout.Root, preflightDir)
-	if err := app.Files.MkdirAll(dir); err != nil {
+	p.ImageID = imageID
+	dir := filepath.Join(root, preflightDir)
+	if err := r.App.Files.MkdirAll(dir); err != nil {
 		return err
 	}
-	check, err := app.Open(inv.Plan.Options, dir)
+	check, err := r.App.Open(p.Options, dir)
 	if err != nil {
 		return err
 	}
 	defer check.Close(ctx)
-	_, err = app.Versions(ctx, check, inv.Plan.Options)
+	_, err = r.App.Versions(ctx, check, p.Options)
 	return err
 }
 
@@ -302,40 +310,10 @@ func (b Batch) printPlan(inv Invocation, ledgers []Ledger) error {
 		}
 		dir := inv.Layout.RunDir(ledger.Name, ledger.Next())
 		fmt.Fprintf(b.Stdout, "\n%s, attempt %d, in %s:\n", ledger.Name, ledger.Next(), dir)
-		for step, line := range b.attemptLines(inv, runs[ledger.Name], dir) {
+		spec := Spec{Run: runs[ledger.Name], Dir: dir, Egress: container.HostEndpoints(inv.Plan.Inputs.EgressAllowlist)}
+		for step, line := range b.Runner.PlanLines(inv.Plan.Options, spec) {
 			fmt.Fprintf(b.Stdout, "%2d. %s\n", step+1, line)
 		}
 	}
 	return nil
-}
-
-// attemptLines are the commands of one attempt, in order.
-func (b Batch) attemptLines(inv Invocation, configured config.Run, dir string) []string {
-	options := inv.Plan.Options
-	options.Profile.Egress = container.HostEndpoints(inv.Plan.Inputs.EgressAllowlist)
-	planned := b.Runner.App.SessionPlan(options, configured, dir)
-	l := planned.Layout
-	lines := append([]string{
-		launchLine(filepath.Join(options.RepoRoot, plan.MemGuardRelative), "check") + "   (on the host)",
-		planned.Step([]string{l.Bin(plan.ShallnotBinary), versionFlag}),
-		planned.Step([]string{sha256Program, l.Claude()}) + "   (recorded in run.json)",
-	}, planned.Lines...)
-	for _, argv := range [][]string{plan.BaseCommitArgv(), plan.HeadCommitArgv(), plan.TrackedFilesArgv()} {
-		lines = append(lines, planned.Step(argv)+"   (compared with inputs.json)")
-	}
-	lines = append(lines, "write "+l.Record(study.HashesBeforeFile)+" and, once the session has ended, "+l.Record(study.HashesAfterFile))
-	for _, argv := range plan.ChangeArgv() {
-		lines = append(lines, planned.Step(argv))
-	}
-	for _, step := range plan.AcceptanceSteps(l, "<equipped commit>", l.Record(record.FinalGateFile)) {
-		lines = append(lines, planned.Step(step.Argv)+"   ("+step.Purpose+")")
-	}
-	return append(lines,
-		"write "+l.Record(study.ContainerFile)+", "+l.Record(record.MetaFile)+" and "+l.Record(study.TokenScanFile)+", every match of the token replaced by "+record.TokenPlaceholder,
-		"write "+l.Record(record.TranscriptMarkdown)+" and "+l.Record(record.TranscriptHTML),
-	)
-}
-
-func launchLine(words ...string) string {
-	return strings.Join(words, " ")
 }
