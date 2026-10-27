@@ -50,7 +50,7 @@ uses them unmodified.
 | `github.com/digitorus/pkcs7` | `v0.0.0-20230818184609-3a137a874352` | MIT | binary |
 | `github.com/digitorus/timestamp` | `v0.0.0-20231217203849-220c5c2851b7` | BSD-2-Clause | binary |
 | `github.com/dlclark/regexp2` | `v1.11.0` | MIT | tests and tools |
-| `github.com/go-jose/go-jose/v4` | `v4.1.4` | Apache-2.0 | binary |
+| `github.com/go-jose/go-jose/v4` | `v4.1.6` | Apache-2.0 | binary |
 | `github.com/go-logr/logr` | `v1.4.4` | Apache-2.0 | binary |
 | `github.com/go-logr/stdr` | `v1.2.2` | Apache-2.0 | binary |
 | `github.com/go-openapi/analysis` | `v0.25.5` | Apache-2.0 | binary |
