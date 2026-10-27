@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -31,6 +32,10 @@ type Runner struct {
 	App        app.Runner
 	Tree       Tree
 	Deviations DeviationWriter
+	// Engine and Host read the engine and the machine, as the resolve verb reads
+	// them.
+	Engine freeze.Engine
+	Host   freeze.Host
 }
 
 // Plan is what every attempt of one invocation shares.
@@ -176,11 +181,38 @@ func (a *attempt) toolchains(ctx context.Context, versions map[string]string) {
 	for key, program := range ImageToolchains() {
 		versions[key] = DottedVersion(a.ask(ctx, program, versionFlag))
 	}
-	engine, err := a.r.App.EngineVersion(ctx, a.options)
-	if err != nil {
-		engine = "unavailable: " + err.Error()
+	maps.Copy(versions, a.r.EngineVersions(ctx))
+}
+
+// unavailable is what a version that could not be read is recorded as.
+func unavailable(err error) string { return "unavailable: " + err.Error() }
+
+// EngineVersions reads, under the keys of the inputs freeze, the versions of the
+// engine, of colima and of the host, and the settings of the study's colima
+// profile (PREREG §2); a reading that fails is recorded as unavailable.
+func (r Runner) EngineVersions(ctx context.Context) map[string]string {
+	found := map[string]string{}
+	if docker, err := r.Engine.DockerVersion(ctx); err == nil {
+		found[freeze.ToolchainDocker] = DottedVersion(docker)
+	} else {
+		found[freeze.ToolchainDocker] = unavailable(err)
 	}
-	versions[freeze.ToolchainDocker] = DottedVersion(engine)
+	if colima, err := r.Engine.ColimaVersion(ctx); err == nil {
+		found[freeze.ToolchainColima] = colima
+	} else {
+		found[freeze.ToolchainColima] = unavailable(err)
+	}
+	settings, err := r.Engine.Settings(ctx, freeze.ColimaProfile)
+	if err != nil {
+		settings = freeze.ColimaSettings{CPUs: unavailable(err), MemoryBytes: unavailable(err), DiskBytes: unavailable(err)}
+	}
+	found[freeze.ToolchainColimaC], found[freeze.ToolchainColimaM], found[freeze.ToolchainColimaD] = settings.CPUs, settings.MemoryBytes, settings.DiskBytes
+	host, err := r.Host.Info(ctx)
+	if err != nil {
+		host = freeze.HostInfo{OS: unavailable(err), Version: unavailable(err), Arch: unavailable(err)}
+	}
+	found[freeze.ToolchainHostOS], found[freeze.ToolchainHostVer], found[freeze.ToolchainHostArch] = host.OS, host.Version, host.Arch
+	return found
 }
 
 // ImageToolchains are the programs of the image whose version each run records,

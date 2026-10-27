@@ -16,6 +16,7 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/container"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/freeze"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs/runstest"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
@@ -149,6 +150,35 @@ func TestCompletedAttempt(t *testing.T) {
 		entries, err := os.ReadDir(filepath.Join(dir, plan.HomeDir))
 		if err != nil || len(entries) != 0 {
 			t.Errorf("the run's HOME: %v, %v", entries, err)
+		}
+	})
+
+	t.Run("every docker run, the session's included, holds the machine's container slots, and no other docker command does [verifies SP-2514~1]", func(t *testing.T) {
+		wrapper := runstest.SlotWrapper()
+		for _, argv := range append(w.Engine.Argvs(), spec.Argv) {
+			at := slices.Index(argv, runstest.DockerFront)
+			if at < 0 {
+				continue
+			}
+			isRun := argv[at+1] == "run"
+			if wrapped := slices.Equal(argv[:at], wrapper); wrapped != isRun {
+				t.Errorf("run %v, wrapped %v: %s", isRun, wrapped, joined(argv))
+			}
+		}
+	})
+
+	t.Run("run.json records the image's, the engine's and the host's toolchains under the keys of the inputs freeze [verifies SP-2523~1]", func(t *testing.T) {
+		versions := result.Run.Versions
+		for key, want := range map[string]string{
+			freeze.ToolchainPython: "3.13.14", freeze.ToolchainPytest: "8.4.2", freeze.ToolchainUV: "0.11.23", freeze.ToolchainNode: "24.11.0",
+			freeze.ToolchainDocker: runstest.EngineVersion, freeze.ToolchainColima: runstest.ColimaVersion, freeze.ToolchainColimaC: "2", freeze.ToolchainHostOS: "Darwin",
+		} {
+			if versions[key] != want {
+				t.Errorf("%s: %q, want %q", key, versions[key], want)
+			}
+		}
+		if versions[freeze.ToolchainGit] == "" {
+			t.Error("no git version")
 		}
 	})
 

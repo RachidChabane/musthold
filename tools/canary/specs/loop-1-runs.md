@@ -32,7 +32,8 @@ not running.
 - **SP-2514~1**: WHEN a container of a run of the study is built THE SYSTEM SHALL
   give it 3 GiB of memory and of memory and swap, at most 1024 processes, a HOME
   of its own under the run directory, created empty, and `NO_PROXY` naming the
-  container's loopback.
+  container's loopback, and SHALL start each `docker run` of the run under
+  `script/with-slot`, holding two of the machine's container slots.
 - **SP-2517~1**: WHEN a task is prepared to its equipped state THE SYSTEM SHALL
   return the hash of its base commit, the hash of its equipped commit, the SHA-256
   of its equipped tree's file list and contents with every occurrence of the run
@@ -79,7 +80,9 @@ not running.
   the attempt's outcome.
 - **SP-2523~1**: WHEN an attempt of a run ends, whatever its outcome THE SYSTEM
   SHALL write `run.json` with the task, the arm, the repetition, the attempt, the
-  model, the prompt, the command line, the caps, the versions, the start and end,
+  model, the prompt, the command line, the caps, the versions with the image's,
+  the engine's and the host's toolchains under the keys of the inputs freeze, the
+  start and end,
   the exit, why the session was stopped, the base commit, the equipped commit and
   the equipped tree digest, the outcome, the session model of `system/init` and
   the sorted models of the result event's usage, and SHALL render the transcript
@@ -101,7 +104,8 @@ not running.
 - **SP-2526~1**: WHEN an attempt's base commit, equipped tree digest or session
   model differs from the inputs freeze THE SYSTEM SHALL call it a harness error;
   WHEN the engine's image is not the one the inputs freeze names THE SYSTEM SHALL
-  start no attempt; and WHEN a recorded version differs from the inputs freeze or the usage names a
+  record the run's next attempt as a harness error, start no session, and end the
+  invocation; and WHEN a recorded version differs from the inputs freeze or the usage names a
   model beyond the session model and `cli_auxiliary_models` THE SYSTEM SHALL log a
   provenance deviation and keep the outcome.
 - **SP-2527~1**: WHEN the attempts of a run are counted THE SYSTEM SHALL number them

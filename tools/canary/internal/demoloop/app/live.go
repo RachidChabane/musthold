@@ -123,6 +123,23 @@ type Profile struct {
 	// exited, without the token in its environment, its output written to the
 	// records' ProbesFile; the container's exit code stays the CLI's.
 	Probes string
+	// RunWrapper is the command each `docker run` of the run is started under,
+	// such as the one that holds the machine's container slots; empty, docker
+	// starts directly.
+	RunWrapper []string
+}
+
+// dockerRunVerb is the docker subcommand that starts a container.
+const dockerRunVerb = "run"
+
+// dockerCommand is a docker command against the engine, a `run` started under
+// the profile's wrapper.
+func (o Options) dockerCommand(argv []string) []string {
+	command := append(append([]string{}, o.Docker...), argv...)
+	if len(argv) > 0 && argv[0] == dockerRunVerb {
+		command = append(append([]string{}, o.Profile.RunWrapper...), command...)
+	}
+	return command
 }
 
 // ProbesFile is the record of what the session container's probes printed.
@@ -285,7 +302,7 @@ func (r Runner) layout(o Options, dir string) *Attempt {
 		Image: o.Image, RunDir: dir, Product: o.Product, UID: o.UID, GID: o.GID, Run: filepath.Base(dir),
 		Memory: o.Profile.Memory, PidsLimit: o.Profile.PidsLimit, Egress: o.Profile.Egress, ProxyImage: o.Profile.ProxyImage,
 	}
-	return &Attempt{Layout: l, Box: box, steps: &containerSteps{host: r.Processes, box: box, docker: o.Docker, env: r.Env}}
+	return &Attempt{Layout: l, Box: box, steps: &containerSteps{host: r.Processes, box: box, options: o, env: r.Env}}
 }
 
 // Steps runs each command in a container of its own, with no network.
@@ -356,18 +373,6 @@ func (r Runner) inspect(ctx context.Context, o Options, name string) (container.
 	return container.ParseState(output)
 }
 
-// ImageID is the id of the image the attempts run, as the engine names it.
-func (r Runner) ImageID(ctx context.Context, o Options) (string, error) {
-	output, err := r.dockerOutput(ctx, o, container.ImageIDArgv(o.Image))
-	return strings.TrimSpace(output), err
-}
-
-// EngineVersion is the version of the engine the docker command names.
-func (r Runner) EngineVersion(ctx context.Context, o Options) (string, error) {
-	output, err := r.dockerOutput(ctx, o, container.EngineVersionArgv())
-	return strings.TrimSpace(output), err
-}
-
 // teardown removes the session's and the proxy's containers and the network.
 func (r Runner) teardown(ctx context.Context, o Options, box container.Box) {
 	_ = r.docker(ctx, o, box.RemoveArgv())
@@ -383,7 +388,7 @@ func (r Runner) docker(ctx context.Context, o Options, argv []string) error {
 // dockerOutput runs one docker command against the engine and returns what it
 // printed.
 func (r Runner) dockerOutput(ctx context.Context, o Options, argv []string) (string, error) {
-	command := append(append([]string{}, o.Docker...), argv...)
+	command := o.dockerCommand(argv)
 	output, err := r.Processes.Run(ctx, canary.CommandSpec{Argv: command, Dir: o.RepoRoot, Env: r.Env, Timeout: supportTimeout})
 	if err != nil {
 		return "", err
@@ -436,7 +441,7 @@ func SessionOf(o Options, a *Attempt, configured config.Run) *Session {
 	if o.Profile.Probes != "" {
 		inside = withProbes(l, o.Profile.Probes, inside)
 	}
-	argv := append(append([]string{}, o.Docker...), a.Box.SessionArgv(command.Dir, resolved, inside)...)
+	argv := o.dockerCommand(a.Box.SessionArgv(command.Dir, resolved, inside))
 	return &Session{command: command, argv: argv, exports: plan.ShimExports(l, variables)}
 }
 
@@ -601,18 +606,18 @@ func recordFiles(files canary.Files, dir string) (map[string][]byte, error) {
 // containerSteps runs each preparation and collection command in a container of
 // its own, with no network.
 type containerSteps struct {
-	host   canary.Processes
-	box    container.Box
-	docker []string
-	env    []string
-	count  int
-	names  []string
+	host    canary.Processes
+	box     container.Box
+	options Options
+	env     []string
+	count   int
+	names   []string
 }
 
 // Run implements canary.Processes.
 func (c *containerSteps) Run(ctx context.Context, spec canary.CommandSpec) (canary.Output, error) {
 	c.count++
-	argv := append(append([]string{}, c.docker...), c.box.StepArgv(c.count, spec.Dir, spec.Env, spec.Argv)...)
+	argv := c.options.dockerCommand(c.box.StepArgv(c.count, spec.Dir, spec.Env, spec.Argv))
 	c.names = append(c.names, c.box.StepName(c.count))
 	return c.host.Run(ctx, canary.CommandSpec{Argv: argv, Dir: "", Env: c.env, Timeout: spec.Timeout})
 }
@@ -622,7 +627,7 @@ func (c *containerSteps) removeAll(ctx context.Context) {
 	if len(c.names) == 0 {
 		return
 	}
-	argv := append(append(append([]string{}, c.docker...), "rm", "--force"), c.names...)
+	argv := c.options.dockerCommand(append([]string{"rm", "--force"}, c.names...))
 	_, _ = c.host.Run(ctx, canary.CommandSpec{Argv: argv, Env: c.env, Timeout: supportTimeout})
 }
 

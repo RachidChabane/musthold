@@ -42,9 +42,9 @@ type Batch struct {
 }
 
 // Run runs one invocation. It refuses before any attempt when the order, the
-// inputs freeze, the credential, the image or the CLI is not what the study
-// fixes, and before each attempt when the engine no longer runs that image; a
-// quota stop ends it with no error.
+// inputs freeze, the credential, the engine or the CLI is not what the study
+// fixes; a quota stop ends it with no error, and an image that is not the frozen
+// one ends it after recording the attempt it voids.
 func (b Batch) Run(ctx context.Context, inv Invocation) error {
 	if err := CheckOrder(inv.Config, inv.Plan.Inputs); err != nil {
 		return err
@@ -92,8 +92,9 @@ func checkInputs(inv Invocation) error {
 }
 
 // Start readies an invocation before its first attempt: it finds the credential
-// source, takes the session lock, refuses an image that is not the frozen one,
-// and refuses a CLI that is not the pin. The caller releases the lock.
+// source, takes the session lock, reads the id of the engine's image, and refuses
+// an engine that does not answer or a CLI that is not the pin. The caller
+// releases the lock.
 func (r Runner) Start(ctx context.Context, p *Plan, root string) (canary.Lock, error) {
 	source, err := canary.FirstCredential(ctx, r.App.Credentials)
 	if err := app.Present(source, err); err != nil {
@@ -112,9 +113,11 @@ func (r Runner) Start(ctx context.Context, p *Plan, root string) (canary.Lock, e
 }
 
 func (r Runner) preflight(ctx context.Context, p *Plan, root string) error {
-	if err := r.CheckImage(ctx, p); err != nil {
+	imageID, err := r.Engine.ImageID(ctx, p.Options.Image)
+	if err != nil {
 		return err
 	}
+	p.ImageID = imageID
 	dir := filepath.Join(root, preflightDir)
 	if err := r.App.Files.MkdirAll(dir); err != nil {
 		return err
@@ -128,44 +131,33 @@ func (r Runner) preflight(ctx context.Context, p *Plan, root string) error {
 	return err
 }
 
-// CheckImage reads the id of the image the engine runs, and refuses one that is
-// not the image the inputs freeze names, or an engine that does not answer.
-func (r Runner) CheckImage(ctx context.Context, p *Plan) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	imageID, err := r.App.ImageID(ctx, p.Options)
-	if err != nil {
-		return err
-	}
-	if built := p.Inputs.Images.Built; built != "" && imageID != built {
-		return fmt.Errorf("%w: the engine names %s, the inputs freeze %s", ErrImage, imageID, built)
-	}
-	p.ImageID = imageID
-	return nil
-}
-
 // preflightDir is where the CLI's version is checked before the first attempt.
 const preflightDir = "preflight"
+
+// voidRun writes the run.json of an attempt that is a harness error and ran no
+// session.
+func (b Batch) voidRun(inv Invocation, name string, number int, reason string) (study.Run, error) {
+	configured := runsByName(inv.Config)[name]
+	run := study.Run{Attempt: number, Outcome: study.OutcomeHarnessError, Reason: reason}
+	run.Task, run.Arm, run.Repetition = configured.Task.Name, string(configured.Arm), configured.Repetition
+	run.Model, run.Prompt = inv.Config.Model, configured.Task.Prompt
+	encoded, err := app.EncodeJSON(run)
+	if err != nil {
+		return run, err
+	}
+	return run, b.Runner.App.Files.Write(filepath.Join(inv.Layout.Records(name, number), record.MetaFile), encoded, false)
+}
 
 // recordInterrupted writes the run.json of each attempt whose invocation ended
 // before it was recorded, as a harness error, and logs it.
 func (b Batch) recordInterrupted(ctx context.Context, inv Invocation, attempts map[string][]phase.Attempt) error {
-	runs := runsByName(inv.Config)
 	for _, name := range inv.Plan.Inputs.Order {
 		for index, attempt := range attempts[name] {
 			if !Interrupted(attempt) {
 				continue
 			}
-			configured := runs[name]
-			run := study.Run{Attempt: attempt.Number, Outcome: study.OutcomeHarnessError, Reason: ReasonInterruptedAttempt}
-			run.Task, run.Arm, run.Repetition = configured.Task.Name, string(configured.Arm), configured.Repetition
-			run.Model, run.Prompt = inv.Config.Model, configured.Task.Prompt
-			encoded, err := app.EncodeJSON(run)
+			run, err := b.voidRun(inv, name, attempt.Number, ReasonInterruptedAttempt)
 			if err != nil {
-				return err
-			}
-			if err := b.Runner.App.Files.Write(filepath.Join(inv.Layout.Records(name, attempt.Number), record.MetaFile), encoded, false); err != nil {
 				return err
 			}
 			attempts[name][index].Run = run
@@ -194,7 +186,7 @@ func (b Batch) runOrder(ctx context.Context, inv Invocation, attempts map[string
 			if at := NotBefore(attempts[name]); at != nil && b.Runner.App.Clock.Now().Before(*at) {
 				return fmt.Errorf("%w: %s starts no earlier than %s", ErrBeforeReset, name, at.Format(time.RFC3339))
 			}
-			if err := b.ready(ctx, &inv); err != nil {
+			if err := b.ready(ctx, &inv, name, attempts); err != nil {
 				return err
 			}
 			result, err := b.attempt(ctx, inv, runs[name], attempts)
@@ -211,13 +203,37 @@ func (b Batch) runOrder(ctx context.Context, inv Invocation, attempts map[string
 	return nil
 }
 
-// ready refuses to start an attempt on a host the memory guard refuses, after an
-// interruption, or on an engine that no longer runs the frozen image.
-func (b Batch) ready(ctx context.Context, inv *Invocation) error {
+// ready refuses to start an attempt after an interruption, on a host the memory
+// guard refuses, or on an engine that does not answer. An engine whose image is
+// not the frozen one gives the run's next attempt as a harness error (PREREG
+// §7.2), and ends the invocation.
+func (b Batch) ready(ctx context.Context, inv *Invocation, name string, attempts map[string][]phase.Attempt) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if err := b.Runner.App.CheckMemory(ctx, inv.Plan.Options); err != nil {
 		return err
 	}
-	return b.Runner.CheckImage(ctx, &inv.Plan)
+	imageID, err := b.Runner.Engine.ImageID(ctx, inv.Plan.Options.Image)
+	if err != nil {
+		return err
+	}
+	inv.Plan.ImageID = imageID
+	built := inv.Plan.Inputs.Images.Built
+	if built == "" || imageID == built {
+		return nil
+	}
+	reason := fmt.Sprintf("the engine's image is %s, the inputs freeze names %s", imageID, built)
+	number := NextAttempt(attempts[name])
+	run, err := b.voidRun(*inv, name, number, reason)
+	if err != nil {
+		return err
+	}
+	attempts[name] = append(attempts[name], phase.Attempt{Number: number, Dir: inv.Layout.RunDir(name, number), Run: run})
+	if err := b.log(ctx, *inv, name, attempts[name], Result{Run: run}); err != nil {
+		return err
+	}
+	return fmt.Errorf("%w: %s", ErrImage, reason)
 }
 
 // attempt runs the next attempt of a run, adds it to the run's attempts and logs

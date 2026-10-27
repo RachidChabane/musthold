@@ -18,7 +18,9 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/window"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box/docker"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/deviation"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/freeze"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -39,10 +41,14 @@ const (
 	homeVariable  = "HOME"
 )
 
-// The bounds of every container of the study (PREREG §7.3).
+// The bounds of every container of the study (PREREG §7.3), and the slots each
+// `docker run` holds (PREREG §7.7): the script, relative to the repository root,
+// and how long a run waits for them.
 const (
-	StudyMemory    = "3g"
-	StudyPidsLimit = 1024
+	StudyMemory      = "3g"
+	StudyPidsLimit   = 1024
+	WithSlotRelative = "script/with-slot"
+	SlotWait         = time.Hour
 )
 
 // Flags are what the run and canary verbs read from their command line.
@@ -142,6 +148,7 @@ func (f Flags) Resolve(files canary.Files, absentOK bool) (Setup, error) {
 		Profile: StudyProfile(f.Claude),
 	}
 	options.Profile.ProxyImage = inputs.Images.Proxy
+	options.Profile.RunWrapper = docker.SlotWrapper(filepath.Join(root, WithSlotRelative), SlotWait)
 	return Setup{Config: parsed, Inputs: inputs, Options: options, Layout: study.Layout{Root: work}}, nil
 }
 
@@ -249,7 +256,19 @@ func (c Command) runner(environ []string, stdout io.Writer, setup Setup) Runner 
 			return deviation.NewAppender(layout, deviation.DefaultStamper(), time.Now)
 		}
 	}
-	return Runner{App: AppRunner(environ, stdout), Tree: OSTree{}, Deviations: writer(setup.Layout)}
+	runner := StudyRunner(environ, stdout, setup.Options)
+	runner.Deviations = writer(setup.Layout)
+	return runner
+}
+
+// StudyRunner wires the attempts to the canary's adapters, the study's engine and
+// the host, as the resolve verb reads them.
+func StudyRunner(environ []string, stdout io.Writer, options app.Options) Runner {
+	command := freeze.OSExec{}
+	return Runner{
+		App: AppRunner(environ, stdout), Tree: OSTree{},
+		Engine: freeze.CLIEngine{Exec: command, Docker: options.Docker}, Host: freeze.UnameHost{Exec: command},
+	}
 }
 
 func fail(stderr io.Writer, err error) int {

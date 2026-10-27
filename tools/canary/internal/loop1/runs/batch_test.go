@@ -323,15 +323,20 @@ func TestRefusals(t *testing.T) {
 		}
 	})
 
-	t.Run("an engine whose image is not the frozen one is refused before any attempt [verifies SP-2526~1]", func(t *testing.T) {
+	t.Run("an engine whose image is not the frozen one gives one harness error, logged, starts no session and ends the invocation [verifies SP-2526~1]", func(t *testing.T) {
 		w := runstest.NewWorld(t)
 		w.Inputs.Images.Built = "sha256:" + strings.Repeat("2", 64)
 		err := w.Batch().Run(context.Background(), w.Invocation())
 		if !errors.Is(err, runs.ErrImage) || len(w.Session.Specs) != 0 {
 			t.Errorf("error %v, %d sessions", err, len(w.Session.Specs))
 		}
-		if _, err := os.Stat(filepath.Join(w.Work, study.RunsDir)); !errors.Is(err, os.ErrNotExist) {
-			t.Error("an attempt directory was created")
+		attempts := w.Attempts(t)
+		first := attempts[w.Inputs.Order[0]]
+		if len(first) != 1 || first[0].Run.Outcome != study.OutcomeHarnessError || !strings.Contains(first[0].Run.Reason, "image") || len(attempts[w.Inputs.Order[1]]) != 0 {
+			t.Errorf("attempts %+v", attempts)
+		}
+		if got := kinds(w.Deviations(t)); !slices.Equal(got, []study.Kind{study.KindHarnessError}) {
+			t.Errorf("deviations %v", got)
 		}
 	})
 

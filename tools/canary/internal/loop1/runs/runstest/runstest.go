@@ -31,7 +31,10 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/window"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/phase"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box/docker"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/deviation"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/freeze"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
@@ -48,6 +51,9 @@ const (
 	recording   = "demo/loop/recording"
 	repoMarker  = "experiments/loop-1/loop-1.json"
 )
+
+// SlotWrapper is the wrapper every `docker run` of a world starts under.
+func SlotWrapper() []string { return docker.SlotWrapper("/repo/"+runs.WithSlotRelative, runs.SlotWait) }
 
 // Start is when every world's clock starts.
 var Start = time.Date(2026, time.November, 2, 22, 0, 0, 0, time.UTC)
@@ -122,6 +128,9 @@ func (e *Engine) Run(ctx context.Context, spec canary.CommandSpec) (canary.Outpu
 	e.calls = append(e.calls, spec.Argv)
 	e.mutex.Unlock()
 	argv := spec.Argv
+	if at := slices.Index(argv, DockerFront); at > 0 {
+		argv = argv[at:]
+	}
 	switch {
 	case strings.HasSuffix(argv[0], "script/mem-guard"):
 		return canary.Output{}, nil
@@ -129,10 +138,6 @@ func (e *Engine) Run(ctx context.Context, spec canary.CommandSpec) (canary.Outpu
 		return e.play(ctx, spec.Dir, hostPath(spec.Env), argv)
 	case e.Down:
 		return canary.Output{ExitCode: 1, Stderr: "Cannot connect to the Docker daemon"}, nil
-	case argv[1] == "version":
-		return canary.Output{Stdout: "28.5.1\n"}, nil
-	case slices.Equal(argv[1:3], []string{"image", "inspect"}):
-		return canary.Output{Stdout: Image + "\n"}, nil
 	case argv[1] == "inspect":
 		return canary.Output{Stdout: e.State + "\n"}, nil
 	case argv[1] == "run" && slices.Contains(argv, "--detach"):
@@ -141,6 +146,47 @@ func (e *Engine) Run(ctx context.Context, spec canary.CommandSpec) (canary.Outpu
 		return e.step(ctx, argv)
 	}
 	return canary.Output{}, nil
+}
+
+// ErrEngineDown is the error of a reading of an engine that does not answer.
+var ErrEngineDown = errors.New("cannot connect to the Docker daemon")
+
+// The engine's and the host's readings the stand-ins answer with.
+const (
+	EngineVersion = "28.5.1"
+	ColimaVersion = "0.9.1"
+)
+
+var _ freeze.Engine = (*Engine)(nil)
+
+func (e *Engine) reading(value string) (string, error) {
+	if e.Down {
+		return "", ErrEngineDown
+	}
+	return value, nil
+}
+
+// DockerVersion implements freeze.Engine.
+func (e *Engine) DockerVersion(context.Context) (string, error) { return e.reading(EngineVersion) }
+
+// ColimaVersion implements freeze.Engine.
+func (e *Engine) ColimaVersion(context.Context) (string, error) { return e.reading(ColimaVersion) }
+
+// Settings implements freeze.Engine.
+func (e *Engine) Settings(context.Context, string) (freeze.ColimaSettings, error) {
+	_, err := e.reading("")
+	return freeze.ColimaSettings{CPUs: "2", MemoryBytes: "4294967296", DiskBytes: "32212254720"}, err
+}
+
+// ImageID implements freeze.Engine.
+func (e *Engine) ImageID(context.Context, string) (string, error) { return e.reading(Image) }
+
+// Host stands for the machine.
+type Host struct{}
+
+// Info implements freeze.Host.
+func (Host) Info(context.Context) (freeze.HostInfo, error) {
+	return freeze.HostInfo{OS: "Darwin", Version: "25.6.0", Arch: "arm64"}, nil
 }
 
 func (e *Engine) writeProxyLog(argv []string) error {
@@ -254,6 +300,20 @@ func module(dir, name string, args []string) (canary.Output, error) {
 		text = strings.Replace(text, "    - discriminating-power\n", "    - discriminating-power\n    - alignment\n", 1)
 	}
 	return canary.Output{}, os.WriteFile(path, []byte(text), 0o644)
+}
+
+// BoxRunner runs the box's commands on the engine stand-in and records each
+// command's mounts.
+type BoxRunner struct {
+	Engine *Engine
+	Mounts [][]box.Mount
+}
+
+// Run implements box.Runner.
+func (b *BoxRunner) Run(ctx context.Context, command box.Command) (box.Result, error) {
+	b.Mounts = append(b.Mounts, command.Mounts)
+	output, err := b.Engine.Run(ctx, canary.CommandSpec{Argv: command.Argv, Dir: command.Dir, Env: command.Env, Timeout: command.Limit})
+	return box.Result{ExitCode: output.ExitCode, Stdout: []byte(output.Stdout), Stderr: []byte(output.Stderr)}, err
 }
 
 // WriteAll writes files below a directory, creating their directories.
@@ -426,12 +486,13 @@ func NewWorld(t *testing.T) *World {
 		Credentials: []canary.ClaudeCredential{Credential{Reads: &reads}},
 		Env:         []string{"HOME=/Users/someone", "PATH=/usr/bin", launch.OAuthTokenVariable + "=" + Token}, Stdout: w.Stdout,
 	}
-	w.Runner = runs.Runner{App: appRunner, Tree: runs.OSTree{},
+	w.Runner = runs.Runner{App: appRunner, Tree: runs.OSTree{}, Engine: w.Engine, Host: Host{},
 		Deviations: deviation.NewAppender(study.Layout{Root: w.Work}, w.Stamps, w.Clock.Now)}
 	w.Options = app.Options{
 		RepoRoot: repo, Config: parsed, Work: w.Work, Product: w.Product, Image: Image, Docker: []string{DockerFront},
 		UID: 501, GID: 20, ClaudePin: Pin, Profile: runs.StudyProfile(Claude),
 	}
+	w.Options.Profile.RunWrapper = SlotWrapper()
 	w.Inputs = w.freeze(t)
 	w.Engine.Forget()
 	return w

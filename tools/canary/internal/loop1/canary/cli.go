@@ -54,7 +54,7 @@ func (c Command) Main(ctx context.Context, args []string, stdout, stderr io.Writ
 		return fail(stderr, err)
 	}
 	canary := Canary{
-		Runner:    runs.Runner{App: runs.AppRunner(environ, stdout), Tree: runs.OSTree{}},
+		Runner:    runs.StudyRunner(environ, stdout, setup.Options),
 		Detectors: c.Detectors, Stdout: stdout,
 	}
 	output, err := canary.Run(ctx, Invocation{

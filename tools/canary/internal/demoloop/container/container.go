@@ -287,20 +287,6 @@ func ParseState(output string) (State, error) {
 	return State{ExitCode: code, OOMKilled: killed}, nil
 }
 
-// imageIDFormat selects the id of an image, the digest of its configuration.
-const imageIDFormat = "{{.Id}}"
-
-// engineVersionFormat selects the version of the engine the client talks to.
-const engineVersionFormat = "{{.Server.Version}}"
-
-// EngineVersionArgv reads the engine's version.
-func EngineVersionArgv() []string { return []string{"version", "--format", engineVersionFormat} }
-
-// ImageIDArgv reads the id of an image.
-func ImageIDArgv(image string) []string {
-	return []string{"image", "inspect", "--format", imageIDFormat, image}
-}
-
 // Line renders a docker command as one shell line, the stdin placeholder said.
 func Line(docker string, argv []string, stdin bool) string {
 	words := make([]string, 0, len(argv)+1)
