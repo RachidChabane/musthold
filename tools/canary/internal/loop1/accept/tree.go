@@ -19,8 +19,7 @@ var ignoredDirectories = map[string]bool{
 const (
 	treeDirectoryMode = 0o755
 	treeFileMode      = 0o644
-	testsPrefix       = "tests/"
-	oraclePrefix      = "oracle/"
+	oraclePrefix      = OracleSubdir + "/"
 )
 
 // tree is a set of files by slash-separated path relative to the tree's root.
@@ -97,17 +96,6 @@ func (t tree) with(prefix string, added tree) tree {
 		merged[prefix+name] = content
 	}
 	return merged
-}
-
-// under returns the files under a directory prefix, their paths relative to it.
-func (t tree) under(prefix string) tree {
-	picked := tree{}
-	for name, content := range t {
-		if relative, found := strings.CutPrefix(name, prefix); found {
-			picked[relative] = content
-		}
-	}
-	return picked
 }
 
 // write replaces dir with the tree.

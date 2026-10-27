@@ -26,15 +26,15 @@ func pytestArgv(junit string) []string {
 // oracleArgv is the command that runs the oracle in a tree (PREREG §4.1).
 func oracleArgv(junit string) []string {
 	return []string{
-		PythonProgram, "-m", "pytest", "-c", "oracle/" + OracleConfigFile, "--rootdir", "oracle", "--noconftest",
-		"-p", "no:cacheprovider", "-q", "--junitxml=" + junit, "oracle",
+		PythonProgram, "-m", "pytest", "-c", oraclePrefix + OracleConfigFile, "--rootdir", OracleSubdir, "--noconftest",
+		"-p", "no:cacheprovider", "-q", "--junitxml=" + junit, OracleSubdir,
 	}
 }
 
 func collectArgv() []string {
 	return []string{
-		PythonProgram, "-m", "pytest", "-c", "oracle/" + OracleConfigFile, "--rootdir", "oracle", "--noconftest",
-		"-p", "no:cacheprovider", "--collect-only", "-q", "oracle",
+		PythonProgram, "-m", "pytest", "-c", oraclePrefix + OracleConfigFile, "--rootdir", OracleSubdir, "--noconftest",
+		"-p", "no:cacheprovider", "--collect-only", "-q", OracleSubdir,
 	}
 }
 
@@ -53,7 +53,7 @@ func (r *round) tests(ctx context.Context, res *Result, label string, project tr
 
 // oracle runs the oracle in a tree. It reports ok=false when the runs disagree.
 func (r *round) oracle(ctx context.Context, res *Result, label string, project tree, authorTarget records.Target) (outcome, bool, error) {
-	label = "oracle-" + label
+	label = "spec-tests-" + label
 	found, err := r.pytestOutcome(ctx, label, r.oracleTree(project), oracleArgv, ModulesOfCriteria(r.criteria))
 	return found, r.agreed(res, err, label, authorTarget, true), r.fatal(err)
 }
@@ -111,12 +111,12 @@ func (r *round) gate(ctx context.Context, res *Result) error {
 		return err
 	}
 	if !runs.agreed {
-		res.disagree(disagreement{signatures: runs.signatures}, "the traceability gate", records.TargetFixture, false)
+		res.disagree(disagreement{signatures: runs.signatures}, "the traceability run", records.TargetFixture, false)
 		return nil
 	}
 	if blocked := blockingFindings(reports[0]); !onlyMissingTest(blocked, r.m.task.Criterion) {
 		res.fail(records.RoleAuthor, records.TargetFixture,
-			"the traceability gate must block on the missing test of %s and on nothing else; it blocked on: %s", r.m.task.Criterion, describeBlocks(reports[0], blocked))
+			"the traceability run of the project must flag the missing test of %s and nothing else; it flagged: %s", r.m.task.Criterion, describeBlocks(reports[0], blocked))
 	}
 	return nil
 }
@@ -177,11 +177,11 @@ func (r *round) reference(ctx context.Context) (*Result, error) {
 // author with their messages and to the test writer by name alone.
 func (r *round) failOracle(res *Result, found outcome, target records.Target, where, implementation string) {
 	if found.everythingFails() || len(found.failedCases()) == 0 {
-		res.fail(records.RoleAuthor, target, "%s ran no oracle test to the end (timeout, crash or collection failure)", where)
+		res.fail(records.RoleAuthor, target, "%s ran no spec test to the end (timeout, crash or collection failure)", where)
 		res.fail(records.RoleOracle, records.TargetOracle, "the tests do not run to the end against %s", implementation)
 		return
 	}
-	res.fail(records.RoleAuthor, target, "%s fails oracle tests:\n%s", where, describeFailures(found.failedCases()))
+	res.fail(records.RoleAuthor, target, "%s fails spec tests:\n%s", where, describeFailures(found.failedCases()))
 	res.fail(records.RoleOracle, records.TargetOracle, "these tests fail against %s:\n%s", implementation, strings.Join(sortedCaseIDs(found.failedCases()), "\n"))
 }
 
@@ -195,11 +195,11 @@ func (r *round) base(ctx context.Context) (*Result, error) {
 		return res, err
 	}
 	if !found.failsCriterion(criterion) {
-		res.fail(records.RoleAuthor, records.TargetFixture, "no oracle test of %s fails on the fixture: its source already behaves as the criterion states", criterion)
+		res.fail(records.RoleAuthor, records.TargetFixture, "no spec test of %s fails on the fixture: its source already behaves as the criterion states", criterion)
 		res.fail(records.RoleOracle, records.TargetOracle, "no test of %s fails against an implementation that lacks the behaviour it states", criterion)
 	}
 	if outside := found.failingOutside(criterion); len(outside) > 0 {
-		res.fail(records.RoleAuthor, records.TargetFixture, "the fixture fails oracle tests of other criteria:\n%s", describeFailures(outside))
+		res.fail(records.RoleAuthor, records.TargetFixture, "the fixture fails spec tests of other criteria:\n%s", describeFailures(outside))
 		res.fail(records.RoleOracle, records.TargetOracle, "these tests fail against an implementation of every criterion but %s:\n%s", criterion, strings.Join(sortedCaseIDs(outside), "\n"))
 	}
 	return res, nil
@@ -218,11 +218,11 @@ func (r *round) diagonal(ctx context.Context) (*Result, error) {
 			continue
 		}
 		if !found.failsCriterion(v.Criterion) {
-			res.fail(records.RoleAuthor, records.TargetVariants, "%s fails no oracle test of %s", v.Label(), v.Criterion)
+			res.fail(records.RoleAuthor, records.TargetVariants, "%s fails no spec test of %s", v.Label(), v.Criterion)
 			res.fail(records.RoleOracle, records.TargetOracle, "no test of %s fails against an implementation that violates it", v.Criterion)
 		}
 		if outside := found.failingOutside(v.Criterion); len(outside) > 0 {
-			res.fail(records.RoleAuthor, records.TargetVariants, "%s fails oracle tests of other criteria:\n%s", v.Label(), describeFailures(outside))
+			res.fail(records.RoleAuthor, records.TargetVariants, "%s fails spec tests of other criteria:\n%s", v.Label(), describeFailures(outside))
 			res.fail(records.RoleOracle, records.TargetOracle, "these tests fail against an implementation that violates only %s:\n%s", v.Criterion, strings.Join(sortedCaseIDs(outside), "\n"))
 		}
 	}

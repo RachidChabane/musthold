@@ -79,13 +79,20 @@ var (
 	statementPattern   = regexp.MustCompile(`(?s)^WHEN\b.+\bTHE SYSTEM SHALL\b.+`)
 )
 
-// ParseExamples reads the inline examples of each criterion of a Markdown spec.
-// A criterion's block runs from its declaration to the next declaration or
-// heading; fenced code blocks hold no declaration or example.
-func ParseExamples(spec []byte) map[string][]Example {
-	examples := map[string][]Example{}
-	current := ""
+// Criterion is a criterion of a spec with its inline examples.
+type Criterion struct {
+	ID       string
+	Examples []Example
+}
+
+// ParseCriteria reads the criteria of a Markdown spec in order of declaration,
+// each with its inline examples. A criterion's block runs from its declaration
+// to the next declaration or heading; fenced code blocks hold no declaration or
+// example.
+func ParseCriteria(spec []byte) []Criterion {
+	var criteria []Criterion
 	fenced := false
+	open := false
 	for _, line := range strings.Split(string(spec), "\n") {
 		if isFence(line) {
 			fenced = !fenced
@@ -94,23 +101,38 @@ func ParseExamples(spec []byte) map[string][]Example {
 		if fenced {
 			continue
 		}
-		if match := declarationPattern.FindStringSubmatch(line); match != nil {
-			current = match[1]
-			examples[current] = nil
-			continue
-		}
-		if match := headingDeclaration.FindStringSubmatch(line); match != nil {
-			current = match[1]
-			examples[current] = nil
+		if id := declaredID(line); id != "" {
+			criteria = append(criteria, Criterion{ID: id})
+			open = true
 			continue
 		}
 		if headingPattern.MatchString(line) {
-			current = ""
+			open = false
 			continue
 		}
-		if match := examplePattern.FindStringSubmatch(line); match != nil && current != "" {
-			examples[current] = append(examples[current], Example{Operation: match[1], Arguments: match[2], Result: match[3]})
+		if match := examplePattern.FindStringSubmatch(line); match != nil && open {
+			last := &criteria[len(criteria)-1]
+			last.Examples = append(last.Examples, Example{Operation: match[1], Arguments: match[2], Result: match[3]})
 		}
+	}
+	return criteria
+}
+
+func declaredID(line string) string {
+	if match := declarationPattern.FindStringSubmatch(line); match != nil {
+		return match[1]
+	}
+	if match := headingDeclaration.FindStringSubmatch(line); match != nil {
+		return match[1]
+	}
+	return ""
+}
+
+// ParseExamples reads the inline examples of each criterion of a spec by ID.
+func ParseExamples(spec []byte) map[string][]Example {
+	examples := map[string][]Example{}
+	for _, criterion := range ParseCriteria(spec) {
+		examples[criterion.ID] = criterion.Examples
 	}
 	return examples
 }

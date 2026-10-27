@@ -1,0 +1,37 @@
+Write pytest tests for the behaviour that the specification below states.
+
+# Specification
+{{.Spec}}
+# Interface under test
+
+- Module: {{.Interface.Module}}
+- Operation: {{.Interface.Operation}}
+- Signature: {{.Interface.Signature}}
+
+Import the operation with `from {{.Interface.Module}} import {{.Interface.Operation}}` and call it with keyword arguments only.
+
+# Files
+
+Write one test file per criterion, named test_ followed by the criterion ID in lower case with its hyphen written as an underscore:
+{{range .Files}}
+- {{.Criterion}}: {{.Name}}{{end}}
+
+Also write pytest.ini, the configuration of the test files. The test files sit together in one directory, which lies inside the directory that holds the package, so the package is importable from the parent of the test directory. The file is:
+
+    [pytest]
+    testpaths = .
+    pythonpath = ..
+
+# What each test file checks
+
+For its criterion, a test file checks:
+
+- every inline example of the criterion, as written;
+- each side of every boundary the criterion states: the value on the boundary and the value next to it on the other side;
+- an enumeration of the inputs the criterion covers, bounded and deterministic: a loop or pytest.mark.parametrize over a finite range.
+
+Each test file holds at least two test functions. No test is skipped or expected to fail. Use pytest and the standard library only. Use no randomness, clock, file or network.
+{{template "repair" .}}
+# Reply
+
+{{template "reply"}} Write every file named above.

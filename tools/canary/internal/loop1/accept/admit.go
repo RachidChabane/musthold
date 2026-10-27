@@ -139,3 +139,24 @@ func insertionPoint(data []byte, end int, entry []byte, empty bool) ([]byte, int
 	}
 	return []byte(",\n" + text), at
 }
+
+// ListedTasks returns the names of the tasks a run configuration lists.
+func ListedTasks(configPath string) ([]string, error) {
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("read the run configuration: %w", err)
+	}
+	var document struct {
+		Tasks []struct {
+			Name string `json:"name"`
+		} `json:"tasks"`
+	}
+	if err := json.Unmarshal(data, &document); err != nil {
+		return nil, fmt.Errorf("read the tasks of the run configuration: %w", err)
+	}
+	names := make([]string, 0, len(document.Tasks))
+	for _, task := range document.Tasks {
+		names = append(names, task.Name)
+	}
+	return names, nil
+}

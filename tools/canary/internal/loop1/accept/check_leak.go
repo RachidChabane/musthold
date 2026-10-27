@@ -85,7 +85,7 @@ func (r *round) truthLines() map[string][]origin {
 		for number, line := range strings.Split(string(r.m.oracle[name]), "\n") {
 			line = strings.TrimSpace(line)
 			if significant(line) && !restated[squeeze(line)] {
-				lines[line] = append(lines[line], origin{file: oraclePrefix + name, line: number + 1, role: records.RoleOracle})
+				lines[line] = append(lines[line], origin{file: name, line: number + 1, role: records.RoleOracle})
 			}
 		}
 	}
