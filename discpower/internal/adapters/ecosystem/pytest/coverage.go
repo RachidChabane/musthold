@@ -93,9 +93,13 @@ func runCoverage(ctx context.Context, deps Dependencies, workspace ecosystem.Wor
 		argv = append(append(argv, pluginFlag, scanPluginModule), filesOf(selected)...)
 		env = append(env, scanSelectionVariable+environmentAssignment+selection)
 	}
-	executed, err := deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: workspace.Dir, Env: env, Timeout: timeout})
+	command := ports.Command{Argv: argv, Dir: workspace.Dir, Env: env, Timeout: timeout}
+	executed, err := deps.Process.Run(ctx, command)
 	if err != nil {
 		return nil, fmt.Errorf("run the coverage suite: %w", err)
+	}
+	if executed.KilledFromOutside() {
+		return nil, fmt.Errorf("%w: %s", ports.ErrRunnerKilled, suiterun.Failure(command, executed))
 	}
 	if executed.TimedOut {
 		return nil, fmt.Errorf("%w: the suite ran past %s", ports.ErrCoverageTimedOut, timeout)

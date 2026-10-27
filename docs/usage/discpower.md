@@ -125,24 +125,35 @@ tickets wait.
 
 | Ecosystem | Detected by | Test run | Requirements on the project |
 |---|---|---|---|
-| pytest | `pytest.ini`, `conftest.py`, or a pytest section in `tox.ini`, `setup.cfg` or `pyproject.toml` | `python -m pytest`, bound tests selected by node id, bytecode writing disabled. The interpreter comes from the configuration, the virtual environment, `uv run python` for a uv project, then `python3`. | Shallnot's `conftest.py` hook that copies the `verifies` marker into the JUnit XML. |
+| pytest | `pytest.toml`, `.pytest.toml`, `pytest.ini`, `.pytest.ini` or `conftest.py` at the root, or a pytest section in `tox.ini`, `setup.cfg` or `pyproject.toml`; without them, any `test_*.py`, `*_test.py` or `conftest.py` that pytest collects from the root with its default settings | `python -m pytest`, bound tests selected by node id, bytecode writing disabled. The interpreter comes from the configuration, the virtual environment, `uv run python` for a uv project, then `python3`. | Shallnot's `conftest.py` hook that copies the `verifies` marker into the JUnit XML. |
 | Go | `go.mod` | `go tool gotestsum` with a JUnit file, bound tests selected by an anchored `-run` expression. | `tool gotest.tools/gotestsum` in `go.mod`. |
 | Jest | `jest.config.*`, a `jest` key in `package.json`, or a jest dependency | `jest --ci --reporters=jest-junit`, tests selected by path and one anchored title regex. | `jest-junit` installed. |
 | Vitest | `vitest.config.*`, `vitest.workspace.*` or a vitest dependency | `vitest run --reporter=junit` with one worker. | none beyond Vitest. |
 | Maven (Java, Kotlin) | `pom.xml` | Surefire run directly, filtered to the selection, JUnit XML read from the build. | JUnit 5; `./mvnw` or `mvn`. |
 | Gradle (Java, Kotlin) | `build.gradle`, `build.gradle.kts`, `settings.gradle*` | a clean `test` task filtered to the selection. | JUnit 5; `./gradlew` or `gradle`. |
 
+Each runner is detected by what it accepts with its defaults: Go by the
+`go.mod` that `go test ./...` needs, Jest and Vitest by their configuration or
+a dependency the package runner resolves, Maven and Gradle by their build
+files, pytest also by the test files it collects without a configuration. A
+tree a configuration or a manifest names a runner for is scanned with it before
+a runner detected only by such test files.
+
 Before running tests the module checks that the changed code builds: `tsc
---noEmit -p tsconfig.json` and `node --check` on Node projects, an offline
+--noEmit -p <project>` and `node --check` on Node projects, an offline
 compile of main and test sources with no daemon left behind on the JVM, an
 import of the changed modules on pytest, and a compile of the test binaries on
 Go. A mutant that does not build is classified `error` and never counts.
-The TypeScript check judges a mutant by what it adds: a project whose `tsc`
-already reports diagnostics on the unmodified code, as a deprecated option in
-`tsconfig.json` or a type error that Vitest never checks does, has them recorded
-once before any mutant runs, and a mutant fails the check only on a diagnostic
-the reference does not report, compared by file, code and message wherever it
-sits in the file.
+The TypeScript project of a changed file is the nearest `tsconfig.json` above
+it; a `tsconfig.json` that lists no file of its own (`"files": []` with
+`references`, as at the root of a monorepo or of a Vite package) stands for the
+projects it references, each checked in turn. The check judges a mutant by what
+it adds: a project whose `tsc` already reports diagnostics on the unmodified
+code, as a deprecated option in `tsconfig.json`, a root `tsconfig.json` that
+cannot check its packages alone, or a type error that Vitest never checks does,
+has them recorded once per project before any mutant runs, and a mutant fails
+the check only on a diagnostic its project does not report on the reference,
+compared by file, code and message wherever it sits in the file.
 
 Operator mutants and sentinels exist for Python, Go, JavaScript and TypeScript, Java
 and Kotlin sources. The module probes code by calling the targets of your
@@ -176,7 +187,17 @@ and sees only its ticket.
 spec, no model and no configuration, which tests still pass when the code they
 run is broken (ADR 0014). `musthold scan` runs it through the [umbrella](umbrella.md).
 A tree that declares several of these test tools is scanned on the first, in the
-order pytest, Go, Jest, Vitest, whose suite collects a test.
+order pytest, Go, Jest, Vitest, whose suite collects a test; a pytest suite
+detected only by its test files comes after the others, and at the root of a Go
+workspace it gives way to the workspace's refusal. A runner that fails on the
+unmodified code before it reports a test, as a configuration that does not load
+or a missing interpreter makes it, gives way to the next configured suite but
+to no suite detected by its test files alone; when no suite collects a test,
+the scan fails with the first such runner's command, how it ended and the end
+of its output. A runner killed from outside, as the out-of-memory killer ends a
+process, fails the scan and names `--workers` and the memory. On Linux every
+test process a scan starts is the out-of-memory killer's first choice, so that
+the scan outlives it and says so.
 
 ```
 musthold-dp scan [--full] [--host [--resume]] [--base REV] [--seed N] [--sample N] [--mutants N] [--budget DURATION] [--workers N] [--coverage-timeout DURATION] [--format text|md|json] [--root DIR] [<PR>]
@@ -224,8 +245,9 @@ to 12 sentinels, one file at a time.
 
 `--sample`, `--mutants` and `--budget` replace what either depth sets. Mutants
 run on as many workers as the machine allows: one per two processors and per
-GiB of memory above the 40 % the memory guard keeps free, at most four;
-`--workers` sets another number. The sentinels start first, then the mutants in
+GiB of memory above the 40 % the memory guard keeps free, at most four, the
+memory being the limit of the scan's control group when one bounds it, as in a
+container; `--workers` sets another number. The sentinels start first, then the mutants in
 the order they were drawn, except that a mutant only settled tests run waits
 behind every mutant an open test runs. Once every sentinel has finished, a test
 that killed a mutant on its lines keeps its class whatever else runs, as does a
@@ -269,7 +291,8 @@ package runs again in fresh processes until each test has three. A Go subtest
 that passes while its parent fails on its own did not pass; when a failing
 sibling may have failed the parent, the subtest runs again without it. Jest
 runs in band and Vitest in one fork, each run one process with coverage,
-bail and retries off; a Jest or Vitest test is named `file::titles`, its
+bail and retries off, and each recording of a test alone is read as its process
+ends and its record removed; a Jest or Vitest test is named `file::titles`, its
 describe titles and its own joined by ` > `, and a hook failure, a retry, or a
 name another test shares, for Jest ignoring case, gives an error. A Vitest
 project that runs its tests in a browser is refused. The

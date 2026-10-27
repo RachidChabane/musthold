@@ -53,6 +53,10 @@ type testProcess struct {
 	buildFailed bool
 	timedOut    bool
 	exitCode    int
+	// killed is whether SIGKILL that no deadline sent ended the process.
+	killed bool
+	// failure describes a process that did not exit with 0; empty otherwise.
+	failure string
 }
 
 // binaryReport is what the events of one package say of its test binary.

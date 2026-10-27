@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"syscall"
 	"time"
 
 	"github.com/RachidChabane/musthold/discpower/internal/app/ports"
@@ -40,7 +41,11 @@ func New() *Runner { return &Runner{outputLimit: DefaultOutputLimit} }
 
 // Run starts the command in a new process group and waits for it. When the
 // command's timeout elapses, or the context ends, the whole group is killed;
-// a timeout is reported through CommandResult.TimedOut.
+// a timeout is reported through CommandResult.TimedOut, and the signal that
+// ended a process nothing here killed through CommandResult.Signal. Where the
+// system lets a process volunteer, the command is the out-of-memory killer's
+// first choice, ahead of the process that runs it, so that a memory kill
+// leaves a result to report.
 func (r *Runner) Run(ctx context.Context, command ports.Command) (ports.CommandResult, error) {
 	if len(command.Argv) == 0 {
 		return ports.CommandResult{}, ErrEmptyCommand
@@ -65,7 +70,11 @@ func (r *Runner) Run(ctx context.Context, command ports.Command) (ports.CommandR
 	cmd.WaitDelay = pipeGrace
 	isolateGroup(cmd)
 
-	waitErr := cmd.Run()
+	waitErr := cmd.Start()
+	if waitErr == nil {
+		preferAsMemoryVictim(cmd.Process.Pid)
+		waitErr = cmd.Wait()
+	}
 	result := ports.CommandResult{Stdout: stdout.Bytes(), Stderr: stderr.Bytes(), ExitCode: killedExitCode}
 	if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
 		result.ExitCode = cmd.ProcessState.ExitCode()
@@ -77,11 +86,24 @@ func (r *Runner) Run(ctx context.Context, command ports.Command) (ports.CommandR
 		result.TimedOut = true
 		return result, nil
 	}
+	result.Signal = signalOf(cmd.ProcessState)
 	var exitErr *exec.ExitError
 	if waitErr != nil && !errors.As(waitErr, &exitErr) {
 		return result, fmt.Errorf("run %q: %w", command.Argv[0], waitErr)
 	}
 	return result, nil
+}
+
+// signalOf is the signal that ended the process, nil when it exited by itself
+// or never started.
+func signalOf(state *os.ProcessState) os.Signal {
+	if state == nil {
+		return nil
+	}
+	if status, ok := state.Sys().(syscall.WaitStatus); ok && status.Signaled() {
+		return status.Signal()
+	}
+	return nil
 }
 
 func withDeadline(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {

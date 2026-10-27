@@ -75,9 +75,11 @@ func (s scanSuite) togetherThroughNode(ctx context.Context, workspace ecosystem.
 	return covered, nil
 }
 
-// wholeFilesRun reads the files Node wrote into a NODE_V8_COVERAGE directory:
-// every line of each project file whose script had a function that counted.
+// wholeFilesRun reads the files Node wrote into a NODE_V8_COVERAGE directory,
+// then removes it: every line of each project file whose script had a
+// function that counted.
 func wholeFilesRun(dir string, recorder coverageRecorder) (map[vacuity.Line]bool, error) {
+	defer func() { _ = os.RemoveAll(dir) }()
 	entries, err := os.ReadDir(dir)
 	if os.IsNotExist(err) {
 		return map[vacuity.Line]bool{}, nil

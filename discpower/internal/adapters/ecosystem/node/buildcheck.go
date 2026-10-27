@@ -21,6 +21,8 @@ const (
 	projectFlag    = "-p"
 	nodeCommand    = "node"
 	checkFlag      = "--check"
+	// diagnosticProjectSeparator follows the project a diagnostic key names.
+	diagnosticProjectSeparator = ": "
 )
 
 // diagnosticPosition is the `(line,column)` tsc prints after a file name; it
@@ -39,29 +41,33 @@ type buildCheck struct {
 	deps Dependencies
 }
 
-// Baseline records the diagnostics `tsc` reports on the reference, when the
-// project has a tsconfig: a reference whose tests pass can still fail the type
-// check, because Vitest and Jest strip types without checking them.
+// Baseline records the diagnostics `tsc` reports on the reference for each
+// TypeScript project of the workspace (see workspaceProjects): a reference
+// whose tests pass can still fail the type check, because Vitest and Jest
+// strip types without checking them, and the tsconfig at the root of a
+// monorepo may hold only references or not check the packages alone.
 func (b buildCheck) Baseline(ctx context.Context, reference ecosystem.Workspace, toolchain ecosystem.Toolchain) (ecosystem.BuildBaseline, error) {
-	if !isFile(filepath.Join(reference.Dir, tsconfigFile)) {
-		return ecosystem.BuildBaseline{}, nil
+	var keys []string
+	for _, project := range workspaceProjects(reference.Dir) {
+		result, err := b.typecheck(ctx, reference, toolchain, project)
+		if err != nil {
+			return ecosystem.BuildBaseline{}, err
+		}
+		keys = append(keys, diagnosticKeys(result, reference.Dir, project)...)
 	}
-	result, err := b.typecheck(ctx, reference, toolchain)
-	if err != nil {
-		return ecosystem.BuildBaseline{}, err
-	}
-	return ecosystem.NewBuildBaseline(diagnosticKeys(result, reference.Dir)), nil
+	return ecosystem.NewBuildBaseline(keys), nil
 }
 
-// Check type-checks the project with `tsc --noEmit -p tsconfig.json` when a
-// TypeScript file changed and the project has a tsconfig, and checks the syntax
-// of each changed JavaScript file with `node --check`. The type check fails on
-// the diagnostics the workspace adds to the baseline, compared by file, code and
-// message with positions and the workspace directory left out, and on a run that
-// timed out. A failure of either turns every test outcome into "error".
+// Check type-checks, with `tsc --noEmit -p <project>`, each TypeScript project
+// that owns a changed TypeScript file (see owningProjects), and checks the
+// syntax of each changed JavaScript file with `node --check`. A type check
+// fails on the diagnostics the workspace adds to the baseline, compared by
+// project, file, code and message with positions and the workspace directory
+// left out, and on a run that timed out. A failure of either turns every test
+// outcome into "error".
 func (b buildCheck) Check(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, changed []string, baseline ecosystem.BuildBaseline) (ecosystem.BuildResult, error) {
-	if hasSuffix(changed, typescriptSuffixes) && isFile(filepath.Join(workspace.Dir, tsconfigFile)) {
-		if result, err := b.checkTypes(ctx, workspace, toolchain, baseline); err != nil || !result.OK {
+	for _, project := range changedProjects(workspace.Dir, changed) {
+		if result, err := b.checkTypes(ctx, workspace, toolchain, project, baseline); err != nil || !result.OK {
 			return result, err
 		}
 	}
@@ -80,43 +86,57 @@ func (b buildCheck) Check(ctx context.Context, workspace ecosystem.Workspace, to
 	return ecosystem.BuildResult{OK: true}, nil
 }
 
-func (b buildCheck) checkTypes(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, baseline ecosystem.BuildBaseline) (ecosystem.BuildResult, error) {
-	result, err := b.typecheck(ctx, workspace, toolchain)
+// changedProjects are the TypeScript projects that own a changed TypeScript
+// file, in sorted order without repetition.
+func changedProjects(dir string, changed []string) []string {
+	var projects []string
+	for _, file := range changed {
+		if slices.Contains(typescriptSuffixes, path.Ext(file)) {
+			projects = append(projects, owningProjects(dir, file)...)
+		}
+	}
+	slices.Sort(projects)
+	return slices.Compact(projects)
+}
+
+func (b buildCheck) checkTypes(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, project string, baseline ecosystem.BuildBaseline) (ecosystem.BuildResult, error) {
+	result, err := b.typecheck(ctx, workspace, toolchain, project)
 	if err != nil {
 		return ecosystem.BuildResult{}, err
 	}
 	if !result.TimedOut && result.ExitCode == 0 {
 		return ecosystem.BuildResult{OK: true}, nil
 	}
-	keys := diagnosticKeys(result, workspace.Dir)
+	keys := diagnosticKeys(result, workspace.Dir, project)
 	introduced := baseline.Introduced(keys)
 	if !result.TimedOut && len(keys) > 0 && len(introduced) == 0 {
 		return ecosystem.BuildResult{OK: true}, nil
 	}
-	command := strings.Join(typecheckArgv(toolchain), " ")
+	command := strings.Join(typecheckArgv(toolchain, project), " ")
 	return ecosystem.BuildResult{Diagnostics: strings.TrimSpace(command + ": " + strings.Join(introduced, "\n"))}, nil
 }
 
-func (b buildCheck) typecheck(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain) (ports.CommandResult, error) {
-	result, err := b.deps.Process.Run(ctx, ports.Command{Argv: typecheckArgv(toolchain), Dir: workspace.Dir, Env: quietEnvironment(), Timeout: b.deps.Timeout})
+func (b buildCheck) typecheck(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, project string) (ports.CommandResult, error) {
+	result, err := b.deps.Process.Run(ctx, ports.Command{Argv: typecheckArgv(toolchain, project), Dir: workspace.Dir, Env: quietEnvironment(), Timeout: b.deps.Timeout})
 	if err != nil {
 		return ports.CommandResult{}, fmt.Errorf("build check: %w", err)
 	}
 	return result, nil
 }
 
-func typecheckArgv(toolchain ecosystem.Toolchain) []string {
-	return append(append([]string{}, toolchain.Command...), typescriptTool, noEmitFlag, projectFlag, tsconfigFile)
+func typecheckArgv(toolchain ecosystem.Toolchain, project string) []string {
+	return append(append([]string{}, toolchain.Command...), typescriptTool, noEmitFlag, projectFlag, project)
 }
 
-// diagnosticKeys reads the diagnostics of a tsc run, one per output line, each
-// without the workspace directory and the position that follows a file name.
-func diagnosticKeys(result ports.CommandResult, workspaceDir string) []string {
+// diagnosticKeys reads the diagnostics of a tsc run of a project, one per
+// output line, each led by the project and without the workspace directory
+// and the position that follows a file name.
+func diagnosticKeys(result ports.CommandResult, workspaceDir, project string) []string {
 	var keys []string
 	for _, line := range strings.Split(string(result.Stdout)+"\n"+string(result.Stderr), "\n") {
 		line = strings.TrimSpace(strings.ReplaceAll(line, workspaceDir+string(filepath.Separator), ""))
 		if line != "" {
-			keys = append(keys, diagnosticPosition.ReplaceAllString(line, ""))
+			keys = append(keys, project+diagnosticProjectSeparator+diagnosticPosition.ReplaceAllString(line, ""))
 		}
 	}
 	return keys
@@ -131,10 +151,6 @@ func (b buildCheck) run(ctx context.Context, workspace ecosystem.Workspace, argv
 		return ecosystem.BuildResult{Diagnostics: strings.TrimSpace(strings.Join(argv, " ") + ": " + string(result.Stdout) + string(result.Stderr))}, nil
 	}
 	return ecosystem.BuildResult{OK: true}, nil
-}
-
-func hasSuffix(files, suffixes []string) bool {
-	return slices.ContainsFunc(files, func(file string) bool { return slices.Contains(suffixes, path.Ext(file)) })
 }
 
 func isFile(name string) bool {

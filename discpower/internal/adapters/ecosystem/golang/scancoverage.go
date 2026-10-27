@@ -251,9 +251,13 @@ func (s scanSuite) buildCoverageBinary(ctx context.Context, workspace ecosystem.
 	binary := suiterun.ResultsFile(workspace, binaryExtension)
 	argv := append(append([]string{}, toolchain.Command...), testSubcommand, compileOnlyFlag, outputFlag, binary,
 		coverFlag, coverModeFlag, coverPackagesFlag, packagePath(dir))
-	executed, err := s.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: workspace.Dir, Timeout: s.deps.Timeout})
+	command := ports.Command{Argv: argv, Dir: workspace.Dir, Timeout: s.deps.Timeout}
+	executed, err := s.deps.Process.Run(ctx, command)
 	if err != nil {
 		return "", fmt.Errorf("build the coverage binary of %s: %w", dir, err)
+	}
+	if executed.KilledFromOutside() {
+		return "", fmt.Errorf("%w: %s", ports.ErrRunnerKilled, suiterun.Failure(command, executed))
 	}
 	if executed.TimedOut || executed.ExitCode != 0 {
 		return "", fmt.Errorf("%w: %s: %s", ErrCoverageFailed, dir, strings.TrimSpace(string(executed.Stderr)))
@@ -281,9 +285,13 @@ func (r binaryRun) usable() bool {
 func (s scanSuite) runBinary(ctx context.Context, workspace ecosystem.Workspace, binary *coverageBinary, selection string, timeout time.Duration) (binaryRun, error) {
 	profile := suiterun.ResultsFile(workspace, profileExtension)
 	argv := []string{binary.path, binaryRunFlag, selection, binaryCountFlag, binaryProfileFlag + profile}
-	executed, err := s.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: filepath.Join(workspace.Dir, filepath.FromSlash(binary.dir)), Timeout: timeout})
+	command := ports.Command{Argv: argv, Dir: filepath.Join(workspace.Dir, filepath.FromSlash(binary.dir)), Timeout: timeout}
+	executed, err := s.deps.Process.Run(ctx, command)
 	if err != nil {
 		return binaryRun{}, fmt.Errorf("run %s of %s with coverage: %w", selection, binary.dir, err)
+	}
+	if executed.KilledFromOutside() {
+		return binaryRun{}, fmt.Errorf("%w: %s", ports.ErrRunnerKilled, suiterun.Failure(command, executed))
 	}
 	ran := binaryRun{exitCode: executed.ExitCode, timedOut: executed.TimedOut}
 	if content, err := os.ReadFile(profile); err == nil {

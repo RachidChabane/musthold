@@ -46,6 +46,9 @@ const (
 	overlayBasePlaceholder = "// musthold:base"
 )
 
+// cleanExit is the exit code of a run whose runner raised nothing.
+const cleanExit = 0
+
 //go:embed scripts/scan-agent.cjs scripts/scan-jest-environment.cjs scripts/scan-jest-reporter.cjs scripts/scan-jest-sequencer.cjs scripts/scan-global-setup.cjs scripts/scan-vitest-runner.mjs scripts/scan-vitest-global-setup.mjs
 var scanScripts embed.FS
 
@@ -78,17 +81,22 @@ type scanProcess struct {
 	timeout    time.Duration
 }
 
-// ranProcess is what one process left: its record and, for a recording
-// through NODE_V8_COVERAGE, the directory Node wrote into.
+// ranProcess is what one process left: its record, how it ended and, for a
+// recording through NODE_V8_COVERAGE, the directory Node wrote into.
 type ranProcess struct {
 	record   runRecord
 	timedOut bool
-	v8Dir    string
+	// killed is whether SIGKILL that no deadline sent ended the process.
+	killed bool
+	// failure describes a process that did not exit with 0; empty otherwise.
+	failure string
+	v8Dir   string
 }
 
 // runProcess runs the runner once under the shipped scripts, written into a
 // fresh directory of the workspace's results, and reads the record the run
-// left in another.
+// left in another, which it then removes. A process under coverage that
+// SIGKILL from outside ended fails the run with ports.ErrRunnerKilled.
 func (s scanSuite) runProcess(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, process scanProcess) (ranProcess, error) {
 	scripts, err := installScanScripts(workspace)
 	if err != nil {
@@ -123,16 +131,23 @@ func (s scanSuite) runProcess(ctx context.Context, workspace ecosystem.Workspace
 		return ranProcess{}, err
 	}
 	argv := append(append([]string{}, toolchain.Command...), arguments...)
-	executed, err := s.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: workspace.Dir, Env: append(env, extra...), Timeout: process.timeout})
+	command := ports.Command{Argv: argv, Dir: workspace.Dir, Env: append(env, extra...), Timeout: process.timeout}
+	executed, err := s.deps.Process.Run(ctx, command)
 	if err != nil {
 		return ranProcess{}, fmt.Errorf("run the suite: %w", err)
 	}
 	if bytes.Contains(executed.Stdout, []byte(ErrBrowserMode.Error())) || bytes.Contains(executed.Stderr, []byte(ErrBrowserMode.Error())) {
 		return ranProcess{}, ErrBrowserMode
 	}
-	ran.timedOut = executed.TimedOut
+	if process.coverage && executed.KilledFromOutside() {
+		return ranProcess{}, fmt.Errorf("%w: %s", ports.ErrRunnerKilled, suiterun.Failure(command, executed))
+	}
+	ran.timedOut, ran.killed, ran.failure = executed.TimedOut, executed.KilledFromOutside(), suiterun.Failure(command, executed, cleanExit)
 	if ran.record, err = readRunRecord(out); err != nil {
 		return ranProcess{}, err
+	}
+	if err := os.RemoveAll(out); err != nil {
+		return ranProcess{}, fmt.Errorf("remove the scan record %s: %w", out, err)
 	}
 	return ran, nil
 }
@@ -198,7 +213,9 @@ func testFiles(tests []ecosystem.TestID) []string {
 // Run runs the runner once per requested run, each run one process, under the
 // shipped environment or runner that keeps the selected tests alone. A run
 // that times out leaves its tests without an outcome, and every later run,
-// timed out, and no later run starts.
+// timed out, and no later run starts. A run of the whole suite that reports no
+// test from a process that did not exit with 0 gives the batch its failure,
+// the runner exiting with 0 on a suite with no test.
 func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanRunRequest) (ports.ScanRuns, error) {
 	result := ports.ScanRuns{Runs: map[ecosystem.TestID][]vacuity.Run{}}
 	tests := slices.Clone(request.Tests)
@@ -213,9 +230,13 @@ func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolc
 			return ports.ScanRuns{}, err
 		}
 		timedOut = ran.timedOut
+		result.Killed = result.Killed || ran.killed
 		outcomes := outcomesOf(ran.record, s.framework, len(request.Tests) > 0, ran.timedOut)
 		if result.Cases == nil {
 			result.Cases = outcomes.cases
+		}
+		if len(request.Tests) == 0 && len(result.Cases) == 0 && result.Failure == "" {
+			result.Failure = ran.failure
 		}
 		if len(tests) == 0 {
 			tests = idsOfCases(result.Cases)
@@ -312,7 +333,7 @@ func (r coverageRecorder) source(line vacuity.Line) bool { return !r.layout.IsTe
 // recordAlone records each test alone, RecordingsPerTest times, and reads
 // against hollow runs of it the windows whose async hooks were blind.
 func (s scanSuite) recordAlone(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanCoverageRequest, tests []ports.ScanCase, recorder coverageRecorder) (map[ecosystem.TestID]vacuity.Coverage, error) {
-	recordings, err := s.recordings(ctx, workspace, toolchain, request, tests, false)
+	recordings, err := s.recordings(ctx, workspace, toolchain, request, tests, false, recorder)
 	if err != nil {
 		return nil, err
 	}
@@ -328,19 +349,19 @@ func (s scanSuite) recordAlone(ctx context.Context, workspace ecosystem.Workspac
 			covered[test.ID] = vacuity.Coverage{Lines: lines}
 			continue
 		}
-		views[index] = viewsOf(recordings[index], test.ID, recorder)
+		views[index] = viewsOf(recordings[index])
 		if slices.ContainsFunc(views[index], func(view processLines) bool { return view.readAgainstHollow }) {
 			blind = append(blind, test)
 		}
 	}
 	hollows := map[ecosystem.TestID][]processLines{}
 	if len(blind) > 0 {
-		hollowRecordings, err := s.recordings(ctx, workspace, toolchain, request, blind, true)
+		hollowRecordings, err := s.recordings(ctx, workspace, toolchain, request, blind, true, recorder)
 		if err != nil {
 			return nil, err
 		}
 		for index, test := range blind {
-			hollows[test.ID] = viewsOf(hollowRecordings[index], test.ID, recorder)
+			hollows[test.ID] = viewsOf(hollowRecordings[index])
 		}
 	}
 	for index, test := range tests {
@@ -359,12 +380,24 @@ func (s scanSuite) recordAlone(ctx context.Context, workspace ecosystem.Workspac
 	return covered, nil
 }
 
+// testRecording is what one recording of a test alone keeps once its process
+// ended: whether a process of it could not open an inspector session, and the
+// lines of the process that ran the test, when one did. The record itself is
+// read and let go as the process ends, so that a scan holds the lines of its
+// recordings and never their sources, maps and counts.
+type testRecording struct {
+	linesOnly bool
+	view      processLines
+	found     bool
+}
+
 // recordings runs each test alone RecordingsPerTest times under coverage, on
-// the request's workers; a run past the request's timeout fails the recording.
-func (s scanSuite) recordings(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanCoverageRequest, tests []ports.ScanCase, hollow bool) ([][]ranProcess, error) {
-	recorded := make([][]ranProcess, len(tests))
+// the request's workers, and reads each recording as its process ends; a run
+// past the request's timeout fails the recording.
+func (s scanSuite) recordings(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanCoverageRequest, tests []ports.ScanCase, hollow bool, recorder coverageRecorder) ([][]testRecording, error) {
+	recorded := make([][]testRecording, len(tests))
 	for index := range recorded {
-		recorded[index] = make([]ranProcess, RecordingsPerTest)
+		recorded[index] = make([]testRecording, RecordingsPerTest)
 	}
 	err := workerpool.Run(ctx, request.Workers, len(tests)*RecordingsPerTest, func(ctx context.Context, job int) error {
 		test := tests[job/RecordingsPerTest]
@@ -375,7 +408,7 @@ func (s scanSuite) recordings(ctx context.Context, workspace ecosystem.Workspace
 		if ran.timedOut {
 			return fmt.Errorf("%w: %s ran past %s", ports.ErrCoverageTimedOut, test.ID, request.Timeout)
 		}
-		recorded[job/RecordingsPerTest][job%RecordingsPerTest] = ran
+		recorded[job/RecordingsPerTest][job%RecordingsPerTest] = readRecording(ran.record, test.ID, recorder)
 		return nil
 	})
 	if err == nil {
@@ -384,42 +417,40 @@ func (s scanSuite) recordings(ctx context.Context, workspace ecosystem.Workspace
 	return recorded, err
 }
 
-// linesOnly reports whether a recording of a test had a process that could
-// not open an inspector session.
-func linesOnly(recordings []ranProcess) bool {
-	for _, recording := range recordings {
-		for _, process := range recording.record.processes {
-			if process.recording && !process.capabilities.Inspector {
-				return true
+// readRecording reads one recording of a test: whether a process could not
+// open an inspector session and, from the process that ran the test, its
+// lines, its window owning nothing when the test did not pass there.
+func readRecording(record runRecord, test ecosystem.TestID, recorder coverageRecorder) testRecording {
+	recording := testRecording{linesOnly: record.linesOnly()}
+	for _, process := range record.processes {
+		outcome := ""
+		for _, recorded := range process.tests {
+			if recorded.id == test {
+				outcome = recorded.outcome
 			}
 		}
+		if outcome == "" {
+			continue
+		}
+		recording.view, recording.found = analyzeProcess(process, recorder.shapes), true
+		recording.view.owning = recording.view.owning && outcome == outcomePassed
+		break
 	}
-	return false
+	return recording
 }
 
-// viewsOf reads each recording of a test: the process that ran the test, its
-// window owning nothing when the test did not pass there.
-func viewsOf(recordings []ranProcess, test ecosystem.TestID, recorder coverageRecorder) []processLines {
+// linesOnly reports whether a recording of a test had a process that could
+// not open an inspector session.
+func linesOnly(recordings []testRecording) bool {
+	return slices.ContainsFunc(recordings, func(recording testRecording) bool { return recording.linesOnly })
+}
+
+// viewsOf are the lines of each recording whose process ran the test.
+func viewsOf(recordings []testRecording) []processLines {
 	views := make([]processLines, 0, len(recordings))
 	for _, recording := range recordings {
-		view := processLines{}
-		found := false
-		for _, process := range recording.record.processes {
-			outcome := ""
-			for _, recorded := range process.tests {
-				if recorded.id == test {
-					outcome = recorded.outcome
-				}
-			}
-			if outcome == "" {
-				continue
-			}
-			view, found = analyzeProcess(process, recorder.shapes), true
-			view.owning = view.owning && outcome == outcomePassed
-			break
-		}
-		if found {
-			views = append(views, view)
+		if recording.found {
+			views = append(views, recording.view)
 		}
 	}
 	return views
@@ -439,7 +470,7 @@ func (s scanSuite) recordTogether(ctx context.Context, workspace ecosystem.Works
 	if ran.timedOut {
 		return nil, fmt.Errorf("%w: the recording of %d tests ran past %s", ports.ErrCoverageTimedOut, len(ids), request.Timeout)
 	}
-	if linesOnly([]ranProcess{ran}) {
+	if ran.record.linesOnly() {
 		return s.togetherThroughNode(ctx, workspace, toolchain, request, tests, recorder)
 	}
 	segments := map[string]map[vacuity.Line]bool{}

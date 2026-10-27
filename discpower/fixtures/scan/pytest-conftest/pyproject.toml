@@ -1,0 +1,8 @@
+[project]
+name = "invoice"
+version = "1.0.0"
+description = "Invoice totals: line totals and shipping."
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]

@@ -33,6 +33,9 @@ var (
 	ErrReferenceBuild = errors.New("the reference does not build")
 	// ErrNoTests is returned when the runner collects no test.
 	ErrNoTests = errors.New("the runner collected no test")
+	// ErrRunnerFailed is returned when the runner's process on the reference
+	// failed before it reported a test.
+	ErrRunnerFailed = errors.New("the runner failed on the reference before it reported a test")
 	// ErrNoPullRequests is returned for `scan <PR>` when no pull request can be
 	// read.
 	ErrNoPullRequests = errors.New("no pull request reader is wired")

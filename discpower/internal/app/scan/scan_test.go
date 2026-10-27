@@ -26,7 +26,7 @@ var updateGolden = flag.Bool("update", false, "rewrite the golden scan statement
 
 const (
 	goldenStatement   = "testdata/scan-repository.golden.json"
-	verifiesReference = " [verifies SP-2108~2]"
+	verifiesReference = " [verifies SP-2108~3]"
 	verifiesPlan      = " [verifies SP-2109~1]"
 	verifiesDraw      = " [verifies SP-2110~3]"
 	verifiesExecute   = " [verifies SP-2111~3]"
@@ -334,6 +334,22 @@ func TestScanRefusals(t *testing.T) {
 		f := newFixture()
 		f.suite.tests = map[ecosystem.TestID]fakeTest{}
 		if _, err := f.service(t).Run(context.Background(), request()); !errors.Is(err, scan.ErrNoTests) {
+			t.Fatalf("error %v", err)
+		}
+	})
+	t.Run("a runner that fails on the reference before reporting a test fails the scan with how it ended, not as a suite with no test"+verifiesReference, func(t *testing.T) {
+		f := newFixture()
+		f.suite.tests = map[ecosystem.TestID]fakeTest{}
+		f.suite.failure = "`pnpm exec vitest run --config musthold-scan.vitest.config.mjs` exited 1:\nError: Failed to load url ./setup/dom.ts"
+		_, err := f.service(t).Run(context.Background(), request())
+		if !errors.Is(err, scan.ErrRunnerFailed) || errors.Is(err, scan.ErrNoTests) || !strings.Contains(err.Error(), "exited 1") || !strings.Contains(err.Error(), "setup/dom.ts") {
+			t.Fatalf("error %v", err)
+		}
+	})
+	t.Run("a runner killed from outside on the reference fails the scan as killed, whatever it reported"+verifiesReference, func(t *testing.T) {
+		f := newFixture()
+		f.suite.killed = true
+		if _, err := f.service(t).Run(context.Background(), request()); !errors.Is(err, ports.ErrRunnerKilled) {
 			t.Fatalf("error %v", err)
 		}
 	})

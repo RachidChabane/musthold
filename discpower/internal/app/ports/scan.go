@@ -33,6 +33,10 @@ type ScanRunRequest struct {
 // the timeout of its recording.
 var ErrCoverageTimedOut = errors.New("a run of tests under coverage outlived its timeout")
 
+// ErrRunnerKilled is returned when a process of the runner on the unmutated
+// code was killed by SIGKILL that no deadline sent.
+var ErrRunnerKilled = errors.New("the test runner was killed by SIGKILL, as the out-of-memory killer ends a process")
+
 // ScanCoverageRequest is one recording of the line coverage of tests.
 type ScanCoverageRequest struct {
 	Tests []ScanCase
@@ -58,6 +62,13 @@ type ScanCoverageRequest struct {
 type ScanRuns struct {
 	Cases []ScanCase
 	Runs  map[ecosystem.TestID][]vacuity.Run
+	// Failure says how the runner's process ended, and what it printed last,
+	// when a run of the whole suite reported no test and its process did not
+	// exit as the runner does for a suite with no test; empty otherwise.
+	Failure string
+	// Killed is whether a process of the batch was killed by SIGKILL that no
+	// deadline sent.
+	Killed bool
 }
 
 // ScanSuite is the Strategy through which a scan runs the tests of one

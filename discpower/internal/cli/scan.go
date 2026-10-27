@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -149,25 +150,47 @@ func (e Env) scan(args []string) outcome {
 	})
 }
 
-// scanFirstSuite runs a scan on each ecosystem detected in the tree, in
-// registration order, and stops at the first whose suite collects a test: a
-// tree can declare a test tool whose suite collects nothing beside the suite
-// that holds the tests, and the scan's outcome is the last attempt's when none
-// collects any.
+// scanFirstSuite runs a scan on each ecosystem detected in the tree, in the
+// order of detection, as firstSuite chooses them.
 func (e Env) scanFirstSuite(tree scanTree, asksHost bool, run func(scanProject) outcome) outcome {
-	var attempt outcome
-	for _, candidate := range tree.candidates {
+	return firstSuite(tree.candidates, func(candidate scanCandidate) outcome {
 		wired, err := e.openScan(tree, candidate, asksHost)
 		if err != nil {
 			return outcome{err: err}
 		}
-		attempt = run(wired)
-		wired.close()
-		if !errors.Is(attempt.err, scan.ErrNoTests) {
-			return attempt
+		defer wired.close()
+		return run(wired)
+	})
+}
+
+// firstSuite attempts the candidates in order and stops at the first whose
+// suite collects a test or whose attempt fails otherwise: a tree can declare a
+// test tool whose suite collects nothing, or whose runner the machine lacks,
+// beside the suite that holds the tests. Once a runner of a candidate a
+// configuration names failed before reporting a test, no candidate detected
+// only by its runner's default collection is attempted. When no suite collects
+// a test, the outcome is the first runner failure, else the last attempt's.
+func firstSuite(candidates []scanCandidate, attempt func(scanCandidate) outcome) outcome {
+	var last, failed outcome
+	runnerFailed := false
+	for _, candidate := range candidates {
+		if runnerFailed && candidate.byConvention {
+			break
+		}
+		last = attempt(candidate)
+		switch {
+		case errors.Is(last.err, scan.ErrRunnerFailed):
+			if !runnerFailed {
+				failed, runnerFailed = last, true
+			}
+		case !errors.Is(last.err, scan.ErrNoTests):
+			return last
 		}
 	}
-	return attempt
+	if runnerFailed {
+		return failed
+	}
+	return last
 }
 
 // pullRequestOf reads the one positional argument a scan takes: the number of
@@ -260,10 +283,14 @@ func givenFlags(set *flag.FlagSet) map[string]bool {
 }
 
 // scanFailure is the error a failed scan reports: a coverage run past its
-// bound names the flag that raises it.
+// bound names the flag that raises it, and a runner killed from outside the
+// flag that lowers the memory a scan takes.
 func scanFailure(err error) error {
-	if errors.Is(err, ports.ErrCoverageTimedOut) {
+	switch {
+	case errors.Is(err, ports.ErrCoverageTimedOut):
 		return fmt.Errorf("%w; raise the bound with --%s", err, flagCoverageTimeout)
+	case errors.Is(err, ports.ErrRunnerKilled):
+		return fmt.Errorf("%w; scan with fewer --%s or with more memory", err, flagWorkers)
 	}
 	return err
 }
@@ -364,10 +391,13 @@ func (p scanProject) close() { _ = p.workspaces.Close() }
 type scanCandidate struct {
 	strategy ports.Ecosystem
 	suite    ports.ScanSuite
+	// byConvention is whether only test files its runner collects by default
+	// revealed the ecosystem.
+	byConvention bool
 }
 
 // scanTree is the work tree of a scan and the ecosystems a scan runs in it, in
-// registration order.
+// the order of detection.
 type scanTree struct {
 	root       string
 	runner     ports.ProcessRunner
@@ -484,30 +514,39 @@ func (e Env) scanHost(root string, repository gitsource.Repository) (*scan.HostD
 	}, nil
 }
 
-// scanCandidates are the ecosystems detected in the tree that a scan runs.
+// scanCandidates are the ecosystems detected in the tree that a scan runs, in
+// the order of detection. At the root of a Go workspace whose only candidates
+// were detected by their runner's default collection, the Go workspace's
+// refusal stands in their place.
 func scanCandidates(strategies *ecosystem.Registry, root string) ([]scanCandidate, error) {
 	tree := os.DirFS(root)
 	var candidates []scanCandidate
 	for _, detected := range strategies.Detect(tree) {
 		if scanning, ok := detected.Strategy.(ports.Scanning); ok {
-			candidates = append(candidates, scanCandidate{strategy: detected.Strategy, suite: scanning.Scan()})
+			candidates = append(candidates, scanCandidate{strategy: detected.Strategy, suite: scanning.Scan(), byConvention: detected.Detection.ByConvention})
 		}
 	}
+	if slices.ContainsFunc(candidates, func(candidate scanCandidate) bool { return !candidate.byConvention }) {
+		return candidates, nil
+	}
+	if refusal := goWorkspaceRefusal(tree); refusal != nil {
+		return nil, refusal
+	}
 	if len(candidates) == 0 {
-		return nil, noScanEcosystem(tree)
+		return nil, errScanEcosystem
 	}
 	return candidates, nil
 }
 
-// noScanEcosystem is the refusal of a tree with no suite a scan runs; at the
-// root of a Go workspace it names the modules --root scans one at a time.
-func noScanEcosystem(tree fs.FS) error {
+// goWorkspaceRefusal is the refusal at the root of a Go workspace, which names
+// the modules --root scans one at a time; nil for a tree that is none.
+func goWorkspaceRefusal(tree fs.FS) error {
 	modules, found, err := golang.WorkspaceModules(tree)
-	if err != nil {
+	switch {
+	case err != nil:
 		return fmt.Errorf("%w: %w", errScanEcosystem, err)
-	}
-	if !found {
-		return errScanEcosystem
+	case !found:
+		return nil
 	}
 	return fmt.Errorf("%w; this is a Go workspace, scanned one module at a time with --root <module>: %s",
 		errScanEcosystem, strings.Join(modules, ", "))

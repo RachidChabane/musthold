@@ -2,7 +2,6 @@ package node
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -179,6 +178,12 @@ type runRecord struct {
 	globalSetupFailed bool
 }
 
+// linesOnly reports whether a process of the run recorded without an
+// inspector session.
+func (r runRecord) linesOnly() bool {
+	return slices.ContainsFunc(r.processes, func(process processRecord) bool { return process.recording && !process.capabilities.Inspector })
+}
+
 // readRunRecord reads the record directory of one run; a line that cannot be
 // read ends the record of its process there.
 func readRunRecord(dir string) (runRecord, error) {
@@ -223,14 +228,15 @@ func readRunRecord(dir string) (runRecord, error) {
 	return record, nil
 }
 
-// readLines decodes the complete lines of a record file; a line cut short by
-// a killed process, and every line after it, is dropped.
+// readLines decodes the complete lines of a record file as it reads them; a
+// line cut short by a killed process, and every line after it, is dropped.
 func readLines(file string) ([]recordLine, error) {
-	content, err := os.ReadFile(file)
+	opened, err := os.Open(file)
 	if err != nil {
 		return nil, fmt.Errorf("read the scan record %s: %w", file, err)
 	}
-	scanner := bufio.NewScanner(bytes.NewReader(content))
+	defer func() { _ = opened.Close() }()
+	scanner := bufio.NewScanner(opened)
 	scanner.Buffer(make([]byte, recordLineStartSize), recordLineMaxBytes)
 	var lines []recordLine
 	for scanner.Scan() {

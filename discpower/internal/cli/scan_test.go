@@ -10,7 +10,7 @@ import (
 	"github.com/RachidChabane/musthold/discpower/internal/cli"
 )
 
-const verifiesScanCommand = " [verifies SP-2119~4]"
+const verifiesScanCommand = " [verifies SP-2119~5]"
 
 func runScan(t *testing.T, workDir string, arguments ...string) (code int, stdout, stderr string) {
 	t.Helper()

@@ -2,6 +2,8 @@ package ports
 
 import (
 	"context"
+	"os"
+	"syscall"
 	"time"
 
 	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
@@ -28,6 +30,15 @@ type CommandResult struct {
 	ExitCode int
 	// TimedOut is true when the deadline killed the process group.
 	TimedOut bool
+	// Signal is the signal that ended a process that did not exit by itself
+	// and that no deadline stopped; nil otherwise.
+	Signal os.Signal
+}
+
+// KilledFromOutside reports whether the process was ended by SIGKILL that no
+// deadline sent, as the kernel's out-of-memory killer ends a process.
+func (r CommandResult) KilledFromOutside() bool {
+	return !r.TimedOut && r.Signal == syscall.SIGKILL
 }
 
 // ProcessRunner runs a command with a process group, a deadline and captured

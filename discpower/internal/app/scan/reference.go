@@ -71,14 +71,19 @@ func (r reference) referenceOf() mutantrun.Reference {
 }
 
 // runReference runs the whole suite three times on the built reference, which
-// was copied at the given time.
+// was copied at the given time. A runner killed from outside, and a runner
+// that failed before it reported a test, fail the scan as what they are.
 func (s *Service) runReference(ctx context.Context, ref *reference, copied time.Time) error {
 	started := s.deps.Clock()
 	ran, err := s.deps.Suite.Run(ctx, ref.workspace, ref.toolchain, ports.ScanRunRequest{Runs: vacuity.RunsPerOutcome, Timeout: ReferenceTimeout})
-	if err != nil {
+	switch {
+	case err != nil:
 		return fmt.Errorf("run the suite on the reference: %w", err)
-	}
-	if len(ran.Cases) == 0 {
+	case ran.Killed:
+		return fmt.Errorf("run the suite on the reference: %w", ports.ErrRunnerKilled)
+	case len(ran.Cases) == 0 && ran.Failure != "":
+		return fmt.Errorf("%w: %s", ErrRunnerFailed, ran.Failure)
+	case len(ran.Cases) == 0:
 		return ErrNoTests
 	}
 	finished := s.deps.Clock()

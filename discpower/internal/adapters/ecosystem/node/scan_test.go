@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -35,6 +36,10 @@ const (
 	verifiesScanSegments  = " [verifies SP-2295~1]"
 	verifiesScanWitnesses = " [verifies SP-2296~1]"
 	verifiesScanBrowser   = " [verifies SP-2297~1]"
+	// verifiesReferenceEnding cites how a scan tells a suite with no test
+	// from a runner that failed.
+	verifiesReferenceEnding = " [verifies SP-2108~3]"
+	verifiesRecordingsRead  = " [verifies SP-2656~1]"
 )
 
 // The lines of the ledger module the kit's tests run.
@@ -220,6 +225,68 @@ func TestScanRunsOfJestAndVitest(t *testing.T) {
 					t.Fatalf("runs %v", failed.Runs)
 				}
 			})
+		})
+	}
+}
+
+func TestScanRunnerEndingsOnJestAndVitest(t *testing.T) {
+	for _, runner := range scanRunners() {
+		t.Run(string(runner.name), func(t *testing.T) {
+			t.Run("a suite with no test file reports no test and no failure"+verifiesReferenceEnding, func(t *testing.T) {
+				s := scanProject(t, runner)
+				testFiles, err := filepath.Glob(filepath.Join(s.workspace.Dir, "test", "*.test.ts"))
+				if err != nil || len(testFiles) == 0 {
+					t.Fatalf("test files %v: %v", testFiles, err)
+				}
+				for _, file := range testFiles {
+					if err := os.Remove(file); err != nil {
+						t.Fatal(err)
+					}
+				}
+				ran := s.run(t)
+				if len(ran.Cases) != 0 || ran.Failure != "" || ran.Killed {
+					t.Fatalf("cases %v, failure %q, killed %v", ran.Cases, ran.Failure, ran.Killed)
+				}
+			})
+			t.Run("a run of the whole suite whose global setup throws reports no test and how the runner ended"+verifiesReferenceEnding, func(t *testing.T) {
+				t.Setenv("SCANKIT_FAIL_SETUP", "1")
+				ran := scanProject(t, runner).run(t)
+				if len(ran.Cases) != 0 || !strings.Contains(ran.Failure, "exited 1") || ran.Killed {
+					t.Fatalf("cases %v, failure %q, killed %v", ran.Cases, ran.Failure, ran.Killed)
+				}
+			})
+		})
+	}
+}
+
+func TestScanRecordingKilledFromOutside(t *testing.T) {
+	t.Run("a recording of a Vitest test whose runner SIGKILL ended from outside fails as a killed runner [verifies SP-2658~1]", func(t *testing.T) {
+		suite := node.NewVitest(node.Dependencies{Process: process.New(), Locator: treesitter.NewLocator()}).Scan()
+		workspace := ecosystem.Workspace{Dir: t.TempDir(), ResultsDir: t.TempDir()}
+		killed := ecosystem.Toolchain{Command: []string{"sh", "-c", "kill -KILL $$", "npx"}}
+		request := ports.ScanCoverageRequest{Tests: []ports.ScanCase{{ID: credits, File: "test/ownership.test.ts"}}, Timeout: scanRunTimeout, Workers: 1}
+		if _, err := suite.LineCoverage(context.Background(), workspace, killed, request); !errors.Is(err, ports.ErrRunnerKilled) {
+			t.Fatalf("error %v", err)
+		}
+	})
+}
+
+func TestScanLetsGoOfItsRecordings(t *testing.T) {
+	for _, runner := range scanRunners() {
+		t.Run(string(runner.name)+": a recording of tests alone keeps their lines and leaves no record behind"+verifiesRecordingsRead, func(t *testing.T) {
+			s := scanProject(t, runner)
+			covered := s.alone(t, credits, routesUrgent)
+			expectLines(t, credits, covered[credits].Lines, []int{creditLine}, nil)
+			var records []string
+			err := filepath.WalkDir(s.workspace.ResultsDir, func(path string, entry fs.DirEntry, walkErr error) error {
+				if walkErr == nil && !entry.IsDir() && filepath.Ext(path) == ".jsonl" {
+					records = append(records, path)
+				}
+				return walkErr
+			})
+			if err != nil || len(records) != 0 {
+				t.Fatalf("records left %v: %v", records, err)
+			}
 		})
 	}
 }

@@ -161,7 +161,7 @@ func TestBuildCheck(t *testing.T) {
 		return node.NewVitest(dependencies(process, nil, lookPath)).BuildCheck().Check(ctx, workspace, toolchain, changed, ecosystem.BuildBaseline{})
 	}
 
-	t.Run("a changed TypeScript file is type-checked with the project's tsconfig [verifies SP-1012~1]", func(t *testing.T) {
+	t.Run("a changed TypeScript file is type-checked with the project's tsconfig [verifies SP-1012~2]", func(t *testing.T) {
 		process := &recorder{}
 		workspace := lockfileWorkspace(t, "tsconfig.json")
 		result, err := check(process, workspace, found, "src/rates.ts")
@@ -173,7 +173,7 @@ func TestBuildCheck(t *testing.T) {
 		}
 	})
 
-	t.Run("a type error is a failed build with the compiler's message [verifies SP-1012~1]", func(t *testing.T) {
+	t.Run("a type error is a failed build with the compiler's message [verifies SP-1012~2]", func(t *testing.T) {
 		process := &recorder{exit: func(ports.Command) int { return 2 }}
 		result, err := check(process, lockfileWorkspace(t, "tsconfig.json"), found, "src/rates.ts")
 		if err != nil || result.OK || !strings.Contains(result.Diagnostics, "TS2322") {
@@ -181,7 +181,7 @@ func TestBuildCheck(t *testing.T) {
 		}
 	})
 
-	t.Run("each changed JavaScript file is syntax-checked with node [verifies SP-1012~1]", func(t *testing.T) {
+	t.Run("each changed JavaScript file is syntax-checked with node [verifies SP-1012~2]", func(t *testing.T) {
 		process := &recorder{}
 		result, err := check(process, lockfileWorkspace(t), found, "src/a.js", "src/b.mjs", "lib/c.cjs", "README.md")
 		if err != nil || !result.OK || len(process.commands) != 3 {
@@ -192,7 +192,7 @@ func TestBuildCheck(t *testing.T) {
 		}
 	})
 
-	t.Run("a syntax error stops the check at the first failing file [verifies SP-1012~1]", func(t *testing.T) {
+	t.Run("a syntax error stops the check at the first failing file [verifies SP-1012~2]", func(t *testing.T) {
 		process := &recorder{exit: func(ports.Command) int { return 1 }}
 		result, err := check(process, lockfileWorkspace(t), found, "src/a.js", "src/b.js")
 		if err != nil || result.OK || len(process.commands) != 1 {
@@ -200,7 +200,7 @@ func TestBuildCheck(t *testing.T) {
 		}
 	})
 
-	t.Run("a TypeScript project without a tsconfig has nothing to check but its JavaScript [verifies SP-1012~1]", func(t *testing.T) {
+	t.Run("a TypeScript project without a tsconfig has nothing to check but its JavaScript [verifies SP-1012~2]", func(t *testing.T) {
 		process := &recorder{}
 		result, err := check(process, lockfileWorkspace(t), found, "src/rates.ts")
 		if err != nil || !result.OK || len(process.commands) != 0 {
@@ -208,7 +208,7 @@ func TestBuildCheck(t *testing.T) {
 		}
 	})
 
-	t.Run("a file nothing checks means nothing to check [verifies SP-1012~1]", func(t *testing.T) {
+	t.Run("a file nothing checks means nothing to check [verifies SP-1012~2]", func(t *testing.T) {
 		process := &recorder{}
 		result, err := check(process, lockfileWorkspace(t, "tsconfig.json"), found, "notes.md")
 		if err != nil || !result.OK || len(process.commands) != 0 {
@@ -216,7 +216,7 @@ func TestBuildCheck(t *testing.T) {
 		}
 	})
 
-	t.Run("a timed out check is a failed build [verifies SP-1012~1]", func(t *testing.T) {
+	t.Run("a timed out check is a failed build [verifies SP-1012~2]", func(t *testing.T) {
 		process := &recorder{timedOut: true}
 		result, err := check(process, lockfileWorkspace(t, "tsconfig.json"), found, "src/rates.ts")
 		if err != nil || result.OK {
@@ -224,7 +224,7 @@ func TestBuildCheck(t *testing.T) {
 		}
 	})
 
-	t.Run("a missing node is an error, not a failed build [verifies SP-1012~1]", func(t *testing.T) {
+	t.Run("a missing node is an error, not a failed build [verifies SP-1012~2]", func(t *testing.T) {
 		if _, err := check(&recorder{}, lockfileWorkspace(t), notFound, "src/a.js"); err == nil {
 			t.Fatal("no error")
 		}

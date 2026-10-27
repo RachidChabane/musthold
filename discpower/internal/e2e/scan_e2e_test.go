@@ -31,7 +31,7 @@ const (
 	nodeTool                = "node"
 	verifiesScanE2E         = " [verifies SP-2122~3]"
 	verifiesReplay          = " [verifies SP-2114~2]"
-	verifiesCommand         = " [verifies SP-2119~4]"
+	verifiesCommand         = " [verifies SP-2119~5]"
 	verifiesOrder           = " [verifies SP-2140~1]"
 )
 

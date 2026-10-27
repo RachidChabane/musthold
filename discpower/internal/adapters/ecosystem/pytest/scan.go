@@ -46,6 +46,10 @@ const (
 	parentDirectory = "."
 	// reproInterpreter is the interpreter a reproduction script calls.
 	reproInterpreter = "python3"
+	// exitTestsPassed and exitNoTestsCollected are pytest's exit codes for a
+	// session whose tests all passed and for one that collected none.
+	exitTestsPassed      = 0
+	exitNoTestsCollected = 5
 )
 
 //go:embed scripts/scan_plugin.py
@@ -91,7 +95,9 @@ func fileOf(test ecosystem.TestID) string {
 // workspace alone receives: each run is one run index, in one session or more
 // (see runIndex), and gives each test one run. A run that times out leaves its
 // tests that no earlier session of it covers, and every later run, timed out,
-// and no later session starts.
+// and no later session starts. A run of the whole suite whose first session
+// left no report, from a process that exited neither with 0 nor with 5, gives
+// the batch its failure.
 func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanRunRequest) (ports.ScanRuns, error) {
 	pluginDir, err := installPlugin(workspace, pluginModule{file: scanPluginFile, content: scanPlugin})
 	if err != nil {
@@ -110,8 +116,12 @@ func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolc
 			return ports.ScanRuns{}, err
 		}
 		timedOut = index.timedOut
+		result.Killed = result.Killed || index.killed
 		if result.Cases == nil {
 			result.Cases = casesOf(index.first())
+		}
+		if len(request.Tests) == 0 && len(result.Cases) == 0 && result.Failure == "" {
+			result.Failure = index.failure
 		}
 		if len(tests) == 0 {
 			tests = idsOf(result.Cases)
@@ -121,11 +131,14 @@ func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolc
 	return result, nil
 }
 
-// runIndex is what the sessions of one run index reported, in order, and
-// whether its last session timed out.
+// runIndex is what the sessions of one run index reported, in order, whether
+// its last session timed out, whether SIGKILL from outside ended one of them,
+// and how its first session's process failed.
 type runIndex struct {
 	sessions []scanReport
 	timedOut bool
+	killed   bool
+	failure  string
 }
 
 // first is the report of the first session; empty when it left none.
@@ -176,11 +189,15 @@ func (s scanSuite) runIndex(ctx context.Context, workspace ecosystem.Workspace, 
 	var index runIndex
 	remaining := request.Tests
 	for {
-		report, timedOut, err := s.runOnce(ctx, workspace, toolchain, pluginDir, remaining, request.Timeout)
+		report, end, err := s.runOnce(ctx, workspace, toolchain, pluginDir, remaining, request.Timeout)
 		if err != nil {
 			return runIndex{}, err
 		}
-		if timedOut {
+		index.killed = index.killed || end.killed
+		if len(index.sessions) == 0 {
+			index.failure = end.failure
+		}
+		if end.timedOut {
 			index.timedOut = true
 			return index, nil
 		}
@@ -218,10 +235,21 @@ func isUnder(dir, file string) bool {
 	return dir == "" || dir == parentDirectory || strings.HasPrefix(file, dir+pathSeparator)
 }
 
+// sessionEnd is how the process of a session ended.
+type sessionEnd struct {
+	timedOut bool
+	// killed is whether SIGKILL that no deadline sent ended the process.
+	killed bool
+	// failure describes a process that left no report of the scan plugin and
+	// exited neither with pytest's code for a session whose tests all passed
+	// nor with its code for a session that collected none; empty otherwise.
+	failure string
+}
+
 // runOnce runs one session: the whole suite, or the test files of the tests, in
 // order, the plugin keeping the tests alone, and reads its report; an empty
 // report when the session left none or an unreadable one.
-func (s scanSuite) runOnce(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, pluginDir string, tests []ecosystem.TestID, timeout time.Duration) (scanReport, bool, error) {
+func (s scanSuite) runOnce(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, pluginDir string, tests []ecosystem.TestID, timeout time.Duration) (scanReport, sessionEnd, error) {
 	output := suiterun.ResultsFile(workspace, scanReportSuffix)
 	argv := append(append([]string{}, toolchain.Command...), moduleFlag, pytestModule,
 		noCacheProvider, noCacheProviderID, pluginFlag, scanPluginModule, rootDirFlag, continueFlag, noMaxFailFlag, quietFlag)
@@ -229,27 +257,27 @@ func (s scanSuite) runOnce(ctx context.Context, workspace ecosystem.Workspace, t
 	if len(tests) > 0 {
 		selection, err := writeSelection(workspace, tests)
 		if err != nil {
-			return scanReport{}, false, err
+			return scanReport{}, sessionEnd{}, err
 		}
 		env = append(env, scanSelectionVariable+environmentAssignment+selection)
 		argv = append(argv, filesOf(tests)...)
 	}
-	executed, err := s.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: workspace.Dir, Env: env, Timeout: timeout})
+	command := ports.Command{Argv: argv, Dir: workspace.Dir, Env: env, Timeout: timeout}
+	executed, err := s.deps.Process.Run(ctx, command)
 	if err != nil {
-		return scanReport{}, false, fmt.Errorf("run the suite: %w", err)
+		return scanReport{}, sessionEnd{}, fmt.Errorf("run the suite: %w", err)
 	}
+	end := sessionEnd{timedOut: executed.TimedOut, killed: executed.KilledFromOutside()}
 	if executed.TimedOut {
-		return scanReport{}, true, nil
+		return scanReport{}, end, nil
 	}
 	var report scanReport
 	content, err := os.ReadFile(output)
-	if err != nil {
-		return scanReport{}, false, nil
+	if err == nil && json.Unmarshal(content, &report) == nil {
+		return report, end, nil
 	}
-	if err := json.Unmarshal(content, &report); err != nil {
-		return scanReport{}, false, nil
-	}
-	return report, false, nil
+	end.failure = suiterun.Failure(command, executed, exitTestsPassed, exitNoTestsCollected)
+	return scanReport{}, end, nil
 }
 
 // writeSelection writes the node ids a session keeps, as a JSON array, into a

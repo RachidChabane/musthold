@@ -223,6 +223,10 @@ type fakeSuite struct {
 	// onSelection, when set, sees each run of a selection, with the
 	// directory of its workspace.
 	onSelection func(dir string, tests []ecosystem.TestID)
+	// failure and killed are how the runner's process of a run of the whole
+	// suite ended.
+	failure string
+	killed  bool
 }
 
 // jitterSpan bounds the time a jittered run lasts.
@@ -244,6 +248,7 @@ func (s *fakeSuite) Run(ctx context.Context, workspace ecosystem.Workspace, _ ec
 	result := ports.ScanRuns{Runs: map[ecosystem.TestID][]vacuity.Run{}}
 	tests := request.Tests
 	if len(tests) == 0 {
+		result.Failure, result.Killed = s.failure, s.killed
 		tests = slices.Sorted(maps.Keys(s.tests))
 		for _, id := range tests {
 			result.Cases = append(result.Cases, ports.ScanCase{ID: id, File: s.tests[id].file})

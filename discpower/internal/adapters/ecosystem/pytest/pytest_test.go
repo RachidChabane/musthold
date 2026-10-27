@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -67,10 +68,68 @@ func TestDetect(t *testing.T) {
 		{"empty tree", fstest.MapFS{}, false},
 	}
 	for _, c := range cases {
-		t.Run(c.name+" [verifies SP-73~1]", func(t *testing.T) {
+		t.Run(c.name+" [verifies SP-73~2]", func(t *testing.T) {
 			detection, ok := strategy(nil, nil, found).Detect(c.files)
 			if ok != c.want || (ok && (detection.Name != ecosystem.Pytest || detection.Root != "." || len(detection.Evidence) == 0)) {
 				t.Fatalf("detection = %+v, %v", detection, ok)
+			}
+		})
+	}
+}
+
+func TestDetectByDefaultCollection(t *testing.T) {
+	configured := []struct {
+		name  string
+		files fstest.MapFS
+	}{
+		{"pytest.toml", fstest.MapFS{"pytest.toml": {}, "tests/test_x.py": {}}},
+		{".pytest.toml", fstest.MapFS{".pytest.toml": {}}},
+		{".pytest.ini", fstest.MapFS{".pytest.ini": {}}},
+		{"pyproject [tool.pytest]", fstest.MapFS{"pyproject.toml": {Data: []byte("[tool.pytest]\nminversion = \"9.0\"\n")}}},
+		{"root conftest.py", fstest.MapFS{"conftest.py": {}, "tests/test_x.py": {}}},
+	}
+	for _, c := range configured {
+		t.Run("a configuration file pytest reads, "+c.name+", is configured evidence [verifies SP-2653~1]", func(t *testing.T) {
+			detection, ok := strategy(nil, nil, found).Detect(c.files)
+			if !ok || detection.ByConvention || slices.Contains(detection.Evidence, "tests/test_x.py") {
+				t.Fatalf("detection = %+v, %v", detection, ok)
+			}
+		})
+	}
+	collected := []struct {
+		name, want string
+		files      fstest.MapFS
+	}{
+		{"a conftest.py of a tests directory", "tests/conftest.py", fstest.MapFS{
+			"pyproject.toml":         {Data: []byte("[project]\nname = \"reach\"\n\n[project.optional-dependencies]\ndev = [\"pytest>=8\"]\n")},
+			"reach/__init__.py":      {},
+			"tests/conftest.py":      {},
+			"tests/helpers/fakes.py": {},
+		}},
+		{"a test_*.py file", "tests/unit/test_slug.py", fstest.MapFS{"reach/slug.py": {}, "tests/unit/test_slug.py": {}}},
+		{"a *_test.py file beside its module", "reach/slug_test.py", fstest.MapFS{"reach/slug.py": {}, "reach/slug_test.py": {}}},
+	}
+	for _, c := range collected {
+		t.Run(c.name+" with no configuration is pytest by convention [verifies SP-2653~1]", func(t *testing.T) {
+			detection, ok := strategy(nil, nil, found).Detect(c.files)
+			if !ok || !detection.ByConvention || detection.Name != ecosystem.Pytest || detection.Root != "." || !slices.Equal(detection.Evidence, []string{c.want}) {
+				t.Fatalf("detection = %+v, %v", detection, ok)
+			}
+		})
+	}
+	ignored := map[string]fstest.MapFS{
+		"node_modules":           {"node_modules/flatted/python/test_flatted.py": {}},
+		"a hidden directory":     {".github/scripts/test_release.py": {}},
+		"a venv directory":       {"venv/lib/site-packages/six/test_six.py": {}},
+		"a virtual environment":  {"env/pyvenv.cfg": {}, "env/lib/test_x.py": {}},
+		"build and dist outputs": {"build/lib/test_x.py": {}, "dist/test_x.py": {}},
+		"an egg":                 {"reach.egg/test_x.py": {}},
+		"a module named alike":   {"reach/testing.py": {}, "reach/contest.py": {}},
+	}
+	for name, files := range ignored {
+		t.Run("a test file pytest does not collect by default, under "+name+", is no evidence [verifies SP-2653~1]", func(t *testing.T) {
+			if detection, ok := strategy(nil, nil, found).Detect(files); ok {
+				t.Fatalf("detection = %+v", detection)
 			}
 		})
 	}

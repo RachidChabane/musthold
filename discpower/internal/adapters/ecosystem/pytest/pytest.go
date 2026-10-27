@@ -5,6 +5,7 @@ package pytest
 import (
 	"io/fs"
 	"os/exec"
+	"path"
 	"slices"
 	"strings"
 	"time"
@@ -20,11 +21,13 @@ const (
 	rootDirectory = "."
 	pythonSuffix  = ".py"
 
-	pytestConfigFile = "pytest.ini"
-	conftestFile     = "conftest.py"
-	toxFile          = "tox.ini"
-	setupConfigFile  = "setup.cfg"
-	pyprojectFile    = "pyproject.toml"
+	conftestFile    = "conftest.py"
+	toxFile         = "tox.ini"
+	setupConfigFile = "setup.cfg"
+	pyprojectFile   = "pyproject.toml"
+	// virtualEnvironmentMarker marks the root of a virtual environment, which
+	// pytest does not collect from by default.
+	virtualEnvironmentMarker = "pyvenv.cfg"
 
 	toxSection       = "[pytest]"
 	setupSection     = "[tool:pytest]"
@@ -38,6 +41,10 @@ var (
 	virtualEnvironments = []string{".venv"}
 	// testFileGlobs name the files that hold tests or their fixtures.
 	testFileGlobs = []string{"test_*.py", "*_test.py", conftestFile}
+	// configFiles are the files pytest takes as its configuration, even empty.
+	configFiles = []string{"pytest.toml", ".pytest.toml", "pytest.ini", ".pytest.ini"}
+	// defaultNoRecurseDirs are pytest's default `norecursedirs` patterns.
+	defaultNoRecurseDirs = []string{"*.egg", ".*", "_darcs", "build", "CVS", "dist", "node_modules", "venv", "{arch}"}
 )
 
 // Dependencies are the ports a pytest Strategy works through.
@@ -76,25 +83,61 @@ func New(deps Dependencies) *Strategy {
 // Name is ecosystem.Pytest.
 func (*Strategy) Name() ecosystem.Name { return ecosystem.Pytest }
 
-// Detect recognizes a pytest project by its configuration or its conftest.
+// Detect recognizes a pytest project by its configuration or a conftest.py at
+// its root, else, by convention, by a test file or a conftest.py that pytest
+// collects from the root with its default settings.
 func (*Strategy) Detect(root fs.FS) (ecosystem.Detection, bool) {
 	var evidence []string
-	if exists(root, pytestConfigFile) {
-		evidence = append(evidence, pytestConfigFile)
-	}
-	if exists(root, conftestFile) {
-		evidence = append(evidence, conftestFile)
+	for _, file := range append(slices.Clone(configFiles), conftestFile) {
+		if exists(root, file) {
+			evidence = append(evidence, file)
+		}
 	}
 	for file, section := range map[string]string{toxFile: toxSection, setupConfigFile: setupSection, pyprojectFile: pyprojectSection} {
 		if contains(root, file, section) {
 			evidence = append(evidence, file)
 		}
 	}
-	if len(evidence) == 0 {
-		return ecosystem.Detection{}, false
+	if len(evidence) > 0 {
+		slices.Sort(evidence)
+		return ecosystem.Detection{Name: ecosystem.Pytest, Root: rootDirectory, Evidence: evidence}, true
 	}
-	slices.Sort(evidence)
-	return ecosystem.Detection{Name: ecosystem.Pytest, Root: rootDirectory, Evidence: evidence}, true
+	if file, found := firstCollected(root); found {
+		return ecosystem.Detection{Name: ecosystem.Pytest, Root: rootDirectory, Evidence: []string{file}, ByConvention: true}, true
+	}
+	return ecosystem.Detection{}, false
+}
+
+// firstCollected is the first file of the tree, in lexical walk order, that
+// pytest collects by default: a test file or a conftest.py outside the
+// directories its default `norecursedirs` and its virtual environment rule
+// leave out.
+func firstCollected(root fs.FS) (string, bool) {
+	found := ""
+	_ = fs.WalkDir(root, rootDirectory, func(name string, entry fs.DirEntry, walkErr error) error {
+		switch {
+		case walkErr != nil:
+			return fs.SkipDir
+		case entry.IsDir():
+			if name != rootDirectory && (matchesAny(entry.Name(), defaultNoRecurseDirs) || exists(root, path.Join(name, virtualEnvironmentMarker))) {
+				return fs.SkipDir
+			}
+			return nil
+		case matchesAny(entry.Name(), testFileGlobs):
+			found = name
+			return fs.SkipAll
+		}
+		return nil
+	})
+	return found, found != ""
+}
+
+// matchesAny reports whether the name matches one of the glob patterns.
+func matchesAny(name string, patterns []string) bool {
+	return slices.ContainsFunc(patterns, func(pattern string) bool {
+		matched, err := path.Match(pattern, name)
+		return err == nil && matched
+	})
 }
 
 // Layout excludes bytecode caches and treats the virtual environment as

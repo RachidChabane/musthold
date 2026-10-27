@@ -1,8 +1,8 @@
 // The configuration of a scan's Vitest runs: the project's own configuration
 // with the scan's settings. The shipped runner records the tests in one fork
 // with no file parallelism; the shipped global setup wraps the project's; one
-// reporter writes to the console; retries, bail and coverage are off; test
-// files run in path order. Browser mode is refused: a scan records V8
+// reporter writes to the console; retries, bail and coverage are off; a suite
+// with no test exits with 0; test files run in path order. Browser mode is refused: a scan records V8
 // coverage in Node.
 import path from 'node:path';
 import { mergeConfig } from 'vitest/config';
@@ -50,6 +50,7 @@ export default async (environment) => {
   test.maxWorkers = 1;
   test.retry = 0;
   test.bail = 0;
+  test.passWithNoTests = true;
   test.watch = false;
   test.coverage = Object.assign({}, test.coverage, { enabled: false });
   test.sequence = Object.assign({}, test.sequence, { sequencer: PathSequencer, shuffle: false });

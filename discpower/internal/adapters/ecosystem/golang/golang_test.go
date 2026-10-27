@@ -44,7 +44,7 @@ func strategy(process ports.ProcessRunner, reader ports.ResultsReader, lookPath 
 func found(name string) (string, error) { return "/usr/local/go/bin/" + name, nil }
 
 func TestDetectAndLayout(t *testing.T) {
-	t.Run("a go.mod marks a Go module [verifies SP-73~1]", func(t *testing.T) {
+	t.Run("a go.mod marks a Go module [verifies SP-73~2]", func(t *testing.T) {
 		detection, ok := strategy(nil, nil, found).Detect(fstest.MapFS{"go.mod": {}})
 		if !ok || detection.Name != ecosystem.GoTesting || detection.Root != "." || !reflect.DeepEqual(detection.Evidence, []string{"go.mod"}) {
 			t.Fatalf("%+v %v", detection, ok)

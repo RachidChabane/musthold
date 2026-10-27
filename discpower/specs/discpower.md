@@ -60,6 +60,10 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   suite run SHALL read the per-test outcomes its reporter wrote.
 - **SP-67~1**: WHEN a command exceeds its deadline or its context ends THE
   SYSTEM SHALL kill its whole process group and report the timeout.
+- **SP-2654~1**: WHEN a command ends by a signal that no deadline sent THE
+  SYSTEM SHALL report the signal, a SIGKILL as a kill from outside, and on
+  Linux SHALL make the command and the processes it starts the out-of-memory
+  killer's first choice, ahead of the process that runs them.
 - **SP-68~1**: WHEN a reference workspace is prepared THE SYSTEM SHALL copy the
   project once under the temporary directory, outside the repository, leaving
   out version control data and the excluded directories of the ecosystem.
@@ -76,9 +80,20 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 - **SP-72~1**: WHEN a Go source is located THE SYSTEM SHALL return every
   function and method declaration with its byte span, lines and qualified name,
   and refuse a source that does not parse.
-- **SP-73~1**: WHEN a project tree is inspected THE SYSTEM SHALL choose the
-  ecosystem strategies that recognize it, refuse two strategies of one name, and
-  add a strategy without a change to the registry.
+- **SP-73~2**: WHEN a project tree is inspected THE SYSTEM SHALL choose the
+  ecosystem strategies that recognize it, those a configuration or a manifest
+  names before those that recognized only test files their runner collects by
+  its default rules, each group in registration order; refuse two strategies of
+  one name; and add a strategy without a change to the registry.
+- **SP-2653~1**: WHEN a project tree is inspected THE SYSTEM SHALL recognize a
+  pytest project by `pytest.toml`, `.pytest.toml`, `pytest.ini`, `.pytest.ini`
+  or `conftest.py` at its root, a `[pytest]` section of `tox.ini`, a
+  `[tool:pytest]` section of `setup.cfg` or a `[tool.pytest` table of
+  `pyproject.toml`; and, with none of them, by convention, by a `test_*.py`,
+  `*_test.py` or `conftest.py` file anywhere under the root outside the
+  directories pytest's default `norecursedirs` leaves out (`*.egg`, `.*`,
+  `_darcs`, `build`, `CVS`, `dist`, `node_modules`, `venv`, `{arch}`) and
+  outside a virtual environment, which a `pyvenv.cfg` marks.
 - **SP-74~1**: WHEN a pytest project is executed THE SYSTEM SHALL resolve the
   interpreter from the configuration, the virtual environment, `uv run python`
   for a uv project, then `python3`, compile and import the changed modules,
@@ -406,11 +421,16 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   (`pnpm exec`, `yarn`, `bunx --no-install`, `npx --no-install`), use
   `npx --no-install` for a project without one, and refuse a runner that is not
   installed.
-- **SP-1012~1**: WHEN the changed files of a Node project are checked THE SYSTEM
-  SHALL run `tsc --noEmit -p tsconfig.json` when a TypeScript file changed and the
-  project has a tsconfig, run `node --check` on each changed JavaScript file,
-  report the first failure with the message of the tool as a failed build, and
-  check nothing else.
+- **SP-1012~2**: WHEN the changed files of a Node project are checked THE SYSTEM
+  SHALL run `tsc --noEmit -p <project>` at the workspace root for each
+  TypeScript project that owns a changed TypeScript file: the nearest
+  `tsconfig.json` from the file's directory up to the root or, when that file
+  lists no file of its own (`"files": []`, no `include`, no `extends`), each
+  project it references, solution files resolved the same way; record the
+  baseline of every such project of the workspace, installed packages and
+  hidden directories aside, and compare diagnostics within their project; run
+  `node --check` on each changed JavaScript file; report the first failure
+  with the message of the tool as a failed build; and check nothing else.
 - **SP-1013~1**: WHEN a Jest project is executed THE SYSTEM SHALL select bound
   tests by path and by one anchored regex over the full titles jest-junit
   reports, without the space it leads a test outside any describe with, and run
@@ -1573,13 +1593,22 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   generated code marked `Code generated ... DO NOT EDIT.` or `@generated`, and
   migrations; and SHALL refuse a site with a line that calls a print, a log, a
   `console` method or a metric.
-- **SP-2108~2**: WHEN a repository is scanned THE SYSTEM SHALL refuse a work tree
+- **SP-2108~3**: WHEN a repository is scanned THE SYSTEM SHALL refuse a work tree
   whose tracked files differ from the head commit before running anything; copy
   the work tree, scan reports aside, into a workspace outside it and build it,
-  failing when the reference does not build or collects no test; run the whole
-  suite three times there; and record the line coverage of every green test, or,
-  for a repository scan whose coverage scope is its sample, of the sampled tests
-  only.
+  failing when the reference does not build; run the whole suite three times
+  there, failing when a process of the runner was killed by SIGKILL from
+  outside, when the runner failed before it reported a test, with the command,
+  how it ended (its deadline, its signal or its exit code) and the end of its
+  output, and when it collected no test, a runner that exits as it does for a
+  suite with no test (Jest and Vitest with `--passWithNoTests`, pytest with 5,
+  `go test` with 0) having collected none; and record the line coverage of every
+  green test, or, for a repository scan whose coverage scope is its sample, of
+  the sampled tests only.
+- **SP-2658~1**: WHEN a process of the runner that records the coverage of the
+  reference, in any ecosystem, is killed by SIGKILL from outside THE SYSTEM
+  SHALL fail the scan saying the runner was killed, as the out-of-memory
+  killer ends a process, and naming `--workers` and the memory.
 - **SP-2109~1**: WHEN a scan plans what it judges THE SYSTEM SHALL, without a
   base, sample the green tests by the seed and admit for mutation the lines the
   sampled tests ran; and, with a base, take the green tests that ran a line of a
@@ -1667,9 +1696,13 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   patch and runs the one test, quoted, so that its exit status is the test's,
   and `finding.json`, which names the commit, the runner, the test, the mutant
   with its edits and the route.
-- **SP-2119~4**: WHEN `musthold-dp scan` runs THE SYSTEM SHALL need no
+- **SP-2119~5**: WHEN `musthold-dp scan` runs THE SYSTEM SHALL need no
   configuration, scan the first pytest, Go, Jest or Vitest suite it detects
-  that collects a test, in that order, quickly unless
+  that collects a test, in that order, a suite detected only by its runner's
+  default collection (SP-73) after every other and never once the runner of
+  another failed before reporting a test, the first such failure being the
+  outcome when no suite collects a test and a runner killed from outside
+  ending the attempts, quickly unless
   `--full` is given (SP-2131), `--sample`, `--mutants` and `--budget` replacing
   what the depth presets, write the reports,
   print the headline, the Markdown report with `--format md` or the scan statement
@@ -1678,9 +1711,10 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   extra argument; and `musthold-dp scan replay <dir>` SHALL replay, with the
   runner each finding names, the finding of a finding folder or every finding
   of a scan folder and exit 1 when a claim does not hold.
-- **SP-2425~1**: WHEN `musthold-dp scan` finds no suite in a tree whose root
-  holds a Go workspace file, `go.work`, THE SYSTEM SHALL fail naming the modules
-  the file uses, in its order, and that `--root` scans one module at a time.
+- **SP-2425~2**: WHEN `musthold-dp scan` finds no suite, or only suites detected
+  by their runner's default collection, in a tree whose root holds a Go
+  workspace file, `go.work`, THE SYSTEM SHALL fail naming the modules the file
+  uses, in its order, and that `--root` scans one module at a time.
 - **SP-2120~1**: WHEN the git state of a scanned project is read THE SYSTEM SHALL
   resolve the head and a base revision to full commit ids, list the tracked
   files, report the tree dirty only for a changed tracked file outside the scan
@@ -1735,9 +1769,13 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   difference; SHALL count the sentinels on which a run of a test did not
   start; and SHALL time each phase of the scan: the reference, the coverage, the
   draw, the mutants and the confirmation of SP-2144.
-- **SP-2130~1**: WHEN a scan is given no number of workers THE SYSTEM SHALL read
+- **SP-2130~2**: WHEN a scan is given no number of workers THE SYSTEM SHALL read
   the processors of the machine and the share of its memory that is free, with
-  `sysctl` and `memory_pressure` on macOS and /proc/meminfo elsewhere, and run
+  `sysctl` and `memory_pressure` on macOS and /proc/meminfo elsewhere, in place
+  of which it takes the memory limit of its control group (`memory.max` of
+  version 2, else `memory.limit_in_bytes` of version 1) and the share the
+  group's usage, its inactive file cache aside, leaves free, when that limit
+  is below the machine's memory; and run
   one worker per two processors and per GiB of memory above the 40 % the memory
   guard keeps free, the fewer of the two, at least one and at most four; and
   the default workers when the capacity cannot be read.
@@ -1904,6 +1942,16 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   give a test not started only when the run's global setup failed or the
   test's file stopped before any of its tests began; and give the tests of a
   process that timed out, and of every later run, timed out.
+- **SP-2655~1**: WHEN Jest runs for a scan, for a mutant's tests or for the
+  reproduction of a finding THE SYSTEM SHALL run it in band, so that one run
+  is one process and starts no worker.
+- **SP-2656~1**: WHEN a scan records Jest or Vitest tests alone THE SYSTEM SHALL
+  read each recording as its process ends, keep only the lines it gives and
+  whether its process had an inspector session, and remove the record the
+  process left.
+- **SP-2657~1**: WHEN a scan reads the projects of a Jest configuration THE
+  SYSTEM SHALL read the JSON object that starts a line of the output of
+  `jest --showConfig`, whatever lines the configuration printed as it loaded.
 - **SP-2293~1**: WHEN a scan records the coverage of a Jest or a Vitest test it
   reads the owned lines of THE SYSTEM SHALL record the test alone in three
   processes, each with V8 precise coverage through an inspector session of

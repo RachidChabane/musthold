@@ -1,0 +1,8 @@
+{
+  // The packages build one at a time: `tsc -b` from here builds them all.
+  "files": [],
+  "references": [
+    { "path": "./packages/rates" },
+    { "path": "./packages/dashboard" },
+  ],
+}

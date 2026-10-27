@@ -31,6 +31,9 @@ const (
 	eventsSuffix = ".jsonl"
 	// oneRun is the count of a process that gives each test one observation.
 	oneRun = 1
+	// cleanExit is the exit code of `go test` when every package passed or
+	// had no test.
+	cleanExit = 0
 )
 
 // Scan runs the suite for a scan with `go test -json`, and its line coverage
@@ -52,7 +55,8 @@ type scanSuite struct {
 // read against its ancestors' end events of the same run (see
 // testProcess.paired); the leaves of a package with an ambiguous pass and no
 // failure run again together, without the others, in one fresh process (see
-// rerunAmbiguous).
+// rerunAmbiguous). A run of every package that names no test from a process
+// that did not exit with 0 gives the batch its failure.
 func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, request ports.ScanRunRequest) (ports.ScanRuns, error) {
 	module, err := modulePath(os.DirFS(workspace.Dir))
 	if err != nil {
@@ -69,12 +73,16 @@ func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolc
 		if err != nil {
 			return ports.ScanRuns{}, err
 		}
+		result.Killed = result.Killed || first.killed
 		wanted := batch.tests
 		if len(wanted) == 0 {
 			for _, key := range sortedKeys(first.leaves) {
 				id, file := locator.id(module, key)
 				result.Cases = append(result.Cases, ports.ScanCase{ID: id, File: file})
 				wanted = append(wanted, id)
+			}
+			if len(result.Cases) == 0 {
+				result.Failure = first.failure
 			}
 		}
 		for _, group := range byPackage(wanted, module) {
@@ -86,9 +94,11 @@ func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolc
 			} else {
 				observed = first.groupRuns(group, request.Runs)
 			}
-			if err := s.rerunAmbiguous(ctx, workspace, toolchain, group, observed, request); err != nil {
+			killed, err := s.rerunAmbiguous(ctx, workspace, toolchain, group, observed, request)
+			if err != nil {
 				return ports.ScanRuns{}, err
 			}
+			result.Killed = result.Killed || observed.killed || killed
 			for test, runs := range observed.runs {
 				result.Runs[test] = runs
 			}
@@ -98,12 +108,13 @@ func (s scanSuite) Run(ctx context.Context, workspace ecosystem.Workspace, toolc
 }
 
 // groupRuns is what the processes of a package gave its tests: the runs of
-// each test, the tests with an ambiguous pass, and whether a process timed
-// out.
+// each test, the tests with an ambiguous pass, whether a process timed out
+// and whether SIGKILL from outside ended one.
 type groupRuns struct {
 	runs      map[ecosystem.TestID][]vacuity.Run
 	ambiguous map[ecosystem.TestID]bool
 	timedOut  bool
+	killed    bool
 }
 
 func newGroupRuns(group packageGroup) groupRuns {
@@ -113,7 +124,7 @@ func newGroupRuns(group packageGroup) groupRuns {
 // groupRuns gives each test of the group its runs of this process.
 func (p testProcess) groupRuns(group packageGroup, runs int) groupRuns {
 	observed := newGroupRuns(group)
-	observed.timedOut = p.timedOut
+	observed.timedOut, observed.killed = p.timedOut, p.killed
 	for index, test := range group.tests {
 		observed.runs[test], observed.ambiguous[test] = p.runsOf(group.keys[index], runs)
 	}
@@ -141,6 +152,7 @@ func (s scanSuite) observeApart(ctx context.Context, workspace ecosystem.Workspa
 			}
 		}
 		observed.timedOut = observed.timedOut || process.timedOut
+		observed.killed = observed.killed || process.killed
 		for index, test := range group.tests {
 			run, ambiguous := process.observation(group.keys[index])
 			observed.runs[test] = append(observed.runs[test], run)
@@ -157,10 +169,10 @@ func (s scanSuite) observeApart(ctx context.Context, workspace ecosystem.Workspa
 // every run, each read against its ancestors as in any process, an ambiguous
 // pass now counting as errored. When it exits non-zero without timing out
 // before a test had every run, it gives each test one observation and
-// errored runs.
-func (s scanSuite) rerunAmbiguous(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, group packageGroup, observed groupRuns, request ports.ScanRunRequest) error {
+// errored runs. It reports whether SIGKILL from outside ended that process.
+func (s scanSuite) rerunAmbiguous(ctx context.Context, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, group packageGroup, observed groupRuns, request ports.ScanRunRequest) (bool, error) {
 	if observed.timedOut {
-		return nil
+		return false, nil
 	}
 	rerun := batch{pattern: group.pkg}
 	var keys []resultKey
@@ -172,11 +184,11 @@ func (s scanSuite) rerunAmbiguous(ctx context.Context, workspace ecosystem.Works
 		}
 	}
 	if len(rerun.tests) == 0 {
-		return nil
+		return false, nil
 	}
 	process, err := s.runProcess(ctx, workspace, toolchain, rerun, request.Runs, request.Timeout*time.Duration(max(request.Runs, oneRun)))
 	if err != nil {
-		return err
+		return false, err
 	}
 	cutShort := process.cutShort(keys, request.Runs)
 	for index, test := range rerun.tests {
@@ -187,7 +199,7 @@ func (s scanSuite) rerunAmbiguous(ctx context.Context, workspace ecosystem.Works
 		run, _ := process.observation(keys[index])
 		observed.runs[test] = append([]vacuity.Run{run}, slices.Repeat([]vacuity.Run{vacuity.RunErrored}, request.Runs-oneRun)...)
 	}
-	return nil
+	return process.killed, nil
 }
 
 // runProcess runs one `go test -json` process of the batch, each test the given
@@ -199,7 +211,8 @@ func (s scanSuite) runProcess(ctx context.Context, workspace ecosystem.Workspace
 	}
 	argv = append(argv, batch.pattern)
 	events := suiterun.ResultsFile(workspace, eventsSuffix)
-	executed, err := s.deps.Process.Run(ctx, ports.Command{Argv: argv, Dir: workspace.Dir, Timeout: timeout, StdoutFile: events})
+	command := ports.Command{Argv: argv, Dir: workspace.Dir, Timeout: timeout, StdoutFile: events}
+	executed, err := s.deps.Process.Run(ctx, command)
 	if err != nil {
 		return testProcess{}, fmt.Errorf("run the suite: %w", err)
 	}
@@ -207,7 +220,9 @@ func (s scanSuite) runProcess(ctx context.Context, workspace ecosystem.Workspace
 	if err != nil {
 		return testProcess{}, fmt.Errorf("read the test events: %w", err)
 	}
-	return readProcess(output, executed.ExitCode, executed.TimedOut), nil
+	process := readProcess(output, executed.ExitCode, executed.TimedOut)
+	process.killed, process.failure = executed.KilledFromOutside(), suiterun.Failure(command, executed, cleanExit)
+	return process, nil
 }
 
 // batch is one `go test` invocation: a package pattern and, for a selection,

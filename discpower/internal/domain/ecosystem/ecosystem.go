@@ -39,6 +39,10 @@ type Detection struct {
 	Root string
 	// Evidence lists the files that revealed the ecosystem.
 	Evidence []string
+	// ByConvention is whether the evidence is only test files the runner
+	// collects by its default rules, with no configuration or manifest naming
+	// the runner: such a detection ranks after every other.
+	ByConvention bool
 }
 
 // Workspace is a directory a command runs in, outside the repository.

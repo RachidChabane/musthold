@@ -1,6 +1,7 @@
 package node
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -35,6 +36,7 @@ const (
 	jestForceExitFlag         = "--forceExit"
 	jestNoCoverageFlag        = "--coverage=false"
 	jestNoBailFlag            = "--bail=0"
+	jestPassWithNoTestsFlag   = "--passWithNoTests"
 	jestEnvironmentFlag       = "--testEnvironment="
 	jestReportersFlag         = "--reporters="
 	jestSequencerFlag         = "--testSequencer="
@@ -48,6 +50,8 @@ const (
 	reproPackageRunner        = "npx"
 	reproNoInstallFlag        = "--no-install"
 	anchoredTitle             = "^%s$"
+	// jsonObjectStart opens the configuration `jest --showConfig` prints.
+	jsonObjectStart = '{'
 )
 
 // vitestConfigFiles are the configuration files Vitest reads, in the order it
@@ -109,9 +113,9 @@ func (jest) reproArguments(file, pattern string) []string {
 }
 
 // scanCommand runs Jest in band, under the shipped environment, reporter and
-// test sequencer, with coverage off, no bail and a forced exit, each test file
-// in path order; the environment each project configures is read once from
-// `jest --showConfig`.
+// test sequencer, with coverage off, no bail, a forced exit and an exit status
+// of 0 for a suite with no test, each test file in path order; the environment
+// each project configures is read once from `jest --showConfig`.
 func (jest) scanCommand(ctx context.Context, suite scanSuite, workspace ecosystem.Workspace, toolchain ecosystem.Toolchain, scripts string, files []string) ([]string, []string, error) {
 	projects, err := suite.jestProjects(ctx, workspace, toolchain)
 	if err != nil {
@@ -122,7 +126,7 @@ func (jest) scanCommand(ctx context.Context, suite scanSuite, workspace ecosyste
 		return nil, nil, fmt.Errorf("encode the Jest environments: %w", err)
 	}
 	argv := []string{
-		jestTool, jestCIFlag, jestSingleProcessFlag, jestNoWatchmanFlag, jestForceExitFlag, jestNoCoverageFlag, jestNoBailFlag,
+		jestTool, jestCIFlag, jestSingleProcessFlag, jestNoWatchmanFlag, jestForceExitFlag, jestNoCoverageFlag, jestNoBailFlag, jestPassWithNoTestsFlag,
 		jestEnvironmentFlag + filepath.Join(scripts, scanEnvironmentScript),
 		jestReportersFlag + filepath.Join(scripts, scanReporterScript),
 		jestSequencerFlag + filepath.Join(scripts, scanSequencerScript),
@@ -153,8 +157,8 @@ func (s scanSuite) jestProjects(ctx context.Context, workspace ecosystem.Workspa
 	if err != nil {
 		return jestProjects{}, fmt.Errorf("read the Jest configuration: %w", err)
 	}
-	var shown jestShownConfig
-	if executed.ExitCode != 0 || json.Unmarshal(executed.Stdout, &shown) != nil || len(shown.Configs) == 0 {
+	shown, read := readShownConfig(executed.Stdout)
+	if executed.ExitCode != 0 || !read || len(shown.Configs) == 0 {
 		return jestProjects{}, fmt.Errorf("%w: jest --showConfig exited %d: %s", ErrScanConfig, executed.ExitCode, strings.TrimSpace(string(executed.Stderr)))
 	}
 	projects := jestProjects{environments: map[string]string{}}
@@ -172,6 +176,26 @@ func (s scanSuite) jestProjects(ctx context.Context, workspace ecosystem.Workspa
 	s.cache.jest[digest] = projects
 	s.cache.mutex.Unlock()
 	return projects, nil
+}
+
+// readShownConfig reads the configuration `jest --showConfig` printed: the
+// JSON object that starts a line of its output, whatever a configuration that
+// logs as it loads printed before or after it.
+func readShownConfig(stdout []byte) (jestShownConfig, bool) {
+	for start := 0; start < len(stdout); {
+		if stdout[start] == jsonObjectStart {
+			var shown jestShownConfig
+			if json.NewDecoder(bytes.NewReader(stdout[start:])).Decode(&shown) == nil {
+				return shown, true
+			}
+		}
+		next := bytes.IndexByte(stdout[start:], lineFeed)
+		if next < 0 {
+			break
+		}
+		start += next + 1
+	}
+	return jestShownConfig{}, false
 }
 
 // configDigest identifies the configuration of a workspace: its manifest and
@@ -234,7 +258,8 @@ func (vitest) reproArguments(file, pattern string) []string {
 // scanCommand runs Vitest under the shipped overlay of the project's
 // configuration, written once into the workspace: the shipped runner in one
 // fork with no file parallelism, the shipped global setup, no retry, no bail,
-// coverage off and the test files in path order.
+// coverage off, an exit status of 0 for a suite with no test and the test
+// files in path order.
 func (vitest) scanCommand(_ context.Context, _ scanSuite, workspace ecosystem.Workspace, _ ecosystem.Toolchain, scripts string, files []string) ([]string, []string, error) {
 	overlay, err := vitestOverlay(workspace.Dir)
 	if err != nil {

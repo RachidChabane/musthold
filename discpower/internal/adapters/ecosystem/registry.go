@@ -4,6 +4,7 @@
 package ecosystem
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -69,8 +70,10 @@ func (r *Registry) For(name domain.Name) (ports.Ecosystem, error) {
 	return nil, fmt.Errorf("%w: %q", ErrUnknownEcosystem, name)
 }
 
-// Detect asks every strategy to recognize the tree and returns those that do,
-// in registration order.
+// Detect asks every strategy to recognize the tree and returns those that do:
+// the strategies a configuration or a manifest names first, then those that
+// only recognized test files by the runner's default rules, each group in
+// registration order.
 func (r *Registry) Detect(root fs.FS) []Detected {
 	var detected []Detected
 	for _, strategy := range r.strategies {
@@ -78,5 +81,21 @@ func (r *Registry) Detect(root fs.FS) []Detected {
 			detected = append(detected, Detected{Strategy: strategy, Detection: detection})
 		}
 	}
+	slices.SortStableFunc(detected, func(a, b Detected) int {
+		return cmp.Compare(rank(a.Detection), rank(b.Detection))
+	})
 	return detected
+}
+
+// Ranks of a detection: a configured one before one by convention.
+const (
+	configuredRank = iota
+	conventionRank
+)
+
+func rank(detection domain.Detection) int {
+	if detection.ByConvention {
+		return conventionRank
+	}
+	return configuredRank
 }
