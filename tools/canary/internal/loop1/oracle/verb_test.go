@@ -136,6 +136,27 @@ func TestOracleRun(t *testing.T) {
 	})
 }
 
+func TestMeasureEquippedAndFinal(t *testing.T) {
+	t.Run("the canary's measure writes the equipped and final matrices of one attempt, and no stop's [verifies SP-2649~1]", func(t *testing.T) {
+		s := newScenario(t)
+		run := study.Run{EquippedCommit: equippedCommit}
+		run.Task = "demo"
+		if err := s.verb.MeasureEquippedAndFinal(context.Background(), s.runDir, run); err != nil {
+			t.Fatal(err)
+		}
+		heldOut := s.readHeldOut()
+		if labels := slices.Sorted(maps.Keys(heldOut)); !slices.Equal(labels, []string{study.DirEquipped, study.DirFinal}) {
+			t.Fatalf("labels %v", labels)
+		}
+		if !heldOut[study.DirEquipped].Killed["DEMO-1/1"] {
+			t.Errorf("equipped %+v", heldOut[study.DirEquipped])
+		}
+		if _, err := os.Stat(OraclePath(s.runDir)); !os.IsNotExist(err) {
+			t.Error("the measure wrote oracle.json")
+		}
+	})
+}
+
 func TestHeldOut(t *testing.T) {
 	t.Run("the equipped, final and stop directories are measured [verifies SP-2564~2, SP-2565~2, SP-2566~1]", func(t *testing.T) {
 		s := newScenario(t)

@@ -10,6 +10,8 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/accept"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box/docker"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box/docker/dockertest"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
@@ -69,6 +71,14 @@ func TestContainers(t *testing.T) {
 		settings, err := os.ReadFile(filepath.Join(project, "shallnot.yaml"))
 		if err != nil || !strings.Contains(string(settings), "require: []") {
 			t.Errorf("the control arm's gate: %s, %v", settings, err)
+		}
+		gate, err := runner.Run(context.Background(), box.Command{
+			Argv: []string{accept.ShallnotProgram, "gate", "--format", "json"},
+			Env:  []string{"PATH=" + accept.ContainerPath, "HOME=" + filepath.Join(work, "home"), "PYTHONDONTWRITEBYTECODE=1"},
+			Dir:  project, Mounts: []box.Mount{{Path: work}}, Limit: study.OracleLimit,
+		})
+		if err != nil || gate.ExitCode != 1 || !strings.Contains(string(gate.Stdout), "BOX-4") {
+			t.Errorf("the traceability gate in the equipped project: exit %d, %v\n%s\n%s", gate.ExitCode, err, gate.Stdout, gate.Stderr)
 		}
 	})
 

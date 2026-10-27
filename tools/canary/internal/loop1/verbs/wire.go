@@ -127,14 +127,20 @@ func canaryDetectors(s runs.Setup) (canary.Detectors, error) {
 	if err != nil {
 		return nil, err
 	}
-	return c3Detectors{held: oracle.NewVerb(s.Options.RepoRoot, s.Layout, runner, nil, io.Discard), runner: runner}, nil
+	held := oracle.NewVerb(s.Options.RepoRoot, s.Layout, runner, nil, io.Discard)
+	return c3Detectors{
+		measure: held.MeasureEquippedAndFinal,
+		detect: func(ctx context.Context, runDir string, egressObserved []string) (study.Detection, error) {
+			return detect.Detect(ctx, runner, runDir, egressObserved)
+		},
+	}, nil
 }
 
 // c3Detectors measure the equipped and final tests of C3's attempt against the
 // task's held-out violations, which K3 reads, then run every detector on it.
 type c3Detectors struct {
-	held   *oracle.Verb
-	runner box.Runner
+	measure func(ctx context.Context, runDir string, run study.Run) error
+	detect  func(ctx context.Context, runDir string, egressObserved []string) (study.Detection, error)
 }
 
 // Detect implements canary.Detectors.
@@ -143,8 +149,8 @@ func (d c3Detectors) Detect(ctx context.Context, runDir string, egressObserved [
 	if err != nil {
 		return study.Detection{}, err
 	}
-	if err := d.held.MeasureEquippedAndFinal(ctx, runDir, run); err != nil {
+	if err := d.measure(ctx, runDir, run); err != nil {
 		return study.Detection{}, err
 	}
-	return detect.Detect(ctx, d.runner, runDir, egressObserved)
+	return d.detect(ctx, runDir, egressObserved)
 }

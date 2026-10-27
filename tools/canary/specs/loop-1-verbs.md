@@ -18,6 +18,13 @@ packages that read it.
   arm equips it, every step a command of the study's box with its run directory alone
   mounted, and run the traceability gate in that project.
 
+## The canary
+
+- **SP-2649~1**: WHEN the detectors of canary C3 run THE SYSTEM SHALL first measure
+  the tests of C3's attempt at its equipped commit and at its end against its task's
+  held-out violations, writing the attempt's `heldout.json`, and then run every
+  detector of PREREG §9.8 on the attempt with the hosts C1 observed.
+
 ## The front door
 
 - **SP-2642~1**: WHEN `experiments/loop-1/script/<verb>` runs a verb THE SYSTEM SHALL
