@@ -194,14 +194,30 @@ func TestCompletedAttempt(t *testing.T) {
 func TestEquippedArms(t *testing.T) {
 	w := runstest.NewWorld(t)
 	equipper := runs.Equipper{Options: w.Options, Processes: w.Engine, Files: adapters.OSFiles{}, Tree: runs.OSTree{}}
-	projects := map[config.Arm]string{}
+	projects, equipped := map[config.Arm]string{}, map[config.Arm]runs.Equipped{}
 	for _, arm := range []config.Arm{config.ArmControl, config.ArmTreatment} {
 		dir := filepath.Join(runstest.TempDir(t), "run")
-		if _, err := equipper.Equip(context.Background(), dir, config.Run{Task: w.Config.Tasks[0], Arm: arm, Repetition: 1}); err != nil {
+		facts, err := equipper.Equip(context.Background(), dir, config.Run{Task: w.Config.Tasks[0], Arm: arm, Repetition: 1})
+		if err != nil {
 			t.Fatal(err)
 		}
-		projects[arm] = filepath.Join(dir, plan.ProjectDir)
+		projects[arm], equipped[arm] = filepath.Join(dir, plan.ProjectDir), facts
 	}
+
+	t.Run("the instruction digests of the two arms differ in shallnot.yaml alone, and their session settings are the same [verifies SP-2511~1]", func(t *testing.T) {
+		control, treatment := equipped[config.ArmControl], equipped[config.ArmTreatment]
+		if control.SessionSettings == "" || control.SessionSettings != treatment.SessionSettings || control.BaseCommit != treatment.BaseCommit {
+			t.Errorf("control %+v, treatment %+v", control, treatment)
+		}
+		if _, found := control.Files["AGENTS.md"]; !found || len(control.Files) != len(treatment.Files) {
+			t.Fatalf("files %v and %v", control.Files, treatment.Files)
+		}
+		for path, digest := range control.Files {
+			if (treatment.Files[path] == digest) == (path == "shallnot.yaml") {
+				t.Errorf("%s: %s and %s", path, digest, treatment.Files[path])
+			}
+		}
+	})
 
 	t.Run("both arms are equipped alike and differ only in proofs.require of shallnot.yaml [verifies SP-2511~1]", func(t *testing.T) {
 		control, treatment := runstest.Read(t, filepath.Join(projects[config.ArmControl], "shallnot.yaml")), runstest.Read(t, filepath.Join(projects[config.ArmTreatment], "shallnot.yaml"))

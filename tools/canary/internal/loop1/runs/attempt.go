@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/startup"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/freeze"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -28,7 +30,7 @@ var ErrAttemptExists = errors.New("the attempt's directory already exists")
 type Runner struct {
 	App        app.Runner
 	Tree       Tree
-	Deviations DeviationLog
+	Deviations DeviationWriter
 }
 
 // Plan is what every attempt of one invocation shares.
@@ -156,9 +158,7 @@ func (a *attempt) prepare(ctx context.Context) string {
 	}
 	versions[ShallnotVersionKey] = a.ask(ctx, l.Bin(plan.ShallnotBinary), versionFlag)
 	a.meta.ClaudeSHA256, _, _ = strings.Cut(a.ask(ctx, sha256Program, l.Claude()), " ")
-	if a.plan.ImageID != "" && a.plan.Inputs.Images.Built != "" && a.plan.ImageID != a.plan.Inputs.Images.Built {
-		return fmt.Sprintf("the image is %s, the inputs freeze names %s", a.plan.ImageID, a.plan.Inputs.Images.Built)
-	}
+	a.toolchains(ctx, versions)
 	if a.spec.Empty {
 		return ""
 	}
@@ -168,6 +168,40 @@ func (a *attempt) prepare(ctx context.Context) string {
 		return err.Error()
 	}
 	return a.equipped(ctx)
+}
+
+// toolchains records, under the keys of the inputs freeze, the version of each
+// toolchain of the image and of the engine (PREREG §2).
+func (a *attempt) toolchains(ctx context.Context, versions map[string]string) {
+	for key, program := range ImageToolchains() {
+		versions[key] = DottedVersion(a.ask(ctx, program, versionFlag))
+	}
+	engine, err := a.r.App.EngineVersion(ctx, a.options)
+	if err != nil {
+		engine = "unavailable: " + err.Error()
+	}
+	versions[freeze.ToolchainDocker] = DottedVersion(engine)
+}
+
+// ImageToolchains are the programs of the image whose version each run records,
+// by the key of the inputs freeze.
+func ImageToolchains() map[string]string {
+	return map[string]string{
+		freeze.ToolchainPython: "python3", freeze.ToolchainPytest: "pytest", freeze.ToolchainUV: "uv",
+		freeze.ToolchainNode: "node", freeze.ToolchainGit: plan.GitBinary,
+	}
+}
+
+// dottedVersion is the first dotted number of a version line.
+var dottedVersion = regexp.MustCompile(`[0-9]+(\.[0-9]+)+`)
+
+// DottedVersion is the first dotted number of a version line, as the inputs
+// freeze records a toolchain's version, or the line itself when it holds none.
+func DottedVersion(line string) string {
+	if version := dottedVersion.FindString(line); version != "" {
+		return version
+	}
+	return line
 }
 
 // ask runs a command in a step container and returns what it printed.
@@ -272,22 +306,37 @@ func (a *attempt) collect(ctx context.Context) string {
 	if err := collector.Change(ctx, &a.prepared); err != nil {
 		return err.Error()
 	}
+	return a.accept(ctx, collector)
+}
+
+// accept runs the acceptance gate, and puts the session's files back whatever the
+// restore and the gate did; a restore or a put-back that fails, or a gate that
+// cannot run, is a harness error.
+func (a *attempt) accept(ctx context.Context, collector app.Collector) string {
 	l := a.current.Layout
-	outcomes, err := collector.Steps(ctx, &a.prepared, plan.AcceptanceSteps(l, a.result.Run.EquippedCommit, l.Record(record.FinalGateFile)))
+	acceptance := plan.AcceptanceSteps(l, a.result.Run.EquippedCommit, l.Record(record.FinalGateFile))
+	why := a.step(ctx, collector, acceptance.Restore, true)
+	if why == "" {
+		why = a.step(ctx, collector, acceptance.Gate, false)
+	}
+	if putBack := a.step(ctx, collector, acceptance.PutBack, true); why == "" {
+		why = putBack
+	}
+	return why
+}
+
+// step runs one collection step and says why it failed: it could not run, or,
+// when it must succeed, it exited non-zero.
+func (a *attempt) step(ctx context.Context, collector app.Collector, step plan.Step, mustSucceed bool) string {
+	outcomes, err := collector.Steps(ctx, &a.prepared, []plan.Step{step})
 	if err != nil {
 		return err.Error()
 	}
-	for index, outcome := range outcomes {
-		if index != acceptanceGateStep && outcome.ExitCode != 0 {
-			return fmt.Sprintf("%s exited %d: %s", outcome.Purpose, outcome.ExitCode, strings.TrimSpace(outcome.Stderr))
-		}
+	if outcome := outcomes[0]; mustSucceed && outcome.ExitCode != 0 {
+		return fmt.Sprintf("%s exited %d: %s", outcome.Purpose, outcome.ExitCode, strings.TrimSpace(outcome.Stderr))
 	}
 	return ""
 }
-
-// acceptanceGateStep is the gate among the acceptance steps; the others restore
-// and put back files, and must not fail.
-const acceptanceGateStep = 1
 
 // hashes writes the SHA-256 of every file of the project, git-ignored files
 // included and the git directory left out.
@@ -444,7 +493,7 @@ func (r Runner) PlanLines(o app.Options, s Spec) []string {
 		for _, argv := range plan.ChangeArgv() {
 			lines = append(lines, planned.Step(argv))
 		}
-		for _, step := range plan.AcceptanceSteps(l, "<equipped commit>", l.Record(record.FinalGateFile)) {
+		for _, step := range plan.AcceptanceSteps(l, "<equipped commit>", l.Record(record.FinalGateFile)).Steps() {
 			lines = append(lines, planned.Step(step.Argv)+"   ("+step.Purpose+")")
 		}
 	}

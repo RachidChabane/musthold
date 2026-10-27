@@ -21,6 +21,11 @@ type Equipped struct {
 	// normalised tree.
 	Commit string
 	Tree   string
+	// Files maps each file the equipped commit adds or changes relative to the
+	// base commit to the SHA-256 of its normalised content; SessionSettings is the
+	// SHA-256 of the session settings a run of the arm writes (PREREG §5).
+	Files           map[string]string
+	SessionSettings string
 }
 
 // Equipper prepares a task to its equipped state, every step a command of the
@@ -45,38 +50,70 @@ func (e Equipper) Equip(ctx context.Context, dir string, run config.Run) (Equipp
 	if err != nil {
 		return Equipped{}, err
 	}
-	return equippedFacts(ctx, preparer, &prepared, e.Tree)
+	equipped, err := equippedFacts(ctx, preparer, &prepared, e.Tree)
+	if err != nil {
+		return equipped, err
+	}
+	settings, err := plan.SessionSettingsJSON(e.Options.Config.AllowedTools, e.Options.Profile.Deny)
+	equipped.SessionSettings = SHA256(settings)
+	return equipped, err
 }
 
 // equippedFacts reads the commits of a prepared project and the digest of its
 // equipped tree.
 func equippedFacts(ctx context.Context, preparer app.Preparer, prepared *app.Prepared, tree Tree) (Equipped, error) {
-	var answers []string
-	for _, argv := range [][]string{plan.BaseCommitArgv(), plan.HeadCommitArgv(), plan.TrackedFilesArgv()} {
+	ask := func(argv []string) (string, error) {
 		outcome, err := preparer.Run(ctx, prepared.Layout, prepared.Environment, plan.Step{Argv: argv, Purpose: "read the equipped commit"})
 		prepared.Steps = append(prepared.Steps, outcome)
 		if err != nil {
-			return Equipped{}, err
+			return "", err
 		}
 		if outcome.ExitCode != 0 {
-			return Equipped{}, fmt.Errorf("%w: %s exited %d: %s", app.ErrPrepare, strings.Join(argv, " "), outcome.ExitCode, strings.TrimSpace(outcome.Stderr))
+			return "", fmt.Errorf("%w: %s exited %d: %s", app.ErrPrepare, strings.Join(argv, " "), outcome.ExitCode, strings.TrimSpace(outcome.Stderr))
 		}
-		answers = append(answers, outcome.Stdout)
+		return outcome.Stdout, nil
 	}
-	project := prepared.Layout.Project()
+	var equipped Equipped
+	base, err := ask(plan.BaseCommitArgv())
+	if err != nil {
+		return equipped, err
+	}
+	head, err := ask(plan.HeadCommitArgv())
+	if err != nil {
+		return equipped, err
+	}
+	equipped.BaseCommit, equipped.Commit = strings.TrimSpace(base), strings.TrimSpace(head)
+	tracked, err := ask(plan.TrackedFilesArgv())
+	if err != nil {
+		return equipped, err
+	}
+	files, err := readFiles(tree, prepared.Layout.Project(), TrackedFiles(tracked))
+	if err != nil {
+		return equipped, err
+	}
+	equipped.Tree = EquippedDigest(files, prepared.Layout.Run)
+	changed, err := ask(plan.EquippedFilesArgv(equipped.BaseCommit))
+	if err != nil {
+		return equipped, err
+	}
+	equipped.Files = map[string]string{}
+	for _, path := range TrackedFiles(changed) {
+		equipped.Files[path] = SHA256(Normalised(files[path], prepared.Layout.Run))
+	}
+	return equipped, nil
+}
+
+// readFiles reads files of the project, by their paths relative to it.
+func readFiles(tree Tree, project string, paths []string) (map[string][]byte, error) {
 	files := map[string][]byte{}
-	for _, path := range TrackedFiles(answers[2]) {
+	for _, path := range paths {
 		content, err := tree.Read(filepath.Join(project, filepath.FromSlash(path)))
 		if err != nil {
-			return Equipped{}, err
+			return nil, err
 		}
 		files[path] = content
 	}
-	return Equipped{
-		BaseCommit: strings.TrimSpace(answers[0]),
-		Commit:     strings.TrimSpace(answers[1]),
-		Tree:       EquippedDigest(files, prepared.Layout.Run),
-	}, nil
+	return files, nil
 }
 
 // BoxProcesses runs each command in a fresh offline container of the study's

@@ -328,7 +328,7 @@ func TestCanaryMain(t *testing.T) {
 		return code, stdout.String(), stderr.String()
 	}
 
-	t.Run("a dry run prints the three sessions and exits 0, an unknown flag exits 2, and a run with no image exits 1 [verifies SP-2539~1]", func(t *testing.T) {
+	t.Run("a dry run prints the three sessions and exits 0, an unknown flag exits 2, and a run with no image or no detectors exits 1 before any session [verifies SP-2539~1]", func(t *testing.T) {
 		code, stdout, stderr := main("--repo", repo, "--dry-run", "--inputs", filepath.Join(work, "absent.json"))
 		if code != runs.ExitOK || !strings.Contains(stdout, "C1, in ") || !strings.Contains(stdout, "C3, in ") || !strings.Contains(stdout, "--allow '*'") {
 			t.Errorf("dry run: %d\n%s\n%s", code, stdout, stderr)
@@ -338,6 +338,9 @@ func TestCanaryMain(t *testing.T) {
 		}
 		if code, _, stderr := main("--repo", repo, "--inputs", filepath.Join(work, "absent.json")); code != runs.ExitFailure || !strings.Contains(stderr, "--image") {
 			t.Errorf("no image: %d %s", code, stderr)
+		}
+		if code, _, stderr := main("--repo", repo, "--inputs", filepath.Join(work, "absent.json"), "--image", runstest.Image); code != runs.ExitFailure || !strings.Contains(stderr, "detectors") {
+			t.Errorf("no detectors: %d %s", code, stderr)
 		}
 	})
 }

@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -29,6 +30,8 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/window"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/phase"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/deviation"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
@@ -78,7 +81,14 @@ type Engine struct {
 	State    string
 	FailInit bool
 	ProxyLog []string
+	// Down makes every docker command fail as a stopped engine does; GateFails
+	// makes the acceptance gate's step fail to run, as a step past its limit does.
+	Down      bool
+	GateFails bool
 }
+
+// ErrStepLimit is the error of a step the engine ran past its limit.
+var ErrStepLimit = errors.New("the step ran past its limit")
 
 // NewEngine is an engine whose CLI is the pin and whose proxy forwards one
 // CONNECT to the model's endpoint.
@@ -117,6 +127,10 @@ func (e *Engine) Run(ctx context.Context, spec canary.CommandSpec) (canary.Outpu
 		return canary.Output{}, nil
 	case argv[0] != DockerFront:
 		return e.play(ctx, spec.Dir, hostPath(spec.Env), argv)
+	case e.Down:
+		return canary.Output{ExitCode: 1, Stderr: "Cannot connect to the Docker daemon"}, nil
+	case argv[1] == "version":
+		return canary.Output{Stdout: "28.5.1\n"}, nil
 	case slices.Equal(argv[1:3], []string{"image", "inspect"}):
 		return canary.Output{Stdout: Image + "\n"}, nil
 	case argv[1] == "inspect":
@@ -166,6 +180,12 @@ func (e *Engine) play(ctx context.Context, dir string, env, argv []string) (cana
 		return canary.Output{Stdout: strings.Repeat("c", 64) + "  " + argv[1] + "\n"}, nil
 	case name == "python3":
 		return canary.Output{Stdout: "Python 3.13.14\n"}, nil
+	case name == "pytest":
+		return canary.Output{Stdout: "pytest 8.4.2\n"}, nil
+	case name == "uv":
+		return canary.Output{Stdout: "uv 0.11.23\n"}, nil
+	case name == "node":
+		return canary.Output{Stdout: "v24.11.0\n"}, nil
 	case name == "shallnot":
 		return e.shallnot(dir, argv[1:])
 	case strings.HasPrefix(name, "musthold-"):
@@ -205,6 +225,9 @@ func (e *Engine) shallnot(dir string, args []string) (canary.Output, error) {
 	case "--version":
 		return canary.Output{Stdout: "shallnot 0.5.1\n"}, nil
 	case "gate":
+		if e.GateFails && filepath.Base(args[2]) == record.FinalGateFile {
+			return canary.Output{}, ErrStepLimit
+		}
 		files, _ := os.ReadFile(filepath.Join(dir, "shallnot.yaml"))
 		report := fmt.Sprintf(`{"verdict":"pass","exit_code":0,"findings":[],"config":%q}`, files)
 		return canary.Output{}, os.WriteFile(args[2], []byte(report), 0o644)
@@ -352,13 +375,15 @@ type noLock struct{}
 func (noLock) Acquire(string) (canary.Lock, error) { return noLock{}, nil }
 func (noLock) Release()                            {}
 
-// Stamps records the entries handed to the timestamping writer.
+// Stamps stands for the timestamp authority: it records the entry files it is
+// asked to stamp, each holding one line of the deviation log.
 type Stamps struct{ Lines []string }
 
-// Stamp implements runs.Stamper.
-func (s *Stamps) Stamp(_ context.Context, _ study.Deviation, line string) error {
-	s.Lines = append(s.Lines, line)
-	return nil
+// Stamp implements deviation.Stamping.
+func (s *Stamps) Stamp(_ context.Context, file string) (deviation.Token, error) {
+	content, err := os.ReadFile(file)
+	s.Lines = append(s.Lines, strings.TrimSpace(string(content)))
+	return deviation.Token{}, err
 }
 
 // World is a work directory, the study's configuration and inputs, and the
@@ -402,7 +427,7 @@ func NewWorld(t *testing.T) *World {
 		Env:         []string{"HOME=/Users/someone", "PATH=/usr/bin", launch.OAuthTokenVariable + "=" + Token}, Stdout: w.Stdout,
 	}
 	w.Runner = runs.Runner{App: appRunner, Tree: runs.OSTree{},
-		Deviations: runs.DeviationLog{Files: adapters.OSFiles{}, Path: filepath.Join(w.Work, study.DeviationsFile), Stamper: w.Stamps}}
+		Deviations: deviation.NewAppender(study.Layout{Root: w.Work}, w.Stamps, w.Clock.Now)}
 	w.Options = app.Options{
 		RepoRoot: repo, Config: parsed, Work: w.Work, Product: w.Product, Image: Image, Docker: []string{DockerFront},
 		UID: 501, GID: 20, ClaudePin: Pin, Profile: runs.StudyProfile(Claude),
@@ -466,14 +491,20 @@ func (w *World) RunOnce(t *testing.T) (runs.Result, string) {
 	return result, dir
 }
 
-// Ledgers reads the attempts of every run of the world's order.
-func (w *World) Ledgers(t *testing.T) []runs.Ledger {
+// Attempts reads the attempts of every run of the world's order.
+func (w *World) Attempts(t *testing.T) map[string][]phase.Attempt {
 	t.Helper()
-	ledgers, err := runs.ReadLedgers(adapters.OSFiles{}, study.Layout{Root: w.Work}, w.Inputs.Order)
+	attempts, err := phase.Load(study.Layout{Root: w.Work}, w.Inputs.Order)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return ledgers
+	return attempts
+}
+
+// State is a run's state from its attempts, the calendar cap reached or not.
+func (w *World) State(t *testing.T, name string, capped bool) study.Outcome {
+	t.Helper()
+	return phase.StateOf(name, w.Attempts(t)[name], capped).State
 }
 
 // Deviations reads the world's deviation log.

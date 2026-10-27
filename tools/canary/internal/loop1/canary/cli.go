@@ -10,22 +10,17 @@ import (
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
-	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
 // HostPathRelative is the host path C2 tries to read by default: a file of the
 // repository, which the engine does not mount.
 const HostPathRelative = "experiments/loop-1/PREREG.md"
 
-// ErrNoDetectors is returned when C3 reaches a canary with no detectors wired.
-var ErrNoDetectors = errors.New("no cheating detectors are wired for the canary")
-
-// unwired stands for the detectors of a command that was given none.
-type unwired struct{}
-
-func (unwired) Detect(context.Context, string, []string) (study.Detection, error) {
-	return study.Detection{}, ErrNoDetectors
-}
+// Refusals of the canary verb before its first session.
+var (
+	ErrNoDetectors = errors.New("no cheating detectors are wired for the canary's C3")
+	ErrNoImage     = errors.New("--image is required before the inputs freeze names the image")
+)
 
 // Command is the canary verb wired to its adapters.
 type Command struct {
@@ -35,8 +30,8 @@ type Command struct {
 	Environ []string
 }
 
-// CanaryMain is the canary verb with no detectors wired: C3 then fails the
-// invocation once its session has run.
+// CanaryMain is the canary verb with no detectors wired: it prints a dry run,
+// and refuses to start a session.
 func CanaryMain(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	return Command{}.Main(ctx, args, stdout, stderr)
 }
@@ -55,16 +50,12 @@ func (c Command) Main(ctx context.Context, args []string, stdout, stderr io.Writ
 	if err != nil {
 		return fail(stderr, err)
 	}
-	if setup.Options.Image == "" && !flags.DryRun {
-		return fail(stderr, errors.New("--image is required before the inputs freeze names the image"))
-	}
-	detectors := c.Detectors
-	if detectors == nil {
-		detectors = unwired{}
+	if err := c.refuse(setup, flags.DryRun); err != nil {
+		return fail(stderr, err)
 	}
 	canary := Canary{
 		Runner:    runs.Runner{App: runs.AppRunner(environ, stdout), Tree: runs.OSTree{}},
-		Detectors: detectors, Stdout: stdout,
+		Detectors: c.Detectors, Stdout: stdout,
 	}
 	output, err := canary.Run(ctx, Invocation{
 		Plan: runs.Plan{Options: setup.Options, Inputs: setup.Inputs}, Config: setup.Config, Layout: setup.Layout,
@@ -77,6 +68,20 @@ func (c Command) Main(ctx context.Context, args []string, stdout, stderr io.Writ
 		return runs.ExitOK
 	}
 	return runs.ExitFailure
+}
+
+// refuse refuses, before any session spends quota, a canary with no image or no
+// detectors; a dry run needs neither.
+func (c Command) refuse(setup runs.Setup, dryRun bool) error {
+	switch {
+	case dryRun:
+		return nil
+	case setup.Options.Image == "":
+		return ErrNoImage
+	case c.Detectors == nil:
+		return ErrNoDetectors
+	}
+	return nil
 }
 
 func fail(stderr io.Writer, err error) int {

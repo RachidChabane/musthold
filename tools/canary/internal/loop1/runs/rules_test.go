@@ -1,7 +1,6 @@
 package runs_test
 
 import (
-	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -13,10 +12,10 @@ import (
 
 	"pgregory.net/rapid"
 
-	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/startup"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/phase"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs/runstest"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
@@ -156,46 +155,24 @@ func TestQuotaWatch(t *testing.T) {
 	})
 }
 
-func attemptOf(number int, outcome study.Outcome) runs.Attempt {
-	return runs.Attempt{Number: number, Run: &study.Run{Attempt: number, Outcome: outcome}}
+func attemptOf(number int, outcome study.Outcome) phase.Attempt {
+	return phase.Attempt{Number: number, Run: study.Run{Attempt: number, Outcome: outcome}}
 }
 
 func TestLedger(t *testing.T) {
-	t.Run("harness errors use up the attempts, quota stops do not, and an attempt without run.json is a harness error [verifies SP-2527~1]", func(t *testing.T) {
-		quota := runs.Ledger{Attempts: []runs.Attempt{attemptOf(1, study.OutcomeQuotaStop), attemptOf(2, study.OutcomeQuotaStop), attemptOf(3, study.OutcomeQuotaStop), attemptOf(4, study.OutcomeHarnessError)}}
-		if quota.Done() || quota.Next() != 5 || quota.HarnessErrors() != 1 {
-			t.Errorf("quota stops: done %v, next %d, errors %d", quota.Done(), quota.Next(), quota.HarnessErrors())
-		}
-		blocked := runs.Ledger{Attempts: []runs.Attempt{attemptOf(1, study.OutcomeHarnessError), {Number: 2}, attemptOf(3, study.OutcomeQuotaStop), attemptOf(4, study.OutcomeHarnessError)}}
-		if !blocked.HarnessBlocked() || !blocked.Done() || blocked.State(false) != study.OutcomeHarnessBlocked {
-			t.Errorf("three harness errors: blocked %v, state %s", blocked.HarnessBlocked(), blocked.State(false))
-		}
-		counted := runs.Ledger{Attempts: []runs.Attempt{attemptOf(1, study.OutcomeHarnessError), attemptOf(2, study.OutcomeCappedTime)}}
-		if !counted.Done() || counted.State(true) != study.OutcomeCappedTime {
-			t.Errorf("counted: state %s", counted.State(true))
-		}
-	})
-
-	t.Run("the attempts are numbered from 1 and each next one follows the last, whatever came before [verifies SP-2527~1]", func(t *testing.T) {
+	t.Run("the attempts are numbered from 1, each next one follows the last whatever came before, and a directory with no run.json is interrupted [verifies SP-2527~1]", func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
 			outcomes := rapid.SliceOfN(rapid.SampledFrom([]study.Outcome{study.OutcomeQuotaStop, study.OutcomeHarnessError, ""}), 0, 8).Draw(t, "outcomes")
-			var ledger runs.Ledger
-			errorsSeen := 0
+			var attempts []phase.Attempt
 			for index, outcome := range outcomes {
-				if ledger.Next() != index+1 {
-					t.Fatalf("next %d after %d attempts", ledger.Next(), index)
+				if runs.NextAttempt(attempts) != index+1 {
+					t.Fatalf("next %d after %d attempts", runs.NextAttempt(attempts), index)
 				}
-				attempt := runs.Attempt{Number: index + 1}
-				if outcome != "" {
-					attempt = attemptOf(index+1, outcome)
+				attempt := attemptOf(index+1, outcome)
+				if runs.Interrupted(attempt) != (outcome == "") {
+					t.Fatalf("attempt %+v interrupted %v", attempt, runs.Interrupted(attempt))
 				}
-				ledger.Attempts = append(ledger.Attempts, attempt)
-				if outcome != study.OutcomeQuotaStop {
-					errorsSeen++
-				}
-				if ledger.HarnessBlocked() != (errorsSeen >= study.MaxAttempts) {
-					t.Fatalf("%d harness errors, blocked %v", errorsSeen, ledger.HarnessBlocked())
-				}
+				attempts = append(attempts, attempt)
 			}
 		})
 	})
@@ -204,37 +181,14 @@ func TestLedger(t *testing.T) {
 		reset := runstest.Start.Add(time.Hour)
 		stop := attemptOf(1, study.OutcomeQuotaStop)
 		stop.Run.QuotaReset = &reset
-		if at := (runs.Ledger{Attempts: []runs.Attempt{stop}}).NotBefore(); at == nil || !at.Equal(reset) {
+		if at := runs.NotBefore([]phase.Attempt{stop}); at == nil || !at.Equal(reset) {
 			t.Errorf("not before %v", at)
 		}
-		if at := (runs.Ledger{Attempts: []runs.Attempt{stop, attemptOf(2, study.OutcomeHarnessError)}}).NotBefore(); at != nil {
+		if at := runs.NotBefore([]phase.Attempt{stop, attemptOf(2, study.OutcomeHarnessError)}); at != nil {
 			t.Errorf("a later harness error still waits for %v", at)
 		}
-	})
-
-	t.Run("the calendar cap ends the phase 28 days after the first start, and each run takes its state after its last attempt [verifies SP-2529~1]", func(t *testing.T) {
-		first := runs.Attempt{Number: 1, Run: &study.Run{Outcome: study.OutcomeQuotaStop}}
-		first.Run.StartedAt = runstest.Start
-		later := runs.Attempt{Number: 1, Run: &study.Run{Outcome: study.OutcomeHarnessError}}
-		later.Run.StartedAt = runstest.Start.Add(48 * time.Hour)
-		ledgers := []runs.Ledger{{Name: "a", Attempts: []runs.Attempt{first}}, {Name: "b", Attempts: []runs.Attempt{later}}, {Name: "c"}}
-		if got := runs.FirstStart(ledgers); got == nil || !got.Equal(runstest.Start) {
-			t.Fatalf("first start %v", got)
-		}
-		if runs.Capped(runs.FirstStart(ledgers), runstest.Start.Add(runs.CalendarCap-time.Second)) || !runs.Capped(runs.FirstStart(ledgers), runstest.Start.Add(runs.CalendarCap)) {
-			t.Error("the cap is not at 28 days")
-		}
-		if runs.PhaseOver(ledgers, runstest.Start.Add(time.Hour)) || !runs.PhaseOver(ledgers, runstest.Start.Add(runs.CalendarCap)) {
-			t.Error("the phase ends before the cap or not at it")
-		}
-		want := []study.Outcome{study.OutcomeQuotaBlocked, study.OutcomeHarnessBlocked, study.OutcomeNotRun}
-		for index, ledger := range ledgers {
-			if got := ledger.State(true); got != want[index] {
-				t.Errorf("%s: %s, want %s", ledger.Name, got, want[index])
-			}
-			if got := ledger.State(false); got != "" {
-				t.Errorf("%s before the cap: %s", ledger.Name, got)
-			}
+		if at := runs.NotBefore(nil); at != nil {
+			t.Errorf("a run with no attempt waits for %v", at)
 		}
 	})
 
@@ -297,40 +251,6 @@ func TestProvenance(t *testing.T) {
 		got := runs.Provenance(inputs, skewed, "def", runstest.Model, []string{"claude-opus-9", runstest.Model})
 		if len(got) != 3 || !strings.Contains(strings.Join(got, "\n"), "claude-opus-9") || !strings.Contains(strings.Join(got, "\n"), "python3") {
 			t.Errorf("differences %v", got)
-		}
-	})
-}
-
-func TestDeviationLog(t *testing.T) {
-	dir := runstest.TempDir(t)
-	stamped := &runstest.Stamps{}
-	log := runs.DeviationLog{Files: adapters.OSFiles{}, Path: filepath.Join(dir, study.DeviationsFile), Stamper: stamped}
-	entry := func(kind study.Kind) study.Deviation {
-		return study.Deviation{Time: runstest.Start, Kind: kind, Scope: []string{"boxoffice-control-1"}, Section: "6.4", Says: "the rule", Happened: "what happened"}
-	}
-	for _, kind := range []study.Kind{study.KindHarnessError, study.KindTokenExposed} {
-		if err := log.Log(context.Background(), entry(kind)); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	t.Run("entries are appended under the log's title in the log's format, and the timestamped kinds reach the stamper [verifies SP-2531~1]", func(t *testing.T) {
-		text := runstest.Read(t, log.Path)
-		if !strings.HasPrefix(text, study.DeviationsTitle+"\n") {
-			t.Errorf("log:\n%s", text)
-		}
-		parsed := study.ParseDeviations(text)
-		if len(parsed) != 2 || parsed[0].Kind != study.KindHarnessError || parsed[1].Kind != study.KindTokenExposed || parsed[1].Raw != "" {
-			t.Errorf("entries %+v", parsed)
-		}
-		if len(stamped.Lines) != 1 || !strings.Contains(stamped.Lines[0], "token-exposed") {
-			t.Errorf("stamped %v", stamped.Lines)
-		}
-		if logged, _ := log.Logged(study.KindHarnessError, "boxoffice-control-1"); !logged {
-			t.Error("the logged entry is not found")
-		}
-		if logged, _ := log.Logged(study.KindHarnessBlocked, "boxoffice-control-1"); logged {
-			t.Error("an entry that was never logged is found")
 		}
 	})
 }

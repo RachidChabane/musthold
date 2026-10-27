@@ -230,6 +230,12 @@ func TestStopShimScript(t *testing.T) {
 		}
 	})
 
+	t.Run("the capture trusts the project for git whatever environment the hook inherits [verifies SP-2518~1]", func(t *testing.T) {
+		if !strings.Contains(script, "export GIT_CONFIG_VALUE_0="+l.Project()) {
+			t.Errorf("the shim does not trust the project:\n%s", script)
+		}
+	})
+
 	t.Run("the tree is the project's as the session left it, in the run's own object store, and the project's index and status do not change [verifies SP-2518~1]", func(t *testing.T) {
 		tree := strings.TrimSpace(w.read(t, filepath.Join(l.Stops(), "1", plan.StopTreeFile)))
 		store := []string{"GIT_OBJECT_DIRECTORY=" + l.Path(plan.StopObjectsDir), "GIT_ALTERNATE_OBJECT_DIRECTORIES=" + filepath.Join(l.Project(), ".git", "objects")}
@@ -264,7 +270,7 @@ func TestAcceptanceSteps(t *testing.T) {
 	}
 	w.write(t, "ignored/results.xml", "kept\n")
 	report := filepath.Join(l.Run, "gate-after.json")
-	steps := plan.AcceptanceSteps(l, equipped, report)
+	steps := plan.AcceptanceSteps(l, equipped, report).Steps()
 	steps[1].Argv[0] = w.shallnot
 	for _, step := range steps {
 		w.run(t, step.Argv...)
@@ -294,6 +300,14 @@ func TestAcceptanceSteps(t *testing.T) {
 		}
 		if _, err := os.Stat(l.Path(plan.AcceptAsideDir)); !errors.Is(err, os.ErrNotExist) {
 			t.Error("the aside directory is left behind")
+		}
+	})
+
+	t.Run("a put-back after a restore that never ran changes nothing [verifies SP-2520~1]", func(t *testing.T) {
+		before := w.run(t, "git", "status", "--porcelain")
+		w.run(t, plan.AcceptanceSteps(l, equipped, report).PutBack.Argv...)
+		if w.run(t, "git", "status", "--porcelain") != before || !strings.Contains(w.read(t, filepath.Join(l.Project(), "shallnot.yaml")), "edited: true") {
+			t.Error("the put-back changed the project")
 		}
 	})
 }

@@ -34,9 +34,11 @@ not running.
   of its own under the run directory, created empty, and `NO_PROXY` naming the
   container's loopback.
 - **SP-2517~1**: WHEN a task is prepared to its equipped state THE SYSTEM SHALL
-  return the hash of its base commit and the SHA-256 of its equipped tree's file
-  list and contents with every occurrence of the run directory written as `<run>`,
-  the same for every run directory the task is prepared in.
+  return the hash of its base commit, the hash of its equipped commit, the SHA-256
+  of its equipped tree's file list and contents with every occurrence of the run
+  directory written as `<run>`, the same for every run directory the task is
+  prepared in, the SHA-256 of each file the equipped commit adds or changes, read
+  the same way, and the SHA-256 of the session settings of its arm.
 
 ## Egress
 
@@ -64,7 +66,7 @@ not running.
   acceptance gate into `gate-after.json` on the project the session left with
   `shallnot.yaml`, `specs/` and `AGENTS.md` taken from the equipped commit, files
   the session added under `specs/` removed, and SHALL then put the session's own
-  versions back.
+  versions back, whatever the restore and the gate did.
 - **SP-2521~1**: WHEN the session's container of a run of the study has ended THE
   SYSTEM SHALL write `container.json` with the image's id, the container's exit
   code and whether it was killed for memory, reading from the engine those two
@@ -98,7 +100,8 @@ not running.
   one.
 - **SP-2526~1**: WHEN an attempt's base commit, equipped tree digest or session
   model differs from the inputs freeze THE SYSTEM SHALL call it a harness error;
-  and WHEN a recorded version differs from the inputs freeze or the usage names a
+  WHEN the engine's image is not the one the inputs freeze names THE SYSTEM SHALL
+  start no attempt; and WHEN a recorded version differs from the inputs freeze or the usage names a
   model beyond the session model and `cli_auxiliary_models` THE SYSTEM SHALL log a
   provenance deviation and keep the outcome.
 - **SP-2527~1**: WHEN the attempts of a run are counted THE SYSTEM SHALL number them
@@ -115,13 +118,16 @@ not running.
   it was a harness error, and not-run when it has none.
 - **SP-2530~1**: WHEN the runs of the study are executed THE SYSTEM SHALL refuse an
   order that differs from the inputs freeze's or from the configuration's seeded
-  order, run the attempts strictly one at a time in that order, and resume at the
-  first run that is neither counted nor blocked.
+  order, and an inputs freeze without the allowlist, the quota patterns, or a
+  task's base commit or equipped tree in an arm; SHALL run the attempts strictly
+  one at a time in that order, and resume at the first run that is neither
+  counted nor blocked; and SHALL start no further attempt once the engine stops
+  answering.
 - **SP-2531~1**: WHEN a quota stop, a harness error, a blocked run, a provenance
   difference or an exposed token occurs THE SYSTEM SHALL append one entry of that
-  kind to `DEVIATIONS.md` in the deviation log's format, with the run as its scope
-  and the protocol's section, write the title first in a new log, hand the
-  timestamped kinds to the timestamping writer, and never log a blocked run twice.
+  kind to `DEVIATIONS.md` through the log-deviation verb's writer, which
+  timestamps the token-exposed entries, with the run as its scope and the
+  protocol's section, and SHALL never log a blocked run twice.
 - **SP-2532~1**: WHEN a dry run of the study is requested THE SYSTEM SHALL print the
   order with each run's state and, for each run that still needs an attempt,
   every command of that attempt, each docker
@@ -159,5 +165,6 @@ not running.
   C1 to C3 held, `egress_observed`, `egress_allowlist`, `cli_auxiliary_models`, and
   the runner's fixed `quota_patterns`.
 - **SP-2539~1**: WHEN the `canary` verb is invoked THE SYSTEM SHALL read its flags
-  as the `run` verb does, exit 0 when C1 to C3 hold, 1 when one fails or a check
+  as the `run` verb does, refuse before any session when no image is named or no
+  detectors are wired, exit 0 when C1 to C3 hold, 1 when one fails or a check
   refuses, and 2 on a usage error.

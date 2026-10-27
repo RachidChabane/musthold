@@ -17,6 +17,8 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/phase"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/freeze"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs/runstest"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
@@ -66,9 +68,9 @@ func TestOutcomePaths(t *testing.T) {
 				w.Inputs.Tasks[0].EquippedTree[arm] = strings.Repeat("0", 64)
 			}
 		}, study.OutcomeHarnessError, "equipped tree"},
-		{"the image is not the frozen one", func(t *testing.T, w *runstest.World) {
-			w.Inputs.Images.Built = "sha256:" + strings.Repeat("2", 64)
-		}, study.OutcomeHarnessError, "the image"},
+		{"the acceptance gate cannot run", func(t *testing.T, w *runstest.World) {
+			w.Engine.GateFails = true
+		}, study.OutcomeHarnessError, "past its limit"},
 		{"the session cannot run", func(t *testing.T, w *runstest.World) {
 			w.Session.Err = errors.New("the engine refused the container")
 		}, study.OutcomeHarnessError, "the engine refused"},
@@ -99,11 +101,11 @@ func TestQuotaStop(t *testing.T) {
 	first := w.Inputs.Order[0]
 
 	t.Run("a quota stop records its reset time, is logged, and ends the invocation without starting another attempt [verifies SP-2525~1] [verifies SP-2528~1]", func(t *testing.T) {
-		ledgers := w.Ledgers(t)
-		if len(w.Session.Specs) != 1 || len(ledgers[0].Attempts) != 1 || len(ledgers[1].Attempts) != 0 {
-			t.Fatalf("%d sessions, ledgers %+v", len(w.Session.Specs), ledgers)
+		attempts := w.Attempts(t)
+		if len(w.Session.Specs) != 1 || len(attempts[first]) != 1 || len(attempts[w.Inputs.Order[1]]) != 0 {
+			t.Fatalf("%d sessions, attempts %+v", len(w.Session.Specs), attempts)
 		}
-		run := ledgers[0].Attempts[0].Run
+		run := attempts[first][0].Run
 		if run.Outcome != study.OutcomeQuotaStop || run.QuotaReset == nil || !run.QuotaReset.Equal(reset) {
 			t.Errorf("run %+v", run)
 		}
@@ -126,16 +128,16 @@ func TestQuotaStop(t *testing.T) {
 		if err := w.Batch().Run(context.Background(), w.Invocation()); err != nil {
 			t.Fatal(err)
 		}
-		ledgers := w.Ledgers(t)
-		if len(ledgers[0].Attempts) != 2 || ledgers[0].Attempts[1].Number != 2 || ledgers[0].Attempts[1].Run.Outcome != study.OutcomeCompleted {
-			t.Errorf("first run %+v", ledgers[0].Attempts)
+		attempts := w.Attempts(t)
+		if len(attempts[first]) != 2 || attempts[first][1].Number != 2 || attempts[first][1].Run.Outcome != study.OutcomeCompleted {
+			t.Errorf("first run %+v", attempts[first])
 		}
 		if _, err := os.Stat(study.Layout{Root: w.Work}.Records(first, 2)); err != nil {
 			t.Error(err)
 		}
-		for _, ledger := range ledgers {
-			if !ledger.Done() {
-				t.Errorf("%s is not done", ledger.Name)
+		for _, name := range w.Inputs.Order {
+			if !w.State(t, name, false).Counted() {
+				t.Errorf("%s is not counted", name)
 			}
 		}
 		if order := sessionsOrder(w); !slices.Equal(order, w.Inputs.Order) {
@@ -182,9 +184,10 @@ func TestHarnessBlocked(t *testing.T) {
 	}
 
 	t.Run("three harness errors block a run, each logged, the block logged once, and the order moves on [verifies SP-2527~1] [verifies SP-2531~1]", func(t *testing.T) {
-		for _, ledger := range w.Ledgers(t) {
-			if len(ledger.Attempts) != study.MaxAttempts || ledger.State(false) != study.OutcomeHarnessBlocked {
-				t.Errorf("%s: %d attempts, state %s", ledger.Name, len(ledger.Attempts), ledger.State(false))
+		attempts := w.Attempts(t)
+		for _, name := range w.Inputs.Order {
+			if len(attempts[name]) != study.MaxAttempts || w.State(t, name, false) != study.OutcomeHarnessBlocked {
+				t.Errorf("%s: %d attempts, state %s", name, len(attempts[name]), w.State(t, name, false))
 			}
 		}
 		if err := w.Batch().Run(context.Background(), w.Invocation()); err != nil {
@@ -215,9 +218,9 @@ func TestInterruptedAttempt(t *testing.T) {
 	}
 
 	t.Run("an attempt directory without run.json is recorded and logged as a harness error, and the next attempt takes the next number [verifies SP-2527~1]", func(t *testing.T) {
-		ledger := w.Ledgers(t)[0]
-		if len(ledger.Attempts) != 2 || ledger.Attempts[0].Run == nil || ledger.Attempts[0].Run.Reason != runs.ReasonInterruptedAttempt || ledger.Attempts[1].Number != 2 || ledger.HarnessErrors() != 1 {
-			t.Errorf("ledger %+v", ledger)
+		attempts := w.Attempts(t)[w.Inputs.Order[0]]
+		if len(attempts) != 2 || attempts[0].Run.Outcome != study.OutcomeHarnessError || attempts[0].Run.Reason != runs.ReasonInterruptedAttempt || attempts[1].Number != 2 || !attempts[1].Run.Outcome.Counted() {
+			t.Errorf("attempts %+v", attempts)
 		}
 		if got := kinds(w.Deviations(t)); !slices.Equal(got, []study.Kind{study.KindHarnessError}) {
 			t.Errorf("deviations %v", got)
@@ -235,7 +238,7 @@ func TestCalendarCap(t *testing.T) {
 	if err := runstest.WriteAll(layout.Records(first, 1), map[string]string{record.MetaFile: string(encoded)}); err != nil {
 		t.Fatal(err)
 	}
-	w.Clock.Set(runstest.Start.Add(runs.CalendarCap + time.Hour))
+	w.Clock.Set(runstest.Start.Add(phase.CalendarCap + time.Hour))
 	if err := w.Batch().Run(context.Background(), w.Invocation()); err != nil {
 		t.Fatal(err)
 	}
@@ -244,9 +247,8 @@ func TestCalendarCap(t *testing.T) {
 		if len(w.Session.Specs) != 0 {
 			t.Errorf("%d sessions after the cap", len(w.Session.Specs))
 		}
-		ledgers := w.Ledgers(t)
-		if ledgers[0].State(true) != study.OutcomeQuotaBlocked || ledgers[1].State(true) != study.OutcomeNotRun {
-			t.Errorf("states %s %s", ledgers[0].State(true), ledgers[1].State(true))
+		if got := []study.Outcome{w.State(t, first, true), w.State(t, w.Inputs.Order[1], true)}; !slices.Equal(got, []study.Outcome{study.OutcomeQuotaBlocked, study.OutcomeNotRun}) {
+			t.Errorf("states %v", got)
 		}
 		if got := kinds(w.Deviations(t)); !slices.Equal(got, []study.Kind{study.KindQuotaBlocked}) {
 			t.Errorf("deviations %v", got)
@@ -260,7 +262,7 @@ func TestCalendarCap(t *testing.T) {
 
 func TestProvenanceDeviation(t *testing.T) {
 	w := runstest.NewWorld(t)
-	w.Inputs.Toolchains = map[string]string{"python3": "Python 3.13.13"}
+	w.Inputs.Toolchains = map[string]string{freeze.ToolchainPython: "3.13.13", freeze.ToolchainUV: "0.11.23"}
 	w.Session.Stream = runstest.ShortStream(t, runstest.ResultLine("success", false, "done"))
 	if err := w.Batch().Run(context.Background(), w.Invocation()); err != nil {
 		t.Fatal(err)
@@ -271,9 +273,9 @@ func TestProvenanceDeviation(t *testing.T) {
 		if !slices.Equal(got, []study.Kind{study.KindProvenance, study.KindProvenance}) {
 			t.Errorf("deviations %v", got)
 		}
-		for _, ledger := range w.Ledgers(t) {
-			if _, counted := ledger.Counted(); !counted {
-				t.Errorf("%s is not counted", ledger.Name)
+		for _, name := range w.Inputs.Order {
+			if !w.State(t, name, false).Counted() {
+				t.Errorf("%s is not counted", name)
 			}
 		}
 	})
@@ -308,11 +310,40 @@ func TestRefusals(t *testing.T) {
 		}
 	})
 
-	t.Run("a freeze without an allowlist or quota patterns is refused [verifies SP-2530~1]", func(t *testing.T) {
+	t.Run("a freeze without an allowlist, quota patterns, or a task's equipped tree in an arm is refused [verifies SP-2530~1]", func(t *testing.T) {
 		w := runstest.NewWorld(t)
 		w.Inputs.QuotaPatterns = nil
 		if err := w.Batch().Run(context.Background(), w.Invocation()); !errors.Is(err, runs.ErrInputs) {
 			t.Errorf("error %v", err)
+		}
+		incomplete := runstest.NewWorld(t)
+		delete(incomplete.Inputs.Tasks[0].EquippedTree, string(incomplete.Config.Arms[1]))
+		if err := incomplete.Batch().Run(context.Background(), incomplete.Invocation()); !errors.Is(err, runs.ErrInputs) || len(incomplete.Engine.Argvs()) != 0 {
+			t.Errorf("error %v", err)
+		}
+	})
+
+	t.Run("an engine whose image is not the frozen one is refused before any attempt [verifies SP-2526~1]", func(t *testing.T) {
+		w := runstest.NewWorld(t)
+		w.Inputs.Images.Built = "sha256:" + strings.Repeat("2", 64)
+		err := w.Batch().Run(context.Background(), w.Invocation())
+		if !errors.Is(err, runs.ErrImage) || len(w.Session.Specs) != 0 {
+			t.Errorf("error %v, %d sessions", err, len(w.Session.Specs))
+		}
+		if _, err := os.Stat(filepath.Join(w.Work, study.RunsDir)); !errors.Is(err, os.ErrNotExist) {
+			t.Error("an attempt directory was created")
+		}
+	})
+
+	t.Run("an engine that stops answering ends the invocation after one harness error instead of blocking the runs [verifies SP-2527~1] [verifies SP-2530~1]", func(t *testing.T) {
+		w := runstest.NewWorld(t)
+		w.Session.Edit = func(string) error { w.Engine.Down = true; return nil }
+		if err := w.Batch().Run(context.Background(), w.Invocation()); err == nil {
+			t.Fatal("the invocation went on with a stopped engine")
+		}
+		attempts := w.Attempts(t)
+		if len(attempts[w.Inputs.Order[0]]) != 1 || len(attempts[w.Inputs.Order[1]]) != 0 || attempts[w.Inputs.Order[0]][0].Run.Outcome != study.OutcomeHarnessError {
+			t.Errorf("attempts %+v", attempts)
 		}
 	})
 }

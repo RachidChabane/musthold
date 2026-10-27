@@ -9,51 +9,17 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
-// Stamper timestamps an entry of the deviation log (PREREG §12): it stores the
-// entry's line with an RFC 3161 token of it. The log-deviation verb provides it;
-// the log calls it for the kinds that are timestamped, once the line is written.
-type Stamper interface {
-	Stamp(ctx context.Context, entry study.Deviation, line string) error
+// DeviationWriter appends an entry to the work directory's deviation log and
+// timestamps the kinds the protocol timestamps (PREREG §12); the log-deviation
+// verb's appender is one.
+type DeviationWriter interface {
+	Append(ctx context.Context, entry study.Deviation) error
 }
 
-// DeviationLog appends the pipeline's entries to the work directory's
-// DEVIATIONS.md.
-type DeviationLog struct {
-	Files   canary.Files
-	Path    string
-	Stamper Stamper
-}
-
-// Log appends one entry, writing the log's title first when the log is new, and
-// hands an entry of a timestamped kind to the stamper.
-func (d DeviationLog) Log(ctx context.Context, entry study.Deviation) error {
-	line, err := entry.Line()
-	if err != nil {
-		return err
-	}
-	current, err := d.Files.Read(d.Path)
-	if err != nil {
-		return err
-	}
-	text := string(current)
-	if strings.TrimSpace(text) == "" {
-		text = study.DeviationsTitle + "\n\n"
-	}
-	if !strings.HasSuffix(text, "\n") {
-		text += "\n"
-	}
-	if err := d.Files.Write(d.Path, []byte(text+line+"\n"), false); err != nil {
-		return err
-	}
-	if !entry.Kind.Timestamped() {
-		return nil
-	}
-	return d.Stamper.Stamp(ctx, entry, line)
-}
-
-// Logged reports whether the log holds an entry of the kind for the scope.
-func (d DeviationLog) Logged(kind study.Kind, scope string) (bool, error) {
-	current, err := d.Files.Read(d.Path)
+// logged reports whether the deviation log holds an entry of the kind for the
+// scope.
+func logged(files canary.Files, layout study.Layout, kind study.Kind, scope string) (bool, error) {
+	current, err := files.Read(layout.Deviations())
 	if err != nil {
 		return false, err
 	}
@@ -63,6 +29,16 @@ func (d DeviationLog) Logged(kind study.Kind, scope string) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+// entryOf is an entry of the deviation log for one run.
+func entryOf(kind study.Kind, scope, section, says, happened string) study.Deviation {
+	return study.Deviation{Kind: kind, Scope: []string{scope}, Section: section, Says: says, Happened: oneLine(happened)}
+}
+
+// oneLine keeps what happened on one line of the log.
+func oneLine(text string) string {
+	return strings.Join(strings.Fields(text), " ")
 }
 
 // The protocol's sections the pipeline's entries cite, and what they say.

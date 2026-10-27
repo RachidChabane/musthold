@@ -290,6 +290,12 @@ func ParseState(output string) (State, error) {
 // imageIDFormat selects the id of an image, the digest of its configuration.
 const imageIDFormat = "{{.Id}}"
 
+// engineVersionFormat selects the version of the engine the client talks to.
+const engineVersionFormat = "{{.Server.Version}}"
+
+// EngineVersionArgv reads the engine's version.
+func EngineVersionArgv() []string { return []string{"version", "--format", engineVersionFormat} }
+
 // ImageIDArgv reads the id of an image.
 func ImageIDArgv(image string) []string {
 	return []string{"image", "inspect", "--format", imageIDFormat, image}

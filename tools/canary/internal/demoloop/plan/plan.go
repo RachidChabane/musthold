@@ -14,6 +14,7 @@ import (
 
 	"github.com/RachidChabane/musthold/format/hostproto/harness"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/container"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/modules"
 )
@@ -508,6 +509,10 @@ func StopShimScript(runner, real, hooksLog string, exports []string, l Layout) s
 		gitIndexVariable, launch.Quote(l.Path(StopIndexFile)),
 		gitObjectsVar, launch.Quote(l.Path(StopObjectsDir)),
 		gitAlternatesVar, launch.Quote(filepath.Join(l.Project(), projectObjectsRel)))
+	for _, variable := range container.TrustedRepository(l.Project()) {
+		name, value, _ := strings.Cut(variable, "=")
+		fmt.Fprintf(&script, "  export %s=%s\n", name, launch.Quote(value))
+	}
 	fmt.Fprintf(&script, "  %s add --all && %s write-tree > %s/$n/%s\n", GitBinary, GitBinary, stops, StopTreeFile)
 	fmt.Fprintf(&script, "} >>%s 2>&1 </dev/null\nfi\nexit $status\n", launch.Quote(l.Record(stopCaptureFile)))
 	return script.String()
@@ -519,22 +524,40 @@ var acceptRestored = []string{ShallnotConfig, "specs", "AGENTS.md"}
 
 const shellBinary = "sh"
 
-// AcceptanceSteps run the acceptance gate on the project a session left: the
-// first moves the session's Shallnot configuration, specs and AGENTS.md aside and
-// writes those of the equipped commit in their place; the second is the gate; the
-// third puts the session's own back, so that the project is again what the
-// session left.
-func AcceptanceSteps(l Layout, equipped, report string) []Step {
+// movedMarker, in the aside directory, says that every file to restore was moved
+// aside: a file absent there was absent from the project the session left.
+const movedMarker = ".moved"
+
+// Acceptance runs the acceptance gate on the project a session left. Restore
+// moves the session's Shallnot configuration, specs and AGENTS.md aside and writes
+// those of the equipped commit in their place; Gate is the gate; PutBack puts the
+// session's own back, so that the project is again what the session left. PutBack
+// runs whatever Restore and Gate did, and changes nothing when Restore moved
+// nothing.
+type Acceptance struct {
+	Restore, Gate, PutBack Step
+}
+
+// Steps lists the acceptance gate's steps in order.
+func (a Acceptance) Steps() []Step { return []Step{a.Restore, a.Gate, a.PutBack} }
+
+// AcceptanceSteps are the steps of the acceptance gate against the equipped
+// commit, writing the gate's report.
+func AcceptanceSteps(l Layout, equipped, report string) Acceptance {
 	aside := l.Path(AcceptAsideDir)
 	paths := strings.Join(acceptRestored, " ")
 	restore := "set -eu\nmkdir -p \"$1\"\nfor p in " + paths + "; do if [ -e \"$p\" ] || [ -L \"$p\" ]; then mv \"$p\" \"$1/\"; fi; done\n" +
+		": > \"$1/" + movedMarker + "\"\n" +
 		"kept=$(" + GitBinary + " ls-tree --name-only \"$2\" -- " + paths + ")\n" +
 		"if [ -n \"$kept\" ]; then " + GitBinary + " archive --format=tar \"$2\" -- $kept | tar -xf -; fi\n"
-	putBack := "set -eu\nfor p in " + paths + "; do rm -rf \"$p\"; if [ -e \"$1/$p\" ] || [ -L \"$1/$p\" ]; then mv \"$1/$p\" \"$p\"; fi; done\nrmdir \"$1\"\n"
-	return []Step{
-		{Argv: []string{shellBinary, "-c", restore, shellBinary, aside, equipped}, Purpose: "restore shallnot.yaml, specs/ and AGENTS.md from the equipped commit"},
-		{Argv: GateArgv(l, report), Purpose: "run the acceptance gate on the project the session left"},
-		{Argv: []string{shellBinary, "-c", putBack, shellBinary, aside}, Purpose: "put back the session's shallnot.yaml, specs/ and AGENTS.md"},
+	putBack := "set -eu\n[ -d \"$1\" ] || exit 0\nfor p in " + paths + "; do\n" +
+		"  if [ -e \"$1/$p\" ] || [ -L \"$1/$p\" ]; then rm -rf \"$p\"; mv \"$1/$p\" \"$p\";\n" +
+		"  elif [ -e \"$1/" + movedMarker + "\" ]; then rm -rf \"$p\"; fi\n" +
+		"done\nrm -f \"$1/" + movedMarker + "\"\nrmdir \"$1\"\n"
+	return Acceptance{
+		Restore: Step{Argv: []string{shellBinary, "-c", restore, shellBinary, aside, equipped}, Purpose: "restore shallnot.yaml, specs/ and AGENTS.md from the equipped commit"},
+		Gate:    Step{Argv: GateArgv(l, report), Purpose: "run the acceptance gate on the project the session left"},
+		PutBack: Step{Argv: []string{shellBinary, "-c", putBack, shellBinary, aside}, Purpose: "put back the session's shallnot.yaml, specs/ and AGENTS.md"},
 	}
 }
 
@@ -543,6 +566,12 @@ func BaseCommitArgv() []string { return []string{GitBinary, "rev-list", "--max-p
 
 // HeadCommitArgv names the commit the project is at.
 func HeadCommitArgv() []string { return []string{GitBinary, "rev-parse", "HEAD"} }
+
+// EquippedFilesArgv lists, NUL-separated, the files the equipped commit adds or
+// changes relative to the base commit.
+func EquippedFilesArgv(base string) []string {
+	return []string{GitBinary, "diff", "--name-only", "-z", "--no-renames", "--diff-filter=AM", base, "HEAD"}
+}
 
 // TrackedFilesArgv lists the files of the commit the project is at, NUL-separated.
 func TrackedFilesArgv() []string { return []string{GitBinary, "ls-files", "-z"} }

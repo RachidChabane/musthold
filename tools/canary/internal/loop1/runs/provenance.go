@@ -47,13 +47,3 @@ func sortedKeys(entries map[string]string) []string {
 	slices.Sort(keys)
 	return keys
 }
-
-// deviation is an entry of the deviation log for one run.
-func deviation(kind study.Kind, scope, section, says, happened string) study.Deviation {
-	return study.Deviation{Kind: kind, Scope: []string{scope}, Section: section, Says: says, Happened: oneLine(happened)}
-}
-
-// oneLine keeps what happened on one line of the log.
-func oneLine(text string) string {
-	return strings.Join(strings.Fields(text), " ")
-}

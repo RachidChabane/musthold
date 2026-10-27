@@ -18,6 +18,7 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/window"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/deviation"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -31,15 +32,11 @@ const (
 // Defaults of the verbs' flags, relative to the repository root or the home
 // directory, and the variables that override the work and product directories.
 const (
-	DefaultConfig  = "experiments/loop-1/loop-1.json"
-	DefaultInputs  = "experiments/loop-1/freeze/" + study.InputsFile
-	DefaultDocker  = "experiments/loop-1/script/docker"
-	DefaultClaude  = "/usr/local/bin/claude"
-	WorkVariable   = "LOOP1_WORK"
-	ProductVarName = "LOOP1_PRODUCT"
-	homeVariable   = "HOME"
-	defaultWork    = ".musthold-loop-1"
-	defaultProduct = ".musthold-loop-1-product"
+	DefaultConfig = "experiments/loop-1/loop-1.json"
+	DefaultInputs = "experiments/loop-1/freeze/" + study.InputsFile
+	DefaultDocker = "experiments/loop-1/script/docker"
+	DefaultClaude = "/usr/local/bin/claude"
+	homeVariable  = "HOME"
 )
 
 // The bounds of every container of the study (PREREG §7.3).
@@ -63,9 +60,9 @@ func ParseFlags(name string, args []string, environ []string, stderr io.Writer) 
 	var f Flags
 	set.StringVar(&f.Repo, "repo", ".", "the repository root")
 	set.StringVar(&f.Config, "config", DefaultConfig, "the study's configuration, relative to the repository root")
-	set.StringVar(&f.Work, "work", orElse(variable(environ, WorkVariable), filepath.Join(home, defaultWork)), "the work directory ($"+WorkVariable+")")
+	set.StringVar(&f.Work, "work", orElse(variable(environ, study.WorkEnv), filepath.Join(home, study.DefaultWorkName)), "the work directory ($"+study.WorkEnv+")")
 	set.StringVar(&f.Inputs, "inputs", DefaultInputs, "the inputs freeze, relative to the repository root")
-	set.StringVar(&f.Product, "product", orElse(variable(environ, ProductVarName), filepath.Join(home, defaultProduct)), "the Linux product the containers mount read-only ($"+ProductVarName+")")
+	set.StringVar(&f.Product, "product", orElse(variable(environ, study.ProductEnv), filepath.Join(home, study.DefaultProductName)), "the Linux product the containers mount read-only ($"+study.ProductEnv+")")
 	set.StringVar(&f.Image, "image", "", "the study's image (default: images.built of the inputs freeze)")
 	set.StringVar(&f.Claude, "claude", DefaultClaude, "the Claude Code CLI inside the image")
 	set.StringVar(&f.Docker, "docker", DefaultDocker, "the docker command that names the study's engine, relative to the repository root")
@@ -138,12 +135,27 @@ func (f Flags) Resolve(files canary.Files, absentOK bool) (Setup, error) {
 	if err != nil || pin == nil {
 		return Setup{}, fmt.Errorf("%s: cannot be read: %v", plan.ClaudePinRelative, err)
 	}
+	work, product := resolved(f.Work), resolved(f.Product)
 	options := app.Options{
-		RepoRoot: root, Config: parsed, Work: f.Work, Product: f.Product, Image: orElse(f.Image, inputs.Images.Built),
+		RepoRoot: root, Config: parsed, Work: work, Product: product, Image: orElse(f.Image, inputs.Images.Built),
 		Docker: []string{at(f.Docker)}, UID: os.Getuid(), GID: os.Getgid(), ClaudePin: strings.TrimSpace(string(pin)), DryRun: f.DryRun,
 		Profile: StudyProfile(f.Claude),
 	}
-	return Setup{Config: parsed, Inputs: inputs, Options: options, Layout: study.Layout{Root: f.Work}}, nil
+	options.Profile.ProxyImage = inputs.Images.Proxy
+	return Setup{Config: parsed, Inputs: inputs, Options: options, Layout: study.Layout{Root: work}}, nil
+}
+
+// resolved is a directory as the engine mounts it: absolute, with its symbolic
+// links resolved when it exists.
+func resolved(dir string) string {
+	absolute, err := filepath.Abs(dir)
+	if err != nil {
+		return dir
+	}
+	if real, err := filepath.EvalSymlinks(absolute); err == nil {
+		return real
+	}
+	return absolute
 }
 
 // StudyProfile is what the study fixes beyond the demonstration's defaults
@@ -186,26 +198,17 @@ func AppRunner(environ []string, stdout io.Writer) app.Runner {
 	}
 }
 
-// ErrNoStamper is returned when an entry to timestamp reaches a log with no
-// timestamping writer.
-var ErrNoStamper = errors.New("no timestamping writer is wired for the deviation log")
-
-// unwired is the stamper of a command that was given none.
-type unwired struct{}
-
-func (unwired) Stamp(context.Context, study.Deviation, string) error { return ErrNoStamper }
-
 // Command is the run verb wired to its adapters.
 type Command struct {
-	// Stamper timestamps the protocol and token-exposed entries; the
-	// log-deviation verb provides it.
-	Stamper Stamper
+	// Deviations writes the deviation log of a work directory; nil, it is the
+	// log-deviation verb's appender with its RFC 3161 stamper.
+	Deviations func(study.Layout) DeviationWriter
 	// Environ is the process's environment; nil reads it.
 	Environ []string
 }
 
-// RunMain is the run verb with no timestamping writer: an attempt whose records
-// held the token then fails the invocation once its entry is logged.
+// RunMain is the run verb, its deviations written by the log-deviation verb's
+// appender.
 func RunMain(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	return Command{}.Main(ctx, args, stdout, stderr)
 }
@@ -217,8 +220,7 @@ func (c Command) Main(ctx context.Context, args []string, stdout, stderr io.Writ
 	if err != nil {
 		return ExitUsage
 	}
-	files := adapters.OSFiles{}
-	setup, err := flags.Resolve(files, flags.DryRun)
+	setup, err := flags.Resolve(adapters.OSFiles{}, flags.DryRun)
 	if err != nil {
 		return fail(stderr, err)
 	}
@@ -241,14 +243,13 @@ func (c Command) environ() []string {
 }
 
 func (c Command) runner(environ []string, stdout io.Writer, setup Setup) Runner {
-	stamper := c.Stamper
-	if stamper == nil {
-		stamper = unwired{}
+	writer := c.Deviations
+	if writer == nil {
+		writer = func(layout study.Layout) DeviationWriter {
+			return deviation.NewAppender(layout, deviation.DefaultStamper(), time.Now)
+		}
 	}
-	return Runner{
-		App: AppRunner(environ, stdout), Tree: OSTree{},
-		Deviations: DeviationLog{Files: adapters.OSFiles{}, Path: setup.Layout.Deviations(), Stamper: stamper},
-	}
+	return Runner{App: AppRunner(environ, stdout), Tree: OSTree{}, Deviations: writer(setup.Layout)}
 }
 
 func fail(stderr io.Writer, err error) int {

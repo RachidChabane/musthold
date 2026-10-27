@@ -362,6 +362,12 @@ func (r Runner) ImageID(ctx context.Context, o Options) (string, error) {
 	return strings.TrimSpace(output), err
 }
 
+// EngineVersion is the version of the engine the docker command names.
+func (r Runner) EngineVersion(ctx context.Context, o Options) (string, error) {
+	output, err := r.dockerOutput(ctx, o, container.EngineVersionArgv())
+	return strings.TrimSpace(output), err
+}
+
 // teardown removes the session's and the proxy's containers and the network.
 func (r Runner) teardown(ctx context.Context, o Options, box container.Box) {
 	_ = r.docker(ctx, o, box.RemoveArgv())

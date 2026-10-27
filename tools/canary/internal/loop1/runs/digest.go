@@ -28,10 +28,15 @@ func EquippedDigest(files map[string][]byte, runDir string) string {
 	slices.Sort(paths)
 	var list strings.Builder
 	for _, path := range paths {
-		normalised := bytes.ReplaceAll(files[path], []byte(runDir), []byte(app.PlaceholderRun))
-		list.WriteString(path + digestPathEnd + SHA256(normalised) + digestEntryEnd)
+		list.WriteString(path + digestPathEnd + SHA256(Normalised(files[path], runDir)) + digestEntryEnd)
 	}
 	return SHA256([]byte(list.String()))
+}
+
+// Normalised is a file's content with every occurrence of the run directory
+// written as `<run>`.
+func Normalised(content []byte, runDir string) []byte {
+	return bytes.ReplaceAll(content, []byte(runDir), []byte(app.PlaceholderRun))
 }
 
 // SHA256 is the SHA-256 of the content, in hexadecimal.
