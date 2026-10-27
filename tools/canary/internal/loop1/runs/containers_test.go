@@ -4,14 +4,15 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box/docker"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box/docker/dockertest"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
-	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs/runstest"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -43,14 +44,36 @@ func TestContainers(t *testing.T) {
 	const (
 		equipCheck = "both arms equip in the image's step containers to trees that differ in shallnot.yaml alone, and the digest is the same in two run directories [verifies SP-2511~1] [verifies SP-2517~1]"
 		pinCheck   = "the image's CLI reports the pin [verifies SP-2513~1]"
+		boxCheck   = "accept's control arm is equipped through the study's box as a run equips it [verifies SP-2641~1]"
 	)
-	setup, ready := engineSetup(t, equipCheck, pinCheck)
+	setup, ready := engineSetup(t, equipCheck, pinCheck, boxCheck)
 	if !ready {
 		return
 	}
 	appRunner := runs.AppRunner(os.Environ(), os.Stdout)
-	work := runstest.TempDir(t)
+	work := dockertest.Scratch(t, "runs-")
 	setup.Options.Work = work
+
+	t.Run(boxCheck, func(t *testing.T) {
+		runner, err := docker.StudyRunner(setup.Options.RepoRoot, setup.Options.Product, setup.Options.Image)
+		if err != nil {
+			t.Fatal(err)
+		}
+		tree := filepath.Join(work, "trees", "equipped")
+		if err := (adapters.OSFiles{}).CopyTree(filepath.Join(setup.Options.RepoRoot, setup.Config.Tasks[0].Fixture), tree); err != nil {
+			t.Fatal(err)
+		}
+		task := study.Task{Name: setup.Config.Tasks[0].Name, Prompt: setup.Config.Tasks[0].Prompt, Operations: setup.Config.Tasks[0].Operations}
+		equipper := runs.ControlEquipper{Options: setup.Options, Box: runner, Files: adapters.OSFiles{}, Tree: runs.OSTree{}}
+		project, err := equipper.EquipControl(context.Background(), tree, task)
+		if err != nil {
+			t.Fatal(err)
+		}
+		settings, err := os.ReadFile(filepath.Join(project, "shallnot.yaml"))
+		if err != nil || !strings.Contains(string(settings), "require: []") {
+			t.Errorf("the control arm's gate: %s, %v", settings, err)
+		}
+	})
 
 	t.Run(pinCheck, func(t *testing.T) {
 		attempt, err := appRunner.Open(setup.Options, work)
