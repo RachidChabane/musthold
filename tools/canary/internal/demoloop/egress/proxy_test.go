@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/container"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/egress"
 )
 
@@ -129,6 +130,40 @@ func TestProxy(t *testing.T) {
 			if decisions[request] != decision {
 				t.Errorf("%s: %q, want %q (log %v)", request, decisions[request], decision, decisions)
 			}
+		}
+	})
+}
+
+func TestAllowAll(t *testing.T) {
+	upstream := listen(t)
+	go func() {
+		for {
+			connection, err := upstream.Accept()
+			if err != nil {
+				return
+			}
+			connection.Close()
+		}
+	}()
+	var log syncBuffer
+	proxyListener := listen(t)
+	proxy := egress.NewWithLog([]string{container.AllowAll}, &log)
+	go func() { _ = proxy.Serve(proxyListener) }()
+
+	t.Run("in the allow-all mode every CONNECT is forwarded and logged with its host, and any other request is still refused [verifies SP-2516~1]", func(t *testing.T) {
+		status, tunnel := connect(t, proxyListener.Addr().String(), upstream.Addr().String())
+		tunnel.Close()
+		if status != http.StatusOK {
+			t.Fatalf("status %d", status)
+		}
+		response, err := (&http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(mustURL(t, "http://"+proxyListener.Addr().String()))}}).Get("http://example.com/")
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		entries := log.entries(t)
+		if len(entries) != 2 || entries[0].Target != upstream.Addr().String() || entries[0].Decision != egress.DecisionAllowed || entries[1].Decision != egress.DecisionDenied {
+			t.Errorf("log %+v", entries)
 		}
 	})
 }

@@ -11,10 +11,11 @@ tests run on the demonstration's own engine and skip where it is not running.
 
 ## Configuration
 
-- **SP-2400~2**: WHEN a configuration is read THE SYSTEM SHALL take from it the
+- **SP-2400~3**: WHEN a configuration is read THE SYSTEM SHALL take from it the
   tasks with their fixture, prompt and operation bindings, the arms among
-  traceability and four-proofs, the repetitions, the seed, the model, the caps on
-  assistant messages, time and spend, and the permission rules;
+  traceability, four-proofs, control and treatment, the repetitions, the seed,
+  the model, the caps on assistant messages, time and spend, the permission rules
+  and the commands of the project's toolchain;
   SHALL refuse a document with an unknown member or more than one document, and
   an invalid value, naming every member at fault; and SHALL list every run of
   each task in each arm for each repetition in an order that the seed alone

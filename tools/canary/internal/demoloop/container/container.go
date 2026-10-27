@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -61,8 +62,26 @@ const (
 	ProbeSubcommand = "probe-isolation"
 )
 
-// ModelEndpoints are the only destinations the proxy forwards to.
+// ModelEndpoints are the only destinations the proxy forwards to, unless a box
+// names its own.
 func ModelEndpoints() []string { return []string{"api.anthropic.com:443"} }
+
+// TLSPort is the port the proxy forwards an allowlisted host's CONNECT to.
+const TLSPort = "443"
+
+// AllowAll is the allowlist entry that makes the proxy forward every CONNECT and
+// log it: the mode that observes which hosts a session contacts.
+const AllowAll = "*"
+
+// HostEndpoints turns allowlisted hosts into the endpoints the proxy forwards to:
+// each host on the TLS port.
+func HostEndpoints(hosts []string) []string {
+	endpoints := make([]string, 0, len(hosts))
+	for _, host := range hosts {
+		endpoints = append(endpoints, host+":"+TLSPort)
+	}
+	return endpoints
+}
 
 // TrustedRepository is the environment that lets git inside a container work in
 // the repository at dir. The host creates the mounted run directory, so the engine
@@ -84,6 +103,38 @@ type Box struct {
 	UID, GID int
 	// Run names the containers and the network of the run.
 	Run string
+	// Memory bounds the memory, and the memory and swap, of every container;
+	// empty, it is Memory. PidsLimit bounds the processes; zero sets no bound.
+	Memory    string
+	PidsLimit int
+	// Egress are the endpoints the proxy forwards to, as host:port, or AllowAll;
+	// empty, they are ModelEndpoints. ProxyImage is the proxy's image; empty, it
+	// is Image.
+	Egress     []string
+	ProxyImage string
+}
+
+// memory is the box's memory bound.
+func (b Box) memory() string {
+	if b.Memory == "" {
+		return Memory
+	}
+	return b.Memory
+}
+
+// Endpoints are the endpoints the box's proxy forwards to.
+func (b Box) Endpoints() []string {
+	if len(b.Egress) == 0 {
+		return ModelEndpoints()
+	}
+	return slices.Clone(b.Egress)
+}
+
+func (b Box) proxyImage() string {
+	if b.ProxyImage == "" {
+		return b.Image
+	}
+	return b.ProxyImage
 }
 
 // Validate refuses a box whose mounted paths `--mount` cannot carry.
@@ -111,18 +162,23 @@ func Runner() string { return ProductTarget + "/bin/musthold-demo-loop" }
 
 // base are the options every container has.
 func (b Box) base(name string) []string {
-	return []string{
+	options := []string{
 		"run", "--name", name, "--init",
 		"--user", fmt.Sprintf("%d:%d", b.UID, b.GID),
 		"--cap-drop", "ALL", "--security-opt", "no-new-privileges",
 		"--read-only",
 		"--tmpfs", ScratchHome + ":" + scratchSize,
 		"--tmpfs", tmpTarget + ":" + scratchSize,
-		"--cpus", CPUs, "--memory", Memory, "--memory-swap", Memory,
-		"--log-driver", "none",
-		"--mount", "type=bind,source=" + b.RunDir + ",target=" + b.RunDir,
-		"--mount", "type=bind,source=" + b.Product + ",target=" + ProductTarget + ",readonly",
+		"--cpus", CPUs, "--memory", b.memory(), "--memory-swap", b.memory(),
 	}
+	if b.PidsLimit > 0 {
+		options = append(options, "--pids-limit", strconv.Itoa(b.PidsLimit))
+	}
+	return append(options,
+		"--log-driver", "none",
+		"--mount", "type=bind,source="+b.RunDir+",target="+b.RunDir,
+		"--mount", "type=bind,source="+b.Product+",target="+ProductTarget+",readonly",
+	)
 }
 
 // environment empties the environment and sets exactly the listed variables.
@@ -146,10 +202,10 @@ func (b Box) NetworkArgv() []string {
 // ProxyArgv starts the egress proxy, detached, on the engine's default network;
 // ConnectArgv then joins it to the run's internal network.
 func (b Box) ProxyArgv(logPath string) []string {
-	command := append(b.base(b.ProxyName()), "--detach", b.Image)
+	command := append(b.base(b.ProxyName()), "--detach", b.proxyImage())
 	command = append(command, environment([]string{"PATH=" + SystemPath})...)
 	command = append(command, Runner(), ProxySubcommand, "--listen", ":"+ProxyPort, "--log", logPath)
-	for _, endpoint := range ModelEndpoints() {
+	for _, endpoint := range b.Endpoints() {
 		command = append(command, "--allow", endpoint)
 	}
 	return command
@@ -163,10 +219,15 @@ func (b Box) ConnectArgv() []string {
 // ProxyURL is the proxy as the session addresses it.
 func ProxyURL() string { return "http://" + ProxyHost + ":" + ProxyPort }
 
-// ProxyVariables send every HTTP client of the session through the proxy.
+// NoProxy are the hosts a client of the session reaches without the proxy: the
+// container's own loopback.
+const NoProxy = "localhost,127.0.0.1"
+
+// ProxyVariables send every HTTP client of the session through the proxy, but
+// for the container's own loopback.
 func ProxyVariables() []string {
 	url := ProxyURL()
-	return []string{"HTTPS_PROXY=" + url, "HTTP_PROXY=" + url, "https_proxy=" + url, "http_proxy=" + url}
+	return []string{"HTTPS_PROXY=" + url, "HTTP_PROXY=" + url, "https_proxy=" + url, "http_proxy=" + url, "NO_PROXY=" + NoProxy, "no_proxy=" + NoProxy}
 }
 
 // SessionArgv is the session: attached to standard input, which carries the
@@ -187,6 +248,44 @@ func (b Box) NetworkRemoveArgv() []string { return []string{"network", "rm", b.N
 
 // InspectArgv reads the configuration the engine keeps for a container.
 func InspectArgv(name string) []string { return []string{"inspect", name} }
+
+// stateFormat selects, of what the engine keeps for a container, its exit code
+// and whether it was killed for memory, and nothing else: the rest of the
+// container's configuration holds its environment.
+const stateFormat = "{{.State.ExitCode}} {{.State.OOMKilled}}"
+
+// StateArgv reads the exit code and the memory kill of a container.
+func StateArgv(name string) []string { return []string{"inspect", "--format", stateFormat, name} }
+
+// State is how a container ended, as StateArgv reads it.
+type State struct {
+	ExitCode  int
+	OOMKilled bool
+}
+
+// ErrState is returned for an answer of StateArgv that is not an exit code and a
+// boolean.
+var ErrState = errors.New("the container's state cannot be read")
+
+// stateFields is how many fields StateArgv prints.
+const stateFields = 2
+
+// ParseState reads the answer of StateArgv.
+func ParseState(output string) (State, error) {
+	fields := strings.Fields(output)
+	if len(fields) != stateFields {
+		return State{}, fmt.Errorf("%w: %q", ErrState, output)
+	}
+	code, err := strconv.Atoi(fields[0])
+	if err != nil {
+		return State{}, fmt.Errorf("%w: exit code %q", ErrState, fields[0])
+	}
+	killed, err := strconv.ParseBool(fields[1])
+	if err != nil {
+		return State{}, fmt.Errorf("%w: OOMKilled %q", ErrState, fields[1])
+	}
+	return State{ExitCode: code, OOMKilled: killed}, nil
+}
 
 // Line renders a docker command as one shell line, the stdin placeholder said.
 func Line(docker string, argv []string, stdin bool) string {

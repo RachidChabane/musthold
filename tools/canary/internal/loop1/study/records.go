@@ -5,17 +5,18 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 )
 
-// Files that a run directory holds beyond the recording of the agent-loop runner
-// (PREREG §8).
+// Files that the records of a run directory hold beyond the recording of the
+// agent-loop runner (PREREG §8).
 const (
 	// StopsDir holds one directory per end-of-turn hook call, numbered from 1,
 	// each with the gate's report and the project's tree at that call.
-	StopsDir       = "stops"
-	StopReportFile = "report.json"
-	StopTreeFile   = "tree.txt"
+	StopsDir       = plan.StopsRecordDir
+	StopReportFile = plan.StopReportFile
+	StopTreeFile   = plan.StopTreeFile
 	// HashesBeforeFile and HashesAfterFile map every file of the project to its
 	// SHA-256, git-ignored files included, before and after the session.
 	HashesBeforeFile = "hashes-before.json"
@@ -44,12 +45,22 @@ type Run struct {
 	// digest of the normalised equipped tree (PREREG §3.5).
 	BaseCommit   string `json:"baseCommit"`
 	EquippedTree string `json:"equippedTree"`
+	// EquippedCommit is the hash of the equipped commit the session started from.
+	EquippedCommit string `json:"equippedCommit"`
 	// SessionModel is the model the system/init event names; UsageModels every
 	// model the usage of the result event names.
 	SessionModel string   `json:"sessionModel"`
 	UsageModels  []string `json:"usageModels"`
 	// QuotaReset is the reset time a quota stop names, when it names one.
 	QuotaReset *time.Time `json:"quotaReset,omitempty"`
+}
+
+// TokenScan is token-scan.json: the records scanned, each by its path relative
+// to the records directory, and how many matches of the token were replaced in
+// each record that held any.
+type TokenScan struct {
+	Scanned  []string       `json:"scanned"`
+	Replaced map[string]int `json:"replaced"`
 }
 
 // ContainerState is container.json.
@@ -202,9 +213,33 @@ const (
 	CanaryDir       = "canary"
 )
 
+// The directories of a run directory: the records, the project the session
+// works in, and the run's own git object store, which holds the trees of the
+// stops with the project's objects as its alternate.
+const (
+	RecordsDir     = plan.RecordsDir
+	ProjectDir     = plan.ProjectDir
+	StopObjectsDir = plan.StopObjectsDir
+)
+
 // RunDir is the directory of one attempt of a run.
 func (l Layout) RunDir(run string, attempt int) string {
 	return filepath.Join(l.Root, RunsDir, fmt.Sprintf("%s-%d", run, attempt))
+}
+
+// Records is the records directory of one attempt.
+func (l Layout) Records(run string, attempt int) string {
+	return filepath.Join(l.RunDir(run, attempt), RecordsDir)
+}
+
+// Project is the project of one attempt, as its session left it.
+func (l Layout) Project(run string, attempt int) string {
+	return filepath.Join(l.RunDir(run, attempt), ProjectDir)
+}
+
+// StopObjects is the object store of one attempt's stop trees.
+func (l Layout) StopObjects(run string, attempt int) string {
+	return filepath.Join(l.RunDir(run, attempt), StopObjectsDir)
 }
 
 // Deviations is the path of the deviation log.

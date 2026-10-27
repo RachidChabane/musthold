@@ -126,7 +126,7 @@ func TestSessionCommand(t *testing.T) {
 	})
 
 	t.Run("the session settings hold the permission rules and nothing else [verifies SP-2402~3]", func(t *testing.T) {
-		encoded, err := plan.SessionSettingsJSON([]string{"Bash(pytest *)"})
+		encoded, err := plan.SessionSettingsJSON([]string{"Bash(pytest *)"}, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
