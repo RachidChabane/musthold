@@ -17,10 +17,10 @@ type S3 struct {
 type S4 struct {
 	Runs int `json:"runs"`
 	// Blocks counts the blocks of each kind; RunsWith the runs with one.
-	Blocks       map[facts.BlockKind]int      `json:"blocks"`
-	RunsWith     map[facts.BlockKind]Fraction `json:"runsWith"`
-	GiveUps      int                          `json:"giveUps"`
-	FindingCodes map[string]int               `json:"findingCodes"`
+	Blocks       map[facts.BlockKind]int  `json:"blocks"`
+	RunsWith     map[facts.BlockKind]Rate `json:"runsWith"`
+	GiveUps      int                      `json:"giveUps"`
+	FindingCodes map[string]int           `json:"findingCodes"`
 }
 
 // The cost measures of S6 (PREREG §9.9).
@@ -98,39 +98,39 @@ type VoluntaryRun struct {
 
 // S7 is the voluntary proofs of the control arm (PREREG §9.10).
 type S7 struct {
-	Runs Fraction       `json:"runs"`
+	Runs Rate           `json:"runs"`
 	List []VoluntaryRun `json:"list"`
 }
 
 // CriterionRow is one criterion's violations per arm in one task.
 type CriterionRow struct {
-	Task      string   `json:"task"`
-	Criterion string   `json:"criterion"`
-	Control   Fraction `json:"control"`
-	Treatment Fraction `json:"treatment"`
+	Task      string `json:"task"`
+	Criterion string `json:"criterion"`
+	Control   Rate   `json:"control"`
+	Treatment Rate   `json:"treatment"`
 }
 
 // Secondary is S3 to S8; S1 and S2 are computed with the primary endpoint.
 type Secondary struct {
-	S3 map[string]S3                          `json:"s3"`
-	S4 map[string]S4                          `json:"s4"`
-	S5 map[string]map[study.Detector]Fraction `json:"s5"`
-	S6 S6                                     `json:"s6"`
-	S7 S7                                     `json:"s7"`
-	S8 []CriterionRow                         `json:"s8"`
+	S3 map[string]S3                      `json:"s3"`
+	S4 map[string]S4                      `json:"s4"`
+	S5 map[string]map[study.Detector]Rate `json:"s5"`
+	S6 S6                                 `json:"s6"`
+	S7 S7                                 `json:"s7"`
+	S8 []CriterionRow                     `json:"s8"`
 }
 
 // secondary computes S3 to S8 on counted runs.
 func secondary(runs []facts.Facts) Secondary {
 	arms := byArm(runs)
-	found := Secondary{S3: map[string]S3{}, S4: map[string]S4{}, S5: map[string]map[study.Detector]Fraction{}, S6: s6(runs), S7: s7(arms[ArmControl]), S8: s8(runs)}
+	found := Secondary{S3: map[string]S3{}, S4: map[string]S4{}, S5: map[string]map[study.Detector]Rate{}, S6: s6(runs), S7: s7(arms[ArmControl]), S8: s8(runs)}
 	for _, arm := range Arms() {
 		list := arms[arm]
 		found.S3[arm] = s3(list)
 		found.S4[arm] = s4(list)
-		detectors := map[study.Detector]Fraction{}
+		detectors := map[study.Detector]Rate{}
 		for _, detector := range study.Detectors() {
-			detectors[detector] = frac(count(list, func(run facts.Facts) bool { return run.Hits[detector] > 0 }), len(list))
+			detectors[detector] = rate(count(list, func(run facts.Facts) bool { return run.Hits[detector] > 0 }), len(list))
 		}
 		found.S5[arm] = detectors
 	}
@@ -146,9 +146,9 @@ func s3(runs []facts.Facts) S3 {
 }
 
 func s4(runs []facts.Facts) S4 {
-	found := S4{Runs: len(runs), Blocks: map[facts.BlockKind]int{}, RunsWith: map[facts.BlockKind]Fraction{}, FindingCodes: map[string]int{}}
+	found := S4{Runs: len(runs), Blocks: map[facts.BlockKind]int{}, RunsWith: map[facts.BlockKind]Rate{}, FindingCodes: map[string]int{}}
 	for _, kind := range facts.BlockKinds() {
-		found.RunsWith[kind] = frac(count(runs, func(run facts.Facts) bool { return run.BlockCounts[kind] > 0 }), len(runs))
+		found.RunsWith[kind] = rate(count(runs, func(run facts.Facts) bool { return run.BlockCounts[kind] > 0 }), len(runs))
 		found.Blocks[kind] = 0
 	}
 	for _, run := range runs {
@@ -242,7 +242,7 @@ func s7(control []facts.Facts) S7 {
 		slices.Sort(entry.Findings)
 		found.List = append(found.List, entry)
 	}
-	found.Runs = frac(len(found.List), len(control))
+	found.Runs = rate(len(found.List), len(control))
 	return found
 }
 
@@ -264,8 +264,8 @@ func s8(runs []facts.Facts) []CriterionRow {
 			violates := func(run facts.Facts) bool { return slices.Contains(run.Violated, criterion) }
 			rows = append(rows, CriterionRow{
 				Task: task, Criterion: criterion,
-				Control:   frac(count(arms[ArmControl], violates), len(arms[ArmControl])),
-				Treatment: frac(count(arms[ArmTreatment], violates), len(arms[ArmTreatment])),
+				Control:   rate(count(arms[ArmControl], violates), len(arms[ArmControl])),
+				Treatment: rate(count(arms[ArmTreatment], violates), len(arms[ArmTreatment])),
 			})
 		}
 	}

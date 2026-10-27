@@ -203,20 +203,16 @@ func summaryFractions(summary []byte) (map[string]bool, error) {
 // entryPrefix is the list marker of a deviation entry.
 const entryPrefix = "- "
 
-// deviationTexts lists the texts of the log's entries: each line without its
-// list marker, and what a well-formed entry says happened.
+// deviationTexts lists the texts of the log's entries: each entry's line
+// without its list marker.
 func deviationTexts(log string) []string {
 	var texts []string
 	for _, line := range strings.Split(log, "\n") {
 		trimmed := strings.TrimSpace(line)
-		entries := study.ParseDeviations(trimmed)
-		if len(entries) != 1 {
+		if len(study.ParseDeviations(trimmed)) != 1 {
 			continue
 		}
 		texts = append(texts, strings.TrimPrefix(trimmed, entryPrefix))
-		if happened := strings.TrimSpace(entries[0].Happened); happened != "" {
-			texts = append(texts, happened)
-		}
 	}
 	slices.Sort(texts)
 	return slices.Compact(texts)

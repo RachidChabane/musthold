@@ -31,12 +31,16 @@ type Dropped struct {
 	Reason string `json:"reason"`
 }
 
-// Provenance is what the report's provenance section shows.
+// Provenance is what the report's provenance section shows. A list that
+// inputs.json does not record is null, apart from an empty one.
 type Provenance struct {
-	Tags         []Tag     `json:"tags"`
-	InputsDigest string    `json:"inputsDigest"`
-	Tasks        []string  `json:"tasks"`
-	Dropped      []Dropped `json:"dropped"`
+	Tags         []Tag    `json:"tags"`
+	InputsDigest string   `json:"inputsDigest"`
+	Tasks        []string `json:"tasks"`
+	// Between is the commits between the two tags that touch the product or the
+	// tooling (PREREG §2).
+	Between []string  `json:"between"`
+	Dropped []Dropped `json:"dropped"`
 }
 
 // AttemptEntry is one attempt of a run.
@@ -86,14 +90,16 @@ type Deviations struct {
 // deviations whose scope touches them.
 type Analysis struct {
 	Core
-	ProtocolDeviations int `json:"protocolDeviations"`
+	// ProtocolDeviations holds the scope of each protocol deviation that
+	// touches the runs.
+	ProtocolDeviations []string `json:"protocolDeviations"`
 }
 
 // Sensitivities is the sensitivity analyses, each with the protocol deviations
 // whose scope touches it.
 type Sensitivities struct {
 	Sensitivity
-	ProtocolDeviations map[string]int `json:"protocolDeviations"`
+	ProtocolDeviations map[string][]string `json:"protocolDeviations"`
 }
 
 // Summary is results/summary.json.
@@ -159,7 +165,7 @@ func Build(in BuildInput) Summary {
 	}
 	summary.Analysis = Analysis{Core: core(counted), ProtocolDeviations: touching(in.Deviations, counted)}
 	summary.Secondary = secondary(counted)
-	summary.Sensitivity = Sensitivities{Sensitivity: sensitivity(counted), ProtocolDeviations: map[string]int{
+	summary.Sensitivity = Sensitivities{Sensitivity: sensitivity(counted), ProtocolDeviations: map[string][]string{
 		SubsetWithoutInSample: touching(in.Deviations, filter(counted, func(run facts.Facts) bool { return run.Task != InSampleTask })),
 		SubsetWithoutHits:     touching(in.Deviations, filter(counted, func(run facts.Facts) bool { return !run.HasHit() })),
 		SubsetWithoutCapped:   touching(in.Deviations, filter(counted, func(run facts.Facts) bool { return !run.Capped })),
@@ -218,20 +224,23 @@ func bump(counts map[string]map[study.Outcome]int, arm string, outcome study.Out
 	counts[arm][outcome]++
 }
 
-// touching counts the protocol deviations whose scope is all, or names a run or
-// a task of the runs.
-func touching(deviations []study.Deviation, runs []facts.Facts) int {
-	n := 0
+// touching lists the scope of each protocol deviation whose scope is all, or
+// names a run or a task of the runs.
+func touching(deviations []study.Deviation, runs []facts.Facts) []string {
+	scopes := []string{}
 	for _, deviation := range deviations {
 		if deviation.Kind != study.KindProtocol {
 			continue
 		}
 		for _, scope := range deviation.Scope {
 			if scope == study.ScopeAll || slices.ContainsFunc(runs, func(run facts.Facts) bool { return run.Run == scope || run.Task == scope }) {
-				n++
+				scopes = append(scopes, strings.Join(deviation.Scope, scopeSeparator))
 				break
 			}
 		}
 	}
-	return n
+	return scopes
 }
+
+// scopeSeparator joins the names of one deviation's scope.
+const scopeSeparator = ","

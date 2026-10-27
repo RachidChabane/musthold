@@ -22,6 +22,7 @@ const (
 	boundFormat       = "%.3f"
 	numberFormat      = "%.2f"
 	none              = "none"
+	notRecorded       = "not recorded in `inputs.json`"
 	dash              = "-"
 )
 
@@ -85,7 +86,16 @@ func (r *report) provenance(s Summary) {
 	}
 	r.line("- `inputs.json` SHA-256: %s", code(s.Provenance.InputsDigest))
 	r.line("- tasks: %s", codes(s.Provenance.Tasks))
-	if len(s.Provenance.Dropped) == 0 {
+	switch {
+	case s.Provenance.Between == nil:
+		r.line("- commits between the tags: %s", notRecorded)
+	default:
+		r.line("- commits between the tags: %s", codes(s.Provenance.Between))
+	}
+	switch {
+	case s.Provenance.Dropped == nil:
+		r.line("- dropped domains: %s", notRecorded)
+	case len(s.Provenance.Dropped) == 0:
 		r.line("- dropped domains: none")
 	}
 	for _, dropped := range s.Provenance.Dropped {
@@ -134,13 +144,14 @@ func (r *report) conclusions(s Summary) {
 }
 
 // population writes the counted runs, the void attempts and the runs without a
-// counted attempt, per arm and per cause.
-func (r *report) population(s Summary, protocol int) {
+// counted attempt, per arm and per cause, and the scope of each protocol
+// deviation that touches the runs.
+func (r *report) population(s Summary, protocol []string) {
 	for _, arm := range Arms() {
 		r.line("- %s: %d counted runs; void attempts: %s; runs without a counted attempt: %s",
 			arm, s.Population.Counted[arm], causes(s.Population.Void[arm]), causes(s.Population.Missing[arm]))
 	}
-	r.line("- protocol deviations whose scope touches these runs: %d", protocol)
+	r.line("- protocol deviations whose scope touches these runs: %d, scopes: %s", len(protocol), codes(protocol))
 }
 
 func causes(counts map[study.Outcome]int) string {
@@ -256,18 +267,18 @@ func (r *report) s4(s Summary) {
 			findings = []string{none}
 		}
 		r.line("| %s | %d | %d | %d | %d | %s | %d | %s |", arm, s4.Runs, s4.Blocks[facts.KindFinding], s4.Blocks[facts.KindPending],
-			s4.Blocks[facts.KindTraceability], s4.RunsWith[facts.KindFinding], s4.GiveUps, strings.Join(findings, ", "))
+			s4.Blocks[facts.KindTraceability], interval(s4.RunsWith[facts.KindFinding]), s4.GiveUps, strings.Join(findings, ", "))
 	}
 }
 
 func (r *report) s5(s Summary) {
 	r.blank()
-	r.line("**S5 cheating attempts**, runs with a hit over counted runs.")
+	r.line("**S5 cheating attempts**, runs with a hit over counted runs, with exact intervals at level 0.95.")
 	r.blank()
 	r.line("| Detector | Control | Treatment |")
 	r.line("|---|---|---|")
 	for _, detector := range study.Detectors() {
-		r.line("| %s | %s | %s |", detector, s.Secondary.S5[ArmControl][detector], s.Secondary.S5[ArmTreatment][detector])
+		r.line("| %s | %s | %s |", detector, interval(s.Secondary.S5[ArmControl][detector]), interval(s.Secondary.S5[ArmTreatment][detector]))
 	}
 }
 
@@ -302,7 +313,7 @@ func (r *report) s6(s Summary) {
 
 func (r *report) s7(s Summary) {
 	r.blank()
-	r.line("**S7 voluntary proofs in the control arm.** Control runs with a voluntary proof: %s.", s.Secondary.S7.Runs)
+	r.line("**S7 voluntary proofs in the control arm.** Control runs with a voluntary proof: %s.", interval(s.Secondary.S7.Runs))
 	for _, entry := range s.Secondary.S7.List {
 		r.line("- %s: calls %d, findings printed: %s", code(entry.Run), entry.Calls, codes(entry.Findings))
 	}
@@ -310,7 +321,7 @@ func (r *report) s7(s Summary) {
 
 func (r *report) s8(s Summary) {
 	r.blank()
-	r.line("**S8 per-criterion defects**, runs that violate the criterion over counted runs.")
+	r.line("**S8 per-criterion defects**, runs that violate the criterion over counted runs, with exact intervals at level 0.95.")
 	r.blank()
 	if len(s.Secondary.S8) == 0 {
 		r.line("No criterion is violated in any counted run.")
@@ -319,13 +330,15 @@ func (r *report) s8(s Summary) {
 	r.line("| Task | Criterion | Control | Treatment |")
 	r.line("|---|---|---|---|")
 	for _, row := range s.Secondary.S8 {
-		r.line("| %s | %s | %s | %s |", code(row.Task), code(row.Criterion), row.Control, row.Treatment)
+		r.line("| %s | %s | %s | %s |", code(row.Task), code(row.Criterion), interval(row.Control), interval(row.Treatment))
 	}
 }
 
 func (r *report) sensitivity(s Summary) {
 	r.heading("Sensitivity analyses (unadjusted)")
-	r.line("| Population | Runs | H1 | `p_less` | H2 | Corrected | S1 `p_less` | S2 p | Protocol deviations in scope |")
+	r.population(s, s.Analysis.ProtocolDeviations)
+	r.blank()
+	r.line("| Population | Runs | H1 | `p_less` | H2 | Corrected | S1 `p_less` | S2 p | Scopes of the protocol deviations that touch it |")
 	r.line("|---|---|---|---|---|---|---|---|---|")
 	for _, subset := range []struct {
 		label, key string
@@ -336,9 +349,9 @@ func (r *report) sensitivity(s Summary) {
 		{"without the capped runs", SubsetWithoutCapped, s.Sensitivity.WithoutCapped},
 	} {
 		c := subset.core
-		r.line("| %s | %d | %s | "+probabilityFormat+" | %s | %s | "+probabilityFormat+" | "+probabilityFormat+" | %d |",
+		r.line("| %s | %d | %s | "+probabilityFormat+" | %s | %s | "+probabilityFormat+" | "+probabilityFormat+" | %s |",
 			subset.label, c.Runs, c.H1.Decision, c.H1.PLess.Value, c.H2.Decision, c.H2.Corrected.Fraction, c.S1.PLess.Value, c.S2.P.Value,
-			s.Sensitivity.ProtocolDeviations[subset.key])
+			codes(s.Sensitivity.ProtocolDeviations[subset.key]))
 	}
 	r.blank()
 	for _, test := range []struct {

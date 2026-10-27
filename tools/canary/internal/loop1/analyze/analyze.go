@@ -99,8 +99,9 @@ func readInputs(path string) (inputsView, string, error) {
 // inputs.json, and the times of the freeze tokens.
 func provenance(ctx context.Context, o Options, view inputsView, digest string) Provenance {
 	var commits struct {
-		Prereg string `json:"prereg"`
-		Inputs string `json:"inputs"`
+		Prereg  string            `json:"prereg"`
+		Inputs  string            `json:"inputs"`
+		Between []json.RawMessage `json:"between"`
 	}
 	_ = json.Unmarshal(view.Commits, &commits)
 	var tasks []struct {
@@ -112,11 +113,14 @@ func provenance(ctx context.Context, o Options, view inputsView, digest string) 
 	}
 	_ = json.Unmarshal(view.Construction, &construction)
 	found := Provenance{InputsDigest: digest, Tasks: []string{}, Dropped: construction.Dropped}
-	if found.Dropped == nil {
-		found.Dropped = []Dropped{}
-	}
 	for _, task := range tasks {
 		found.Tasks = append(found.Tasks, task.Name)
+	}
+	if commits.Between != nil {
+		found.Between = []string{}
+	}
+	for _, raw := range commits.Between {
+		found.Between = append(found.Between, commitOf(raw))
 	}
 	for _, tag := range []struct{ name, commit, token string }{
 		{TagPrereg, commits.Prereg, preregTokenFile}, {TagInputs, commits.Inputs, inputsTokenFile},
@@ -132,6 +136,22 @@ func provenance(ctx context.Context, o Options, view inputsView, digest string) 
 		found.Tags = append(found.Tags, entry)
 	}
 	return found
+}
+
+// commitOf reads a commit recorded as its hash, or as an object whose commit
+// member is the hash; anything else is kept as its JSON text.
+func commitOf(raw json.RawMessage) string {
+	var hash string
+	if json.Unmarshal(raw, &hash) == nil {
+		return hash
+	}
+	var object struct {
+		Commit string `json:"commit"`
+	}
+	if json.Unmarshal(raw, &object) == nil && object.Commit != "" {
+		return object.Commit
+	}
+	return string(raw)
 }
 
 // Analyze runs the verb.

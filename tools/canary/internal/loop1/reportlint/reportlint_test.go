@@ -96,10 +96,17 @@ func TestDollars(t *testing.T) {
 func TestDeviationText(t *testing.T) {
 	t.Run("the text of a deviation entry fails [verifies SP-2609~1]", func(t *testing.T) {
 		expect(t, "Deviations: protocol 2; see DEVIATIONS.md.")
-		expect(t, "The operator noted: the operator resumed it at 08:00.", RuleDeviation)
-		expect(t, "2026-11-03T08:00:00Z | protocol | all | §6.5 | the batch resumes inside the window | the operator resumed it at 08:00", RuleDeviation, RuleDeviation)
+		expect(t, "Copied: 2026-11-03T08:00:00Z | protocol | all | §6.5 | the batch resumes inside the window | the operator resumed it at 08:00", RuleDeviation)
 		expect(t, "Note: the operator paused the batch for a day.", RuleDeviation)
+		expect(t, "The operator noted that the operator resumed it at 08:00.")
 		expect(t, "> the operator paused the batch for a day")
+	})
+	t.Run("a short field of an entry does not match a number of the report [verifies SP-2609~1]", func(t *testing.T) {
+		log := "- 2026-11-05T08:00:00Z | quota-stop | a-control-2 | §6.5 | a quota stop voids the run | 429"
+		problems, err := Lint(Input{Report: "| tokens | 4290.00 | 429 |", Summary: []byte(summary), Deviations: log})
+		if err != nil || len(problems) != 0 {
+			t.Fatalf("got %v %v", problems, err)
+		}
 	})
 }
 
@@ -162,7 +169,7 @@ func buildSummary(tasks int) analyze.Summary {
 
 func TestRenderedReport(t *testing.T) {
 	for _, tasks := range []int{5, 4} {
-		t.Run(fmt.Sprintf("the report rendered from a summary of %d tasks passes the lint [verifies SP-2604~1] [verifies SP-2607~1]", tasks), func(t *testing.T) {
+		t.Run(fmt.Sprintf("the report rendered from a summary of %d tasks passes the lint [verifies SP-2604~1]", tasks), func(t *testing.T) {
 			data, err := json.Marshal(buildSummary(tasks))
 			if err != nil {
 				t.Fatal(err)

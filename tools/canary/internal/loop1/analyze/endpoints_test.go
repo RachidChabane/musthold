@@ -276,10 +276,10 @@ func TestSecondary(t *testing.T) {
 			found.S3[ArmControl].FalseRejection.Fraction != (Fraction{K: 0, N: 0}) {
 			t.Fatalf("s3 %+v", found.S3)
 		}
-		if s4 := found.S4[ArmTreatment]; s4.Blocks[facts.KindFinding] != 2 || s4.RunsWith[facts.KindFinding] != (Fraction{K: 1, N: 2}) || s4.GiveUps != 1 || s4.FindingCodes["surviving_valid_mutant"] != 2 {
+		if s4 := found.S4[ArmTreatment]; s4.Blocks[facts.KindFinding] != 2 || s4.RunsWith[facts.KindFinding].Fraction != (Fraction{K: 1, N: 2}) || s4.GiveUps != 1 || s4.FindingCodes["surviving_valid_mutant"] != 2 {
 			t.Fatalf("s4 %+v", s4)
 		}
-		if found.S5[ArmTreatment][study.DetectorSkipped] != (Fraction{K: 1, N: 2}) || found.S5[ArmControl][study.DetectorSkipped] != (Fraction{K: 0, N: 2}) {
+		if found.S5[ArmTreatment][study.DetectorSkipped].Fraction != (Fraction{K: 1, N: 2}) || found.S5[ArmControl][study.DetectorSkipped].Fraction != (Fraction{K: 0, N: 2}) {
 			t.Fatalf("s5 %+v", found.S5)
 		}
 		messages := found.S6.PerArm[ArmTreatment][0]
@@ -289,10 +289,10 @@ func TestSecondary(t *testing.T) {
 		if found.S6.PerTask[0].Differences[MeasureNotionalUSD] != 1 || found.S6.PerTask[0].Differences[MeasureMessages] != 20 {
 			t.Fatalf("s6 per task %+v", found.S6.PerTask)
 		}
-		if found.S7.Runs != (Fraction{K: 1, N: 2}) || found.S7.List[0].Findings[0] != "awaiting_host" {
+		if found.S7.Runs.Fraction != (Fraction{K: 1, N: 2}) || found.S7.List[0].Findings[0] != "awaiting_host" {
 			t.Fatalf("s7 %+v", found.S7)
 		}
-		if len(found.S8) != 2 || found.S8[0] != (CriterionRow{Task: "a", Criterion: "A-2", Control: Fraction{K: 2, N: 2}, Treatment: Fraction{K: 0, N: 2}}) {
+		if len(found.S8) != 2 || found.S8[0].Criterion != "A-2" || found.S8[0].Control.Fraction != (Fraction{K: 2, N: 2}) || found.S8[0].Treatment.Fraction != (Fraction{K: 0, N: 2}) || found.S8[0].Treatment.High >= 1 {
 			t.Fatalf("s8 %+v", found.S8)
 		}
 		s1 := core(runs).S1
@@ -372,8 +372,8 @@ func TestBuild(t *testing.T) {
 			population.Missing[ArmTreatment][study.OutcomeNotRun] != 1 {
 			t.Fatalf("population %+v", population)
 		}
-		if got.Deviations.Counts[study.KindProtocol] != 2 || got.Analysis.ProtocolDeviations != 1 {
-			t.Fatalf("deviations %+v %d", got.Deviations, got.Analysis.ProtocolDeviations)
+		if got.Deviations.Counts[study.KindProtocol] != 2 || len(got.Analysis.ProtocolDeviations) != 1 || got.Analysis.ProtocolDeviations[0] != "box-office" {
+			t.Fatalf("deviations %+v %v", got.Deviations, got.Analysis.ProtocolDeviations)
 		}
 	})
 }

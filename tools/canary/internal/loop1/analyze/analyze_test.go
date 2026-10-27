@@ -126,14 +126,19 @@ func (f fixture) writeCounted(t *testing.T, dir string) {
 	mustJSON(t, filepath.Join(records, study.DetectorsFile), study.Detection{})
 }
 
+// analyzed runs the verb on a fresh fixture and returns its results directory.
+func analyzed(t *testing.T) (fixture, string) {
+	t.Helper()
+	f := newFixture(t)
+	if err := Analyze(context.Background(), f.options, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	return f, f.options.Results()
+}
+
 func TestAnalyze(t *testing.T) {
-	t.Run("the results hold every run, the facts, the report, the copied records and the sums [verifies SP-2603~1] [verifies SP-2605~1]", func(t *testing.T) {
-		f := newFixture(t)
-		var out bytes.Buffer
-		if err := Analyze(context.Background(), f.options, &out); err != nil {
-			t.Fatal(err)
-		}
-		results := f.options.Results()
+	t.Run("the summary holds every run of the order with its attempts, facts and digests [verifies SP-2603~1]", func(t *testing.T) {
+		f, results := analyzed(t)
 		var summary Summary
 		data, err := os.ReadFile(filepath.Join(results, SummaryFile))
 		if err != nil {
@@ -147,16 +152,23 @@ func TestAnalyze(t *testing.T) {
 			t.Fatalf("runs %+v", summary.Runs)
 		}
 		if summary.Digests[InputsFile] == "" || summary.Digests["work/runs/boxoffice-treatment-1-2/records/stream.jsonl"] == "" ||
-			summary.Provenance.Tags[0].Time == nil || summary.Provenance.Tags[1].Time != nil || summary.Provenance.Dropped[0].Domain != "water bill" {
+			summary.Provenance.Tags[0].Time == nil || summary.Provenance.Tags[1].Time != nil || summary.Provenance.Dropped[0].Domain != "water bill" || summary.Provenance.Between != nil {
 			t.Fatalf("summary %+v %+v", summary.Digests, summary.Provenance)
 		}
 		if _, err := os.Stat(filepath.Join(phase.Records(study.Layout{Root: f.work}.RunDir(countedRun, 2)), study.FactsFile)); err != nil {
 			t.Fatal(err)
 		}
 		report, _ := os.ReadFile(filepath.Join(results, ReportFile))
-		if !strings.HasPrefix(string(report), "# loop-1 results") || !strings.Contains(string(report), "harness-blocked") {
+		if !strings.HasPrefix(string(report), "# loop-1 results") || !strings.Contains(string(report), "harness-blocked") ||
+			!strings.Contains(string(report), "- commits between the tags: not recorded in `inputs.json`") {
 			t.Fatalf("report\n%s", report)
 		}
+		if strings.Contains(string(data), f.home) {
+			t.Fatal("summary.json names the home directory")
+		}
+	})
+	t.Run("the results hold each counted run's records with placeholders, its transcript, the deviation log and the sums [verifies SP-2605~1]", func(t *testing.T) {
+		_, results := analyzed(t)
 		kept := filepath.Join(results, RunsDir, countedRun)
 		for _, name := range []string{record.MetaFile, study.FactsFile, study.OracleFile, record.TranscriptMarkdown, record.TranscriptHTML,
 			filepath.Join(RawDir, record.StreamFile), filepath.Join(RawDir, study.StopsDir, "2", study.StopReportFile)} {
@@ -179,9 +191,6 @@ func TestAnalyze(t *testing.T) {
 			if _, err := os.Stat(filepath.Join(results, name)); err != nil {
 				t.Errorf("missing %s", name)
 			}
-		}
-		if strings.Contains(string(data), f.home) {
-			t.Fatal("summary.json names the home directory")
 		}
 	})
 	t.Run("the verb refuses before the run phase ends and writes nothing [verifies SP-2583~1]", func(t *testing.T) {

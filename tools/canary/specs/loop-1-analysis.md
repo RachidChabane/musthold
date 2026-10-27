@@ -151,5 +151,5 @@ report. Both read files only and make no network or model call.
 - **SP-2608~1**: WHEN `REPORT.md` is linted THE SYSTEM SHALL fail on a `$` or
   `USD` with no word `notional` on its line.
 - **SP-2609~1**: WHEN `REPORT.md` is linted THE SYSTEM SHALL fail on a line that
-  holds the text of an entry of the deviation log: its line without the list
-  marker, or what it says happened.
+  holds the text of an entry of the deviation log, its line without the list
+  marker.
