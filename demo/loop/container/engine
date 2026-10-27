@@ -13,12 +13,14 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../../.."
 
-readonly PROFILE="musthold-loop"
-readonly CPUS=2
-readonly MEMORY_GIB=3
-readonly DISK_GIB=40
-readonly WORK=".tools/demo-loop/work"
-readonly PRODUCT=".tools/demo-loop/product"
+# ENGINE_PROFILE, ENGINE_CPUS, ENGINE_MEMORY_GIB, ENGINE_DISK_GIB, ENGINE_WORK and ENGINE_PRODUCT
+# replace the demonstration's machine and mounts, for another study that runs the same engine.
+readonly PROFILE="${ENGINE_PROFILE:-musthold-loop}"
+readonly CPUS="${ENGINE_CPUS:-2}"
+readonly MEMORY_GIB="${ENGINE_MEMORY_GIB:-3}"
+readonly DISK_GIB="${ENGINE_DISK_GIB:-40}"
+readonly WORK="${ENGINE_WORK:-.tools/demo-loop/work}"
+readonly PRODUCT="${ENGINE_PRODUCT:-.tools/demo-loop/product}"
 readonly EXIT_USAGE=64
 
 socket() { echo "unix://${HOME}/.colima/${PROFILE}/docker.sock"; }

@@ -40,6 +40,8 @@ const (
 	namePrefix    = "loop1-box-"
 	stateFormat   = "{{.State.ExitCode}} {{.State.OOMKilled}}"
 	mountForbid   = ",="
+	pollInterval  = 50 * time.Millisecond
+	runningFormat = "{{.State.Running}}"
 	killRetry     = 100 * time.Millisecond
 	controlLimit  = time.Minute
 	stderrExcerpt = 512
@@ -161,15 +163,7 @@ func (r *Runner) Run(ctx context.Context, command box.Command) (result box.Resul
 	finished := make(chan struct{})
 	var timedOut atomic.Bool
 	if command.Limit > 0 {
-		limit := time.AfterFunc(command.Limit, func() {
-			select {
-			case <-finished:
-			default:
-				timedOut.Store(true)
-				r.killUntil(ctx, name, finished)
-			}
-		})
-		defer limit.Stop()
+		go r.enforceLimit(ctx, name, command.Limit, finished, &timedOut)
 	}
 	run, runErr := r.invoke(ctx, append(append([]string{}, r.config.RunWrapper...), r.client(args)...))
 	close(finished)
@@ -184,6 +178,29 @@ func (r *Runner) Run(ctx context.Context, command box.Command) (result box.Resul
 		ExitCode: state.exitCode, Stdout: run.stdout, Stderr: run.stderr,
 		TimedOut: timedOut.Load(), OOMKilled: state.oomKilled,
 	}, nil
+}
+
+// enforceLimit starts the clock when the container runs, not while the run waits for its
+// slots, and kills the container once the limit is spent.
+func (r *Runner) enforceLimit(ctx context.Context, name string, limit time.Duration, finished <-chan struct{}, timedOut *atomic.Bool) {
+	for !r.running(ctx, name) {
+		select {
+		case <-finished:
+			return
+		case <-time.After(pollInterval):
+		}
+	}
+	select {
+	case <-finished:
+	case <-time.After(limit):
+		timedOut.Store(true)
+		r.killUntil(ctx, name, finished)
+	}
+}
+
+func (r *Runner) running(ctx context.Context, name string) bool {
+	out, err := r.control(ctx, "inspect", "--format", runningFormat, name)
+	return err == nil && strings.TrimSpace(string(out.stdout)) == "true"
 }
 
 func (r *Runner) client(args []string) []string {

@@ -112,7 +112,7 @@ func TestManifest(t *testing.T) {
 func TestTreeDigest(t *testing.T) {
 	t.Run("the digest depends on paths and content, never on the order files were added [verifies SP-2631~1]", func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
-			names := rapid.SliceOfNDistinct(rapid.StringMatching(`[a-z]{1,4}(/[a-z]{1,4})?`), 2, 6, func(s string) string { return s }).Draw(t, "names")
+			names := rapid.SliceOfNDistinct(rapid.StringMatching(`([a-z]{1,4}|d_/[a-z]{1,4})`), 2, 6, func(s string) string { return s }).Draw(t, "names")
 			files := fstest.MapFS{}
 			for _, name := range names {
 				files[name] = &fstest.MapFile{Data: []byte(rapid.String().Draw(t, "content")), Mode: 0o644}

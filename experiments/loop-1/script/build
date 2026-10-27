@@ -17,6 +17,9 @@ source "${LOOP1_DIR}/script/_paths"
 # shellcheck source=experiments/loop-1/image/images
 source "${LOOP1_DIR}/image/images"
 
+readonly EXIT_USAGE=64
+(($# == 0)) || { echo "usage: script/build" >&2; exit "${EXIT_USAGE}"; }
+
 readonly ENGINE="${LOOP1_DIR}/script/engine"
 readonly DOCKER="${LOOP1_DIR}/script/docker"
 readonly WITH_SLOT="${REPO_ROOT}/script/with-slot"

@@ -33,6 +33,7 @@ run)
   fi
   exit "$(cat "$FAKE_DIR/run-exit" 2>/dev/null || echo 0)" ;;
 inspect)
+  case "$3" in *Running*) [ -f "$FAKE_DIR/block" ] && [ ! -f "$FAKE_DIR/killed" ] && echo true || echo false; exit 0 ;; esac
   [ -f "$FAKE_DIR/no-container" ] && { echo "Error: No such object" >&2; exit 1; }
   cat "$FAKE_DIR/state" 2>/dev/null || echo "0 false" ;;
 kill) touch "$FAKE_DIR/killed" ;;
@@ -94,7 +95,9 @@ func (f fake) calls(t *testing.T, file string) [][]string {
 func (f fake) verbs(t *testing.T) []string {
 	var verbs []string
 	for _, call := range f.calls(t, "calls") {
-		verbs = append(verbs, call[0])
+		if !slices.Contains(call, "{{.State.Running}}") {
+			verbs = append(verbs, call[0])
+		}
 	}
 	return verbs
 }
