@@ -1,6 +1,6 @@
 {
   "name": "musthold",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Installs Shallnot and the musthold modules and runs their proofs together.",
   "author": {
     "name": "Rachid Chabane"

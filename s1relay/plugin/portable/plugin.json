@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "musthold-s1",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Relays the closed questions of the musthold modules to a System One endpoint.",
   "author": {
     "name": "Rachid Chabane"

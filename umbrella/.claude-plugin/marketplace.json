@@ -23,7 +23,7 @@
         "source": "git-subdir",
         "url": "RachidChabane/musthold",
         "path": "discpower/plugin/claude",
-        "ref": "discpower/v0.1.0"
+        "ref": "discpower/v0.1.1"
       },
       "description": "Discriminating power: do the tests of a criterion catch a violation of it."
     },
@@ -33,7 +33,7 @@
         "source": "git-subdir",
         "url": "RachidChabane/musthold",
         "path": "alignment/plugin/claude",
-        "ref": "alignment/v0.1.0"
+        "ref": "alignment/v0.1.1"
       },
       "description": "Alignment: does each test verify what its criterion states."
     },
@@ -43,7 +43,7 @@
         "source": "git-subdir",
         "url": "RachidChabane/musthold",
         "path": "completeness/plugin/claude",
-        "ref": "completeness/v0.1.0"
+        "ref": "completeness/v0.1.1"
       },
       "description": "Completeness: does the spec cover what a change does (advisory)."
     },
@@ -53,7 +53,7 @@
         "source": "git-subdir",
         "url": "RachidChabane/musthold",
         "path": "s1relay/plugin/claude",
-        "ref": "s1relay/v0.1.0"
+        "ref": "s1relay/v0.1.1"
       },
       "description": "The relay of closed questions to a System One endpoint."
     },

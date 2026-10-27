@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "musthold-alignment",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Fulfil skill and executor server that let a client of the Agent Plugins standard answer the model requests of musthold-alignment, the alignment proof.",
   "author": {
     "name": "Rachid Chabane"

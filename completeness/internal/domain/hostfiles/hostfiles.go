@@ -12,7 +12,7 @@ import (
 // Identity of the shipped plugin.
 const (
 	// PluginVersion is the version of the shipped files.
-	PluginVersion = "0.1.0"
+	PluginVersion = "0.1.1"
 	// Binary is the executable the hooks and the server run.
 	Binary = "musthold-completeness"
 )

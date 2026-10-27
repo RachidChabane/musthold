@@ -37,7 +37,7 @@ const (
 	// scanModule is the name the relay gives the module that owns the scan.
 	scanModule = "dp"
 	// Version is the version of the shipped files.
-	Version = "0.1.0"
+	Version = "0.1.1"
 
 	// MarketplacePath is where the marketplace file lives, relative to `umbrella/`.
 	MarketplacePath = ".claude-plugin/marketplace.json"

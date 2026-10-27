@@ -19,7 +19,7 @@ const (
 	// Name is the name of the plugin.
 	Name = "musthold-s1"
 	// Version is the version of the shipped files.
-	Version = "0.1.0"
+	Version = "0.1.1"
 	// Binary is the executable the skill runs.
 	Binary = "musthold-s1"
 	// SkillName is the name of the skill that relays the closed requests.

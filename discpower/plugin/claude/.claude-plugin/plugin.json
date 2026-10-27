@@ -1,6 +1,6 @@
 {
   "name": "musthold-dp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Blind executors and hooks that let a host harness answer the model requests of musthold-dp, the discriminating-power proof.",
   "author": {
     "name": "Rachid Chabane"
