@@ -200,12 +200,12 @@ func TestSums(t *testing.T) {
 }
 
 func TestRealTags(t *testing.T) {
-	repo := freeze.Git{Dir: repositoryRoot, Exec: freeze.OSExec{}}
-	commit, err := repo.PeelTag(t.Context(), freeze.PreregTag)
-	if err != nil {
-		t.Skipf("the tag is not in this clone: %v", err)
-	}
 	t.Run("the peeled pre-registration tag is the commit its file holds, and its token stamps that file [verifies SP-2624~1]", func(t *testing.T) {
+		repo := freeze.Git{Dir: repositoryRoot, Exec: freeze.OSExec{}}
+		commit, err := repo.PeelTag(t.Context(), freeze.PreregTag)
+		if err != nil {
+			t.Skipf("the tag is not in this clone: %v", err)
+		}
 		file := filepath.Join(repositoryRoot, filepath.FromSlash(freeze.Prereg.CommitFile()))
 		content, err := os.ReadFile(file)
 		if err != nil {
