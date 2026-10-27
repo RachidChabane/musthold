@@ -2,22 +2,17 @@ package accept_test
 
 import (
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/accept"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study/studytest"
 )
 
 func committedConfig(t *testing.T) []byte {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join(repoFromHere, committedRun))
-	if err != nil {
-		t.Fatal(err)
-	}
-	return data
+	return studytest.BoxofficeConfig()
 }
 
 func newTask(name string) config.Task {

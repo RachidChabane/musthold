@@ -20,6 +20,7 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs/runstest"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study/studytest"
 )
 
 func TestStudyConfiguration(t *testing.T) {
@@ -194,8 +195,7 @@ func TestLedger(t *testing.T) {
 	})
 
 	t.Run("an order that is not the configuration's is refused [verifies SP-2530~1]", func(t *testing.T) {
-		data, _ := os.ReadFile(filepath.Join(dockertest.RepoRoot(t), study.ConfigFile))
-		parsed, _ := config.Parse(data)
+		parsed, _ := config.Parse(studytest.BoxofficeConfig())
 		order := runs.Order(parsed)
 		if err := runs.CheckOrder(parsed, study.Inputs{Order: order}); err != nil {
 			t.Fatal(err)

@@ -72,6 +72,20 @@ func TestTask(t *testing.T) {
 			t.Fatalf("got %v", err)
 		}
 	})
+	t.Run("every committed task directory holds a task description [verifies SP-2500~1]", func(t *testing.T) {
+		entries, err := os.ReadDir("../../../../../experiments/loop-1/tasks")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+			if _, err := os.Stat(filepath.Join("../../../../../experiments/loop-1/tasks", entry.Name(), TaskFile)); err != nil {
+				t.Errorf("%s: %v", entry.Name(), err)
+			}
+		}
+	})
 	t.Run("the committed task descriptions parse [verifies SP-2500~1]", func(t *testing.T) {
 		paths, _ := filepath.Glob("../../../../../experiments/loop-1/tasks/*/" + TaskFile)
 		for _, p := range paths {

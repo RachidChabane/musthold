@@ -1,0 +1,36 @@
+{
+  "tasks": [
+    {
+      "name": "boxoffice",
+      "fixture": "demo/loop/fixture/boxoffice",
+      "prompt": "Implement requirement BOX-4 of specs/tickets.md, free entry for children under 3, in boxoffice/prices.py, and add a test that verifies it. Tell me when the task is done.",
+      "operations": {
+        "ticket_price": {
+          "python": "boxoffice.prices:ticket_price"
+        }
+      }
+    }
+  ],
+  "arms": ["control", "treatment"],
+  "repetitions": 3,
+  "seed": 20261025,
+  "model": "claude-sonnet-5-5",
+  "caps": {
+    "assistant_messages": 1500,
+    "seconds": 7200,
+    "budget_usd": "40.00"
+  },
+  "toolchain": ["python3"],
+  "allowed_tools": [
+    "Bash(pytest *)",
+    "Bash(python3 -m pytest *)",
+    "Bash(shallnot *)",
+    "Bash(musthold-dp *)",
+    "Bash(musthold-alignment *)",
+    "Bash(musthold-completeness *)",
+    "Bash(musthold-verify *)",
+    "Bash(git status *)",
+    "Bash(git diff *)",
+    "Skill"
+  ]
+}

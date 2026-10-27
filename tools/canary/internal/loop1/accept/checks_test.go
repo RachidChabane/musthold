@@ -12,11 +12,11 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/accept/acceptest"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study/studytest"
 )
 
 const (
 	sampleName     = "fare"
-	repoFromHere   = "../../../../.."
 	committedRun   = "experiments/loop-1/loop-1.json"
 	round          = 1
 	runsPerCommand = 3
@@ -37,10 +37,7 @@ type harness struct {
 func newHarness(t *testing.T) *harness {
 	t.Helper()
 	repo, work := t.TempDir(), t.TempDir()
-	committed, err := os.ReadFile(filepath.Join(repoFromHere, committedRun))
-	if err != nil {
-		t.Fatal(err)
-	}
+	committed := studytest.BoxofficeConfig()
 	config := filepath.Join(repo, committedRun)
 	if err := os.MkdirAll(filepath.Dir(config), 0o755); err != nil {
 		t.Fatal(err)

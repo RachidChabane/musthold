@@ -37,6 +37,7 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/freeze"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study/studytest"
 )
 
 // Values the stand-ins answer with.
@@ -450,11 +451,7 @@ type World struct {
 func NewWorld(t *testing.T) *World {
 	t.Helper()
 	repo := dockertest.RepoRoot(t)
-	data, err := os.ReadFile(filepath.Join(repo, study.ConfigFile))
-	if err != nil {
-		t.Fatal(err)
-	}
-	parsed, err := config.Parse(data)
+	parsed, err := config.Parse(studytest.BoxofficeConfig())
 	if err != nil {
 		t.Fatal(err)
 	}

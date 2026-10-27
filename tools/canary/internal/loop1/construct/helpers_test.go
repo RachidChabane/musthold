@@ -15,6 +15,7 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study/studytest"
 )
 
 const (
@@ -102,11 +103,7 @@ type world struct {
 func newWorld(t *testing.T, domains []construct.Domain, handler func(construct.Request) ([]construct.File, error)) *world {
 	t.Helper()
 	repo, work := t.TempDir(), t.TempDir()
-	committed, err := os.ReadFile(filepath.Join(repoFromHere, committedRun))
-	if err != nil {
-		t.Fatal(err)
-	}
-	writeFile(t, filepath.Join(repo, committedRun), string(committed))
+	writeFile(t, filepath.Join(repo, committedRun), string(studytest.BoxofficeConfig()))
 	copyTree(t, filepath.Join(repoFromHere, construct.BoxofficeFixture), filepath.Join(repo, construct.BoxofficeFixture))
 	copyTree(t, filepath.Join(repoFromHere, construct.BoxofficeReference), filepath.Join(repo, construct.BoxofficeReference))
 	layout := study.Layout{Root: work}
