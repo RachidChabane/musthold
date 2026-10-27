@@ -86,7 +86,7 @@ func (r Runner) SessionPlan(o Options, configured config.Run, dir string) Planne
 	docker := strings.Join(o.Docker, " ")
 	step := func(argv []string) string {
 		current.steps.count++
-		env := plan.Environment(containerBase(l), plan.Variables(l, leadingDirs(l)))
+		env := plan.Environment(ContainerBase(l), plan.Variables(l, LeadingDirs(l)))
 		if argv[0] == plan.GitBinary {
 			env = append(env, plan.GitEnvironment()...)
 		}

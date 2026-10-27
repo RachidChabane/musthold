@@ -119,7 +119,27 @@ type Profile struct {
 	// InspectSession reads the exit code and the memory kill of the session's
 	// container before it is removed.
 	InspectSession bool
+	// Probes is a shell script the session's container runs once the CLI has
+	// exited, without the token in its environment, its output written to the
+	// records' ProbesFile; the container's exit code stays the CLI's.
+	Probes string
 }
+
+// ProbesFile is the record of what the session container's probes printed.
+const ProbesFile = "probes.txt"
+
+// probeWrapper runs the session's command, then the probes with the token and
+// the proxy variables removed from their environment, and exits with the
+// command's exit code. Its arguments are the probes' script, their output file
+// and the command.
+const probeWrapper = `script=$1; out=$2; shift 2; "$@"; status=$?; env -u ` + launch.OAuthTokenVariable + ` sh -c "$script" > "$out" 2>&1; exit $status`
+
+// withProbes wraps a session's command line in the probe wrapper.
+func withProbes(l plan.Layout, probes string, argv []string) []string {
+	return append([]string{shellProgram, "-c", probeWrapper, shellProgram, probes, l.Record(ProbesFile)}, argv...)
+}
+
+const shellProgram = "sh"
 
 // Run runs every session the configuration asks for, one at a time, and returns
 // their run directories. With DryRun it prints what it would do and reads no
@@ -131,13 +151,10 @@ func (r Runner) Run(ctx context.Context, o Options) ([]string, error) {
 	if o.DryRun {
 		return nil, r.printPlan(o, now, source, credentialErr)
 	}
-	if credentialErr != nil {
-		return nil, credentialErr
+	if err := Present(source, credentialErr); err != nil {
+		return nil, err
 	}
-	if source == nil {
-		return nil, fmt.Errorf("%w: store a token (from `claude setup-token`) in the keychain as service %s, or set %s", ErrNoCredential, canary.KeychainService, launch.OAuthTokenVariable)
-	}
-	lock, err := r.Locker.Acquire(filepath.Join(o.RepoRoot, canary.LockRelative))
+	lock, err := r.Lock(o)
 	if err != nil {
 		return nil, err
 	}
@@ -156,6 +173,22 @@ func (r Runner) Run(ctx context.Context, o Options) ([]string, error) {
 		}
 	}
 	return dirs, nil
+}
+
+// Present refuses to go on without a credential source that holds a token.
+func Present(source canary.ClaudeCredential, err error) error {
+	if err != nil {
+		return err
+	}
+	if source == nil {
+		return fmt.Errorf("%w: store a token (from `claude setup-token`) in the keychain as service %s, or set %s", ErrNoCredential, canary.KeychainService, launch.OAuthTokenVariable)
+	}
+	return nil
+}
+
+// Lock takes the lock that keeps two sessions from running at once.
+func (r Runner) Lock(o Options) (canary.Lock, error) {
+	return r.Locker.Acquire(filepath.Join(o.RepoRoot, canary.LockRelative))
 }
 
 // windowAllows refuses a session whose time cap would end after the window closes.
@@ -193,7 +226,7 @@ func (r Runner) one(ctx context.Context, o Options, configured config.Run, sourc
 		return dir, err
 	}
 	preparer := r.Preparer(current)
-	prepared, err := preparer.Prepare(ctx, l, configured, leadingDirs(l))
+	prepared, err := preparer.Prepare(ctx, l, configured, LeadingDirs(l))
 	if err != nil {
 		return dir, errors.Join(err, WriteSteps(r.Files, l.Record(record.StepsFile), prepared.Steps))
 	}
@@ -241,8 +274,13 @@ func (r Runner) Open(o Options, dir string) (*Attempt, error) {
 	return attempt, attempt.Box.Validate()
 }
 
+// LayoutOf lays out a run directory as the options' runs do.
+func LayoutOf(o Options, dir string) plan.Layout {
+	return plan.Layout{Repo: o.RepoRoot, Run: dir, Product: container.ProductTarget, ClaudePath: o.Profile.Claude, OwnHome: o.Profile.OwnHome}
+}
+
 func (r Runner) layout(o Options, dir string) *Attempt {
-	l := plan.Layout{Repo: o.RepoRoot, Run: dir, Product: container.ProductTarget, ClaudePath: o.Profile.Claude, OwnHome: o.Profile.OwnHome}
+	l := LayoutOf(o, dir)
 	box := container.Box{
 		Image: o.Image, RunDir: dir, Product: o.Product, UID: o.UID, GID: o.GID, Run: filepath.Base(dir),
 		Memory: o.Profile.Memory, PidsLimit: o.Profile.PidsLimit, Egress: o.Profile.Egress, ProxyImage: o.Profile.ProxyImage,
@@ -258,7 +296,7 @@ func (a *Attempt) Close(ctx context.Context) { a.steps.removeAll(ctx) }
 
 // Preparer equips the attempt's project, every step in a container.
 func (r Runner) Preparer(a *Attempt) Preparer {
-	return Preparer{Processes: a.steps, Files: r.Files, Env: containerBase(a.Layout)}
+	return Preparer{Processes: a.steps, Files: r.Files, Env: ContainerBase(a.Layout)}
 }
 
 // Conducted is how a session ended, and, when the profile asks, how its
@@ -371,10 +409,10 @@ func (s *Session) Command() launch.Command { return s.command }
 // Token is the token the session's entry received, once the session has run.
 func (s *Session) Token() string { return s.token }
 
-// containerBase is the environment every container starts from, before the
+// ContainerBase is the environment every container starts from, before the
 // run's variables: the run's HOME, the image's directories, a locale and the
 // project trusted by git.
-func containerBase(l plan.Layout) []string {
+func ContainerBase(l plan.Layout) []string {
 	home := container.ScratchHome
 	if l.OwnHome {
 		home = l.Home()
@@ -388,10 +426,14 @@ func containerBase(l plan.Layout) []string {
 func SessionOf(o Options, a *Attempt, configured config.Run) *Session {
 	l := a.Layout
 	command := plan.SessionCommand(plan.SessionInput{Layout: l, Run: configured, Config: o.Config, Claude: l.Claude()})
-	variables := append(append(plan.Variables(l, leadingDirs(l)), command.Env...), container.ProxyVariables()...)
+	variables := append(append(plan.Variables(l, LeadingDirs(l)), command.Env...), container.ProxyVariables()...)
 	variables = append(variables, NonessentialTraffic)
-	resolved := plan.Environment(containerBase(l), variables)
-	argv := append(append([]string{}, o.Docker...), a.Box.SessionArgv(command.Dir, resolved, command.Argv)...)
+	resolved := plan.Environment(ContainerBase(l), variables)
+	inside := command.Argv
+	if o.Profile.Probes != "" {
+		inside = withProbes(l, o.Profile.Probes, inside)
+	}
+	argv := append(append([]string{}, o.Docker...), a.Box.SessionArgv(command.Dir, resolved, inside)...)
 	return &Session{command: command, argv: argv, exports: plan.ShimExports(l, variables)}
 }
 
@@ -450,14 +492,17 @@ func MetaOf(o Options, a *Attempt, configured config.Run, s *Session, versions m
 	}
 }
 
-// leadingDirs are the directories that lead the PATH of a container: the shims,
+// LeadingDirs are the directories that lead the PATH of a container: the shims,
 // the product's binaries and the pinned CLI.
-func leadingDirs(l plan.Layout) []string {
+func LeadingDirs(l plan.Layout) []string {
 	return []string{l.Path(plan.ShimDir), l.BinDir(), filepath.Dir(l.Claude())}
 }
 
-// LeadingDirs are the directories that lead the PATH of the attempt's containers.
-func (a *Attempt) LeadingDirs() []string { return leadingDirs(a.Layout) }
+// Environment is the environment of a command run in the attempt's project:
+// the containers' base and the run's variables.
+func (a *Attempt) Environment() []string {
+	return plan.Environment(ContainerBase(a.Layout), plan.Variables(a.Layout, LeadingDirs(a.Layout)))
+}
 
 // CheckMemory refuses a run the memory guard refuses.
 func (r Runner) CheckMemory(ctx context.Context, o Options) error {
@@ -490,7 +535,7 @@ func (r Runner) claudeDigest(o Options) (string, error) {
 func (r Runner) Versions(ctx context.Context, a *Attempt, o Options) (map[string]string, error) {
 	l := a.Layout
 	found := map[string]string{}
-	env := plan.Environment(containerBase(l), []string{plan.NoUpdater})
+	env := plan.Environment(ContainerBase(l), []string{plan.NoUpdater})
 	ask := func(argv ...string) string {
 		output, err := a.steps.Run(ctx, canary.CommandSpec{Argv: argv, Dir: l.Run, Env: env, Timeout: supportTimeout})
 		if err != nil {

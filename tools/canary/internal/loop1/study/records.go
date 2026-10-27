@@ -55,6 +55,14 @@ type Run struct {
 	QuotaReset *time.Time `json:"quotaReset,omitempty"`
 }
 
+// TokenScan is token-scan.json: the records scanned, each by its path relative
+// to the records directory, and how many matches of the token were replaced in
+// each record that held any.
+type TokenScan struct {
+	Scanned  []string       `json:"scanned"`
+	Replaced map[string]int `json:"replaced"`
+}
+
 // ContainerState is container.json.
 type ContainerState struct {
 	ImageDigest string `json:"imageDigest"`
