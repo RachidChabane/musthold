@@ -36,3 +36,11 @@ Each verb's own requirements live in a spec file of its own beside this one.
   call a test defective when it fails in at least two of its three runs and flaky
   when it fails in exactly one, and give a test directory's kill share as its
   killed violations over all the task's violations.
+
+## Inputs freeze
+
+- **SP-2504~1**: WHEN the inputs freeze is read THE SYSTEM SHALL take from it the
+  commits, binaries, pins, images, toolchains, egress hosts, quota patterns,
+  policy, tasks with their base commit, equipped trees and instruction digests per
+  arm, the construction records and the run order; SHALL refuse an unknown member
+  or a second document; and SHALL find a task's entry by its name.
