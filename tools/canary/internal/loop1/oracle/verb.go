@@ -11,22 +11,15 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/phase"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
-// PhaseEnded tells whether the run phase has ended: every run of the order is
-// counted or blocked, or the calendar cap is reached (PREREG §6.6). The analysis
-// package owns the rule; the verb depends on this port alone.
-type PhaseEnded interface {
-	Ended(ctx context.Context) (bool, error)
-}
-
-// attemptRecord is run.json as the oracle verb reads it: the study's record with
-// the hash of the equipped commit.
-type attemptRecord struct {
-	study.Run
-	EquippedCommit string `json:"equippedCommit"`
+// Phase hands the verb the counted attempt of every run once the run phase has
+// ended, and refuses before (PREREG §6.6): the rule of analyze/phase.
+type Phase interface {
+	Counted() ([]phase.Attempt, error)
 }
 
 // state remembers the digests of the inputs that produced the outputs of one
@@ -43,12 +36,12 @@ type Verb struct {
 	Repo   string
 	Layout study.Layout
 	Judge  *Judge
-	Phase  PhaseEnded
+	Phase  Phase
 	Log    io.Writer
 }
 
 // NewVerb builds the verb with a judge that keeps its jobs in the work directory.
-func NewVerb(repo string, layout study.Layout, runner box.Runner, phase PhaseEnded, log io.Writer) *Verb {
+func NewVerb(repo string, layout study.Layout, runner box.Runner, phase Phase, log io.Writer) *Verb {
 	jobs := filepath.Join(layout.Root, verbDir, jobsDir)
 	return &Verb{Repo: repo, Layout: layout, Judge: NewJudge(runner, jobs), Phase: phase, Log: log}
 }
@@ -57,21 +50,15 @@ func NewVerb(repo string, layout study.Layout, runner box.Runner, phase PhaseEnd
 // before the run phase ends. An attempt that fails does not stop the others; the
 // failures are returned together.
 func (v *Verb) Execute(ctx context.Context) error {
-	ended, err := v.Phase.Ended(ctx)
-	if err != nil {
-		return err
-	}
-	if !ended {
-		return ErrPhaseNotEnded
-	}
-	attempts, err := v.countedAttempts()
+	attempts, err := v.Phase.Counted()
 	if err != nil {
 		return err
 	}
 	var failures []error
-	for _, attempt := range attempts {
-		if err := v.judgeAttempt(ctx, attempt); err != nil {
-			failures = append(failures, fmt.Errorf("%s: %w", attempt.name, err))
+	for _, counted := range attempts {
+		a := attempt{name: filepath.Base(counted.Dir), runDir: counted.Dir, record: counted.Run}
+		if err := v.judgeAttempt(ctx, a); err != nil {
+			failures = append(failures, fmt.Errorf("%s: %w", a.name, err))
 		}
 	}
 	return errors.Join(failures...)
@@ -80,45 +67,26 @@ func (v *Verb) Execute(ctx context.Context) error {
 type attempt struct {
 	name   string
 	runDir string
-	record attemptRecord
+	record study.Run
 }
 
-// countedAttempts lists the attempt directories whose outcome enters the
-// analysis, in name order.
-func (v *Verb) countedAttempts() ([]attempt, error) {
-	runs := filepath.Join(v.Layout.Root, study.RunsDir)
-	names, err := listDirs(runs)
+// MeasureEquippedAndFinal measures the tests of one attempt at its equipped
+// commit and at its end against its task's violations, and writes its
+// records/heldout.json: what the canary's C3 gives detector K3.
+func (v *Verb) MeasureEquippedAndFinal(ctx context.Context, runDir string, run study.Run) error {
+	task, err := v.loadTask(run.Task)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrRecords, err)
+		return err
 	}
-	var counted []attempt
-	for _, name := range names {
-		runDir := filepath.Join(runs, name)
-		record, err := readAttemptRecord(runDir)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", name, err)
-		}
-		if record.Outcome.Counted() {
-			counted = append(counted, attempt{name: name, runDir: runDir, record: record})
-		}
-	}
-	return counted, nil
-}
-
-func readAttemptRecord(runDir string) (attemptRecord, error) {
-	data, err := os.ReadFile(filepath.Join(recordsPath(runDir), runFile))
+	matrices, err := v.Judge.HeldOut(ctx, HeldOutInput{RunDir: runDir, EquippedCommit: run.EquippedCommit, Truth: TruthOf(v.Repo, task), TaskName: task.Name})
 	if err != nil {
-		return attemptRecord{}, fmt.Errorf("%w: %v", ErrRecords, err)
+		return err
 	}
-	var record attemptRecord
-	if err := json.Unmarshal(data, &record); err != nil {
-		return attemptRecord{}, fmt.Errorf("%w: %s: %v", ErrRecords, runFile, err)
-	}
-	return record, nil
+	return writeJSON(HeldOutPath(runDir), matrices)
 }
 
 func (v *Verb) loadTask(name string) (study.Task, error) {
-	data, err := os.ReadFile(filepath.Join(v.Repo, filepath.FromSlash(tasksDir), name, study.TaskFile))
+	data, err := os.ReadFile(filepath.Join(v.Repo, filepath.FromSlash(study.TaskDir(name)), study.TaskFile))
 	if err != nil {
 		return study.Task{}, fmt.Errorf("%w: %v", ErrTruth, err)
 	}

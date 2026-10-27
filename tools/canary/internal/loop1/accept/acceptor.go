@@ -21,9 +21,11 @@ import (
 const AcceptDir = "accept"
 
 // Equipper equips a project as the control arm's project: the equipping of
-// PREREG §2 with `proofs.require` empty and the task's operations bound.
+// PREREG §2 with `proofs.require` empty and the task's operations bound. dir
+// holds the fixture's files, inside the stage; the equipped project it returns
+// lies inside the stage too.
 type Equipper interface {
-	EquipControl(ctx context.Context, dir string, task study.Task) error
+	EquipControl(ctx context.Context, dir string, task study.Task) (string, error)
 }
 
 // Acceptor runs the checks on tasks lying in a repository.

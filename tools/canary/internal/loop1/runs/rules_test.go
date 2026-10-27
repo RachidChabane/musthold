@@ -16,6 +16,7 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/startup"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/phase"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box/docker/dockertest"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs/runstest"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
@@ -23,7 +24,7 @@ import (
 
 func TestStudyConfiguration(t *testing.T) {
 	t.Run("loop-1.json parses with its toolchain and the arms control and treatment, and its order is the seeded order of the agent-loop runner [verifies SP-2510~1]", func(t *testing.T) {
-		data, err := os.ReadFile(filepath.Join(runstest.RepoRoot(t), study.ConfigFile))
+		data, err := os.ReadFile(filepath.Join(dockertest.RepoRoot(t), study.ConfigFile))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -193,7 +194,7 @@ func TestLedger(t *testing.T) {
 	})
 
 	t.Run("an order that is not the configuration's is refused [verifies SP-2530~1]", func(t *testing.T) {
-		data, _ := os.ReadFile(filepath.Join(runstest.RepoRoot(t), study.ConfigFile))
+		data, _ := os.ReadFile(filepath.Join(dockertest.RepoRoot(t), study.ConfigFile))
 		parsed, _ := config.Parse(data)
 		order := runs.Order(parsed)
 		if err := runs.CheckOrder(parsed, study.Inputs{Order: order}); err != nil {

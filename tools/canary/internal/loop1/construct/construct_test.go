@@ -10,6 +10,7 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/accept"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
 const (
@@ -130,7 +131,7 @@ func TestConstructAndAccept(t *testing.T) {
 		if !strings.Contains(drop.Check, "base") || drop.Reason == "" {
 			t.Fatalf("%+v", drop)
 		}
-		if _, err := os.Stat(filepath.Join(w.repo, accept.TaskDir(droppedDomain))); !os.IsNotExist(err) {
+		if _, err := os.Stat(filepath.Join(w.repo, study.TaskDir(droppedDomain))); !os.IsNotExist(err) {
 			t.Fatalf("the dropped task remains: %v", err)
 		}
 	})

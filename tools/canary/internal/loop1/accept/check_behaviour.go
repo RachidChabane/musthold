@@ -97,12 +97,13 @@ func (r *round) gate(ctx context.Context, res *Result) error {
 	if err != nil {
 		return err
 	}
-	if err := r.a.Equipper.EquipControl(ctx, dir, r.m.task); err != nil {
+	project, err := r.a.Equipper.EquipControl(ctx, dir, r.m.task)
+	if err != nil {
 		return fmt.Errorf("equip the control arm: %w", err)
 	}
 	var reports [Runs]*shallnotReport
 	runs, err := r.repeat(ctx,
-		func(int) box.Command { return r.command(dir, ShallnotProgram, "gate", "--format", "json") },
+		func(int) box.Command { return r.command(project, ShallnotProgram, "gate", "--format", "json") },
 		func(run int, result box.Result) string {
 			reports[run] = decodeShallnot(result)
 			return shallnotSignature(reports[run], result.ExitCode)

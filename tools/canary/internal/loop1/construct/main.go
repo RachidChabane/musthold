@@ -11,22 +11,23 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/accept"
 )
 
+// Command is the construct verb; Wire builds the adapters of acceptance.
+type Command struct {
+	Wire accept.WireFunc
+}
+
 // Main runs the construct verb: it builds the fixed task and the domains in
 // order until enough of them pass acceptance, printing its progress and the
 // domains it dropped. It returns 0 when construction is complete, 1 when it
 // stopped or ran out of domains, and 2 for a usage error.
-func Main(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+func (c Command) Main(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	set := flag.NewFlagSet("construct", flag.ContinueOnError)
 	set.SetOutput(stderr)
 	flags := accept.RegisterFlags(set)
 	if err := set.Parse(args); err != nil || set.NArg() > 0 {
 		return accept.ExitUsage
 	}
-	if accept.Wire == nil {
-		fmt.Fprintf(stderr, "construct: %v\n", accept.ErrNotWired)
-		return accept.ExitFailure
-	}
-	wiring, err := accept.Wire(flags.Repo, flags.Layout())
+	wiring, err := c.Wire(*flags)
 	if err != nil {
 		fmt.Fprintf(stderr, "construct: %v\n", err)
 		return accept.ExitFailure

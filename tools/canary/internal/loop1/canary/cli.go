@@ -10,11 +10,12 @@ import (
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
 // HostPathRelative is the host path C2 tries to read by default: a file of the
 // repository, which the engine does not mount.
-const HostPathRelative = "experiments/loop-1/PREREG.md"
+const HostPathRelative = study.StudyDir + "/PREREG.md"
 
 // ErrNoImage refuses the canary verb before its first session when neither the
 // flags, the inputs freeze nor the product's manifest names the image.
@@ -22,8 +23,8 @@ var ErrNoImage = errors.New("--image is required when neither the inputs freeze 
 
 // Command is the canary verb wired to its adapters.
 type Command struct {
-	// Detectors are the cheating detectors C3 runs.
-	Detectors Detectors
+	// Detectors builds the cheating detectors C3 runs, for the verb's setup.
+	Detectors func(runs.Setup) (Detectors, error)
 	// Environ is the process's environment; nil reads it.
 	Environ []string
 }
@@ -42,12 +43,14 @@ func (c Command) Main(ctx context.Context, args []string, stdout, stderr io.Writ
 	if err != nil {
 		return fail(stderr, err)
 	}
-	if !flags.DryRun && setup.Options.Image == "" {
-		return fail(stderr, ErrNoImage)
-	}
-	canary := Canary{
-		Runner:    runs.StudyRunner(environ, stdout, setup.Options),
-		Detectors: c.Detectors, Stdout: stdout,
+	canary := Canary{Runner: runs.StudyRunner(environ, stdout, setup.Options), Stdout: stdout}
+	if !flags.DryRun {
+		if setup.Options.Image == "" {
+			return fail(stderr, ErrNoImage)
+		}
+		if canary.Detectors, err = c.Detectors(setup); err != nil {
+			return fail(stderr, err)
+		}
 	}
 	output, err := canary.Run(ctx, Invocation{
 		Plan: runs.Plan{Options: setup.Options, Inputs: setup.Inputs}, Config: setup.Config, Layout: setup.Layout,

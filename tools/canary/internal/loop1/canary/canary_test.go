@@ -21,6 +21,7 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/evidence"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box/docker/dockertest"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/canary"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs/runstest"
@@ -338,7 +339,7 @@ func TestCanaryFailures(t *testing.T) {
 }
 
 func TestCanaryMain(t *testing.T) {
-	repo := runstest.RepoRoot(t)
+	repo := dockertest.RepoRoot(t)
 	work := runstest.TempDir(t)
 	main := func(args ...string) (int, string, string) {
 		var stdout, stderr bytes.Buffer

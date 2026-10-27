@@ -55,7 +55,7 @@ func ParseFlags(name string, args []string, environ []string, stderr io.Writer) 
 	set.StringVar(&f.Repo, "repo", ".", "the repository root")
 	set.StringVar(&f.Config, "config", study.ConfigFile, "the study's configuration, relative to the repository root")
 	set.StringVar(&f.Work, "work", orElse(variable(environ, study.WorkEnv), filepath.Join(home, study.DefaultWorkName)), "the work directory ($"+study.WorkEnv+")")
-	set.StringVar(&f.Inputs, "inputs", study.InputsPath, "the inputs freeze, relative to the repository root")
+	set.StringVar(&f.Inputs, "inputs", "", "the inputs freeze, relative to the repository root (default: "+study.FreezeDirName+"/"+study.InputsFile+" beside the configuration)")
 	set.StringVar(&f.Product, "product", orElse(variable(environ, study.ProductEnv), filepath.Join(home, study.DefaultProductName)), "the Linux product the containers mount read-only ($"+study.ProductEnv+")")
 	set.StringVar(&f.Image, "image", "", "the study's image (default: images.built of the inputs freeze, else of the product's manifest)")
 	set.StringVar(&f.Claude, "claude", freeze.ClaudeProgram, "the Claude Code CLI inside the image")
@@ -121,7 +121,7 @@ func (f Flags) Resolve(files canary.Files, absentOK bool) (Setup, error) {
 	if err != nil {
 		return Setup{}, fmt.Errorf("%s: %w", at(f.Config), err)
 	}
-	inputs, err := readInputs(files, at(f.Inputs), absentOK)
+	inputs, err := readInputs(files, at(orElse(f.Inputs, filepath.Join(study.FreezeBeside(at(f.Config)), study.InputsFile))), absentOK)
 	if err != nil {
 		return Setup{}, err
 	}
@@ -218,12 +218,6 @@ type Command struct {
 	Deviations func(study.Layout) DeviationWriter
 	// Environ is the process's environment; nil reads it.
 	Environ []string
-}
-
-// RunMain is the run verb, its deviations written by the log-deviation verb's
-// appender.
-func RunMain(ctx context.Context, args []string, stdout, stderr io.Writer) int {
-	return Command{}.Main(ctx, args, stdout, stderr)
 }
 
 // Main runs the run verb and returns its exit code.

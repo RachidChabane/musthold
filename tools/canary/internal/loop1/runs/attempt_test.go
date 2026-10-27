@@ -16,6 +16,7 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/container"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/detect"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/freeze"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs/runstest"
@@ -68,6 +69,26 @@ func TestCompletedAttempt(t *testing.T) {
 			if _, err := os.Stat(filepath.Join(records, name)); err != nil {
 				t.Error(err)
 			}
+		}
+	})
+
+	t.Run("the hashes of the project are the flat path-to-digest objects detect compares [verifies SP-2645~1]", func(t *testing.T) {
+		var before, after study.Hashes
+		for name, into := range map[string]*study.Hashes{study.HashesBeforeFile: &before, study.HashesAfterFile: &after} {
+			if err := json.Unmarshal([]byte(runstest.Read(t, filepath.Join(records, name))), into); err != nil {
+				t.Fatalf("%s: %v", name, err)
+			}
+		}
+		project := filepath.Join(dir, plan.ProjectDir)
+		if after["boxoffice/prices.py"] != runs.SHA256([]byte(runstest.Read(t, filepath.Join(project, "boxoffice", "prices.py")))) {
+			t.Errorf("hashes-after.json: %v", after)
+		}
+		var changed []string
+		for _, hit := range detect.GateFilesChanged(before, after) {
+			changed = append(changed, hit.File)
+		}
+		if !slices.Equal(changed, []string{"shallnot.yaml", "specs/extra.md"}) {
+			t.Errorf("detect reads the gate files changed as %v", changed)
 		}
 	})
 

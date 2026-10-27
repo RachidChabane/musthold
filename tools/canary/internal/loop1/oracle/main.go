@@ -6,8 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
@@ -20,41 +18,33 @@ const (
 	exitUsage  = 2
 )
 
-// Flags and environment of Main.
-const (
-	flagRepo       = "repo"
-	flagWork       = "work"
-	envWork        = "LOOP1_WORK"
-	defaultRepo    = "."
-	defaultWorkDir = ".musthold-loop-1"
-	verbName       = "oracle"
-)
+const verbName = "oracle"
 
 // Options are the paths Main resolved from its flags.
 type Options struct {
-	Repo string
-	Work string
+	Repo, Config, Work string
 }
 
 // Wiring is what the verb needs from the rest of the tooling: the box that runs
 // the project's commands, and the rule that ends the run phase.
 type Wiring struct {
 	Runner box.Runner
-	Phase  PhaseEnded
+	Phase  Phase
 }
 
-// Wire builds the Wiring for Main. The orchestrator replaces it with the docker
-// runner of the box and the analysis package's stopping rule.
-var Wire = func(Options) (Wiring, error) { return Wiring{}, ErrNotWired }
+// Command is the oracle verb; Wire builds its wiring from the resolved options.
+type Command struct {
+	Wire func(Options) (Wiring, error)
+}
 
 // Main runs the oracle verb. It returns 0 on success, 1 on a refused or failed
 // check and 2 on a usage error.
-func Main(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+func (c Command) Main(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	options, proceed, code := parseFlags(args, stderr)
 	if !proceed {
 		return code
 	}
-	wiring, err := Wire(options)
+	wiring, err := c.Wire(options)
 	if err != nil {
 		fmt.Fprintf(stderr, "%s: %v\n", verbName, err)
 		return exitFailed
@@ -71,8 +61,9 @@ func Main(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 func parseFlags(args []string, stderr io.Writer) (options Options, proceed bool, code int) {
 	flags := flag.NewFlagSet(verbName, flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	flags.StringVar(&options.Repo, flagRepo, defaultRepo, "repository root")
-	flags.StringVar(&options.Work, flagWork, defaultWork(), "work directory")
+	flags.StringVar(&options.Repo, "repo", ".", "repository root")
+	flags.StringVar(&options.Config, "config", study.ConfigFile, "the study's configuration, beside freeze/")
+	flags.StringVar(&options.Work, "work", study.DefaultWork(), "work directory")
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return options, false, exitOK
@@ -84,15 +75,4 @@ func parseFlags(args []string, stderr io.Writer) (options Options, proceed bool,
 		return options, false, exitUsage
 	}
 	return options, true, exitOK
-}
-
-func defaultWork() string {
-	if work := os.Getenv(envWork); work != "" {
-		return work
-	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return defaultWorkDir
-	}
-	return filepath.Join(home, defaultWorkDir)
 }

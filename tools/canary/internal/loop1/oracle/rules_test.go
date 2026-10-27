@@ -174,7 +174,7 @@ func TestKillVerdict(t *testing.T) {
 	}
 	refRuns := [3]RunReport{reference(false), reference(false), reference(false)}
 
-	t.Run("a test failing on the reference contradicts the spec and never kills [verifies SP-2564~1]", func(t *testing.T) {
+	t.Run("a test failing on the reference contradicts the spec and never kills [verifies SP-2564~2]", func(t *testing.T) {
 		matrix := KillVerdict([3]RunReport{reference(true), reference(false), reference(false)},
 			map[string][3]RunReport{"C-1/1": {onViolation(false), onViolation(false), onViolation(false)}}, nil)
 		if !slices.Equal(matrix.Valid, []string{good}) || !slices.Equal(matrix.Contradicting, []string{bad}) || matrix.Killed["C-1/1"] {
@@ -182,7 +182,7 @@ func TestKillVerdict(t *testing.T) {
 		}
 	})
 
-	t.Run("a violation is killed at two of three runs and not at one [verifies SP-2565~1]", func(t *testing.T) {
+	t.Run("a violation is killed at two of three runs and not at one [verifies SP-2565~2]", func(t *testing.T) {
 		matrix := KillVerdict(refRuns, map[string][3]RunReport{
 			"C-1/1": {onViolation(true), onViolation(false), onViolation(true)},
 			"C-1/2": {onViolation(false), onViolation(true), onViolation(false)},
@@ -201,7 +201,7 @@ func TestKillVerdict(t *testing.T) {
 		}
 	})
 
-	t.Run("a violation that does not run kills every valid test [verifies SP-2565~1]", func(t *testing.T) {
+	t.Run("a violation that does not run kills every valid test [verifies SP-2565~2]", func(t *testing.T) {
 		broken := RunReport{State: RunCollectionFailed}
 		matrix := KillVerdict(refRuns, map[string][3]RunReport{"C-1/1": {broken, broken, {State: RunTimedOut}}}, nil)
 		if !matrix.Killed["C-1/1"] {
@@ -209,7 +209,7 @@ func TestKillVerdict(t *testing.T) {
 		}
 	})
 
-	t.Run("a directory that cannot run on the reference has no valid test [verifies SP-2564~1]", func(t *testing.T) {
+	t.Run("a directory that cannot run on the reference has no valid test [verifies SP-2564~2]", func(t *testing.T) {
 		broken := RunReport{State: RunCollectionFailed}
 		matrix := KillVerdict([3]RunReport{broken, broken, broken}, map[string][3]RunReport{"C-1/1": {}}, []string{"tests/test_x.py"})
 		if len(matrix.Valid) != 0 || !slices.Equal(matrix.Contradicting, []string{"tests/test_x.py"}) || matrix.Killed["C-1/1"] {

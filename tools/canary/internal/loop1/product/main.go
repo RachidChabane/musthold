@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
 // Exit statuses of Main.
@@ -17,12 +19,9 @@ const (
 	exitUsage  = 2
 )
 
-// Environment and defaults of the product directory.
 const (
-	productEnvironment = "LOOP1_PRODUCT"
-	defaultProductDir  = ".musthold-loop-1-product"
-	flagSetName        = "loop1-product"
-	filePermission     = 0o644
+	flagSetName    = "loop1-product"
+	filePermission = 0o644
 )
 
 // Main stages the plugin trees into the product directory, digests what the
@@ -33,7 +32,7 @@ func Main(_ context.Context, args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet(flagSetName, flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	var (
-		productDir = flags.String("product", defaultProduct(), "the product directory")
+		productDir = flags.String("product", study.DefaultProduct(), "the product directory")
 		repository = flags.String("source", "", "the staged tree of the repository at the built commit")
 		shallnot   = flags.String("shallnot-tree", "", "the tree of the pinned Shallnot commit")
 		manifest   = Manifest{Arch: runtime.GOARCH}
@@ -58,17 +57,6 @@ func Main(_ context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	fmt.Fprintf(stdout, "loop1-product: %s\n", filepath.Join(*productDir, ManifestFile))
 	return exitOK
-}
-
-func defaultProduct() string {
-	if dir := os.Getenv(productEnvironment); dir != "" {
-		return dir
-	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return defaultProductDir
-	}
-	return filepath.Join(home, defaultProductDir)
 }
 
 func write(productDir string, sources Sources, manifest Manifest) error {

@@ -9,29 +9,23 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/adapters"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/config"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box/docker/dockertest"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs/runstest"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
-// The container tests run on the study's engine, started by the orchestrator,
-// with the product built and the image named.
-const (
-	containersVariable = "MUSTHOLD_LOOP1_CONTAINERS"
-	imageVariable      = "LOOP1_IMAGE"
-)
-
-// engineSetup reads what the container tests need, or skips each check named.
+// engineSetup reads what the container tests need, the image that of the
+// product's manifest, or skips each check named.
 func engineSetup(t *testing.T, checks ...string) (runs.Setup, bool) {
 	t.Helper()
-	if os.Getenv(containersVariable) != "1" {
+	if !dockertest.Enabled() {
 		for _, check := range checks {
-			t.Run(check, func(t *testing.T) {
-				t.Skipf("set %s=1, with the study's engine running, to run the container tests", containersVariable)
-			})
+			t.Run(check, func(t *testing.T) { dockertest.Skip(t) })
 		}
 		return runs.Setup{}, false
 	}
-	flags, err := runs.ParseFlags("containers", []string{"--repo", runstest.RepoRoot(t), "--image", os.Getenv(imageVariable)}, os.Environ(), os.Stderr)
+	flags, err := runs.ParseFlags("containers", []string{"--repo", dockertest.RepoRoot(t), "--inputs", filepath.Join(t.TempDir(), study.InputsFile)}, os.Environ(), os.Stderr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +34,7 @@ func engineSetup(t *testing.T, checks ...string) (runs.Setup, bool) {
 		t.Fatal(err)
 	}
 	if setup.Options.Image == "" {
-		t.Fatalf("set %s to the study's image", imageVariable)
+		t.Fatalf("the product has no manifest: run %s/script/build", study.StudyDir)
 	}
 	return setup, true
 }

@@ -125,7 +125,7 @@ func newWorld(t *testing.T, domains []construct.Domain, handler func(construct.R
 // markBoxofficeBuilt makes the fixed task count as built, so that a run
 // concerns the domains alone.
 func (w *world) markBoxofficeBuilt() {
-	base := filepath.Join(w.repo, accept.TaskDir(construct.BoxofficeName))
+	base := filepath.Join(w.repo, study.TaskDir(construct.BoxofficeName))
 	writeFile(w.t, filepath.Join(base, study.TaskFile), "{}\n")
 	writeFile(w.t, filepath.Join(base, accept.OracleSubdir, accept.OracleConfigFile), "[pytest]\n")
 }

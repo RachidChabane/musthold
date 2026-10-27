@@ -28,7 +28,7 @@ const (
 // containerEnv is the environment of the extraction command: the interpreter and
 // git, and no home directory or system configuration.
 var containerEnv = []string{
-	"PATH=/usr/local/bin:/usr/bin:/bin",
+	box.SystemPath,
 	"HOME=/nonexistent",
 	"GIT_CONFIG_NOSYSTEM=1",
 	"PYTHONDONTWRITEBYTECODE=1",

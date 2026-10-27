@@ -9,14 +9,22 @@ import (
 const (
 	StudyDir   = "experiments/loop-1"
 	ConfigFile = StudyDir + "/loop-1.json"
-	FreezeDir  = StudyDir + "/freeze"
-	InputsPath = FreezeDir + "/" + InputsFile
-	TasksDir   = StudyDir + "/tasks"
+	// FreezeDirName is the freeze directory beside the configuration.
+	FreezeDirName = "freeze"
+	FreezeDir     = StudyDir + "/" + FreezeDirName
+	InputsPath    = FreezeDir + "/" + InputsFile
+	TasksDir      = StudyDir + "/tasks"
 	// DockerClient is the docker command that names the study's engine, and
 	// WithSlot the script that holds the machine-wide execution slots.
 	DockerClient = StudyDir + "/script/docker"
 	WithSlot     = "script/with-slot"
 )
+
+// FreezeBeside is the freeze directory beside a configuration file, which holds
+// its inputs freeze and timestamps.
+func FreezeBeside(config string) string {
+	return filepath.Join(filepath.Dir(config), FreezeDirName)
+}
 
 // TaskDir is the directory of a task's truth files.
 func TaskDir(name string) string { return TasksDir + "/" + name }

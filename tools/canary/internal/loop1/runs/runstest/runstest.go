@@ -32,6 +32,7 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/phase"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box/docker"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box/docker/dockertest"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/deviation"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/freeze"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
@@ -42,13 +43,12 @@ import (
 const (
 	Token       = "sk-ant-oat01-test-token-that-must-stay-in-the-session"
 	Pin         = "2.1.295"
-	DockerFront = "/repo/experiments/loop-1/script/docker"
+	DockerFront = "/repo/" + study.DockerClient
 	Image       = "sha256:1111111111111111111111111111111111111111111111111111111111111111"
 	Claude      = freeze.ClaudeProgram
 	Model       = "claude-sonnet-5-5"
 	AllowedHost = "api.anthropic.com"
 	recording   = "demo/loop/recording"
-	repoMarker  = "experiments/loop-1/loop-1.json"
 )
 
 // SlotWrapper is the wrapper every `docker run` of a world starts under.
@@ -56,22 +56,6 @@ func SlotWrapper() []string { return docker.SlotWrapper("/repo/"+study.WithSlot,
 
 // Start is when every world's clock starts.
 var Start = time.Date(2026, time.November, 2, 22, 0, 0, 0, time.UTC)
-
-// RepoRoot is the repository root, found above the test's directory.
-func RepoRoot(t *testing.T) string {
-	t.Helper()
-	dir, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	for ; dir != filepath.Dir(dir); dir = filepath.Dir(dir) {
-		if _, err := os.Stat(filepath.Join(dir, repoMarker)); err == nil {
-			return dir
-		}
-	}
-	t.Fatal("no repository root above the test's directory")
-	return ""
-}
 
 // Engine stands for the study's engine: it records every docker command, runs
 // the git and shell steps on the host, plays the product's binaries, and answers
@@ -465,7 +449,7 @@ type World struct {
 // repetition, and freezes the inputs as resolve would.
 func NewWorld(t *testing.T) *World {
 	t.Helper()
-	repo := RepoRoot(t)
+	repo := dockertest.RepoRoot(t)
 	data, err := os.ReadFile(filepath.Join(repo, study.ConfigFile))
 	if err != nil {
 		t.Fatal(err)
@@ -593,7 +577,7 @@ func TempDir(t *testing.T) string {
 // RecordedStream is the stream of the demonstration's committed recording.
 func RecordedStream(t *testing.T) []byte {
 	t.Helper()
-	content, err := os.ReadFile(filepath.Join(RepoRoot(t), recording, record.StreamFile))
+	content, err := os.ReadFile(filepath.Join(dockertest.RepoRoot(t), recording, record.StreamFile))
 	if err != nil {
 		t.Fatal(err)
 	}

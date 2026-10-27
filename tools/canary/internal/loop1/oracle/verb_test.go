@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"maps"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/phase"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -135,7 +137,7 @@ func TestOracleRun(t *testing.T) {
 }
 
 func TestHeldOut(t *testing.T) {
-	t.Run("the equipped, final and stop directories are measured [verifies SP-2564~1, SP-2565~1, SP-2566~1]", func(t *testing.T) {
+	t.Run("the equipped, final and stop directories are measured [verifies SP-2564~2, SP-2565~2, SP-2566~1]", func(t *testing.T) {
 		s := newScenario(t)
 		if err := s.verb.Execute(context.Background()); err != nil {
 			t.Fatal(err)
@@ -184,7 +186,7 @@ func TestHeldOut(t *testing.T) {
 		}
 	})
 
-	t.Run("a test directory runs with the equipped pytest.ini and its own conftest [verifies SP-2564~1]", func(t *testing.T) {
+	t.Run("a test directory runs with the equipped pytest.ini and its own conftest [verifies SP-2564~2]", func(t *testing.T) {
 		s := newScenario(t)
 		s.box.archives["tree2"]["tests/conftest.py"] = "# conftest\n"
 		var seen map[string]string
@@ -208,7 +210,7 @@ func TestHeldOut(t *testing.T) {
 		}
 	})
 
-	t.Run("a violation is killed at two of three runs and not at one [verifies SP-2565~1]", func(t *testing.T) {
+	t.Run("a violation is killed at two of three runs and not at one [verifies SP-2565~2]", func(t *testing.T) {
 		s := newScenario(t)
 		if err := s.verb.Execute(context.Background()); err != nil {
 			t.Fatal(err)
@@ -279,7 +281,7 @@ func TestHeldOut(t *testing.T) {
 		}
 	})
 
-	t.Run("a violation list is named after its directories [verifies SP-2564~1]", func(t *testing.T) {
+	t.Run("a violation list is named after its directories [verifies SP-2564~2]", func(t *testing.T) {
 		s := newScenario(t)
 		violations, err := ListViolations(filepath.Join(s.repo, "truth/demo/violations"))
 		if err != nil {
@@ -296,11 +298,11 @@ func TestHeldOut(t *testing.T) {
 }
 
 func TestPhase(t *testing.T) {
-	t.Run("the verb refuses to run before the run phase ends [verifies SP-2567~1]", func(t *testing.T) {
+	t.Run("the verb refuses to run before the run phase ends [verifies SP-2567~2]", func(t *testing.T) {
 		s := newScenario(t)
-		s.verb.Phase = phaseStub{ended: false}
+		s.verb.Phase = workPhase{work: s.work, open: true}
 		err := s.verb.Execute(context.Background())
-		if !errors.Is(err, ErrPhaseNotEnded) {
+		if !errors.Is(err, phase.ErrOpen) {
 			t.Fatalf("%v", err)
 		}
 		if len(s.box.commands) != 0 {
@@ -311,23 +313,23 @@ func TestPhase(t *testing.T) {
 		}
 	})
 
-	t.Run("Main exits 1 on a refusal and 2 on a usage error [verifies SP-2567~1]", func(t *testing.T) {
+	t.Run("Main exits 1 on a refusal and 2 on a usage error [verifies SP-2567~2]", func(t *testing.T) {
 		s := newScenario(t)
-		previous := Wire
-		defer func() { Wire = previous }()
-		Wire = func(Options) (Wiring, error) { return Wiring{Runner: s.box, Phase: phaseStub{ended: false}}, nil }
+		main := Command{Wire: func(Options) (Wiring, error) {
+			return Wiring{Runner: s.box, Phase: workPhase{work: s.work, open: true}}, nil
+		}}.Main
 		var out, errOut bytes.Buffer
-		if code := Main(context.Background(), []string{"--repo", s.repo, "--work", s.work}, &out, &errOut); code != 1 {
+		if code := main(context.Background(), []string{"--repo", s.repo, "--work", s.work}, &out, &errOut); code != 1 {
 			t.Fatalf("code %d: %s", code, errOut.String())
 		}
 		if !strings.Contains(errOut.String(), "run phase has not ended") {
 			t.Errorf("stderr %q", errOut.String())
 		}
-		if code := Main(context.Background(), []string{"--nope"}, &out, &errOut); code != 2 {
+		if code := main(context.Background(), []string{"--nope"}, &out, &errOut); code != 2 {
 			t.Fatalf("code %d", code)
 		}
-		Wire = func(Options) (Wiring, error) { return Wiring{Runner: s.box, Phase: phaseStub{ended: true}}, nil }
-		if code := Main(context.Background(), []string{"--repo", s.repo, "--work", s.work}, &out, &errOut); code != 0 {
+		main = Command{Wire: func(Options) (Wiring, error) { return Wiring{Runner: s.box, Phase: workPhase{work: s.work}}, nil }}.Main
+		if code := main(context.Background(), []string{"--repo", s.repo, "--config", "experiments/loop-1/loop-1.json", "--work", s.work}, &out, &errOut); code != 0 {
 			t.Fatalf("code %d: %s", code, errOut.String())
 		}
 	})
@@ -375,7 +377,7 @@ func TestResume(t *testing.T) {
 		}
 		before := len(s.box.commands)
 		first, _ := os.ReadFile(OraclePath(s.runDir))
-		fresh := NewVerb(s.repo, study.Layout{Root: s.work}, s.box, phaseStub{ended: true}, &bytes.Buffer{})
+		fresh := NewVerb(s.repo, study.Layout{Root: s.work}, s.box, workPhase{work: s.work}, &bytes.Buffer{})
 		if err := fresh.Execute(context.Background()); err != nil {
 			t.Fatal(err)
 		}
@@ -423,9 +425,12 @@ func TestResume(t *testing.T) {
 
 	t.Run("only counted attempts are judged [verifies SP-2569~1]", func(t *testing.T) {
 		s := newScenario(t)
-		other := study.Layout{Root: s.work}.RunDir("demo-2", 1)
-		write(t, other, "records/run.json", `{"task":"demo","outcome":"harness-error","attempt":1}`)
-		write(t, other, "project/pkg/mod.py", "X\n")
+		var other string
+		for number := 1; number <= study.MaxAttempts; number++ {
+			other = study.Layout{Root: s.work}.RunDir("demo-2", number)
+			write(t, other, "records/run.json", fmt.Sprintf(`{"task":"demo","outcome":"harness-error","attempt":%d}`, number))
+			write(t, other, "project/pkg/mod.py", "X\n")
+		}
 		capped := study.Layout{Root: s.work}.RunDir("demo-3", 1)
 		write(t, capped, "project/pkg/mod.py", "X\n")
 		write(t, capped, "records/run.json", `{"task":"demo","outcome":"capped-time","attempt":1,"equippedCommit":"eq"}`)

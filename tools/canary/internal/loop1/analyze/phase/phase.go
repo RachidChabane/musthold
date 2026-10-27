@@ -16,7 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
@@ -24,12 +23,8 @@ import (
 // CalendarCap ends the run phase this long after the start of the first run.
 const CalendarCap = 28 * 24 * time.Hour
 
-// RecordsDir is the directory of an attempt that holds its records and the
-// analysis's files.
-const RecordsDir = plan.RecordsDir
-
 // Records is the records directory of an attempt directory.
-func Records(attemptDir string) string { return filepath.Join(attemptDir, RecordsDir) }
+func Records(attemptDir string) string { return filepath.Join(attemptDir, study.RecordsDir) }
 
 // Attempt is one attempt of a run: its number, from 1, its directory and its
 // run.json.
@@ -154,6 +149,47 @@ func (p Phase) Require() error {
 	return fmt.Errorf("%w: %d run(s) neither counted nor blocked (%s); %s", ErrOpen, len(p.Open), strings.Join(p.Open, ", "), limit)
 }
 
+// Counted returns the counted attempt of every run of the order, in order, once
+// the phase has ended, and Require's error before.
+func (p Phase) Counted() ([]Attempt, error) {
+	if err := p.Require(); err != nil {
+		return nil, err
+	}
+	var counted []Attempt
+	for _, run := range p.Runs {
+		if attempt, ok := run.CountedAttempt(); ok {
+			counted = append(counted, attempt)
+		}
+	}
+	return counted, nil
+}
+
+// Reader judges the run phase of a work directory for the verbs that wait for
+// its end, the order taken from the inputs freeze.
+type Reader struct {
+	Layout study.Layout
+	Order  []string
+	Now    func() time.Time
+}
+
+// Read loads the attempts of the order and judges the phase now.
+func (r Reader) Read() (Phase, error) {
+	attempts, err := Load(r.Layout, r.Order)
+	if err != nil {
+		return Phase{}, err
+	}
+	return Judge(r.Order, attempts, r.Now()), nil
+}
+
+// Counted returns the counted attempts once the phase has ended.
+func (r Reader) Counted() ([]Attempt, error) {
+	judged, err := r.Read()
+	if err != nil {
+		return nil, err
+	}
+	return judged.Counted()
+}
+
 // attemptSeparator joins a run's name and its attempt number in a directory name.
 const attemptSeparator = "-"
 
@@ -179,7 +215,7 @@ func Load(work study.Layout, order []string) (map[string][]Attempt, error) {
 			continue
 		}
 		dir := filepath.Join(root, entry.Name())
-		run, err := readRun(Records(dir))
+		run, err := ReadRun(Records(dir))
 		if err != nil {
 			return nil, err
 		}
@@ -206,9 +242,9 @@ func attemptOf(dir string, order []string) (string, int, bool) {
 	return name, number, true
 }
 
-// readRun reads the run.json of a records directory; an attempt that has not written it yet
-// has no outcome.
-func readRun(dir string) (study.Run, error) {
+// ReadRun reads the run.json of a records directory; an attempt that has not
+// written it yet has no outcome.
+func ReadRun(dir string) (study.Run, error) {
 	var run study.Run
 	data, err := os.ReadFile(filepath.Join(dir, record.MetaFile))
 	if errors.Is(err, os.ErrNotExist) {

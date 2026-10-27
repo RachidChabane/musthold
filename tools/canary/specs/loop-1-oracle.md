@@ -33,16 +33,18 @@ The `oracle` verb of the loop-1 study (`experiments/loop-1/PREREG.md`, §4).
 
 ## Held-out violations
 
-- **SP-2564~1**: WHEN a test directory is measured THE SYSTEM SHALL build the
-  reference tree, the fixture with the task's reference applied, with the
+- **SP-2564~2**: WHEN a test directory is measured THE SYSTEM SHALL build the
+  reference tree, the fixture with the task's reference applied at the directory
+  of the task's source file, with the
   directory in place of `tests/`, the `pytest.ini` of the equipped commit and the
   directory's own `conftest.py` files, run the directory three times on it, take
   as valid the tests that pass in all three runs, report the others as
   contradicting the spec, and name each violation `<criterion>/<k>` after its
   directory under the task's violations.
 
-- **SP-2565~1**: WHEN a test directory is run on a violation THE SYSTEM SHALL
-  apply the violation's files over the reference tree, run the directory three
+- **SP-2565~2**: WHEN a test directory is run on a violation THE SYSTEM SHALL
+  apply the violation's files over the reference tree at the directory of the
+  task's source file, run the directory three
   times, and mark the violation killed when a valid test fails on it in at least
   two of the three runs and not killed when it fails in one.
 
@@ -56,9 +58,10 @@ The `oracle` verb of the loop-1 study (`experiments/loop-1/PREREG.md`, §4).
 
 ## Preconditions and records
 
-- **SP-2567~1**: WHEN the oracle verb is started before the run phase has ended
-  THE SYSTEM SHALL refuse to run, name the rule, run no command and write no
-  record, and Main SHALL exit with 1 on a refusal and 2 on a usage error.
+- **SP-2567~2**: WHEN the oracle verb is started before the run phase has ended
+  THE SYSTEM SHALL refuse to run with the open runs the rule names, run no command
+  and write no record, and Main SHALL exit with 1 on a refusal and 2 on a usage
+  error.
 
 - **SP-2568~1**: WHEN the oracle verb runs THE SYSTEM SHALL write into a run
   directory nothing but `records/oracle.json` and `records/heldout.json`, write

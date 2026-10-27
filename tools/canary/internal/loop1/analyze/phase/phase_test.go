@@ -147,3 +147,43 @@ func TestLoad(t *testing.T) {
 		}
 	})
 }
+
+func TestReader(t *testing.T) {
+	root := t.TempDir()
+	layout := study.Layout{Root: root}
+	write := func(run string, attempt int, outcome study.Outcome) string {
+		dir := layout.RunDir(run, attempt)
+		if err := os.MkdirAll(Records(dir), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		written := study.Run{Attempt: attempt, Outcome: outcome}
+		written.StartedAt = start.Add(time.Duration(attempt) * time.Hour)
+		data, _ := json.Marshal(written)
+		if err := os.WriteFile(filepath.Join(Records(dir), record.MetaFile), data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return dir
+	}
+	write("a-control-1", 1, study.OutcomeQuotaStop)
+	counted := write("a-control-1", 2, study.OutcomeCompleted)
+	capped := write("a-treatment-1", 1, study.OutcomeCappedTime)
+	for index := 1; index <= study.MaxAttempts; index++ {
+		write("a-control-2", index, study.OutcomeHarnessError)
+	}
+	order := []string{"a-treatment-1", "a-control-1", "a-control-2"}
+	now := func() time.Time { return start.Add(24 * time.Hour) }
+
+	t.Run("once the phase has ended the counted attempt of every run comes in the order, blocked runs left out [verifies SP-2640~1]", func(t *testing.T) {
+		got, err := Reader{Layout: layout, Order: order, Now: now}.Counted()
+		if err != nil || len(got) != 2 || got[0].Dir != capped || got[1].Dir != counted || got[1].Run.Outcome != study.OutcomeCompleted {
+			t.Fatalf("got %+v, %v", got, err)
+		}
+	})
+
+	t.Run("an open run refuses the counted attempts with the rule's error [verifies SP-2640~1]", func(t *testing.T) {
+		got, err := Reader{Layout: layout, Order: append(order, "a-treatment-2"), Now: now}.Counted()
+		if !errors.Is(err, ErrOpen) || got != nil || !strings.Contains(err.Error(), "a-treatment-2") {
+			t.Fatalf("got %+v, %v", got, err)
+		}
+	})
+}

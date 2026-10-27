@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/container"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
@@ -15,10 +17,11 @@ import (
 // The program and environment every command of a check runs with.
 const (
 	PythonProgram   = "python"
-	ShallnotProgram = "/opt/musthold/bin/shallnot"
+	ShallnotProgram = productBin + "/" + plan.ShallnotBinary
 	// ContainerPath is the PATH of every command: the product's binaries, then the
 	// image's.
-	ContainerPath = "/opt/musthold/bin:/usr/local/bin:/usr/bin:/bin"
+	ContainerPath = productBin + ":" + container.SystemPath
+	productBin    = container.ProductTarget + "/" + plan.ProductBinDir
 
 	stageTreesDir = "trees"
 	stageOutDir   = "out"

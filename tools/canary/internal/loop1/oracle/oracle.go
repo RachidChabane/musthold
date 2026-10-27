@@ -17,17 +17,8 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
-// The layout of an attempt directory, as the records builder fixes it.
+// The names of the study that the verb reads.
 const (
-	RecordsDir     = "records"
-	ProjectDir     = "project"
-	StopObjectsDir = "objects"
-	runFile        = "run.json"
-)
-
-// The paths and names of the study that the verb reads.
-const (
-	tasksDir       = "experiments/loop-1/tasks"
 	pytestIniFile  = "pytest.ini"
 	testsDirName   = "tests"
 	oracleDirName  = "oracle"
@@ -46,16 +37,14 @@ const (
 
 // Errors of the verb.
 var (
-	ErrPhaseNotEnded = errors.New("the run phase has not ended: the oracle runs only after it (PREREG §6.6)")
-	ErrNotWired      = errors.New("the oracle verb has no box runner or phase gate wired")
-	ErrBox           = errors.New("the box could not run the command")
-	ErrRecords       = errors.New("the attempt's records cannot be read")
-	ErrTruth         = errors.New("the task's truth files cannot be read")
-	ErrArchive       = errors.New("the repository archive cannot be read")
+	ErrBox     = errors.New("the box could not run the command")
+	ErrRecords = errors.New("the attempt's records cannot be read")
+	ErrTruth   = errors.New("the task's truth files cannot be read")
+	ErrArchive = errors.New("the repository archive cannot be read")
 )
 
-func recordsPath(runDir string) string { return filepath.Join(runDir, RecordsDir) }
-func projectPath(runDir string) string { return filepath.Join(runDir, ProjectDir) }
+func recordsPath(runDir string) string { return filepath.Join(runDir, study.RecordsDir) }
+func projectPath(runDir string) string { return filepath.Join(runDir, study.ProjectDir) }
 
 // OraclePath is where records/oracle.json of an attempt lies.
 func OraclePath(runDir string) string { return filepath.Join(recordsPath(runDir), study.OracleFile) }

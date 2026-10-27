@@ -7,59 +7,38 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
-// The layout of an attempt directory that detect reads: the records, and the
-// project the session left, a git repository whose second commit is the equipped
-// commit.
-const (
-	RecordsDir = "records"
-	ProjectDir = "project"
-
-	RunFile    = "run.json"
-	StreamFile = "stream.jsonl"
-	EgressFile = "egress.log"
-
-	recordFileMode = 0o644
-)
-
-// Inputs is the part of the frozen inputs.json that detect reads.
-type Inputs struct {
-	// EgressObserved is every host the canary saw the CLI contact.
-	EgressObserved []string `json:"egress_observed"`
-}
-
-// runRecord is the part of run.json that detect reads.
-type runRecord struct {
-	Outcome        study.Outcome `json:"outcome"`
-	EquippedCommit string        `json:"equippedCommit"`
-}
+const recordFileMode = 0o644
 
 // Detect runs every detector on one attempt directory and returns detectors.json's
-// content. The Python syntax trees are read in the container of the runner.
-func Detect(ctx context.Context, runner box.Runner, attemptDir string, inputs Inputs) (study.Detection, error) {
-	return detectWith(ctx, BoxExtractor{Runner: runner}, attemptDir, inputs)
+// content. The project the session left is a git repository whose second commit
+// is the equipped commit; its Python syntax trees are read in the container of
+// the runner. egressObserved is every host the canary saw the CLI contact.
+func Detect(ctx context.Context, runner box.Runner, attemptDir string, egressObserved []string) (study.Detection, error) {
+	return detectWith(ctx, BoxExtractor{Runner: runner}, attemptDir, egressObserved)
 }
 
-func detectWith(ctx context.Context, extractor Extractor, attemptDir string, inputs Inputs) (study.Detection, error) {
-	records := filepath.Join(attemptDir, RecordsDir)
-	projectDir := filepath.Join(attemptDir, ProjectDir)
+func detectWith(ctx context.Context, extractor Extractor, attemptDir string, egressObserved []string) (study.Detection, error) {
+	records := filepath.Join(attemptDir, study.RecordsDir)
+	projectDir := filepath.Join(attemptDir, study.ProjectDir)
 
-	var run runRecord
+	var run study.Run
 	var before, after study.Hashes
 	var heldOut study.HeldOut
 	if err := readAll(records, map[string]any{
-		RunFile: &run, study.HashesBeforeFile: &before, study.HashesAfterFile: &after, study.HeldOutFile: &heldOut,
+		record.MetaFile: &run, study.HashesBeforeFile: &before, study.HashesAfterFile: &after, study.HeldOutFile: &heldOut,
 	}); err != nil {
 		return study.Detection{}, err
 	}
-	stream, err := os.ReadFile(filepath.Join(records, StreamFile))
+	stream, err := os.ReadFile(filepath.Join(records, record.StreamFile))
 	if err != nil {
 		return study.Detection{}, fmt.Errorf("read stream: %w", err)
 	}
-	egressLog, err := os.ReadFile(filepath.Join(records, EgressFile))
+	egressLog, err := os.ReadFile(filepath.Join(records, record.EgressFile))
 	if err != nil {
 		return study.Detection{}, fmt.Errorf("read egress log: %w", err)
 	}
@@ -71,7 +50,7 @@ func detectWith(ctx context.Context, extractor Extractor, attemptDir string, inp
 	if err != nil {
 		return study.Detection{}, err
 	}
-	refused, err := RefusedConnects(egressLog, inputs.EgressObserved)
+	refused, err := RefusedConnects(egressLog, egressObserved)
 	if err != nil {
 		return study.Detection{}, err
 	}
@@ -116,5 +95,5 @@ func Write(attemptDir string, detection study.Detection) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(attemptDir, RecordsDir, study.DetectorsFile), append(data, '\n'), recordFileMode)
+	return os.WriteFile(filepath.Join(attemptDir, study.RecordsDir, study.DetectorsFile), append(data, '\n'), recordFileMode)
 }

@@ -12,24 +12,17 @@ import (
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box/docker"
-	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/product"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box/docker/dockertest"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/freeze"
 )
 
 const (
-	containersVariable = "MUSTHOLD_LOOP1_CONTAINERS"
-	repoFromHere       = "../../../../../.."
-	dockerFront        = "experiments/loop-1/script/docker"
-	slotFront          = "script/with-slot"
-	defaultWork        = ".musthold-loop-1"
-	defaultProduct     = ".musthold-loop-1-product"
-	imagePath          = "/usr/local/bin:/usr/bin:/bin"
-	slotWait           = 10 * time.Minute
-	longSleep          = "60"
-	sleepLimit         = 3 * time.Second
-	claudePin          = "2.1.295"
-	pythonPin          = "3.13.14"
-	pytestPin          = "9.1.1"
-	unreachable        = "import socket; socket.create_connection(('1.1.1.1', 443), timeout=3)"
+	longSleep   = "60"
+	sleepLimit  = 3 * time.Second
+	claudePin   = "2.1.295"
+	pythonPin   = "3.13.14"
+	pytestPin   = "9.1.1"
+	unreachable = "import socket; socket.create_connection(('1.1.1.1', 443), timeout=3)"
 )
 
 // engineWorld is the engine, the product and a work directory a container may mount.
@@ -37,65 +30,13 @@ type engineWorld struct {
 	runner *docker.Runner
 	client string
 	work   string
-}
-
-// containerWorld readies the engine's world, or skips the check when the container
-// tests are not enabled (script/build builds the product; script/engine start starts the engine).
-func containerWorld(t *testing.T) engineWorld {
-	t.Helper()
-	repo, err := filepath.Abs(repoFromHere)
-	if err != nil {
-		t.Fatal(err)
-	}
-	home, _ := os.UserHomeDir()
-	productDir := envOr("LOOP1_PRODUCT", filepath.Join(home, defaultProduct))
-	data, err := os.ReadFile(filepath.Join(productDir, product.ManifestFile))
-	if err != nil {
-		t.Fatalf("no product: %v (run experiments/loop-1/script/build)", err)
-	}
-	manifest, err := product.Parse(data)
-	if err != nil {
-		t.Fatal(err)
-	}
-	productDir, err = filepath.EvalSymlinks(productDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	client := filepath.Join(repo, dockerFront)
-	runner, err := docker.New(docker.Config{
-		Client:     []string{client},
-		RunWrapper: docker.SlotWrapper(filepath.Join(repo, slotFront), slotWait),
-		Image:      manifest.Images.Built, Product: productDir, UID: os.Getuid(), GID: os.Getgid(),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	base := envOr("LOOP1_WORK", filepath.Join(home, defaultWork))
-	if err := os.MkdirAll(base, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	work, err := os.MkdirTemp(base, "boxtest-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { os.RemoveAll(work) })
-	if work, err = filepath.EvalSymlinks(work); err != nil {
-		t.Fatal(err)
-	}
-	return engineWorld{runner: runner, client: client, work: work}
-}
-
-func envOr(name, fallback string) string {
-	if value := os.Getenv(name); value != "" {
-		return value
-	}
-	return fallback
+	repo   string
 }
 
 func (w engineWorld) run(t *testing.T, limit time.Duration, argv ...string) box.Result {
 	t.Helper()
 	result, err := w.runner.Run(context.Background(), box.Command{
-		Argv: argv, Env: []string{"PATH=" + imagePath, "HOME=" + w.work}, Dir: w.work,
+		Argv: argv, Env: []string{box.SystemPath, "HOME=" + w.work}, Dir: w.work,
 		Mounts: []box.Mount{{Path: w.work}}, Limit: limit,
 	})
 	if err != nil {
@@ -107,16 +48,14 @@ func (w engineWorld) run(t *testing.T, limit time.Duration, argv ...string) box.
 // containerChecks run each check on the engine when the container tests are enabled, and
 // report it as skipped otherwise, so that the results still name what was not checked.
 func containerChecks(t *testing.T, checks map[string]func(t *testing.T, w engineWorld)) {
-	enabled := os.Getenv(containersVariable) == "1"
 	var w engineWorld
-	if enabled {
-		w = containerWorld(t)
+	if dockertest.Enabled() {
+		world := dockertest.New(t)
+		w = engineWorld{runner: world.Runner, client: world.Client, work: world.Work, repo: world.Repo}
 	}
 	for name, check := range checks {
 		t.Run(name, func(t *testing.T) {
-			if !enabled {
-				t.Skipf("set %s=1 with the engine running (experiments/loop-1/script/engine start) to run the container tests", containersVariable)
-			}
+			dockertest.Skip(t)
 			check(t, w)
 		})
 	}
@@ -156,6 +95,12 @@ func TestContainers(t *testing.T) {
 				}
 			}
 		},
+		"the image's Claude Code CLI lies at the path every session and probe runs [verifies SP-2647~1]": func(t *testing.T, w engineWorld) {
+			result := w.run(t, 0, freeze.ClaudeProgram, freeze.VersionFlag)
+			if output := string(result.Stdout) + string(result.Stderr); result.ExitCode != 0 || !strings.Contains(output, claudePin) {
+				t.Errorf("%s: exit %d, output %q", freeze.ClaudeProgram, result.ExitCode, output)
+			}
+		},
 		"the product is read-only and the pinned Shallnot runs from it [verifies SP-2639~1]": func(t *testing.T, w engineWorld) {
 			if result := w.run(t, 0, "touch", docker.ProductTarget+"/written"); result.ExitCode == 0 {
 				t.Error("the product directory is writable")
@@ -171,9 +116,8 @@ func TestContainers(t *testing.T) {
 			if data, err := os.ReadFile(filepath.Join(w.work, "made")); err != nil || string(data) != "made\n" {
 				t.Errorf("the host sees %q (%v)", data, err)
 			}
-			repo, _ := filepath.Abs(repoFromHere)
-			if result := w.run(t, 0, "ls", repo); result.ExitCode == 0 {
-				t.Errorf("the repository %s is visible: %s", repo, result.Stdout)
+			if result := w.run(t, 0, "ls", w.repo); result.ExitCode == 0 {
+				t.Errorf("the repository %s is visible: %s", w.repo, result.Stdout)
 			}
 		},
 		"a command past its limit is killed and no container is left [verifies SP-2639~1]": func(t *testing.T, w engineWorld) {

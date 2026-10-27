@@ -46,7 +46,7 @@ func TestRender(t *testing.T) {
 	})
 
 	t.Run("a command line without its arguments is a usage error [verifies SP-2406~1]", func(t *testing.T) {
-		for _, args := range [][]string{nil, {"render"}, {"keep", "--run", "x"}, {"run"}, {"unknown"}} {
+		for _, args := range [][]string{nil, {"render"}, {"keep", "--run", "x"}, {"live"}, {"unknown"}} {
 			if code, _, _ := run(t, nil, args...); code != cli.ExitUsage {
 				t.Errorf("%v exited %d", args, code)
 			}
@@ -61,7 +61,7 @@ func TestDryRun(t *testing.T) {
 			t.Fatal(err)
 		}
 		environ := []string{"PATH=" + os.Getenv("PATH"), "HOME=" + t.TempDir(), launch.OAuthTokenVariable + "=" + token}
-		code, stdout, stderr := run(t, environ, "run", "--config", filepath.Join(repo, "demo/loop/demo.json"), "--repo", repo, "--work", t.TempDir(), "--product", t.TempDir(), "--dry-run")
+		code, stdout, stderr := run(t, environ, "live", "--config", filepath.Join(repo, "demo/loop/demo.json"), "--repo", repo, "--work", t.TempDir(), "--product", t.TempDir(), "--dry-run")
 		if code != cli.ExitOK {
 			t.Fatalf("exit %d: %s", code, stderr)
 		}
@@ -89,7 +89,7 @@ func TestDryRun(t *testing.T) {
 			t.Fatal(err)
 		}
 		environ := []string{"PATH=" + os.Getenv("PATH"), "HOME=" + t.TempDir(), launch.OAuthTokenVariable + "=" + token}
-		code, stdout, stderr := run(t, environ, "run", "--config", filepath.Join(repo, "demo/loop/demo.json"), "--repo", repo, "--product", t.TempDir(), "--dry-run")
+		code, stdout, stderr := run(t, environ, "live", "--config", filepath.Join(repo, "demo/loop/demo.json"), "--repo", repo, "--product", t.TempDir(), "--dry-run")
 		if code != cli.ExitOK {
 			t.Fatalf("exit %d: %s", code, stderr)
 		}

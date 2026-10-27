@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -101,7 +102,14 @@ func TestTheSampleTaskPasses(t *testing.T) {
 			t.Fatalf("%d results for %d checks", len(report.Results), len(accept.CheckOrder()))
 		}
 		if len(h.equipper.Equipped) == 0 {
-			t.Error("the control arm was never equipped")
+			t.Fatal("the control arm was never equipped")
+		}
+		gated := false
+		for _, command := range h.box.Commands() {
+			gated = gated || (command.Argv[0] == accept.ShallnotProgram && command.Argv[1] == "gate" && slices.Contains(h.equipper.Equipped, command.Dir))
+		}
+		if !gated {
+			t.Error("the traceability gate did not run in the equipped project")
 		}
 		data, err := os.ReadFile(h.acceptor.Config)
 		if err != nil {
@@ -183,7 +191,7 @@ func TestShape(t *testing.T) {
 		{"a spec with three criteria", func(h *harness) {
 			acceptest.Remove(h.t, h.repo, sampleName, "fixture/specs/fares.md")
 			acceptest.Replace(h.t, h.repo, sampleName, "fixture/tests/test_fare.py", "FARE-3~1", "FARE-1~1")
-			writeFile(h.t, filepath.Join(h.repo, accept.TaskDir(sampleName), "fixture/specs/fares.md"), threeCriteria)
+			writeFile(h.t, filepath.Join(h.repo, study.TaskDir(sampleName), "fixture/specs/fares.md"), threeCriteria)
 		}, "4 to 6 are required"},
 		{"an example that names another operation", func(h *harness) {
 			h.edit("fixture/specs/fares.md", "fare_for(distance=5)", "price_of(distance=5)")
@@ -198,7 +206,7 @@ func TestShape(t *testing.T) {
 			acceptest.Remove(h.t, h.repo, sampleName, "violations/FARE-2/2/zones.py")
 		}, "criterion FARE-2 has 1 violations"},
 		{"a violation that edits a file the project lacks", func(h *harness) {
-			writeFile(h.t, filepath.Join(h.repo, accept.TaskDir(sampleName), "violations/FARE-2/3/other.py"), "x = 1\n")
+			writeFile(h.t, filepath.Join(h.repo, study.TaskDir(sampleName), "violations/FARE-2/3/other.py"), "x = 1\n")
 		}, "does not hold"},
 		{"a module that does not define the operation", func(h *harness) {
 			h.edit("fixture/fare/zones.py", "def fare_for(distance):", "def price(distance):")
@@ -295,7 +303,7 @@ func TestBehaviourChecks(t *testing.T) {
 			}
 		}, "passes the tests of the fixture", ""},
 		{"SP-2557~1", accept.CheckCollection, "an oracle file with one test", func(h *harness) {
-			writeFile(h.t, filepath.Join(h.repo, accept.TaskDir(sampleName), "oracle/test_fare_2.py"), "def test_only():\n    assert True\n")
+			writeFile(h.t, filepath.Join(h.repo, study.TaskDir(sampleName), "oracle/test_fare_2.py"), "def test_only():\n    assert True\n")
 		}, "", "collects 1 tests"},
 		{"SP-2557~1", accept.CheckCollection, "a skipped test", func(h *harness) {
 			h.edit("oracle/test_fare_3.py", "def test_three_example", "# SKIPPED\ndef test_three_example")

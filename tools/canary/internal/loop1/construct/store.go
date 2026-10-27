@@ -41,7 +41,7 @@ func (s Store) abs(relative string) string {
 }
 
 func (s Store) taskPath(name string, parts ...string) string {
-	return s.abs(path.Join(append([]string{accept.TaskDir(name)}, parts...)...))
+	return s.abs(path.Join(append([]string{study.TaskDir(name)}, parts...)...))
 }
 
 // Exists reports whether a task has a directory.

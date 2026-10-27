@@ -360,17 +360,27 @@ func (b *Box) introspect(command box.Command) box.Result {
 	return box.Result{Stdout: out}
 }
 
-// Equipper is a stand-in for the equipping of the control arm: it records the
-// projects it was asked to equip.
+// Equipper is a stand-in for the equipping of the control arm: it copies the
+// fixture's files to a project beside them and records each project.
 type Equipper struct {
 	mu       sync.Mutex
 	Equipped []string
 }
 
-// EquipControl records the directory.
-func (e *Equipper) EquipControl(_ context.Context, dir string, _ study.Task) error {
+// ProjectSuffix names the project the stand-in equips beside a fixture's files.
+const ProjectSuffix = "-equipped"
+
+// EquipControl copies the directory to its project and records the project.
+func (e *Equipper) EquipControl(_ context.Context, dir string, _ study.Task) (string, error) {
+	project := dir + ProjectSuffix
+	if err := os.RemoveAll(project); err != nil {
+		return "", err
+	}
+	if err := os.CopyFS(project, os.DirFS(dir)); err != nil {
+		return "", err
+	}
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	e.Equipped = append(e.Equipped, dir)
-	return nil
+	e.Equipped = append(e.Equipped, project)
+	return project, nil
 }

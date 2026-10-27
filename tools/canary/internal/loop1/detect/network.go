@@ -9,6 +9,7 @@ import (
 	"slices"
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/egress"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -37,7 +38,7 @@ func RefusedConnects(log []byte, observed []string) ([]study.Hit, error) {
 		}
 		hits = append(hits, study.Hit{
 			Detector: study.DetectorNetwork,
-			File:     EgressFile,
+			File:     record.EgressFile,
 			Line:     line,
 			Evidence: fmt.Sprintf("refused CONNECT to %s, outside the observed hosts", entry.Target),
 		})
@@ -60,7 +61,7 @@ func WebToolCalls(calls []ToolCall) []study.Hit {
 		if slices.Contains(webTools, call.Name) {
 			hits = append(hits, study.Hit{
 				Detector: study.DetectorNetwork,
-				File:     StreamFile,
+				File:     record.StreamFile,
 				Event:    call.Event,
 				Evidence: fmt.Sprintf("%s tool call", call.Name),
 			})

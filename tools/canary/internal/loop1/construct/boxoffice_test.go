@@ -11,6 +11,7 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/accept"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
 const (
@@ -100,7 +101,7 @@ func TestTheFixedTask(t *testing.T) {
 				t.Errorf("%s changed", location)
 			}
 		}
-		base := filepath.Join(w.repo, accept.TaskDir(construct.BoxofficeName))
+		base := filepath.Join(w.repo, study.TaskDir(construct.BoxofficeName))
 		for _, wanted := range []string{"task.json", "violations/BOX-4/2/prices.py", "refactors/1/prices.py", "oracle/test_box_4.py", "oracle/pytest.ini"} {
 			if _, err := os.Stat(filepath.Join(base, wanted)); err != nil {
 				t.Errorf("%s: %v", wanted, err)

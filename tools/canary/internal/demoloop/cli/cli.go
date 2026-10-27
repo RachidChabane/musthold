@@ -1,6 +1,7 @@
 // Package cli is the composition root of the agent-loop runner: it parses the
-// command line and wires the use cases to the canary's adapters. It holds no rule
-// of its own.
+// command line and wires the use cases to the canary's adapters, and hands each
+// verb of the loop-1 study to its own composition root. It holds no rule of its
+// own.
 package cli
 
 import (
@@ -24,6 +25,7 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/launch"
 	"github.com/RachidChabane/musthold/tools/canary/internal/domain/window"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/verbs"
 )
 
 // Exit codes.
@@ -34,9 +36,9 @@ const (
 	ExitUsage   = 64
 )
 
-// Subcommands.
+// Subcommands of the demonstration.
 const (
-	commandRun    = "run"
+	commandLive   = "live"
 	commandRender = "render"
 	commandKeep   = "keep"
 	commandShim   = "shim"
@@ -78,9 +80,12 @@ func Run(env Env) int {
 		return env.usage()
 	}
 	command, rest := env.Args[0], env.Args[1:]
+	if verb, found := verbs.Lookup(command); found {
+		return env.loop1(verb, rest)
+	}
 	switch command {
-	case commandRun:
-		return env.run(rest)
+	case commandLive:
+		return env.live(rest)
 	case commandRender:
 		return env.render(rest)
 	case commandKeep:
@@ -99,8 +104,17 @@ func Run(env Env) int {
 }
 
 func (e Env) usage() int {
-	fmt.Fprintf(e.Stderr, "usage: %s %s|%s|%s [flags]\n", binaryName, commandRun, commandRender, commandKeep)
+	commands := append([]string{commandLive, commandRender, commandKeep}, verbs.Names()...)
+	fmt.Fprintf(e.Stderr, "usage: %s %s [flags]\n", binaryName, strings.Join(commands, "|"))
 	return ExitUsage
+}
+
+// loop1 runs a verb of the loop-1 study, stopped by an interrupt or a
+// termination signal.
+func (e Env) loop1(verb verbs.Main, args []string) int {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	return verb(ctx, args, e.Stdout, e.Stderr)
 }
 
 func (e Env) flags(name string) *flag.FlagSet {
@@ -114,8 +128,8 @@ func (e Env) fail(err error) int {
 	return ExitRefused
 }
 
-func (e Env) run(args []string) int {
-	set := e.flags(commandRun)
+func (e Env) live(args []string) int {
+	set := e.flags(commandLive)
 	configPath := set.String("config", "", "the configuration file of the runs")
 	repo := set.String("repo", ".", "the repository root")
 	work := set.String("work", "", "the directory the run directories are created in (default: <repo>/"+app.WorkRelative+")")

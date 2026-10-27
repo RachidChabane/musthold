@@ -4,19 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
-
-// TasksDir is where the tasks lie, relative to the repository root.
-const TasksDir = "experiments/loop-1/tasks"
-
-// TaskDir is the directory of a task, relative to the repository root.
-func TaskDir(name string) string { return path.Join(TasksDir, name) }
 
 // variant is one edit of the reference source: a violation of one criterion or a
 // refactor. Its files lie relative to the directory of the source file.
@@ -64,14 +57,14 @@ func (m *material) problem(target records.Target, format string, args ...any) {
 }
 
 // sourceDir is the directory every truth source file is relative to.
-func (m *material) sourceDir() string { return path.Dir(m.task.Source) }
+func (m *material) sourceDir() string { return m.task.TruthBase() }
 
 // errTaskUnreadable is returned when the task's own description cannot be used.
 var errTaskUnreadable = errors.New("the task description cannot be read")
 
 // loadMaterial reads a task's description and every file the checks use.
 func loadMaterial(repo, name string) (*material, error) {
-	data, err := os.ReadFile(filepath.Join(repo, filepath.FromSlash(TaskDir(name)), study.TaskFile))
+	data, err := os.ReadFile(filepath.Join(repo, filepath.FromSlash(study.TaskDir(name)), study.TaskFile))
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", errTaskUnreadable, err)
 	}

@@ -13,7 +13,7 @@ import (
 // The environment of every command the verb runs in the box. The container runs
 // the command under `env -i` with this environment alone.
 var boxEnv = []string{
-	"PATH=/usr/local/bin:/usr/bin:/bin",
+	box.SystemPath,
 	"HOME=/tmp",
 	"PYTHONDONTWRITEBYTECODE=1",
 }

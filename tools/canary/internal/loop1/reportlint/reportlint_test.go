@@ -15,6 +15,7 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/conclusion"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/facts"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/phase"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -161,7 +162,7 @@ func buildSummary(tasks int) analyze.Summary {
 		Provenance: analyze.Provenance{
 			Tags:         []analyze.Tag{{Name: analyze.TagPrereg, Commit: "9058fee", Time: &at}, {Name: analyze.TagInputs, Commit: "abc"}},
 			InputsDigest: "00ff", Tasks: []string{analyze.InSampleTask, "task-2"},
-			Dropped: []analyze.Dropped{{Domain: "water bill", Reason: "A5 diagonal works on no violation"}},
+			Dropped: []records.Drop{{Domain: "water bill", Reason: "A5 diagonal works on no violation"}},
 		},
 		Digests: map[string]string{"inputs.json": "00ff"},
 	})

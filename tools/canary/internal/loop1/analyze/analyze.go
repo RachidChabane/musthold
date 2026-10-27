@@ -22,25 +22,20 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/plan"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/facts"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/phase"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/stamp"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
-// Where the verb finds its inputs, relative to the directory of the
+// Where the verb finds its inputs, relative to the freeze directory beside the
 // configuration.
 const (
-	FreezeDir        = "freeze"
-	InputsFile       = "inputs.json"
 	preregTokenFile  = "prereg-commit.tsr"
 	inputsTokenFile  = "inputs-commit.tsr"
 	jsonIndent       = "  "
-	workVariable     = "LOOP1_WORK"
 	homeVariable     = "HOME"
-	defaultWork      = ".musthold-loop-1"
-	defaultConfig    = "experiments/loop-1/loop-1.json"
 	exitOK           = 0
 	exitRefused      = 1
 	exitUsage        = 2
@@ -70,63 +65,46 @@ func (o Options) Experiment() string { return filepath.Dir(o.Config) }
 // Results is the results directory.
 func (o Options) Results() string { return filepath.Join(o.Experiment(), ResultsDir) }
 
-// inputsView is the part of inputs.json the verb reads. Only order is required;
-// the others feed the provenance and are read leniently.
-type inputsView struct {
-	Order        []string        `json:"order"`
-	Commits      json.RawMessage `json:"commits"`
-	Tasks        json.RawMessage `json:"tasks"`
-	Construction json.RawMessage `json:"construction"`
-}
+// Freeze is the freeze directory beside the configuration.
+func (o Options) Freeze() string { return study.FreezeBeside(o.Config) }
 
-func readInputs(path string) (inputsView, string, error) {
+// readInputs reads inputs.json, which must hold the order, and its SHA-256.
+func readInputs(path string) (study.Inputs, string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return inputsView{}, "", fmt.Errorf("%w: %v", ErrInputs, err)
+		return study.Inputs{}, "", fmt.Errorf("%w: %v", ErrInputs, err)
 	}
-	var view inputsView
-	if err := json.Unmarshal(data, &view); err != nil {
-		return inputsView{}, "", fmt.Errorf("%w: %v", ErrInputs, err)
+	inputs, err := study.ParseInputs(data)
+	if err != nil {
+		return study.Inputs{}, "", fmt.Errorf("%w: %v", ErrInputs, err)
 	}
-	if len(view.Order) == 0 {
-		return inputsView{}, "", fmt.Errorf("%w: it holds no order", ErrInputs)
+	if len(inputs.Order) == 0 {
+		return study.Inputs{}, "", fmt.Errorf("%w: it holds no order", ErrInputs)
 	}
 	digest := sha256.Sum256(data)
-	return view, hex.EncodeToString(digest[:]), nil
+	return inputs, hex.EncodeToString(digest[:]), nil
 }
 
 // provenance reads the tags' commits, the tasks and the dropped domains from
-// inputs.json, and the times of the freeze tokens.
-func provenance(ctx context.Context, o Options, view inputsView, digest string) Provenance {
-	var commits struct {
-		Prereg  string            `json:"prereg"`
-		Inputs  string            `json:"inputs"`
-		Between []json.RawMessage `json:"between"`
-	}
-	_ = json.Unmarshal(view.Commits, &commits)
-	var tasks []struct {
-		Name string `json:"name"`
-	}
-	_ = json.Unmarshal(view.Tasks, &tasks)
-	var construction struct {
-		Dropped []Dropped `json:"dropped"`
-	}
-	_ = json.Unmarshal(view.Construction, &construction)
-	found := Provenance{InputsDigest: digest, Tasks: []string{}, Dropped: construction.Dropped}
-	for _, task := range tasks {
+// inputs.json, and the times of the freeze tokens. A list inputs.json does not
+// record stays null.
+func provenance(ctx context.Context, o Options, inputs study.Inputs, digest string) (Provenance, error) {
+	found := Provenance{InputsDigest: digest, Tasks: []string{}, Between: inputs.Commits.Between}
+	for _, task := range inputs.Tasks {
 		found.Tasks = append(found.Tasks, task.Name)
 	}
-	if commits.Between != nil {
-		found.Between = []string{}
-	}
-	for _, raw := range commits.Between {
-		found.Between = append(found.Between, commitOf(raw))
+	if len(inputs.Construction) > 0 {
+		log, err := records.Decode(inputs.Construction)
+		if err != nil {
+			return Provenance{}, fmt.Errorf("%w: %v", ErrInputs, err)
+		}
+		found.Dropped = append([]records.Drop{}, log.Drops...)
 	}
 	for _, tag := range []struct{ name, commit, token string }{
-		{TagPrereg, commits.Prereg, preregTokenFile}, {TagInputs, commits.Inputs, inputsTokenFile},
+		{TagPrereg, inputs.Commits.Prereg, preregTokenFile}, {TagInputs, inputs.Commits.Inputs, inputsTokenFile},
 	} {
 		entry := Tag{Name: tag.name, Commit: tag.commit}
-		tsr := filepath.Join(o.Experiment(), FreezeDir, tag.token)
+		tsr := filepath.Join(o.Freeze(), tag.token)
 		if _, err := os.Stat(tsr); err == nil {
 			if token, err := o.Imprints.Read(ctx, tsr); err == nil {
 				at := token.Time
@@ -135,38 +113,25 @@ func provenance(ctx context.Context, o Options, view inputsView, digest string) 
 		}
 		found.Tags = append(found.Tags, entry)
 	}
-	return found
-}
-
-// commitOf reads a commit recorded as its hash, or as an object whose commit
-// member is the hash; anything else is kept as its JSON text.
-func commitOf(raw json.RawMessage) string {
-	var hash string
-	if json.Unmarshal(raw, &hash) == nil {
-		return hash
-	}
-	var object struct {
-		Commit string `json:"commit"`
-	}
-	if json.Unmarshal(raw, &object) == nil && object.Commit != "" {
-		return object.Commit
-	}
-	return string(raw)
+	return found, nil
 }
 
 // Analyze runs the verb.
 func Analyze(ctx context.Context, o Options, out io.Writer) error {
-	view, digest, err := readInputs(filepath.Join(o.Experiment(), FreezeDir, InputsFile))
+	inputs, digest, err := readInputs(filepath.Join(o.Freeze(), study.InputsFile))
 	if err != nil {
 		return err
 	}
 	layout := study.Layout{Root: o.Work}
-	attempts, err := phase.Load(layout, view.Order)
+	judged, err := phase.Reader{Layout: layout, Order: inputs.Order, Now: func() time.Time { return o.Now }}.Read()
 	if err != nil {
 		return err
 	}
-	judged := phase.Judge(view.Order, attempts, o.Now)
 	if err := judged.Require(); err != nil {
+		return err
+	}
+	found, err := provenance(ctx, o, inputs, digest)
+	if err != nil {
 		return err
 	}
 	log, err := os.ReadFile(layout.Deviations())
@@ -176,14 +141,14 @@ func Analyze(ctx context.Context, o Options, out io.Writer) error {
 	if err := stamp.CheckDeviations(ctx, log, layout.Timestamps(), o.Imprints); err != nil {
 		return err
 	}
-	digests := map[string]string{InputsFile: digest}
+	digests := map[string]string{study.InputsFile: digest}
 	all, kept, err := countedFacts(o, judged, digests)
 	if err != nil {
 		return err
 	}
 	summary := Build(BuildInput{
 		Phase: judged, Facts: all, Deviations: study.ParseDeviations(string(log)),
-		Provenance: provenance(ctx, o, view, digest), Digests: digests,
+		Provenance: found, Digests: digests,
 	})
 	if err := writeResults(o, layout, summary, kept); err != nil {
 		return err
@@ -203,7 +168,7 @@ func countedFacts(o Options, judged phase.Phase, digests map[string]string) (map
 		if !ok {
 			continue
 		}
-		in, read, err := facts.Load(attempt.Records(), filepath.Join(attempt.Dir, plan.ProjectDir))
+		in, read, err := facts.Load(attempt.Records(), filepath.Join(attempt.Dir, study.ProjectDir))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -279,15 +244,11 @@ func Main(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 
 func parse(args []string, stderr io.Writer) (Options, int) {
 	home := os.Getenv(homeVariable)
-	work := os.Getenv(workVariable)
-	if work == "" {
-		work = filepath.Join(home, defaultWork)
-	}
 	flags := flag.NewFlagSet("analyze", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	repo := flags.String("repo", ".", "repository root")
-	config := flags.String("config", defaultConfig, "the study's configuration, beside freeze/ and results/")
-	workDir := flags.String("work", work, "the work directory")
+	config := flags.String("config", study.ConfigFile, "the study's configuration, beside freeze/ and results/")
+	workDir := flags.String("work", study.DefaultWork(), "the work directory")
 	if err := flags.Parse(args); err != nil {
 		return Options{}, exitUsage
 	}

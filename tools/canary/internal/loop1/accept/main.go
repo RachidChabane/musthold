@@ -2,7 +2,6 @@ package accept
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -22,13 +21,6 @@ const (
 	ExitUsage   = 2
 )
 
-// The defaults of the flags every verb takes.
-const (
-	DefaultConfig  = "experiments/loop-1/loop-1.json"
-	WorkVariable   = "LOOP1_WORK"
-	defaultWorkDir = ".musthold-loop-1"
-)
-
 // Flags are the flags every loop-1 verb takes.
 type Flags struct {
 	Repo   string
@@ -40,21 +32,9 @@ type Flags struct {
 func RegisterFlags(set *flag.FlagSet) *Flags {
 	flags := &Flags{}
 	set.StringVar(&flags.Repo, "repo", ".", "repository root")
-	set.StringVar(&flags.Config, "config", DefaultConfig, "run configuration, relative to the repository root")
-	set.StringVar(&flags.Work, "work", DefaultWork(), "work directory ($"+WorkVariable+", default $HOME/"+defaultWorkDir+")")
+	set.StringVar(&flags.Config, "config", study.ConfigFile, "run configuration, relative to the repository root")
+	set.StringVar(&flags.Work, "work", study.DefaultWork(), "work directory ($"+study.WorkEnv+")")
 	return flags
-}
-
-// DefaultWork is $LOOP1_WORK, or $HOME/.musthold-loop-1.
-func DefaultWork() string {
-	if work := os.Getenv(WorkVariable); work != "" {
-		return work
-	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return defaultWorkDir
-	}
-	return filepath.Join(home, defaultWorkDir)
 }
 
 // Layout is the work directory the flags name.
@@ -75,13 +55,13 @@ type Wiring struct {
 	Equipper Equipper
 }
 
-// Wire builds the production adapters for a repository and a work directory. The
-// program that assembles the verbs assigns it; the verbs refuse to run while it
-// is unset.
-var Wire func(repo string, layout study.Layout) (Wiring, error)
+// WireFunc builds the adapters that reach outside the process for a verb's flags.
+type WireFunc func(Flags) (Wiring, error)
 
-// ErrNotWired is returned when no production adapters were assigned.
-var ErrNotWired = errors.New("no container runner is wired into this build")
+// Command is the accept verb; Wire builds its adapters.
+type Command struct {
+	Wire WireFunc
+}
 
 // NewAcceptor builds the acceptor of a repository from the verb's flags.
 func NewAcceptor(flags Flags, wiring Wiring, writer records.Writer) *Acceptor {
@@ -95,18 +75,14 @@ func NewAcceptor(flags Flags, wiring Wiring, writer records.Writer) *Acceptor {
 // every task directory in name order, prints each report, and appends each task
 // that passes to the run configuration. It returns 0 when every task passes, 1
 // when a check fails or cannot run, and 2 for a usage error.
-func Main(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+func (c Command) Main(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	set := flag.NewFlagSet("accept", flag.ContinueOnError)
 	set.SetOutput(stderr)
 	flags := RegisterFlags(set)
 	if err := set.Parse(args); err != nil {
 		return ExitUsage
 	}
-	if Wire == nil {
-		fmt.Fprintf(stderr, "accept: %v\n", ErrNotWired)
-		return ExitFailure
-	}
-	wiring, err := Wire(flags.Repo, flags.Layout())
+	wiring, err := c.Wire(*flags)
 	if err != nil {
 		fmt.Fprintf(stderr, "accept: %v\n", err)
 		return ExitFailure
@@ -140,7 +116,7 @@ func acceptAll(ctx context.Context, acceptor *Acceptor, names []string, stdout, 
 
 // TaskNames lists the task directories of a repository in name order.
 func TaskNames(repo string) ([]string, error) {
-	entries, err := os.ReadDir(filepath.Join(repo, filepath.FromSlash(TasksDir)))
+	entries, err := os.ReadDir(filepath.Join(repo, filepath.FromSlash(study.TasksDir)))
 	if err != nil {
 		return nil, fmt.Errorf("list the tasks: %w", err)
 	}

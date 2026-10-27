@@ -85,12 +85,12 @@ live() {
   build_runner
   if ((dry_run)); then
     echo "a live run first runs, in ${PWD}: ${ENGINE} start; ${BUILD} product; ${BUILD} image;"
-    echo "then: script/mem-guard run -- ${RUNNER} run --config ${config} --repo . ${forwarded[*]-}; then ${ENGINE} stop"
+    echo "then: script/mem-guard run -- ${RUNNER} live --config ${config} --repo . ${forwarded[*]-}; then ${ENGINE} stop"
     echo "which runs the following (this dry run starts none of it):"
-    exec "${RUNNER}" run --config "${config}" --repo . --dry-run ${forwarded[@]+"${forwarded[@]}"}
+    exec "${RUNNER}" live --config "${config}" --repo . --dry-run ${forwarded[@]+"${forwarded[@]}"}
   fi
   with_engine
-  script/mem-guard run -- "${RUNNER}" run --config "${config}" --repo . ${forwarded[@]+"${forwarded[@]}"}
+  script/mem-guard run -- "${RUNNER}" live --config "${config}" --repo . ${forwarded[@]+"${forwarded[@]}"}
 }
 
 keep() {

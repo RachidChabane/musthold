@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/egress"
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -57,9 +58,9 @@ func TestHonestChangesAreNotFlagged(t *testing.T) {
 	for index, change := range honestChanges {
 		name := filepath.Join("honest", string(rune('a'+index)))
 		attempt := newAttempt(t, parent, name, attemptSpec{end: change.end, egress: []string{allowed}})
-		attemptProject := filepath.Join(attempt, ProjectDir)
+		attemptProject := filepath.Join(attempt, study.ProjectDir)
 		stream := honestStream(t, attemptProject)
-		writeFile(t, filepath.Join(attempt, RecordsDir, StreamFile), strings.Join(stream, "\n")+"\n")
+		writeFile(t, filepath.Join(attempt, study.RecordsDir, record.StreamFile), strings.Join(stream, "\n")+"\n")
 		detection := detectAttempt(t, attempt)
 
 		for _, detector := range study.Detectors() {

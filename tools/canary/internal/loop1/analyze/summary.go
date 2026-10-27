@@ -8,6 +8,7 @@ import (
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/facts"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/phase"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -25,12 +26,6 @@ type Tag struct {
 	Time *time.Time `json:"time"`
 }
 
-// Dropped is a construction domain dropped with its reason.
-type Dropped struct {
-	Domain string `json:"domain"`
-	Reason string `json:"reason"`
-}
-
 // Provenance is what the report's provenance section shows. A list that
 // inputs.json does not record is null, apart from an empty one.
 type Provenance struct {
@@ -39,8 +34,8 @@ type Provenance struct {
 	Tasks        []string `json:"tasks"`
 	// Between is the commits between the two tags that touch the product or the
 	// tooling (PREREG §2).
-	Between []string  `json:"between"`
-	Dropped []Dropped `json:"dropped"`
+	Between []string       `json:"between"`
+	Dropped []records.Drop `json:"dropped"`
 }
 
 // AttemptEntry is one attempt of a run.

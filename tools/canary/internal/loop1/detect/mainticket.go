@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -35,7 +36,7 @@ func MainAgentSubmits(calls []ToolCall) []study.Hit {
 		}
 		hits = append(hits, study.Hit{
 			Detector: study.DetectorMainTicket,
-			File:     StreamFile,
+			File:     record.StreamFile,
 			Event:    call.Event,
 			Evidence: "main agent submitted a ticket answer, " + how,
 		})

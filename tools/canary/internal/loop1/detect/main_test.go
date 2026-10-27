@@ -8,23 +8,27 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/phase"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
-type fixedPhase bool
-
-func (p fixedPhase) RunPhaseEnded(context.Context, string) (bool, error) { return bool(p), nil }
-
-func wireHost(phase PhaseEnded) func(string) (Dependencies, error) {
-	return func(string) (Dependencies, error) { return Dependencies{Runner: hostRunner{}, Phase: phase}, nil }
+// wireHost wires the verb to the host's tools and to the run-phase rule over the
+// work directory and the order given.
+func wireHost(work string, order ...string) Command {
+	return Command{Wire: func(Flags) (Dependencies, error) {
+		reader := phase.Reader{Layout: study.Layout{Root: work}, Order: order, Now: time.Now}
+		return Dependencies{Runner: hostRunner{}, Phase: reader, EgressObserved: egressObserved}, nil
+	}}
 }
 
 func setOutcome(t *testing.T, attempt string, outcome study.Outcome) {
 	t.Helper()
-	path := filepath.Join(attempt, RecordsDir, RunFile)
-	var run runRecord
+	path := filepath.Join(attempt, study.RecordsDir, record.MetaFile)
+	var run study.Run
 	if err := json.Unmarshal([]byte(readFile(t, path)), &run); err != nil {
 		t.Fatal(err)
 	}
@@ -32,29 +36,23 @@ func setOutcome(t *testing.T, attempt string, outcome study.Outcome) {
 	writeJSON(t, path, run)
 }
 
-func writeInputs(t *testing.T) string {
-	t.Helper()
-	path := filepath.Join(t.TempDir(), "inputs.json")
-	writeJSON(t, path, testInputs)
-	return path
-}
-
 func TestMainDetectsCountedAttemptsOnceTheRunPhaseEnded(t *testing.T) {
 	requireHostTools(t)
 	work := t.TempDir()
-	runs := filepath.Join(work, study.RunsDir)
-	counted := newAttempt(t, runs, "boxoffice-control-1-1", attemptSpec{end: removeSeniorTest})
-	void := newAttempt(t, runs, "boxoffice-control-1-2", attemptSpec{})
+	layout := study.Layout{Root: work}
+	const name = "boxoffice-control-1"
+	void := newAttempt(t, filepath.Join(work, study.RunsDir), filepath.Base(layout.RunDir(name, 1)), attemptSpec{})
 	setOutcome(t, void, study.OutcomeQuotaStop)
-	inputs := writeInputs(t)
+	counted := newAttempt(t, filepath.Join(work, study.RunsDir), filepath.Base(layout.RunDir(name, 2)), attemptSpec{end: removeSeniorTest})
 	detectorsOf := func(attempt string) string {
-		return filepath.Join(attempt, RecordsDir, study.DetectorsFile)
+		return filepath.Join(attempt, study.RecordsDir, study.DetectorsFile)
 	}
+	args := []string{"--work", work}
 
-	t.Run("[verifies SP-2579~1] refuses while the run phase is open", func(t *testing.T) {
+	t.Run("[verifies SP-2579~2] refuses while the run phase is open", func(t *testing.T) {
 		var stderr bytes.Buffer
-		code := run(context.Background(), wireHost(fixedPhase(false)), []string{"--work", work, "--inputs", inputs}, &bytes.Buffer{}, &stderr)
-		if code != exitRefused || !bytes.Contains(stderr.Bytes(), []byte(ErrRunPhaseOpen.Error())) {
+		code := wireHost(work, name, "boxoffice-treatment-1").Main(context.Background(), args, &bytes.Buffer{}, &stderr)
+		if code != exitRefused || !bytes.Contains(stderr.Bytes(), []byte(phase.ErrOpen.Error())) {
 			t.Fatalf("code %d, stderr %q", code, stderr.String())
 		}
 		if _, err := os.Stat(detectorsOf(counted)); !errors.Is(err, os.ErrNotExist) {
@@ -62,8 +60,8 @@ func TestMainDetectsCountedAttemptsOnceTheRunPhaseEnded(t *testing.T) {
 		}
 	})
 
-	t.Run("[verifies SP-2579~1] writes detectors.json for counted attempts only", func(t *testing.T) {
-		code := run(context.Background(), wireHost(fixedPhase(true)), []string{"--work", work, "--inputs", inputs}, &bytes.Buffer{}, &bytes.Buffer{})
+	t.Run("[verifies SP-2579~2] writes detectors.json for counted attempts only", func(t *testing.T) {
+		code := wireHost(work, name).Main(context.Background(), append(args, "--config", study.ConfigFile), &bytes.Buffer{}, &bytes.Buffer{})
 		if code != exitOK {
 			t.Fatalf("code %d", code)
 		}
@@ -79,11 +77,8 @@ func TestMainDetectsCountedAttemptsOnceTheRunPhaseEnded(t *testing.T) {
 		}
 	})
 
-	t.Run("[verifies SP-2579~1] a usage error and an unwired verb", func(t *testing.T) {
-		if code := run(context.Background(), wireHost(fixedPhase(true)), []string{"--unknown"}, &bytes.Buffer{}, &bytes.Buffer{}); code != exitUsage {
-			t.Fatalf("code %d", code)
-		}
-		if code := run(context.Background(), nil, []string{"--work", work, "--inputs", inputs}, &bytes.Buffer{}, &bytes.Buffer{}); code != exitRefused {
+	t.Run("[verifies SP-2579~2] a usage error", func(t *testing.T) {
+		if code := wireHost(work, name).Main(context.Background(), []string{"--unknown"}, &bytes.Buffer{}, &bytes.Buffer{}); code != exitUsage {
 			t.Fatalf("code %d", code)
 		}
 	})

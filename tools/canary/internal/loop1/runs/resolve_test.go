@@ -11,6 +11,7 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/runs/runstest"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
 func TestResolvePreparer(t *testing.T) {
@@ -39,6 +40,38 @@ func TestResolvePreparer(t *testing.T) {
 		}
 		if len(dirs) != len(w.Config.Arms) || slices.ContainsFunc(boxes.Mounts, func(m []box.Mount) bool { return m == nil }) {
 			t.Errorf("the arms were prepared in %v", dirs)
+		}
+	})
+}
+
+func TestControlEquipper(t *testing.T) {
+	w := runstest.NewWorld(t)
+	boxes := &runstest.BoxRunner{Engine: w.Engine}
+	equipper := runs.ControlEquipper{Options: w.Options, Box: boxes, Files: adapters.OSFiles{}, Tree: runs.OSTree{}}
+	configured := w.Config.Tasks[0]
+	tree := filepath.Join(w.Work, "trees", "equipped")
+	if err := (adapters.OSFiles{}).CopyTree(filepath.Join(w.Repo, configured.Fixture), tree); err != nil {
+		t.Fatal(err)
+	}
+	task := study.Task{Name: configured.Name, Prompt: configured.Prompt, Operations: configured.Operations}
+
+	t.Run("a tree of the acceptance checks is equipped beside it as a run of the control arm equips it, every step in the box with its run directory alone mounted [verifies SP-2641~1]", func(t *testing.T) {
+		project, err := equipper.EquipControl(context.Background(), tree, task)
+		if err != nil {
+			t.Fatal(err)
+		}
+		runDir := filepath.Dir(project)
+		if filepath.Dir(runDir) != filepath.Dir(tree) || filepath.Base(project) != study.ProjectDir || !strings.HasPrefix(filepath.Base(runDir), filepath.Base(tree)+runs.ControlRunSuffix) {
+			t.Fatalf("the project is %s", project)
+		}
+		settings := runstest.Read(t, filepath.Join(project, "shallnot.yaml"))
+		if !strings.Contains(settings, "require: []") {
+			t.Errorf("the control arm's gate requires proofs:\n%s", settings)
+		}
+		for _, mounts := range boxes.Mounts {
+			if len(mounts) != 1 || mounts[0].Path != runDir || mounts[0].ReadOnly {
+				t.Fatalf("a box command mounts %v", mounts)
+			}
 		}
 	})
 }

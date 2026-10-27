@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
 // The git invocation that reads a path of a commit or tree out of the run's
@@ -56,7 +57,7 @@ func (s snapshotReader) environment(from source) []string {
 	env := append([]string{}, boxEnv...)
 	if from == fromStopStore {
 		env = append(env,
-			envObjectDir+"="+filepath.Join(s.runDir, StopObjectsDir),
+			envObjectDir+"="+filepath.Join(s.runDir, study.StopObjectsDir),
 			envAlternates+"="+filepath.Join(s.gitDir(), "objects"))
 	}
 	return env

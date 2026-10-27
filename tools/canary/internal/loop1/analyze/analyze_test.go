@@ -16,6 +16,7 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/phase"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/stamp"
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -73,14 +74,14 @@ func newFixture(t *testing.T) fixture {
 	f.work = filepath.Join(f.home, ".work")
 	experiment := filepath.Join(f.repo, "experiments", "loop-1")
 	mustWrite(t, filepath.Join(experiment, "loop-1.json"), []byte("{}"))
-	mustJSON(t, filepath.Join(experiment, FreezeDir, InputsFile), map[string]any{
+	mustJSON(t, filepath.Join(experiment, study.FreezeDirName, study.InputsFile), map[string]any{
 		"order":        []string{blockedRun, countedRun},
 		"commits":      map[string]string{"prereg": "9058fee", "inputs": "abc123"},
 		"tasks":        []map[string]string{{"name": "boxoffice"}},
-		"construction": map[string]any{"dropped": []map[string]string{{"domain": "water bill", "reason": "A5 failed"}}},
+		"construction": records.Log{Drops: []records.Drop{{Domain: "water bill", Reason: "A5 failed"}}},
 	})
-	mustWrite(t, filepath.Join(experiment, FreezeDir, "prereg-commit.txt"), []byte("9058fee\n"))
-	mustWrite(t, filepath.Join(experiment, FreezeDir, "prereg-commit.tsr"), []byte("token"))
+	mustWrite(t, filepath.Join(experiment, study.FreezeDirName, "prereg-commit.txt"), []byte("9058fee\n"))
+	mustWrite(t, filepath.Join(experiment, study.FreezeDirName, "prereg-commit.tsr"), []byte("token"))
 	layout := study.Layout{Root: f.work}
 	start := time.Date(2026, 11, 2, 21, 0, 0, 0, time.UTC)
 	for attempt := 1; attempt <= 3; attempt++ {
@@ -151,7 +152,7 @@ func TestAnalyze(t *testing.T) {
 			summary.Runs[1].Facts == nil || len(summary.Runs[1].Attempts) != 2 || summary.Runs[1].Facts.BlockCounts["finding"] != 1 {
 			t.Fatalf("runs %+v", summary.Runs)
 		}
-		if summary.Digests[InputsFile] == "" || summary.Digests["work/runs/boxoffice-treatment-1-2/records/stream.jsonl"] == "" ||
+		if summary.Digests[study.InputsFile] == "" || summary.Digests["work/runs/boxoffice-treatment-1-2/records/stream.jsonl"] == "" ||
 			summary.Provenance.Tags[0].Time == nil || summary.Provenance.Tags[1].Time != nil || summary.Provenance.Dropped[0].Domain != "water bill" || summary.Provenance.Between != nil {
 			t.Fatalf("summary %+v %+v", summary.Digests, summary.Provenance)
 		}

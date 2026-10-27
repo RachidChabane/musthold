@@ -14,13 +14,9 @@ import (
 )
 
 const (
-	exitOK        = 0
-	exitRefused   = 1
-	exitUsage     = 2
-	defaultConfig = "experiments/loop-1/loop-1.json"
-	workVariable  = "LOOP1_WORK"
-	homeVariable  = "HOME"
-	defaultWork   = ".musthold-loop-1"
+	exitOK      = 0
+	exitRefused = 1
+	exitUsage   = 2
 )
 
 // Main lints results/REPORT.md beside the configuration against results/
@@ -28,15 +24,11 @@ const (
 // directory's: 0 when it is clean, 1 when a rule fails or a file cannot be read,
 // 2 on a usage error.
 func Main(_ context.Context, args []string, stdout, stderr io.Writer) int {
-	work := os.Getenv(workVariable)
-	if work == "" {
-		work = filepath.Join(os.Getenv(homeVariable), defaultWork)
-	}
 	flags := flag.NewFlagSet("report-lint", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	repo := flags.String("repo", ".", "repository root")
-	config := flags.String("config", defaultConfig, "the study's configuration, beside results/")
-	workDir := flags.String("work", work, "the work directory")
+	config := flags.String("config", study.ConfigFile, "the study's configuration, beside results/")
+	workDir := flags.String("work", study.DefaultWork(), "the work directory")
 	if err := flags.Parse(args); err != nil {
 		return exitUsage
 	}

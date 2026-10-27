@@ -118,7 +118,7 @@ func TestStore(t *testing.T) {
 		if err := store.WriteAuthor("d1", second, task); err != nil {
 			t.Fatal(err)
 		}
-		base := filepath.Join(repo, accept.TaskDir("d1"))
+		base := filepath.Join(repo, study.TaskDir("d1"))
 		for name, want := range map[string]bool{"fixture/b.py": true, "fixture/a.py": false, "violations/X-1/1/a.py": false, "oracle/pytest.ini": true} {
 			_, err := os.Stat(filepath.Join(base, name))
 			if (err == nil) != want {

@@ -71,6 +71,7 @@ tests.
 
 ## The verb
 
-- **SP-2579~1**: WHEN the verb runs THE SYSTEM SHALL refuse before the run phase
-  has ended, and otherwise detect every attempt whose outcome is counted, write
-  `detectors.json` into its records, and leave the other attempts untouched.
+- **SP-2579~2**: WHEN the verb runs THE SYSTEM SHALL refuse before the run phase
+  has ended, with the open runs the rule names, and otherwise detect the counted
+  attempt of every run of the order, write `detectors.json` into its records, and
+  leave the other attempts untouched.

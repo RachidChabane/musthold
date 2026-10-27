@@ -1,14 +1,16 @@
 package oracle
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/phase"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
@@ -34,10 +36,27 @@ const (
 	runName        = "demo-1-1"
 )
 
-// phaseStub is a PhaseEnded with a fixed answer.
-type phaseStub struct{ ended bool }
+// workPhase judges the scenario's work directory, every run that has a directory
+// at the call in the order; open refuses as an open run phase does.
+type workPhase struct {
+	work string
+	open bool
+}
 
-func (p phaseStub) Ended(context.Context) (bool, error) { return p.ended, nil }
+func (p workPhase) Counted() ([]phase.Attempt, error) {
+	if p.open {
+		return nil, phase.ErrOpen
+	}
+	entries, _ := os.ReadDir(filepath.Join(p.work, study.RunsDir))
+	var order []string
+	for _, entry := range entries {
+		run := entry.Name()[:strings.LastIndex(entry.Name(), "-")]
+		if !slices.Contains(order, run) {
+			order = append(order, run)
+		}
+	}
+	return phase.Reader{Layout: study.Layout{Root: p.work}, Order: order, Now: time.Now}.Counted()
+}
 
 // scenario is a repository and a work directory with one counted attempt of a
 // task with an oracle of two criteria and three violations.
@@ -62,11 +81,11 @@ func newScenario(t *testing.T) *scenario {
 	write(t, s.repo, "fixture/specs/s.md", "spec\n")
 	write(t, s.repo, "fixture/tests/test_base.py", "def test_base():\n")
 
-	write(t, s.repo, "truth/demo/reference/pkg/mod.py", "REF\n")
-	write(t, s.repo, "truth/demo/violations/DEMO-1/1/pkg/mod.py", "V11\n")
-	write(t, s.repo, "truth/demo/violations/DEMO-1/2/pkg/mod.py", "V12\n")
-	write(t, s.repo, "truth/demo/violations/DEMO-2/1/pkg/mod.py", "V21\n")
-	write(t, s.repo, "truth/demo/refactors/1/pkg/mod.py", "REFACTOR\n")
+	write(t, s.repo, "truth/demo/reference/mod.py", "REF\n")
+	write(t, s.repo, "truth/demo/violations/DEMO-1/1/mod.py", "V11\n")
+	write(t, s.repo, "truth/demo/violations/DEMO-1/2/mod.py", "V12\n")
+	write(t, s.repo, "truth/demo/violations/DEMO-2/1/mod.py", "V21\n")
+	write(t, s.repo, "truth/demo/refactors/1/mod.py", "REFACTOR\n")
 	write(t, s.repo, "truth/demo/oracle/pytest.ini", "[pytest]\n")
 	write(t, s.repo, "truth/demo/oracle/test_demo_1.py", "def test_a():\ndef test_b():  # flaky FLAKY\n")
 	write(t, s.repo, "truth/demo/oracle/test_demo_2.py", "def test_c():  # kills BAD2\n")
@@ -89,14 +108,14 @@ func newScenario(t *testing.T) *scenario {
 		"tree1":        {"tests/test_eq.py": equipped},
 		"tree2":        {"tests/test_eq.py": equipped, "tests/test_s.py": "def test_s():  # kills V21\n"},
 	}}
-	s.verb = NewVerb(s.repo, study.Layout{Root: s.work}, s.box, phaseStub{ended: true}, io.Discard)
+	s.verb = NewVerb(s.repo, study.Layout{Root: s.work}, s.box, workPhase{work: s.work}, io.Discard)
 	return s
 }
 
 func (s *scenario) writeRun(outcome study.Outcome) {
 	s.t.Helper()
-	record := attemptRecord{EquippedCommit: equippedCommit}
-	record.Task, record.Arm, record.Repetition, record.Attempt, record.Outcome = "demo", "control", 1, 1, outcome
+	record := study.Run{EquippedCommit: equippedCommit, Attempt: 1, Outcome: outcome}
+	record.Task, record.Arm, record.Repetition = "demo", "control", 1
 	data, err := json.Marshal(record)
 	if err != nil {
 		s.t.Fatal(err)

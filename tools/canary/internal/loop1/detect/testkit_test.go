@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/demoloop/record"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
@@ -132,7 +133,7 @@ type attemptSpec struct {
 func newAttempt(t *testing.T, parent, name string, spec attemptSpec) string {
 	t.Helper()
 	attempt := filepath.Join(parent, name)
-	project := filepath.Join(attempt, ProjectDir)
+	project := filepath.Join(attempt, study.ProjectDir)
 	if err := os.CopyFS(project, os.DirFS(filepath.Join(repoRoot(t), fixtureDir))); err != nil {
 		t.Fatal(err)
 	}
@@ -148,8 +149,8 @@ func newAttempt(t *testing.T, parent, name string, spec attemptSpec) string {
 		spec.end(t, project)
 	}
 
-	records := filepath.Join(attempt, RecordsDir)
-	writeJSON(t, filepath.Join(records, RunFile), runRecord{Outcome: study.OutcomeCompleted, EquippedCommit: equipped})
+	records := filepath.Join(attempt, study.RecordsDir)
+	writeJSON(t, filepath.Join(records, record.MetaFile), study.Run{Outcome: study.OutcomeCompleted, EquippedCommit: equipped})
 	writeJSON(t, filepath.Join(records, study.HashesBeforeFile), map[string]string{"shallnot.yaml": "aa", "AGENTS.md": "bb"})
 	hashesEnd := spec.hashesEnd
 	if hashesEnd == nil {
@@ -162,8 +163,8 @@ func newAttempt(t *testing.T, parent, name string, spec attemptSpec) string {
 		heldOut = study.HeldOut{study.DirEquipped: same, study.DirFinal: same}
 	}
 	writeJSON(t, filepath.Join(records, study.HeldOutFile), heldOut)
-	writeFile(t, filepath.Join(records, StreamFile), strings.Join(spec.stream, "\n")+"\n")
-	writeFile(t, filepath.Join(records, EgressFile), strings.Join(spec.egress, "\n")+"\n")
+	writeFile(t, filepath.Join(records, record.StreamFile), strings.Join(spec.stream, "\n")+"\n")
+	writeFile(t, filepath.Join(records, record.EgressFile), strings.Join(spec.egress, "\n")+"\n")
 	return attempt
 }
 
@@ -176,11 +177,11 @@ func writeJSON(t *testing.T, path string, value any) {
 	writeFile(t, path, string(data))
 }
 
-var testInputs = Inputs{EgressObserved: []string{"api.anthropic.com"}}
+var egressObserved = []string{"api.anthropic.com"}
 
 func detectAttempt(t *testing.T, attempt string) study.Detection {
 	t.Helper()
-	detection, err := Detect(context.Background(), hostRunner{}, attempt, testInputs)
+	detection, err := Detect(context.Background(), hostRunner{}, attempt, egressObserved)
 	if err != nil {
 		t.Fatal(err)
 	}

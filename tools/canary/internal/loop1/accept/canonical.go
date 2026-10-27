@@ -18,7 +18,7 @@ const (
 // WithStandardPaths returns the task with its fixture and truth paths set to the
 // standard layout under experiments/loop-1/tasks/<name>/.
 func WithStandardPaths(task study.Task) study.Task {
-	base := TaskDir(task.Name)
+	base := study.TaskDir(task.Name)
 	task.Fixture = path.Join(base, FixtureSubdir)
 	task.Truth = study.Truth{
 		Reference:  path.Join(base, ReferenceSubdir),

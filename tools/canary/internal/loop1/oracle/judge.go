@@ -18,6 +18,9 @@ type Truth struct {
 	Reference  string
 	Violations string
 	Oracle     string
+	// Base is the directory of the fixture, slash-separated, that the files of
+	// the reference and of each violation are relative to.
+	Base string
 }
 
 // TruthOf resolves a task's truth paths against the repository root.
@@ -27,12 +30,13 @@ func TruthOf(repo string, task study.Task) Truth {
 		Reference:  filepath.Join(repo, filepath.FromSlash(task.Truth.Reference)),
 		Violations: filepath.Join(repo, filepath.FromSlash(task.Truth.Violations)),
 		Oracle:     filepath.Join(repo, filepath.FromSlash(task.Truth.Oracle)),
+		Base:       task.TruthBase(),
 	}
 }
 
 // Violation is one held-out violation: its name <criterion>/<k> and its
-// directory, which holds full edited files mirroring the reference's relative
-// paths.
+// directory, which holds full edited files mirroring the reference's paths
+// relative to the truth base.
 type Violation struct {
 	Name string
 	Dir  string
@@ -261,13 +265,14 @@ func (j *Judge) measure(ctx context.Context, m measurement, dir testDir) (study.
 	return matrix, nil
 }
 
-// buildReferenceTree is the fixture with the reference applied, the test
-// directory in place of tests/ and the equipped commit's pytest.ini.
+// buildReferenceTree is the fixture with the reference applied at the truth
+// base, the test directory in place of tests/ and the equipped commit's
+// pytest.ini.
 func (j *Judge) buildReferenceTree(m measurement, tests, dst string) error {
 	if err := copyTree(m.truth.Fixture, dst, skipTopLevel(testsDirName)); err != nil {
 		return fmt.Errorf("%w: %v", ErrTruth, err)
 	}
-	if err := copyTree(m.truth.Reference, dst, skipNothing); err != nil {
+	if err := copyTree(m.truth.Reference, m.truth.at(dst), skipNothing); err != nil {
 		return fmt.Errorf("%w: %v", ErrTruth, err)
 	}
 	if err := os.MkdirAll(filepath.Join(dst, testsDirName), dirMode); err != nil {
@@ -279,8 +284,11 @@ func (j *Judge) buildReferenceTree(m measurement, tests, dst string) error {
 	return os.WriteFile(filepath.Join(dst, pytestIniFile), m.ini, fileMode)
 }
 
+// at is the truth base inside a tree.
+func (t Truth) at(tree string) string { return filepath.Join(tree, filepath.FromSlash(t.Base)) }
+
 // runViolation runs a test directory three times on the reference tree with one
-// violation applied, in a copy that is removed afterwards.
+// violation applied at the truth base, in a copy that is removed afterwards.
 func (j *Judge) runViolation(ctx context.Context, runner pytestRunner, m measurement, reference string, violation Violation, label string) ([study.HeldOutRuns]RunReport, error) {
 	var none [study.HeldOutRuns]RunReport
 	tree := filepath.Join(m.job, "violation-"+label+"-"+safeName(violation.Name))
@@ -288,7 +296,7 @@ func (j *Judge) runViolation(ctx context.Context, runner pytestRunner, m measure
 	if err := copyTree(reference, tree, skipNothing); err != nil {
 		return none, err
 	}
-	if err := copyTree(violation.Dir, tree, skipNothing); err != nil {
+	if err := copyTree(violation.Dir, m.truth.at(tree), skipNothing); err != nil {
 		return none, fmt.Errorf("%w: %v", ErrTruth, err)
 	}
 	out := filepath.Join(m.job, "out-violation-"+label+"-"+safeName(violation.Name))

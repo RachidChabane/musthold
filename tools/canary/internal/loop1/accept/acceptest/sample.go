@@ -142,7 +142,7 @@ func (s Sample) Task() study.Task {
 // Write lays the sample out under a repository root, task.json included.
 func (s Sample) Write(t testing.TB, repo string) {
 	t.Helper()
-	base := filepath.Join(repo, filepath.FromSlash(accept.TaskDir(s.Name)))
+	base := filepath.Join(repo, filepath.FromSlash(study.TaskDir(s.Name)))
 	for name, content := range s.Author {
 		write(t, filepath.Join(base, filepath.FromSlash(name)), content)
 	}
@@ -169,7 +169,7 @@ func write(t testing.TB, location, content string) {
 // Remove deletes one file of the sample from a written repository.
 func Remove(t testing.TB, repo, name, file string) {
 	t.Helper()
-	if err := os.Remove(filepath.Join(repo, filepath.FromSlash(accept.TaskDir(name)), filepath.FromSlash(file))); err != nil {
+	if err := os.Remove(filepath.Join(repo, filepath.FromSlash(study.TaskDir(name)), filepath.FromSlash(file))); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -177,7 +177,7 @@ func Remove(t testing.TB, repo, name, file string) {
 // Replace edits a written file of a task.
 func Replace(t testing.TB, repo, name, file, from, to string) {
 	t.Helper()
-	location := filepath.Join(repo, filepath.FromSlash(accept.TaskDir(name)), filepath.FromSlash(file))
+	location := filepath.Join(repo, filepath.FromSlash(study.TaskDir(name)), filepath.FromSlash(file))
 	data, err := os.ReadFile(location)
 	if err != nil {
 		t.Fatal(err)
