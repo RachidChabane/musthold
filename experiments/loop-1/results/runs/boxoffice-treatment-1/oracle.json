@@ -1,0 +1,1268 @@
+{
+  "tests": [
+    {
+      "id": "test_box_1::test_age_range_boundaries",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[12]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[13]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[14]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[15]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[16]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[17]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[18]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[19]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[20]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[21]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[22]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[23]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[24]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[25]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[26]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[27]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[28]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[29]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[30]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[31]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[32]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[33]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[34]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[35]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[36]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[37]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[38]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[39]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[40]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[41]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[42]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[43]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[44]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[45]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[46]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[47]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[48]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[49]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[50]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[51]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[52]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[53]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[54]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[55]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[56]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[57]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[58]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[59]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[60]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[61]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[62]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[63]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_all_standard_buyer_ages_cost_twelve_euros[64]",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_1::test_example",
+      "criterion": "BOX-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_example",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_lower_boundary",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[100]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[101]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[102]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[103]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[104]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[105]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[106]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[107]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[108]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[109]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[110]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[111]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[112]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[113]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[114]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[115]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[116]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[117]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[118]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[119]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[120]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[121]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[122]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[123]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[124]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[125]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[126]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[127]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[128]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[129]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[130]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[65]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[66]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[67]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[68]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[69]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[70]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[71]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[72]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[73]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[74]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[75]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[76]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[77]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[78]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[79]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[80]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[81]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[82]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[83]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[84]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[85]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[86]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[87]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[88]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[89]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[90]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[91]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[92]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[93]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[94]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[95]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[96]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[97]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[98]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_2::test_senior_buyer_ages_cost_eight_euros[99]",
+      "criterion": "BOX-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_3::test_age_range_boundaries",
+      "criterion": "BOX-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_3::test_child_buyer_ages_cost_six_euros[10]",
+      "criterion": "BOX-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_3::test_child_buyer_ages_cost_six_euros[11]",
+      "criterion": "BOX-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_3::test_child_buyer_ages_cost_six_euros[3]",
+      "criterion": "BOX-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_3::test_child_buyer_ages_cost_six_euros[4]",
+      "criterion": "BOX-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_3::test_child_buyer_ages_cost_six_euros[5]",
+      "criterion": "BOX-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_3::test_child_buyer_ages_cost_six_euros[6]",
+      "criterion": "BOX-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_3::test_child_buyer_ages_cost_six_euros[7]",
+      "criterion": "BOX-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_3::test_child_buyer_ages_cost_six_euros[8]",
+      "criterion": "BOX-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_3::test_child_buyer_ages_cost_six_euros[9]",
+      "criterion": "BOX-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_3::test_example",
+      "criterion": "BOX-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_4::test_all_under_three_ages_are_free[0]",
+      "criterion": "BOX-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_4::test_all_under_three_ages_are_free[1]",
+      "criterion": "BOX-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_4::test_all_under_three_ages_are_free[2]",
+      "criterion": "BOX-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_4::test_example",
+      "criterion": "BOX-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_box_4::test_upper_boundary",
+      "criterion": "BOX-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    }
+  ],
+  "timedOut": [
+    false,
+    false,
+    false
+  ],
+  "oomKilled": [
+    false,
+    false,
+    false
+  ],
+  "defective": false,
+  "violated": [],
+  "flaky": []
+}

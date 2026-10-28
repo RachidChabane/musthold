@@ -1,0 +1,150 @@
+{
+  "run": "bicycle-rental-control-2",
+  "task": "bicycle-rental",
+  "arm": "control",
+  "repetition": 2,
+  "attempt": 1,
+  "outcome": "completed",
+  "capped": false,
+  "accepted": true,
+  "defective": false,
+  "escaped": false,
+  "violated": [],
+  "flaky": [],
+  "calls": [
+    {
+      "n": 1,
+      "hooksLine": 813,
+      "exitCode": 0,
+      "decision": "pass",
+      "startedAt": "2026-10-27T18:43:36.375837286Z",
+      "durationMs": 356
+    }
+  ],
+  "blocks": [],
+  "blockCounts": {},
+  "giveUps": 0,
+  "findingCodes": {},
+  "strength": {
+    "final": "3/8",
+    "equipped": "1/8",
+    "contradicting": 0
+  },
+  "hits": {},
+  "testEdits": 0,
+  "cost": {
+    "mainMessages": 54,
+    "subagentMessages": 231,
+    "messages": 285,
+    "executors": 77,
+    "proveCommands": 15,
+    "notionalUsd": 2.4782483999999987,
+    "tokens": {
+      "claude-sonnet-5-5": {
+        "input": 570,
+        "output": 70805,
+        "cacheRead": 3485497,
+        "cacheCreation": 385811
+      }
+    },
+    "wallSeconds": 909.581,
+    "gateSeconds": 0.356
+  },
+  "voluntary": [
+    {
+      "line": 12,
+      "call": "Bash: cat \u003e\u003e tests/test_pricing.py \u003c\u003c'EOF'\n\n\n@pytest.mark.verifies(\"BIKE-4~1\")\ndef test_extended_rental_price_range():\n    assert rental_price(hours=80) == 30\n    assert rental_price(hours=81) == 45\n    assert rental_price(hours=82) == 45\n    assert rental_price(hours=100) == 45\n    assert rental_price(hours=1000) == 45\nEOF\nshallnot gate --json-out shallnot-report.json; echo $?\nmusthold-dp prove --changed; echo dp $?",
+      "findings": []
+    },
+    {
+      "line": 19,
+      "call": "Bash: musthold-dp prove --changed; echo \"dp=$?\"; musthold-alignment prove --changed; echo \"al=$?\"; musthold-completeness prove --changed; echo \"co=$?\"",
+      "findings": []
+    },
+    {
+      "line": 22,
+      "call": "Bash: musthold-dp prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 294,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 570,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 1618,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 1757,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2030,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "surviving_valid_mutant"
+      ]
+    },
+    {
+      "line": 2041,
+      "call": "Bash: shallnot gate --json-out shallnot-report.json 2\u003e\u00261 | tail -8; musthold-dp prove --changed",
+      "findings": []
+    },
+    {
+      "line": 2064,
+      "call": "Bash: musthold-verify --accept-local .musthold/cache --out .musthold/verified; musthold-alignment prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2207,
+      "call": "Bash: musthold-alignment prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2484,
+      "call": "Bash: musthold-alignment prove --resume",
+      "findings": []
+    },
+    {
+      "line": 2487,
+      "call": "Bash: musthold-verify --accept-local .musthold/cache --out .musthold/verified; musthold-completeness prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2561,
+      "call": "Bash: musthold-completeness prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2700,
+      "call": "Bash: musthold-completeness prove --resume",
+      "findings": []
+    }
+  ]
+}

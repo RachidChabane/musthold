@@ -1,0 +1,125 @@
+{
+  "tests": [
+    {
+      "id": "test_bike_1::test_every_duration_from_one_to_ten_hours_costs_ten_euros",
+      "criterion": "BIKE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_bike_1::test_example_five_hours_costs_ten_euros",
+      "criterion": "BIKE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_bike_1::test_upper_boundary_changes_price_at_eleven_hours",
+      "criterion": "BIKE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_bike_2::test_boundaries_on_both_sides_of_this_rate",
+      "criterion": "BIKE-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_bike_2::test_every_duration_from_eleven_to_thirty_hours_costs_eighteen_euros",
+      "criterion": "BIKE-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_bike_2::test_example_twenty_hours_costs_eighteen_euros",
+      "criterion": "BIKE-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_bike_3::test_boundaries_on_both_sides_of_this_rate",
+      "criterion": "BIKE-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_bike_3::test_every_duration_from_thirty_one_to_eighty_hours_costs_thirty_euros",
+      "criterion": "BIKE-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_bike_3::test_example_fifty_hours_costs_thirty_euros",
+      "criterion": "BIKE-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_bike_4::test_a_deterministic_range_of_durations_from_eighty_one_hours_costs_forty_five_euros",
+      "criterion": "BIKE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_bike_4::test_example_one_hundred_hours_costs_forty_five_euros",
+      "criterion": "BIKE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_bike_4::test_lower_boundary_changes_price_at_eighty_one_hours",
+      "criterion": "BIKE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    }
+  ],
+  "timedOut": [
+    false,
+    false,
+    false
+  ],
+  "oomKilled": [
+    false,
+    false,
+    false
+  ],
+  "defective": false,
+  "violated": [],
+  "flaky": []
+}

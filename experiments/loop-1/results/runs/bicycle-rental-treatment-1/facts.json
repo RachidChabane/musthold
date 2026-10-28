@@ -1,0 +1,227 @@
+{
+  "run": "bicycle-rental-treatment-1",
+  "task": "bicycle-rental",
+  "arm": "treatment",
+  "repetition": 1,
+  "attempt": 1,
+  "outcome": "completed",
+  "capped": false,
+  "accepted": true,
+  "defective": false,
+  "escaped": false,
+  "violated": [],
+  "flaky": [],
+  "calls": [
+    {
+      "n": 1,
+      "hooksLine": 594,
+      "exitCode": 2,
+      "decision": "block",
+      "startedAt": "2026-10-28T01:51:14.044573837Z",
+      "durationMs": 350
+    },
+    {
+      "n": 2,
+      "hooksLine": 905,
+      "exitCode": 0,
+      "decision": "pass",
+      "startedAt": "2026-10-28T01:54:13.349013754Z",
+      "durationMs": 334
+    }
+  ],
+  "blocks": [
+    {
+      "call": 1,
+      "kind": "pending",
+      "findings": [
+        {
+          "code": "stale_proof",
+          "criterion": "BIKE-1",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "BIKE-1",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "BIKE-2",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "BIKE-2",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "BIKE-3",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "BIKE-3",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "BIKE-4",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "BIKE-4",
+          "module": "musthold-dp"
+        }
+      ],
+      "edits": 0,
+      "passingCall": 2,
+      "corrected": false,
+      "onTarget": false,
+      "strengthened": null,
+      "left": false
+    }
+  ],
+  "blockCounts": {
+    "pending": 1
+  },
+  "giveUps": 0,
+  "findingCodes": {},
+  "strength": {
+    "final": "2/8",
+    "equipped": "1/8",
+    "contradicting": 0
+  },
+  "hits": {},
+  "testEdits": 0,
+  "cost": {
+    "mainMessages": 53,
+    "subagentMessages": 255,
+    "messages": 308,
+    "executors": 85,
+    "proveCommands": 16,
+    "notionalUsd": 2.593763999999999,
+    "tokens": {
+      "claude-sonnet-5-5": {
+        "input": 618,
+        "output": 74483,
+        "cacheRead": 3547730,
+        "cacheCreation": 408597
+      }
+    },
+    "wallSeconds": 707.638,
+    "gateSeconds": 0.684
+  },
+  "voluntary": [
+    {
+      "line": 10,
+      "call": "Bash: cat \u003e\u003e tests/test_pricing.py \u003c\u003c'EOF'\n\n\n@pytest.mark.verifies(\"BIKE-4~1\")\ndef test_extended_rental_price_range():\n    assert rental_price(hours=81) == 45\n    assert rental_price(hours=100) == 45\n    assert rental_price(hours=1000) == 45\nEOF\nshallnot gate --json-out shallnot-report.json; echo $?; musthold-dp prove --changed; echo $?",
+      "findings": []
+    },
+    {
+      "line": 21,
+      "call": "Skill: musthold:prove-all",
+      "findings": []
+    },
+    {
+      "line": 26,
+      "call": "Bash: musthold-dp prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 27,
+      "call": "Bash: musthold-alignment prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 28,
+      "call": "Bash: musthold-completeness prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 303,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 581,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 1624,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 1729,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 1933,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "surviving_valid_mutant"
+      ]
+    },
+    {
+      "line": 1944,
+      "call": "Bash: musthold-dp prove --changed",
+      "findings": []
+    },
+    {
+      "line": 1971,
+      "call": "Bash: musthold-alignment prove --changed; musthold-alignment request list --session prove",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2110,
+      "call": "Bash: musthold-alignment prove --resume; musthold-alignment request list --session prove",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2383,
+      "call": "Bash: musthold-alignment prove --resume; musthold-alignment request list --session prove",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2726,
+      "call": "Bash: musthold-alignment prove --resume; musthold-alignment request list --session prove",
+      "findings": []
+    },
+    {
+      "line": 2831,
+      "call": "Bash: musthold-completeness prove --resume; musthold-completeness request list --session prove",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2967,
+      "call": "Bash: musthold-completeness prove --resume; musthold-completeness request list --session prove",
+      "findings": []
+    }
+  ]
+}

@@ -1,0 +1,1067 @@
+{
+  "run": "library-late-fees-treatment-3",
+  "task": "library-late-fees",
+  "arm": "treatment",
+  "repetition": 3,
+  "attempt": 1,
+  "outcome": "completed",
+  "capped": false,
+  "accepted": false,
+  "defective": false,
+  "escaped": false,
+  "violated": [],
+  "flaky": [],
+  "calls": [
+    {
+      "n": 1,
+      "hooksLine": 226,
+      "exitCode": 2,
+      "decision": "block",
+      "startedAt": "2026-10-27T15:23:33.13929722Z",
+      "durationMs": 378
+    },
+    {
+      "n": 2,
+      "hooksLine": 600,
+      "exitCode": 2,
+      "decision": "block",
+      "startedAt": "2026-10-27T15:26:00.473153347Z",
+      "durationMs": 408
+    },
+    {
+      "n": 3,
+      "hooksLine": 601,
+      "exitCode": 2,
+      "decision": "block",
+      "startedAt": "2026-10-27T15:26:03.748339354Z",
+      "durationMs": 328
+    },
+    {
+      "n": 4,
+      "hooksLine": 656,
+      "exitCode": 1,
+      "decision": "give-up",
+      "startedAt": "2026-10-27T15:26:35.480016383Z",
+      "durationMs": 356
+    },
+    {
+      "n": 5,
+      "hooksLine": 713,
+      "exitCode": 2,
+      "decision": "block",
+      "startedAt": "2026-10-27T15:27:39.087007323Z",
+      "durationMs": 329
+    },
+    {
+      "n": 6,
+      "hooksLine": 767,
+      "exitCode": 2,
+      "decision": "block",
+      "startedAt": "2026-10-27T15:28:25.432044514Z",
+      "durationMs": 346
+    },
+    {
+      "n": 7,
+      "hooksLine": 861,
+      "exitCode": 2,
+      "decision": "block",
+      "startedAt": "2026-10-27T15:29:23.240696233Z",
+      "durationMs": 343
+    },
+    {
+      "n": 8,
+      "hooksLine": 885,
+      "exitCode": 1,
+      "decision": "give-up",
+      "startedAt": "2026-10-27T15:29:47.496002465Z",
+      "durationMs": 350
+    },
+    {
+      "n": 9,
+      "hooksLine": 889,
+      "exitCode": 2,
+      "decision": "block",
+      "startedAt": "2026-10-27T15:30:49.651762308Z",
+      "durationMs": 335
+    },
+    {
+      "n": 10,
+      "hooksLine": 890,
+      "exitCode": 2,
+      "decision": "block",
+      "startedAt": "2026-10-27T15:30:57.279593253Z",
+      "durationMs": 335
+    },
+    {
+      "n": 11,
+      "hooksLine": 891,
+      "exitCode": 2,
+      "decision": "block",
+      "startedAt": "2026-10-27T15:31:03.04527631Z",
+      "durationMs": 348
+    },
+    {
+      "n": 12,
+      "hooksLine": 892,
+      "exitCode": 1,
+      "decision": "give-up",
+      "startedAt": "2026-10-27T15:31:08.204818701Z",
+      "durationMs": 346
+    },
+    {
+      "n": 13,
+      "hooksLine": 1466,
+      "exitCode": 2,
+      "decision": "block",
+      "startedAt": "2026-10-27T15:52:22.143183385Z",
+      "durationMs": 344
+    },
+    {
+      "n": 14,
+      "hooksLine": 1546,
+      "exitCode": 2,
+      "decision": "block",
+      "startedAt": "2026-10-27T15:53:32.593997069Z",
+      "durationMs": 350
+    },
+    {
+      "n": 15,
+      "hooksLine": 1547,
+      "exitCode": 2,
+      "decision": "block",
+      "startedAt": "2026-10-27T15:53:41.234750305Z",
+      "durationMs": 344
+    },
+    {
+      "n": 16,
+      "hooksLine": 1548,
+      "exitCode": 1,
+      "decision": "give-up",
+      "startedAt": "2026-10-27T15:53:45.803444563Z",
+      "durationMs": 339
+    }
+  ],
+  "blocks": [
+    {
+      "call": 1,
+      "kind": "pending",
+      "findings": [
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-dp"
+        }
+      ],
+      "edits": 0,
+      "passingCall": 0,
+      "corrected": false,
+      "onTarget": false,
+      "strengthened": null,
+      "left": true
+    },
+    {
+      "call": 2,
+      "kind": "pending",
+      "findings": [
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-dp"
+        }
+      ],
+      "edits": 0,
+      "passingCall": 0,
+      "corrected": false,
+      "onTarget": false,
+      "strengthened": null,
+      "left": true
+    },
+    {
+      "call": 3,
+      "kind": "pending",
+      "findings": [
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-dp"
+        }
+      ],
+      "edits": 0,
+      "passingCall": 0,
+      "corrected": false,
+      "onTarget": false,
+      "strengthened": null,
+      "left": true
+    },
+    {
+      "call": 5,
+      "kind": "pending",
+      "findings": [
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-dp"
+        }
+      ],
+      "edits": 0,
+      "passingCall": 0,
+      "corrected": false,
+      "onTarget": false,
+      "strengthened": null,
+      "left": true
+    },
+    {
+      "call": 6,
+      "kind": "pending",
+      "findings": [
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-dp"
+        }
+      ],
+      "edits": 0,
+      "passingCall": 0,
+      "corrected": false,
+      "onTarget": false,
+      "strengthened": null,
+      "left": true
+    },
+    {
+      "call": 7,
+      "kind": "pending",
+      "findings": [
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-dp"
+        }
+      ],
+      "edits": 0,
+      "passingCall": 0,
+      "corrected": false,
+      "onTarget": false,
+      "strengthened": null,
+      "left": true
+    },
+    {
+      "call": 9,
+      "kind": "pending",
+      "findings": [
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-dp"
+        }
+      ],
+      "edits": 0,
+      "passingCall": 0,
+      "corrected": false,
+      "onTarget": false,
+      "strengthened": null,
+      "left": true
+    },
+    {
+      "call": 10,
+      "kind": "pending",
+      "findings": [
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-dp"
+        }
+      ],
+      "edits": 0,
+      "passingCall": 0,
+      "corrected": false,
+      "onTarget": false,
+      "strengthened": null,
+      "left": true
+    },
+    {
+      "call": 11,
+      "kind": "pending",
+      "findings": [
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-dp"
+        }
+      ],
+      "edits": 0,
+      "passingCall": 0,
+      "corrected": false,
+      "onTarget": false,
+      "strengthened": null,
+      "left": true
+    },
+    {
+      "call": 13,
+      "kind": "pending",
+      "findings": [
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-dp"
+        }
+      ],
+      "edits": 0,
+      "passingCall": 0,
+      "corrected": false,
+      "onTarget": false,
+      "strengthened": null,
+      "left": true
+    },
+    {
+      "call": 14,
+      "kind": "pending",
+      "findings": [
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-dp"
+        }
+      ],
+      "edits": 0,
+      "passingCall": 0,
+      "corrected": false,
+      "onTarget": false,
+      "strengthened": null,
+      "left": true
+    },
+    {
+      "call": 15,
+      "kind": "pending",
+      "findings": [
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-1",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-2",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-3",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-4",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-alignment"
+        },
+        {
+          "code": "stale_proof",
+          "criterion": "LATE-5",
+          "module": "musthold-dp"
+        }
+      ],
+      "edits": 0,
+      "passingCall": 0,
+      "corrected": false,
+      "onTarget": false,
+      "strengthened": null,
+      "left": true
+    }
+  ],
+  "blockCounts": {
+    "pending": 12
+  },
+  "giveUps": 4,
+  "findingCodes": {},
+  "strength": {
+    "final": "8/10",
+    "equipped": "5/10",
+    "contradicting": 0
+  },
+  "hits": {},
+  "testEdits": 0,
+  "cost": {
+    "mainMessages": 103,
+    "subagentMessages": 435,
+    "messages": 538,
+    "executors": 146,
+    "proveCommands": 24,
+    "notionalUsd": 2.0783481,
+    "tokens": {
+      "claude-sonnet-5-5": {
+        "input": 464,
+        "output": 64058,
+        "cacheRead": 2529348,
+        "cacheCreation": 331605
+      }
+    },
+    "wallSeconds": 2081.023,
+    "gateSeconds": 5.579
+  },
+  "voluntary": [
+    {
+      "line": 9,
+      "call": "Bash: python - \u003c\u003c'E'\np='library_fees/late_fees.py'\ns=open(p).read().replace(\"    return 6\\n\",\"    if days_overdue \u003c= 20:\\n        return 6\\n    return 10\\n\")\nopen(p,'w').write(s)\nE\ncat \u003e\u003e tests/test_late_fees.py \u003c\u003c'E'\n\n\n@pytest.mark.verifies(\"LATE-5~1\")\ndef test_maximum_late_fee_starts_at_the_21_day_boundary():\n    assert late_fee(days_overdue=21) == 10\n    assert late_fee(days_overdue=25) == 10\n    assert late_fee(days_overdue=20) == 6\nE\nshallnot gate --json-out shallnot-report.json; echo $?\nmusthold-dp prove --changed; echo dp $?\nmusthold-alignment prove --changed; echo al $?\nmusthold-completeness prove --changed; echo co $?",
+      "findings": []
+    },
+    {
+      "line": 20,
+      "call": "Skill: musthold:prove-all",
+      "findings": []
+    },
+    {
+      "line": 25,
+      "call": "Bash: musthold-dp prove --changed; echo \"exit $?\"",
+      "findings": []
+    },
+    {
+      "line": 28,
+      "call": "Bash: musthold-alignment prove --changed; echo \"exit $?\"",
+      "findings": []
+    },
+    {
+      "line": 31,
+      "call": "Bash: musthold-completeness prove --changed; echo \"exit $?\"",
+      "findings": []
+    },
+    {
+      "line": 34,
+      "call": "Bash: musthold-dp prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 36,
+      "call": "Bash: musthold-alignment prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 37,
+      "call": "Bash: musthold-completeness prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 383,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 730,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": []
+    },
+    {
+      "line": 2009,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": []
+    },
+    {
+      "line": 2200,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": []
+    },
+    {
+      "line": 2400,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": []
+    },
+    {
+      "line": 2588,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": []
+    },
+    {
+      "line": 2906,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": []
+    },
+    {
+      "line": 2988,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": []
+    },
+    {
+      "line": 4186,
+      "call": "Bash: musthold-alignment prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 4187,
+      "call": "Bash: musthold-completeness prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 4532,
+      "call": "Bash: musthold-alignment prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 4533,
+      "call": "Bash: musthold-completeness prove --resume",
+      "findings": []
+    },
+    {
+      "line": 4944,
+      "call": "Bash: musthold-alignment prove --resume",
+      "findings": []
+    },
+    {
+      "line": 4973,
+      "call": "Bash: musthold-dp prove --changed",
+      "findings": [
+        "host_unresponsive"
+      ]
+    },
+    {
+      "line": 4974,
+      "call": "Bash: musthold-alignment prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 5256,
+      "call": "Bash: musthold-alignment prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 5257,
+      "call": "Bash: musthold-dp prove --changed",
+      "findings": []
+    }
+  ]
+}

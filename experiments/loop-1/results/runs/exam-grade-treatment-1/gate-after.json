@@ -1,0 +1,526 @@
+{
+  "schema_version": "1.2",
+  "tool": {
+    "name": "shallnot",
+    "version": "c331f9b97d5b"
+  },
+  "run": {
+    "advisory": false,
+    "fail_on": "error",
+    "id_pattern": "[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*",
+    "statement_canonicalization": "c1",
+    "focus": {
+      "everything": true,
+      "files": [],
+      "ids": []
+    },
+    "spec_files": [
+      "specs/grades.md"
+    ],
+    "test_roots": [
+      "tests"
+    ],
+    "results_files": [
+      "test-results/pytest.xml"
+    ]
+  },
+  "verdict": "fail",
+  "exit_code": 1,
+  "summary": {
+    "requirements": {
+      "known": 5,
+      "in_focus": 5,
+      "covered": 5,
+      "failed": 0,
+      "skipped": 0,
+      "not_run": 0,
+      "uncovered": 0,
+      "non_testable": 0
+    },
+    "tests": {
+      "total": 5,
+      "bound": 5,
+      "untagged": 0
+    },
+    "findings": {
+      "error": 10,
+      "warning": 0,
+      "info": 0,
+      "blocking": 10
+    }
+  },
+  "requirements": [
+    {
+      "id": "GRADE-1",
+      "revision": 1,
+      "ref": "GRADE-1~1",
+      "statement": "WHEN the score is 90 or higher THE SYSTEM SHALL return \"A\". - Example: exam_grade(score=92) => \"A\"",
+      "statement_digest": "4926f4596edb5a9c6d68261c4f4c019be2eff984c45b87320240616c57bd3f2b",
+      "status": "active",
+      "location": {
+        "file": "specs/grades.md",
+        "line": 7
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "exam_grade",
+          "args": {
+            "score": {
+              "type": "integer",
+              "value": "92"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "string",
+            "value": "A"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_high_scores_receive_an_a",
+          "classname": "tests.test_grading",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_grading.py",
+            "line": 6
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "GRADE-2",
+      "revision": 1,
+      "ref": "GRADE-2~1",
+      "statement": "WHEN the score is from 80 through 89 THE SYSTEM SHALL return \"B\". - Example: exam_grade(score=85) => \"B\"",
+      "statement_digest": "01bb577a7109d2d097d9dcfd0cb6c425ccf87bd08e186cca5b001d76d2287608",
+      "status": "active",
+      "location": {
+        "file": "specs/grades.md",
+        "line": 9
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "exam_grade",
+          "args": {
+            "score": {
+              "type": "integer",
+              "value": "85"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "string",
+            "value": "B"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_eighty_five_receives_a_b",
+          "classname": "tests.test_grading",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_grading.py",
+            "line": 12
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "GRADE-3",
+      "revision": 1,
+      "ref": "GRADE-3~1",
+      "statement": "WHEN the score is from 70 through 79 THE SYSTEM SHALL return \"C\". - Example: exam_grade(score=74) => \"C\"",
+      "statement_digest": "92ebbb25e230d3946a3b2dce39cdf122afeae177937045f7afdefb1fac4772be",
+      "status": "active",
+      "location": {
+        "file": "specs/grades.md",
+        "line": 11
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "exam_grade",
+          "args": {
+            "score": {
+              "type": "integer",
+              "value": "74"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "string",
+            "value": "C"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_c_scores_cover_their_range",
+          "classname": "tests.test_grading",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_grading.py",
+            "line": 19
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "GRADE-4",
+      "revision": 1,
+      "ref": "GRADE-4~1",
+      "statement": "WHEN the score is from 60 through 69 THE SYSTEM SHALL return \"D\". - Example: exam_grade(score=63) => \"D\"",
+      "statement_digest": "795dfbff416e1cdf3524498b772887c9549ef33aaf5510839ee19ce8f95bbcff",
+      "status": "active",
+      "location": {
+        "file": "specs/grades.md",
+        "line": 13
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "exam_grade",
+          "args": {
+            "score": {
+              "type": "integer",
+              "value": "63"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "string",
+            "value": "D"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_d_scores_cover_their_range",
+          "classname": "tests.test_grading",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_grading.py",
+            "line": 25
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "GRADE-5",
+      "revision": 1,
+      "ref": "GRADE-5~1",
+      "statement": "WHEN the score is below 60, including a negative score THE SYSTEM SHALL return \"F\". - Example: exam_grade(score=59) => \"F\"",
+      "statement_digest": "a5eb61680d2f0c85604f46e37ec175f52792226ffb1d7cb84062933372d20b7c",
+      "status": "active",
+      "location": {
+        "file": "specs/grades.md",
+        "line": 15
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "exam_grade",
+          "args": {
+            "score": {
+              "type": "integer",
+              "value": "59"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "string",
+            "value": "F"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_scores_below_sixty_receive_an_f",
+          "classname": "tests.test_grading",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_grading.py",
+            "line": 31
+          }
+        }
+      ],
+      "extensions": {}
+    }
+  ],
+  "out_of_scope": [],
+  "findings": [
+    {
+      "category": "stale_proof",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement GRADE-1~1 has no valid alignment proof for test \"test_high_scores_receive_an_a\" (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill",
+      "requirement_id": "GRADE-1",
+      "module": "musthold-alignment",
+      "location": {
+        "file": "specs/grades.md",
+        "line": 7
+      }
+    },
+    {
+      "category": "stale_proof",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement GRADE-1~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill",
+      "requirement_id": "GRADE-1",
+      "module": "musthold-dp",
+      "location": {
+        "file": "specs/grades.md",
+        "line": 7
+      }
+    },
+    {
+      "category": "stale_proof",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement GRADE-2~1 has no valid alignment proof for test \"test_eighty_five_receives_a_b\" (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill",
+      "requirement_id": "GRADE-2",
+      "module": "musthold-alignment",
+      "location": {
+        "file": "specs/grades.md",
+        "line": 9
+      }
+    },
+    {
+      "category": "stale_proof",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement GRADE-2~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill",
+      "requirement_id": "GRADE-2",
+      "module": "musthold-dp",
+      "location": {
+        "file": "specs/grades.md",
+        "line": 9
+      }
+    },
+    {
+      "category": "stale_proof",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement GRADE-3~1 has no valid alignment proof for test \"test_c_scores_cover_their_range\" (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill",
+      "requirement_id": "GRADE-3",
+      "module": "musthold-alignment",
+      "location": {
+        "file": "specs/grades.md",
+        "line": 11
+      }
+    },
+    {
+      "category": "stale_proof",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement GRADE-3~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill",
+      "requirement_id": "GRADE-3",
+      "module": "musthold-dp",
+      "location": {
+        "file": "specs/grades.md",
+        "line": 11
+      }
+    },
+    {
+      "category": "stale_proof",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement GRADE-4~1 has no valid alignment proof for test \"test_d_scores_cover_their_range\" (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill",
+      "requirement_id": "GRADE-4",
+      "module": "musthold-alignment",
+      "location": {
+        "file": "specs/grades.md",
+        "line": 13
+      }
+    },
+    {
+      "category": "stale_proof",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement GRADE-4~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill",
+      "requirement_id": "GRADE-4",
+      "module": "musthold-dp",
+      "location": {
+        "file": "specs/grades.md",
+        "line": 13
+      }
+    },
+    {
+      "category": "stale_proof",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement GRADE-5~1 has no valid alignment proof for test \"test_scores_below_sixty_receive_an_f\" (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill",
+      "requirement_id": "GRADE-5",
+      "module": "musthold-alignment",
+      "location": {
+        "file": "specs/grades.md",
+        "line": 15
+      }
+    },
+    {
+      "category": "stale_proof",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement GRADE-5~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill",
+      "requirement_id": "GRADE-5",
+      "module": "musthold-dp",
+      "location": {
+        "file": "specs/grades.md",
+        "line": 15
+      }
+    }
+  ],
+  "extensions": {
+    "proofs": {
+      "trust": "local",
+      "policy": {
+        "signedPassBasis": "corroborated",
+        "minIsolation": "restricted",
+        "maxHostExclusions": 2,
+        "validityThreshold": 0.7,
+        "alignmentThreshold": 0.7,
+        "escalation": "error",
+        "isolationFloorLowered": false
+      },
+      "manifest": null,
+      "consumed": [],
+      "pending": [],
+      "criteria": [
+        {
+          "ref": "GRADE-1~1",
+          "modules": {
+            "alignment": {
+              "state": "missing",
+              "outcome": "absent"
+            },
+            "discriminating-power": {
+              "state": "missing",
+              "outcome": "absent"
+            }
+          },
+          "absent": [
+            "discriminating-power",
+            "alignment"
+          ],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        },
+        {
+          "ref": "GRADE-2~1",
+          "modules": {
+            "alignment": {
+              "state": "missing",
+              "outcome": "absent"
+            },
+            "discriminating-power": {
+              "state": "missing",
+              "outcome": "absent"
+            }
+          },
+          "absent": [
+            "discriminating-power",
+            "alignment"
+          ],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        },
+        {
+          "ref": "GRADE-3~1",
+          "modules": {
+            "alignment": {
+              "state": "missing",
+              "outcome": "absent"
+            },
+            "discriminating-power": {
+              "state": "missing",
+              "outcome": "absent"
+            }
+          },
+          "absent": [
+            "discriminating-power",
+            "alignment"
+          ],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        },
+        {
+          "ref": "GRADE-4~1",
+          "modules": {
+            "alignment": {
+              "state": "missing",
+              "outcome": "absent"
+            },
+            "discriminating-power": {
+              "state": "missing",
+              "outcome": "absent"
+            }
+          },
+          "absent": [
+            "discriminating-power",
+            "alignment"
+          ],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        },
+        {
+          "ref": "GRADE-5~1",
+          "modules": {
+            "alignment": {
+              "state": "missing",
+              "outcome": "absent"
+            },
+            "discriminating-power": {
+              "state": "missing",
+              "outcome": "absent"
+            }
+          },
+          "absent": [
+            "discriminating-power",
+            "alignment"
+          ],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        }
+      ]
+    }
+  }
+}

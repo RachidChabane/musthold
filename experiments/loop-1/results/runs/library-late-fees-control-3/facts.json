@@ -1,0 +1,183 @@
+{
+  "run": "library-late-fees-control-3",
+  "task": "library-late-fees",
+  "arm": "control",
+  "repetition": 3,
+  "attempt": 1,
+  "outcome": "completed",
+  "capped": false,
+  "accepted": true,
+  "defective": false,
+  "escaped": false,
+  "violated": [],
+  "flaky": [],
+  "calls": [
+    {
+      "n": 1,
+      "hooksLine": 221,
+      "exitCode": 0,
+      "decision": "pass",
+      "startedAt": "2026-10-27T18:53:54.13666434Z",
+      "durationMs": 365
+    },
+    {
+      "n": 2,
+      "hooksLine": 872,
+      "exitCode": 2,
+      "decision": "block",
+      "startedAt": "2026-10-27T18:59:36.754846805Z",
+      "durationMs": 334
+    },
+    {
+      "n": 3,
+      "hooksLine": 876,
+      "exitCode": 0,
+      "decision": "pass",
+      "startedAt": "2026-10-27T19:03:15.2571093Z",
+      "durationMs": 337
+    },
+    {
+      "n": 4,
+      "hooksLine": 880,
+      "exitCode": 0,
+      "decision": "pass",
+      "startedAt": "2026-10-27T19:03:19.778683583Z",
+      "durationMs": 348
+    }
+  ],
+  "blocks": [
+    {
+      "call": 2,
+      "kind": "finding",
+      "findings": [
+        {
+          "code": "surviving_valid_mutant",
+          "criterion": "LATE-2",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "surviving_valid_mutant",
+          "criterion": "LATE-2",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "surviving_valid_mutant",
+          "criterion": "LATE-2",
+          "module": "musthold-dp"
+        }
+      ],
+      "edits": 1,
+      "passingCall": 3,
+      "corrected": true,
+      "onTarget": true,
+      "strengthened": true,
+      "left": false
+    }
+  ],
+  "blockCounts": {
+    "finding": 1
+  },
+  "giveUps": 0,
+  "findingCodes": {
+    "surviving_valid_mutant": 3
+  },
+  "strength": {
+    "final": "8/10",
+    "equipped": "5/10",
+    "contradicting": 0
+  },
+  "hits": {},
+  "testEdits": 0,
+  "cost": {
+    "mainMessages": 60,
+    "subagentMessages": 249,
+    "messages": 309,
+    "executors": 84,
+    "proveCommands": 11,
+    "notionalUsd": 0.7370586000000002,
+    "tokens": {
+      "claude-sonnet-5-5": {
+        "input": 160,
+        "output": 26204,
+        "cacheRead": 774243,
+        "cacheCreation": 108281
+      }
+    },
+    "wallSeconds": 815.907,
+    "gateSeconds": 1.384
+  },
+  "voluntary": [
+    {
+      "line": 9,
+      "call": "Bash: python - \u003c\u003c'E'\np='library_fees/late_fees.py'\ns=open(p).read().replace(\"    return 6\\n\",\"    if days_overdue \u003c= 20:\\n        return 6\\n    return 10\\n\")\nopen(p,'w').write(s)\nE\ncat \u003e\u003e tests/test_late_fees.py \u003c\u003c'E'\n\n\n@pytest.mark.verifies(\"LATE-5~1\")\ndef test_maximum_late_fee_starts_at_the_21_day_boundary():\n    assert late_fee(days_overdue=21) == 10\n    assert late_fee(days_overdue=25) == 10\n    assert late_fee(days_overdue=100) == 10\nE\nshallnot gate --json-out shallnot-report.json; echo $?; musthold-dp prove --changed; echo $?",
+      "findings": []
+    },
+    {
+      "line": 20,
+      "call": "Bash: musthold-dp prove --changed; echo \"exit $?\"",
+      "findings": []
+    },
+    {
+      "line": 24,
+      "call": "Bash: musthold-dp prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 390,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 736,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": []
+    },
+    {
+      "line": 2046,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2217,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2392,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2572,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2915,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "host_unresponsive",
+        "surviving_valid_mutant"
+      ]
+    },
+    {
+      "line": 2948,
+      "call": "Bash: musthold-dp prove --changed",
+      "findings": [
+        "host_unresponsive"
+      ]
+    }
+  ]
+}

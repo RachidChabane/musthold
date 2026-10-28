@@ -1,0 +1,1706 @@
+<section class="musthold-loop">
+<style>
+.musthold-loop{font-family:system-ui,sans-serif;line-height:1.45;max-width:72rem}
+.musthold-loop pre{white-space:pre-wrap;overflow-wrap:anywhere;background:rgba(127,127,127,.08);padding:.6rem .8rem;border-radius:6px;font-size:.85rem}
+.musthold-loop .entry{border-left:3px solid rgba(127,127,127,.35);padding:.1rem 0 .1rem .8rem;margin:1rem 0}
+.musthold-loop .entry-gate{border-left-color:#b3541e}
+.musthold-loop .entry-gate.passed{border-left-color:#2f7d32}
+.musthold-loop .meta{opacity:.7;font-size:.8rem;margin-left:.5rem}
+.musthold-loop .add{color:#2f7d32}
+.musthold-loop .del{color:#b3261e}
+.musthold-loop .hunk{opacity:.7}
+.musthold-loop table{border-collapse:collapse}
+.musthold-loop td,.musthold-loop th{border-bottom:1px solid rgba(127,127,127,.25);padding:.2rem .8rem .2rem 0;text-align:left}
+</style>
+<h2>Agent loop: exam-grade, arm treatment, repetition 3</h2>
+<ul>
+<li>Model: claude-sonnet-5-5</li>
+<li>claude: 2.1.295 (Claude Code)</li>
+<li>colima: 0.10.3</li>
+<li>colima_cpus: 2</li>
+<li>colima_disk_bytes: 32212254720</li>
+<li>colima_memory_bytes: 4294967296</li>
+<li>docker_engine: 29.5.2</li>
+<li>git: 2.39.5</li>
+<li>host_arch: arm64</li>
+<li>host_os: Darwin</li>
+<li>host_os_version: 25.6.0</li>
+<li>musthold-alignment: musthold-alignment dev</li>
+<li>musthold-completeness: musthold-completeness dev</li>
+<li>musthold-dp: musthold-dp dev</li>
+<li>node: 24.22.1</li>
+<li>pytest: 9.1.1</li>
+<li>python: 3.13.14</li>
+<li>python3: Python 3.13.14</li>
+<li>shallnot: c331f9b97d5b96bdc18eba3b17be870c004dc239</li>
+<li>shallnot --version: shallnot c331f9b97d5b</li>
+<li>uv: 0.11.23</li>
+<li>Started: 2026-10-27 19:36:36 UTC</li>
+<li>Caps: 1500 assistant messages, 7200 s, 40.00 USD</li>
+</ul>
+<h3>Task</h3>
+<pre>Implement requirement GRADE-5 of specs/grades.md, return F below 60, in exams/grading.py, and add a test that verifies it. Tell me when the task is done.</pre>
+<h3>Session</h3>
+<article class="entry entry-command">
+<h4><time>0:06</time> Command<span class="meta">stream.jsonl:4</span></h4>
+<pre>$ cat shallnot.yaml specs/grades.md exams/grading.py; ls . tests exams; cat tests/*grad* | head -80</pre>
+<pre>version: 1
+specs:
+  - specs
+tests:
+  - tests
+results:
+  - test-results/pytest.xml
+test_commands:
+  - pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml
+proofs:
+  require: [discriminating-power, alignment]
+  trust: local
+  code:
+    - exams
+# Exam grades
+
+The examination system assigns a letter grade from a student&#39;s numeric score.
+
+## Grade scale
+
+- **GRADE-1~1**: WHEN the score is 90 or higher THE SYSTEM SHALL return &#34;A&#34;.
+  - Example: exam_grade(score=92) =&gt; &#34;A&#34;
+- **GRADE-2~1**: WHEN the score is from 80 through 89 THE SYSTEM SHALL return &#34;B&#34;.
+  - Example: exam_grade(score=85) =&gt; &#34;B&#34;
+- **GRADE-3~1**: WHEN the score is from 70 through 79 THE SYSTEM SHALL return &#34;C&#34;.
+  - Example: exam_grade(score=74) =&gt; &#34;C&#34;
+- **GRADE-4~1**: WHEN the score is from 60 through 69 THE SYSTEM SHALL return &#34;D&#34;.
+  - Example: exam_grade(score=63) =&gt; &#34;D&#34;
+- **GRADE-5~1**: WHEN the score is below 60, including a negative score THE SYSTEM SHALL return &#34;F&#34;.
+  - Example: exam_grade(score=59) =&gt; &#34;F&#34;
+def exam_grade(*, score):
+    if score &lt; 0:
+        return &#34;D&#34;
+    if score &gt;= 90:
+        return &#34;A&#34;
+    if score &gt;= 80:
+        return &#34;B&#34;
+    if score &gt;= 70:
+        return &#34;C&#34;
+    if score &gt;= 60:
+        return &#34;D&#34;
+    return &#34;F&#34;
+.:
+AGENTS.md
+CLAUDE.md
+conftest.py
+exams
+pytest.ini
+shallnot.yaml
+specs
+test-results
+tests
+
+exams:
+__init__.py
+grading.py
+
+tests:
+test_grading.py
+import pytest
+
+from exams import exam_grade
+
+
+@pytest.mark.verifies(&#34;GRADE-1~1&#34;)
+def test_high_scores_receive_an_a():
+    assert exam_grade(score=90) == &#34;A&#34;
+    assert exam_grade(score=100) == &#34;A&#34;
+
+
+@pytest.mark.verifies(&#34;GRADE-2~1&#34;)
+def test_eighty_five_receives_a_b():
+    assert exam_grade(score=85) == &#34;B&#34;
+
+
+@pytest.mark.verifies(&#34;GRADE-3~1&#34;)
+def test_c_scores_cover_their_range():
+    assert exam_grade(score=70) == &#34;C&#34;
+    assert exam_grade(score=79) == &#34;C&#34;
+
+
+@pytest.mark.verifies(&#34;GRADE-4~1&#34;)
+def test_d_scores_cover_their_range():
+    assert exam_grade(score=60) == &#34;D&#34;
+    assert exam_grade(score=69) == &#34;D&#34;</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:08</time> Agent<span class="meta">stream.jsonl:7</span></h4>
+<pre>The negative-score branch returns &#34;D&#34;, which contradicts GRADE-5. I&#39;ll remove it and add the test.</pre>
+</article>
+<article class="entry entry-edit">
+<h4><time>0:09</time> Edit<span class="meta">stream.jsonl:8</span></h4>
+<pre>&lt;run&gt;/project/exams/grading.py</pre>
+<pre><span class="del">-    if score &lt; 0:</span>
+<span class="del">-        return &#34;D&#34;</span></pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:09</time> Command<span class="meta">stream.jsonl:10</span></h4>
+<pre>$ cat &gt;&gt; tests/test_grading.py &lt;&lt;&#39;EOF&#39;
+
+
+@pytest.mark.verifies(&#34;GRADE-5~1&#34;)
+def test_scores_below_sixty_receive_an_f():
+    assert exam_grade(score=59) == &#34;F&#34;
+    assert exam_grade(score=0) == &#34;F&#34;
+    assert exam_grade(score=-1) == &#34;F&#34;
+    assert exam_grade(score=-100) == &#34;F&#34;
+EOF
+shallnot gate --json-out shallnot-report.json; echo gate=$?; musthold-dp prove --changed; echo dp=$?</pre>
+<pre>A variable in this command can&#39;t be checked before it runs</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:13</time> Command<span class="meta">stream.jsonl:13</span></h4>
+<pre>$ cat &gt;&gt; tests/test_grading.py &lt;&lt;&#39;EOF&#39;
+
+
+@pytest.mark.verifies(&#34;GRADE-5~1&#34;)
+def test_scores_below_sixty_receive_an_f():
+    assert exam_grade(score=59) == &#34;F&#34;
+    assert exam_grade(score=0) == &#34;F&#34;
+    assert exam_grade(score=-1) == &#34;F&#34;
+    assert exam_grade(score=-100) == &#34;F&#34;
+EOF
+shallnot gate --json-out shallnot-report.json; echo &#34;gate exit $?&#34;</pre>
+<pre>This Bash command contains multiple operations. The following part requires approval: echo &#34;gate exit $?&#34;</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:16</time> Command<span class="meta">stream.jsonl:16</span></h4>
+<pre>$ cat &gt;&gt; tests/test_grading.py &lt;&lt;&#39;EOF&#39;
+
+
+@pytest.mark.verifies(&#34;GRADE-5~1&#34;)
+def test_scores_below_sixty_receive_an_f():
+    assert exam_grade(score=59) == &#34;F&#34;
+    assert exam_grade(score=0) == &#34;F&#34;
+    assert exam_grade(score=-1) == &#34;F&#34;
+    assert exam_grade(score=-100) == &#34;F&#34;
+EOF
+shallnot gate --json-out shallnot-report.json</pre>
+<pre>Exit code 1
+shallnot: running pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml
+============================= test session starts ==============================
+platform linux -- Python 3.13.14, pytest-9.1.1, pluggy-1.7.0
+rootdir: &lt;run&gt;/project
+configfile: pytest.ini
+testpaths: tests
+collected 5 items
+
+tests/test_grading.py .....                                              [100%]
+
+- generated xml file: &lt;run&gt;/project/test-results/pytest.xml -
+============================== 5 passed in 0.04s ===============================
+shallnot: &#34;pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml&#34; exited with status 0
+shallnot: FAIL
+focus: every known requirement
+requirements: 5 known, 5 in focus (5 covered, 0 failed, 0 skipped, 0 not run, 0 uncovered, 0 non-testable)
+tests: 5 in results, 5 bound, 0 untagged
+findings: 10 error, 0 warning, 0 info (10 blocking)
+
+REQUIREMENTS
+  GRADE-1~1  covered  specs/grades.md:7
+      passed  tests.test_grading › test_high_scores_receive_an_a  tests/test_grading.py:6
+  GRADE-2~1  covered  specs/grades.md:9
+      passed  tests.test_grading › test_eighty_five_receives_a_b  tests/test_grading.py:12
+  GRADE-3~1  covered  specs/grades.md:11
+      passed  tests.test_grading › test_c_scores_cover_their_range  tests/test_grading.py:17
+  GRADE-4~1  covered  specs/grades.md:13
+      passed  tests.test_grading › test_d_scores_cover_their_range  tests/test_grading.py:23
+  GRADE-5~1  covered  specs/grades.md:15
+      passed  tests.test_grading › test_scores_below_sixty_receive_an_f  tests/test_grading.py:29
+
+FINDINGS
+  error  stale_proof  specs/grades.md:7   requirement GRADE-1~1 has no valid alignment proof for test &#34;test_high_scores_receive_an_a&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:7   requirement GRADE-1~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:9   requirement GRADE-2~1 has no valid alignment proof for test &#34;test_eighty_five_receives_a_b&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:9   requirement GRADE-2~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:11  requirement GRADE-3~1 has no valid alignment proof for test &#34;test_c_scores_cover_their_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:11  requirement GRADE-3~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:13  requirement GRADE-4~1 has no valid alignment proof for test &#34;test_d_scores_cover_their_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:13  requirement GRADE-4~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:15  requirement GRADE-5~1 has no valid alignment proof for test &#34;test_scores_below_sixty_receive_an_f&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:15  requirement GRADE-5~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:18</time> Agent<span class="meta">stream.jsonl:18</span></h4>
+<pre>Tests pass; only proofs are missing. I&#39;ll run the prove-all skill.</pre>
+</article>
+<article class="entry entry-skill">
+<h4><time>0:18</time> Skill<span class="meta">stream.jsonl:19</span></h4>
+<pre>musthold:prove-all</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:21</time> Command<span class="meta">stream.jsonl:22</span></h4>
+<pre>$ musthold-dp doctor; musthold-alignment doctor; musthold-completeness doctor</pre>
+<pre>ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok ecosystem pytest
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted
+ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok policy align_k=5 modal_min={0.8 map[]}
+ok host-files claude
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted
+ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok git /usr/bin/git
+ok policy tau_adv={0.5 map[]} decide_k=3
+ok host-files claude
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:23</time> Command<span class="meta">stream.jsonl:24</span></h4>
+<pre>$ musthold-dp prove --changed</pre>
+<pre>Exit code 3
+wave 1
+GRADE-1~1 awaiting_host
+GRADE-2~1 awaiting_host
+GRADE-3~1 awaiting_host
+GRADE-4~1 awaiting_host
+GRADE-5~1 awaiting_host
+awaiting_host 10 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:23</time> Command<span class="meta">stream.jsonl:25</span></h4>
+<pre>$ musthold-alignment prove --changed</pre>
+<pre>Exit code 3
+wave 1
+GRADE-1~1 tests.test_grading.test_high_scores_receive_an_a awaiting_host
+GRADE-2~1 tests.test_grading.test_eighty_five_receives_a_b awaiting_host
+GRADE-3~1 tests.test_grading.test_c_scores_cover_their_range awaiting_host
+GRADE-4~1 tests.test_grading.test_d_scores_cover_their_range awaiting_host
+GRADE-5~1 tests.test_grading.test_scores_below_sixty_receive_an_f awaiting_host
+awaiting_host 25 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:23</time> Command<span class="meta">stream.jsonl:26</span></h4>
+<pre>$ musthold-completeness prove --changed</pre>
+<pre>Exit code 3
+wave 1
+specs/grades.md awaiting_host 0 questions
+awaiting_host 3 tickets</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:31</time> Agent<span class="meta">stream.jsonl:30</span></h4>
+<pre>All three need a wave. I&#39;ll load the dp fulfil skill first.</pre>
+</article>
+<article class="entry entry-skill">
+<h4><time>0:31</time> Skill<span class="meta">stream.jsonl:31</span></h4>
+<pre>musthold-dp:musthold-dp-fulfil</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>1:32</time> Command<span class="meta">stream.jsonl:34</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>2261c8c133339cc80f214f8f6a87201f47df23be1e53542a006bc812b05024e9.0.1 musthold-dp:generator
+2261c8c133339cc80f214f8f6a87201f47df23be1e53542a006bc812b05024e9.1.1 musthold-dp:generator
+c9956e5c52a1dfdaec05953bf55eb9df000cf21e877b0b6dea8d4f76a3afcf21.0.1 musthold-dp:generator
+c9956e5c52a1dfdaec05953bf55eb9df000cf21e877b0b6dea8d4f76a3afcf21.1.1 musthold-dp:generator
+d3c9f4aa03e6b16c24cd81b4dc3483dd84bad23b57e7420b2019d015dd47954d.0.1 musthold-dp:generator
+d3c9f4aa03e6b16c24cd81b4dc3483dd84bad23b57e7420b2019d015dd47954d.1.1 musthold-dp:generator
+e5fdcbb1c70880265537e5ced9604beab679484b597ef0958aaa7d0e0866a2b3.0.1 musthold-dp:generator
+e5fdcbb1c70880265537e5ced9604beab679484b597ef0958aaa7d0e0866a2b3.1.1 musthold-dp:generator
+ff5eed7b152a6c01700c1c9413a98995930ff920bee98867361fbbbedea2d530.0.1 musthold-dp:generator
+ff5eed7b152a6c01700c1c9413a98995930ff920bee98867361fbbbedea2d530.1.1 musthold-dp:generator</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>1:34</time> Executors: 10 launched<span class="meta">stream.jsonl:36</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>2:30</time> Command<span class="meta">stream.jsonl:378</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 2
+GRADE-1~1 awaiting_host
+GRADE-2~1 awaiting_host
+GRADE-3~1 awaiting_host
+GRADE-4~1 awaiting_host
+GRADE-5~1 awaiting_host
+awaiting_host 10 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>2:31</time> Command<span class="meta">stream.jsonl:379</span></h4>
+<pre>$ musthold-alignment request list --session prove</pre>
+<pre>0c4e6a841199e77d675682d3c528eba042a750b458233919eb43c9ebb566acce.0.1 musthold-alignment:judge
+0c4e6a841199e77d675682d3c528eba042a750b458233919eb43c9ebb566acce.1.1 musthold-alignment:judge
+0c4e6a841199e77d675682d3c528eba042a750b458233919eb43c9ebb566acce.2.1 musthold-alignment:judge
+0c4e6a841199e77d675682d3c528eba042a750b458233919eb43c9ebb566acce.3.1 musthold-alignment:judge
+0c4e6a841199e77d675682d3c528eba042a750b458233919eb43c9ebb566acce.4.1 musthold-alignment:judge
+2bb5baad3c86c94e7e1659cf560100239907525311267f3b115eb3ab6646e74d.0.1 musthold-alignment:judge
+2bb5baad3c86c94e7e1659cf560100239907525311267f3b115eb3ab6646e74d.1.1 musthold-alignment:judge
+2bb5baad3c86c94e7e1659cf560100239907525311267f3b115eb3ab6646e74d.2.1 musthold-alignment:judge
+2bb5baad3c86c94e7e1659cf560100239907525311267f3b115eb3ab6646e74d.3.1 musthold-alignment:judge
+2bb5baad3c86c94e7e1659cf560100239907525311267f3b115eb3ab6646e74d.4.1 musthold-alignment:judge
+306cda81163c51c6f165731e0ef50a266f440874be7465e8fcf75e6a1c25d3fc.0.1 musthold-alignment:judge
+306cda81163c51c6f165731e0ef50a266f440874be7465e8fcf75e6a1c25d3fc.1.1 musthold-alignment:judge
+306cda81163c51c6f165731e0ef50a266f440874be7465e8fcf75e6a1c25d3fc.2.1 musthold-alignment:judge
+306cda81163c51c6f165731e0ef50a266f440874be7465e8fcf75e6a1c25d3fc.3.1 musthold-alignment:judge
+306cda81163c51c6f165731e0ef50a266f440874be7465e8fcf75e6a1c25d3fc.4.1 musthold-alignment:judge
+ae299ef288285b4f0ae4d3f7eb52fa468ed92afad19184b0b95f43aec069a450.0.1 musthold-alignment:judge
+ae299ef288285b4f0ae4d3f7eb52fa468ed92afad19184b0b95f43aec069a450.1.1 musthold-alignment:judge
+ae299ef288285b4f0ae4d3f7eb52fa468ed92afad19184b0b95f43aec069a450.2.1 musthold-alignment:judge
+ae299ef288285b4f0ae4d3f7eb52fa468ed92afad19184b0b95f43aec069a450.3.1 musthold-alignment:judge
+ae299ef288285b4f0ae4d3f7eb52fa468ed92afad19184b0b95f43aec069a450.4.1 musthold-alignment:judge
+fe7786ca61ae7f78a37a6da5f3965713ab8ff197c4b8588b7e15a15e1a4fca41.0.1 musthold-alignment:judge
+fe7786ca61ae7f78a37a6da5f3965713ab8ff197c4b8588b7e15a15e1a4fca41.1.1 musthold-alignment:judge
+fe7786ca61ae7f78a37a6da5f3965713ab8ff197c4b8588b7e15a15e1a4fca41.2.1 musthold-alignment:judge
+fe7786ca61ae7f78a37a6da5f3965713ab8ff197c4b8588b7e15a15e1a4fca41.3.1 musthold-alignment:judge
+fe7786ca61ae7f78a37a6da5f3965713ab8ff197c4b8588b7e15a15e1a4fca41.4.1 musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>2:31</time> Command<span class="meta">stream.jsonl:380</span></h4>
+<pre>$ musthold-completeness request list --session prove</pre>
+<pre>207eefe1670b8fef5531ecae7eeea8b9d5eb1ac995bf8cebd2c6f3d7c12f2c92.0.1 musthold-completeness:decider
+bc0789d09a87d2cdd0b3946c3032681e04242e948a0be7a77298d2f89e5cfdcb.0.1 musthold-completeness:decider
+f35c8e1bf4b43f6e9989fbe2bf0a3a3b091dacddbeaae25c10446847717b52ac.0.1 musthold-completeness:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>2:46</time> Command<span class="meta">stream.jsonl:409</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>08c483de5eb196eb7b48acf05e227272cc0a48c4a449ef26142f23ed37b999e8.0.1 musthold-dp:judge
+08c483de5eb196eb7b48acf05e227272cc0a48c4a449ef26142f23ed37b999e8.1.1 musthold-dp:judge
+16076f359ed48e268991b958e146199d3dd5e6a3e0f7e41e2a7e7896dab195bc.0.1 musthold-dp:judge
+16076f359ed48e268991b958e146199d3dd5e6a3e0f7e41e2a7e7896dab195bc.1.1 musthold-dp:judge
+215db7c53a87ee2884326b83be9ec91d7fb34558d079466919b0c05b78b20c6e.0.1 musthold-dp:judge
+215db7c53a87ee2884326b83be9ec91d7fb34558d079466919b0c05b78b20c6e.1.1 musthold-dp:judge
+362559c1568943c65ea817be59b14c24f516f41ea450e0fbfdffd2f552f6e18a.0.1 musthold-dp:judge
+362559c1568943c65ea817be59b14c24f516f41ea450e0fbfdffd2f552f6e18a.1.1 musthold-dp:judge
+c55e5adaf7850acfa9bc603ca723cae54b225e33af5fc395ea0240fd4adf4ea4.0.1 musthold-dp:judge
+c55e5adaf7850acfa9bc603ca723cae54b225e33af5fc395ea0240fd4adf4ea4.1.1 musthold-dp:judge</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>2:48</time> Agent<span class="meta">stream.jsonl:411</span></h4>
+<pre>Per the prove-all order, I&#39;ll run one wave for each module before starting the next wave. First the dp judges (4 at a time), then alignment and completeness.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>2:49</time> Executors: 10 launched<span class="meta">stream.jsonl:412</span></h4>
+<pre>musthold-dp:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>3:28</time> Command<span class="meta">stream.jsonl:750</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 3
+GRADE-1~1 awaiting_host
+GRADE-2~1 awaiting_host
+GRADE-3~1 awaiting_host
+GRADE-4~1 awaiting_host
+GRADE-5~1 awaiting_host
+awaiting_host 38 tickets</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>5:24</time> Agent<span class="meta">stream.jsonl:760</span></h4>
+<pre>dp wave 3 has 38 tickets. By the prove-all order, alignment and completeness run their first waves before dp&#39;s next one. I&#39;ll start with completeness (3 tickets), then alignment.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>5:25</time> Executors: 4 launched<span class="meta">stream.jsonl:761</span></h4>
+<pre>musthold-completeness:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>5:37</time> Command<span class="meta">stream.jsonl:895</span></h4>
+<pre>$ musthold-completeness prove --resume</pre>
+<pre>Exit code 3
+wave 2
+specs/grades.md awaiting_host 0 questions
+awaiting_host 6 tickets</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>5:38</time> Executors: 24 launched<span class="meta">stream.jsonl:897</span></h4>
+<pre>musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>9:00</time> Command<span class="meta">stream.jsonl:1731</span></h4>
+<pre>$ musthold-alignment prove --resume</pre>
+<pre>wave 2
+GRADE-1~1 tests.test_grading.test_high_scores_receive_an_a proved ALIGNED uncorroborated
+GRADE-2~1 tests.test_grading.test_eighty_five_receives_a_b proved ALIGNED uncorroborated
+GRADE-3~1 tests.test_grading.test_c_scores_cover_their_range proved ALIGNED uncorroborated
+GRADE-4~1 tests.test_grading.test_d_scores_cover_their_range proved ALIGNED uncorroborated
+GRADE-5~1 tests.test_grading.test_scores_below_sixty_receive_an_f proved ALIGNED uncorroborated</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>9:00</time> Command<span class="meta">stream.jsonl:1732</span></h4>
+<pre>$ musthold-completeness request list --session prove</pre>
+<pre>207eefe1670b8fef5531ecae7eeea8b9d5eb1ac995bf8cebd2c6f3d7c12f2c92.1.1 musthold-completeness:decider
+207eefe1670b8fef5531ecae7eeea8b9d5eb1ac995bf8cebd2c6f3d7c12f2c92.2.1 musthold-completeness:decider
+bc0789d09a87d2cdd0b3946c3032681e04242e948a0be7a77298d2f89e5cfdcb.1.1 musthold-completeness:decider
+bc0789d09a87d2cdd0b3946c3032681e04242e948a0be7a77298d2f89e5cfdcb.2.1 musthold-completeness:decider
+f35c8e1bf4b43f6e9989fbe2bf0a3a3b091dacddbeaae25c10446847717b52ac.1.1 musthold-completeness:decider
+f35c8e1bf4b43f6e9989fbe2bf0a3a3b091dacddbeaae25c10446847717b52ac.2.1 musthold-completeness:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>9:00</time> Command<span class="meta">stream.jsonl:1733</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>009f6727d0b480c982a7646b7b60526b3fd72978608aaaa4ee79087d3d4d711a.0.1 musthold-dp:decider
+009f6727d0b480c982a7646b7b60526b3fd72978608aaaa4ee79087d3d4d711a.1.1 musthold-dp:decider
+009f6727d0b480c982a7646b7b60526b3fd72978608aaaa4ee79087d3d4d711a.2.1 musthold-dp:decider
+1075b69eaee3832d5f9f3bbf1ffcb272686332d501f64c30790bf14c6e99e4dd.0.1 musthold-dp:decider
+1075b69eaee3832d5f9f3bbf1ffcb272686332d501f64c30790bf14c6e99e4dd.1.1 musthold-dp:decider
+1075b69eaee3832d5f9f3bbf1ffcb272686332d501f64c30790bf14c6e99e4dd.2.1 musthold-dp:decider
+1aee2b160e395b4babcb6774ef29756a66b25f81817089dae29656549da37ce8.0.1 musthold-dp:decider
+1aee2b160e395b4babcb6774ef29756a66b25f81817089dae29656549da37ce8.1.1 musthold-dp:decider
+1aee2b160e395b4babcb6774ef29756a66b25f81817089dae29656549da37ce8.2.1 musthold-dp:decider
+21292b2736c063e705eb63e8ea0c7dc4cf5997459d216554a8e55b8e6c207978.0.1 musthold-dp:decider
+21292b2736c063e705eb63e8ea0c7dc4cf5997459d216554a8e55b8e6c207978.1.1 musthold-dp:decider
+21292b2736c063e705eb63e8ea0c7dc4cf5997459d216554a8e55b8e6c207978.2.1 musthold-dp:decider
+3be1c5ddf5cd1d7847c1a7ba5dbe0f0890032356658086500130134ace18babf.0.1 musthold-dp:generator
+4a1a6351746c3291126643b9110612ab4abd92e7ccc43147e890463f4d7a7666.0.1 musthold-dp:generator
+4b761812349223d98be249abe705f18196758f0e9ad5fac927bf43c5a06607fa.0.1 musthold-dp:decider
+4b761812349223d98be249abe705f18196758f0e9ad5fac927bf43c5a06607fa.1.1 musthold-dp:decider
+4b761812349223d98be249abe705f18196758f0e9ad5fac927bf43c5a06607fa.2.1 musthold-dp:decider
+746f6a7b85a985f1a03bc88fd6716dcece5db3f7aac8905f342b59ea79f809a9.0.1 musthold-dp:decider
+746f6a7b85a985f1a03bc88fd6716dcece5db3f7aac8905f342b59ea79f809a9.1.1 musthold-dp:decider
+746f6a7b85a985f1a03bc88fd6716dcece5db3f7aac8905f342b59ea79f809a9.2.1 musthold-dp:decider
+8e159c77eef0aeda984ff86a65df973a5efae09c19ab483f636f5c1fcfe73e54.0.1 musthold-dp:decider
+8e159c77eef0aeda984ff86a65df973a5efae09c19ab483f636f5c1fcfe73e54.1.1 musthold-dp:decider
+8e159c77eef0aeda984ff86a65df973a5efae09c19ab483f636f5c1fcfe73e54.2.1 musthold-dp:decider
+a8e780da76313ae539bf4ea05f4e7a583451071c5e802ecb191fcacfa8ba93b7.0.1 musthold-dp:decider
+a8e780da76313ae539bf4ea05f4e7a583451071c5e802ecb191fcacfa8ba93b7.1.1 musthold-dp:decider
+a8e780da76313ae539bf4ea05f4e7a583451071c5e802ecb191fcacfa8ba93b7.2.1 musthold-dp:decider
+ab893e6bb11caab8e85acf0eb3c1f5823c7174361c65e5f5c96184e5517695b6.0.1 musthold-dp:generator
+b072c272cb0cbb117f8cf66451b4fa812707b71953ee7c3a24397dbf05e2c3ff.0.1 musthold-dp:generator
+c3084e0b9b6bb5ae60dae219fd43d1a40051a98da3638acdf49cfbce3d223ff0.0.1 musthold-dp:decider
+c3084e0b9b6bb5ae60dae219fd43d1a40051a98da3638acdf49cfbce3d223ff0.1.1 musthold-dp:decider
+c3084e0b9b6bb5ae60dae219fd43d1a40051a98da3638acdf49cfbce3d223ff0.2.1 musthold-dp:decider
+cba5f879c369e361ddeec0ba4186a5cccc0b0b35595d0e174bc821eaf84a6436.0.1 musthold-dp:decider
+cba5f879c369e361ddeec0ba4186a5cccc0b0b35595d0e174bc821eaf84a6436.1.1 musthold-dp:decider
+cba5f879c369e361ddeec0ba4186a5cccc0b0b35595d0e174bc821eaf84a6436.2.1 musthold-dp:decider
+cca7f96a8067cf364989be4755473ddcc8bcbae5bd332fc1400b2ec9012b6bb2.0.1 musthold-dp:generator
+e5e513f930f230758796c08a92d606fa105dc1bcb4790a430531393259f16a04.0.1 musthold-dp:decider
+e5e513f930f230758796c08a92d606fa105dc1bcb4790a430531393259f16a04.1.1 musthold-dp:decider
+e5e513f930f230758796c08a92d606fa105dc1bcb4790a430531393259f16a04.2.1 musthold-dp:decider</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>9:02</time> Agent<span class="meta">stream.jsonl:1740</span></h4>
+<pre>Alignment is done: all five tests are ALIGNED. Next are completeness wave 2 (6 tickets) and dp wave 3 (38 tickets).</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>9:04</time> Executors: 8 launched<span class="meta">stream.jsonl:1741</span></h4>
+<pre>musthold-completeness:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>9:32</time> Command<span class="meta">stream.jsonl:2011</span></h4>
+<pre>$ musthold-completeness prove --resume</pre>
+<pre>wave 3
+specs/grades.md proved 2 questions</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>9:33</time> Executors: 4 launched<span class="meta">stream.jsonl:2013</span></h4>
+<pre>musthold-dp:decider</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>9:46</time> Agent<span class="meta">stream.jsonl:2148</span></h4>
+<pre>Completeness is done (advisory, not blocking). 32 dp tickets remain in wave 3.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>9:47</time> Executors: 32 launched<span class="meta">stream.jsonl:2149</span></h4>
+<pre>musthold-dp:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>11:35</time> Command<span class="meta">stream.jsonl:3243</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 4
+GRADE-1~1 awaiting_host
+GRADE-2~1 awaiting_host
+GRADE-3~1 awaiting_host
+GRADE-4~1 awaiting_host
+GRADE-5~1 awaiting_host
+awaiting_host 5 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>11:44</time> Command<span class="meta">stream.jsonl:3247</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>3be1c5ddf5cd1d7847c1a7ba5dbe0f0890032356658086500130134ace18babf.0.2 musthold-dp:generator
+4a1a6351746c3291126643b9110612ab4abd92e7ccc43147e890463f4d7a7666.0.2 musthold-dp:generator
+ab893e6bb11caab8e85acf0eb3c1f5823c7174361c65e5f5c96184e5517695b6.0.2 musthold-dp:generator
+b072c272cb0cbb117f8cf66451b4fa812707b71953ee7c3a24397dbf05e2c3ff.0.2 musthold-dp:generator
+cca7f96a8067cf364989be4755473ddcc8bcbae5bd332fc1400b2ec9012b6bb2.0.2 musthold-dp:generator</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>11:47</time> Executors: 4 launched<span class="meta">stream.jsonl:3249</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>12:01</time> Agent<span class="meta">stream.jsonl:3381</span></h4>
+<pre>Update: dp is on its last wave, with 1 of 5 tickets left. Then I&#39;ll resume dp, publish the proofs and run the final gate.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>12:02</time> Executors: 1 launched<span class="meta">stream.jsonl:3382</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>12:12</time> Command<span class="meta">stream.jsonl:3415</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 5
+GRADE-1~1 awaiting_host
+GRADE-2~1 awaiting_host
+GRADE-3~1 awaiting_host
+GRADE-4~1 awaiting_host
+GRADE-5~1 awaiting_host
+awaiting_host 5 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>12:17</time> Command<span class="meta">stream.jsonl:3419</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>3be1c5ddf5cd1d7847c1a7ba5dbe0f0890032356658086500130134ace18babf.0.3 musthold-dp:generator
+4a1a6351746c3291126643b9110612ab4abd92e7ccc43147e890463f4d7a7666.0.3 musthold-dp:generator
+ab893e6bb11caab8e85acf0eb3c1f5823c7174361c65e5f5c96184e5517695b6.0.3 musthold-dp:generator
+b072c272cb0cbb117f8cf66451b4fa812707b71953ee7c3a24397dbf05e2c3ff.0.3 musthold-dp:generator
+cca7f96a8067cf364989be4755473ddcc8bcbae5bd332fc1400b2ec9012b6bb2.0.3 musthold-dp:generator</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>12:19</time> Agent<span class="meta">stream.jsonl:3424</span></h4>
+<pre>The generators are being asked again for the same five tickets (attempt 3), which is the normal retry path. I&#39;ll run this round.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>12:20</time> Executors: 5 launched<span class="meta">stream.jsonl:3425</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>12:46</time> Command<span class="meta">stream.jsonl:3593</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 6
+GRADE-1~1 awaiting_host
+GRADE-2~1 awaiting_host
+GRADE-3~1 awaiting_host
+GRADE-4~1 awaiting_host
+GRADE-5~1 awaiting_host
+awaiting_host 5 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>12:53</time> Command<span class="meta">stream.jsonl:3601</span></h4>
+<pre>$ musthold-dp request list --session prove; musthold-dp --help 2&gt;&amp;1 | head -30</pre>
+<pre>28376595d274d3001bd8a832f8588aaa06a21d78d5f5dfba4705d5940b583310.0.1 musthold-dp:generator
+44482587289a5fc843702d3832717d92f03cf2c5a61154ae26566a5fdfa64488.0.1 musthold-dp:generator
+59b4b1a2462ecbbe7863d99c77cd5908c04d984a90c897e894f7bfacba6b177c.0.1 musthold-dp:generator
+a7521d4cbd60dce9014ac4e0b9d3d708004f0cbbcce19745e51ab88acbbfe24d.0.1 musthold-dp:generator
+d73b3ab99f16d58e90b54b9a930955728a839f1c6c1b7dc562e9cc9502cfe170.0.1 musthold-dp:generator
+usage: musthold-dp &lt;version|prove|scan|request|systemone|doctor|init|enable|disable|mcp|hook|host|facts|help&gt;</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>12:55</time> Agent<span class="meta">stream.jsonl:3604</span></h4>
+<pre>These are new ticket IDs, so the run is progressing rather than repeating. I&#39;ll continue.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>12:56</time> Executors: 5 launched<span class="meta">stream.jsonl:3605</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>13:24</time> Command<span class="meta">stream.jsonl:3775</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 7
+GRADE-1~1 awaiting_host
+GRADE-2~1 awaiting_host
+GRADE-3~1 awaiting_host
+GRADE-4~1 awaiting_host
+GRADE-5~1 awaiting_host
+awaiting_host 10 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>13:34</time> Command<span class="meta">stream.jsonl:3779</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>04037bfb1728d66f62a51d21de21313bc71dd6ed362687963b7afebf5cf052d2.0.1 musthold-dp:judge
+04037bfb1728d66f62a51d21de21313bc71dd6ed362687963b7afebf5cf052d2.1.1 musthold-dp:judge
+3d9ea3aabd5ab418094d0e88d715631a940596c00cf7576dd179e31cbb94e58a.0.1 musthold-dp:judge
+3d9ea3aabd5ab418094d0e88d715631a940596c00cf7576dd179e31cbb94e58a.1.1 musthold-dp:judge
+606d9ffd872c30c86c8802e323d9302b308dc8490e531ce0177b773f9f7e0dc0.0.1 musthold-dp:judge
+606d9ffd872c30c86c8802e323d9302b308dc8490e531ce0177b773f9f7e0dc0.1.1 musthold-dp:judge
+a0218b636f53fe993f6c726b8ccf5e7cfdab17e5e54ea01cde57e2aa8f7c79ff.0.1 musthold-dp:judge
+a0218b636f53fe993f6c726b8ccf5e7cfdab17e5e54ea01cde57e2aa8f7c79ff.1.1 musthold-dp:judge
+ca8301bee9d261bba5dad4395a141ce359effda708ec59950edd5baca8038284.0.1 musthold-dp:judge
+ca8301bee9d261bba5dad4395a141ce359effda708ec59950edd5baca8038284.1.1 musthold-dp:judge</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>13:38</time> Executors: 10 launched<span class="meta">stream.jsonl:3781</span></h4>
+<pre>musthold-dp:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>14:27</time> Command<span class="meta">stream.jsonl:4131</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 1
+wave 8
+GRADE-1~1 proved ESCALATE
+  finding host_unresponsive
+GRADE-2~1 proved BLOCK
+  finding host_unresponsive
+  finding surviving_valid_mutant
+  survivor 252e665a832a: an operator mutant of family relational, which every test of the criterion passes, fails the witness test_r2_property_all_integers_in_range, which checks &#34;WHEN the score is from 80 through 89 THE SYSTEM SHALL return \&#34;B\&#34;&#34;:
+    def test_r2_property_all_integers_in_range():
+        rng = random.Random(2024)
+        for _ in range(300):
+            s = rng.randint(80, 89)
+            assert exam_grade(score=s) == &#34;B&#34;, s
+  survivor 48a8b48db183: an operator mutant of family numeric_constant, which every test of the criterion passes, fails the witness test_r2_property_all_integers_in_range, which checks &#34;WHEN the score is from 80 through 89 THE SYSTEM SHALL return \&#34;B\&#34;&#34;:
+    def test_r2_property_all_integers_in_range():
+        rng = random.Random(2024)
+        for _ in range(300):
+            s = rng.randint(80, 89)
+            assert exam_grade(score=s) == &#34;B&#34;, s
+  survivor e3c46fe2f44b: an operator mutant of family numeric_constant, which every test of the criterion passes, fails the witness test_r2_property_all_integers_in_range, which checks &#34;WHEN the score is from 80 through 89 THE SYSTEM SHALL return \&#34;B\&#34;&#34;:
+    def test_r2_property_all_integers_in_range():
+        rng = random.Random(2024)
+        for _ in range(300):
+            s = rng.randint(80, 89)
+            assert exam_grade(score=s) == &#34;B&#34;, s
+GRADE-3~1 proved ESCALATE
+  finding host_unresponsive
+GRADE-4~1 proved ESCALATE
+  finding host_unresponsive
+GRADE-5~1 proved ESCALATE
+  finding host_unresponsive</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>15:11</time> Agent<span class="meta">stream.jsonl:4140</span></h4>
+<pre>dp has ended with exit 1. I&#39;ll publish the proofs and run the gate to see the real state.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>15:11</time> Command<span class="meta">stream.jsonl:4141</span></h4>
+<pre>$ musthold-verify --accept-local .musthold/cache --out .musthold/verified</pre>
+<pre>verified 11 statements (0 signed, 11 local), trust local, 0 pending, written to .musthold/verified</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>15:13</time> Command<span class="meta">stream.jsonl:4143</span></h4>
+<pre>$ shallnot gate --json-out shallnot-report.json 2&gt;&amp;1 | sed -n &#39;/^shallnot: FAIL\|^shallnot: PASS/,$p&#39; | cut -c1-400</pre>
+<pre>This Bash command contains multiple operations. The following part requires approval: sed -n &#39;/^shallnot: FAIL\|^shallnot: PASS/,$p&#39;</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>15:14</time> Command<span class="meta">stream.jsonl:4146</span></h4>
+<pre>$ shallnot gate --json-out shallnot-report.json</pre>
+<pre>Exit code 1
+shallnot: running pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml
+============================= test session starts ==============================
+platform linux -- Python 3.13.14, pytest-9.1.1, pluggy-1.7.0
+rootdir: &lt;run&gt;/project
+configfile: pytest.ini
+testpaths: tests
+collected 5 items
+
+tests/test_grading.py .....                                              [100%]
+
+- generated xml file: &lt;run&gt;/project/test-results/pytest.xml -
+============================== 5 passed in 0.03s ===============================
+shallnot: &#34;pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml&#34; exited with status 0
+shallnot: FAIL
+focus: every known requirement
+requirements: 5 known, 5 in focus (5 covered, 0 failed, 0 skipped, 0 not run, 0 uncovered, 0 non-testable)
+tests: 5 in results, 5 bound, 0 untagged
+findings: 3 error, 0 warning, 2 info (3 blocking)
+
+REQUIREMENTS
+  GRADE-1~1  covered  specs/grades.md:7
+      passed  tests.test_grading › test_high_scores_receive_an_a  tests/test_grading.py:6
+  GRADE-2~1  covered  specs/grades.md:9
+      passed  tests.test_grading › test_eighty_five_receives_a_b  tests/test_grading.py:12
+  GRADE-3~1  covered  specs/grades.md:11
+      passed  tests.test_grading › test_c_scores_cover_their_range  tests/test_grading.py:17
+  GRADE-4~1  covered  specs/grades.md:13
+      passed  tests.test_grading › test_d_scores_cover_their_range  tests/test_grading.py:23
+  GRADE-5~1  covered  specs/grades.md:15
+      passed  tests.test_grading › test_scores_below_sixty_receive_an_f  tests/test_grading.py:29
+
+FINDINGS
+  info   completeness_question   specs/grades.md    completeness (error_handling): The specification does not say how error handling is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (error_handling): &lt;reason&gt;`.
+  info   completeness_question   specs/grades.md    completeness (input_validation): The specification does not say how input validation is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (input_validation): &lt;reason&gt;`.
+  error  surviving_valid_mutant  specs/grades.md:9  requirement GRADE-2~1: mutant 252e665a832a violates it and survived every test (judged VALID with a confirmed witness, a build and the other criteria&#39;s tests passing); every test passes on an operator mutant of family relational that fails the witness test_r2_property_all_integers_in_range, which checks &#34;WHEN the score is from 80 through 89 THE SYSTEM SHALL return \&#34;B\&#34;&#34;:
+    def test_r2_property_all_integers_in_range():
+        rng = random.Random(2024)
+        for _ in range(300):
+            s = rng.randint(80, 89)
+            assert exam_grade(score=s) == &#34;B&#34;, s
+  error  surviving_valid_mutant  specs/grades.md:9  requirement GRADE-2~1: mutant 48a8b48db183 violates it and survived every test (judged VALID with a confirmed witness, a build and the other criteria&#39;s tests passing); every test passes on an operator mutant of family numeric_constant that fails the witness test_r2_property_all_integers_in_range, which checks &#34;WHEN the score is from 80 through 89 THE SYSTEM SHALL return \&#34;B\&#34;&#34;:
+    def test_r2_property_all_integers_in_range():
+        rng = random.Random(2024)
+        for _ in range(300):
+            s = rng.randint(80, 89)
+            assert exam_grade(score=s) == &#34;B&#34;, s
+  error  surviving_valid_mutant  specs/grades.md:9  requirement GRADE-2~1: mutant e3c46fe2f44b violates it and survived every test (judged VALID with a confirmed witness, a build and the other criteria&#39;s tests passing); every test passes on an operator mutant of family numeric_constant that fails the witness test_r2_property_all_integers_in_range, which checks &#34;WHEN the score is from 80 through 89 THE SYSTEM SHALL return \&#34;B\&#34;&#34;:
+    def test_r2_property_all_integers_in_range():
+        rng = random.Random(2024)
+        for _ in range(300):
+            s = rng.randint(80, 89)
+            assert exam_grade(score=s) == &#34;B&#34;, s</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>15:21</time> Agent<span class="meta">stream.jsonl:4148</span></h4>
+<pre>GRADE-5 is implemented and tested, but the gate still exits 1 (blocked) because of the existing GRADE-2 test, which is outside what you asked me to change.
+
+**What I changed**
+- `exams/grading.py`: I removed the `if score &lt; 0: return &#34;D&#34;` branch. It made negative scores return &#34;D&#34;, which contradicts GRADE-5. Now every score below 60, negative included, falls through to &#34;F&#34;.
+- `tests/test_grading.py`: I added `test_scores_below_sixty_receive_an_f`, tagged `[verifies GRADE-5~1]`. It asserts &#34;F&#34; for 59, 0, -1 and -100.
+- I added no requirements. GRADE-5~1 already existed in `specs/grades.md`.
+
+**Results**
+- All 5 pytest tests pass, and GRADE-5 is reported covered by a passing test.
+- Alignment proved all five tests ALIGNED.
+- Completeness ran with nothing blocking. It raised two advisory questions: the spec says nothing about error handling or input validation.
+- I published the local proofs with `musthold-verify`.
+- **Discriminating power:** it exited 1 and the gate blocks on three `surviving_valid_mutant` errors, all on GRADE-2~1, not GRADE-5. `test_eighty_five_receives_a_b` only checks a score of 85. Three mutants of the 80–89 range pass it, so it needs boundary assertions on 80 and 89 (and ideally 79 and 90).
+- **GRADE-5 discriminating power:** it came back ESCALATE with `host_unresponsive`. The proof did not return a verdict either way, so the discriminating-power result for GRADE-5 is unconfirmed.
+
+I haven&#39;t strengthened the GRADE-2 test, because it&#39;s outside the request. Do you want me to add those boundary assertions? That should clear the three blocking findings. I&#39;d also re-run the dp proof to see whether the GRADE-5 escalation clears.</pre>
+</article>
+<article class="entry entry-gate blocked">
+<h4><time>15:21</time> Gate: blocked<span class="meta">hooks.jsonl:1219</span></h4>
+<pre>shallnot: the traceability gate is blocked by 3 finding(s). Resolve them before finishing:
+- surviving_valid_mutant at specs/grades.md:9: requirement GRADE-2~1: mutant 252e665a832a violates it and survived every test (judged VALID with a confirmed witness, a build and the other criteria&#39;s tests passing); every test passes on an operator mutant of family relational that fails the witness test_r2_property_all_integers_in_range, which checks &#34;WHEN the score is from 80 through 89 THE SYSTEM SHALL return \&#34;B\&#34;&#34;:
+    def test_r2_property_all_integers_in_range():
+        rng = random.Random(2024)
+        for _ in range(300):
+            s = rng.randint(80, 89)
+            assert exam_grade(score=s) == &#34;B&#34;, s
+- surviving_valid_mutant at specs/grades.md:9: requirement GRADE-2~1: mutant 48a8b48db183 violates it and survived every test (judged VALID with a confirmed witness, a build and the other criteria&#39;s tests passing); every test passes on an operator mutant of family numeric_constant that fails the witness test_r2_property_all_integers_in_range, which checks &#34;WHEN the score is from 80 through 89 THE SYSTEM SHALL return \&#34;B\&#34;&#34;:
+    def test_r2_property_all_integers_in_range():
+        rng = random.Random(2024)
+        for _ in range(300):
+            s = rng.randint(80, 89)
+            assert exam_grade(score=s) == &#34;B&#34;, s
+- surviving_valid_mutant at specs/grades.md:9: requirement GRADE-2~1: mutant e3c46fe2f44b violates it and survived every test (judged VALID with a confirmed witness, a build and the other criteria&#39;s tests passing); every test passes on an operator mutant of family numeric_constant that fails the witness test_r2_property_all_integers_in_range, which checks &#34;WHEN the score is from 80 through 89 THE SYSTEM SHALL return \&#34;B\&#34;&#34;:
+    def test_r2_property_all_integers_in_range():
+        rng = random.Random(2024)
+        for _ in range(300):
+            s = rng.randint(80, 89)
+            assert exam_grade(score=s) == &#34;B&#34;, s
+Never delete or alter a tag, mark a requirement non-testable, skip a test or weaken an assertion to clear a finding. If a requirement cannot be met or tested as written, stop and say so.</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>15:24</time> Agent<span class="meta">stream.jsonl:4158</span></h4>
+<pre>The hook wants the GRADE-2 findings resolved, and strengthening the test is the sanctioned fix. I&#39;ll add boundary assertions to it.</pre>
+</article>
+<article class="entry entry-edit">
+<h4><time>15:25</time> Edit<span class="meta">stream.jsonl:4159</span></h4>
+<pre>&lt;run&gt;/project/tests/test_grading.py</pre>
+<pre><span class="del">-def test_eighty_five_receives_a_b():</span>
+<span class="del">-    assert exam_grade(score=85) == &#34;B&#34;</span>
+<span class="add">+def test_eighty_five_receives_a_b():</span>
+<span class="add">+    assert exam_grade(score=85) == &#34;B&#34;</span>
+<span class="add">+    assert exam_grade(score=80) == &#34;B&#34;</span>
+<span class="add">+    assert exam_grade(score=89) == &#34;B&#34;</span>
+<span class="add">+    assert exam_grade(score=79) != &#34;B&#34;</span>
+<span class="add">+    assert exam_grade(score=90) != &#34;B&#34;</span></pre>
+</article>
+<article class="entry entry-command">
+<h4><time>15:25</time> Command<span class="meta">stream.jsonl:4160</span></h4>
+<pre>$ musthold-dp prove --changed</pre>
+<pre>Command did not complete within its 120s timeout and was moved to the background (ID: b6k58yd9e). Output is being written to: &lt;run&gt;/tmp/claude-502/&lt;run&gt;-project/46fe275c-e9b6-4383-a115-d2b97101b9cd/tasks/b6k58yd9e.output. You will be notified when it completes. If it is still running after 10m in the background, it will be stopped and you will be notified. To check interim output, use Read on that file path.</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>17:29</time> Agent<span class="meta">stream.jsonl:4170</span></h4>
+<pre>The dp proof is running in the background. I&#39;ll wait for its notification.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>17:30</time> Command<span class="meta">stream.jsonl:4171</span></h4>
+<pre>$ sleep 100; cat &lt;run&gt;/tmp/claude-502/&lt;run&gt;-project/46fe275c-e9b6-4383-a115-d2b97101b9cd/tasks/b6k58yd9e.output</pre>
+<pre>wave 9
+GRADE-1~1 proved ESCALATE
+  finding host_unresponsive
+GRADE-2~1 proved ESCALATE
+  finding host_unresponsive
+GRADE-3~1 proved ESCALATE
+  finding host_unresponsive
+GRADE-4~1 proved ESCALATE
+  finding host_unresponsive
+GRADE-5~1 proved ESCALATE
+  finding host_unresponsive
+
+[exited with code 1]</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>19:13</time> Agent<span class="meta">stream.jsonl:4182</span></h4>
+<pre>The surviving-mutant findings are gone. Every requirement now shows ESCALATE with `host_unresponsive`. I&#39;ll publish and run the gate.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>19:13</time> Command<span class="meta">stream.jsonl:4183</span></h4>
+<pre>$ musthold-verify --accept-local .musthold/cache --out .musthold/verified</pre>
+<pre>verified 16 statements (0 signed, 16 local), trust local, 0 pending, written to .musthold/verified</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>19:17</time> Command<span class="meta">stream.jsonl:4185</span></h4>
+<pre>$ shallnot gate --json-out shallnot-report.json</pre>
+<pre>Exit code 1
+shallnot: running pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml
+============================= test session starts ==============================
+platform linux -- Python 3.13.14, pytest-9.1.1, pluggy-1.7.0
+rootdir: &lt;run&gt;/project
+configfile: pytest.ini
+testpaths: tests
+collected 5 items
+
+tests/test_grading.py .....                                              [100%]
+
+- generated xml file: &lt;run&gt;/project/test-results/pytest.xml -
+============================== 5 passed in 0.04s ===============================
+shallnot: &#34;pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml&#34; exited with status 0
+shallnot: FAIL
+focus: every known requirement
+requirements: 5 known, 5 in focus (5 covered, 0 failed, 0 skipped, 0 not run, 0 uncovered, 0 non-testable)
+tests: 5 in results, 5 bound, 0 untagged
+findings: 5 error, 0 warning, 2 info (5 blocking)
+
+REQUIREMENTS
+  GRADE-1~1  covered  specs/grades.md:7
+      passed  tests.test_grading › test_high_scores_receive_an_a  tests/test_grading.py:6
+  GRADE-2~1  covered  specs/grades.md:9
+      passed  tests.test_grading › test_eighty_five_receives_a_b  tests/test_grading.py:12
+  GRADE-3~1  covered  specs/grades.md:11
+      passed  tests.test_grading › test_c_scores_cover_their_range  tests/test_grading.py:21
+  GRADE-4~1  covered  specs/grades.md:13
+      passed  tests.test_grading › test_d_scores_cover_their_range  tests/test_grading.py:27
+  GRADE-5~1  covered  specs/grades.md:15
+      passed  tests.test_grading › test_scores_below_sixty_receive_an_f  tests/test_grading.py:33
+
+FINDINGS
+  info   completeness_question  specs/grades.md     completeness (error_handling): The specification does not say how error handling is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (error_handling): &lt;reason&gt;`.
+  info   completeness_question  specs/grades.md     completeness (input_validation): The specification does not say how input validation is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (input_validation): &lt;reason&gt;`.
+  error  stale_proof            specs/grades.md:7   requirement GRADE-1~1 has no valid alignment proof for test &#34;test_high_scores_receive_an_a&#34; (the test_source file tests/test_grading.py changed since the proof was produced): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof            specs/grades.md:9   requirement GRADE-2~1 has no valid alignment proof for test &#34;test_eighty_five_receives_a_b&#34; (the test_source file tests/test_grading.py changed since the proof was produced): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof            specs/grades.md:11  requirement GRADE-3~1 has no valid alignment proof for test &#34;test_c_scores_cover_their_range&#34; (the test_source file tests/test_grading.py changed since the proof was produced): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof            specs/grades.md:13  requirement GRADE-4~1 has no valid alignment proof for test &#34;test_d_scores_cover_their_range&#34; (the test_source file tests/test_grading.py changed since the proof was produced): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof            specs/grades.md:15  requirement GRADE-5~1 has no valid alignment proof for test &#34;test_scores_below_sixty_receive_an_f&#34; (the test_source file tests/test_grading.py changed since the proof was produced): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>19:19</time> Agent<span class="meta">stream.jsonl:4190</span></h4>
+<pre>The surviving-mutant errors are gone. The remaining five are stale alignment proofs, because the test file changed. I&#39;ll re-run alignment.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>19:19</time> Command<span class="meta">stream.jsonl:4191</span></h4>
+<pre>$ musthold-alignment prove --changed</pre>
+<pre>Exit code 3
+wave 3
+GRADE-1~1 tests.test_grading.test_high_scores_receive_an_a awaiting_host
+GRADE-2~1 tests.test_grading.test_eighty_five_receives_a_b awaiting_host
+GRADE-3~1 tests.test_grading.test_c_scores_cover_their_range awaiting_host
+GRADE-4~1 tests.test_grading.test_d_scores_cover_their_range awaiting_host
+GRADE-5~1 tests.test_grading.test_scores_below_sixty_receive_an_f awaiting_host
+awaiting_host 5 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>19:21</time> Command<span class="meta">stream.jsonl:4193</span></h4>
+<pre>$ musthold-alignment request list --session prove</pre>
+<pre>71b37df5bc136d7e551cb50ef67cf97f0140ddc334c86b9f5eef0b10ed5caef7.0.1 musthold-alignment:decider
+847022fcbc45f4a9e9686a1ad52672a5dfb46cbe08424fff2b2c541f453523f6.0.1 musthold-alignment:decider
+9de710994f1bf4c1ded3769e09097944f4576acbff9ddabb18afc0de3b82a006.0.1 musthold-alignment:decider
+e9faf0aefac9fe1b5f75832ea507c8ababc625f259f3e1f51db9023223ce0686.0.1 musthold-alignment:decider
+f082a9dd983680fc2161233e5f783c2aaa41402c9b384e0e0411ec90a56b27ea.0.1 musthold-alignment:decider</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>19:24</time> Executors: 5 launched<span class="meta">stream.jsonl:4195</span></h4>
+<pre>musthold-alignment:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>19:57</time> Command<span class="meta">stream.jsonl:4365</span></h4>
+<pre>$ musthold-alignment prove --resume</pre>
+<pre>Exit code 3
+wave 4
+GRADE-1~1 tests.test_grading.test_high_scores_receive_an_a awaiting_host
+GRADE-2~1 tests.test_grading.test_eighty_five_receives_a_b awaiting_host
+GRADE-3~1 tests.test_grading.test_c_scores_cover_their_range awaiting_host
+GRADE-4~1 tests.test_grading.test_d_scores_cover_their_range awaiting_host
+GRADE-5~1 tests.test_grading.test_scores_below_sixty_receive_an_f awaiting_host
+awaiting_host 10 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>19:58</time> Command<span class="meta">stream.jsonl:4367</span></h4>
+<pre>$ musthold-alignment request list --session prove</pre>
+<pre>71b37df5bc136d7e551cb50ef67cf97f0140ddc334c86b9f5eef0b10ed5caef7.1.1 musthold-alignment:decider
+71b37df5bc136d7e551cb50ef67cf97f0140ddc334c86b9f5eef0b10ed5caef7.2.1 musthold-alignment:decider
+847022fcbc45f4a9e9686a1ad52672a5dfb46cbe08424fff2b2c541f453523f6.1.1 musthold-alignment:decider
+847022fcbc45f4a9e9686a1ad52672a5dfb46cbe08424fff2b2c541f453523f6.2.1 musthold-alignment:decider
+9de710994f1bf4c1ded3769e09097944f4576acbff9ddabb18afc0de3b82a006.1.1 musthold-alignment:decider
+9de710994f1bf4c1ded3769e09097944f4576acbff9ddabb18afc0de3b82a006.2.1 musthold-alignment:decider
+e9faf0aefac9fe1b5f75832ea507c8ababc625f259f3e1f51db9023223ce0686.1.1 musthold-alignment:decider
+e9faf0aefac9fe1b5f75832ea507c8ababc625f259f3e1f51db9023223ce0686.2.1 musthold-alignment:decider
+f082a9dd983680fc2161233e5f783c2aaa41402c9b384e0e0411ec90a56b27ea.1.1 musthold-alignment:decider
+f082a9dd983680fc2161233e5f783c2aaa41402c9b384e0e0411ec90a56b27ea.2.1 musthold-alignment:decider</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>20:05</time> Executors: 10 launched<span class="meta">stream.jsonl:4386</span></h4>
+<pre>musthold-alignment:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>20:51</time> Command<span class="meta">stream.jsonl:4725</span></h4>
+<pre>$ musthold-alignment prove --resume</pre>
+<pre>Exit code 3
+wave 5
+GRADE-1~1 tests.test_grading.test_high_scores_receive_an_a awaiting_host
+GRADE-2~1 tests.test_grading.test_eighty_five_receives_a_b proved ALIGNED
+GRADE-3~1 tests.test_grading.test_c_scores_cover_their_range proved ALIGNED
+GRADE-4~1 tests.test_grading.test_d_scores_cover_their_range awaiting_host
+GRADE-5~1 tests.test_grading.test_scores_below_sixty_receive_an_f awaiting_host
+awaiting_host 15 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>20:55</time> Command<span class="meta">stream.jsonl:4727</span></h4>
+<pre>$ musthold-alignment request list --session prove</pre>
+<pre>15b1f26f125961e4839ef6878ccc943e06b909377230cee649fc4e441d0a32a5.0.1 musthold-alignment:judge
+15b1f26f125961e4839ef6878ccc943e06b909377230cee649fc4e441d0a32a5.1.1 musthold-alignment:judge
+15b1f26f125961e4839ef6878ccc943e06b909377230cee649fc4e441d0a32a5.2.1 musthold-alignment:judge
+15b1f26f125961e4839ef6878ccc943e06b909377230cee649fc4e441d0a32a5.3.1 musthold-alignment:judge
+15b1f26f125961e4839ef6878ccc943e06b909377230cee649fc4e441d0a32a5.4.1 musthold-alignment:judge
+277091309f48ab0a02637f1f45942a7c55b5a721f533180769b16c52ea6a4f4e.0.1 musthold-alignment:judge
+277091309f48ab0a02637f1f45942a7c55b5a721f533180769b16c52ea6a4f4e.1.1 musthold-alignment:judge
+277091309f48ab0a02637f1f45942a7c55b5a721f533180769b16c52ea6a4f4e.2.1 musthold-alignment:judge
+277091309f48ab0a02637f1f45942a7c55b5a721f533180769b16c52ea6a4f4e.3.1 musthold-alignment:judge
+277091309f48ab0a02637f1f45942a7c55b5a721f533180769b16c52ea6a4f4e.4.1 musthold-alignment:judge
+2810154ad700a995c8555a93003912d074b2dcabe0256935cbaf6aaa9a0c850b.0.1 musthold-alignment:judge
+2810154ad700a995c8555a93003912d074b2dcabe0256935cbaf6aaa9a0c850b.1.1 musthold-alignment:judge
+2810154ad700a995c8555a93003912d074b2dcabe0256935cbaf6aaa9a0c850b.2.1 musthold-alignment:judge
+2810154ad700a995c8555a93003912d074b2dcabe0256935cbaf6aaa9a0c850b.3.1 musthold-alignment:judge
+2810154ad700a995c8555a93003912d074b2dcabe0256935cbaf6aaa9a0c850b.4.1 musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>21:02</time> Executors: 15 launched<span class="meta">stream.jsonl:4746</span></h4>
+<pre>musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>22:20</time> Command<span class="meta">stream.jsonl:5245</span></h4>
+<pre>$ musthold-alignment prove --resume</pre>
+<pre>wave 6
+GRADE-1~1 tests.test_grading.test_high_scores_receive_an_a proved ALIGNED
+GRADE-2~1 tests.test_grading.test_eighty_five_receives_a_b fresh ALIGNED
+GRADE-3~1 tests.test_grading.test_c_scores_cover_their_range fresh ALIGNED
+GRADE-4~1 tests.test_grading.test_d_scores_cover_their_range proved ALIGNED
+GRADE-5~1 tests.test_grading.test_scores_below_sixty_receive_an_f proved ALIGNED</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>22:23</time> Agent<span class="meta">stream.jsonl:5250</span></h4>
+<pre>Alignment is ALIGNED for all five tests. I&#39;ll publish and run the gate.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>22:23</time> Command<span class="meta">stream.jsonl:5251</span></h4>
+<pre>$ musthold-verify --accept-local .musthold/cache --out .musthold/verified</pre>
+<pre>verified 21 statements (0 signed, 21 local), trust local, 0 pending, written to .musthold/verified</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>22:25</time> Command<span class="meta">stream.jsonl:5253</span></h4>
+<pre>$ shallnot gate --json-out shallnot-report.json</pre>
+<pre>shallnot: running pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml
+============================= test session starts ==============================
+platform linux -- Python 3.13.14, pytest-9.1.1, pluggy-1.7.0
+rootdir: &lt;run&gt;/project
+configfile: pytest.ini
+testpaths: tests
+collected 5 items
+
+tests/test_grading.py .....                                              [100%]
+
+- generated xml file: &lt;run&gt;/project/test-results/pytest.xml -
+============================== 5 passed in 0.04s ===============================
+shallnot: &#34;pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml&#34; exited with status 0
+shallnot: PASS
+focus: every known requirement
+requirements: 5 known, 5 in focus (5 covered, 0 failed, 0 skipped, 0 not run, 0 uncovered, 0 non-testable)
+tests: 5 in results, 5 bound, 0 untagged
+findings: 0 error, 0 warning, 2 info (0 blocking)
+
+REQUIREMENTS
+  GRADE-1~1  covered  specs/grades.md:7
+      passed  tests.test_grading › test_high_scores_receive_an_a  tests/test_grading.py:6
+  GRADE-2~1  covered  specs/grades.md:9
+      passed  tests.test_grading › test_eighty_five_receives_a_b  tests/test_grading.py:12
+  GRADE-3~1  covered  specs/grades.md:11
+      passed  tests.test_grading › test_c_scores_cover_their_range  tests/test_grading.py:21
+  GRADE-4~1  covered  specs/grades.md:13
+      passed  tests.test_grading › test_d_scores_cover_their_range  tests/test_grading.py:27
+  GRADE-5~1  covered  specs/grades.md:15
+      passed  tests.test_grading › test_scores_below_sixty_receive_an_f  tests/test_grading.py:33
+
+FINDINGS
+  info  completeness_question  specs/grades.md  completeness (error_handling): The specification does not say how error handling is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (error_handling): &lt;reason&gt;`.
+  info  completeness_question  specs/grades.md  completeness (input_validation): The specification does not say how input validation is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (input_validation): &lt;reason&gt;`.</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>22:30</time> Agent<span class="meta">stream.jsonl:5255</span></h4>
+<pre>GRADE-5 is implemented and tested, and `shallnot gate` now passes with 0 blocking findings.
+
+- **Code:** in `exams/grading.py` I removed the `if score &lt; 0: return &#34;D&#34;` branch. Negative scores were getting &#34;D&#34;, which contradicted GRADE-5. Every score below 60, negative ones included, now returns &#34;F&#34;.
+- **GRADE-5 test:** I added `test_scores_below_sixty_receive_an_f` to `tests/test_grading.py`, tagged `[verifies GRADE-5~1]`. It checks 59, 0, -1 and -100.
+- **GRADE-2 test:** I also strengthened `test_eighty_five_receives_a_b`, which you didn&#39;t ask for. It only checked 85, so three mutants of the 80–89 range survived. That blocked the gate. I added assertions at 80 and 89 (must be &#34;B&#34;) and at 79 and 90 (must not be &#34;B&#34;). I didn&#39;t weaken any assertion, change any tag or touch the spec.
+- **Requirements:** I added and changed none. GRADE-5~1 already existed.
+- **Gate:** all 5 tests pass and all 5 requirements are covered. Alignment proved all five tests ALIGNED, and I published the proofs. The only remaining findings are two non-blocking info notes: the spec says nothing about error handling or input validation. That&#39;s for the spec&#39;s owner to decide.
+- **Discriminating power:** the discriminating-power proof I re-ran after the GRADE-2 edit returned ESCALATE (`host_unresponsive`) for all five requirements. That run found no surviving mutants, and I didn&#39;t answer its tickets, so I can&#39;t say it confirms GRADE-5&#39;s test would fail without the fix. Re-running it, or doing a manual check, would settle that.</pre>
+</article>
+<article class="entry entry-gate passed">
+<h4><time>22:30</time> Gate: passed<span class="meta">hooks.jsonl:1535</span></h4>
+<pre>shallnot: gate passed: 5 requirement(s) in focus covered by passing tests, 0 non-testable, no blocking finding.
+</pre>
+</article>
+<h3>Outcome</h3>
+<ul>
+<li>Session: ended by itself, exit code 0</li>
+<li>Result event: success, error false, 199 turns (stream.jsonl:5261)</li>
+<li>Gate after the session: pass, exit code 0 (gate-after.json)</li>
+</ul>
+<h3>Change the session made</h3>
+<p class="meta">change.diff</p>
+<pre>diff --git a/exams/grading.py b/exams/grading.py
+index c26ba5d..7ccc49c 100644
+--- a/exams/grading.py
++++ b/exams/grading.py
+<span class="hunk">@@ -1,6 +1,4 @@</span>
+ def exam_grade(*, score):
+<span class="del">-    if score &lt; 0:</span>
+<span class="del">-        return &#34;D&#34;</span>
+     if score &gt;= 90:
+         return &#34;A&#34;
+     if score &gt;= 80:
+diff --git a/shallnot-report.json b/shallnot-report.json
+new file mode 100644
+index 0000000..88c9d53
+--- /dev/null
++++ b/shallnot-report.json
+<span class="hunk">@@ -0,0 +1,594 @@</span>
+<span class="add">+{</span>
+<span class="add">+  &#34;schema_version&#34;: &#34;1.2&#34;,</span>
+<span class="add">+  &#34;tool&#34;: {</span>
+<span class="add">+    &#34;name&#34;: &#34;shallnot&#34;,</span>
+<span class="add">+    &#34;version&#34;: &#34;c331f9b97d5b&#34;</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;run&#34;: {</span>
+<span class="add">+    &#34;advisory&#34;: false,</span>
+<span class="add">+    &#34;fail_on&#34;: &#34;error&#34;,</span>
+<span class="add">+    &#34;id_pattern&#34;: &#34;[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*&#34;,</span>
+<span class="add">+    &#34;statement_canonicalization&#34;: &#34;c1&#34;,</span>
+<span class="add">+    &#34;focus&#34;: {</span>
+<span class="add">+      &#34;everything&#34;: true,</span>
+<span class="add">+      &#34;files&#34;: [],</span>
+<span class="add">+      &#34;ids&#34;: []</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;spec_files&#34;: [</span>
+<span class="add">+      &#34;specs/grades.md&#34;</span>
+<span class="add">+    ],</span>
+<span class="add">+    &#34;test_roots&#34;: [</span>
+<span class="add">+      &#34;tests&#34;</span>
+<span class="add">+    ],</span>
+<span class="add">+    &#34;results_files&#34;: [</span>
+<span class="add">+      &#34;test-results/pytest.xml&#34;</span>
+<span class="add">+    ]</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;verdict&#34;: &#34;pass&#34;,</span>
+<span class="add">+  &#34;exit_code&#34;: 0,</span>
+<span class="add">+  &#34;summary&#34;: {</span>
+<span class="add">+    &#34;requirements&#34;: {</span>
+<span class="add">+      &#34;known&#34;: 5,</span>
+<span class="add">+      &#34;in_focus&#34;: 5,</span>
+<span class="add">+      &#34;covered&#34;: 5,</span>
+<span class="add">+      &#34;failed&#34;: 0,</span>
+<span class="add">+      &#34;skipped&#34;: 0,</span>
+<span class="add">+      &#34;not_run&#34;: 0,</span>
+<span class="add">+      &#34;uncovered&#34;: 0,</span>
+<span class="add">+      &#34;non_testable&#34;: 0</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;tests&#34;: {</span>
+<span class="add">+      &#34;total&#34;: 5,</span>
+<span class="add">+      &#34;bound&#34;: 5,</span>
+<span class="add">+      &#34;untagged&#34;: 0</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;findings&#34;: {</span>
+<span class="add">+      &#34;error&#34;: 0,</span>
+<span class="add">+      &#34;warning&#34;: 0,</span>
+<span class="add">+      &#34;info&#34;: 2,</span>
+<span class="add">+      &#34;blocking&#34;: 0</span>
+<span class="add">+    }</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;requirements&#34;: [</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;GRADE-1&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;GRADE-1~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN the score is 90 or higher THE SYSTEM SHALL return \&#34;A\&#34;. - Example: exam_grade(score=92) =&gt; \&#34;A\&#34;&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;4926f4596edb5a9c6d68261c4f4c019be2eff984c45b87320240616c57bd3f2b&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 7</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;exam_grade&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;score&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;92&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;string&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;A&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_high_scores_receive_an_a&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_grading&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_grading.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 6</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;GRADE-2&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;GRADE-2~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN the score is from 80 through 89 THE SYSTEM SHALL return \&#34;B\&#34;. - Example: exam_grade(score=85) =&gt; \&#34;B\&#34;&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;01bb577a7109d2d097d9dcfd0cb6c425ccf87bd08e186cca5b001d76d2287608&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 9</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;exam_grade&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;score&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;85&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;string&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;B&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_eighty_five_receives_a_b&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_grading&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_grading.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 12</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;GRADE-3&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;GRADE-3~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN the score is from 70 through 79 THE SYSTEM SHALL return \&#34;C\&#34;. - Example: exam_grade(score=74) =&gt; \&#34;C\&#34;&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;92ebbb25e230d3946a3b2dce39cdf122afeae177937045f7afdefb1fac4772be&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 11</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;exam_grade&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;score&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;74&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;string&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;C&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_c_scores_cover_their_range&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_grading&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_grading.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 21</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;GRADE-4&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;GRADE-4~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN the score is from 60 through 69 THE SYSTEM SHALL return \&#34;D\&#34;. - Example: exam_grade(score=63) =&gt; \&#34;D\&#34;&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;795dfbff416e1cdf3524498b772887c9549ef33aaf5510839ee19ce8f95bbcff&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 13</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;exam_grade&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;score&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;63&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;string&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;D&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_d_scores_cover_their_range&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_grading&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_grading.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 27</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;GRADE-5&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;GRADE-5~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN the score is below 60, including a negative score THE SYSTEM SHALL return \&#34;F\&#34;. - Example: exam_grade(score=59) =&gt; \&#34;F\&#34;&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;a5eb61680d2f0c85604f46e37ec175f52792226ffb1d7cb84062933372d20b7c&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 15</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;exam_grade&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;score&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;59&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;string&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;F&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_scores_below_sixty_receive_an_f&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_grading&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_grading.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 33</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    }</span>
+<span class="add">+  ],</span>
+<span class="add">+  &#34;out_of_scope&#34;: [],</span>
+<span class="add">+  &#34;findings&#34;: [</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;completeness_question&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;info&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: false,</span>
+<span class="add">+      &#34;message&#34;: &#34;completeness (error_handling): The specification does not say how error handling is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (error_handling): &lt;reason&gt;`.&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-completeness&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;completeness_question&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;info&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: false,</span>
+<span class="add">+      &#34;message&#34;: &#34;completeness (input_validation): The specification does not say how input validation is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (input_validation): &lt;reason&gt;`.&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-completeness&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;</span>
+<span class="add">+      }</span>
+<span class="add">+    }</span>
+<span class="add">+  ],</span>
+<span class="add">+  &#34;extensions&#34;: {</span>
+<span class="add">+    &#34;proofs&#34;: {</span>
+<span class="add">+      &#34;trust&#34;: &#34;local&#34;,</span>
+<span class="add">+      &#34;policy&#34;: {</span>
+<span class="add">+        &#34;signedPassBasis&#34;: &#34;corroborated&#34;,</span>
+<span class="add">+        &#34;minIsolation&#34;: &#34;restricted&#34;,</span>
+<span class="add">+        &#34;maxHostExclusions&#34;: 2,</span>
+<span class="add">+        &#34;validityThreshold&#34;: 0.7,</span>
+<span class="add">+        &#34;alignmentThreshold&#34;: 0.7,</span>
+<span class="add">+        &#34;escalation&#34;: &#34;error&#34;,</span>
+<span class="add">+        &#34;isolationFloorLowered&#34;: false</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;manifest&#34;: {</span>
+<span class="add">+        &#34;path&#34;: &#34;.musthold/verified/manifest.json&#34;,</span>
+<span class="add">+        &#34;digest&#34;: &#34;bd759c47d3e57a81ce069607246898daa34eee0bd48f88f713d2ad8db5b57e3a&#34;,</span>
+<span class="add">+        &#34;verifierVersion&#34;: &#34;dev&#34;</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;consumed&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/GRADE-1~1/a401466c98038bb0fc8df219a7a5fabcbca67d60874b7c439950ad876d6403fc.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;4483f413d6c6c8df51f4ef51a56bc4b4ef5c7fef25a0b630eef9fe620d3a9efb&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-1~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/GRADE-1~1/eda61f6bcd5f5dab0c96fea8292cf7e9e37846e7efc9086ee4daf00248e9a7d1.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;1fc0c93193ee5752eae2ed6a393d549faa4c8ad4861cf59b9de22aa6e84f76d5&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-1~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_grading.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/GRADE-2~1/1369c6697b1d7c6821a70650a77c011c2e2c7b573cee7eb2aed3db860a3864e2.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;c8f6d48894527425f0a430310e75411cb1317ba74f0fd618523e1a568f6b6141&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-2~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_grading.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/GRADE-2~1/d6ecc9a85997da699932edfc3882d93445ff307e83f422534aec1e585ea4f841.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;336d4af2ee3f0fdbed2dc1107b8f143e12aee236fe9006cc27b803f1b7933060&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-2~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/GRADE-3~1/23c733915ced83b146b2a3294d924516ba791303baf4e03b0646229657c7c14a.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;f8828d16592313a89ae2d325f644d1bed7b9582e403ff5f28d06ae3442346a45&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-3~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_grading.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/GRADE-3~1/7d69589f28bd384be3de0973b84f11b59ca317889a38292760e52328b7b45386.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;7e9a86b8f2db2a04d9e3158b12e0443aebef3c9c6cf2d54e0d59f80044754d95&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-3~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/GRADE-4~1/6ab22c35a1b96fe2f6bd395bf96314efcd8ee2408341350e279416503d7ba855.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;3e5a102bb41a571f60fda4c84c5ac2df891ae49e0d6a65994eda64a573f1f1b4&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-4~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_grading.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/GRADE-4~1/e9d2459261937cf067b5cd1cebdcc26fdd5b8a03a0556c8e169888afbf8e1cae.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;fb6f03cb630e498d20530cbcbdb407febd1933bdb2be7df3db1aeecef039e47f&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-4~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/GRADE-5~1/60a81ace91f1beaf7c95b3a26248f246d553e70958d5cdad2877a268ee2a175c.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;f0cf7b27a75bed048aae4586ecee922071294fb9007b4ed0b1329ac5398887b2&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-5~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/GRADE-5~1/f00aa7f76073f7f33e895a0841f8b2d64db0bed31b6fd05c7fe96ce6357257da.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;bdcc9deab3df500f18506b707dde1c1a9bacc35dd788f5d7296a0b5efce8aa0a&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-5~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_grading.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/completeness/specs%2Fgrades.md/e528515647552161daf93b87446d03924786db9a8c91b6f7a71a771700cdcfdc.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;9931f5cad0c60f3724e93343aaa9b82d175420d1c731cd2fa3ed9b0b7c034a58&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/completeness/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/GRADE-1~1/41a124ace24119f500640ddb9fe547759dde1d1f2b96543578fa6fd3519c25d0.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;900bb815f921af0302dec541f0f4f44752f91fde05bd895b79ca0fd2121b1a07&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-1~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_grading.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/GRADE-1~1/b4f21477bc4eac4f9da0bd1983771b8f31522979362257cdfe90e31518a90336.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;059e6b2b48d16ca4f6d2de4a765a24b4018fe1c898503c6ce3d46d4c0e556d26&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-1~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/GRADE-2~1/24578b869bca2ed76060adac44e9390184ee68e062c4e90c717aac07b486f996.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;43c27cbaed7c74789cc694b93325710e78305df891922e706286e0016056cb50&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-2~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/GRADE-2~1/8e32acfe77c2e8b1746cf0a4008c4bffdb044c8f65f2dc81bf5eaff11114f63f.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;c114c9223508c820ed4d2f1d9b418d620b821b9590bd05e127666f17a3209f2c&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-2~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_grading.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/GRADE-3~1/3acb1e9b32ec82f36004726573aa95f22b65125651903048741b4e308e319000.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;b636fa166c3e16c8ae91579fb0e1ce62ca6ff936a1d700d3ec330da60c5767f4&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-3~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/GRADE-3~1/a52fe5a3c6198d444a065c7f89190e3b873ad92a53f788427f73f9ab5aa64306.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;4063a413990044e4403278c55f0b282735fad3fed195413c53b0f17db5db7a09&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-3~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_grading.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/GRADE-4~1/7f6a3569ecd2bcea6f6bc1d6bb23b8b94077a4724a10641da141ae1f410b2d95.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;57e505d15fd9592ead684e031559f46e1169ff1159582db75625acaa35291d4b&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-4~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/GRADE-4~1/e7afb34e6f628197a79c22b6d8f5a3b785c8afb8c6d3ec838bd56f676fd0d44d.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;6bb809765c76176acda0a0f3cd11ac3e666593e67fa5ef93f1a7105646029afc&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-4~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_grading.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/GRADE-5~1/3966c8187ee382b0ed5ac2e27b2298c2cbaedacd3bc03099f1f1899b68d61cd5.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;acc4372746ba5dc2da4b6bbdaff2625730a04af0873428bb10521243dbf65a61&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-5~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/GRADE-5~1/4fb7a387aa40a9c8f4a3b3029c0ad026f906e62709b074b263ddca0ab7827e93.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;41be524f86a3e65888af5d2be5f52ac446dd93a9ae9e696c1672f134f4003d1a&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;GRADE-5~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_grading.py changed since the proof was produced&#34;</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;pending&#34;: [],</span>
+<span class="add">+      &#34;criteria&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;GRADE-1~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 8</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted-attested&#34;: 8</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 9</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;GRADE-2~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 12</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted-attested&#34;: 12</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 5</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;GRADE-3~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 16</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted&#34;: 15,</span>
+<span class="add">+            &#34;restricted-attested&#34;: 1</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 8</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;GRADE-4~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 20</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted-attested&#34;: 20</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 8</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;GRADE-5~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 19</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted-attested&#34;: 19</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 11</span>
+<span class="add">+        }</span>
+<span class="add">+      ]</span>
+<span class="add">+    }</span>
+<span class="add">+  }</span>
+<span class="add">+}</span>
+diff --git a/tests/test_grading.py b/tests/test_grading.py
+index 45d6012..9823b3a 100644
+--- a/tests/test_grading.py
++++ b/tests/test_grading.py
+<span class="hunk">@@ -12,6 +12,10 @@ def test_high_scores_receive_an_a():</span>
+ @pytest.mark.verifies(&#34;GRADE-2~1&#34;)
+ def test_eighty_five_receives_a_b():
+     assert exam_grade(score=85) == &#34;B&#34;
+<span class="add">+    assert exam_grade(score=80) == &#34;B&#34;</span>
+<span class="add">+    assert exam_grade(score=89) == &#34;B&#34;</span>
+<span class="add">+    assert exam_grade(score=79) != &#34;B&#34;</span>
+<span class="add">+    assert exam_grade(score=90) != &#34;B&#34;</span>
+ 
+ 
+ @pytest.mark.verifies(&#34;GRADE-3~1&#34;)
+<span class="hunk">@@ -24,3 +28,11 @@ def test_c_scores_cover_their_range():</span>
+ def test_d_scores_cover_their_range():
+     assert exam_grade(score=60) == &#34;D&#34;
+     assert exam_grade(score=69) == &#34;D&#34;
+<span class="add">+</span>
+<span class="add">+</span>
+<span class="add">+@pytest.mark.verifies(&#34;GRADE-5~1&#34;)</span>
+<span class="add">+def test_scores_below_sixty_receive_an_f():</span>
+<span class="add">+    assert exam_grade(score=59) == &#34;F&#34;</span>
+<span class="add">+    assert exam_grade(score=0) == &#34;F&#34;</span>
+<span class="add">+    assert exam_grade(score=-1) == &#34;F&#34;</span>
+<span class="add">+    assert exam_grade(score=-100) == &#34;F&#34;</span></pre>
+<h3>Counts and timings</h3>
+<table>
+<tr><th>Measure</th><th>Value</th></tr>
+<tr><td>Assistant messages, main agent</td><td>83</td></tr>
+<tr><td>Assistant messages, subagents</td><td>441</td></tr>
+<tr><td>Executors launched</td><td>147</td></tr>
+<tr><td>Prove runs</td><td>19</td></tr>
+<tr><td>Gate runs, blocked</td><td>1</td></tr>
+<tr><td>Gate runs, passed</td><td>1</td></tr>
+<tr><td>Time in the gate</td><td>0.7 s</td></tr>
+<tr><td>Tool calls, Agent</td><td>147</td></tr>
+<tr><td>Tool calls, Bash</td><td>44</td></tr>
+<tr><td>Tool calls, Edit</td><td>2</td></tr>
+<tr><td>Tool calls, Skill</td><td>2</td></tr>
+<tr><td>Session wall-clock time</td><td>1351.8 s</td></tr>
+<tr><td>Duration reported by the CLI</td><td>1349.5 s</td></tr>
+<tr><td>API time reported by the CLI</td><td>1741.0 s</td></tr>
+<tr><td>Cost reported by the CLI</td><td>4.6363 USD</td></tr>
+<tr><td>Turns reported by the CLI</td><td>199</td></tr>
+</table>
+</section>

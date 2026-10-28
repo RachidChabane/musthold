@@ -1,0 +1,77 @@
+{
+  "equipped": {
+    "valid": [
+      "tests.test_pricing::test_long_rental_price_range",
+      "tests.test_pricing::test_medium_rental_price_range",
+      "tests.test_pricing::test_short_rental_price"
+    ],
+    "contradicting": [],
+    "killed": {
+      "BIKE-1/1": true,
+      "BIKE-1/2": false,
+      "BIKE-2/1": false,
+      "BIKE-2/2": false,
+      "BIKE-3/1": false,
+      "BIKE-3/2": false,
+      "BIKE-4/1": false,
+      "BIKE-4/2": false
+    }
+  },
+  "final": {
+    "valid": [
+      "tests.test_pricing::test_extended_rental_price_range",
+      "tests.test_pricing::test_long_rental_price_range",
+      "tests.test_pricing::test_medium_rental_price_range",
+      "tests.test_pricing::test_short_rental_price"
+    ],
+    "contradicting": [],
+    "killed": {
+      "BIKE-1/1": true,
+      "BIKE-1/2": false,
+      "BIKE-2/1": false,
+      "BIKE-2/2": false,
+      "BIKE-3/1": false,
+      "BIKE-3/2": false,
+      "BIKE-4/1": true,
+      "BIKE-4/2": false
+    }
+  },
+  "stop-1": {
+    "valid": [
+      "tests.test_pricing::test_extended_rental_price_range",
+      "tests.test_pricing::test_long_rental_price_range",
+      "tests.test_pricing::test_medium_rental_price_range",
+      "tests.test_pricing::test_short_rental_price"
+    ],
+    "contradicting": [],
+    "killed": {
+      "BIKE-1/1": true,
+      "BIKE-1/2": false,
+      "BIKE-2/1": false,
+      "BIKE-2/2": false,
+      "BIKE-3/1": false,
+      "BIKE-3/2": false,
+      "BIKE-4/1": true,
+      "BIKE-4/2": false
+    }
+  },
+  "stop-2": {
+    "valid": [
+      "tests.test_pricing::test_extended_rental_price_range",
+      "tests.test_pricing::test_long_rental_price_range",
+      "tests.test_pricing::test_medium_rental_price_range",
+      "tests.test_pricing::test_short_rental_price"
+    ],
+    "contradicting": [],
+    "killed": {
+      "BIKE-1/1": true,
+      "BIKE-1/2": false,
+      "BIKE-2/1": false,
+      "BIKE-2/2": false,
+      "BIKE-3/1": false,
+      "BIKE-3/2": false,
+      "BIKE-4/1": true,
+      "BIKE-4/2": false
+    }
+  }
+}

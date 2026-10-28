@@ -1,0 +1,58 @@
+{
+  "equipped": {
+    "valid": [
+      "tests.test_tariffs::test_daytime_tariff_covers_its_period",
+      "tests.test_tariffs::test_night_tariff_matches_the_published_example",
+      "tests.test_tariffs::test_peak_tariff_covers_its_period"
+    ],
+    "contradicting": [],
+    "killed": {
+      "HOUR-1/1": true,
+      "HOUR-1/2": false,
+      "HOUR-2/1": true,
+      "HOUR-2/2": true,
+      "HOUR-3/1": true,
+      "HOUR-3/2": true,
+      "HOUR-4/1": false,
+      "HOUR-4/2": false
+    }
+  },
+  "final": {
+    "valid": [
+      "tests.test_tariffs::test_daytime_tariff_covers_its_period",
+      "tests.test_tariffs::test_late_evening_tariff_covers_its_period",
+      "tests.test_tariffs::test_night_tariff_matches_the_published_example",
+      "tests.test_tariffs::test_peak_tariff_covers_its_period"
+    ],
+    "contradicting": [],
+    "killed": {
+      "HOUR-1/1": true,
+      "HOUR-1/2": false,
+      "HOUR-2/1": true,
+      "HOUR-2/2": true,
+      "HOUR-3/1": true,
+      "HOUR-3/2": true,
+      "HOUR-4/1": true,
+      "HOUR-4/2": true
+    }
+  },
+  "stop-1": {
+    "valid": [
+      "tests.test_tariffs::test_daytime_tariff_covers_its_period",
+      "tests.test_tariffs::test_late_evening_tariff_covers_its_period",
+      "tests.test_tariffs::test_night_tariff_matches_the_published_example",
+      "tests.test_tariffs::test_peak_tariff_covers_its_period"
+    ],
+    "contradicting": [],
+    "killed": {
+      "HOUR-1/1": true,
+      "HOUR-1/2": false,
+      "HOUR-2/1": true,
+      "HOUR-2/2": true,
+      "HOUR-3/1": true,
+      "HOUR-3/2": true,
+      "HOUR-4/1": true,
+      "HOUR-4/2": true
+    }
+  }
+}

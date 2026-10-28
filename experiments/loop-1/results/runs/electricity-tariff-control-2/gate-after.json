@@ -1,0 +1,291 @@
+{
+  "schema_version": "1.2",
+  "tool": {
+    "name": "shallnot",
+    "version": "c331f9b97d5b"
+  },
+  "run": {
+    "advisory": false,
+    "fail_on": "error",
+    "id_pattern": "[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*",
+    "statement_canonicalization": "c1",
+    "focus": {
+      "everything": true,
+      "files": [],
+      "ids": []
+    },
+    "spec_files": [
+      "specs/hourly_tariffs.md"
+    ],
+    "test_roots": [
+      "tests"
+    ],
+    "results_files": [
+      "test-results/pytest.xml"
+    ]
+  },
+  "verdict": "pass",
+  "exit_code": 0,
+  "summary": {
+    "requirements": {
+      "known": 4,
+      "in_focus": 4,
+      "covered": 4,
+      "failed": 0,
+      "skipped": 0,
+      "not_run": 0,
+      "uncovered": 0,
+      "non_testable": 0
+    },
+    "tests": {
+      "total": 4,
+      "bound": 4,
+      "untagged": 0
+    },
+    "findings": {
+      "error": 0,
+      "warning": 0,
+      "info": 0,
+      "blocking": 0
+    }
+  },
+  "requirements": [
+    {
+      "id": "HOUR-1",
+      "revision": 1,
+      "ref": "HOUR-1~1",
+      "statement": "WHEN the hour is from 0 through 4 THE SYSTEM SHALL return a tariff of 0.11. - Example: electricity_tariff(hour=2) => 0.11",
+      "statement_digest": "d522e98e721b42e8fb9311101e90391d2710b394b17056831286873a8d8526dd",
+      "status": "active",
+      "location": {
+        "file": "specs/hourly_tariffs.md",
+        "line": 8
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "electricity_tariff",
+          "args": {
+            "hour": {
+              "type": "integer",
+              "value": "2"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "decimal",
+            "value": "0.11"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_night_tariff_matches_the_published_example",
+          "classname": "tests.test_tariffs",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_tariffs.py",
+            "line": 6
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "HOUR-2",
+      "revision": 1,
+      "ref": "HOUR-2~1",
+      "statement": "WHEN the hour is from 6 through 15 THE SYSTEM SHALL return a tariff of 0.23. - Example: electricity_tariff(hour=10) => 0.23",
+      "statement_digest": "0fe6d4a95f852e839e2581db02c3bc8f752e2cf681624f400459d4690559a645",
+      "status": "active",
+      "location": {
+        "file": "specs/hourly_tariffs.md",
+        "line": 10
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "electricity_tariff",
+          "args": {
+            "hour": {
+              "type": "integer",
+              "value": "10"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "decimal",
+            "value": "0.23"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_daytime_tariff_covers_its_period",
+          "classname": "tests.test_tariffs",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_tariffs.py",
+            "line": 11
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "HOUR-3",
+      "revision": 1,
+      "ref": "HOUR-3~1",
+      "statement": "WHEN the hour is from 17 through 19 THE SYSTEM SHALL return a tariff of 0.37. - Example: electricity_tariff(hour=18) => 0.37",
+      "statement_digest": "585f6e219a308f5fe744f6de639df8fbb32ae8dc84f60f012d75f7b188a4097e",
+      "status": "active",
+      "location": {
+        "file": "specs/hourly_tariffs.md",
+        "line": 12
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "electricity_tariff",
+          "args": {
+            "hour": {
+              "type": "integer",
+              "value": "18"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "decimal",
+            "value": "0.37"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_peak_tariff_covers_its_period",
+          "classname": "tests.test_tariffs",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_tariffs.py",
+            "line": 18
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "HOUR-4",
+      "revision": 1,
+      "ref": "HOUR-4~1",
+      "statement": "WHEN the hour is from 21 through 23, including boundary hours 21 and 23, THE SYSTEM SHALL return a tariff of 0.19. - Example: electricity_tariff(hour=22) => 0.19",
+      "statement_digest": "150e54bef721db04eac27ab08e8aa12157eedbf9cb3dc137b3d331d2d3de168d",
+      "status": "active",
+      "location": {
+        "file": "specs/hourly_tariffs.md",
+        "line": 14
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "electricity_tariff",
+          "args": {
+            "hour": {
+              "type": "integer",
+              "value": "22"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "decimal",
+            "value": "0.19"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_late_evening_tariff_covers_its_period",
+          "classname": "tests.test_tariffs",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_tariffs.py",
+            "line": 25
+          }
+        }
+      ],
+      "extensions": {}
+    }
+  ],
+  "out_of_scope": [],
+  "findings": [],
+  "extensions": {
+    "proofs": {
+      "trust": "local",
+      "policy": {
+        "signedPassBasis": "corroborated",
+        "minIsolation": "restricted",
+        "maxHostExclusions": 2,
+        "validityThreshold": 0.7,
+        "alignmentThreshold": 0.7,
+        "escalation": "error",
+        "isolationFloorLowered": false
+      },
+      "manifest": null,
+      "consumed": [],
+      "pending": [],
+      "criteria": [
+        {
+          "ref": "HOUR-1~1",
+          "modules": {},
+          "absent": [],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        },
+        {
+          "ref": "HOUR-2~1",
+          "modules": {},
+          "absent": [],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        },
+        {
+          "ref": "HOUR-3~1",
+          "modules": {},
+          "absent": [],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        },
+        {
+          "ref": "HOUR-4~1",
+          "modules": {},
+          "absent": [],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        }
+      ]
+    }
+  }
+}

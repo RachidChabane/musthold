@@ -1,0 +1,278 @@
+{
+  "tests": [
+    {
+      "id": "test_hour_1::test_example_hour_two_has_off_peak_tariff",
+      "criterion": "HOUR-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_1::test_hours_zero_through_four_have_off_peak_tariff[0]",
+      "criterion": "HOUR-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_1::test_hours_zero_through_four_have_off_peak_tariff[1]",
+      "criterion": "HOUR-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_1::test_hours_zero_through_four_have_off_peak_tariff[2]",
+      "criterion": "HOUR-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_1::test_hours_zero_through_four_have_off_peak_tariff[3]",
+      "criterion": "HOUR-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_1::test_hours_zero_through_four_have_off_peak_tariff[4]",
+      "criterion": "HOUR-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_1::test_off_peak_period_boundaries_and_adjacent_hours",
+      "criterion": "HOUR-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_2::test_daytime_period_boundaries_and_adjacent_hours",
+      "criterion": "HOUR-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_2::test_example_hour_ten_has_daytime_tariff",
+      "criterion": "HOUR-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_2::test_hours_six_through_fifteen_have_daytime_tariff[10]",
+      "criterion": "HOUR-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_2::test_hours_six_through_fifteen_have_daytime_tariff[11]",
+      "criterion": "HOUR-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_2::test_hours_six_through_fifteen_have_daytime_tariff[12]",
+      "criterion": "HOUR-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_2::test_hours_six_through_fifteen_have_daytime_tariff[13]",
+      "criterion": "HOUR-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_2::test_hours_six_through_fifteen_have_daytime_tariff[14]",
+      "criterion": "HOUR-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_2::test_hours_six_through_fifteen_have_daytime_tariff[15]",
+      "criterion": "HOUR-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_2::test_hours_six_through_fifteen_have_daytime_tariff[6]",
+      "criterion": "HOUR-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_2::test_hours_six_through_fifteen_have_daytime_tariff[7]",
+      "criterion": "HOUR-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_2::test_hours_six_through_fifteen_have_daytime_tariff[8]",
+      "criterion": "HOUR-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_2::test_hours_six_through_fifteen_have_daytime_tariff[9]",
+      "criterion": "HOUR-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_3::test_example_hour_eighteen_has_peak_tariff",
+      "criterion": "HOUR-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_3::test_hours_seventeen_through_nineteen_have_peak_tariff[17]",
+      "criterion": "HOUR-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_3::test_hours_seventeen_through_nineteen_have_peak_tariff[18]",
+      "criterion": "HOUR-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_3::test_hours_seventeen_through_nineteen_have_peak_tariff[19]",
+      "criterion": "HOUR-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_3::test_peak_period_boundaries_and_adjacent_hours",
+      "criterion": "HOUR-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_4::test_example_hour_twenty_two_has_late_tariff",
+      "criterion": "HOUR-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_4::test_hours_twenty_one_through_twenty_three_have_late_tariff[21]",
+      "criterion": "HOUR-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_4::test_hours_twenty_one_through_twenty_three_have_late_tariff[22]",
+      "criterion": "HOUR-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_4::test_hours_twenty_one_through_twenty_three_have_late_tariff[23]",
+      "criterion": "HOUR-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_hour_4::test_late_period_boundaries_and_adjacent_hours",
+      "criterion": "HOUR-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    }
+  ],
+  "timedOut": [
+    false,
+    false,
+    false
+  ],
+  "oomKilled": [
+    false,
+    false,
+    false
+  ],
+  "defective": false,
+  "violated": [],
+  "flaky": []
+}

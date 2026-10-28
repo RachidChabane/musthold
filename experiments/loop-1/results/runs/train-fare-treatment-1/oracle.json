@@ -1,0 +1,125 @@
+{
+  "tests": [
+    {
+      "id": "test_fare_1::test_example_one_zone_costs_three",
+      "criterion": "FARE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_fare_1::test_fare_band_values_are_charged_three_euros",
+      "criterion": "FARE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_fare_1::test_one_and_two_zones_are_three_euros",
+      "criterion": "FARE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_fare_2::test_example_three_zones_costs_five",
+      "criterion": "FARE-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_fare_2::test_fare_band_values_are_charged_five_euros",
+      "criterion": "FARE-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_fare_2::test_three_and_four_zones_are_five_euros",
+      "criterion": "FARE-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_fare_3::test_example_five_zones_costs_eight",
+      "criterion": "FARE-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_fare_3::test_fare_band_boundary_and_next_value_cost_eight",
+      "criterion": "FARE-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_fare_3::test_five_or_more_zones_are_eight_euros",
+      "criterion": "FARE-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_fare_4::test_example_zero_zones_costs_zero",
+      "criterion": "FARE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_fare_4::test_fare_band_boundary_and_next_negative_value_are_free",
+      "criterion": "FARE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_fare_4::test_zero_and_negative_zone_counts_are_free",
+      "criterion": "FARE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    }
+  ],
+  "timedOut": [
+    false,
+    false,
+    false
+  ],
+  "oomKilled": [
+    false,
+    false,
+    false
+  ],
+  "defective": false,
+  "violated": [],
+  "flaky": []
+}

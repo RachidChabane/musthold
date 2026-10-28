@@ -1,0 +1,157 @@
+{
+  "run": "electricity-tariff-treatment-1",
+  "task": "electricity-tariff",
+  "arm": "treatment",
+  "repetition": 1,
+  "attempt": 1,
+  "outcome": "completed",
+  "capped": false,
+  "accepted": true,
+  "defective": false,
+  "escaped": false,
+  "violated": [],
+  "flaky": [],
+  "calls": [
+    {
+      "n": 1,
+      "hooksLine": 1862,
+      "exitCode": 0,
+      "decision": "pass",
+      "startedAt": "2026-10-27T16:20:22.965976048Z",
+      "durationMs": 336
+    }
+  ],
+  "blocks": [],
+  "blockCounts": {},
+  "giveUps": 0,
+  "findingCodes": {},
+  "strength": {
+    "final": "8/8",
+    "equipped": "5/8",
+    "contradicting": 0
+  },
+  "hits": {},
+  "testEdits": 0,
+  "cost": {
+    "mainMessages": 87,
+    "subagentMessages": 543,
+    "messages": 630,
+    "executors": 181,
+    "proveCommands": 15,
+    "notionalUsd": 5.803551000000007,
+    "tokens": {
+      "claude-sonnet-5-5": {
+        "input": 1260,
+        "output": 145460,
+        "cacheRead": 8995485,
+        "cacheCreation": 936712
+      }
+    },
+    "wallSeconds": 1576.81,
+    "gateSeconds": 0.336
+  },
+  "voluntary": [
+    {
+      "line": 26,
+      "call": "Skill: musthold:prove-all",
+      "findings": []
+    },
+    {
+      "line": 38,
+      "call": "Bash: musthold-dp prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 40,
+      "call": "Bash: musthold-alignment prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 41,
+      "call": "Bash: musthold-completeness prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 323,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 611,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": []
+    },
+    {
+      "line": 4510,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 4652,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 4923,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "surviving_valid_mutant"
+      ]
+    },
+    {
+      "line": 4955,
+      "call": "Bash: musthold-dp prove --changed",
+      "findings": []
+    },
+    {
+      "line": 5657,
+      "call": "Bash: musthold-alignment prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 5795,
+      "call": "Bash: musthold-alignment prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 6071,
+      "call": "Bash: musthold-alignment prove --resume",
+      "findings": []
+    },
+    {
+      "line": 6074,
+      "call": "Bash: musthold-completeness prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 6150,
+      "call": "Bash: musthold-completeness prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 6290,
+      "call": "Bash: musthold-completeness prove --resume",
+      "findings": []
+    }
+  ]
+}

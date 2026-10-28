@@ -1,0 +1,293 @@
+{
+  "schema_version": "1.2",
+  "tool": {
+    "name": "shallnot",
+    "version": "c331f9b97d5b"
+  },
+  "run": {
+    "advisory": false,
+    "fail_on": "error",
+    "id_pattern": "[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*",
+    "statement_canonicalization": "c1",
+    "focus": {
+      "everything": true,
+      "files": [],
+      "ids": []
+    },
+    "spec_files": [
+      "specs/tickets.md"
+    ],
+    "test_roots": [
+      "tests"
+    ],
+    "results_files": [
+      "test-results/pytest.xml"
+    ]
+  },
+  "verdict": "fail",
+  "exit_code": 1,
+  "summary": {
+    "requirements": {
+      "known": 4,
+      "in_focus": 4,
+      "covered": 3,
+      "failed": 0,
+      "skipped": 0,
+      "not_run": 0,
+      "uncovered": 1,
+      "non_testable": 0
+    },
+    "tests": {
+      "total": 4,
+      "bound": 4,
+      "untagged": 0
+    },
+    "findings": {
+      "error": 1,
+      "warning": 0,
+      "info": 0,
+      "blocking": 1
+    }
+  },
+  "requirements": [
+    {
+      "id": "BOX-1",
+      "revision": 1,
+      "ref": "BOX-1~1",
+      "statement": "WHEN the buyer is 12 to 64 years old THE SYSTEM SHALL charge 12. - Example: ticket_price(age=30) => 12",
+      "statement_digest": "8cc0d1da161e0f8f1c9433dbbffeb8f2a722ea2a89a985dec165ee04cdf6a220",
+      "status": "active",
+      "location": {
+        "file": "specs/tickets.md",
+        "line": 8
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "ticket_price",
+          "args": {
+            "age": {
+              "type": "integer",
+              "value": "30"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "12"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_adult_pays_the_full_price",
+          "classname": "tests.test_prices",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_prices.py",
+            "line": 6
+          }
+        },
+        {
+          "name": "test_adult_prices_run_from_twelve_to_sixty_four",
+          "classname": "tests.test_prices",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_prices.py",
+            "line": 11
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "BOX-2",
+      "revision": 1,
+      "ref": "BOX-2~1",
+      "statement": "WHEN the buyer is 65 or older THE SYSTEM SHALL charge 8. - Example: ticket_price(age=65) => 8",
+      "statement_digest": "97ef5ce5343e5efe207a2713e1b84c11ca92d2e8d26e3aa1bad4320d9659c40c",
+      "status": "active",
+      "location": {
+        "file": "specs/tickets.md",
+        "line": 10
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "ticket_price",
+          "args": {
+            "age": {
+              "type": "integer",
+              "value": "65"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "8"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_senior_pays_the_reduced_price",
+          "classname": "tests.test_prices",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_prices.py",
+            "line": 17
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "BOX-3",
+      "revision": 1,
+      "ref": "BOX-3~1",
+      "statement": "WHEN the buyer is 3 to 11 years old THE SYSTEM SHALL charge 6. - Example: ticket_price(age=7) => 6",
+      "statement_digest": "a406107bcf0a2b2e06f5a7dc39e6fe1c1f6839b37db28c023d59c6a9598c9af9",
+      "status": "active",
+      "location": {
+        "file": "specs/tickets.md",
+        "line": 12
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "ticket_price",
+          "args": {
+            "age": {
+              "type": "integer",
+              "value": "7"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "6"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_child_prices_run_from_three_to_eleven",
+          "classname": "tests.test_prices",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_prices.py",
+            "line": 22
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "BOX-4",
+      "revision": 1,
+      "ref": "BOX-4~1",
+      "statement": "WHEN the buyer is younger than 3 THE SYSTEM SHALL charge nothing. - Example: ticket_price(age=2) => 0",
+      "statement_digest": "2ae8652a218b4b22de6546fddee825673ed821db543e8ac696c944435bbc4ef0",
+      "status": "active",
+      "location": {
+        "file": "specs/tickets.md",
+        "line": 14
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "ticket_price",
+          "args": {
+            "age": {
+              "type": "integer",
+              "value": "2"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "0"
+          }
+        }
+      ],
+      "coverage": "uncovered",
+      "tests": [],
+      "extensions": {}
+    }
+  ],
+  "out_of_scope": [],
+  "findings": [
+    {
+      "category": "uncovered_requirement",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement BOX-4~1 has no bound test",
+      "requirement_id": "BOX-4",
+      "location": {
+        "file": "specs/tickets.md",
+        "line": 14
+      }
+    }
+  ],
+  "extensions": {
+    "proofs": {
+      "trust": "local",
+      "policy": {
+        "signedPassBasis": "corroborated",
+        "minIsolation": "restricted",
+        "maxHostExclusions": 2,
+        "validityThreshold": 0.7,
+        "alignmentThreshold": 0.7,
+        "escalation": "error",
+        "isolationFloorLowered": false
+      },
+      "manifest": null,
+      "consumed": [],
+      "pending": [],
+      "criteria": [
+        {
+          "ref": "BOX-1~1",
+          "modules": {},
+          "absent": [],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        },
+        {
+          "ref": "BOX-2~1",
+          "modules": {},
+          "absent": [],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        },
+        {
+          "ref": "BOX-3~1",
+          "modules": {},
+          "absent": [],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,538 @@
+diff --git a/library_fees/late_fees.py b/library_fees/late_fees.py
+index 1d81a63..7f572b2 100644
+--- a/library_fees/late_fees.py
++++ b/library_fees/late_fees.py
+@@ -5,4 +5,6 @@ def late_fee(days_overdue):
+         return 1
+     if days_overdue <= 10:
+         return 3
+-    return 6
++    if days_overdue <= 20:
++        return 6
++    return 10
+diff --git a/shallnot-report.json b/shallnot-report.json
+new file mode 100644
+index 0000000..d5fce38
+--- /dev/null
++++ b/shallnot-report.json
+@@ -0,0 +1,492 @@
++{
++  "schema_version": "1.2",
++  "tool": {
++    "name": "shallnot",
++    "version": "c331f9b97d5b"
++  },
++  "run": {
++    "advisory": false,
++    "fail_on": "error",
++    "id_pattern": "[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*",
++    "statement_canonicalization": "c1",
++    "focus": {
++      "everything": true,
++      "files": [],
++      "ids": []
++    },
++    "spec_files": [
++      "specs/late-fees.md"
++    ],
++    "test_roots": [
++      "tests"
++    ],
++    "results_files": [
++      "test-results/pytest.xml"
++    ]
++  },
++  "verdict": "pass",
++  "exit_code": 0,
++  "summary": {
++    "requirements": {
++      "known": 5,
++      "in_focus": 5,
++      "covered": 5,
++      "failed": 0,
++      "skipped": 0,
++      "not_run": 0,
++      "uncovered": 0,
++      "non_testable": 0
++    },
++    "tests": {
++      "total": 7,
++      "bound": 7,
++      "untagged": 0
++    },
++    "findings": {
++      "error": 0,
++      "warning": 0,
++      "info": 0,
++      "blocking": 0
++    }
++  },
++  "requirements": [
++    {
++      "id": "LATE-1",
++      "revision": 1,
++      "ref": "LATE-1~1",
++      "statement": "WHEN a loan is not overdue THE SYSTEM SHALL charge 0. - Example: late_fee(days_overdue=0) => 0",
++      "statement_digest": "966704e38cd80b2ed346b6da9c45714b85f57eae352115943a99b28522c400a8",
++      "status": "active",
++      "location": {
++        "file": "specs/late-fees.md",
++        "line": 8
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "late_fee",
++          "args": {
++            "days_overdue": {
++              "type": "integer",
++              "value": "0"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "0"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_no_fee_for_a_loan_due_today",
++          "classname": "tests.test_late_fees",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_late_fees.py",
++            "line": 6
++          }
++        },
++        {
++          "name": "test_no_fee_for_a_loan_returned_early",
++          "classname": "tests.test_late_fees",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_late_fees.py",
++            "line": 11
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "LATE-2",
++      "revision": 1,
++      "ref": "LATE-2~1",
++      "statement": "WHEN a loan is 1 to 5 days overdue THE SYSTEM SHALL charge 1. - Example: late_fee(days_overdue=3) => 1",
++      "statement_digest": "2d2278beb6e26f9970372df7cc9b9ac0b469394c9e965dadb88181c409daec4f",
++      "status": "active",
++      "location": {
++        "file": "specs/late-fees.md",
++        "line": 10
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "late_fee",
++          "args": {
++            "days_overdue": {
++              "type": "integer",
++              "value": "3"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "1"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_small_late_fee_covers_its_range",
++          "classname": "tests.test_late_fees",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_late_fees.py",
++            "line": 21
++          }
++        },
++        {
++          "name": "test_small_late_fee_matches_the_example",
++          "classname": "tests.test_late_fees",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_late_fees.py",
++            "line": 16
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "LATE-3",
++      "revision": 1,
++      "ref": "LATE-3~1",
++      "statement": "WHEN a loan is 6 to 10 days overdue THE SYSTEM SHALL charge 3. - Example: late_fee(days_overdue=7) => 3",
++      "statement_digest": "1928399ec8c38504c4990557d5e5c2c16d5bbae8289e524359f14498627d8cce",
++      "status": "active",
++      "location": {
++        "file": "specs/late-fees.md",
++        "line": 12
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "late_fee",
++          "args": {
++            "days_overdue": {
++              "type": "integer",
++              "value": "7"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "3"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_medium_late_fee_covers_its_range",
++          "classname": "tests.test_late_fees",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_late_fees.py",
++            "line": 27
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "LATE-4",
++      "revision": 1,
++      "ref": "LATE-4~1",
++      "statement": "WHEN a loan is 11 to 20 days overdue THE SYSTEM SHALL charge 6. - Example: late_fee(days_overdue=15) => 6",
++      "statement_digest": "d69625f8ab278c27e88db3ff932d9bde74cccce24805e6e4b630d754baa9ccdf",
++      "status": "active",
++      "location": {
++        "file": "specs/late-fees.md",
++        "line": 14
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "late_fee",
++          "args": {
++            "days_overdue": {
++              "type": "integer",
++              "value": "15"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "6"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_large_late_fee_covers_its_range",
++          "classname": "tests.test_late_fees",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_late_fees.py",
++            "line": 33
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "LATE-5",
++      "revision": 1,
++      "ref": "LATE-5~1",
++      "statement": "WHEN a loan is 21 or more days overdue THE SYSTEM SHALL charge 10, including at the 21-day boundary. - Example: late_fee(days_overdue=25) => 10",
++      "statement_digest": "44a234d79199f5b77092545ba3dd866a2ddf2b609c3aacb46ec2770fb18f6993",
++      "status": "active",
++      "location": {
++        "file": "specs/late-fees.md",
++        "line": 16
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "late_fee",
++          "args": {
++            "days_overdue": {
++              "type": "integer",
++              "value": "25"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "10"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_maximum_late_fee_starts_at_the_21_day_boundary",
++          "classname": "tests.test_late_fees",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_late_fees.py",
++            "line": 39
++          }
++        }
++      ],
++      "extensions": {}
++    }
++  ],
++  "out_of_scope": [],
++  "findings": [],
++  "extensions": {
++    "proofs": {
++      "trust": "local",
++      "policy": {
++        "signedPassBasis": "corroborated",
++        "minIsolation": "restricted",
++        "maxHostExclusions": 2,
++        "validityThreshold": 0.7,
++        "alignmentThreshold": 0.7,
++        "escalation": "error",
++        "isolationFloorLowered": false
++      },
++      "manifest": {
++        "path": ".musthold/verified/manifest.json",
++        "digest": "2ffd2ca45eca961ebdda4686e045b83d01933ed2dbc5ed4c079e3333ab84bd5c",
++        "verifierVersion": "dev"
++      },
++      "consumed": [
++        {
++          "path": ".musthold/verified/discriminating-power/LATE-1~1/08c0ba98d4b3251e5331b1477de55aaccdcd708b57163331a931cdab6a640851.json",
++          "digest": "8d2f217167e49fe1883b5f8634a19dc218f7d8f1a2897d981918b8447fe4c40a",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "LATE-1~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_late_fees.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/LATE-1~1/d1a6827b2b527464c8a9832bd4d029453dca17986623fcada5dfa77ceb4fd358.json",
++          "digest": "3828cc9276d08bd66005938a89b1b163cc8e4938666855fd51bebbce5dcd4705",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "LATE-1~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/LATE-2~1/41bcc194ae0cc291b890e20c139d233048fb9d117ca66fcece0c52d0f6849802.json",
++          "digest": "481356c1b3a96a855828207380e8172cc4d6b1ab19a175d133d53a2b8d23dc5e",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "LATE-2~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/LATE-2~1/a308659761bfbab9be554b0a4bb3eb5cfe3c670d93238dc7cc4bba27df09eb12.json",
++          "digest": "607a6234bd6348e9d0bd1346c7aa7cf6a96ff3053aff39ea971ddd846b835174",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "LATE-2~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_late_fees.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/LATE-3~1/4f59f775d76fac8abf9dc4676a7f0f43b353633584101730782d8ff9761c8c76.json",
++          "digest": "29c04a93ea14a3cc3dbc1ba58262723d66ffa3db68f56637ed63e0fdf8135d11",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "LATE-3~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_late_fees.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/LATE-3~1/ffc2958440bef50de4f225a9ae38c22342b3831f6fb904cab2b019f5cce9f43a.json",
++          "digest": "e8af295ed7f29a1a7b344501d904c8e3a6e85b846186ef7ce5613709e6de0891",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "LATE-3~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/LATE-4~1/4f78c63298cddefdff8d46d133861e1b2078cc66b26f9c2d5d65c57317ad8744.json",
++          "digest": "78ddb70b8d36945f487bdc477825d61c5651a349832a1f5aa67f407f51cf7a94",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "LATE-4~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/LATE-4~1/fd5422f60fbf60415257c11b5457049e1c9d8e3151848ebd795dffd49222d7ad.json",
++          "digest": "783501fe32122505379a87afda3c69c0a2785d745b96b49be41c2db49a8f3cbb",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "LATE-4~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_late_fees.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/LATE-5~1/2fe9164010a14fd7408c491101fc281cd6c1752dbc3d063f1d8e3c7b3e3469e7.json",
++          "digest": "6608c50e331bc873bb88abe1e473a64a2f0ec32bb7bb3710cf056aa3b32ce92b",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "LATE-5~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_late_fees.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/LATE-5~1/e600a545adfcefe1fe96985cf2d84a633a2b02040f95b30b85242bbeaaa38f5d.json",
++          "digest": "94427033e2292d65a7a3ba1649afd4ed85b746213a086902a5c07b63b8e8b0d2",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "LATE-5~1",
++          "state": "valid"
++        }
++      ],
++      "pending": [],
++      "criteria": [
++        {
++          "ref": "LATE-1~1",
++          "modules": {
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 9
++          },
++          "isolation": {
++            "restricted": 9
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 10
++        },
++        {
++          "ref": "LATE-2~1",
++          "modules": {
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 13
++          },
++          "isolation": {
++            "restricted": 13
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 8
++        },
++        {
++          "ref": "LATE-3~1",
++          "modules": {
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 18
++          },
++          "isolation": {
++            "restricted": 18
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 8
++        },
++        {
++          "ref": "LATE-4~1",
++          "modules": {
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 23
++          },
++          "isolation": {
++            "restricted-attested": 23
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 8
++        },
++        {
++          "ref": "LATE-5~1",
++          "modules": {
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 23
++          },
++          "isolation": {
++            "restricted": 23
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 10
++        }
++      ]
++    }
++  }
++}
+diff --git a/tests/test_late_fees.py b/tests/test_late_fees.py
+index bad46a0..d985200 100644
+--- a/tests/test_late_fees.py
++++ b/tests/test_late_fees.py
+@@ -18,6 +18,12 @@ def test_small_late_fee_matches_the_example():
+     assert late_fee(days_overdue=3) == 1
+ 
+ 
++@pytest.mark.verifies("LATE-2~1")
++def test_small_late_fee_covers_its_range():
++    for days in range(1, 6):
++        assert late_fee(days_overdue=days) == 1
++
++
+ @pytest.mark.verifies("LATE-3~1")
+ def test_medium_late_fee_covers_its_range():
+     assert late_fee(days_overdue=6) == 3
+@@ -28,3 +34,10 @@ def test_medium_late_fee_covers_its_range():
+ def test_large_late_fee_covers_its_range():
+     assert late_fee(days_overdue=11) == 6
+     assert late_fee(days_overdue=20) == 6
++
++
++@pytest.mark.verifies("LATE-5~1")
++def test_maximum_late_fee_starts_at_the_21_day_boundary():
++    assert late_fee(days_overdue=21) == 10
++    assert late_fee(days_overdue=25) == 10
++    assert late_fee(days_overdue=100) == 10

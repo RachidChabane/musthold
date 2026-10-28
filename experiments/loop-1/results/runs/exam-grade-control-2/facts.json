@@ -1,0 +1,175 @@
+{
+  "run": "exam-grade-control-2",
+  "task": "exam-grade",
+  "arm": "control",
+  "repetition": 2,
+  "attempt": 1,
+  "outcome": "completed",
+  "capped": false,
+  "accepted": true,
+  "defective": false,
+  "escaped": false,
+  "violated": [],
+  "flaky": [],
+  "calls": [
+    {
+      "n": 1,
+      "hooksLine": 862,
+      "exitCode": 2,
+      "decision": "block",
+      "startedAt": "2026-10-28T00:25:54.131886678Z",
+      "durationMs": 335
+    },
+    {
+      "n": 2,
+      "hooksLine": 866,
+      "exitCode": 0,
+      "decision": "pass",
+      "startedAt": "2026-10-28T00:28:04.629309948Z",
+      "durationMs": 361
+    },
+    {
+      "n": 3,
+      "hooksLine": 871,
+      "exitCode": 0,
+      "decision": "pass",
+      "startedAt": "2026-10-28T00:28:55.148491846Z",
+      "durationMs": 335
+    }
+  ],
+  "blocks": [
+    {
+      "call": 1,
+      "kind": "finding",
+      "findings": [
+        {
+          "code": "surviving_valid_mutant",
+          "criterion": "GRADE-2",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "surviving_valid_mutant",
+          "criterion": "GRADE-2",
+          "module": "musthold-dp"
+        },
+        {
+          "code": "surviving_valid_mutant",
+          "criterion": "GRADE-2",
+          "module": "musthold-dp"
+        }
+      ],
+      "edits": 1,
+      "passingCall": 2,
+      "corrected": true,
+      "onTarget": true,
+      "strengthened": true,
+      "left": false
+    }
+  ],
+  "blockCounts": {
+    "finding": 1
+  },
+  "giveUps": 0,
+  "findingCodes": {
+    "surviving_valid_mutant": 3
+  },
+  "strength": {
+    "final": "7/10",
+    "equipped": "4/10",
+    "contradicting": 0
+  },
+  "hits": {},
+  "testEdits": 0,
+  "cost": {
+    "mainMessages": 55,
+    "subagentMessages": 249,
+    "messages": 304,
+    "executors": 83,
+    "proveCommands": 11,
+    "notionalUsd": 2.5933223999999977,
+    "tokens": {
+      "claude-sonnet-5-5": {
+        "input": 602,
+        "output": 84056,
+        "cacheRead": 3311062,
+        "cacheCreation": 391744
+      }
+    },
+    "wallSeconds": 776.019,
+    "gateSeconds": 1.031
+  },
+  "voluntary": [
+    {
+      "line": 12,
+      "call": "Bash: cat \u003e\u003e tests/test_grading.py \u003c\u003c'EOF'\n\n\n@pytest.mark.verifies(\"GRADE-5~1\")\ndef test_f_scores_cover_below_sixty_including_negative():\n    assert exam_grade(score=59) == \"F\"\n    assert exam_grade(score=0) == \"F\"\n    assert exam_grade(score=-1) == \"F\"\n    assert exam_grade(score=-50) == \"F\"\nEOF\nshallnot gate --json-out shallnot-report.json; echo exit $?\nmusthold-dp prove --changed; echo dp $?\nmusthold-alignment prove --changed; echo al $?\nmusthold-completeness prove --changed; echo co $?",
+      "findings": []
+    },
+    {
+      "line": 18,
+      "call": "Bash: musthold-dp prove --changed; echo dp=$?",
+      "findings": []
+    },
+    {
+      "line": 21,
+      "call": "Bash: musthold-dp prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 369,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 715,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2011,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2183,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2356,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2534,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2878,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "host_unresponsive",
+        "surviving_valid_mutant"
+      ]
+    },
+    {
+      "line": 2902,
+      "call": "Bash: musthold-dp prove --changed 2\u003e\u00261 | tail -30",
+      "findings": []
+    }
+  ]
+}

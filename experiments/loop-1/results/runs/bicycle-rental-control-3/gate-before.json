@@ -1,0 +1,282 @@
+{
+  "schema_version": "1.2",
+  "tool": {
+    "name": "shallnot",
+    "version": "c331f9b97d5b"
+  },
+  "run": {
+    "advisory": false,
+    "fail_on": "error",
+    "id_pattern": "[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*",
+    "statement_canonicalization": "c1",
+    "focus": {
+      "everything": true,
+      "files": [],
+      "ids": []
+    },
+    "spec_files": [
+      "specs/prices.md"
+    ],
+    "test_roots": [
+      "tests"
+    ],
+    "results_files": [
+      "test-results/pytest.xml"
+    ]
+  },
+  "verdict": "fail",
+  "exit_code": 1,
+  "summary": {
+    "requirements": {
+      "known": 4,
+      "in_focus": 4,
+      "covered": 3,
+      "failed": 0,
+      "skipped": 0,
+      "not_run": 0,
+      "uncovered": 1,
+      "non_testable": 0
+    },
+    "tests": {
+      "total": 3,
+      "bound": 3,
+      "untagged": 0
+    },
+    "findings": {
+      "error": 1,
+      "warning": 0,
+      "info": 0,
+      "blocking": 1
+    }
+  },
+  "requirements": [
+    {
+      "id": "BIKE-1",
+      "revision": 1,
+      "ref": "BIKE-1~1",
+      "statement": "WHEN a rental lasts from 1 to 10 whole hours THE SYSTEM SHALL charge 10. - Example: rental_price(hours=5) => 10",
+      "statement_digest": "43bb6ba8dbde494599ae955c15092a4ed2441234c6b2af64caaa26e839784821",
+      "status": "active",
+      "location": {
+        "file": "specs/prices.md",
+        "line": 8
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "rental_price",
+          "args": {
+            "hours": {
+              "type": "integer",
+              "value": "5"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "10"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_short_rental_price",
+          "classname": "tests.test_pricing",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_pricing.py",
+            "line": 6
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "BIKE-2",
+      "revision": 1,
+      "ref": "BIKE-2~1",
+      "statement": "WHEN a rental lasts from 11 to 30 whole hours THE SYSTEM SHALL charge 18. - Example: rental_price(hours=20) => 18",
+      "statement_digest": "2948b3fa1dcd0473f776d6a4ad81edadc3c7d7d678d395bf7fbe8dbb8f9d26ec",
+      "status": "active",
+      "location": {
+        "file": "specs/prices.md",
+        "line": 10
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "rental_price",
+          "args": {
+            "hours": {
+              "type": "integer",
+              "value": "20"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "18"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_medium_rental_price_range",
+          "classname": "tests.test_pricing",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_pricing.py",
+            "line": 11
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "BIKE-3",
+      "revision": 1,
+      "ref": "BIKE-3~1",
+      "statement": "WHEN a rental lasts from 31 to 80 whole hours THE SYSTEM SHALL charge 30. - Example: rental_price(hours=50) => 30",
+      "statement_digest": "f0a7c0215742527befede5500e07b6e47bbd93aabb9186ea207fb1fff1b8346c",
+      "status": "active",
+      "location": {
+        "file": "specs/prices.md",
+        "line": 12
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "rental_price",
+          "args": {
+            "hours": {
+              "type": "integer",
+              "value": "50"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "30"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_long_rental_price_range",
+          "classname": "tests.test_pricing",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_pricing.py",
+            "line": 17
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "BIKE-4",
+      "revision": 1,
+      "ref": "BIKE-4~1",
+      "statement": "WHEN a rental lasts 81 or more whole hours THE SYSTEM SHALL charge 45. - Example: rental_price(hours=100) => 45",
+      "statement_digest": "8c6a83eed0deaab65e96a557e0637a39d39fef75115680ca6e71ca7a5071b166",
+      "status": "active",
+      "location": {
+        "file": "specs/prices.md",
+        "line": 14
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "rental_price",
+          "args": {
+            "hours": {
+              "type": "integer",
+              "value": "100"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "45"
+          }
+        }
+      ],
+      "coverage": "uncovered",
+      "tests": [],
+      "extensions": {}
+    }
+  ],
+  "out_of_scope": [],
+  "findings": [
+    {
+      "category": "uncovered_requirement",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement BIKE-4~1 has no bound test",
+      "requirement_id": "BIKE-4",
+      "location": {
+        "file": "specs/prices.md",
+        "line": 14
+      }
+    }
+  ],
+  "extensions": {
+    "proofs": {
+      "trust": "local",
+      "policy": {
+        "signedPassBasis": "corroborated",
+        "minIsolation": "restricted",
+        "maxHostExclusions": 2,
+        "validityThreshold": 0.7,
+        "alignmentThreshold": 0.7,
+        "escalation": "error",
+        "isolationFloorLowered": false
+      },
+      "manifest": null,
+      "consumed": [],
+      "pending": [],
+      "criteria": [
+        {
+          "ref": "BIKE-1~1",
+          "modules": {},
+          "absent": [],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        },
+        {
+          "ref": "BIKE-2~1",
+          "modules": {},
+          "absent": [],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        },
+        {
+          "ref": "BIKE-3~1",
+          "modules": {},
+          "absent": [],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        }
+      ]
+    }
+  }
+}

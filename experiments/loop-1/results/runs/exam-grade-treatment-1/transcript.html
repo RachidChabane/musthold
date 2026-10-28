@@ -1,0 +1,1403 @@
+<section class="musthold-loop">
+<style>
+.musthold-loop{font-family:system-ui,sans-serif;line-height:1.45;max-width:72rem}
+.musthold-loop pre{white-space:pre-wrap;overflow-wrap:anywhere;background:rgba(127,127,127,.08);padding:.6rem .8rem;border-radius:6px;font-size:.85rem}
+.musthold-loop .entry{border-left:3px solid rgba(127,127,127,.35);padding:.1rem 0 .1rem .8rem;margin:1rem 0}
+.musthold-loop .entry-gate{border-left-color:#b3541e}
+.musthold-loop .entry-gate.passed{border-left-color:#2f7d32}
+.musthold-loop .meta{opacity:.7;font-size:.8rem;margin-left:.5rem}
+.musthold-loop .add{color:#2f7d32}
+.musthold-loop .del{color:#b3261e}
+.musthold-loop .hunk{opacity:.7}
+.musthold-loop table{border-collapse:collapse}
+.musthold-loop td,.musthold-loop th{border-bottom:1px solid rgba(127,127,127,.25);padding:.2rem .8rem .2rem 0;text-align:left}
+</style>
+<h2>Agent loop: exam-grade, arm treatment, repetition 1</h2>
+<ul>
+<li>Model: claude-sonnet-5-5</li>
+<li>claude: 2.1.295 (Claude Code)</li>
+<li>colima: 0.10.3</li>
+<li>colima_cpus: 2</li>
+<li>colima_disk_bytes: 32212254720</li>
+<li>colima_memory_bytes: 4294967296</li>
+<li>docker_engine: 29.5.2</li>
+<li>git: 2.39.5</li>
+<li>host_arch: arm64</li>
+<li>host_os: Darwin</li>
+<li>host_os_version: 25.6.0</li>
+<li>musthold-alignment: musthold-alignment dev</li>
+<li>musthold-completeness: musthold-completeness dev</li>
+<li>musthold-dp: musthold-dp dev</li>
+<li>node: 24.22.1</li>
+<li>pytest: 9.1.1</li>
+<li>python: 3.13.14</li>
+<li>python3: Python 3.13.14</li>
+<li>shallnot: c331f9b97d5b96bdc18eba3b17be870c004dc239</li>
+<li>shallnot --version: shallnot c331f9b97d5b</li>
+<li>uv: 0.11.23</li>
+<li>Started: 2026-10-27 22:12:44 UTC</li>
+<li>Caps: 1500 assistant messages, 7200 s, 40.00 USD</li>
+</ul>
+<h3>Task</h3>
+<pre>Implement requirement GRADE-5 of specs/grades.md, return F below 60, in exams/grading.py, and add a test that verifies it. Tell me when the task is done.</pre>
+<h3>Session</h3>
+<article class="entry entry-command">
+<h4><time>0:03</time> Command<span class="meta">stream.jsonl:4</span></h4>
+<pre>$ cat specs/grades.md shallnot.yaml exams/grading.py; ls . exams tests 2&gt;/dev/null; cat tests/*grad* | head -60</pre>
+<pre># Exam grades
+
+The examination system assigns a letter grade from a student&#39;s numeric score.
+
+## Grade scale
+
+- **GRADE-1~1**: WHEN the score is 90 or higher THE SYSTEM SHALL return &#34;A&#34;.
+  - Example: exam_grade(score=92) =&gt; &#34;A&#34;
+- **GRADE-2~1**: WHEN the score is from 80 through 89 THE SYSTEM SHALL return &#34;B&#34;.
+  - Example: exam_grade(score=85) =&gt; &#34;B&#34;
+- **GRADE-3~1**: WHEN the score is from 70 through 79 THE SYSTEM SHALL return &#34;C&#34;.
+  - Example: exam_grade(score=74) =&gt; &#34;C&#34;
+- **GRADE-4~1**: WHEN the score is from 60 through 69 THE SYSTEM SHALL return &#34;D&#34;.
+  - Example: exam_grade(score=63) =&gt; &#34;D&#34;
+- **GRADE-5~1**: WHEN the score is below 60, including a negative score THE SYSTEM SHALL return &#34;F&#34;.
+  - Example: exam_grade(score=59) =&gt; &#34;F&#34;
+version: 1
+specs:
+  - specs
+tests:
+  - tests
+results:
+  - test-results/pytest.xml
+test_commands:
+  - pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml
+proofs:
+  require: [discriminating-power, alignment]
+  trust: local
+  code:
+    - exams
+def exam_grade(*, score):
+    if score &lt; 0:
+        return &#34;D&#34;
+    if score &gt;= 90:
+        return &#34;A&#34;
+    if score &gt;= 80:
+        return &#34;B&#34;
+    if score &gt;= 70:
+        return &#34;C&#34;
+    if score &gt;= 60:
+        return &#34;D&#34;
+    return &#34;F&#34;
+.:
+AGENTS.md
+CLAUDE.md
+conftest.py
+exams
+pytest.ini
+shallnot.yaml
+specs
+test-results
+tests
+
+exams:
+__init__.py
+grading.py
+
+tests:
+test_grading.py
+import pytest
+
+from exams import exam_grade
+
+
+@pytest.mark.verifies(&#34;GRADE-1~1&#34;)
+def test_high_scores_receive_an_a():
+    assert exam_grade(score=90) == &#34;A&#34;
+    assert exam_grade(score=100) == &#34;A&#34;
+
+
+@pytest.mark.verifies(&#34;GRADE-2~1&#34;)
+def test_eighty_five_receives_a_b():
+    assert exam_grade(score=85) == &#34;B&#34;
+
+
+@pytest.mark.verifies(&#34;GRADE-3~1&#34;)
+def test_c_scores_cover_their_range():
+    assert exam_grade(score=70) == &#34;C&#34;
+    assert exam_grade(score=79) == &#34;C&#34;
+
+
+@pytest.mark.verifies(&#34;GRADE-4~1&#34;)
+def test_d_scores_cover_their_range():
+    assert exam_grade(score=60) == &#34;D&#34;
+    assert exam_grade(score=69) == &#34;D&#34;</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:05</time> Agent<span class="meta">stream.jsonl:7</span></h4>
+<pre>The code returns &#34;D&#34; for negative scores; that&#39;s the bug. Fix and test.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:06</time> Command<span class="meta">stream.jsonl:8</span></h4>
+<pre>$ python - &lt;&lt;&#39;E&#39;
+p=&#39;exams/grading.py&#39;
+s=open(p).read().replace(&#39;    if score &lt; 0:\n        return &#34;D&#34;\n&#39;,&#39;&#39;)
+open(p,&#39;w&#39;).write(s)
+E
+cat &gt;&gt; tests/test_grading.py &lt;&lt;&#39;E&#39;
+
+
+@pytest.mark.verifies(&#34;GRADE-5~1&#34;)
+def test_scores_below_sixty_receive_an_f():
+    assert exam_grade(score=59) == &#34;F&#34;
+    assert exam_grade(score=0) == &#34;F&#34;
+    assert exam_grade(score=-1) == &#34;F&#34;
+    assert exam_grade(score=-50) == &#34;F&#34;
+E
+shallnot gate --json-out shallnot-report.json; echo $?; musthold-dp prove --changed; echo dp $?</pre>
+<pre>A variable in this command can&#39;t be checked before it runs</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:08</time> Agent<span class="meta">stream.jsonl:11</span></h4>
+<pre>Retry in separate steps.</pre>
+</article>
+<article class="entry entry-edit">
+<h4><time>0:08</time> Edit<span class="meta">stream.jsonl:12</span></h4>
+<pre>&lt;run&gt;/project/exams/grading.py</pre>
+<pre><span class="del">-    if score &lt; 0:</span>
+<span class="del">-        return &#34;D&#34;</span></pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:09</time> Command<span class="meta">stream.jsonl:14</span></h4>
+<pre>$ printf &#39;\n\n@pytest.mark.verifies(&#34;GRADE-5~1&#34;)\ndef test_scores_below_sixty_receive_an_f():\n    assert exam_grade(score=59) == &#34;F&#34;\n    assert exam_grade(score=0) == &#34;F&#34;\n    assert exam_grade(score=-1) == &#34;F&#34;\n    assert exam_grade(score=-50) == &#34;F&#34;\n&#39; &gt;&gt; tests/test_grading.py; shallnot gate --json-out shallnot-report.json</pre>
+<pre>Exit code 1
+shallnot: running pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml
+============================= test session starts ==============================
+platform linux -- Python 3.13.14, pytest-9.1.1, pluggy-1.7.0
+rootdir: &lt;run&gt;/project
+configfile: pytest.ini
+testpaths: tests
+collected 5 items
+
+tests/test_grading.py .....                                              [100%]
+
+- generated xml file: &lt;run&gt;/project/test-results/pytest.xml -
+============================== 5 passed in 0.03s ===============================
+shallnot: &#34;pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml&#34; exited with status 0
+shallnot: FAIL
+focus: every known requirement
+requirements: 5 known, 5 in focus (5 covered, 0 failed, 0 skipped, 0 not run, 0 uncovered, 0 non-testable)
+tests: 5 in results, 5 bound, 0 untagged
+findings: 10 error, 0 warning, 0 info (10 blocking)
+
+REQUIREMENTS
+  GRADE-1~1  covered  specs/grades.md:7
+      passed  tests.test_grading › test_high_scores_receive_an_a  tests/test_grading.py:6
+  GRADE-2~1  covered  specs/grades.md:9
+      passed  tests.test_grading › test_eighty_five_receives_a_b  tests/test_grading.py:12
+  GRADE-3~1  covered  specs/grades.md:11
+      passed  tests.test_grading › test_c_scores_cover_their_range  tests/test_grading.py:17
+  GRADE-4~1  covered  specs/grades.md:13
+      passed  tests.test_grading › test_d_scores_cover_their_range  tests/test_grading.py:23
+  GRADE-5~1  covered  specs/grades.md:15
+      passed  tests.test_grading › test_scores_below_sixty_receive_an_f  tests/test_grading.py:29
+
+FINDINGS
+  error  stale_proof  specs/grades.md:7   requirement GRADE-1~1 has no valid alignment proof for test &#34;test_high_scores_receive_an_a&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:7   requirement GRADE-1~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:9   requirement GRADE-2~1 has no valid alignment proof for test &#34;test_eighty_five_receives_a_b&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:9   requirement GRADE-2~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:11  requirement GRADE-3~1 has no valid alignment proof for test &#34;test_c_scores_cover_their_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:11  requirement GRADE-3~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:13  requirement GRADE-4~1 has no valid alignment proof for test &#34;test_d_scores_cover_their_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:13  requirement GRADE-4~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:15  requirement GRADE-5~1 has no valid alignment proof for test &#34;test_scores_below_sixty_receive_an_f&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/grades.md:15  requirement GRADE-5~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:13</time> Agent<span class="meta">stream.jsonl:16</span></h4>
+<pre>Tests pass; only proofs remain. Using the prove-all skill.</pre>
+</article>
+<article class="entry entry-skill">
+<h4><time>0:13</time> Skill<span class="meta">stream.jsonl:17</span></h4>
+<pre>musthold:prove-all</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:15</time> Command<span class="meta">stream.jsonl:20</span></h4>
+<pre>$ musthold-dp doctor; musthold-alignment doctor; musthold-completeness doctor</pre>
+<pre>ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok ecosystem pytest
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted
+ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok policy align_k=5 modal_min={0.8 map[]}
+ok host-files claude
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted
+ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok git /usr/bin/git
+ok policy tau_adv={0.5 map[]} decide_k=3
+ok host-files claude
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:17</time> Command<span class="meta">stream.jsonl:22</span></h4>
+<pre>$ musthold-dp prove --changed; echo &#34;dp=$?&#34;; musthold-alignment prove --changed; echo &#34;al=$?&#34;; musthold-completeness prove --changed; echo &#34;co=$?&#34;</pre>
+<pre>This Bash command contains multiple operations. The following parts require approval: echo &#34;dp=$?&#34;, echo &#34;al=$?&#34;, echo &#34;co=$?&#34;</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:18</time> Command<span class="meta">stream.jsonl:25</span></h4>
+<pre>$ musthold-dp prove --changed</pre>
+<pre>Exit code 3
+wave 1
+GRADE-1~1 awaiting_host
+GRADE-2~1 awaiting_host
+GRADE-3~1 awaiting_host
+GRADE-4~1 awaiting_host
+GRADE-5~1 awaiting_host
+awaiting_host 10 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:19</time> Command<span class="meta">stream.jsonl:26</span></h4>
+<pre>$ musthold-alignment prove --changed</pre>
+<pre>Exit code 3
+wave 1
+GRADE-1~1 tests.test_grading.test_high_scores_receive_an_a awaiting_host
+GRADE-2~1 tests.test_grading.test_eighty_five_receives_a_b awaiting_host
+GRADE-3~1 tests.test_grading.test_c_scores_cover_their_range awaiting_host
+GRADE-4~1 tests.test_grading.test_d_scores_cover_their_range awaiting_host
+GRADE-5~1 tests.test_grading.test_scores_below_sixty_receive_an_f awaiting_host
+awaiting_host 25 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:19</time> Command<span class="meta">stream.jsonl:27</span></h4>
+<pre>$ musthold-completeness prove --changed</pre>
+<pre>Exit code 3
+wave 1
+specs/grades.md awaiting_host 0 questions
+awaiting_host 3 tickets</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:23</time> Agent<span class="meta">stream.jsonl:31</span></h4>
+<pre>All three need waves. Loading the dp fulfil skill first.</pre>
+</article>
+<article class="entry entry-skill">
+<h4><time>0:23</time> Skill<span class="meta">stream.jsonl:32</span></h4>
+<pre>musthold-dp:musthold-dp-fulfil</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:24</time> Command<span class="meta">stream.jsonl:35</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>2261c8c133339cc80f214f8f6a87201f47df23be1e53542a006bc812b05024e9.0.1 musthold-dp:generator
+2261c8c133339cc80f214f8f6a87201f47df23be1e53542a006bc812b05024e9.1.1 musthold-dp:generator
+c9956e5c52a1dfdaec05953bf55eb9df000cf21e877b0b6dea8d4f76a3afcf21.0.1 musthold-dp:generator
+c9956e5c52a1dfdaec05953bf55eb9df000cf21e877b0b6dea8d4f76a3afcf21.1.1 musthold-dp:generator
+d3c9f4aa03e6b16c24cd81b4dc3483dd84bad23b57e7420b2019d015dd47954d.0.1 musthold-dp:generator
+d3c9f4aa03e6b16c24cd81b4dc3483dd84bad23b57e7420b2019d015dd47954d.1.1 musthold-dp:generator
+e5fdcbb1c70880265537e5ced9604beab679484b597ef0958aaa7d0e0866a2b3.0.1 musthold-dp:generator
+e5fdcbb1c70880265537e5ced9604beab679484b597ef0958aaa7d0e0866a2b3.1.1 musthold-dp:generator
+ff5eed7b152a6c01700c1c9413a98995930ff920bee98867361fbbbedea2d530.0.1 musthold-dp:generator
+ff5eed7b152a6c01700c1c9413a98995930ff920bee98867361fbbbedea2d530.1.1 musthold-dp:generator</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:27</time> Agent<span class="meta">stream.jsonl:37</span></h4>
+<pre>Launching 4 at a time.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>0:28</time> Executors: 10 launched<span class="meta">stream.jsonl:38</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>1:12</time> Command<span class="meta">stream.jsonl:378</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 2
+GRADE-1~1 awaiting_host
+GRADE-2~1 awaiting_host
+GRADE-3~1 awaiting_host
+GRADE-4~1 awaiting_host
+GRADE-5~1 awaiting_host
+awaiting_host 10 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>1:25</time> Command<span class="meta">stream.jsonl:382</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>138e7f6398e536be58b41a803059079578a1218a0821671bed0b28023a81be4a.0.1 musthold-dp:judge
+138e7f6398e536be58b41a803059079578a1218a0821671bed0b28023a81be4a.1.1 musthold-dp:judge
+149372d8babfef7446d8284aad5df3d1a3c9a7caed36849c524248c3b43fa048.0.1 musthold-dp:judge
+149372d8babfef7446d8284aad5df3d1a3c9a7caed36849c524248c3b43fa048.1.1 musthold-dp:judge
+3828a834ecd71e5b43f1977ad402b8ab34326bd910a41842f14f1722088da5a9.0.1 musthold-dp:judge
+3828a834ecd71e5b43f1977ad402b8ab34326bd910a41842f14f1722088da5a9.1.1 musthold-dp:judge
+dca6a61b95be1679991fcb6f00e3e5238dd36a151f49f4343610e7b9cc5ef675.0.1 musthold-dp:judge
+dca6a61b95be1679991fcb6f00e3e5238dd36a151f49f4343610e7b9cc5ef675.1.1 musthold-dp:judge
+e63fabec6dc97ba65e6fa8ef9fad64dc653168b57ed2b0d5f65a397c17716ce0.0.1 musthold-dp:judge
+e63fabec6dc97ba65e6fa8ef9fad64dc653168b57ed2b0d5f65a397c17716ce0.1.1 musthold-dp:judge</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>1:27</time> Executors: 10 launched<span class="meta">stream.jsonl:384</span></h4>
+<pre>musthold-dp:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>2:10</time> Command<span class="meta">stream.jsonl:743</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 3
+GRADE-1~1 awaiting_host
+GRADE-2~1 awaiting_host
+GRADE-3~1 awaiting_host
+GRADE-4~1 awaiting_host
+GRADE-5~1 awaiting_host
+awaiting_host 38 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>4:01</time> Command<span class="meta">stream.jsonl:751</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>009f6727d0b480c982a7646b7b60526b3fd72978608aaaa4ee79087d3d4d711a.0.1 musthold-dp:decider
+009f6727d0b480c982a7646b7b60526b3fd72978608aaaa4ee79087d3d4d711a.1.1 musthold-dp:decider
+009f6727d0b480c982a7646b7b60526b3fd72978608aaaa4ee79087d3d4d711a.2.1 musthold-dp:decider
+1075b69eaee3832d5f9f3bbf1ffcb272686332d501f64c30790bf14c6e99e4dd.0.1 musthold-dp:decider
+1075b69eaee3832d5f9f3bbf1ffcb272686332d501f64c30790bf14c6e99e4dd.1.1 musthold-dp:decider
+1075b69eaee3832d5f9f3bbf1ffcb272686332d501f64c30790bf14c6e99e4dd.2.1 musthold-dp:decider
+1aee2b160e395b4babcb6774ef29756a66b25f81817089dae29656549da37ce8.0.1 musthold-dp:decider
+1aee2b160e395b4babcb6774ef29756a66b25f81817089dae29656549da37ce8.1.1 musthold-dp:decider
+1aee2b160e395b4babcb6774ef29756a66b25f81817089dae29656549da37ce8.2.1 musthold-dp:decider
+21292b2736c063e705eb63e8ea0c7dc4cf5997459d216554a8e55b8e6c207978.0.1 musthold-dp:decider
+21292b2736c063e705eb63e8ea0c7dc4cf5997459d216554a8e55b8e6c207978.1.1 musthold-dp:decider
+21292b2736c063e705eb63e8ea0c7dc4cf5997459d216554a8e55b8e6c207978.2.1 musthold-dp:decider
+3be1c5ddf5cd1d7847c1a7ba5dbe0f0890032356658086500130134ace18babf.0.1 musthold-dp:generator
+4a1a6351746c3291126643b9110612ab4abd92e7ccc43147e890463f4d7a7666.0.1 musthold-dp:generator
+4b761812349223d98be249abe705f18196758f0e9ad5fac927bf43c5a06607fa.0.1 musthold-dp:decider
+4b761812349223d98be249abe705f18196758f0e9ad5fac927bf43c5a06607fa.1.1 musthold-dp:decider
+4b761812349223d98be249abe705f18196758f0e9ad5fac927bf43c5a06607fa.2.1 musthold-dp:decider
+746f6a7b85a985f1a03bc88fd6716dcece5db3f7aac8905f342b59ea79f809a9.0.1 musthold-dp:decider
+746f6a7b85a985f1a03bc88fd6716dcece5db3f7aac8905f342b59ea79f809a9.1.1 musthold-dp:decider
+746f6a7b85a985f1a03bc88fd6716dcece5db3f7aac8905f342b59ea79f809a9.2.1 musthold-dp:decider
+8e159c77eef0aeda984ff86a65df973a5efae09c19ab483f636f5c1fcfe73e54.0.1 musthold-dp:decider
+8e159c77eef0aeda984ff86a65df973a5efae09c19ab483f636f5c1fcfe73e54.1.1 musthold-dp:decider
+8e159c77eef0aeda984ff86a65df973a5efae09c19ab483f636f5c1fcfe73e54.2.1 musthold-dp:decider
+a8e780da76313ae539bf4ea05f4e7a583451071c5e802ecb191fcacfa8ba93b7.0.1 musthold-dp:decider
+a8e780da76313ae539bf4ea05f4e7a583451071c5e802ecb191fcacfa8ba93b7.1.1 musthold-dp:decider
+a8e780da76313ae539bf4ea05f4e7a583451071c5e802ecb191fcacfa8ba93b7.2.1 musthold-dp:decider
+ab893e6bb11caab8e85acf0eb3c1f5823c7174361c65e5f5c96184e5517695b6.0.1 musthold-dp:generator
+b072c272cb0cbb117f8cf66451b4fa812707b71953ee7c3a24397dbf05e2c3ff.0.1 musthold-dp:generator
+c3084e0b9b6bb5ae60dae219fd43d1a40051a98da3638acdf49cfbce3d223ff0.0.1 musthold-dp:decider
+c3084e0b9b6bb5ae60dae219fd43d1a40051a98da3638acdf49cfbce3d223ff0.1.1 musthold-dp:decider
+c3084e0b9b6bb5ae60dae219fd43d1a40051a98da3638acdf49cfbce3d223ff0.2.1 musthold-dp:decider
+cba5f879c369e361ddeec0ba4186a5cccc0b0b35595d0e174bc821eaf84a6436.0.1 musthold-dp:decider
+cba5f879c369e361ddeec0ba4186a5cccc0b0b35595d0e174bc821eaf84a6436.1.1 musthold-dp:decider
+cba5f879c369e361ddeec0ba4186a5cccc0b0b35595d0e174bc821eaf84a6436.2.1 musthold-dp:decider
+cca7f96a8067cf364989be4755473ddcc8bcbae5bd332fc1400b2ec9012b6bb2.0.1 musthold-dp:generator
+e5e513f930f230758796c08a92d606fa105dc1bcb4790a430531393259f16a04.0.1 musthold-dp:decider
+e5e513f930f230758796c08a92d606fa105dc1bcb4790a430531393259f16a04.1.1 musthold-dp:decider
+e5e513f930f230758796c08a92d606fa105dc1bcb4790a430531393259f16a04.2.1 musthold-dp:decider</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>4:03</time> Agent<span class="meta">stream.jsonl:753</span></h4>
+<pre>Wave 3 has 38 tickets. I&#39;m running them 4 at a time.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>4:04</time> Executors: 24 launched<span class="meta">stream.jsonl:754</span></h4>
+<pre>musthold-dp:decider</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>5:21</time> Agent<span class="meta">stream.jsonl:1567</span></h4>
+<pre>Update: 24 of the 38 wave-3 tickets are answered. No findings so far. The remaining 14 are next, then `prove --resume`.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>5:21</time> Executors: 14 launched<span class="meta">stream.jsonl:1568</span></h4>
+<pre>musthold-dp:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>6:13</time> Command<span class="meta">stream.jsonl:2040</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 4
+GRADE-1~1 awaiting_host
+GRADE-2~1 awaiting_host
+GRADE-3~1 awaiting_host
+GRADE-4~1 awaiting_host
+GRADE-5~1 awaiting_host
+awaiting_host 5 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>6:18</time> Command<span class="meta">stream.jsonl:2044</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>3be1c5ddf5cd1d7847c1a7ba5dbe0f0890032356658086500130134ace18babf.0.2 musthold-dp:generator
+4a1a6351746c3291126643b9110612ab4abd92e7ccc43147e890463f4d7a7666.0.2 musthold-dp:generator
+ab893e6bb11caab8e85acf0eb3c1f5823c7174361c65e5f5c96184e5517695b6.0.2 musthold-dp:generator
+b072c272cb0cbb117f8cf66451b4fa812707b71953ee7c3a24397dbf05e2c3ff.0.2 musthold-dp:generator
+cca7f96a8067cf364989be4755473ddcc8bcbae5bd332fc1400b2ec9012b6bb2.0.2 musthold-dp:generator</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>6:20</time> Agent<span class="meta">stream.jsonl:2046</span></h4>
+<pre>Update: the wave-3 answers are consumed. Wave 4 is down to 5 generator tickets, which are retries. I&#39;m launching them now.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>6:21</time> Executors: 5 launched<span class="meta">stream.jsonl:2047</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>6:46</time> Command<span class="meta">stream.jsonl:2212</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 5
+GRADE-1~1 awaiting_host
+GRADE-2~1 awaiting_host
+GRADE-3~1 awaiting_host
+GRADE-4~1 awaiting_host
+GRADE-5~1 awaiting_host
+awaiting_host 5 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>6:52</time> Command<span class="meta">stream.jsonl:2214</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>3be1c5ddf5cd1d7847c1a7ba5dbe0f0890032356658086500130134ace18babf.0.3 musthold-dp:generator
+4a1a6351746c3291126643b9110612ab4abd92e7ccc43147e890463f4d7a7666.0.3 musthold-dp:generator
+ab893e6bb11caab8e85acf0eb3c1f5823c7174361c65e5f5c96184e5517695b6.0.3 musthold-dp:generator
+b072c272cb0cbb117f8cf66451b4fa812707b71953ee7c3a24397dbf05e2c3ff.0.3 musthold-dp:generator
+cca7f96a8067cf364989be4755473ddcc8bcbae5bd332fc1400b2ec9012b6bb2.0.3 musthold-dp:generator</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>6:54</time> Agent<span class="meta">stream.jsonl:2217</span></h4>
+<pre>Wave 5 asks for the same 5 generators again, this time at attempt 3. I&#39;ll run it once more and see whether it converges.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>6:55</time> Executors: 5 launched<span class="meta">stream.jsonl:2218</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>7:19</time> Command<span class="meta">stream.jsonl:2383</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 6
+GRADE-1~1 awaiting_host
+GRADE-2~1 awaiting_host
+GRADE-3~1 awaiting_host
+GRADE-4~1 awaiting_host
+GRADE-5~1 awaiting_host
+awaiting_host 5 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>7:25</time> Command<span class="meta">stream.jsonl:2388</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>28376595d274d3001bd8a832f8588aaa06a21d78d5f5dfba4705d5940b583310.0.1 musthold-dp:generator
+44482587289a5fc843702d3832717d92f03cf2c5a61154ae26566a5fdfa64488.0.1 musthold-dp:generator
+59b4b1a2462ecbbe7863d99c77cd5908c04d984a90c897e894f7bfacba6b177c.0.1 musthold-dp:generator
+a7521d4cbd60dce9014ac4e0b9d3d708004f0cbbcce19745e51ab88acbbfe24d.0.1 musthold-dp:generator
+d73b3ab99f16d58e90b54b9a930955728a839f1c6c1b7dc562e9cc9502cfe170.0.1 musthold-dp:generator</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>7:27</time> Agent<span class="meta">stream.jsonl:2390</span></h4>
+<pre>These are new tickets with new IDs, so the proof is still progressing and isn&#39;t stuck. Continuing.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>7:28</time> Executors: 5 launched<span class="meta">stream.jsonl:2391</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>7:57</time> Command<span class="meta">stream.jsonl:2561</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 7
+GRADE-1~1 awaiting_host
+GRADE-2~1 awaiting_host
+GRADE-3~1 awaiting_host
+GRADE-4~1 awaiting_host
+GRADE-5~1 awaiting_host
+awaiting_host 10 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>8:07</time> Command<span class="meta">stream.jsonl:2566</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>158758f9962255cc1cfbfa6be9456f2bea2a077ede39941b96a1ef21e85ae0dd.0.1 musthold-dp:judge
+158758f9962255cc1cfbfa6be9456f2bea2a077ede39941b96a1ef21e85ae0dd.1.1 musthold-dp:judge
+23b99cfdb6b00e0e731234f6c57095f8e51aeedd000df41132bcd279f13ff85c.0.1 musthold-dp:judge
+23b99cfdb6b00e0e731234f6c57095f8e51aeedd000df41132bcd279f13ff85c.1.1 musthold-dp:judge
+27c215005c6f8ccfbd9e2e7bea2811d3c96df990b58cc56e6a5700d6c6235392.0.1 musthold-dp:judge
+27c215005c6f8ccfbd9e2e7bea2811d3c96df990b58cc56e6a5700d6c6235392.1.1 musthold-dp:judge
+2e8ad31b66e0c2006fcfd195b652940017dfa1fb79e408061e829f19ddacef1c.0.1 musthold-dp:judge
+2e8ad31b66e0c2006fcfd195b652940017dfa1fb79e408061e829f19ddacef1c.1.1 musthold-dp:judge
+791efa2eed74cfefa8fe1911f1e3c0beb501a23e4054b46305297af83ebdf15c.0.1 musthold-dp:judge
+791efa2eed74cfefa8fe1911f1e3c0beb501a23e4054b46305297af83ebdf15c.1.1 musthold-dp:judge</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>8:09</time> Agent<span class="meta">stream.jsonl:2568</span></h4>
+<pre>Wave 7 has 10 judge tickets.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>8:10</time> Executors: 10 launched<span class="meta">stream.jsonl:2569</span></h4>
+<pre>musthold-dp:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>8:48</time> Command<span class="meta">stream.jsonl:2906</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 1
+wave 8
+GRADE-1~1 proved ESCALATE
+  finding host_unresponsive
+GRADE-2~1 proved BLOCK
+  finding host_unresponsive
+  finding surviving_valid_mutant
+  survivor 252e665a832a: an operator mutant of family relational, which every test of the criterion passes, fails the witness test_r2_property_returns_string_B, which checks &#34;THE SYSTEM SHALL return \&#34;B\&#34;&#34;:
+    def test_r2_property_returns_string_B():
+        rng = random.Random(777)
+        for _ in range(250):
+            s = rng.choice([80, 89, rng.randint(80, 89)])
+            result = exam_grade(score=s)
+            assert isinstance(result, str) and result == &#34;B&#34;, s
+  survivor 48a8b48db183: an operator mutant of family numeric_constant, which every test of the criterion passes, fails the witness test_r2_upper_bound_89, which checks &#34;WHEN the score is from 80 through 89&#34;:
+    def test_r2_upper_bound_89():
+        assert exam_grade(score=89) == &#34;B&#34;
+  survivor e3c46fe2f44b: an operator mutant of family numeric_constant, which every test of the criterion passes, fails the witness test_r2_property_returns_string_B, which checks &#34;THE SYSTEM SHALL return \&#34;B\&#34;&#34;:
+    def test_r2_property_returns_string_B():
+        rng = random.Random(777)
+        for _ in range(250):
+            s = rng.choice([80, 89, rng.randint(80, 89)])
+            result = exam_grade(score=s)
+            assert isinstance(result, str) and result == &#34;B&#34;, s
+GRADE-3~1 proved ESCALATE
+  finding host_unresponsive
+GRADE-4~1 proved ESCALATE
+  finding host_unresponsive
+GRADE-5~1 proved ESCALATE
+  finding host_unresponsive</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>9:38</time> Agent<span class="meta">stream.jsonl:2917</span></h4>
+<pre>The code change and the GRADE-5 test are done and pass, but the gate is still blocked on proofs. I stopped the proof run partway and haven&#39;t published any proofs.
+
+**What I changed**
+- `exams/grading.py`: removed the `if score &lt; 0: return &#34;D&#34;` branch. A negative score was getting &#34;D&#34;, and now it falls through to &#34;F&#34;.
+- `tests/test_grading.py`: added `test_scores_below_sixty_receive_an_f`, tagged `[verifies GRADE-5~1]`. It checks 59, 0, -1 and -50 and expects &#34;F&#34; each time.
+- GRADE-5 already described this behaviour, so I added no requirement and edited no spec.
+
+**Gate status**
+- All 5 tests pass, and all 5 requirements are covered and bound. The only blocking findings are `stale_proof`, because no proofs have been published yet.
+- `musthold-dp prove` ended with exit code 1.
+  - GRADE-1, 3, 4 and 5 came back ESCALATE with `host_unresponsive`. That is not a verdict on the tests, and I didn&#39;t retry, as the skill says.
+  - GRADE-2 is BLOCK with `surviving_valid_mutant`. The existing GRADE-2 test only checks a score of 85, so mutants at the 80 and 89 boundaries survive. This test was there before my change.
+- I didn&#39;t run `musthold-alignment` or `musthold-completeness` through their waves, or the publish step. The dp result already blocks the gate, and fixing the GRADE-2 test would make all proofs stale anyway.
+
+**Decision for you:** I can strengthen the GRADE-2 test with assertions at 80 and 89, then rerun all three proof modules from the start. That is more work than you asked for, so I didn&#39;t do it unprompted. Should I go ahead?</pre>
+</article>
+<article class="entry entry-gate blocked">
+<h4><time>9:38</time> Gate: blocked<span class="meta">hooks.jsonl:869</span></h4>
+<pre>shallnot: the traceability gate is blocked by 10 finding(s). Resolve them before finishing:
+- stale_proof at specs/grades.md:7: requirement GRADE-1~1 has no valid alignment proof for test &#34;test_high_scores_receive_an_a&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:7: requirement GRADE-1~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:9: requirement GRADE-2~1 has no valid alignment proof for test &#34;test_eighty_five_receives_a_b&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:9: requirement GRADE-2~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:11: requirement GRADE-3~1 has no valid alignment proof for test &#34;test_c_scores_cover_their_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:11: requirement GRADE-3~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:13: requirement GRADE-4~1 has no valid alignment proof for test &#34;test_d_scores_cover_their_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:13: requirement GRADE-4~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:15: requirement GRADE-5~1 has no valid alignment proof for test &#34;test_scores_below_sixty_receive_an_f&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:15: requirement GRADE-5~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+Never delete or alter a tag, mark a requirement non-testable, skip a test or weaken an assertion to clear a finding. If a requirement cannot be met or tested as written, stop and say so.</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>9:41</time> Agent<span class="meta">stream.jsonl:2927</span></h4>
+<pre>The hook says the gate must be unblocked, so I&#39;ll go ahead. First I&#39;m strengthening the GRADE-2 test with the 80 and 89 boundaries. Then I&#39;ll rerun the proofs from the start.</pre>
+</article>
+<article class="entry entry-edit">
+<h4><time>9:42</time> Edit<span class="meta">stream.jsonl:2928</span></h4>
+<pre>&lt;run&gt;/project/tests/test_grading.py</pre>
+<pre><span class="del">-def test_eighty_five_receives_a_b():</span>
+<span class="del">-    assert exam_grade(score=85) == &#34;B&#34;</span>
+<span class="add">+def test_eighty_five_receives_a_b():</span>
+<span class="add">+    assert exam_grade(score=80) == &#34;B&#34;</span>
+<span class="add">+    assert exam_grade(score=85) == &#34;B&#34;</span>
+<span class="add">+    assert exam_grade(score=89) == &#34;B&#34;</span></pre>
+</article>
+<article class="entry entry-command">
+<h4><time>9:44</time> Command<span class="meta">stream.jsonl:2930</span></h4>
+<pre>$ musthold-dp prove --changed</pre>
+<pre>Command did not complete within its 120s timeout and was moved to the background (ID: bxdqwxow3). Output is being written to: &lt;run&gt;/tmp/claude-502/&lt;run&gt;-project/cd6a738b-c45d-4c39-9203-604202c66366/tasks/bxdqwxow3.output. You will be notified when it completes. If it is still running after 10m in the background, it will be stopped and you will be notified. To check interim output, use Read on that file path.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>9:45</time> Command<span class="meta">stream.jsonl:2931</span></h4>
+<pre>$ musthold-alignment prove --changed</pre>
+<pre>Exit code 3
+wave 2
+GRADE-1~1 tests.test_grading.test_high_scores_receive_an_a awaiting_host
+GRADE-2~1 tests.test_grading.test_eighty_five_receives_a_b awaiting_host
+GRADE-3~1 tests.test_grading.test_c_scores_cover_their_range awaiting_host
+GRADE-4~1 tests.test_grading.test_d_scores_cover_their_range awaiting_host
+GRADE-5~1 tests.test_grading.test_scores_below_sixty_receive_an_f awaiting_host
+awaiting_host 25 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>9:45</time> Command<span class="meta">stream.jsonl:2932</span></h4>
+<pre>$ musthold-completeness prove --changed</pre>
+<pre>Exit code 3
+wave 2
+specs/grades.md awaiting_host 0 questions
+awaiting_host 3 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>11:48</time> Command<span class="meta">stream.jsonl:2946</span></h4>
+<pre>$ musthold-alignment request list --session prove</pre>
+<pre>44b652aa8a0b8e58240a100d63ebf64e888c9024547d32071cb64feb4fb804e9.0.1 musthold-alignment:judge
+44b652aa8a0b8e58240a100d63ebf64e888c9024547d32071cb64feb4fb804e9.1.1 musthold-alignment:judge
+44b652aa8a0b8e58240a100d63ebf64e888c9024547d32071cb64feb4fb804e9.2.1 musthold-alignment:judge
+44b652aa8a0b8e58240a100d63ebf64e888c9024547d32071cb64feb4fb804e9.3.1 musthold-alignment:judge
+44b652aa8a0b8e58240a100d63ebf64e888c9024547d32071cb64feb4fb804e9.4.1 musthold-alignment:judge
+525329627efc1cac9e5090feee159effd238ce680a372d8a7e96e7a271418e6a.0.1 musthold-alignment:judge
+525329627efc1cac9e5090feee159effd238ce680a372d8a7e96e7a271418e6a.1.1 musthold-alignment:judge
+525329627efc1cac9e5090feee159effd238ce680a372d8a7e96e7a271418e6a.2.1 musthold-alignment:judge
+525329627efc1cac9e5090feee159effd238ce680a372d8a7e96e7a271418e6a.3.1 musthold-alignment:judge
+525329627efc1cac9e5090feee159effd238ce680a372d8a7e96e7a271418e6a.4.1 musthold-alignment:judge
+8b48d002bf22429863e54d06e9ec96d33ac147f2b4445da6a0a78d46e90273e8.0.1 musthold-alignment:judge
+8b48d002bf22429863e54d06e9ec96d33ac147f2b4445da6a0a78d46e90273e8.1.1 musthold-alignment:judge
+8b48d002bf22429863e54d06e9ec96d33ac147f2b4445da6a0a78d46e90273e8.2.1 musthold-alignment:judge
+8b48d002bf22429863e54d06e9ec96d33ac147f2b4445da6a0a78d46e90273e8.3.1 musthold-alignment:judge
+8b48d002bf22429863e54d06e9ec96d33ac147f2b4445da6a0a78d46e90273e8.4.1 musthold-alignment:judge
+db7d5371a8dd15019d2ffccb353bf7983a14d68c7a561c31dbc98b82ba8a9f99.0.1 musthold-alignment:judge
+db7d5371a8dd15019d2ffccb353bf7983a14d68c7a561c31dbc98b82ba8a9f99.1.1 musthold-alignment:judge
+db7d5371a8dd15019d2ffccb353bf7983a14d68c7a561c31dbc98b82ba8a9f99.2.1 musthold-alignment:judge
+db7d5371a8dd15019d2ffccb353bf7983a14d68c7a561c31dbc98b82ba8a9f99.3.1 musthold-alignment:judge
+db7d5371a8dd15019d2ffccb353bf7983a14d68c7a561c31dbc98b82ba8a9f99.4.1 musthold-alignment:judge
+eceacff831b5d162641d335b84c6a87946975906eabb01c9cb38123613d23efc.0.1 musthold-alignment:judge
+eceacff831b5d162641d335b84c6a87946975906eabb01c9cb38123613d23efc.1.1 musthold-alignment:judge
+eceacff831b5d162641d335b84c6a87946975906eabb01c9cb38123613d23efc.2.1 musthold-alignment:judge
+eceacff831b5d162641d335b84c6a87946975906eabb01c9cb38123613d23efc.3.1 musthold-alignment:judge
+eceacff831b5d162641d335b84c6a87946975906eabb01c9cb38123613d23efc.4.1 musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>11:48</time> Command<span class="meta">stream.jsonl:2948</span></h4>
+<pre>$ musthold-completeness request list --session prove</pre>
+<pre>207eefe1670b8fef5531ecae7eeea8b9d5eb1ac995bf8cebd2c6f3d7c12f2c92.0.1 musthold-completeness:decider
+bc0789d09a87d2cdd0b3946c3032681e04242e948a0be7a77298d2f89e5cfdcb.0.1 musthold-completeness:decider
+f35c8e1bf4b43f6e9989fbe2bf0a3a3b091dacddbeaae25c10446847717b52ac.0.1 musthold-completeness:decider</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>11:52</time> Executors: 12 launched<span class="meta">stream.jsonl:2953</span></h4>
+<pre>musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-read">
+<h4><time>12:29</time> Read<span class="meta">stream.jsonl:3359</span></h4>
+<pre>Read &lt;run&gt;/tmp/claude-502/&lt;run&gt;-project/cd6a738b-c45d-4c39-9203-604202c66366/tasks/bxdqwxow3.output</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>12:40</time> Agent<span class="meta">stream.jsonl:3366</span></h4>
+<pre>The gate is still blocked, and I&#39;m stopping here. I didn&#39;t finish the proof run.
+
+- **Tests:** The GRADE-5 fix and test are in. The GRADE-2 test now also checks the 80 and 89 boundaries, which is the weakness the earlier discriminating-power run flagged. Tests pass.
+- **Discriminating-power proof:** My rerun of `musthold-dp prove --changed` timed out in the foreground and moved to the background. It ended with exit 1 and all five requirements ESCALATE with `host_unresponsive`. I think I caused this by running it in parallel with the alignment run and not answering its tickets, but I can&#39;t confirm that. The earlier run also ended in `host_unresponsive` for four requirements even though I&#39;d answered every ticket. So this module may not be able to reach a verdict on its own.
+- **Alignment proof:** 12 of its 25 tickets are answered and 13 remain. Finishing them is wasted effort if the discriminating-power proof can&#39;t complete, so I paused.
+- **Completeness proof:** Not started. It has 3 tickets, and the result is advisory only.
+- **Publishing:** Nothing has been published. That is why the `stale_proof` findings remain.
+
+I haven&#39;t edited any tags, requirements or assertions to clear the findings.
+
+**Decision for you:** Do you want me to run `musthold-dp prove --changed` alone in the foreground, answer its tickets one wave at a time, then do alignment and completeness and publish? If it ends `host_unresponsive` again, the cause is probably in the proof tooling, and I&#39;d stop and leave that to you.</pre>
+</article>
+<article class="entry entry-gate blocked">
+<h4><time>12:40</time> Gate: blocked<span class="meta">hooks.jsonl:998</span></h4>
+<pre>shallnot: the traceability gate is blocked by 10 finding(s). Resolve them before finishing:
+- stale_proof at specs/grades.md:7: requirement GRADE-1~1 has no valid alignment proof for test &#34;test_high_scores_receive_an_a&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:7: requirement GRADE-1~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:9: requirement GRADE-2~1 has no valid alignment proof for test &#34;test_eighty_five_receives_a_b&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:9: requirement GRADE-2~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:11: requirement GRADE-3~1 has no valid alignment proof for test &#34;test_c_scores_cover_their_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:11: requirement GRADE-3~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:13: requirement GRADE-4~1 has no valid alignment proof for test &#34;test_d_scores_cover_their_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:13: requirement GRADE-4~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:15: requirement GRADE-5~1 has no valid alignment proof for test &#34;test_scores_below_sixty_receive_an_f&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:15: requirement GRADE-5~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+Never delete or alter a tag, mark a requirement non-testable, skip a test or weaken an assertion to clear a finding. If a requirement cannot be met or tested as written, stop and say so.</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>12:44</time> Agent<span class="meta">stream.jsonl:3375</span></h4>
+<pre>The hook still reports the gate as blocked. Running the proofs is part of the task, so I&#39;ll run `musthold-dp` by itself in the foreground with a longer timeout.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>12:44</time> Command<span class="meta">stream.jsonl:3376</span></h4>
+<pre>$ musthold-dp prove --changed</pre>
+<pre>Exit code 1
+wave 10
+GRADE-1~1 fresh ESCALATE
+GRADE-2~1 fresh ESCALATE
+GRADE-3~1 fresh ESCALATE
+GRADE-4~1 fresh ESCALATE
+GRADE-5~1 fresh ESCALATE</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>12:54</time> Agent<span class="meta">stream.jsonl:3383</span></h4>
+<pre>I&#39;m stopping here. The gate is still blocked, and the cause is in the proof tooling rather than in the code or tests.
+
+`musthold-dp prove --changed` now reports all five requirements as `fresh ESCALATE`. It is reusing the earlier `host_unresponsive` result and issues no new tickets, so there is nothing for me to answer. Forcing a rerun would mean deleting or editing files under `.musthold/cache` or the journal. I won&#39;t do that, because it would amount to tampering with the proof evidence.
+
+**What&#39;s done**
+- `exams/grading.py` returns &#34;F&#34; for negative scores. The `score &lt; 0 → &#34;D&#34;` branch is removed.
+- `tests/test_grading.py` has the new `[verifies GRADE-5~1]` test, covering 59, 0, -1 and -50.
+- I also strengthened the GRADE-2 test with the 80 and 89 boundaries. An earlier discriminating-power run had flagged surviving mutants there.
+- All 5 tests pass, and all 5 requirements are covered and bound. I changed no tags, specs or assertions to clear findings.
+
+**What&#39;s blocked**
+- Discriminating power ended `host_unresponsive` for all five requirements and is now cached as fresh.
+- Alignment is half answered (12 of 25 tickets), and completeness hasn&#39;t been run.
+- No proofs are published, so the 10 `stale_proof` findings remain.
+
+**Decision for you:** Do you want to clear the dp cache or journal yourself, or tell me it&#39;s fine for me to? After that I&#39;d rerun the three proof modules one at a time in the foreground, answering every ticket, and publish. If you&#39;d rather have it diagnosed, I&#39;d want to know why the executor answers were reported as unanswered. Every ticket got a receipt, but the module still called the host unresponsive.</pre>
+</article>
+<article class="entry entry-gate blocked">
+<h4><time>12:54</time> Gate: blocked<span class="meta">hooks.jsonl:1001</span></h4>
+<pre>shallnot: the traceability gate is blocked by 10 finding(s). Resolve them before finishing:
+- stale_proof at specs/grades.md:7: requirement GRADE-1~1 has no valid alignment proof for test &#34;test_high_scores_receive_an_a&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:7: requirement GRADE-1~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:9: requirement GRADE-2~1 has no valid alignment proof for test &#34;test_eighty_five_receives_a_b&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:9: requirement GRADE-2~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:11: requirement GRADE-3~1 has no valid alignment proof for test &#34;test_c_scores_cover_their_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:11: requirement GRADE-3~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:13: requirement GRADE-4~1 has no valid alignment proof for test &#34;test_d_scores_cover_their_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:13: requirement GRADE-4~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:15: requirement GRADE-5~1 has no valid alignment proof for test &#34;test_scores_below_sixty_receive_an_f&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:15: requirement GRADE-5~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+Never delete or alter a tag, mark a requirement non-testable, skip a test or weaken an assertion to clear a finding. If a requirement cannot be met or tested as written, stop and say so.</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>12:59</time> Agent<span class="meta">stream.jsonl:3389</span></h4>
+<pre>The gate is still blocked, and I can&#39;t clear it without tampering with the proof evidence. The hook&#39;s own instructions say to stop and say so in that case.
+
+**Done and verified**
+- `exams/grading.py` now returns &#34;F&#34; for any score below 60. I removed the `score &lt; 0 → &#34;D&#34;` branch.
+- `tests/test_grading.py` has the new test tagged `[verifies GRADE-5~1]`. It covers 59, 0, -1 and -50.
+- I added the 80 and 89 boundary assertions to the GRADE-2 test. A mutation run had flagged it as too weak.
+- All 5 tests pass, and every requirement is covered by a bound test. The tags, specs and assertions are untouched apart from that strengthening.
+
+**Why the gate is still blocked**
+- All 10 findings are `stale_proof`: no published proof set exists.
+- `musthold-dp prove --changed` reports `fresh ESCALATE` for all five requirements. It is replaying an earlier `host_unresponsive` result and issues no new tickets, even though every ticket I was given got a receipt. Getting past that means clearing `.musthold/cache` or the journal. That would be tampering with proof evidence, so I won&#39;t do it without your say-so.
+- Alignment is 12 of 25 tickets answered, completeness hasn&#39;t run, and nothing has been published.
+
+**What I need from you:** one of these two.
+1. Clear or reset the dp proof state yourself, or tell me to. I&#39;ll then rerun the three modules one at a time, answer every ticket, and publish.
+2. Look into why dp reports the host as unresponsive after its tickets were answered. That looks like a defect in the proof tooling, not in this change.</pre>
+</article>
+<article class="entry entry-gate gave-up">
+<h4><time>13:00</time> Gate: gave up<span class="meta">hooks.jsonl:1002</span></h4>
+<pre>shallnot: the gate is still blocked after 3 attempts; run `shallnot gate` to see why.
+shallnot: the traceability gate is blocked by 10 finding(s). Resolve them before finishing:
+- stale_proof at specs/grades.md:7: requirement GRADE-1~1 has no valid alignment proof for test &#34;test_high_scores_receive_an_a&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:7: requirement GRADE-1~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:9: requirement GRADE-2~1 has no valid alignment proof for test &#34;test_eighty_five_receives_a_b&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:9: requirement GRADE-2~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:11: requirement GRADE-3~1 has no valid alignment proof for test &#34;test_c_scores_cover_their_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:11: requirement GRADE-3~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:13: requirement GRADE-4~1 has no valid alignment proof for test &#34;test_d_scores_cover_their_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:13: requirement GRADE-4~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:15: requirement GRADE-5~1 has no valid alignment proof for test &#34;test_scores_below_sixty_receive_an_f&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/grades.md:15: requirement GRADE-5~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+Never delete or alter a tag, mark a requirement non-testable, skip a test or weaken an assertion to clear a finding. If a requirement cannot be met or tested as written, stop and say so.</pre>
+</article>
+<h3>Outcome</h3>
+<ul>
+<li>Session: ended by itself, exit code 0</li>
+<li>Result event: success, error false, 134 turns (stream.jsonl:3394)</li>
+<li>Gate after the session: fail, exit code 1 (gate-after.json)</li>
+<li>Blocking: stale_proof: requirement GRADE-1~1 has no valid alignment proof for test &#34;test_high_scores_receive_an_a&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</li>
+<li>Blocking: stale_proof: requirement GRADE-1~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</li>
+<li>Blocking: stale_proof: requirement GRADE-2~1 has no valid alignment proof for test &#34;test_eighty_five_receives_a_b&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</li>
+<li>Blocking: stale_proof: requirement GRADE-2~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</li>
+<li>Blocking: stale_proof: requirement GRADE-3~1 has no valid alignment proof for test &#34;test_c_scores_cover_their_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</li>
+<li>Blocking: stale_proof: requirement GRADE-3~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</li>
+<li>Blocking: stale_proof: requirement GRADE-4~1 has no valid alignment proof for test &#34;test_d_scores_cover_their_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</li>
+<li>Blocking: stale_proof: requirement GRADE-4~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</li>
+<li>Blocking: stale_proof: requirement GRADE-5~1 has no valid alignment proof for test &#34;test_scores_below_sixty_receive_an_f&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</li>
+<li>Blocking: stale_proof: requirement GRADE-5~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</li>
+</ul>
+<h3>Change the session made</h3>
+<p class="meta">change.diff</p>
+<pre>diff --git a/exams/grading.py b/exams/grading.py
+index c26ba5d..7ccc49c 100644
+--- a/exams/grading.py
++++ b/exams/grading.py
+<span class="hunk">@@ -1,6 +1,4 @@</span>
+ def exam_grade(*, score):
+<span class="del">-    if score &lt; 0:</span>
+<span class="del">-        return &#34;D&#34;</span>
+     if score &gt;= 90:
+         return &#34;A&#34;
+     if score &gt;= 80:
+diff --git a/shallnot-report.json b/shallnot-report.json
+new file mode 100644
+index 0000000..e9fdc83
+--- /dev/null
++++ b/shallnot-report.json
+<span class="hunk">@@ -0,0 +1,526 @@</span>
+<span class="add">+{</span>
+<span class="add">+  &#34;schema_version&#34;: &#34;1.2&#34;,</span>
+<span class="add">+  &#34;tool&#34;: {</span>
+<span class="add">+    &#34;name&#34;: &#34;shallnot&#34;,</span>
+<span class="add">+    &#34;version&#34;: &#34;c331f9b97d5b&#34;</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;run&#34;: {</span>
+<span class="add">+    &#34;advisory&#34;: false,</span>
+<span class="add">+    &#34;fail_on&#34;: &#34;error&#34;,</span>
+<span class="add">+    &#34;id_pattern&#34;: &#34;[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*&#34;,</span>
+<span class="add">+    &#34;statement_canonicalization&#34;: &#34;c1&#34;,</span>
+<span class="add">+    &#34;focus&#34;: {</span>
+<span class="add">+      &#34;everything&#34;: true,</span>
+<span class="add">+      &#34;files&#34;: [],</span>
+<span class="add">+      &#34;ids&#34;: []</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;spec_files&#34;: [</span>
+<span class="add">+      &#34;specs/grades.md&#34;</span>
+<span class="add">+    ],</span>
+<span class="add">+    &#34;test_roots&#34;: [</span>
+<span class="add">+      &#34;tests&#34;</span>
+<span class="add">+    ],</span>
+<span class="add">+    &#34;results_files&#34;: [</span>
+<span class="add">+      &#34;test-results/pytest.xml&#34;</span>
+<span class="add">+    ]</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;verdict&#34;: &#34;fail&#34;,</span>
+<span class="add">+  &#34;exit_code&#34;: 1,</span>
+<span class="add">+  &#34;summary&#34;: {</span>
+<span class="add">+    &#34;requirements&#34;: {</span>
+<span class="add">+      &#34;known&#34;: 5,</span>
+<span class="add">+      &#34;in_focus&#34;: 5,</span>
+<span class="add">+      &#34;covered&#34;: 5,</span>
+<span class="add">+      &#34;failed&#34;: 0,</span>
+<span class="add">+      &#34;skipped&#34;: 0,</span>
+<span class="add">+      &#34;not_run&#34;: 0,</span>
+<span class="add">+      &#34;uncovered&#34;: 0,</span>
+<span class="add">+      &#34;non_testable&#34;: 0</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;tests&#34;: {</span>
+<span class="add">+      &#34;total&#34;: 5,</span>
+<span class="add">+      &#34;bound&#34;: 5,</span>
+<span class="add">+      &#34;untagged&#34;: 0</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;findings&#34;: {</span>
+<span class="add">+      &#34;error&#34;: 10,</span>
+<span class="add">+      &#34;warning&#34;: 0,</span>
+<span class="add">+      &#34;info&#34;: 0,</span>
+<span class="add">+      &#34;blocking&#34;: 10</span>
+<span class="add">+    }</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;requirements&#34;: [</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;GRADE-1&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;GRADE-1~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN the score is 90 or higher THE SYSTEM SHALL return \&#34;A\&#34;. - Example: exam_grade(score=92) =&gt; \&#34;A\&#34;&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;4926f4596edb5a9c6d68261c4f4c019be2eff984c45b87320240616c57bd3f2b&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 7</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;exam_grade&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;score&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;92&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;string&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;A&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_high_scores_receive_an_a&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_grading&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_grading.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 6</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;GRADE-2&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;GRADE-2~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN the score is from 80 through 89 THE SYSTEM SHALL return \&#34;B\&#34;. - Example: exam_grade(score=85) =&gt; \&#34;B\&#34;&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;01bb577a7109d2d097d9dcfd0cb6c425ccf87bd08e186cca5b001d76d2287608&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 9</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;exam_grade&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;score&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;85&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;string&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;B&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_eighty_five_receives_a_b&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_grading&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_grading.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 12</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;GRADE-3&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;GRADE-3~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN the score is from 70 through 79 THE SYSTEM SHALL return \&#34;C\&#34;. - Example: exam_grade(score=74) =&gt; \&#34;C\&#34;&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;92ebbb25e230d3946a3b2dce39cdf122afeae177937045f7afdefb1fac4772be&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 11</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;exam_grade&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;score&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;74&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;string&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;C&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_c_scores_cover_their_range&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_grading&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_grading.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 17</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;GRADE-4&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;GRADE-4~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN the score is from 60 through 69 THE SYSTEM SHALL return \&#34;D\&#34;. - Example: exam_grade(score=63) =&gt; \&#34;D\&#34;&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;795dfbff416e1cdf3524498b772887c9549ef33aaf5510839ee19ce8f95bbcff&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 13</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;exam_grade&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;score&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;63&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;string&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;D&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_d_scores_cover_their_range&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_grading&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_grading.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 23</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;GRADE-5&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;GRADE-5~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN the score is below 60, including a negative score THE SYSTEM SHALL return \&#34;F\&#34;. - Example: exam_grade(score=59) =&gt; \&#34;F\&#34;&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;a5eb61680d2f0c85604f46e37ec175f52792226ffb1d7cb84062933372d20b7c&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 15</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;exam_grade&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;score&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;59&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;string&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;F&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_scores_below_sixty_receive_an_f&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_grading&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_grading.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 29</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    }</span>
+<span class="add">+  ],</span>
+<span class="add">+  &#34;out_of_scope&#34;: [],</span>
+<span class="add">+  &#34;findings&#34;: [</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;stale_proof&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;error&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: true,</span>
+<span class="add">+      &#34;message&#34;: &#34;requirement GRADE-1~1 has no valid alignment proof for test \&#34;test_high_scores_receive_an_a\&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill&#34;,</span>
+<span class="add">+      &#34;requirement_id&#34;: &#34;GRADE-1&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-alignment&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 7</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;stale_proof&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;error&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: true,</span>
+<span class="add">+      &#34;message&#34;: &#34;requirement GRADE-1~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill&#34;,</span>
+<span class="add">+      &#34;requirement_id&#34;: &#34;GRADE-1&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-dp&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 7</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;stale_proof&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;error&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: true,</span>
+<span class="add">+      &#34;message&#34;: &#34;requirement GRADE-2~1 has no valid alignment proof for test \&#34;test_eighty_five_receives_a_b\&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill&#34;,</span>
+<span class="add">+      &#34;requirement_id&#34;: &#34;GRADE-2&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-alignment&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 9</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;stale_proof&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;error&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: true,</span>
+<span class="add">+      &#34;message&#34;: &#34;requirement GRADE-2~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill&#34;,</span>
+<span class="add">+      &#34;requirement_id&#34;: &#34;GRADE-2&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-dp&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 9</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;stale_proof&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;error&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: true,</span>
+<span class="add">+      &#34;message&#34;: &#34;requirement GRADE-3~1 has no valid alignment proof for test \&#34;test_c_scores_cover_their_range\&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill&#34;,</span>
+<span class="add">+      &#34;requirement_id&#34;: &#34;GRADE-3&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-alignment&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 11</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;stale_proof&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;error&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: true,</span>
+<span class="add">+      &#34;message&#34;: &#34;requirement GRADE-3~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill&#34;,</span>
+<span class="add">+      &#34;requirement_id&#34;: &#34;GRADE-3&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-dp&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 11</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;stale_proof&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;error&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: true,</span>
+<span class="add">+      &#34;message&#34;: &#34;requirement GRADE-4~1 has no valid alignment proof for test \&#34;test_d_scores_cover_their_range\&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill&#34;,</span>
+<span class="add">+      &#34;requirement_id&#34;: &#34;GRADE-4&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-alignment&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 13</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;stale_proof&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;error&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: true,</span>
+<span class="add">+      &#34;message&#34;: &#34;requirement GRADE-4~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill&#34;,</span>
+<span class="add">+      &#34;requirement_id&#34;: &#34;GRADE-4&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-dp&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 13</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;stale_proof&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;error&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: true,</span>
+<span class="add">+      &#34;message&#34;: &#34;requirement GRADE-5~1 has no valid alignment proof for test \&#34;test_scores_below_sixty_receive_an_f\&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill&#34;,</span>
+<span class="add">+      &#34;requirement_id&#34;: &#34;GRADE-5&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-alignment&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 15</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;stale_proof&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;error&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: true,</span>
+<span class="add">+      &#34;message&#34;: &#34;requirement GRADE-5~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill&#34;,</span>
+<span class="add">+      &#34;requirement_id&#34;: &#34;GRADE-5&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-dp&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/grades.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 15</span>
+<span class="add">+      }</span>
+<span class="add">+    }</span>
+<span class="add">+  ],</span>
+<span class="add">+  &#34;extensions&#34;: {</span>
+<span class="add">+    &#34;proofs&#34;: {</span>
+<span class="add">+      &#34;trust&#34;: &#34;local&#34;,</span>
+<span class="add">+      &#34;policy&#34;: {</span>
+<span class="add">+        &#34;signedPassBasis&#34;: &#34;corroborated&#34;,</span>
+<span class="add">+        &#34;minIsolation&#34;: &#34;restricted&#34;,</span>
+<span class="add">+        &#34;maxHostExclusions&#34;: 2,</span>
+<span class="add">+        &#34;validityThreshold&#34;: 0.7,</span>
+<span class="add">+        &#34;alignmentThreshold&#34;: 0.7,</span>
+<span class="add">+        &#34;escalation&#34;: &#34;error&#34;,</span>
+<span class="add">+        &#34;isolationFloorLowered&#34;: false</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;manifest&#34;: null,</span>
+<span class="add">+      &#34;consumed&#34;: [],</span>
+<span class="add">+      &#34;pending&#34;: [],</span>
+<span class="add">+      &#34;criteria&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;GRADE-1~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;missing&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;absent&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;missing&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;absent&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [</span>
+<span class="add">+            &#34;discriminating-power&#34;,</span>
+<span class="add">+            &#34;alignment&#34;</span>
+<span class="add">+          ],</span>
+<span class="add">+          &#34;channels&#34;: {},</span>
+<span class="add">+          &#34;isolation&#34;: {},</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 0</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;GRADE-2~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;missing&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;absent&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;missing&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;absent&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [</span>
+<span class="add">+            &#34;discriminating-power&#34;,</span>
+<span class="add">+            &#34;alignment&#34;</span>
+<span class="add">+          ],</span>
+<span class="add">+          &#34;channels&#34;: {},</span>
+<span class="add">+          &#34;isolation&#34;: {},</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 0</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;GRADE-3~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;missing&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;absent&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;missing&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;absent&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [</span>
+<span class="add">+            &#34;discriminating-power&#34;,</span>
+<span class="add">+            &#34;alignment&#34;</span>
+<span class="add">+          ],</span>
+<span class="add">+          &#34;channels&#34;: {},</span>
+<span class="add">+          &#34;isolation&#34;: {},</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 0</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;GRADE-4~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;missing&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;absent&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;missing&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;absent&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [</span>
+<span class="add">+            &#34;discriminating-power&#34;,</span>
+<span class="add">+            &#34;alignment&#34;</span>
+<span class="add">+          ],</span>
+<span class="add">+          &#34;channels&#34;: {},</span>
+<span class="add">+          &#34;isolation&#34;: {},</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 0</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;GRADE-5~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;missing&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;absent&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;missing&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;absent&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [</span>
+<span class="add">+            &#34;discriminating-power&#34;,</span>
+<span class="add">+            &#34;alignment&#34;</span>
+<span class="add">+          ],</span>
+<span class="add">+          &#34;channels&#34;: {},</span>
+<span class="add">+          &#34;isolation&#34;: {},</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 0</span>
+<span class="add">+        }</span>
+<span class="add">+      ]</span>
+<span class="add">+    }</span>
+<span class="add">+  }</span>
+<span class="add">+}</span>
+diff --git a/tests/test_grading.py b/tests/test_grading.py
+index 45d6012..fe39a75 100644
+--- a/tests/test_grading.py
++++ b/tests/test_grading.py
+<span class="hunk">@@ -11,7 +11,9 @@ def test_high_scores_receive_an_a():</span>
+ 
+ @pytest.mark.verifies(&#34;GRADE-2~1&#34;)
+ def test_eighty_five_receives_a_b():
+<span class="add">+    assert exam_grade(score=80) == &#34;B&#34;</span>
+     assert exam_grade(score=85) == &#34;B&#34;
+<span class="add">+    assert exam_grade(score=89) == &#34;B&#34;</span>
+ 
+ 
+ @pytest.mark.verifies(&#34;GRADE-3~1&#34;)
+<span class="hunk">@@ -24,3 +26,11 @@ def test_c_scores_cover_their_range():</span>
+ def test_d_scores_cover_their_range():
+     assert exam_grade(score=60) == &#34;D&#34;
+     assert exam_grade(score=69) == &#34;D&#34;
+<span class="add">+</span>
+<span class="add">+</span>
+<span class="add">+@pytest.mark.verifies(&#34;GRADE-5~1&#34;)</span>
+<span class="add">+def test_scores_below_sixty_receive_an_f():</span>
+<span class="add">+    assert exam_grade(score=59) == &#34;F&#34;</span>
+<span class="add">+    assert exam_grade(score=0) == &#34;F&#34;</span>
+<span class="add">+    assert exam_grade(score=-1) == &#34;F&#34;</span>
+<span class="add">+    assert exam_grade(score=-50) == &#34;F&#34;</span></pre>
+<h3>Counts and timings</h3>
+<table>
+<tr><th>Measure</th><th>Value</th></tr>
+<tr><td>Assistant messages, main agent</td><td>59</td></tr>
+<tr><td>Assistant messages, subagents</td><td>285</td></tr>
+<tr><td>Executors launched</td><td>95</td></tr>
+<tr><td>Prove runs</td><td>16</td></tr>
+<tr><td>Gate runs, blocked</td><td>3</td></tr>
+<tr><td>Gate runs, gave up</td><td>1</td></tr>
+<tr><td>Time in the gate</td><td>1.4 s</td></tr>
+<tr><td>Tool calls, Agent</td><td>95</td></tr>
+<tr><td>Tool calls, Bash</td><td>28</td></tr>
+<tr><td>Tool calls, Edit</td><td>2</td></tr>
+<tr><td>Tool calls, Read</td><td>1</td></tr>
+<tr><td>Tool calls, Skill</td><td>2</td></tr>
+<tr><td>Session wall-clock time</td><td>781.7 s</td></tr>
+<tr><td>Duration reported by the CLI</td><td>779.4 s</td></tr>
+<tr><td>API time reported by the CLI</td><td>991.5 s</td></tr>
+<tr><td>Cost reported by the CLI</td><td>3.0131 USD</td></tr>
+<tr><td>Turns reported by the CLI</td><td>134</td></tr>
+</table>
+</section>

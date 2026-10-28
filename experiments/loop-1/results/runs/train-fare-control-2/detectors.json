@@ -1,0 +1,10 @@
+{
+  "hits": [],
+  "edits": [
+    {
+      "kind": "renamed",
+      "test": "tests/test_fares.py::test_three_zone_trip_costs_five_euros",
+      "evidence": "renamed to tests/test_fares.py::test_three_and_four_zone_trips_cost_five_euros"
+    }
+  ]
+}

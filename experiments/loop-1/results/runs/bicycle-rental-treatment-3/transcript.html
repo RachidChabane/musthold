@@ -1,0 +1,1246 @@
+<section class="musthold-loop">
+<style>
+.musthold-loop{font-family:system-ui,sans-serif;line-height:1.45;max-width:72rem}
+.musthold-loop pre{white-space:pre-wrap;overflow-wrap:anywhere;background:rgba(127,127,127,.08);padding:.6rem .8rem;border-radius:6px;font-size:.85rem}
+.musthold-loop .entry{border-left:3px solid rgba(127,127,127,.35);padding:.1rem 0 .1rem .8rem;margin:1rem 0}
+.musthold-loop .entry-gate{border-left-color:#b3541e}
+.musthold-loop .entry-gate.passed{border-left-color:#2f7d32}
+.musthold-loop .meta{opacity:.7;font-size:.8rem;margin-left:.5rem}
+.musthold-loop .add{color:#2f7d32}
+.musthold-loop .del{color:#b3261e}
+.musthold-loop .hunk{opacity:.7}
+.musthold-loop table{border-collapse:collapse}
+.musthold-loop td,.musthold-loop th{border-bottom:1px solid rgba(127,127,127,.25);padding:.2rem .8rem .2rem 0;text-align:left}
+</style>
+<h2>Agent loop: bicycle-rental, arm treatment, repetition 3</h2>
+<ul>
+<li>Model: claude-sonnet-5-5</li>
+<li>claude: 2.1.295 (Claude Code)</li>
+<li>colima: 0.10.3</li>
+<li>colima_cpus: 2</li>
+<li>colima_disk_bytes: 32212254720</li>
+<li>colima_memory_bytes: 4294967296</li>
+<li>docker_engine: 29.5.2</li>
+<li>git: 2.39.5</li>
+<li>host_arch: arm64</li>
+<li>host_os: Darwin</li>
+<li>host_os_version: 25.6.0</li>
+<li>musthold-alignment: musthold-alignment dev</li>
+<li>musthold-completeness: musthold-completeness dev</li>
+<li>musthold-dp: musthold-dp dev</li>
+<li>node: 24.22.1</li>
+<li>pytest: 9.1.1</li>
+<li>python: 3.13.14</li>
+<li>python3: Python 3.13.14</li>
+<li>shallnot: c331f9b97d5b96bdc18eba3b17be870c004dc239</li>
+<li>shallnot --version: shallnot c331f9b97d5b</li>
+<li>uv: 0.11.23</li>
+<li>Started: 2026-10-27 17:49:40 UTC</li>
+<li>Caps: 1500 assistant messages, 7200 s, 40.00 USD</li>
+</ul>
+<h3>Task</h3>
+<pre>Implement requirement BIKE-4 of specs/prices.md, charge 45 for rentals of 81 hours or more, in bikeshare/pricing.py, and add a test that verifies it. Tell me when the task is done.</pre>
+<h3>Session</h3>
+<article class="entry entry-command">
+<h4><time>0:04</time> Command<span class="meta">stream.jsonl:4</span></h4>
+<pre>$ cat shallnot.yaml specs/prices.md bikeshare/pricing.py &amp;&amp; ls . tests* &amp;&amp; git ls-files | head -50</pre>
+<pre>version: 1
+specs:
+  - specs
+tests:
+  - tests
+results:
+  - test-results/pytest.xml
+test_commands:
+  - pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml
+proofs:
+  require: [discriminating-power, alignment]
+  trust: local
+  code:
+    - bikeshare
+# Bicycle rental prices
+
+The rental desk prices a bicycle rental by its duration in whole hours. Prices
+are whole euros.
+
+## Rental rates
+
+- **BIKE-1~1**: WHEN a rental lasts from 1 to 10 whole hours THE SYSTEM SHALL charge 10.
+  - Example: rental_price(hours=5) =&gt; 10
+- **BIKE-2~1**: WHEN a rental lasts from 11 to 30 whole hours THE SYSTEM SHALL charge 18.
+  - Example: rental_price(hours=20) =&gt; 18
+- **BIKE-3~1**: WHEN a rental lasts from 31 to 80 whole hours THE SYSTEM SHALL charge 30.
+  - Example: rental_price(hours=50) =&gt; 30
+- **BIKE-4~1**: WHEN a rental lasts 81 or more whole hours THE SYSTEM SHALL charge 45.
+  - Example: rental_price(hours=100) =&gt; 45
+SHORT_RENTAL_PRICE = 10
+MEDIUM_RENTAL_PRICE = 18
+LONG_RENTAL_PRICE = 30
+EXTENDED_RENTAL_PRICE = 45
+
+
+def rental_price(*, hours):
+    if hours &lt;= 10:
+        return SHORT_RENTAL_PRICE
+    if hours &lt;= 30:
+        return MEDIUM_RENTAL_PRICE
+    if hours &lt;= 80:
+        return LONG_RENTAL_PRICE
+    if hours == 81:
+        return EXTENDED_RENTAL_PRICE
+    return LONG_RENTAL_PRICE
+.:
+AGENTS.md
+CLAUDE.md
+bikeshare
+conftest.py
+pytest.ini
+shallnot.yaml
+specs
+test-results
+tests
+
+tests:
+test_pricing.py
+.agents/skills/shallnot-plan/SKILL.md
+.agents/skills/shallnot-review/SKILL.md
+.agents/skills/shallnot/SKILL.md
+.claude/settings.json
+.claude/skills/shallnot-plan/SKILL.md
+.claude/skills/shallnot-review/SKILL.md
+.claude/skills/shallnot/SKILL.md
+.gitignore
+.musthold/config.yaml
+AGENTS.md
+CLAUDE.md
+bikeshare/__init__.py
+bikeshare/pricing.py
+conftest.py
+pytest.ini
+shallnot.yaml
+specs/prices.md
+tests/test_pricing.py</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:09</time> Agent<span class="meta">stream.jsonl:7</span></h4>
+<pre>The existing code is buggy (only 81 gets 45). Fix it and see the tests.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:09</time> Command<span class="meta">stream.jsonl:8</span></h4>
+<pre>$ cat tests/test_pricing.py</pre>
+<pre>import pytest
+
+from bikeshare import rental_price
+
+
+@pytest.mark.verifies(&#34;BIKE-1~1&#34;)
+def test_short_rental_price():
+    assert rental_price(hours=5) == 10
+
+
+@pytest.mark.verifies(&#34;BIKE-2~1&#34;)
+def test_medium_rental_price_range():
+    assert rental_price(hours=11) == 18
+    assert rental_price(hours=30) == 18
+
+
+@pytest.mark.verifies(&#34;BIKE-3~1&#34;)
+def test_long_rental_price_range():
+    assert rental_price(hours=31) == 30
+    assert rental_price(hours=80) == 30</pre>
+</article>
+<article class="entry entry-edit">
+<h4><time>0:10</time> Edit<span class="meta">stream.jsonl:10</span></h4>
+<pre>&lt;run&gt;/project/bikeshare/pricing.py</pre>
+<pre><span class="del">-    if hours == 81:</span>
+<span class="del">-        return EXTENDED_RENTAL_PRICE</span>
+<span class="del">-    return LONG_RENTAL_PRICE</span>
+<span class="add">+    return EXTENDED_RENTAL_PRICE</span></pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:12</time> Command<span class="meta">stream.jsonl:12</span></h4>
+<pre>$ cat &gt;&gt; tests/test_pricing.py &lt;&lt;&#39;EOF&#39;
+
+
+@pytest.mark.verifies(&#34;BIKE-4~1&#34;)
+def test_extended_rental_price_range():
+    assert rental_price(hours=81) == 45
+    assert rental_price(hours=100) == 45
+    assert rental_price(hours=1000) == 45
+EOF
+shallnot gate --json-out shallnot-report.json; echo exit $?; musthold-dp prove --changed; echo dp $?</pre>
+<pre>A variable in this command can&#39;t be checked before it runs</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:13</time> Command<span class="meta">stream.jsonl:15</span></h4>
+<pre>$ shallnot gate --json-out shallnot-report.json</pre>
+<pre>Exit code 1
+shallnot: running pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml
+============================= test session starts ==============================
+platform linux -- Python 3.13.14, pytest-9.1.1, pluggy-1.7.0
+rootdir: &lt;run&gt;/project
+configfile: pytest.ini
+testpaths: tests
+collected 3 items
+
+tests/test_pricing.py ...                                                [100%]
+
+- generated xml file: &lt;run&gt;/project/test-results/pytest.xml -
+============================== 3 passed in 0.03s ===============================
+shallnot: &#34;pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml&#34; exited with status 0
+shallnot: FAIL
+focus: every known requirement
+requirements: 4 known, 4 in focus (3 covered, 0 failed, 0 skipped, 0 not run, 1 uncovered, 0 non-testable)
+tests: 3 in results, 3 bound, 0 untagged
+findings: 7 error, 0 warning, 0 info (7 blocking)
+
+REQUIREMENTS
+  BIKE-1~1  covered  specs/prices.md:8
+      passed  tests.test_pricing › test_short_rental_price  tests/test_pricing.py:6
+  BIKE-2~1  covered  specs/prices.md:10
+      passed  tests.test_pricing › test_medium_rental_price_range  tests/test_pricing.py:11
+  BIKE-3~1  covered  specs/prices.md:12
+      passed  tests.test_pricing › test_long_rental_price_range  tests/test_pricing.py:17
+  BIKE-4~1  uncovered  specs/prices.md:14
+
+FINDINGS
+  error  stale_proof            specs/prices.md:8   requirement BIKE-1~1 has no valid alignment proof for test &#34;test_short_rental_price&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof            specs/prices.md:8   requirement BIKE-1~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof            specs/prices.md:10  requirement BIKE-2~1 has no valid alignment proof for test &#34;test_medium_rental_price_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof            specs/prices.md:10  requirement BIKE-2~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof            specs/prices.md:12  requirement BIKE-3~1 has no valid alignment proof for test &#34;test_long_rental_price_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof            specs/prices.md:12  requirement BIKE-3~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  uncovered_requirement  specs/prices.md:14  requirement BIKE-4~1 has no bound test</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:18</time> Agent<span class="meta">stream.jsonl:18</span></h4>
+<pre>The earlier command was rejected, so the test was never added. I&#39;ll add it now.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:19</time> Command<span class="meta">stream.jsonl:19</span></h4>
+<pre>$ cat &gt;&gt; tests/test_pricing.py &lt;&lt;&#39;EOF&#39;
+
+
+@pytest.mark.verifies(&#34;BIKE-4~1&#34;)
+def test_extended_rental_price_range():
+    assert rental_price(hours=81) == 45
+    assert rental_price(hours=100) == 45
+    assert rental_price(hours=1000) == 45
+EOF</pre>
+<pre>(Bash completed with no output)</pre>
+</article>
+<article class="entry entry-skill">
+<h4><time>0:19</time> Skill<span class="meta">stream.jsonl:20</span></h4>
+<pre>musthold:prove-all</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:23</time> Command<span class="meta">stream.jsonl:24</span></h4>
+<pre>$ musthold-dp doctor; musthold-alignment doctor; musthold-completeness doctor</pre>
+<pre>ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok ecosystem pytest
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted
+ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok policy align_k=5 modal_min={0.8 map[]}
+ok host-files claude
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted
+ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok git /usr/bin/git
+ok policy tau_adv={0.5 map[]} decide_k=3
+ok host-files claude
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:25</time> Command<span class="meta">stream.jsonl:26</span></h4>
+<pre>$ musthold-dp prove --changed; echo &#34;dp=$?&#34;; musthold-alignment prove --changed; echo &#34;al=$?&#34;; musthold-completeness prove --changed; echo &#34;co=$?&#34;</pre>
+<pre>This Bash command contains multiple operations. The following parts require approval: echo &#34;dp=$?&#34;, echo &#34;al=$?&#34;, echo &#34;co=$?&#34;</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:28</time> Command<span class="meta">stream.jsonl:29</span></h4>
+<pre>$ musthold-dp prove --changed</pre>
+<pre>Exit code 3
+wave 1
+BIKE-1~1 awaiting_host
+BIKE-2~1 awaiting_host
+BIKE-3~1 awaiting_host
+BIKE-4~1 awaiting_host
+awaiting_host 8 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:28</time> Command<span class="meta">stream.jsonl:30</span></h4>
+<pre>$ musthold-alignment prove --changed</pre>
+<pre>Exit code 3
+wave 1
+BIKE-1~1 tests.test_pricing.test_short_rental_price awaiting_host
+BIKE-2~1 tests.test_pricing.test_medium_rental_price_range awaiting_host
+BIKE-3~1 tests.test_pricing.test_long_rental_price_range awaiting_host
+BIKE-4~1 tests.test_pricing.test_extended_rental_price_range awaiting_host
+awaiting_host 20 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:28</time> Command<span class="meta">stream.jsonl:31</span></h4>
+<pre>$ musthold-completeness prove --changed</pre>
+<pre>Exit code 3
+wave 1
+specs/prices.md awaiting_host 0 questions
+awaiting_host 3 tickets</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:31</time> Agent<span class="meta">stream.jsonl:35</span></h4>
+<pre>All three need a wave. I&#39;ll load the fulfil skills.</pre>
+</article>
+<article class="entry entry-skill">
+<h4><time>0:31</time> Skill<span class="meta">stream.jsonl:36</span></h4>
+<pre>musthold-dp:musthold-dp-fulfil</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:37</time> Command<span class="meta">stream.jsonl:39</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>39cee501ead8a68dde926b3303d7f29d3e3adc66fdef403096251a7e85eea0a7.0.1 musthold-dp:generator
+39cee501ead8a68dde926b3303d7f29d3e3adc66fdef403096251a7e85eea0a7.1.1 musthold-dp:generator
+56dca49883e589dc2a10ec3bb5bde946e96641e4f9fb7dc3e27367135587018e.0.1 musthold-dp:generator
+56dca49883e589dc2a10ec3bb5bde946e96641e4f9fb7dc3e27367135587018e.1.1 musthold-dp:generator
+6fc68f9851fbd9d6f78c3ab156016f937a8bced303930375b9160e1f52479b70.0.1 musthold-dp:generator
+6fc68f9851fbd9d6f78c3ab156016f937a8bced303930375b9160e1f52479b70.1.1 musthold-dp:generator
+f5ec00dbb7be002426a55b2a17368af7d7d8863773c1e131cd4231d7fe1bfe04.0.1 musthold-dp:generator
+f5ec00dbb7be002426a55b2a17368af7d7d8863773c1e131cd4231d7fe1bfe04.1.1 musthold-dp:generator</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>0:42</time> Executors: 8 launched<span class="meta">stream.jsonl:41</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>1:25</time> Command<span class="meta">stream.jsonl:305</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 2
+BIKE-1~1 awaiting_host
+BIKE-2~1 awaiting_host
+BIKE-3~1 awaiting_host
+BIKE-4~1 awaiting_host
+awaiting_host 8 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>1:39</time> Command<span class="meta">stream.jsonl:309</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>02bf3ad72960a571d4c0fe8435ef5a30b0c7e3bf837193f707332052868cfb6a.0.1 musthold-dp:judge
+02bf3ad72960a571d4c0fe8435ef5a30b0c7e3bf837193f707332052868cfb6a.1.1 musthold-dp:judge
+167282c238e5ad0c7e29c636a6189d541055753c8373fd9e47d99e82921693c6.0.1 musthold-dp:judge
+167282c238e5ad0c7e29c636a6189d541055753c8373fd9e47d99e82921693c6.1.1 musthold-dp:judge
+8ff9f79df3b05c855927404b9a657218132deea6ff98cad8b93d430b91e005f4.0.1 musthold-dp:judge
+8ff9f79df3b05c855927404b9a657218132deea6ff98cad8b93d430b91e005f4.1.1 musthold-dp:judge
+ef9d2431d5076e5ea64cd7ea0a60742e07d29b04e9add7b5508fe5bc8657f0a3.0.1 musthold-dp:judge
+ef9d2431d5076e5ea64cd7ea0a60742e07d29b04e9add7b5508fe5bc8657f0a3.1.1 musthold-dp:judge</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>1:43</time> Executors: 8 launched<span class="meta">stream.jsonl:326</span></h4>
+<pre>musthold-dp:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>2:30</time> Command<span class="meta">stream.jsonl:597</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 3
+BIKE-1~1 awaiting_host
+BIKE-2~1 awaiting_host
+BIKE-3~1 awaiting_host
+BIKE-4~1 awaiting_host
+awaiting_host 31 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>4:23</time> Command<span class="meta">stream.jsonl:604</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>074c7b742db8f823c78155d84a49dc58138cc8c6eaefe2234e0351f518e349b0.0.1 musthold-dp:decider
+074c7b742db8f823c78155d84a49dc58138cc8c6eaefe2234e0351f518e349b0.1.1 musthold-dp:decider
+074c7b742db8f823c78155d84a49dc58138cc8c6eaefe2234e0351f518e349b0.2.1 musthold-dp:decider
+1c8a55192e13b9ddf60c5b97837046df719ae024d89be6745772936c2ae6ed00.0.1 musthold-dp:decider
+1c8a55192e13b9ddf60c5b97837046df719ae024d89be6745772936c2ae6ed00.1.1 musthold-dp:decider
+1c8a55192e13b9ddf60c5b97837046df719ae024d89be6745772936c2ae6ed00.2.1 musthold-dp:decider
+4adf619f8303e8136670dbe1f64ca0c3f1de85e9eb674d3a273c29cd13afc604.0.1 musthold-dp:decider
+4adf619f8303e8136670dbe1f64ca0c3f1de85e9eb674d3a273c29cd13afc604.1.1 musthold-dp:decider
+4adf619f8303e8136670dbe1f64ca0c3f1de85e9eb674d3a273c29cd13afc604.2.1 musthold-dp:decider
+5f27522a7c77e231f83e82a7ad09af5b316e049a7938f8c9ac3677dd4bdf142b.0.1 musthold-dp:generator
+81ffd4be9d461b9b375a0b6505e4647733eac2d083e248b213a5789b7a26866d.0.1 musthold-dp:decider
+81ffd4be9d461b9b375a0b6505e4647733eac2d083e248b213a5789b7a26866d.1.1 musthold-dp:decider
+81ffd4be9d461b9b375a0b6505e4647733eac2d083e248b213a5789b7a26866d.2.1 musthold-dp:decider
+8419ba7fa2bc06053c0a31f2159332d19c2620fbc47e6886a7435aaca3dc09de.0.1 musthold-dp:decider
+8419ba7fa2bc06053c0a31f2159332d19c2620fbc47e6886a7435aaca3dc09de.1.1 musthold-dp:decider
+8419ba7fa2bc06053c0a31f2159332d19c2620fbc47e6886a7435aaca3dc09de.2.1 musthold-dp:decider
+8da56ed2b781df886512893254ffb49e43c64e8f5ccffe8e458d7c3d7e5e3e36.0.1 musthold-dp:generator
+9090ecf091039b3c8eb1053ab4b7af71a41fd723fccb42edee38f70b13c8bda3.0.1 musthold-dp:decider
+9090ecf091039b3c8eb1053ab4b7af71a41fd723fccb42edee38f70b13c8bda3.1.1 musthold-dp:decider
+9090ecf091039b3c8eb1053ab4b7af71a41fd723fccb42edee38f70b13c8bda3.2.1 musthold-dp:decider
+a97f192d8cfb962f9ce1dda56a5cecb4723bcaea4f7ce33ebbe65aa2ab19ca69.0.1 musthold-dp:decider
+a97f192d8cfb962f9ce1dda56a5cecb4723bcaea4f7ce33ebbe65aa2ab19ca69.1.1 musthold-dp:decider
+a97f192d8cfb962f9ce1dda56a5cecb4723bcaea4f7ce33ebbe65aa2ab19ca69.2.1 musthold-dp:decider
+acdddd9c5dfe380ff28a95991ece784c79d476eb5a2684a8012820ee46d3a56a.0.1 musthold-dp:decider
+acdddd9c5dfe380ff28a95991ece784c79d476eb5a2684a8012820ee46d3a56a.1.1 musthold-dp:decider
+acdddd9c5dfe380ff28a95991ece784c79d476eb5a2684a8012820ee46d3a56a.2.1 musthold-dp:decider
+c9836adb606c0a6f2c3c9ff7411f08f562d1632bd89c89d5307657eda48fc68e.0.1 musthold-dp:decider
+c9836adb606c0a6f2c3c9ff7411f08f562d1632bd89c89d5307657eda48fc68e.1.1 musthold-dp:decider
+c9836adb606c0a6f2c3c9ff7411f08f562d1632bd89c89d5307657eda48fc68e.2.1 musthold-dp:decider
+cb0fb47990ff48e4646e06bd0b3f7755432a4ec54e93e7ff3a28cefe49c26308.0.1 musthold-dp:generator
+f398e7b715d420c0138518c10ece29651d8127fa3ae9fe28ff407f444524b50e.0.1 musthold-dp:generator</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>4:31</time> Agent<span class="meta">stream.jsonl:607</span></h4>
+<pre>Wave 3 has 31 tickets (deciders and generators). I&#39;ll run them 4 at a time.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>4:31</time> Executors: 24 launched<span class="meta">stream.jsonl:608</span></h4>
+<pre>musthold-dp:decider</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>6:36</time> Agent<span class="meta">stream.jsonl:1410</span></h4>
+<pre>Status: the code fix and the BIKE-4 test are in. I&#39;m in the discriminating-power proof, wave 3. 24 of 31 tickets are answered and 7 remain.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>6:38</time> Executors: 7 launched<span class="meta">stream.jsonl:1411</span></h4>
+<pre>musthold-dp:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>7:16</time> Command<span class="meta">stream.jsonl:1644</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 4
+BIKE-1~1 awaiting_host
+BIKE-2~1 awaiting_host
+BIKE-3~1 awaiting_host
+BIKE-4~1 awaiting_host
+awaiting_host 4 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>7:30</time> Command<span class="meta">stream.jsonl:1648</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>1b5ebd084d222c499afb35530e921c076ea9739e1667baf310ea7977d6bcf995.0.1 musthold-dp:generator
+274980ae637a6f66d43af04e0866234a93ba1503335996baaa7b350e09a6a92f.0.1 musthold-dp:generator
+3cd9c637e684e31057674645ac65555897459a4652b2bd05c1a44d2248dc6f3d.0.1 musthold-dp:generator
+aa84c263afb40b37dc2bf015ebdf176cec5c3355f66899482fa92554cddd86ac.0.1 musthold-dp:generator</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>7:34</time> Executors: 4 launched<span class="meta">stream.jsonl:1651</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>7:57</time> Command<span class="meta">stream.jsonl:1783</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 5
+BIKE-1~1 awaiting_host
+BIKE-2~1 awaiting_host
+BIKE-3~1 awaiting_host
+BIKE-4~1 awaiting_host
+awaiting_host 8 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>8:11</time> Command<span class="meta">stream.jsonl:1810</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>20649666833cf1bca972c01c5ca3db697566fe781917eceb1663f52fd19e27c1.0.1 musthold-dp:judge
+20649666833cf1bca972c01c5ca3db697566fe781917eceb1663f52fd19e27c1.1.1 musthold-dp:judge
+3b508add37250fd5ec848c498389f5d71cb2037e4da857b3c571aebc576b825c.0.1 musthold-dp:judge
+3b508add37250fd5ec848c498389f5d71cb2037e4da857b3c571aebc576b825c.1.1 musthold-dp:judge
+61c75bcf5eda9b6938250c1fe8d1039051e22f0538cf44f473271c0af7a6ff2f.0.1 musthold-dp:judge
+61c75bcf5eda9b6938250c1fe8d1039051e22f0538cf44f473271c0af7a6ff2f.1.1 musthold-dp:judge
+daa4835064103dc7a8a6bd16ab9f802cca5fa7483ed74e21d84a92c6966f8ed9.0.1 musthold-dp:judge
+daa4835064103dc7a8a6bd16ab9f802cca5fa7483ed74e21d84a92c6966f8ed9.1.1 musthold-dp:judge</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>8:13</time> Executors: 8 launched<span class="meta">stream.jsonl:1812</span></h4>
+<pre>musthold-dp:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>9:01</time> Command<span class="meta">stream.jsonl:2078</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 1
+wave 6
+BIKE-1~1 proved BLOCK
+  finding surviving_valid_mutant
+  survivor 7a598a53a213: an operator mutant of family numeric_constant, which every test of the criterion passes, fails the witness test_r1_property_price_constant, which checks &#34;THE SYSTEM SHALL charge 10 (same price for every duration in 1..10)&#34;:
+    def test_r1_property_price_constant():
+        rng = random.Random(987)
+        prices = set()
+        for _ in range(250):
+            prices.add(rental_price(hours=rng.randint(1, 10)))
+        assert prices == {10}
+  survivor d50328dce91a: an operator mutant of family relational, which every test of the criterion passes, fails the witness test_r1_property_price_constant, which checks &#34;THE SYSTEM SHALL charge 10 (same price for every duration in 1..10)&#34;:
+    def test_r1_property_price_constant():
+        rng = random.Random(987)
+        prices = set()
+        for _ in range(250):
+            prices.add(rental_price(hours=rng.randint(1, 10)))
+        assert prices == {10}
+BIKE-2~1 proved PASS
+BIKE-3~1 proved PASS
+BIKE-4~1 proved PASS</pre>
+</article>
+<article class="entry entry-edit">
+<h4><time>9:54</time> Edit<span class="meta">stream.jsonl:2105</span></h4>
+<pre>&lt;run&gt;/project/tests/test_pricing.py</pre>
+<pre><span class="del">-    assert rental_price(hours=5) == 10</span>
+<span class="add">+    assert rental_price(hours=1) == 10</span>
+<span class="add">+    assert rental_price(hours=5) == 10</span>
+<span class="add">+    assert rental_price(hours=10) == 10</span></pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>10:05</time> Agent<span class="meta">stream.jsonl:2107</span></h4>
+<pre>Update: BIKE-2, 3 and 4 pass the discriminating-power proof. BIKE-1 was blocked, so I strengthened its test with the 1 and 10 hour boundaries. I&#39;m re-running the proof.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>10:05</time> Command<span class="meta">stream.jsonl:2108</span></h4>
+<pre>$ musthold-dp prove --changed</pre>
+<pre>Command did not complete within its 120s timeout and was moved to the background (ID: brl4cd7ot). Output is being written to: &lt;run&gt;/tmp/claude-502/&lt;run&gt;-project/318494d9-38fb-445a-ab74-70838c0bc554/tasks/brl4cd7ot.output. You will be notified when it completes. If it is still running after 10m in the background, it will be stopped and you will be notified. To check interim output, use Read on that file path.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>12:09</time> Command<span class="meta">stream.jsonl:2117</span></h4>
+<pre>$ sleep 90; cat &lt;run&gt;/tmp/claude-502/&lt;run&gt;-project/318494d9-38fb-445a-ab74-70838c0bc554/tasks/brl4cd7ot.output</pre>
+<pre>wave 7
+BIKE-1~1 proved PASS
+BIKE-2~1 proved PASS
+BIKE-3~1 proved PASS
+BIKE-4~1 proved PASS
+
+[exited with code 0]</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>13:40</time> Agent<span class="meta">stream.jsonl:2127</span></h4>
+<pre>Discriminating power now passes for all four requirements. Next is alignment.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>13:40</time> Command<span class="meta">stream.jsonl:2128</span></h4>
+<pre>$ musthold-alignment prove --changed</pre>
+<pre>Exit code 3
+wave 2
+BIKE-1~1 tests.test_pricing.test_short_rental_price awaiting_host
+BIKE-2~1 tests.test_pricing.test_medium_rental_price_range awaiting_host
+BIKE-3~1 tests.test_pricing.test_long_rental_price_range awaiting_host
+BIKE-4~1 tests.test_pricing.test_extended_rental_price_range awaiting_host
+awaiting_host 4 tickets</pre>
+</article>
+<article class="entry entry-skill">
+<h4><time>13:44</time> Skill<span class="meta">stream.jsonl:2133</span></h4>
+<pre>musthold-alignment:musthold-alignment-fulfil</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>13:45</time> Command<span class="meta">stream.jsonl:2136</span></h4>
+<pre>$ musthold-alignment request list --session prove</pre>
+<pre>3511a2a6e958775e26401e1114f211fb92cd9354895871b9503d44a8c48290be.0.1 musthold-alignment:decider
+427f11f0ce2eac2e27b069531a1ada327ba3cf145c1bf6956c22c8085f18776f.0.1 musthold-alignment:decider
+cb0354cbaef8fd4c06f6c08f74c11d281498df2b58785500fa2bb31eef04b264.0.1 musthold-alignment:decider
+f43375aac62b702ddd907ccedeb540297c9bc3c3076b0a0bddd46adb156a79ea.0.1 musthold-alignment:decider</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>13:47</time> Executors: 4 launched<span class="meta">stream.jsonl:2138</span></h4>
+<pre>musthold-alignment:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>14:11</time> Command<span class="meta">stream.jsonl:2273</span></h4>
+<pre>$ musthold-alignment prove --resume</pre>
+<pre>Exit code 3
+wave 3
+BIKE-1~1 tests.test_pricing.test_short_rental_price awaiting_host
+BIKE-2~1 tests.test_pricing.test_medium_rental_price_range awaiting_host
+BIKE-3~1 tests.test_pricing.test_long_rental_price_range awaiting_host
+BIKE-4~1 tests.test_pricing.test_extended_rental_price_range awaiting_host
+awaiting_host 8 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>14:15</time> Command<span class="meta">stream.jsonl:2275</span></h4>
+<pre>$ musthold-alignment request list --session prove</pre>
+<pre>3511a2a6e958775e26401e1114f211fb92cd9354895871b9503d44a8c48290be.1.1 musthold-alignment:decider
+3511a2a6e958775e26401e1114f211fb92cd9354895871b9503d44a8c48290be.2.1 musthold-alignment:decider
+427f11f0ce2eac2e27b069531a1ada327ba3cf145c1bf6956c22c8085f18776f.1.1 musthold-alignment:decider
+427f11f0ce2eac2e27b069531a1ada327ba3cf145c1bf6956c22c8085f18776f.2.1 musthold-alignment:decider
+cb0354cbaef8fd4c06f6c08f74c11d281498df2b58785500fa2bb31eef04b264.1.1 musthold-alignment:decider
+cb0354cbaef8fd4c06f6c08f74c11d281498df2b58785500fa2bb31eef04b264.2.1 musthold-alignment:decider
+f43375aac62b702ddd907ccedeb540297c9bc3c3076b0a0bddd46adb156a79ea.1.1 musthold-alignment:decider
+f43375aac62b702ddd907ccedeb540297c9bc3c3076b0a0bddd46adb156a79ea.2.1 musthold-alignment:decider</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>14:18</time> Agent<span class="meta">stream.jsonl:2277</span></h4>
+<pre>Update: discriminating power is proven for BIKE-1 to BIKE-4. Alignment is in wave 3 with 8 tickets, and completeness is still to do. Publishing comes after that.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>14:20</time> Executors: 8 launched<span class="meta">stream.jsonl:2278</span></h4>
+<pre>musthold-alignment:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>15:10</time> Command<span class="meta">stream.jsonl:2550</span></h4>
+<pre>$ musthold-alignment prove --resume</pre>
+<pre>Exit code 3
+wave 4
+BIKE-1~1 tests.test_pricing.test_short_rental_price proved ALIGNED
+BIKE-2~1 tests.test_pricing.test_medium_rental_price_range awaiting_host
+BIKE-3~1 tests.test_pricing.test_long_rental_price_range proved ALIGNED
+BIKE-4~1 tests.test_pricing.test_extended_rental_price_range proved ALIGNED
+awaiting_host 5 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>15:11</time> Command<span class="meta">stream.jsonl:2552</span></h4>
+<pre>$ musthold-alignment request list --session prove</pre>
+<pre>efca0e9aef2090281c5726b52433ee6384820d35fc74fb0aa709ae09bf75c7cb.0.1 musthold-alignment:judge
+efca0e9aef2090281c5726b52433ee6384820d35fc74fb0aa709ae09bf75c7cb.1.1 musthold-alignment:judge
+efca0e9aef2090281c5726b52433ee6384820d35fc74fb0aa709ae09bf75c7cb.2.1 musthold-alignment:judge
+efca0e9aef2090281c5726b52433ee6384820d35fc74fb0aa709ae09bf75c7cb.3.1 musthold-alignment:judge
+efca0e9aef2090281c5726b52433ee6384820d35fc74fb0aa709ae09bf75c7cb.4.1 musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>15:16</time> Executors: 5 launched<span class="meta">stream.jsonl:2554</span></h4>
+<pre>musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>15:51</time> Agent<span class="meta">stream.jsonl:2724</span></h4>
+<pre>Status: alignment shows BIKE-1, 3 and 4 as aligned, and the BIKE-2 judge tickets have just been answered. I&#39;m resuming it now.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>15:51</time> Command<span class="meta">stream.jsonl:2725</span></h4>
+<pre>$ musthold-alignment prove --resume</pre>
+<pre>wave 5
+BIKE-1~1 tests.test_pricing.test_short_rental_price fresh ALIGNED
+BIKE-2~1 tests.test_pricing.test_medium_rental_price_range proved ALIGNED
+BIKE-3~1 tests.test_pricing.test_long_rental_price_range fresh ALIGNED
+BIKE-4~1 tests.test_pricing.test_extended_rental_price_range fresh ALIGNED</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>15:57</time> Agent<span class="meta">stream.jsonl:2727</span></h4>
+<pre>Alignment passes for all four. Next is completeness (advisory).</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>15:57</time> Command<span class="meta">stream.jsonl:2728</span></h4>
+<pre>$ musthold-completeness prove --changed</pre>
+<pre>Exit code 3
+wave 2
+specs/prices.md awaiting_host 0 questions
+awaiting_host 2 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>16:00</time> Command<span class="meta">stream.jsonl:2730</span></h4>
+<pre>$ musthold-completeness request list --session prove</pre>
+<pre>514d05362970eb1301f9540fe20bcf1c0b04d69a9839612478c15f1cc8eaa89b.0.1 musthold-completeness:decider
+eea25535b70c2010a4abdfefe5652c8beb3e4147293002d9881ca67502a6d418.0.1 musthold-completeness:decider</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>16:04</time> Executors: 2 launched<span class="meta">stream.jsonl:2732</span></h4>
+<pre>musthold-completeness:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>16:17</time> Command<span class="meta">stream.jsonl:2799</span></h4>
+<pre>$ musthold-completeness prove --resume</pre>
+<pre>Exit code 3
+wave 3
+specs/prices.md awaiting_host 0 questions
+awaiting_host 4 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>16:19</time> Command<span class="meta">stream.jsonl:2801</span></h4>
+<pre>$ musthold-completeness request list --session prove</pre>
+<pre>514d05362970eb1301f9540fe20bcf1c0b04d69a9839612478c15f1cc8eaa89b.1.1 musthold-completeness:decider
+514d05362970eb1301f9540fe20bcf1c0b04d69a9839612478c15f1cc8eaa89b.2.1 musthold-completeness:decider
+eea25535b70c2010a4abdfefe5652c8beb3e4147293002d9881ca67502a6d418.1.1 musthold-completeness:decider
+eea25535b70c2010a4abdfefe5652c8beb3e4147293002d9881ca67502a6d418.2.1 musthold-completeness:decider</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>16:22</time> Executors: 4 launched<span class="meta">stream.jsonl:2803</span></h4>
+<pre>musthold-completeness:decider</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>16:42</time> Agent<span class="meta">stream.jsonl:2937</span></h4>
+<pre>Status: discriminating power and alignment pass for all four requirements. The advisory completeness check is finishing its last wave. After it I&#39;ll publish the proofs and run the gate.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>16:42</time> Command<span class="meta">stream.jsonl:2938</span></h4>
+<pre>$ musthold-completeness prove --resume</pre>
+<pre>wave 4
+specs/prices.md proved 2 questions</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>16:45</time> Command<span class="meta">stream.jsonl:2940</span></h4>
+<pre>$ musthold-verify --accept-local .musthold/cache --out .musthold/verified</pre>
+<pre>verified 13 statements (0 signed, 13 local), trust local, 0 pending, written to .musthold/verified</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>16:49</time> Command<span class="meta">stream.jsonl:2942</span></h4>
+<pre>$ shallnot gate --json-out shallnot-report.json 2&gt;&amp;1 | tail -30</pre>
+<pre>platform linux -- Python 3.13.14, pytest-9.1.1, pluggy-1.7.0
+rootdir: &lt;run&gt;/project
+configfile: pytest.ini
+testpaths: tests
+collected 4 items
+
+tests/test_pricing.py ....                                               [100%]
+
+- generated xml file: &lt;run&gt;/project/test-results/pytest.xml -
+============================== 4 passed in 0.03s ===============================
+shallnot: &#34;pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml&#34; exited with status 0
+shallnot: PASS
+focus: every known requirement
+requirements: 4 known, 4 in focus (4 covered, 0 failed, 0 skipped, 0 not run, 0 uncovered, 0 non-testable)
+tests: 4 in results, 4 bound, 0 untagged
+findings: 0 error, 0 warning, 2 info (0 blocking)
+
+REQUIREMENTS
+  BIKE-1~1  covered  specs/prices.md:8
+      passed  tests.test_pricing › test_short_rental_price  tests/test_pricing.py:6
+  BIKE-2~1  covered  specs/prices.md:10
+      passed  tests.test_pricing › test_medium_rental_price_range  tests/test_pricing.py:13
+  BIKE-3~1  covered  specs/prices.md:12
+      passed  tests.test_pricing › test_long_rental_price_range  tests/test_pricing.py:19
+  BIKE-4~1  covered  specs/prices.md:14
+      passed  tests.test_pricing › test_extended_rental_price_range  tests/test_pricing.py:25
+
+FINDINGS
+  info  completeness_question  specs/prices.md  completeness (error_handling): The specification does not say how error handling is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (error_handling): &lt;reason&gt;`.
+  info  completeness_question  specs/prices.md  completeness (input_validation): The specification does not say how input validation is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (input_validation): &lt;reason&gt;`.</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>16:57</time> Agent<span class="meta">stream.jsonl:2944</span></h4>
+<pre>BIKE-4 is implemented and tested, and `shallnot gate` passes (exit 0, 0 blocking findings). All four requirements are covered, and the discriminating-power and alignment proofs pass and are published.
+
+- **Code:** `bikeshare/pricing.py` had a bug. Only exactly 81 hours returned 45, and anything longer fell back to 30. I replaced that branch with a plain `return EXTENDED_RENTAL_PRICE`, so every rental of 81 hours or more costs 45.
+- **Spec:** BIKE-4~1 already existed in `specs/prices.md`, so I added no requirement and changed no revision.
+- **BIKE-4 test:** `test_extended_rental_price_range` is tagged `[verifies BIKE-4~1]`. It checks 81, 100 and 1000 hours, and each must return 45.
+- **BIKE-1 test (not requested):** the proof run blocked BIKE-1 because mutants of its 1–10 hour range survived. Its test only checked 5 hours. I added assertions for 1 and 10 hours, which only adds checks. The proof passes now.
+- **Completeness (advisory, non-blocking):** it asks the spec to state error handling and input validation, such as negative or zero hours. That is for the spec&#39;s owner.</pre>
+</article>
+<article class="entry entry-gate allowed">
+<h4><time>16:57</time> Gate: allowed<span class="meta">hooks.jsonl:875</span></h4>
+</article>
+<h3>Outcome</h3>
+<ul>
+<li>Session: ended by itself, exit code 0</li>
+<li>Result event: success, error false, 127 turns (stream.jsonl:2949)</li>
+<li>Gate after the session: pass, exit code 0 (gate-after.json)</li>
+</ul>
+<h3>Change the session made</h3>
+<p class="meta">change.diff</p>
+<pre>diff --git a/bikeshare/pricing.py b/bikeshare/pricing.py
+index a20746c..c8cf5f6 100644
+--- a/bikeshare/pricing.py
++++ b/bikeshare/pricing.py
+<span class="hunk">@@ -11,6 +11,4 @@ def rental_price(*, hours):</span>
+         return MEDIUM_RENTAL_PRICE
+     if hours &lt;= 80:
+         return LONG_RENTAL_PRICE
+<span class="del">-    if hours == 81:</span>
+<span class="del">-        return EXTENDED_RENTAL_PRICE</span>
+<span class="del">-    return LONG_RENTAL_PRICE</span>
+<span class="add">+    return EXTENDED_RENTAL_PRICE</span>
+diff --git a/shallnot-report.json b/shallnot-report.json
+new file mode 100644
+index 0000000..50e23c2
+--- /dev/null
++++ b/shallnot-report.json
+<span class="hunk">@@ -0,0 +1,464 @@</span>
+<span class="add">+{</span>
+<span class="add">+  &#34;schema_version&#34;: &#34;1.2&#34;,</span>
+<span class="add">+  &#34;tool&#34;: {</span>
+<span class="add">+    &#34;name&#34;: &#34;shallnot&#34;,</span>
+<span class="add">+    &#34;version&#34;: &#34;c331f9b97d5b&#34;</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;run&#34;: {</span>
+<span class="add">+    &#34;advisory&#34;: false,</span>
+<span class="add">+    &#34;fail_on&#34;: &#34;error&#34;,</span>
+<span class="add">+    &#34;id_pattern&#34;: &#34;[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*&#34;,</span>
+<span class="add">+    &#34;statement_canonicalization&#34;: &#34;c1&#34;,</span>
+<span class="add">+    &#34;focus&#34;: {</span>
+<span class="add">+      &#34;everything&#34;: true,</span>
+<span class="add">+      &#34;files&#34;: [],</span>
+<span class="add">+      &#34;ids&#34;: []</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;spec_files&#34;: [</span>
+<span class="add">+      &#34;specs/prices.md&#34;</span>
+<span class="add">+    ],</span>
+<span class="add">+    &#34;test_roots&#34;: [</span>
+<span class="add">+      &#34;tests&#34;</span>
+<span class="add">+    ],</span>
+<span class="add">+    &#34;results_files&#34;: [</span>
+<span class="add">+      &#34;test-results/pytest.xml&#34;</span>
+<span class="add">+    ]</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;verdict&#34;: &#34;pass&#34;,</span>
+<span class="add">+  &#34;exit_code&#34;: 0,</span>
+<span class="add">+  &#34;summary&#34;: {</span>
+<span class="add">+    &#34;requirements&#34;: {</span>
+<span class="add">+      &#34;known&#34;: 4,</span>
+<span class="add">+      &#34;in_focus&#34;: 4,</span>
+<span class="add">+      &#34;covered&#34;: 4,</span>
+<span class="add">+      &#34;failed&#34;: 0,</span>
+<span class="add">+      &#34;skipped&#34;: 0,</span>
+<span class="add">+      &#34;not_run&#34;: 0,</span>
+<span class="add">+      &#34;uncovered&#34;: 0,</span>
+<span class="add">+      &#34;non_testable&#34;: 0</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;tests&#34;: {</span>
+<span class="add">+      &#34;total&#34;: 4,</span>
+<span class="add">+      &#34;bound&#34;: 4,</span>
+<span class="add">+      &#34;untagged&#34;: 0</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;findings&#34;: {</span>
+<span class="add">+      &#34;error&#34;: 0,</span>
+<span class="add">+      &#34;warning&#34;: 0,</span>
+<span class="add">+      &#34;info&#34;: 2,</span>
+<span class="add">+      &#34;blocking&#34;: 0</span>
+<span class="add">+    }</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;requirements&#34;: [</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;BIKE-1&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;BIKE-1~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN a rental lasts from 1 to 10 whole hours THE SYSTEM SHALL charge 10. - Example: rental_price(hours=5) =&gt; 10&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;43bb6ba8dbde494599ae955c15092a4ed2441234c6b2af64caaa26e839784821&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/prices.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 8</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;rental_price&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;hours&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;5&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;10&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_short_rental_price&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_pricing&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_pricing.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 6</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;BIKE-2&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;BIKE-2~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN a rental lasts from 11 to 30 whole hours THE SYSTEM SHALL charge 18. - Example: rental_price(hours=20) =&gt; 18&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;2948b3fa1dcd0473f776d6a4ad81edadc3c7d7d678d395bf7fbe8dbb8f9d26ec&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/prices.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 10</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;rental_price&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;hours&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;20&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;18&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_medium_rental_price_range&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_pricing&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_pricing.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 13</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;BIKE-3&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;BIKE-3~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN a rental lasts from 31 to 80 whole hours THE SYSTEM SHALL charge 30. - Example: rental_price(hours=50) =&gt; 30&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;f0a7c0215742527befede5500e07b6e47bbd93aabb9186ea207fb1fff1b8346c&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/prices.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 12</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;rental_price&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;hours&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;50&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;30&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_long_rental_price_range&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_pricing&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_pricing.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 19</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;BIKE-4&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;BIKE-4~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN a rental lasts 81 or more whole hours THE SYSTEM SHALL charge 45. - Example: rental_price(hours=100) =&gt; 45&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;8c6a83eed0deaab65e96a557e0637a39d39fef75115680ca6e71ca7a5071b166&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/prices.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 14</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;rental_price&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;hours&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;100&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;45&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_extended_rental_price_range&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_pricing&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_pricing.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 25</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    }</span>
+<span class="add">+  ],</span>
+<span class="add">+  &#34;out_of_scope&#34;: [],</span>
+<span class="add">+  &#34;findings&#34;: [</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;completeness_question&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;info&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: false,</span>
+<span class="add">+      &#34;message&#34;: &#34;completeness (error_handling): The specification does not say how error handling is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (error_handling): &lt;reason&gt;`.&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-completeness&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/prices.md&#34;</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;completeness_question&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;info&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: false,</span>
+<span class="add">+      &#34;message&#34;: &#34;completeness (input_validation): The specification does not say how input validation is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (input_validation): &lt;reason&gt;`.&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-completeness&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/prices.md&#34;</span>
+<span class="add">+      }</span>
+<span class="add">+    }</span>
+<span class="add">+  ],</span>
+<span class="add">+  &#34;extensions&#34;: {</span>
+<span class="add">+    &#34;proofs&#34;: {</span>
+<span class="add">+      &#34;trust&#34;: &#34;local&#34;,</span>
+<span class="add">+      &#34;policy&#34;: {</span>
+<span class="add">+        &#34;signedPassBasis&#34;: &#34;corroborated&#34;,</span>
+<span class="add">+        &#34;minIsolation&#34;: &#34;restricted&#34;,</span>
+<span class="add">+        &#34;maxHostExclusions&#34;: 2,</span>
+<span class="add">+        &#34;validityThreshold&#34;: 0.7,</span>
+<span class="add">+        &#34;alignmentThreshold&#34;: 0.7,</span>
+<span class="add">+        &#34;escalation&#34;: &#34;error&#34;,</span>
+<span class="add">+        &#34;isolationFloorLowered&#34;: false</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;manifest&#34;: {</span>
+<span class="add">+        &#34;path&#34;: &#34;.musthold/verified/manifest.json&#34;,</span>
+<span class="add">+        &#34;digest&#34;: &#34;130081b63a71c027229e2c9f222447a9d598d9642475f8f22fc66a3561ce6f8c&#34;,</span>
+<span class="add">+        &#34;verifierVersion&#34;: &#34;dev&#34;</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;consumed&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/BIKE-1~1/8d990f7932913b4c20d995b581b2ff612bf2d0012e3287ab05a32f69d7c53bf0.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;665fb86379b830b7e3cd6b44a314c632186262273aa5bdc421e0d821a06e5345&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BIKE-1~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/BIKE-2~1/0a59a1126ed1435e775133b00e6ff11dfe14dcb6a158bacb84ee53f99bbe077d.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;fe7cb559dbcae9ea2f1f52c13046128db64d3886aa340979ee30ad8ac64f7ee8&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BIKE-2~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/BIKE-3~1/b0e8ca0f64c6c5d2597c4e9dd084a45a30e4698dea86feb91a8418d1708e65f5.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;8469ba2b69f4ea79653260fd98de20e75653c0f7dcdd3d8b719530e500712c3e&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BIKE-3~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/BIKE-4~1/ae74038e056ec215082988c4bdd016dc6f923fba79822780820b31d4ea38a4db.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;63e4f3676c409695f9ab7e1c37169a8f589a29dfd0be533af115e5c4265f8539&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BIKE-4~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/completeness/specs%2Fprices.md/b4bea71a05f2d7cc5a1e63e699a73f5a97c374a0ff408971975a85cf95b05f29.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;b32fc380b470ec12c32f722f0f046fcbde43b915cfe68c5b2f03c557226952d9&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/completeness/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;specs/prices.md&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/BIKE-1~1/679b14508a63a2fd4b26b932e89e21124ebf0d6e9fd8f498a7cd5d101de27c12.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;2c16b1e179e1e02a0f23678794022fa06f5a2776553e9f26f279b27a12e71ea7&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BIKE-1~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/BIKE-1~1/b13594ae393b93cb31719174d34ac26deca1bf0b99b434c8b4b3ea8b8d80a467.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;cfaea98b4b1ddc4f0d2f7c5a41c8d50b66198c579248b0f3e0abdb412e00aa64&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BIKE-1~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_pricing.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/BIKE-2~1/1dcae96b949463ca1ede4c845090c3770c62c65a22a3eb6d7ef81d1d24ec42cd.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;6cab0b1a5c47ea55ebf07c7bd0f1e82d4c309361f3fbda40a650ceeba282fd91&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BIKE-2~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_pricing.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/BIKE-2~1/8472ca5262e6213d3075f05a3045be35289610d31667f0326de733b461ca50ca.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;c6236c683c7b883600fc657347a510dd40f325c652613336ce8759d48d1cfa12&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BIKE-2~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/BIKE-3~1/77fc7cd96de123edd3ab88cc251167bc0a65f98147522ec0a03f9f5a9c483904.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;2a5eed2a0fa2cbf668d7b1f3faab8f4df8baa4ec4339c5d6755a568b9c44ee3f&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BIKE-3~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/BIKE-3~1/e883aeca075c4b9128b1b638d2dd4fcab08288aa042bbfa8db4346484bc0d8fc.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;19d8e6c7ab43184d48a603cbd0fad4a4d7c22fb0c2fc508a6c05525cdaf66fe0&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BIKE-3~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_pricing.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/BIKE-4~1/12ad77b85c1c3f5d5dfe98fb2084ef565db2a4a46954e20e13b16f8136f3a612.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;f20d70f8019c04974920850f18c9caedf8fad58f4eaacf8d8a5d924bacd59408&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BIKE-4~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_pricing.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/BIKE-4~1/264f61a29e42948f778ab120ba13ff7057edc1712ada5c03985349dc9b1a7a2a.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;542e52d0fc8734e6d670749c69e556fe04f3c8157e76f842ecc506e62438ef14&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BIKE-4~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;pending&#34;: [],</span>
+<span class="add">+      &#34;criteria&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;BIKE-1~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 11</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted-attested&#34;: 11</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 7</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;BIKE-2~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 16</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted&#34;: 16</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 6</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;BIKE-3~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 21</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted-attested&#34;: 21</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 6</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;BIKE-4~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 21</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted-attested&#34;: 21</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 8</span>
+<span class="add">+        }</span>
+<span class="add">+      ]</span>
+<span class="add">+    }</span>
+<span class="add">+  }</span>
+<span class="add">+}</span>
+diff --git a/tests/test_pricing.py b/tests/test_pricing.py
+index a497f9d..ef1af81 100644
+--- a/tests/test_pricing.py
++++ b/tests/test_pricing.py
+<span class="hunk">@@ -5,7 +5,9 @@ from bikeshare import rental_price</span>
+ 
+ @pytest.mark.verifies(&#34;BIKE-1~1&#34;)
+ def test_short_rental_price():
+<span class="add">+    assert rental_price(hours=1) == 10</span>
+     assert rental_price(hours=5) == 10
+<span class="add">+    assert rental_price(hours=10) == 10</span>
+ 
+ 
+ @pytest.mark.verifies(&#34;BIKE-2~1&#34;)
+<span class="hunk">@@ -18,3 +20,10 @@ def test_medium_rental_price_range():</span>
+ def test_long_rental_price_range():
+     assert rental_price(hours=31) == 30
+     assert rental_price(hours=80) == 30
+<span class="add">+</span>
+<span class="add">+</span>
+<span class="add">+@pytest.mark.verifies(&#34;BIKE-4~1&#34;)</span>
+<span class="add">+def test_extended_rental_price_range():</span>
+<span class="add">+    assert rental_price(hours=81) == 45</span>
+<span class="add">+    assert rental_price(hours=100) == 45</span>
+<span class="add">+    assert rental_price(hours=1000) == 45</span></pre>
+<h3>Counts and timings</h3>
+<table>
+<tr><th>Measure</th><th>Value</th></tr>
+<tr><td>Assistant messages, main agent</td><td>60</td></tr>
+<tr><td>Assistant messages, subagents</td><td>246</td></tr>
+<tr><td>Executors launched</td><td>82</td></tr>
+<tr><td>Prove runs</td><td>18</td></tr>
+<tr><td>Gate runs, allowed</td><td>1</td></tr>
+<tr><td>Time in the gate</td><td>0.4 s</td></tr>
+<tr><td>Tool calls, Agent</td><td>82</td></tr>
+<tr><td>Tool calls, Bash</td><td>36</td></tr>
+<tr><td>Tool calls, Edit</td><td>2</td></tr>
+<tr><td>Tool calls, Skill</td><td>3</td></tr>
+<tr><td>Session wall-clock time</td><td>1018.8 s</td></tr>
+<tr><td>Duration reported by the CLI</td><td>1016.5 s</td></tr>
+<tr><td>API time reported by the CLI</td><td>1359.8 s</td></tr>
+<tr><td>Cost reported by the CLI</td><td>2.6852 USD</td></tr>
+<tr><td>Turns reported by the CLI</td><td>127</td></tr>
+</table>
+</section>

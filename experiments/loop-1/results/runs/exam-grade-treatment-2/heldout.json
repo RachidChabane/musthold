@@ -1,0 +1,133 @@
+{
+  "equipped": {
+    "valid": [
+      "tests.test_grading::test_c_scores_cover_their_range",
+      "tests.test_grading::test_d_scores_cover_their_range",
+      "tests.test_grading::test_eighty_five_receives_a_b",
+      "tests.test_grading::test_high_scores_receive_an_a"
+    ],
+    "contradicting": [],
+    "killed": {
+      "GRADE-1/1": false,
+      "GRADE-1/2": true,
+      "GRADE-2/1": true,
+      "GRADE-2/2": false,
+      "GRADE-3/1": false,
+      "GRADE-3/2": true,
+      "GRADE-4/1": false,
+      "GRADE-4/2": true,
+      "GRADE-5/1": false,
+      "GRADE-5/2": false
+    }
+  },
+  "final": {
+    "valid": [
+      "tests.test_grading::test_c_scores_cover_their_range",
+      "tests.test_grading::test_d_scores_cover_their_range",
+      "tests.test_grading::test_eighty_five_receives_a_b",
+      "tests.test_grading::test_high_scores_receive_an_a",
+      "tests.test_grading::test_scores_below_sixty_receive_an_f"
+    ],
+    "contradicting": [],
+    "killed": {
+      "GRADE-1/1": false,
+      "GRADE-1/2": true,
+      "GRADE-2/1": true,
+      "GRADE-2/2": true,
+      "GRADE-3/1": false,
+      "GRADE-3/2": true,
+      "GRADE-4/1": false,
+      "GRADE-4/2": true,
+      "GRADE-5/1": true,
+      "GRADE-5/2": true
+    }
+  },
+  "stop-1": {
+    "valid": [
+      "tests.test_grading::test_c_scores_cover_their_range",
+      "tests.test_grading::test_d_scores_cover_their_range",
+      "tests.test_grading::test_eighty_five_receives_a_b",
+      "tests.test_grading::test_high_scores_receive_an_a",
+      "tests.test_grading::test_scores_below_sixty_receive_an_f"
+    ],
+    "contradicting": [],
+    "killed": {
+      "GRADE-1/1": false,
+      "GRADE-1/2": true,
+      "GRADE-2/1": true,
+      "GRADE-2/2": false,
+      "GRADE-3/1": false,
+      "GRADE-3/2": true,
+      "GRADE-4/1": false,
+      "GRADE-4/2": true,
+      "GRADE-5/1": true,
+      "GRADE-5/2": true
+    }
+  },
+  "stop-2": {
+    "valid": [
+      "tests.test_grading::test_c_scores_cover_their_range",
+      "tests.test_grading::test_d_scores_cover_their_range",
+      "tests.test_grading::test_eighty_five_receives_a_b",
+      "tests.test_grading::test_high_scores_receive_an_a",
+      "tests.test_grading::test_scores_below_sixty_receive_an_f"
+    ],
+    "contradicting": [],
+    "killed": {
+      "GRADE-1/1": false,
+      "GRADE-1/2": true,
+      "GRADE-2/1": true,
+      "GRADE-2/2": true,
+      "GRADE-3/1": false,
+      "GRADE-3/2": true,
+      "GRADE-4/1": false,
+      "GRADE-4/2": true,
+      "GRADE-5/1": true,
+      "GRADE-5/2": true
+    }
+  },
+  "stop-3": {
+    "valid": [
+      "tests.test_grading::test_c_scores_cover_their_range",
+      "tests.test_grading::test_d_scores_cover_their_range",
+      "tests.test_grading::test_eighty_five_receives_a_b",
+      "tests.test_grading::test_high_scores_receive_an_a",
+      "tests.test_grading::test_scores_below_sixty_receive_an_f"
+    ],
+    "contradicting": [],
+    "killed": {
+      "GRADE-1/1": false,
+      "GRADE-1/2": true,
+      "GRADE-2/1": true,
+      "GRADE-2/2": true,
+      "GRADE-3/1": false,
+      "GRADE-3/2": true,
+      "GRADE-4/1": false,
+      "GRADE-4/2": true,
+      "GRADE-5/1": true,
+      "GRADE-5/2": true
+    }
+  },
+  "stop-4": {
+    "valid": [
+      "tests.test_grading::test_c_scores_cover_their_range",
+      "tests.test_grading::test_d_scores_cover_their_range",
+      "tests.test_grading::test_eighty_five_receives_a_b",
+      "tests.test_grading::test_high_scores_receive_an_a",
+      "tests.test_grading::test_scores_below_sixty_receive_an_f"
+    ],
+    "contradicting": [],
+    "killed": {
+      "GRADE-1/1": false,
+      "GRADE-1/2": true,
+      "GRADE-2/1": true,
+      "GRADE-2/2": true,
+      "GRADE-3/1": false,
+      "GRADE-3/2": true,
+      "GRADE-4/1": false,
+      "GRADE-4/2": true,
+      "GRADE-5/1": true,
+      "GRADE-5/2": true
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "equipped": {
+    "valid": [
+      "tests.test_fares::test_five_or_more_zone_trips_cost_eight_euros",
+      "tests.test_fares::test_one_and_two_zone_trips_cost_three_euros",
+      "tests.test_fares::test_three_zone_trip_costs_five_euros"
+    ],
+    "contradicting": [],
+    "killed": {
+      "FARE-1/1": true,
+      "FARE-1/2": true,
+      "FARE-2/1": true,
+      "FARE-2/2": false,
+      "FARE-3/1": true,
+      "FARE-3/2": false,
+      "FARE-4/1": false,
+      "FARE-4/2": false
+    }
+  },
+  "final": {
+    "valid": [
+      "tests.test_fares::test_five_or_more_zone_trips_cost_eight_euros",
+      "tests.test_fares::test_one_and_two_zone_trips_cost_three_euros",
+      "tests.test_fares::test_three_zone_trip_costs_five_euros",
+      "tests.test_fares::test_zero_or_fewer_zone_trips_are_free"
+    ],
+    "contradicting": [],
+    "killed": {
+      "FARE-1/1": true,
+      "FARE-1/2": true,
+      "FARE-2/1": true,
+      "FARE-2/2": true,
+      "FARE-3/1": true,
+      "FARE-3/2": false,
+      "FARE-4/1": true,
+      "FARE-4/2": true
+    }
+  },
+  "stop-1": {
+    "valid": [
+      "tests.test_fares::test_five_or_more_zone_trips_cost_eight_euros",
+      "tests.test_fares::test_one_and_two_zone_trips_cost_three_euros",
+      "tests.test_fares::test_three_zone_trip_costs_five_euros",
+      "tests.test_fares::test_zero_or_fewer_zone_trips_are_free"
+    ],
+    "contradicting": [],
+    "killed": {
+      "FARE-1/1": true,
+      "FARE-1/2": true,
+      "FARE-2/1": true,
+      "FARE-2/2": true,
+      "FARE-3/1": true,
+      "FARE-3/2": false,
+      "FARE-4/1": true,
+      "FARE-4/2": true
+    }
+  }
+}

@@ -1,0 +1,531 @@
+diff --git a/boxoffice/prices.py b/boxoffice/prices.py
+index a59e29e..7e887fc 100644
+--- a/boxoffice/prices.py
++++ b/boxoffice/prices.py
+@@ -1,9 +1,11 @@
+ ADULT_PRICE = 12
+ SENIOR_PRICE = 8
+ CHILD_PRICE = 6
++INFANT_PRICE = 0
+ 
+ SENIOR_FROM_AGE = 65
+ ADULT_FROM_AGE = 12
++CHILD_FROM_AGE = 3
+ 
+ 
+ def ticket_price(age):
+@@ -11,4 +13,6 @@ def ticket_price(age):
+         return SENIOR_PRICE
+     if age >= ADULT_FROM_AGE:
+         return ADULT_PRICE
+-    return CHILD_PRICE
++    if age >= CHILD_FROM_AGE:
++        return CHILD_PRICE
++    return INFANT_PRICE
+diff --git a/shallnot-report.json b/shallnot-report.json
+new file mode 100644
+index 0000000..f44a2a4
+--- /dev/null
++++ b/shallnot-report.json
+@@ -0,0 +1,478 @@
++{
++  "schema_version": "1.2",
++  "tool": {
++    "name": "shallnot",
++    "version": "c331f9b97d5b"
++  },
++  "run": {
++    "advisory": false,
++    "fail_on": "error",
++    "id_pattern": "[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*",
++    "statement_canonicalization": "c1",
++    "focus": {
++      "everything": true,
++      "files": [],
++      "ids": []
++    },
++    "spec_files": [
++      "specs/tickets.md"
++    ],
++    "test_roots": [
++      "tests"
++    ],
++    "results_files": [
++      "test-results/pytest.xml"
++    ]
++  },
++  "verdict": "pass",
++  "exit_code": 0,
++  "summary": {
++    "requirements": {
++      "known": 4,
++      "in_focus": 4,
++      "covered": 4,
++      "failed": 0,
++      "skipped": 0,
++      "not_run": 0,
++      "uncovered": 0,
++      "non_testable": 0
++    },
++    "tests": {
++      "total": 5,
++      "bound": 5,
++      "untagged": 0
++    },
++    "findings": {
++      "error": 0,
++      "warning": 0,
++      "info": 0,
++      "blocking": 0
++    }
++  },
++  "requirements": [
++    {
++      "id": "BOX-1",
++      "revision": 1,
++      "ref": "BOX-1~1",
++      "statement": "WHEN the buyer is 12 to 64 years old THE SYSTEM SHALL charge 12. - Example: ticket_price(age=30) => 12",
++      "statement_digest": "8cc0d1da161e0f8f1c9433dbbffeb8f2a722ea2a89a985dec165ee04cdf6a220",
++      "status": "active",
++      "location": {
++        "file": "specs/tickets.md",
++        "line": 8
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "ticket_price",
++          "args": {
++            "age": {
++              "type": "integer",
++              "value": "30"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "12"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_adult_pays_the_full_price",
++          "classname": "tests.test_prices",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_prices.py",
++            "line": 6
++          }
++        },
++        {
++          "name": "test_adult_prices_run_from_twelve_to_sixty_four",
++          "classname": "tests.test_prices",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_prices.py",
++            "line": 11
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "BOX-2",
++      "revision": 1,
++      "ref": "BOX-2~1",
++      "statement": "WHEN the buyer is 65 or older THE SYSTEM SHALL charge 8. - Example: ticket_price(age=65) => 8",
++      "statement_digest": "97ef5ce5343e5efe207a2713e1b84c11ca92d2e8d26e3aa1bad4320d9659c40c",
++      "status": "active",
++      "location": {
++        "file": "specs/tickets.md",
++        "line": 10
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "ticket_price",
++          "args": {
++            "age": {
++              "type": "integer",
++              "value": "65"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "8"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_senior_pays_the_reduced_price",
++          "classname": "tests.test_prices",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_prices.py",
++            "line": 17
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "BOX-3",
++      "revision": 1,
++      "ref": "BOX-3~1",
++      "statement": "WHEN the buyer is 3 to 11 years old THE SYSTEM SHALL charge 6. - Example: ticket_price(age=7) => 6",
++      "statement_digest": "a406107bcf0a2b2e06f5a7dc39e6fe1c1f6839b37db28c023d59c6a9598c9af9",
++      "status": "active",
++      "location": {
++        "file": "specs/tickets.md",
++        "line": 12
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "ticket_price",
++          "args": {
++            "age": {
++              "type": "integer",
++              "value": "7"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "6"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_child_prices_run_from_three_to_eleven",
++          "classname": "tests.test_prices",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_prices.py",
++            "line": 24
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "BOX-4",
++      "revision": 1,
++      "ref": "BOX-4~1",
++      "statement": "WHEN the buyer is younger than 3 THE SYSTEM SHALL charge nothing. - Example: ticket_price(age=2) => 0",
++      "statement_digest": "2ae8652a218b4b22de6546fddee825673ed821db543e8ac696c944435bbc4ef0",
++      "status": "active",
++      "location": {
++        "file": "specs/tickets.md",
++        "line": 14
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "ticket_price",
++          "args": {
++            "age": {
++              "type": "integer",
++              "value": "2"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "0"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_children_under_three_enter_free",
++          "classname": "tests.test_prices",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_prices.py",
++            "line": 30
++          }
++        }
++      ],
++      "extensions": {}
++    }
++  ],
++  "out_of_scope": [],
++  "findings": [],
++  "extensions": {
++    "proofs": {
++      "trust": "local",
++      "policy": {
++        "signedPassBasis": "corroborated",
++        "minIsolation": "restricted",
++        "maxHostExclusions": 2,
++        "validityThreshold": 0.7,
++        "alignmentThreshold": 0.7,
++        "escalation": "error",
++        "isolationFloorLowered": false
++      },
++      "manifest": {
++        "path": ".musthold/verified/manifest.json",
++        "digest": "b07a609851558054d9b147dff2340479c829cc71a28ceb084c425d24b12ce334",
++        "verifierVersion": "dev"
++      },
++      "consumed": [
++        {
++          "path": ".musthold/verified/alignment/BOX-1~1/5ccbfe8e6168f734b295f386fbcceae8cb52e39c8fa77844a6d758f723159abd.json",
++          "digest": "d0746c667ab5f495970b9d21dd7496ada6066b37e71205fc8a05134fbca3ea66",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "BOX-1~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/alignment/BOX-1~1/c4e81c093d96daf23160e25d2ac6f4e97ee37005b9458e53e8cb5d49dd27e3f1.json",
++          "digest": "67620bb1e556558a3fbbb10c2e63ac53fa556c8f0316fb3f240d09d12b3e94a9",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "BOX-1~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/alignment/BOX-2~1/1026ddecde8fdd2adb45d633ef0d34d5da54cb38a69c6b7fb0993c1cd1611fef.json",
++          "digest": "836d434ee849d4c048fc2f82ea51581edbcccea6358e98dfa4bbec54288f86c9",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "BOX-2~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/alignment/BOX-3~1/3c7f6b071598820ab19cf5662b835ef373575a3cc8ddfef1b664e571e92deda6.json",
++          "digest": "f0391ba1173e2e92c24ee98f52008f11acb4f9c71651a2ce2dc755c78806cc5e",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "BOX-3~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/alignment/BOX-4~1/603953747370c8eee9ca79a2d948dd6d6d4376176403c4ead85e4d6827b16f6d.json",
++          "digest": "b48f2349c0b1f9311698fc6d3d12144ddcfb68fafbec792879c16fd0e5b40edf",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "BOX-4~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/BOX-1~1/48166dd7eedbeed1cd54b5c03a0e031f676f6a625b9244079dd4d8ebb47d94d1.json",
++          "digest": "fd9c22d0bec05380286ea34cd6086b1f6d4a68ce06aaefd929cafa5b36d0d689",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "BOX-1~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/BOX-1~1/fbe29ddda78ffbf760b8f49dbbf25806bb48569933ddaf8b796aa5aa164eb34f.json",
++          "digest": "9a8a2aad32466f412165fc0f04209eccc7f37abe99263a32d5edb2b555964267",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "BOX-1~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_prices.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/BOX-2~1/24c4d37a4effb6ea38aaa6637c79bea2e9329d628a773be17cd615a9186d5268.json",
++          "digest": "7450f49cdc0a054a040a2e1bba062b33f18260dd1f24700c7e3c1220ef9ef4c1",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "BOX-2~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/BOX-2~1/84e10aa3424898c1fb5075dc113a6b2c4051486ec4006fac648f516ea0a6b3ac.json",
++          "digest": "42013a03c00099cdd2657d57623f87316c3dee749fcac53d74dd18d812634516",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "BOX-2~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_prices.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/BOX-3~1/8f25648fb3e453ec310998fd03e7eee4f6f1cf6f51ce8ff8c9598f1b4124633b.json",
++          "digest": "83d700b8776767a579149718bf83e20ffeb18178a977eed775519a90152636a8",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "BOX-3~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_prices.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/BOX-3~1/b2f454e50d421e6cbd1385f144be0f657edca8f50ae2857c7c6a00afd700b651.json",
++          "digest": "16abe89a3fe0a2750c02751b1c11c955f3c825080dfd23a6d71903bf984892a0",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "BOX-3~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/BOX-4~1/97ece3979a23ed42f945cd3d0d482cbf6e921abead472059e3b45b7dec36d093.json",
++          "digest": "6e528c9b841b0ee9c58d787a07e84fdc65ea01c39c9b37d8b4e49b112e3270df",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "BOX-4~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_prices.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/BOX-4~1/e47ea9516f39f027a7159211410bc9b8b65270a7d37f11ade97fabc544ce7452.json",
++          "digest": "314d5b10b100cea7dda8ff553c9f6ff457967718e0f3910836e57c300275aa6e",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "BOX-4~1",
++          "state": "valid"
++        }
++      ],
++      "pending": [
++        {
++          "module": "completeness",
++          "criterion": "BOX-1~1",
++          "reason": "awaiting_host"
++        },
++        {
++          "module": "completeness",
++          "criterion": "BOX-2~1",
++          "reason": "awaiting_host"
++        },
++        {
++          "module": "completeness",
++          "criterion": "BOX-3~1",
++          "reason": "awaiting_host"
++        },
++        {
++          "module": "completeness",
++          "criterion": "BOX-4~1",
++          "reason": "awaiting_host"
++        }
++      ],
++      "criteria": [
++        {
++          "ref": "BOX-1~1",
++          "modules": {
++            "alignment": {
++              "state": "valid",
++              "outcome": "pass"
++            },
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 19
++          },
++          "isolation": {
++            "restricted": 15,
++            "restricted-attested": 4
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 4
++        },
++        {
++          "ref": "BOX-2~1",
++          "modules": {
++            "alignment": {
++              "state": "valid",
++              "outcome": "pass"
++            },
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 14
++          },
++          "isolation": {
++            "restricted-attested": 14
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 6
++        },
++        {
++          "ref": "BOX-3~1",
++          "modules": {
++            "alignment": {
++              "state": "valid",
++              "outcome": "pass"
++            },
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 21
++          },
++          "isolation": {
++            "restricted": 18,
++            "restricted-attested": 3
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 4
++        },
++        {
++          "ref": "BOX-4~1",
++          "modules": {
++            "alignment": {
++              "state": "valid",
++              "outcome": "pass"
++            },
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 19
++          },
++          "isolation": {
++            "restricted": 17,
++            "restricted-attested": 2
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 7
++        }
++      ]
++    }
++  }
++}
+diff --git a/tests/test_prices.py b/tests/test_prices.py
+index 647818f..4cf8efd 100644
+--- a/tests/test_prices.py
++++ b/tests/test_prices.py
+@@ -16,10 +16,18 @@ def test_adult_prices_run_from_twelve_to_sixty_four():
+ 
+ @pytest.mark.verifies("BOX-2~1")
+ def test_senior_pays_the_reduced_price():
++    assert ticket_price(age=65) == 8
+     assert ticket_price(age=70) == 8
++    assert ticket_price(age=120) == 8
+ 
+ 
+ @pytest.mark.verifies("BOX-3~1")
+ def test_child_prices_run_from_three_to_eleven():
+     assert ticket_price(age=3) == 6
+     assert ticket_price(age=11) == 6
++
++
++@pytest.mark.verifies("BOX-4~1")
++def test_children_under_three_enter_free():
++    assert ticket_price(age=0) == 0
++    assert ticket_price(age=2) == 0

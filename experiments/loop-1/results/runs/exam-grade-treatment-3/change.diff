@@ -1,0 +1,638 @@
+diff --git a/exams/grading.py b/exams/grading.py
+index c26ba5d..7ccc49c 100644
+--- a/exams/grading.py
++++ b/exams/grading.py
+@@ -1,6 +1,4 @@
+ def exam_grade(*, score):
+-    if score < 0:
+-        return "D"
+     if score >= 90:
+         return "A"
+     if score >= 80:
+diff --git a/shallnot-report.json b/shallnot-report.json
+new file mode 100644
+index 0000000..88c9d53
+--- /dev/null
++++ b/shallnot-report.json
+@@ -0,0 +1,594 @@
++{
++  "schema_version": "1.2",
++  "tool": {
++    "name": "shallnot",
++    "version": "c331f9b97d5b"
++  },
++  "run": {
++    "advisory": false,
++    "fail_on": "error",
++    "id_pattern": "[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*",
++    "statement_canonicalization": "c1",
++    "focus": {
++      "everything": true,
++      "files": [],
++      "ids": []
++    },
++    "spec_files": [
++      "specs/grades.md"
++    ],
++    "test_roots": [
++      "tests"
++    ],
++    "results_files": [
++      "test-results/pytest.xml"
++    ]
++  },
++  "verdict": "pass",
++  "exit_code": 0,
++  "summary": {
++    "requirements": {
++      "known": 5,
++      "in_focus": 5,
++      "covered": 5,
++      "failed": 0,
++      "skipped": 0,
++      "not_run": 0,
++      "uncovered": 0,
++      "non_testable": 0
++    },
++    "tests": {
++      "total": 5,
++      "bound": 5,
++      "untagged": 0
++    },
++    "findings": {
++      "error": 0,
++      "warning": 0,
++      "info": 2,
++      "blocking": 0
++    }
++  },
++  "requirements": [
++    {
++      "id": "GRADE-1",
++      "revision": 1,
++      "ref": "GRADE-1~1",
++      "statement": "WHEN the score is 90 or higher THE SYSTEM SHALL return \"A\". - Example: exam_grade(score=92) => \"A\"",
++      "statement_digest": "4926f4596edb5a9c6d68261c4f4c019be2eff984c45b87320240616c57bd3f2b",
++      "status": "active",
++      "location": {
++        "file": "specs/grades.md",
++        "line": 7
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "exam_grade",
++          "args": {
++            "score": {
++              "type": "integer",
++              "value": "92"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "string",
++            "value": "A"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_high_scores_receive_an_a",
++          "classname": "tests.test_grading",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_grading.py",
++            "line": 6
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "GRADE-2",
++      "revision": 1,
++      "ref": "GRADE-2~1",
++      "statement": "WHEN the score is from 80 through 89 THE SYSTEM SHALL return \"B\". - Example: exam_grade(score=85) => \"B\"",
++      "statement_digest": "01bb577a7109d2d097d9dcfd0cb6c425ccf87bd08e186cca5b001d76d2287608",
++      "status": "active",
++      "location": {
++        "file": "specs/grades.md",
++        "line": 9
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "exam_grade",
++          "args": {
++            "score": {
++              "type": "integer",
++              "value": "85"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "string",
++            "value": "B"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_eighty_five_receives_a_b",
++          "classname": "tests.test_grading",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_grading.py",
++            "line": 12
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "GRADE-3",
++      "revision": 1,
++      "ref": "GRADE-3~1",
++      "statement": "WHEN the score is from 70 through 79 THE SYSTEM SHALL return \"C\". - Example: exam_grade(score=74) => \"C\"",
++      "statement_digest": "92ebbb25e230d3946a3b2dce39cdf122afeae177937045f7afdefb1fac4772be",
++      "status": "active",
++      "location": {
++        "file": "specs/grades.md",
++        "line": 11
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "exam_grade",
++          "args": {
++            "score": {
++              "type": "integer",
++              "value": "74"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "string",
++            "value": "C"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_c_scores_cover_their_range",
++          "classname": "tests.test_grading",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_grading.py",
++            "line": 21
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "GRADE-4",
++      "revision": 1,
++      "ref": "GRADE-4~1",
++      "statement": "WHEN the score is from 60 through 69 THE SYSTEM SHALL return \"D\". - Example: exam_grade(score=63) => \"D\"",
++      "statement_digest": "795dfbff416e1cdf3524498b772887c9549ef33aaf5510839ee19ce8f95bbcff",
++      "status": "active",
++      "location": {
++        "file": "specs/grades.md",
++        "line": 13
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "exam_grade",
++          "args": {
++            "score": {
++              "type": "integer",
++              "value": "63"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "string",
++            "value": "D"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_d_scores_cover_their_range",
++          "classname": "tests.test_grading",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_grading.py",
++            "line": 27
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "GRADE-5",
++      "revision": 1,
++      "ref": "GRADE-5~1",
++      "statement": "WHEN the score is below 60, including a negative score THE SYSTEM SHALL return \"F\". - Example: exam_grade(score=59) => \"F\"",
++      "statement_digest": "a5eb61680d2f0c85604f46e37ec175f52792226ffb1d7cb84062933372d20b7c",
++      "status": "active",
++      "location": {
++        "file": "specs/grades.md",
++        "line": 15
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "exam_grade",
++          "args": {
++            "score": {
++              "type": "integer",
++              "value": "59"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "string",
++            "value": "F"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_scores_below_sixty_receive_an_f",
++          "classname": "tests.test_grading",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_grading.py",
++            "line": 33
++          }
++        }
++      ],
++      "extensions": {}
++    }
++  ],
++  "out_of_scope": [],
++  "findings": [
++    {
++      "category": "completeness_question",
++      "severity": "info",
++      "blocking": false,
++      "message": "completeness (error_handling): The specification does not say how error handling is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (error_handling): <reason>`.",
++      "module": "musthold-completeness",
++      "location": {
++        "file": "specs/grades.md"
++      }
++    },
++    {
++      "category": "completeness_question",
++      "severity": "info",
++      "blocking": false,
++      "message": "completeness (input_validation): The specification does not say how input validation is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (input_validation): <reason>`.",
++      "module": "musthold-completeness",
++      "location": {
++        "file": "specs/grades.md"
++      }
++    }
++  ],
++  "extensions": {
++    "proofs": {
++      "trust": "local",
++      "policy": {
++        "signedPassBasis": "corroborated",
++        "minIsolation": "restricted",
++        "maxHostExclusions": 2,
++        "validityThreshold": 0.7,
++        "alignmentThreshold": 0.7,
++        "escalation": "error",
++        "isolationFloorLowered": false
++      },
++      "manifest": {
++        "path": ".musthold/verified/manifest.json",
++        "digest": "bd759c47d3e57a81ce069607246898daa34eee0bd48f88f713d2ad8db5b57e3a",
++        "verifierVersion": "dev"
++      },
++      "consumed": [
++        {
++          "path": ".musthold/verified/alignment/GRADE-1~1/a401466c98038bb0fc8df219a7a5fabcbca67d60874b7c439950ad876d6403fc.json",
++          "digest": "4483f413d6c6c8df51f4ef51a56bc4b4ef5c7fef25a0b630eef9fe620d3a9efb",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "GRADE-1~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/alignment/GRADE-1~1/eda61f6bcd5f5dab0c96fea8292cf7e9e37846e7efc9086ee4daf00248e9a7d1.json",
++          "digest": "1fc0c93193ee5752eae2ed6a393d549faa4c8ad4861cf59b9de22aa6e84f76d5",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "GRADE-1~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_grading.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/alignment/GRADE-2~1/1369c6697b1d7c6821a70650a77c011c2e2c7b573cee7eb2aed3db860a3864e2.json",
++          "digest": "c8f6d48894527425f0a430310e75411cb1317ba74f0fd618523e1a568f6b6141",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "GRADE-2~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_grading.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/alignment/GRADE-2~1/d6ecc9a85997da699932edfc3882d93445ff307e83f422534aec1e585ea4f841.json",
++          "digest": "336d4af2ee3f0fdbed2dc1107b8f143e12aee236fe9006cc27b803f1b7933060",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "GRADE-2~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/alignment/GRADE-3~1/23c733915ced83b146b2a3294d924516ba791303baf4e03b0646229657c7c14a.json",
++          "digest": "f8828d16592313a89ae2d325f644d1bed7b9582e403ff5f28d06ae3442346a45",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "GRADE-3~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_grading.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/alignment/GRADE-3~1/7d69589f28bd384be3de0973b84f11b59ca317889a38292760e52328b7b45386.json",
++          "digest": "7e9a86b8f2db2a04d9e3158b12e0443aebef3c9c6cf2d54e0d59f80044754d95",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "GRADE-3~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/alignment/GRADE-4~1/6ab22c35a1b96fe2f6bd395bf96314efcd8ee2408341350e279416503d7ba855.json",
++          "digest": "3e5a102bb41a571f60fda4c84c5ac2df891ae49e0d6a65994eda64a573f1f1b4",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "GRADE-4~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_grading.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/alignment/GRADE-4~1/e9d2459261937cf067b5cd1cebdcc26fdd5b8a03a0556c8e169888afbf8e1cae.json",
++          "digest": "fb6f03cb630e498d20530cbcbdb407febd1933bdb2be7df3db1aeecef039e47f",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "GRADE-4~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/alignment/GRADE-5~1/60a81ace91f1beaf7c95b3a26248f246d553e70958d5cdad2877a268ee2a175c.json",
++          "digest": "f0cf7b27a75bed048aae4586ecee922071294fb9007b4ed0b1329ac5398887b2",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "GRADE-5~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/alignment/GRADE-5~1/f00aa7f76073f7f33e895a0841f8b2d64db0bed31b6fd05c7fe96ce6357257da.json",
++          "digest": "bdcc9deab3df500f18506b707dde1c1a9bacc35dd788f5d7296a0b5efce8aa0a",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "GRADE-5~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_grading.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/completeness/specs%2Fgrades.md/e528515647552161daf93b87446d03924786db9a8c91b6f7a71a771700cdcfdc.json",
++          "digest": "9931f5cad0c60f3724e93343aaa9b82d175420d1c731cd2fa3ed9b0b7c034a58",
++          "predicateType": "https://rachid-chabane.com/attestations/completeness/v1",
++          "subject": "specs/grades.md",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/GRADE-1~1/41a124ace24119f500640ddb9fe547759dde1d1f2b96543578fa6fd3519c25d0.json",
++          "digest": "900bb815f921af0302dec541f0f4f44752f91fde05bd895b79ca0fd2121b1a07",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "GRADE-1~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_grading.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/GRADE-1~1/b4f21477bc4eac4f9da0bd1983771b8f31522979362257cdfe90e31518a90336.json",
++          "digest": "059e6b2b48d16ca4f6d2de4a765a24b4018fe1c898503c6ce3d46d4c0e556d26",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "GRADE-1~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/GRADE-2~1/24578b869bca2ed76060adac44e9390184ee68e062c4e90c717aac07b486f996.json",
++          "digest": "43c27cbaed7c74789cc694b93325710e78305df891922e706286e0016056cb50",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "GRADE-2~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/GRADE-2~1/8e32acfe77c2e8b1746cf0a4008c4bffdb044c8f65f2dc81bf5eaff11114f63f.json",
++          "digest": "c114c9223508c820ed4d2f1d9b418d620b821b9590bd05e127666f17a3209f2c",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "GRADE-2~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_grading.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/GRADE-3~1/3acb1e9b32ec82f36004726573aa95f22b65125651903048741b4e308e319000.json",
++          "digest": "b636fa166c3e16c8ae91579fb0e1ce62ca6ff936a1d700d3ec330da60c5767f4",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "GRADE-3~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/GRADE-3~1/a52fe5a3c6198d444a065c7f89190e3b873ad92a53f788427f73f9ab5aa64306.json",
++          "digest": "4063a413990044e4403278c55f0b282735fad3fed195413c53b0f17db5db7a09",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "GRADE-3~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_grading.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/GRADE-4~1/7f6a3569ecd2bcea6f6bc1d6bb23b8b94077a4724a10641da141ae1f410b2d95.json",
++          "digest": "57e505d15fd9592ead684e031559f46e1169ff1159582db75625acaa35291d4b",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "GRADE-4~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/GRADE-4~1/e7afb34e6f628197a79c22b6d8f5a3b785c8afb8c6d3ec838bd56f676fd0d44d.json",
++          "digest": "6bb809765c76176acda0a0f3cd11ac3e666593e67fa5ef93f1a7105646029afc",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "GRADE-4~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_grading.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/GRADE-5~1/3966c8187ee382b0ed5ac2e27b2298c2cbaedacd3bc03099f1f1899b68d61cd5.json",
++          "digest": "acc4372746ba5dc2da4b6bbdaff2625730a04af0873428bb10521243dbf65a61",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "GRADE-5~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/GRADE-5~1/4fb7a387aa40a9c8f4a3b3029c0ad026f906e62709b074b263ddca0ab7827e93.json",
++          "digest": "41be524f86a3e65888af5d2be5f52ac446dd93a9ae9e696c1672f134f4003d1a",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "GRADE-5~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_grading.py changed since the proof was produced"
++        }
++      ],
++      "pending": [],
++      "criteria": [
++        {
++          "ref": "GRADE-1~1",
++          "modules": {
++            "alignment": {
++              "state": "valid",
++              "outcome": "pass"
++            },
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 8
++          },
++          "isolation": {
++            "restricted-attested": 8
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 9
++        },
++        {
++          "ref": "GRADE-2~1",
++          "modules": {
++            "alignment": {
++              "state": "valid",
++              "outcome": "pass"
++            },
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 12
++          },
++          "isolation": {
++            "restricted-attested": 12
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 5
++        },
++        {
++          "ref": "GRADE-3~1",
++          "modules": {
++            "alignment": {
++              "state": "valid",
++              "outcome": "pass"
++            },
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 16
++          },
++          "isolation": {
++            "restricted": 15,
++            "restricted-attested": 1
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 8
++        },
++        {
++          "ref": "GRADE-4~1",
++          "modules": {
++            "alignment": {
++              "state": "valid",
++              "outcome": "pass"
++            },
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 20
++          },
++          "isolation": {
++            "restricted-attested": 20
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 8
++        },
++        {
++          "ref": "GRADE-5~1",
++          "modules": {
++            "alignment": {
++              "state": "valid",
++              "outcome": "pass"
++            },
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 19
++          },
++          "isolation": {
++            "restricted-attested": 19
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 11
++        }
++      ]
++    }
++  }
++}
+diff --git a/tests/test_grading.py b/tests/test_grading.py
+index 45d6012..9823b3a 100644
+--- a/tests/test_grading.py
++++ b/tests/test_grading.py
+@@ -12,6 +12,10 @@ def test_high_scores_receive_an_a():
+ @pytest.mark.verifies("GRADE-2~1")
+ def test_eighty_five_receives_a_b():
+     assert exam_grade(score=85) == "B"
++    assert exam_grade(score=80) == "B"
++    assert exam_grade(score=89) == "B"
++    assert exam_grade(score=79) != "B"
++    assert exam_grade(score=90) != "B"
+ 
+ 
+ @pytest.mark.verifies("GRADE-3~1")
+@@ -24,3 +28,11 @@ def test_c_scores_cover_their_range():
+ def test_d_scores_cover_their_range():
+     assert exam_grade(score=60) == "D"
+     assert exam_grade(score=69) == "D"
++
++
++@pytest.mark.verifies("GRADE-5~1")
++def test_scores_below_sixty_receive_an_f():
++    assert exam_grade(score=59) == "F"
++    assert exam_grade(score=0) == "F"
++    assert exam_grade(score=-1) == "F"
++    assert exam_grade(score=-100) == "F"

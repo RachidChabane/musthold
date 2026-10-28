@@ -1,0 +1,1443 @@
+<section class="musthold-loop">
+<style>
+.musthold-loop{font-family:system-ui,sans-serif;line-height:1.45;max-width:72rem}
+.musthold-loop pre{white-space:pre-wrap;overflow-wrap:anywhere;background:rgba(127,127,127,.08);padding:.6rem .8rem;border-radius:6px;font-size:.85rem}
+.musthold-loop .entry{border-left:3px solid rgba(127,127,127,.35);padding:.1rem 0 .1rem .8rem;margin:1rem 0}
+.musthold-loop .entry-gate{border-left-color:#b3541e}
+.musthold-loop .entry-gate.passed{border-left-color:#2f7d32}
+.musthold-loop .meta{opacity:.7;font-size:.8rem;margin-left:.5rem}
+.musthold-loop .add{color:#2f7d32}
+.musthold-loop .del{color:#b3261e}
+.musthold-loop .hunk{opacity:.7}
+.musthold-loop table{border-collapse:collapse}
+.musthold-loop td,.musthold-loop th{border-bottom:1px solid rgba(127,127,127,.25);padding:.2rem .8rem .2rem 0;text-align:left}
+</style>
+<h2>Agent loop: library-late-fees, arm treatment, repetition 1</h2>
+<ul>
+<li>Model: claude-sonnet-5-5</li>
+<li>claude: 2.1.295 (Claude Code)</li>
+<li>colima: 0.10.3</li>
+<li>colima_cpus: 2</li>
+<li>colima_disk_bytes: 32212254720</li>
+<li>colima_memory_bytes: 4294967296</li>
+<li>docker_engine: 29.5.2</li>
+<li>git: 2.39.5</li>
+<li>host_arch: arm64</li>
+<li>host_os: Darwin</li>
+<li>host_os_version: 25.6.0</li>
+<li>musthold-alignment: musthold-alignment dev</li>
+<li>musthold-completeness: musthold-completeness dev</li>
+<li>musthold-dp: musthold-dp dev</li>
+<li>node: 24.22.1</li>
+<li>pytest: 9.1.1</li>
+<li>python: 3.13.14</li>
+<li>python3: Python 3.13.14</li>
+<li>shallnot: c331f9b97d5b96bdc18eba3b17be870c004dc239</li>
+<li>shallnot --version: shallnot c331f9b97d5b</li>
+<li>uv: 0.11.23</li>
+<li>Started: 2026-10-27 18:43:58 UTC</li>
+<li>Caps: 1500 assistant messages, 7200 s, 40.00 USD</li>
+</ul>
+<h3>Task</h3>
+<pre>Implement requirement LATE-5 of specs/late-fees.md, charge 10 from 21 overdue days, in library_fees/late_fees.py, and add a test that verifies it. Tell me when the task is done.</pre>
+<h3>Session</h3>
+<article class="entry entry-command">
+<h4><time>0:02</time> Command<span class="meta">stream.jsonl:4</span></h4>
+<pre>$ cat specs/late-fees.md shallnot.yaml library_fees/late_fees.py; ls . tests* ; git ls-files</pre>
+<pre># Library late fees
+
+The library charges a fee for a loan according to its number of overdue days.
+Fees are whole currency units.
+
+## Fees
+
+- **LATE-1~1**: WHEN a loan is not overdue THE SYSTEM SHALL charge 0.
+  - Example: late_fee(days_overdue=0) =&gt; 0
+- **LATE-2~1**: WHEN a loan is 1 to 5 days overdue THE SYSTEM SHALL charge 1.
+  - Example: late_fee(days_overdue=3) =&gt; 1
+- **LATE-3~1**: WHEN a loan is 6 to 10 days overdue THE SYSTEM SHALL charge 3.
+  - Example: late_fee(days_overdue=7) =&gt; 3
+- **LATE-4~1**: WHEN a loan is 11 to 20 days overdue THE SYSTEM SHALL charge 6.
+  - Example: late_fee(days_overdue=15) =&gt; 6
+- **LATE-5~1**: WHEN a loan is 21 or more days overdue THE SYSTEM SHALL charge 10, including at the 21-day boundary.
+  - Example: late_fee(days_overdue=25) =&gt; 10
+version: 1
+specs:
+  - specs
+tests:
+  - tests
+results:
+  - test-results/pytest.xml
+test_commands:
+  - pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml
+proofs:
+  require: [discriminating-power, alignment]
+  trust: local
+  code:
+    - library_fees
+def late_fee(days_overdue):
+    if days_overdue &lt;= 0:
+        return 0
+    if days_overdue &lt;= 5:
+        return 1
+    if days_overdue &lt;= 10:
+        return 3
+    return 6
+.:
+AGENTS.md
+CLAUDE.md
+conftest.py
+library_fees
+pytest.ini
+shallnot.yaml
+specs
+test-results
+tests
+
+tests:
+test_late_fees.py
+.agents/skills/shallnot-plan/SKILL.md
+.agents/skills/shallnot-review/SKILL.md
+.agents/skills/shallnot/SKILL.md
+.claude/settings.json
+.claude/skills/shallnot-plan/SKILL.md
+.claude/skills/shallnot-review/SKILL.md
+.claude/skills/shallnot/SKILL.md
+.gitignore
+.musthold/config.yaml
+AGENTS.md
+CLAUDE.md
+conftest.py
+library_fees/__init__.py
+library_fees/late_fees.py
+pytest.ini
+shallnot.yaml
+specs/late-fees.md
+tests/test_late_fees.py</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:04</time> Command<span class="meta">stream.jsonl:7</span></h4>
+<pre>$ cat tests/test_late_fees.py</pre>
+<pre>import pytest
+
+from library_fees import late_fee
+
+
+@pytest.mark.verifies(&#34;LATE-1~1&#34;)
+def test_no_fee_for_a_loan_due_today():
+    assert late_fee(days_overdue=0) == 0
+
+
+@pytest.mark.verifies(&#34;LATE-1~1&#34;)
+def test_no_fee_for_a_loan_returned_early():
+    assert late_fee(days_overdue=-1) == 0
+
+
+@pytest.mark.verifies(&#34;LATE-2~1&#34;)
+def test_small_late_fee_matches_the_example():
+    assert late_fee(days_overdue=3) == 1
+
+
+@pytest.mark.verifies(&#34;LATE-3~1&#34;)
+def test_medium_late_fee_covers_its_range():
+    assert late_fee(days_overdue=6) == 3
+    assert late_fee(days_overdue=10) == 3
+
+
+@pytest.mark.verifies(&#34;LATE-4~1&#34;)
+def test_large_late_fee_covers_its_range():
+    assert late_fee(days_overdue=11) == 6
+    assert late_fee(days_overdue=20) == 6</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:06</time> Command<span class="meta">stream.jsonl:9</span></h4>
+<pre>$ cat &gt;&gt; tests/test_late_fees.py &lt;&lt;&#39;EOF&#39;
+
+
+@pytest.mark.verifies(&#34;LATE-5~1&#34;)
+def test_maximum_late_fee_starts_at_the_21_day_boundary():
+    assert late_fee(days_overdue=20) == 6
+    assert late_fee(days_overdue=21) == 10
+    assert late_fee(days_overdue=25) == 10
+EOF
+python - &lt;&lt;&#39;EOF&#39;
+p=&#39;library_fees/late_fees.py&#39;
+s=open(p).read().replace(&#34;    return 6\n&#34;,&#34;    if days_overdue &lt;= 20:\n        return 6\n    return 10\n&#34;)
+open(p,&#39;w&#39;).write(s)
+EOF
+shallnot gate --json-out shallnot-report.json; echo $?
+musthold-dp prove --changed; echo $?</pre>
+<pre>A variable in this command can&#39;t be checked before it runs</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:07</time> Agent<span class="meta">stream.jsonl:12</span></h4>
+<pre>Split into simpler steps.</pre>
+</article>
+<article class="entry entry-edit">
+<h4><time>0:08</time> Edit<span class="meta">stream.jsonl:13</span></h4>
+<pre>&lt;run&gt;/project/library_fees/late_fees.py</pre>
+<pre><span class="del">-    return 6</span>
+<span class="add">+    if days_overdue &lt;= 20:</span>
+<span class="add">+        return 6</span>
+<span class="add">+    return 10</span></pre>
+</article>
+<article class="entry entry-edit">
+<h4><time>0:09</time> Edit<span class="meta">stream.jsonl:15</span></h4>
+<pre>&lt;run&gt;/project/tests/test_late_fees.py</pre>
+<pre><span class="del">-    assert late_fee(days_overdue=20) == 6</span>
+<span class="add">+    assert late_fee(days_overdue=20) == 6</span>
+<span class="add">+    assert late_fee(days_overdue=21) == 10</span>
+<span class="add">+    assert late_fee(days_overdue=25) == 10</span>
+<span class="add">+</span>
+<span class="add">+</span>
+<span class="add">+@pytest.mark.verifies(&#34;LATE-5~1&#34;)</span>
+<span class="add">+def test_maximum_late_fee_starts_at_the_21_day_boundary():</span>
+<span class="add">+    assert late_fee(days_overdue=20) == 6</span></pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:11</time> Agent<span class="meta">stream.jsonl:20</span></h4>
+<pre>My edit landed in the LATE-4 test as well, so I&#39;m fixing that.</pre>
+</article>
+<article class="entry entry-edit">
+<h4><time>0:12</time> Edit<span class="meta">stream.jsonl:21</span></h4>
+<pre>&lt;run&gt;/project/tests/test_late_fees.py</pre>
+<pre><span class="del">-    assert late_fee(days_overdue=20) == 6</span>
+<span class="del">-    assert late_fee(days_overdue=21) == 10</span>
+<span class="del">-    assert late_fee(days_overdue=25) == 10</span>
+<span class="del">-</span>
+<span class="del">-</span>
+<span class="del">-@pytest.mark.verifies(&#34;LATE-5~1&#34;)</span>
+<span class="del">-def test_maximum_late_fee_starts_at_the_21_day_boundary():</span>
+<span class="del">-    assert late_fee(days_overdue=20) == 6</span>
+<span class="add">+    assert late_fee(days_overdue=20) == 6</span>
+<span class="add">+</span>
+<span class="add">+</span>
+<span class="add">+@pytest.mark.verifies(&#34;LATE-5~1&#34;)</span>
+<span class="add">+def test_maximum_late_fee_starts_at_the_21_day_boundary():</span>
+<span class="add">+    assert late_fee(days_overdue=20) == 6</span>
+<span class="add">+    assert late_fee(days_overdue=21) == 10</span>
+<span class="add">+    assert late_fee(days_overdue=25) == 10</span></pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:13</time> Command<span class="meta">stream.jsonl:23</span></h4>
+<pre>$ shallnot gate --json-out shallnot-report.json; echo &#34;gate=$?&#34;</pre>
+<pre>This Bash command contains multiple operations. The following part requires approval: echo &#34;gate=$?&#34;</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:14</time> Command<span class="meta">stream.jsonl:26</span></h4>
+<pre>$ shallnot gate --json-out shallnot-report.json</pre>
+<pre>Exit code 1
+shallnot: running pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml
+============================= test session starts ==============================
+platform linux -- Python 3.13.14, pytest-9.1.1, pluggy-1.7.0
+rootdir: &lt;run&gt;/project
+configfile: pytest.ini
+testpaths: tests
+collected 6 items
+
+tests/test_late_fees.py ......                                           [100%]
+
+- generated xml file: &lt;run&gt;/project/test-results/pytest.xml -
+============================== 6 passed in 0.03s ===============================
+shallnot: &#34;pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml&#34; exited with status 0
+shallnot: FAIL
+focus: every known requirement
+requirements: 5 known, 5 in focus (5 covered, 0 failed, 0 skipped, 0 not run, 0 uncovered, 0 non-testable)
+tests: 6 in results, 6 bound, 0 untagged
+findings: 10 error, 0 warning, 0 info (10 blocking)
+
+REQUIREMENTS
+  LATE-1~1  covered  specs/late-fees.md:8
+      passed  tests.test_late_fees › test_no_fee_for_a_loan_due_today       tests/test_late_fees.py:6
+      passed  tests.test_late_fees › test_no_fee_for_a_loan_returned_early  tests/test_late_fees.py:11
+  LATE-2~1  covered  specs/late-fees.md:10
+      passed  tests.test_late_fees › test_small_late_fee_matches_the_example  tests/test_late_fees.py:16
+  LATE-3~1  covered  specs/late-fees.md:12
+      passed  tests.test_late_fees › test_medium_late_fee_covers_its_range  tests/test_late_fees.py:21
+  LATE-4~1  covered  specs/late-fees.md:14
+      passed  tests.test_late_fees › test_large_late_fee_covers_its_range  tests/test_late_fees.py:27
+  LATE-5~1  covered  specs/late-fees.md:16
+      passed  tests.test_late_fees › test_maximum_late_fee_starts_at_the_21_day_boundary  tests/test_late_fees.py:33
+
+FINDINGS
+  error  stale_proof  specs/late-fees.md:8   requirement LATE-1~1 has no valid alignment proof for test &#34;test_no_fee_for_a_loan_due_today, test_no_fee_for_a_loan_returned_early&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/late-fees.md:8   requirement LATE-1~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/late-fees.md:10  requirement LATE-2~1 has no valid alignment proof for test &#34;test_small_late_fee_matches_the_example&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/late-fees.md:10  requirement LATE-2~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/late-fees.md:12  requirement LATE-3~1 has no valid alignment proof for test &#34;test_medium_late_fee_covers_its_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/late-fees.md:12  requirement LATE-3~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/late-fees.md:14  requirement LATE-4~1 has no valid alignment proof for test &#34;test_large_late_fee_covers_its_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/late-fees.md:14  requirement LATE-4~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/late-fees.md:16  requirement LATE-5~1 has no valid alignment proof for test &#34;test_maximum_late_fee_starts_at_the_21_day_boundary&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/late-fees.md:16  requirement LATE-5~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:16</time> Agent<span class="meta">stream.jsonl:28</span></h4>
+<pre>Tests pass and all five requirements are covered. The only blocking findings are missing proofs, so I&#39;m running the prove-all skill.</pre>
+</article>
+<article class="entry entry-skill">
+<h4><time>0:16</time> Skill<span class="meta">stream.jsonl:29</span></h4>
+<pre>musthold:prove-all</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:17</time> Command<span class="meta">stream.jsonl:32</span></h4>
+<pre>$ musthold-dp doctor</pre>
+<pre>ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok ecosystem pytest
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:17</time> Command<span class="meta">stream.jsonl:34</span></h4>
+<pre>$ musthold-alignment doctor</pre>
+<pre>ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok policy align_k=5 modal_min={0.8 map[]}
+ok host-files claude
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:18</time> Command<span class="meta">stream.jsonl:36</span></h4>
+<pre>$ musthold-completeness doctor</pre>
+<pre>ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok git /usr/bin/git
+ok policy tau_adv={0.5 map[]} decide_k=3
+ok host-files claude
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:19</time> Command<span class="meta">stream.jsonl:38</span></h4>
+<pre>$ musthold-dp prove --changed</pre>
+<pre>Exit code 3
+wave 1
+LATE-1~1 awaiting_host
+LATE-2~1 awaiting_host
+LATE-3~1 awaiting_host
+LATE-4~1 awaiting_host
+LATE-5~1 awaiting_host
+awaiting_host 10 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:19</time> Command<span class="meta">stream.jsonl:39</span></h4>
+<pre>$ musthold-alignment prove --changed</pre>
+<pre>Exit code 3
+wave 1
+LATE-1~1 tests.test_late_fees.test_no_fee_for_a_loan_due_today awaiting_host
+LATE-1~1 tests.test_late_fees.test_no_fee_for_a_loan_returned_early awaiting_host
+LATE-2~1 tests.test_late_fees.test_small_late_fee_matches_the_example awaiting_host
+LATE-3~1 tests.test_late_fees.test_medium_late_fee_covers_its_range awaiting_host
+LATE-4~1 tests.test_late_fees.test_large_late_fee_covers_its_range awaiting_host
+LATE-5~1 tests.test_late_fees.test_maximum_late_fee_starts_at_the_21_day_boundary awaiting_host
+awaiting_host 30 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:19</time> Command<span class="meta">stream.jsonl:40</span></h4>
+<pre>$ musthold-completeness prove --changed</pre>
+<pre>Exit code 3
+wave 1
+specs/late-fees.md awaiting_host 0 questions
+awaiting_host 3 tickets</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:22</time> Agent<span class="meta">stream.jsonl:44</span></h4>
+<pre>All three modules are waiting on tickets. I&#39;m loading the fulfil skills.</pre>
+</article>
+<article class="entry entry-skill">
+<h4><time>0:22</time> Skill<span class="meta">stream.jsonl:45</span></h4>
+<pre>musthold-dp:musthold-dp-fulfil</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:23</time> Command<span class="meta">stream.jsonl:48</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>22e98cddf20a1539c3ec978290468b5f63bc42ef0c3619d752b15be330d1ece3.0.1 musthold-dp:generator
+22e98cddf20a1539c3ec978290468b5f63bc42ef0c3619d752b15be330d1ece3.1.1 musthold-dp:generator
+304af6cdf10f3aba3120d0b617395c43858d0c083f55eecdd0ac75e98617686d.0.1 musthold-dp:generator
+304af6cdf10f3aba3120d0b617395c43858d0c083f55eecdd0ac75e98617686d.1.1 musthold-dp:generator
+466a159892e9871d02a0323103deb9d76f9a9ade2f2236f2f3b8835f28a7693a.0.1 musthold-dp:generator
+466a159892e9871d02a0323103deb9d76f9a9ade2f2236f2f3b8835f28a7693a.1.1 musthold-dp:generator
+924ff98de4c3bb9659f06e3e8719514672f85eea0814bffd93d967b13d09ffea.0.1 musthold-dp:generator
+924ff98de4c3bb9659f06e3e8719514672f85eea0814bffd93d967b13d09ffea.1.1 musthold-dp:generator
+ec98df87ce3d2a9b78538dfaec8166c61c0fa6dff3079c611754d90e79699e47.0.1 musthold-dp:generator
+ec98df87ce3d2a9b78538dfaec8166c61c0fa6dff3079c611754d90e79699e47.1.1 musthold-dp:generator</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:26</time> Agent<span class="meta">stream.jsonl:50</span></h4>
+<pre>Ten tickets, at most 4 per message.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>0:27</time> Executors: 10 launched<span class="meta">stream.jsonl:51</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>1:21</time> Command<span class="meta">stream.jsonl:390</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 2
+LATE-1~1 awaiting_host
+LATE-2~1 awaiting_host
+LATE-3~1 awaiting_host
+LATE-4~1 awaiting_host
+LATE-5~1 awaiting_host
+awaiting_host 10 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>1:34</time> Command<span class="meta">stream.jsonl:394</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>0abc9497ff770777e3c3eac8a7e794c233608c13f326cf332d6da8c9feb75457.0.1 musthold-dp:judge
+0abc9497ff770777e3c3eac8a7e794c233608c13f326cf332d6da8c9feb75457.1.1 musthold-dp:judge
+3d01e25c48d4f38da3cb941398c771a89a72bc7e7aa5c267982fd06a01b2e053.0.1 musthold-dp:judge
+3d01e25c48d4f38da3cb941398c771a89a72bc7e7aa5c267982fd06a01b2e053.1.1 musthold-dp:judge
+64acf74ecfd862acc2a048c0bc688a7ce690b0228010d8107fa616e62eb92b09.0.1 musthold-dp:judge
+64acf74ecfd862acc2a048c0bc688a7ce690b0228010d8107fa616e62eb92b09.1.1 musthold-dp:judge
+892e536fbfe40ec6945e3d8e3861ed75616094ba243bf7045c5cb5c2fbc632a3.0.1 musthold-dp:judge
+892e536fbfe40ec6945e3d8e3861ed75616094ba243bf7045c5cb5c2fbc632a3.1.1 musthold-dp:judge
+893f41b19f56acd250cccb8b21488841afd7a4e15393f3662c7055811ad213f1.0.1 musthold-dp:judge
+893f41b19f56acd250cccb8b21488841afd7a4e15393f3662c7055811ad213f1.1.1 musthold-dp:judge</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>1:36</time> Executors: 10 launched<span class="meta">stream.jsonl:396</span></h4>
+<pre>musthold-dp:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>2:17</time> Command<span class="meta">stream.jsonl:755</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 3
+LATE-1~1 awaiting_host
+LATE-2~1 awaiting_host
+LATE-3~1 awaiting_host
+LATE-4~1 awaiting_host
+LATE-5~1 awaiting_host
+awaiting_host 1 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>2:19</time> Command<span class="meta">stream.jsonl:757</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>(Bash completed with no output)</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>2:20</time> Agent<span class="meta">stream.jsonl:759</span></h4>
+<pre>Per the skill, I&#39;m running `prove --changed` once more when the list is empty, then listing again.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>2:21</time> Command<span class="meta">stream.jsonl:760</span></h4>
+<pre>$ musthold-dp prove --changed</pre>
+<pre>Exit code 3
+wave 4
+LATE-1~1 awaiting_host
+LATE-2~1 awaiting_host
+LATE-3~1 awaiting_host
+LATE-4~1 awaiting_host
+LATE-5~1 awaiting_host
+awaiting_host 1 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>2:21</time> Command<span class="meta">stream.jsonl:761</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>(Bash completed with no output)</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>2:24</time> Agent<span class="meta">stream.jsonl:767</span></h4>
+<pre>The two commands ran in parallel, so the list may have raced the prove run. Listing again.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>2:24</time> Command<span class="meta">stream.jsonl:768</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>(Bash completed with no output)</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>2:25</time> Command<span class="meta">stream.jsonl:773</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 5
+LATE-1~1 awaiting_host
+LATE-2~1 awaiting_host
+LATE-3~1 awaiting_host
+LATE-4~1 awaiting_host
+LATE-5~1 awaiting_host
+awaiting_host 1 tickets</pre>
+</article>
+<article class="entry entry-gate blocked">
+<h4><time>2:34</time> Gate: blocked<span class="meta">hooks.jsonl:229</span></h4>
+<pre>shallnot: the traceability gate is blocked by 10 finding(s). Resolve them before finishing:
+- stale_proof at specs/late-fees.md:8: requirement LATE-1~1 has no valid alignment proof for test &#34;test_no_fee_for_a_loan_due_today, test_no_fee_for_a_loan_returned_early&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:8: requirement LATE-1~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:10: requirement LATE-2~1 has no valid alignment proof for test &#34;test_small_late_fee_matches_the_example&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:10: requirement LATE-2~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:12: requirement LATE-3~1 has no valid alignment proof for test &#34;test_medium_late_fee_covers_its_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:12: requirement LATE-3~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:14: requirement LATE-4~1 has no valid alignment proof for test &#34;test_large_late_fee_covers_its_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:14: requirement LATE-4~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:16: requirement LATE-5~1 has no valid alignment proof for test &#34;test_maximum_late_fee_starts_at_the_21_day_boundary&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:16: requirement LATE-5~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+Never delete or alter a tag, mark a requirement non-testable, skip a test or weaken an assertion to clear a finding. If a requirement cannot be met or tested as written, stop and say so.</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>2:34</time> Agent<span class="meta">stream.jsonl:778</span></h4>
+<pre>The task is not done: the gate is still blocked, and `musthold-dp` is stuck. The code and the test are finished.
+
+**Implemented**
+- `library_fees/late_fees.py`: `late_fee` now returns 10 from 21 overdue days, and 6 for 11 to 20.
+- `tests/test_late_fees.py`: I added `test_maximum_late_fee_starts_at_the_21_day_boundary`, tagged `[verifies LATE-5~1]`. It asserts 20 → 6, 21 → 10 and 25 → 10, so it fails if the 21-day boundary or the fee of 10 is missing.
+- I did not edit `specs/late-fees.md`. LATE-5~1 already existed.
+- `shallnot gate` runs the tests (6 passed) and shows all 5 requirements covered. Its only blocking findings are `stale_proof`: the discriminating-power and alignment proofs have not been published yet, because the proof runs below haven&#39;t finished.
+
+**Where the proofs stand**
+- **`musthold-dp`**: it has been at &#34;awaiting_host 1 tickets&#34; since wave 3, and `musthold-dp request list --session prove` prints nothing. I ran `prove --changed` and `prove --resume` again and got the same result, so I stopped rather than loop. One judge subagent (ticket `3d01e25c…0.1`) returned a verdict JSON instead of a receipt. That is the likely cause, but I haven&#39;t confirmed it. I did not submit that answer myself.
+- **`musthold-alignment`** (30 tickets) and **`musthold-completeness`** (3 tickets): waiting on tickets, not started. Their waves weren&#39;t run because the gate needs the dp proof too.
+- **Publishing**: `musthold-verify --accept-local .musthold/cache --out .musthold/verified` has not been run.
+
+**Decision for you:** I can run the alignment and completeness waves, but the gate stays blocked until dp is unstuck. The options are to retry the dp run in a fresh session, or to look at `.musthold/` to see why that one ticket isn&#39;t listable. Which do you want?</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>2:36</time> Agent<span class="meta">stream.jsonl:788</span></h4>
+<pre>I&#39;ll keep going on the proofs, starting with a look at why the dp ticket isn&#39;t listed.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>2:37</time> Command<span class="meta">stream.jsonl:789</span></h4>
+<pre>$ musthold-dp request list --help 2&gt;&amp;1 | head -20; musthold-dp prove --resume</pre>
+<pre>Exit code 3
+usage: musthold-dp request list [flags]
+
+flags:
+  --json            print the listing as JSON
+  --root string     project root (default: the working directory)
+  --session string  list the tickets of this session only, prove or scan:&lt;key&gt; (default: every session)
+wave 6
+LATE-1~1 awaiting_host
+LATE-2~1 awaiting_host
+LATE-3~1 awaiting_host
+LATE-4~1 awaiting_host
+LATE-5~1 awaiting_host
+awaiting_host 1 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>2:40</time> Command<span class="meta">stream.jsonl:791</span></h4>
+<pre>$ musthold-dp request list --json</pre>
+<pre>{&#34;items&#34;:[]}</pre>
+</article>
+<article class="entry entry-gate blocked">
+<h4><time>2:47</time> Gate: blocked<span class="meta">hooks.jsonl:233</span></h4>
+<pre>shallnot: the traceability gate is blocked by 10 finding(s). Resolve them before finishing:
+- stale_proof at specs/late-fees.md:8: requirement LATE-1~1 has no valid alignment proof for test &#34;test_no_fee_for_a_loan_due_today, test_no_fee_for_a_loan_returned_early&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:8: requirement LATE-1~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:10: requirement LATE-2~1 has no valid alignment proof for test &#34;test_small_late_fee_matches_the_example&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:10: requirement LATE-2~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:12: requirement LATE-3~1 has no valid alignment proof for test &#34;test_medium_late_fee_covers_its_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:12: requirement LATE-3~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:14: requirement LATE-4~1 has no valid alignment proof for test &#34;test_large_late_fee_covers_its_range&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:14: requirement LATE-4~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:16: requirement LATE-5~1 has no valid alignment proof for test &#34;test_maximum_late_fee_starts_at_the_21_day_boundary&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:16: requirement LATE-5~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+Never delete or alter a tag, mark a requirement non-testable, skip a test or weaken an assertion to clear a finding. If a requirement cannot be met or tested as written, stop and say so.</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>2:47</time> Agent<span class="meta">stream.jsonl:797</span></h4>
+<pre>The gate is still blocked, and I can&#39;t clear it from here. All 10 findings are `stale_proof`: no published proof set exists, because `musthold-dp` won&#39;t finish.
+
+- **State:** `musthold-dp prove --resume` has returned &#34;awaiting_host 1 tickets&#34; for six waves. `musthold-dp request list --json`, across every session, returns `{&#34;items&#34;:[]}`. It is waiting on a ticket that no executor can see, so there is nothing for me to answer.
+- **Likely cause:** one judge subagent returned a raw verdict JSON instead of a receipt, and that ticket may not have been recorded. I haven&#39;t confirmed this.
+- **Not done:** I won&#39;t submit that answer myself, edit `.musthold/cache`, or write a proof or manifest by hand. Each of those would fake the evidence the gate checks.
+- **Alignment and completeness:** neither has run its waves (30 and 3 tickets). They wouldn&#39;t clear the gate while dp is stuck, so I held them back.
+
+**Code and test:** `late_fee` charges 10 from 21 overdue days. The test tagged `[verifies LATE-5~1]` passes, and the gate shows LATE-5~1 covered.
+
+**What I need from you** (pick one):
+1. Let me run the alignment and completeness waves now, about 33 more tickets. dp would remain unresolved.
+2. Reset the dp session (for example by clearing its prove state under `.musthold/`) and let me rerun `musthold:prove-all` from the start.
+3. Look at `.musthold/` yourself, since it may be a defect in the module.</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>2:50</time> Agent<span class="meta">stream.jsonl:806</span></h4>
+<pre>The hook repeats the same findings, and the alignment and completeness waves are part of the prove-all run I already started. I&#39;m running them now, beginning with alignment.</pre>
+</article>
+<article class="entry entry-skill">
+<h4><time>2:50</time> Skill<span class="meta">stream.jsonl:807</span></h4>
+<pre>musthold-alignment:musthold-alignment-fulfil</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>2:51</time> Command<span class="meta">stream.jsonl:810</span></h4>
+<pre>$ musthold-alignment request list --session prove</pre>
+<pre>015d98439eafaf27e212915a14ebfcd9169c4ba4723a9bac3889d88feede992d.0.1 musthold-alignment:judge
+015d98439eafaf27e212915a14ebfcd9169c4ba4723a9bac3889d88feede992d.1.1 musthold-alignment:judge
+015d98439eafaf27e212915a14ebfcd9169c4ba4723a9bac3889d88feede992d.2.1 musthold-alignment:judge
+015d98439eafaf27e212915a14ebfcd9169c4ba4723a9bac3889d88feede992d.3.1 musthold-alignment:judge
+015d98439eafaf27e212915a14ebfcd9169c4ba4723a9bac3889d88feede992d.4.1 musthold-alignment:judge
+9bb325294c2366eb16429f937e0ede04ad41e57506d1347c77157a2196f56447.0.1 musthold-alignment:judge
+9bb325294c2366eb16429f937e0ede04ad41e57506d1347c77157a2196f56447.1.1 musthold-alignment:judge
+9bb325294c2366eb16429f937e0ede04ad41e57506d1347c77157a2196f56447.2.1 musthold-alignment:judge
+9bb325294c2366eb16429f937e0ede04ad41e57506d1347c77157a2196f56447.3.1 musthold-alignment:judge
+9bb325294c2366eb16429f937e0ede04ad41e57506d1347c77157a2196f56447.4.1 musthold-alignment:judge
+af3bce364201451ffadde3112cef9ac13077281ab9a053b279ea16fffcaba7e0.0.1 musthold-alignment:judge
+af3bce364201451ffadde3112cef9ac13077281ab9a053b279ea16fffcaba7e0.1.1 musthold-alignment:judge
+af3bce364201451ffadde3112cef9ac13077281ab9a053b279ea16fffcaba7e0.2.1 musthold-alignment:judge
+af3bce364201451ffadde3112cef9ac13077281ab9a053b279ea16fffcaba7e0.3.1 musthold-alignment:judge
+af3bce364201451ffadde3112cef9ac13077281ab9a053b279ea16fffcaba7e0.4.1 musthold-alignment:judge
+bb6d15abb404cd2a49d04f3312f84a9e6cc4e61e079798d677cc545547c694bd.0.1 musthold-alignment:judge
+bb6d15abb404cd2a49d04f3312f84a9e6cc4e61e079798d677cc545547c694bd.1.1 musthold-alignment:judge
+bb6d15abb404cd2a49d04f3312f84a9e6cc4e61e079798d677cc545547c694bd.2.1 musthold-alignment:judge
+bb6d15abb404cd2a49d04f3312f84a9e6cc4e61e079798d677cc545547c694bd.3.1 musthold-alignment:judge
+bb6d15abb404cd2a49d04f3312f84a9e6cc4e61e079798d677cc545547c694bd.4.1 musthold-alignment:judge
+d377fbb964348a8e7d5d03b8cf03b6ac52545998372c2d440fc1d6c23073caea.0.1 musthold-alignment:judge
+d377fbb964348a8e7d5d03b8cf03b6ac52545998372c2d440fc1d6c23073caea.1.1 musthold-alignment:judge
+d377fbb964348a8e7d5d03b8cf03b6ac52545998372c2d440fc1d6c23073caea.2.1 musthold-alignment:judge
+d377fbb964348a8e7d5d03b8cf03b6ac52545998372c2d440fc1d6c23073caea.3.1 musthold-alignment:judge
+d377fbb964348a8e7d5d03b8cf03b6ac52545998372c2d440fc1d6c23073caea.4.1 musthold-alignment:judge
+e16508ba2d93dd1d6ece18c51ed40845ae0c9dfe86674d926dd36ab6337ae5dc.0.1 musthold-alignment:judge
+e16508ba2d93dd1d6ece18c51ed40845ae0c9dfe86674d926dd36ab6337ae5dc.1.1 musthold-alignment:judge
+e16508ba2d93dd1d6ece18c51ed40845ae0c9dfe86674d926dd36ab6337ae5dc.2.1 musthold-alignment:judge
+e16508ba2d93dd1d6ece18c51ed40845ae0c9dfe86674d926dd36ab6337ae5dc.3.1 musthold-alignment:judge
+e16508ba2d93dd1d6ece18c51ed40845ae0c9dfe86674d926dd36ab6337ae5dc.4.1 musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>2:52</time> Agent<span class="meta">stream.jsonl:812</span></h4>
+<pre>30 tickets, 4 at a time. First batch:</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>2:54</time> Executors: 24 launched<span class="meta">stream.jsonl:813</span></h4>
+<pre>musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>4:00</time> Agent<span class="meta">stream.jsonl:1622</span></h4>
+<pre>Status: 24 of 30 alignment tickets are answered, all with normal receipts. Finishing the last 6.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>4:01</time> Executors: 6 launched<span class="meta">stream.jsonl:1623</span></h4>
+<pre>musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>4:22</time> Command<span class="meta">stream.jsonl:1826</span></h4>
+<pre>$ musthold-alignment prove --resume</pre>
+<pre>wave 2
+LATE-1~1 tests.test_late_fees.test_no_fee_for_a_loan_due_today proved ALIGNED uncorroborated
+LATE-1~1 tests.test_late_fees.test_no_fee_for_a_loan_returned_early proved ALIGNED uncorroborated
+LATE-2~1 tests.test_late_fees.test_small_late_fee_matches_the_example proved ALIGNED uncorroborated
+LATE-3~1 tests.test_late_fees.test_medium_late_fee_covers_its_range proved ALIGNED uncorroborated
+LATE-4~1 tests.test_late_fees.test_large_late_fee_covers_its_range proved ALIGNED uncorroborated
+LATE-5~1 tests.test_late_fees.test_maximum_late_fee_starts_at_the_21_day_boundary proved ALIGNED uncorroborated</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>4:28</time> Agent<span class="meta">stream.jsonl:1831</span></h4>
+<pre>Alignment is done: all six tests proved ALIGNED. Next, completeness (advisory) and a retry of dp.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>4:28</time> Command<span class="meta">stream.jsonl:1832</span></h4>
+<pre>$ musthold-completeness request list --session prove</pre>
+<pre>1d4db03832df3a0552234f457b96d9b6cae422a6ac8fc746699d848e953a977f.0.1 musthold-completeness:decider
+6dd2f7e46c12dcbf50b8cec7548e4c7f894698ea4023beb147192dd0442da1f2.0.1 musthold-completeness:decider
+a7962e5f93543d803b4d8deb9c191b2a498c42591c49f0ec639b9c48cc582c9f.0.1 musthold-completeness:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>4:28</time> Command<span class="meta">stream.jsonl:1834</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>(Bash completed with no output)</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>4:30</time> Executors: 3 launched<span class="meta">stream.jsonl:1836</span></h4>
+<pre>musthold-completeness:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>4:42</time> Command<span class="meta">stream.jsonl:1937</span></h4>
+<pre>$ musthold-completeness prove --resume</pre>
+<pre>Exit code 3
+wave 2
+specs/late-fees.md awaiting_host 0 questions
+awaiting_host 4 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>4:43</time> Command<span class="meta">stream.jsonl:1939</span></h4>
+<pre>$ musthold-completeness request list --session prove</pre>
+<pre>6dd2f7e46c12dcbf50b8cec7548e4c7f894698ea4023beb147192dd0442da1f2.1.1 musthold-completeness:decider
+6dd2f7e46c12dcbf50b8cec7548e4c7f894698ea4023beb147192dd0442da1f2.2.1 musthold-completeness:decider
+a7962e5f93543d803b4d8deb9c191b2a498c42591c49f0ec639b9c48cc582c9f.1.1 musthold-completeness:decider
+a7962e5f93543d803b4d8deb9c191b2a498c42591c49f0ec639b9c48cc582c9f.2.1 musthold-completeness:decider</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>4:46</time> Executors: 4 launched<span class="meta">stream.jsonl:1941</span></h4>
+<pre>musthold-completeness:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>4:57</time> Command<span class="meta">stream.jsonl:2075</span></h4>
+<pre>$ musthold-completeness prove --resume</pre>
+<pre>wave 3
+specs/late-fees.md proved 2 questions</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>5:01</time> Agent<span class="meta">stream.jsonl:2077</span></h4>
+<pre>Update: alignment and completeness are finished. Alignment proved all 6 tests ALIGNED, and completeness proved 2 advisory questions. dp is still the open one, so I&#39;m retrying it from scratch.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>5:01</time> Command<span class="meta">stream.jsonl:2078</span></h4>
+<pre>$ musthold-dp prove --changed</pre>
+<pre>Exit code 3
+wave 7
+LATE-1~1 awaiting_host
+LATE-2~1 awaiting_host
+LATE-3~1 awaiting_host
+LATE-4~1 awaiting_host
+LATE-5~1 awaiting_host
+awaiting_host 1 tickets</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>5:04</time> Agent<span class="meta">stream.jsonl:2083</span></h4>
+<pre>dp is still stuck on the same unlisted ticket. I&#39;ll publish the proofs that are finished and see what the gate says.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>5:05</time> Command<span class="meta">stream.jsonl:2084</span></h4>
+<pre>$ musthold-verify --accept-local .musthold/cache --out .musthold/verified</pre>
+<pre>verified 7 statements (0 signed, 7 local), trust local, 0 pending, written to .musthold/verified</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>5:06</time> Command<span class="meta">stream.jsonl:2086</span></h4>
+<pre>$ shallnot gate --json-out shallnot-report.json 2&gt;&amp;1 | grep -A40 &#39;^FINDINGS&#39;</pre>
+<pre>FINDINGS
+  info   completeness_question  specs/late-fees.md     completeness (error_handling): The specification does not say how error handling is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (error_handling): &lt;reason&gt;`.
+  info   completeness_question  specs/late-fees.md     completeness (input_validation): The specification does not say how input validation is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (input_validation): &lt;reason&gt;`.
+  error  stale_proof            specs/late-fees.md:8   requirement LATE-1~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof            specs/late-fees.md:10  requirement LATE-2~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof            specs/late-fees.md:12  requirement LATE-3~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof            specs/late-fees.md:14  requirement LATE-4~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof            specs/late-fees.md:16  requirement LATE-5~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</pre>
+</article>
+<article class="entry entry-gate blocked">
+<h4><time>5:11</time> Gate: blocked<span class="meta">hooks.jsonl:617</span></h4>
+<pre>shallnot: the traceability gate is blocked by 5 finding(s). Resolve them before finishing:
+- stale_proof at specs/late-fees.md:8: requirement LATE-1~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:10: requirement LATE-2~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:12: requirement LATE-3~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:14: requirement LATE-4~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:16: requirement LATE-5~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+Never delete or alter a tag, mark a requirement non-testable, skip a test or weaken an assertion to clear a finding. If a requirement cannot be met or tested as written, stop and say so.</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>5:11</time> Agent<span class="meta">stream.jsonl:2088</span></h4>
+<pre>The gate is still blocked, now by 5 errors instead of 10. The only blocker left is the discriminating-power (dp) proof for LATE-1 to LATE-5.
+
+**Done**
+- `library_fees/late_fees.py`: `late_fee` returns 10 from 21 overdue days (6 for 11 to 20).
+- `tests/test_late_fees.py`: `test_maximum_late_fee_starts_at_the_21_day_boundary`, tagged `[verifies LATE-5~1]`, asserts 20 → 6, 21 → 10 and 25 → 10. The 6 tests pass and all 5 requirements show as covered.
+- **Alignment:** all 6 tests proved ALIGNED, so those 5 findings are cleared. The proofs are published, and `musthold-verify` accepted 7 statements.
+- **Completeness (advisory):** it asks you to state error handling and input validation, or declare them out of scope. That is for the spec&#39;s owner, and it does not block the gate.
+
+**Not done**
+- **dp:** `musthold-dp prove` says &#34;awaiting_host 1 tickets&#34; on every run, but `request list` shows no ticket. I&#39;ve now retried it 7 times with no change, and I stopped re-running it. The likely cause is the one judge subagent that returned raw JSON instead of a receipt. I won&#39;t answer that ticket or write the proof myself.
+- **What would unblock it:** clearing the dp prove state under `.musthold/` so the dp run starts over, or checking `musthold-dp` for a bug in how it tracks tickets. I can redo the dp run once that&#39;s done, but I won&#39;t clear the state without your say-so.</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>5:13</time> Agent<span class="meta">stream.jsonl:2095</span></h4>
+<pre>I&#39;ll look at the dp state read-only to find out why the ticket is invisible.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>5:14</time> Command<span class="meta">stream.jsonl:2096</span></h4>
+<pre>$ ls -la .musthold .musthold/cache 2&gt;&amp;1 | head -30; musthold-dp --help 2&gt;&amp;1 | head -30</pre>
+<pre>.musthold:
+total 4
+drwxr-xr-x  6 502 dialout 192 Oct 27 18:49 .
+drwxr-xr-x 18 502 dialout 576 Oct 27 18:49 ..
+drwxr-xr-x  4 502 dialout 128 Oct 27 18:48 cache
+-rw-r--r--  1 502 dialout 483 Oct 27 18:43 config.yaml
+drwxr-xr-x  2 502 dialout  64 Oct 27 18:48 pending
+drwxr-xr-x  5 502 dialout 160 Oct 27 18:49 verified
+
+.musthold/cache:
+total 0
+drwxr-xr-x 4 502 dialout 128 Oct 27 18:48 .
+drwxr-xr-x 6 502 dialout 192 Oct 27 18:49 ..
+drwxr-xr-x 7 502 dialout 224 Oct 27 18:48 alignment
+drwxr-xr-x 3 502 dialout  96 Oct 27 18:48 completeness
+usage: musthold-dp &lt;version|prove|scan|request|systemone|doctor|init|enable|disable|mcp|hook|host|facts|help&gt;</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>5:15</time> Command<span class="meta">stream.jsonl:2098</span></h4>
+<pre>$ musthold-dp request --help 2&gt;&amp;1; musthold-dp prove --help 2&gt;&amp;1 | head -30</pre>
+<pre>usage: musthold-dp request &lt;list|show|submit&gt;
+usage: musthold-dp prove [flags]
+
+flags:
+  --all                 prove every criterion
+  --changed             prove the criteria whose inputs changed (the default)
+  --ci                  run as CI does: draw the seed of the commit and mark the Statements as produced by CI
+  --import-host string  with --ci: directory holding the bundle a push published
+  --record string       directory to record the consumed answers in
+  --replay string       directory of recorded answers to serve the requests from
+  --resume              continue a run that is awaiting the host
+  --root string         project root (default: the working directory)</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>5:17</time> Agent<span class="meta">stream.jsonl:2103</span></h4>
+<pre>dp has no state directory under `.musthold/cache`. `--all` is a documented flag that proves every criterion, so I&#39;ll try a full dp run.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>5:17</time> Command<span class="meta">stream.jsonl:2104</span></h4>
+<pre>$ musthold-dp prove --all</pre>
+<pre>Exit code 3
+wave 8
+LATE-1~1 awaiting_host
+LATE-2~1 awaiting_host
+LATE-3~1 awaiting_host
+LATE-4~1 awaiting_host
+LATE-5~1 awaiting_host
+awaiting_host 1 tickets</pre>
+</article>
+<article class="entry entry-gate gave-up">
+<h4><time>5:23</time> Gate: gave up<span class="meta">hooks.jsonl:623</span></h4>
+<pre>shallnot: the gate is still blocked after 3 attempts; run `shallnot gate` to see why.
+shallnot: the traceability gate is blocked by 5 finding(s). Resolve them before finishing:
+- stale_proof at specs/late-fees.md:8: requirement LATE-1~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:10: requirement LATE-2~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:12: requirement LATE-3~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:14: requirement LATE-4~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/late-fees.md:16: requirement LATE-5~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+Never delete or alter a tag, mark a requirement non-testable, skip a test or weaken an assertion to clear a finding. If a requirement cannot be met or tested as written, stop and say so.</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>5:23</time> Agent<span class="meta">stream.jsonl:2106</span></h4>
+<pre>I&#39;m stopping here: the dp proof can&#39;t be produced from my side, so the gate stays blocked by 5 `stale_proof` findings, one per requirement LATE-1 to LATE-5.
+
+- **What I tried:** `musthold-dp prove --resume`, `--changed` and `--all`. Each returns &#34;awaiting_host 1 tickets&#34;, but `request list` (all sessions, JSON too) shows no ticket. The dp run has no state under `.musthold/cache`, only alignment and completeness do, so I have nothing to inspect.
+- **What I won&#39;t do:** write a dp proof or manifest by hand, answer a ticket myself, or drop `discriminating-power` from `proofs.require` in `shallnot.yaml`. Each would make the gate green without a real proof.
+
+Everything else is finished:
+- **Code and test:** `late_fee` charges 10 from 21 overdue days. The test tagged `[verifies LATE-5~1]` passes, and all 5 requirements are covered.
+- **Alignment:** all 6 tests proved ALIGNED, and the proofs are published.
+- **Completeness (advisory):** it asks the spec&#39;s owner to state error handling and input validation, or declare them out of scope.
+
+To finish, someone needs to look at the `musthold-dp` module, since it seems to be waiting on a ticket it can&#39;t list. My guess is the judge that returned raw JSON instead of a receipt, but I haven&#39;t confirmed that. Once it&#39;s fixed, `musthold:prove-all` followed by `musthold-verify --accept-local .musthold/cache --out .musthold/verified` should clear the gate.</pre>
+</article>
+<h3>Outcome</h3>
+<ul>
+<li>Session: ended by itself, exit code 0</li>
+<li>Result event: success, error false, 105 turns (stream.jsonl:2111)</li>
+<li>Gate after the session: fail, exit code 1 (gate-after.json)</li>
+<li>Blocking: stale_proof: requirement LATE-1~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</li>
+<li>Blocking: stale_proof: requirement LATE-2~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</li>
+<li>Blocking: stale_proof: requirement LATE-3~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</li>
+<li>Blocking: stale_proof: requirement LATE-4~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</li>
+<li>Blocking: stale_proof: requirement LATE-5~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</li>
+</ul>
+<h3>Change the session made</h3>
+<p class="meta">change.diff</p>
+<pre>diff --git a/library_fees/late_fees.py b/library_fees/late_fees.py
+index 1d81a63..7f572b2 100644
+--- a/library_fees/late_fees.py
++++ b/library_fees/late_fees.py
+<span class="hunk">@@ -5,4 +5,6 @@ def late_fee(days_overdue):</span>
+         return 1
+     if days_overdue &lt;= 10:
+         return 3
+<span class="del">-    return 6</span>
+<span class="add">+    if days_overdue &lt;= 20:</span>
+<span class="add">+        return 6</span>
+<span class="add">+    return 10</span>
+diff --git a/shallnot-report.json b/shallnot-report.json
+new file mode 100644
+index 0000000..0c43ee9
+--- /dev/null
++++ b/shallnot-report.json
+<span class="hunk">@@ -0,0 +1,566 @@</span>
+<span class="add">+{</span>
+<span class="add">+  &#34;schema_version&#34;: &#34;1.2&#34;,</span>
+<span class="add">+  &#34;tool&#34;: {</span>
+<span class="add">+    &#34;name&#34;: &#34;shallnot&#34;,</span>
+<span class="add">+    &#34;version&#34;: &#34;c331f9b97d5b&#34;</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;run&#34;: {</span>
+<span class="add">+    &#34;advisory&#34;: false,</span>
+<span class="add">+    &#34;fail_on&#34;: &#34;error&#34;,</span>
+<span class="add">+    &#34;id_pattern&#34;: &#34;[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*&#34;,</span>
+<span class="add">+    &#34;statement_canonicalization&#34;: &#34;c1&#34;,</span>
+<span class="add">+    &#34;focus&#34;: {</span>
+<span class="add">+      &#34;everything&#34;: true,</span>
+<span class="add">+      &#34;files&#34;: [],</span>
+<span class="add">+      &#34;ids&#34;: []</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;spec_files&#34;: [</span>
+<span class="add">+      &#34;specs/late-fees.md&#34;</span>
+<span class="add">+    ],</span>
+<span class="add">+    &#34;test_roots&#34;: [</span>
+<span class="add">+      &#34;tests&#34;</span>
+<span class="add">+    ],</span>
+<span class="add">+    &#34;results_files&#34;: [</span>
+<span class="add">+      &#34;test-results/pytest.xml&#34;</span>
+<span class="add">+    ]</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;verdict&#34;: &#34;fail&#34;,</span>
+<span class="add">+  &#34;exit_code&#34;: 1,</span>
+<span class="add">+  &#34;summary&#34;: {</span>
+<span class="add">+    &#34;requirements&#34;: {</span>
+<span class="add">+      &#34;known&#34;: 5,</span>
+<span class="add">+      &#34;in_focus&#34;: 5,</span>
+<span class="add">+      &#34;covered&#34;: 5,</span>
+<span class="add">+      &#34;failed&#34;: 0,</span>
+<span class="add">+      &#34;skipped&#34;: 0,</span>
+<span class="add">+      &#34;not_run&#34;: 0,</span>
+<span class="add">+      &#34;uncovered&#34;: 0,</span>
+<span class="add">+      &#34;non_testable&#34;: 0</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;tests&#34;: {</span>
+<span class="add">+      &#34;total&#34;: 6,</span>
+<span class="add">+      &#34;bound&#34;: 6,</span>
+<span class="add">+      &#34;untagged&#34;: 0</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;findings&#34;: {</span>
+<span class="add">+      &#34;error&#34;: 5,</span>
+<span class="add">+      &#34;warning&#34;: 0,</span>
+<span class="add">+      &#34;info&#34;: 2,</span>
+<span class="add">+      &#34;blocking&#34;: 5</span>
+<span class="add">+    }</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;requirements&#34;: [</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;LATE-1&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;LATE-1~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN a loan is not overdue THE SYSTEM SHALL charge 0. - Example: late_fee(days_overdue=0) =&gt; 0&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;966704e38cd80b2ed346b6da9c45714b85f57eae352115943a99b28522c400a8&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/late-fees.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 8</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;late_fee&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;days_overdue&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;0&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;0&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_no_fee_for_a_loan_due_today&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_late_fees&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_late_fees.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 6</span>
+<span class="add">+          }</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_no_fee_for_a_loan_returned_early&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_late_fees&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_late_fees.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 11</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;LATE-2&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;LATE-2~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN a loan is 1 to 5 days overdue THE SYSTEM SHALL charge 1. - Example: late_fee(days_overdue=3) =&gt; 1&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;2d2278beb6e26f9970372df7cc9b9ac0b469394c9e965dadb88181c409daec4f&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/late-fees.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 10</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;late_fee&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;days_overdue&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;3&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;1&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_small_late_fee_matches_the_example&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_late_fees&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_late_fees.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 16</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;LATE-3&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;LATE-3~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN a loan is 6 to 10 days overdue THE SYSTEM SHALL charge 3. - Example: late_fee(days_overdue=7) =&gt; 3&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;1928399ec8c38504c4990557d5e5c2c16d5bbae8289e524359f14498627d8cce&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/late-fees.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 12</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;late_fee&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;days_overdue&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;7&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;3&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_medium_late_fee_covers_its_range&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_late_fees&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_late_fees.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 21</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;LATE-4&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;LATE-4~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN a loan is 11 to 20 days overdue THE SYSTEM SHALL charge 6. - Example: late_fee(days_overdue=15) =&gt; 6&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;d69625f8ab278c27e88db3ff932d9bde74cccce24805e6e4b630d754baa9ccdf&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/late-fees.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 14</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;late_fee&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;days_overdue&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;15&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;6&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_large_late_fee_covers_its_range&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_late_fees&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_late_fees.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 27</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;LATE-5&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;LATE-5~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN a loan is 21 or more days overdue THE SYSTEM SHALL charge 10, including at the 21-day boundary. - Example: late_fee(days_overdue=25) =&gt; 10&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;44a234d79199f5b77092545ba3dd866a2ddf2b609c3aacb46ec2770fb18f6993&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/late-fees.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 16</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;late_fee&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;days_overdue&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;25&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;10&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_maximum_late_fee_starts_at_the_21_day_boundary&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_late_fees&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_late_fees.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 33</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    }</span>
+<span class="add">+  ],</span>
+<span class="add">+  &#34;out_of_scope&#34;: [],</span>
+<span class="add">+  &#34;findings&#34;: [</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;completeness_question&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;info&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: false,</span>
+<span class="add">+      &#34;message&#34;: &#34;completeness (error_handling): The specification does not say how error handling is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (error_handling): &lt;reason&gt;`.&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-completeness&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/late-fees.md&#34;</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;completeness_question&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;info&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: false,</span>
+<span class="add">+      &#34;message&#34;: &#34;completeness (input_validation): The specification does not say how input validation is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (input_validation): &lt;reason&gt;`.&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-completeness&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/late-fees.md&#34;</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;stale_proof&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;error&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: true,</span>
+<span class="add">+      &#34;message&#34;: &#34;requirement LATE-1~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill&#34;,</span>
+<span class="add">+      &#34;requirement_id&#34;: &#34;LATE-1&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-dp&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/late-fees.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 8</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;stale_proof&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;error&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: true,</span>
+<span class="add">+      &#34;message&#34;: &#34;requirement LATE-2~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill&#34;,</span>
+<span class="add">+      &#34;requirement_id&#34;: &#34;LATE-2&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-dp&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/late-fees.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 10</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;stale_proof&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;error&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: true,</span>
+<span class="add">+      &#34;message&#34;: &#34;requirement LATE-3~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill&#34;,</span>
+<span class="add">+      &#34;requirement_id&#34;: &#34;LATE-3&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-dp&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/late-fees.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 12</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;stale_proof&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;error&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: true,</span>
+<span class="add">+      &#34;message&#34;: &#34;requirement LATE-4~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill&#34;,</span>
+<span class="add">+      &#34;requirement_id&#34;: &#34;LATE-4&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-dp&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/late-fees.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 14</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;stale_proof&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;error&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: true,</span>
+<span class="add">+      &#34;message&#34;: &#34;requirement LATE-5~1 has no valid discriminating-power proof (none was produced): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill&#34;,</span>
+<span class="add">+      &#34;requirement_id&#34;: &#34;LATE-5&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-dp&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/late-fees.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 16</span>
+<span class="add">+      }</span>
+<span class="add">+    }</span>
+<span class="add">+  ],</span>
+<span class="add">+  &#34;extensions&#34;: {</span>
+<span class="add">+    &#34;proofs&#34;: {</span>
+<span class="add">+      &#34;trust&#34;: &#34;local&#34;,</span>
+<span class="add">+      &#34;policy&#34;: {</span>
+<span class="add">+        &#34;signedPassBasis&#34;: &#34;corroborated&#34;,</span>
+<span class="add">+        &#34;minIsolation&#34;: &#34;restricted&#34;,</span>
+<span class="add">+        &#34;maxHostExclusions&#34;: 2,</span>
+<span class="add">+        &#34;validityThreshold&#34;: 0.7,</span>
+<span class="add">+        &#34;alignmentThreshold&#34;: 0.7,</span>
+<span class="add">+        &#34;escalation&#34;: &#34;error&#34;,</span>
+<span class="add">+        &#34;isolationFloorLowered&#34;: false</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;manifest&#34;: {</span>
+<span class="add">+        &#34;path&#34;: &#34;.musthold/verified/manifest.json&#34;,</span>
+<span class="add">+        &#34;digest&#34;: &#34;e341bfe61aff22b523b625e05e6a0241c73dc68df4b4c123fad846c591984b12&#34;,</span>
+<span class="add">+        &#34;verifierVersion&#34;: &#34;dev&#34;</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;consumed&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/LATE-1~1/877f07dfc40fcd6ce156e2fb2020e3f0edef2ae37fbc0ceeffe68e94f08c6929.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;d5ee97b787a357109500ef525f6471b273f50a910ec3516d15158059d2554417&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;LATE-1~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/LATE-1~1/8b980ba00d75c1bd60d2e9fd05364d80bbdbb01615e443c9a6a78b96af2a080b.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;6639d958ad8f1627b285890d772af3883d53b1af363af7ae67d570b018f2b3f5&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;LATE-1~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/LATE-2~1/87700ab3c4ccae746e5b2e89672ea6bd45f0af74f2ff26bc19c60bfceec17ebd.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;2e804fd1ef7571c148602848d364d1c894b5c0e2bed89a67d7fa8b0e61fbf252&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;LATE-2~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/LATE-3~1/02724c0c0a654e40f040291556ff948a06c636ace6dbf7113a9a8016f4967443.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;bb2e98771134a3b5ff93085e835545d6318265391a2b6c688d0dcce7f900bbd3&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;LATE-3~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/LATE-4~1/8ad24649f4b3f7351bd7abb7a0915fc15589ab7c159fb888028fb950749dcb92.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;d684fab2070c7d549b7e3c4f57c55d688477e1223ab2c7abfa0168112735e3ee&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;LATE-4~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/LATE-5~1/35463d93bc0a42cd58c4a5d87f93210ad20989343224890a2ac35cffa32bd259.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;ad77de1959cc6635687f2aaf9bebb41518a6b5f8bb8cff75957ff6272918c43f&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;LATE-5~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/completeness/specs%2Flate-fees.md/36fb4e87f6bc61faa71502d0660612c6ac88ef8b71cb3c5981c37d87064c72c3.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;7a1da55868f2702ea83f13c60c5349cf84c3991e6edf720a07b6121ae3e5a137&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/completeness/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;specs/late-fees.md&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;pending&#34;: [],</span>
+<span class="add">+      &#34;criteria&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;LATE-1~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;missing&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;absent&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [</span>
+<span class="add">+            &#34;discriminating-power&#34;</span>
+<span class="add">+          ],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 2</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted-attested&#34;: 2</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 0</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;LATE-2~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;missing&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;absent&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [</span>
+<span class="add">+            &#34;discriminating-power&#34;</span>
+<span class="add">+          ],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 1</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted-attested&#34;: 1</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 0</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;LATE-3~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;missing&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;absent&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [</span>
+<span class="add">+            &#34;discriminating-power&#34;</span>
+<span class="add">+          ],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 1</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted-attested&#34;: 1</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 0</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;LATE-4~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;missing&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;absent&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [</span>
+<span class="add">+            &#34;discriminating-power&#34;</span>
+<span class="add">+          ],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 1</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted-attested&#34;: 1</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 0</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;LATE-5~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;missing&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;absent&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [</span>
+<span class="add">+            &#34;discriminating-power&#34;</span>
+<span class="add">+          ],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 1</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted-attested&#34;: 1</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 0</span>
+<span class="add">+        }</span>
+<span class="add">+      ]</span>
+<span class="add">+    }</span>
+<span class="add">+  }</span>
+<span class="add">+}</span>
+diff --git a/tests/test_late_fees.py b/tests/test_late_fees.py
+index bad46a0..3585586 100644
+--- a/tests/test_late_fees.py
++++ b/tests/test_late_fees.py
+<span class="hunk">@@ -28,3 +28,10 @@ def test_medium_late_fee_covers_its_range():</span>
+ def test_large_late_fee_covers_its_range():
+     assert late_fee(days_overdue=11) == 6
+     assert late_fee(days_overdue=20) == 6
+<span class="add">+</span>
+<span class="add">+</span>
+<span class="add">+@pytest.mark.verifies(&#34;LATE-5~1&#34;)</span>
+<span class="add">+def test_maximum_late_fee_starts_at_the_21_day_boundary():</span>
+<span class="add">+    assert late_fee(days_overdue=20) == 6</span>
+<span class="add">+    assert late_fee(days_overdue=21) == 10</span>
+<span class="add">+    assert late_fee(days_overdue=25) == 10</span></pre>
+<h3>Counts and timings</h3>
+<table>
+<tr><th>Measure</th><th>Value</th></tr>
+<tr><td>Assistant messages, main agent</td><td>53</td></tr>
+<tr><td>Assistant messages, subagents</td><td>170</td></tr>
+<tr><td>Executors launched</td><td>57</td></tr>
+<tr><td>Prove runs</td><td>15</td></tr>
+<tr><td>Gate runs, blocked</td><td>3</td></tr>
+<tr><td>Gate runs, gave up</td><td>1</td></tr>
+<tr><td>Time in the gate</td><td>1.4 s</td></tr>
+<tr><td>Tool calls, Agent</td><td>57</td></tr>
+<tr><td>Tool calls, Bash</td><td>35</td></tr>
+<tr><td>Tool calls, Edit</td><td>3</td></tr>
+<tr><td>Tool calls, Skill</td><td>3</td></tr>
+<tr><td>Session wall-clock time</td><td>325.1 s</td></tr>
+<tr><td>Duration reported by the CLI</td><td>322.9 s</td></tr>
+<tr><td>API time reported by the CLI</td><td>607.9 s</td></tr>
+<tr><td>Cost reported by the CLI</td><td>1.9562 USD</td></tr>
+<tr><td>Turns reported by the CLI</td><td>105</td></tr>
+</table>
+</section>

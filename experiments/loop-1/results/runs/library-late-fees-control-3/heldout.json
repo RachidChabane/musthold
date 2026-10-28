@@ -1,0 +1,142 @@
+{
+  "equipped": {
+    "valid": [
+      "tests.test_late_fees::test_large_late_fee_covers_its_range",
+      "tests.test_late_fees::test_medium_late_fee_covers_its_range",
+      "tests.test_late_fees::test_no_fee_for_a_loan_due_today",
+      "tests.test_late_fees::test_no_fee_for_a_loan_returned_early",
+      "tests.test_late_fees::test_small_late_fee_matches_the_example"
+    ],
+    "contradicting": [],
+    "killed": {
+      "LATE-1/1": true,
+      "LATE-1/2": true,
+      "LATE-2/1": true,
+      "LATE-2/2": false,
+      "LATE-3/1": false,
+      "LATE-3/2": true,
+      "LATE-4/1": false,
+      "LATE-4/2": true,
+      "LATE-5/1": false,
+      "LATE-5/2": false
+    }
+  },
+  "final": {
+    "valid": [
+      "tests.test_late_fees::test_large_late_fee_covers_its_range",
+      "tests.test_late_fees::test_maximum_late_fee_starts_at_the_21_day_boundary",
+      "tests.test_late_fees::test_medium_late_fee_covers_its_range",
+      "tests.test_late_fees::test_no_fee_for_a_loan_due_today",
+      "tests.test_late_fees::test_no_fee_for_a_loan_returned_early",
+      "tests.test_late_fees::test_small_late_fee_covers_its_range",
+      "tests.test_late_fees::test_small_late_fee_matches_the_example"
+    ],
+    "contradicting": [],
+    "killed": {
+      "LATE-1/1": true,
+      "LATE-1/2": true,
+      "LATE-2/1": true,
+      "LATE-2/2": true,
+      "LATE-3/1": false,
+      "LATE-3/2": true,
+      "LATE-4/1": false,
+      "LATE-4/2": true,
+      "LATE-5/1": true,
+      "LATE-5/2": true
+    }
+  },
+  "stop-1": {
+    "valid": [
+      "tests.test_late_fees::test_large_late_fee_covers_its_range",
+      "tests.test_late_fees::test_maximum_late_fee_starts_at_the_21_day_boundary",
+      "tests.test_late_fees::test_medium_late_fee_covers_its_range",
+      "tests.test_late_fees::test_no_fee_for_a_loan_due_today",
+      "tests.test_late_fees::test_no_fee_for_a_loan_returned_early",
+      "tests.test_late_fees::test_small_late_fee_matches_the_example"
+    ],
+    "contradicting": [],
+    "killed": {
+      "LATE-1/1": true,
+      "LATE-1/2": true,
+      "LATE-2/1": true,
+      "LATE-2/2": false,
+      "LATE-3/1": false,
+      "LATE-3/2": true,
+      "LATE-4/1": false,
+      "LATE-4/2": true,
+      "LATE-5/1": true,
+      "LATE-5/2": true
+    }
+  },
+  "stop-2": {
+    "valid": [
+      "tests.test_late_fees::test_large_late_fee_covers_its_range",
+      "tests.test_late_fees::test_maximum_late_fee_starts_at_the_21_day_boundary",
+      "tests.test_late_fees::test_medium_late_fee_covers_its_range",
+      "tests.test_late_fees::test_no_fee_for_a_loan_due_today",
+      "tests.test_late_fees::test_no_fee_for_a_loan_returned_early",
+      "tests.test_late_fees::test_small_late_fee_matches_the_example"
+    ],
+    "contradicting": [],
+    "killed": {
+      "LATE-1/1": true,
+      "LATE-1/2": true,
+      "LATE-2/1": true,
+      "LATE-2/2": false,
+      "LATE-3/1": false,
+      "LATE-3/2": true,
+      "LATE-4/1": false,
+      "LATE-4/2": true,
+      "LATE-5/1": true,
+      "LATE-5/2": true
+    }
+  },
+  "stop-3": {
+    "valid": [
+      "tests.test_late_fees::test_large_late_fee_covers_its_range",
+      "tests.test_late_fees::test_maximum_late_fee_starts_at_the_21_day_boundary",
+      "tests.test_late_fees::test_medium_late_fee_covers_its_range",
+      "tests.test_late_fees::test_no_fee_for_a_loan_due_today",
+      "tests.test_late_fees::test_no_fee_for_a_loan_returned_early",
+      "tests.test_late_fees::test_small_late_fee_covers_its_range",
+      "tests.test_late_fees::test_small_late_fee_matches_the_example"
+    ],
+    "contradicting": [],
+    "killed": {
+      "LATE-1/1": true,
+      "LATE-1/2": true,
+      "LATE-2/1": true,
+      "LATE-2/2": true,
+      "LATE-3/1": false,
+      "LATE-3/2": true,
+      "LATE-4/1": false,
+      "LATE-4/2": true,
+      "LATE-5/1": true,
+      "LATE-5/2": true
+    }
+  },
+  "stop-4": {
+    "valid": [
+      "tests.test_late_fees::test_large_late_fee_covers_its_range",
+      "tests.test_late_fees::test_maximum_late_fee_starts_at_the_21_day_boundary",
+      "tests.test_late_fees::test_medium_late_fee_covers_its_range",
+      "tests.test_late_fees::test_no_fee_for_a_loan_due_today",
+      "tests.test_late_fees::test_no_fee_for_a_loan_returned_early",
+      "tests.test_late_fees::test_small_late_fee_covers_its_range",
+      "tests.test_late_fees::test_small_late_fee_matches_the_example"
+    ],
+    "contradicting": [],
+    "killed": {
+      "LATE-1/1": true,
+      "LATE-1/2": true,
+      "LATE-2/1": true,
+      "LATE-2/2": true,
+      "LATE-3/1": false,
+      "LATE-3/2": true,
+      "LATE-4/1": false,
+      "LATE-4/2": true,
+      "LATE-5/1": true,
+      "LATE-5/2": true
+    }
+  }
+}

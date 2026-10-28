@@ -1,0 +1,81 @@
+{
+  "equipped": {
+    "valid": [
+      "tests.test_prices::test_adult_pays_the_full_price",
+      "tests.test_prices::test_adult_prices_run_from_twelve_to_sixty_four",
+      "tests.test_prices::test_child_prices_run_from_three_to_eleven",
+      "tests.test_prices::test_senior_pays_the_reduced_price"
+    ],
+    "contradicting": [],
+    "killed": {
+      "BOX-1/1": true,
+      "BOX-1/2": false,
+      "BOX-2/1": true,
+      "BOX-2/2": false,
+      "BOX-3/1": false,
+      "BOX-3/2": false,
+      "BOX-4/1": false,
+      "BOX-4/2": false
+    }
+  },
+  "final": {
+    "valid": [
+      "tests.test_prices::test_adult_pays_the_full_price",
+      "tests.test_prices::test_adult_prices_run_from_twelve_to_sixty_four",
+      "tests.test_prices::test_child_prices_run_from_three_to_eleven",
+      "tests.test_prices::test_children_under_three_enter_free",
+      "tests.test_prices::test_senior_pays_the_reduced_price"
+    ],
+    "contradicting": [],
+    "killed": {
+      "BOX-1/1": true,
+      "BOX-1/2": false,
+      "BOX-2/1": true,
+      "BOX-2/2": false,
+      "BOX-3/1": false,
+      "BOX-3/2": false,
+      "BOX-4/1": true,
+      "BOX-4/2": false
+    }
+  },
+  "stop-1": {
+    "valid": [
+      "tests.test_prices::test_adult_pays_the_full_price",
+      "tests.test_prices::test_adult_prices_run_from_twelve_to_sixty_four",
+      "tests.test_prices::test_child_prices_run_from_three_to_eleven",
+      "tests.test_prices::test_children_under_three_enter_free",
+      "tests.test_prices::test_senior_pays_the_reduced_price"
+    ],
+    "contradicting": [],
+    "killed": {
+      "BOX-1/1": true,
+      "BOX-1/2": false,
+      "BOX-2/1": true,
+      "BOX-2/2": false,
+      "BOX-3/1": false,
+      "BOX-3/2": false,
+      "BOX-4/1": true,
+      "BOX-4/2": false
+    }
+  },
+  "stop-2": {
+    "valid": [
+      "tests.test_prices::test_adult_pays_the_full_price",
+      "tests.test_prices::test_adult_prices_run_from_twelve_to_sixty_four",
+      "tests.test_prices::test_child_prices_run_from_three_to_eleven",
+      "tests.test_prices::test_children_under_three_enter_free",
+      "tests.test_prices::test_senior_pays_the_reduced_price"
+    ],
+    "contradicting": [],
+    "killed": {
+      "BOX-1/1": true,
+      "BOX-1/2": false,
+      "BOX-2/1": true,
+      "BOX-2/2": false,
+      "BOX-3/1": false,
+      "BOX-3/2": false,
+      "BOX-4/1": true,
+      "BOX-4/2": false
+    }
+  }
+}

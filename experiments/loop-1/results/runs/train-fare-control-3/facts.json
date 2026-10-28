@@ -1,0 +1,160 @@
+{
+  "run": "train-fare-control-3",
+  "task": "train-fare",
+  "arm": "control",
+  "repetition": 3,
+  "attempt": 1,
+  "outcome": "completed",
+  "capped": false,
+  "accepted": true,
+  "defective": false,
+  "escaped": false,
+  "violated": [],
+  "flaky": [],
+  "calls": [
+    {
+      "n": 1,
+      "hooksLine": 858,
+      "exitCode": 0,
+      "decision": "pass",
+      "startedAt": "2026-10-28T00:59:05.299980698Z",
+      "durationMs": 339
+    }
+  ],
+  "blocks": [],
+  "blockCounts": {},
+  "giveUps": 0,
+  "findingCodes": {},
+  "strength": {
+    "final": "7/8",
+    "equipped": "4/8",
+    "contradicting": 0
+  },
+  "hits": {},
+  "testEdits": 1,
+  "cost": {
+    "mainMessages": 61,
+    "subagentMessages": 243,
+    "messages": 304,
+    "executors": 81,
+    "proveCommands": 17,
+    "notionalUsd": 2.5911098999999997,
+    "tokens": {
+      "claude-sonnet-5-5": {
+        "input": 608,
+        "output": 73662,
+        "cacheRead": 3890927,
+        "cacheCreation": 384427
+      }
+    },
+    "wallSeconds": 891.639,
+    "gateSeconds": 0.339
+  },
+  "voluntary": [
+    {
+      "line": 9,
+      "call": "Bash: cat \u003e\u003e tests/test_fares.py \u003c\u003c'EOF'\n\n\n@pytest.mark.verifies(\"FARE-4~1\")\ndef test_zero_or_fewer_zone_trips_are_free():\n    assert train_fare(zones=0) == 0\n    assert train_fare(zones=-1) == 0\n    assert train_fare(zones=-10) == 0\nEOF\npython - \u003c\u003c'EOF'\np='railfare/fares.py'\ns=open(p).read().replace(\"    return None\",\"    return ZERO_OR_FEWER_ZONE_FARE\").replace(\"ONE_TO_TWO\",\"ZERO_OR_FEWER_ZONE_FARE = 0\\nONE_TO_TWO\",1)\nopen(p,'w').write(s)\nEOF\ncat railfare/fares.py | head -5\nshallnot gate --json-out shallnot-report.json; echo $?\nmusthold-dp prove --changed; echo dp $?",
+      "findings": []
+    },
+    {
+      "line": 19,
+      "call": "Bash: shallnot gate --json-out shallnot-report.json; echo gate $?\nmusthold-dp prove --changed; echo dp $?",
+      "findings": []
+    },
+    {
+      "line": 26,
+      "call": "Bash: musthold-dp prove --changed; echo \"exit $?\"",
+      "findings": []
+    },
+    {
+      "line": 29,
+      "call": "Bash: musthold-dp prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 310,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 585,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": []
+    },
+    {
+      "line": 1445,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 1584,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 1858,
+      "call": "Bash: musthold-dp prove --resume",
+      "findings": [
+        "surviving_valid_mutant"
+      ]
+    },
+    {
+      "line": 1869,
+      "call": "Bash: musthold-dp prove --changed",
+      "findings": []
+    },
+    {
+      "line": 1882,
+      "call": "Bash: musthold-alignment prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2024,
+      "call": "Bash: musthold-alignment prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2299,
+      "call": "Bash: musthold-alignment prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2633,
+      "call": "Bash: musthold-alignment prove --resume",
+      "findings": []
+    },
+    {
+      "line": 2638,
+      "call": "Bash: musthold-completeness prove --changed",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2712,
+      "call": "Bash: musthold-completeness prove --resume",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2848,
+      "call": "Bash: musthold-completeness prove --resume",
+      "findings": []
+    }
+  ]
+}

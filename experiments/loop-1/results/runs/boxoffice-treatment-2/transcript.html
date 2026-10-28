@@ -1,0 +1,1228 @@
+<section class="musthold-loop">
+<style>
+.musthold-loop{font-family:system-ui,sans-serif;line-height:1.45;max-width:72rem}
+.musthold-loop pre{white-space:pre-wrap;overflow-wrap:anywhere;background:rgba(127,127,127,.08);padding:.6rem .8rem;border-radius:6px;font-size:.85rem}
+.musthold-loop .entry{border-left:3px solid rgba(127,127,127,.35);padding:.1rem 0 .1rem .8rem;margin:1rem 0}
+.musthold-loop .entry-gate{border-left-color:#b3541e}
+.musthold-loop .entry-gate.passed{border-left-color:#2f7d32}
+.musthold-loop .meta{opacity:.7;font-size:.8rem;margin-left:.5rem}
+.musthold-loop .add{color:#2f7d32}
+.musthold-loop .del{color:#b3261e}
+.musthold-loop .hunk{opacity:.7}
+.musthold-loop table{border-collapse:collapse}
+.musthold-loop td,.musthold-loop th{border-bottom:1px solid rgba(127,127,127,.25);padding:.2rem .8rem .2rem 0;text-align:left}
+</style>
+<h2>Agent loop: boxoffice, arm treatment, repetition 2</h2>
+<ul>
+<li>Model: claude-sonnet-5-5</li>
+<li>claude: 2.1.295 (Claude Code)</li>
+<li>colima: 0.10.3</li>
+<li>colima_cpus: 2</li>
+<li>colima_disk_bytes: 32212254720</li>
+<li>colima_memory_bytes: 4294967296</li>
+<li>docker_engine: 29.5.2</li>
+<li>git: 2.39.5</li>
+<li>host_arch: arm64</li>
+<li>host_os: Darwin</li>
+<li>host_os_version: 25.6.0</li>
+<li>musthold-alignment: musthold-alignment dev</li>
+<li>musthold-completeness: musthold-completeness dev</li>
+<li>musthold-dp: musthold-dp dev</li>
+<li>node: 24.22.1</li>
+<li>pytest: 9.1.1</li>
+<li>python: 3.13.14</li>
+<li>python3: Python 3.13.14</li>
+<li>shallnot: c331f9b97d5b96bdc18eba3b17be870c004dc239</li>
+<li>shallnot --version: shallnot c331f9b97d5b</li>
+<li>uv: 0.11.23</li>
+<li>Started: 2026-10-28 00:59:27 UTC</li>
+<li>Caps: 1500 assistant messages, 7200 s, 40.00 USD</li>
+</ul>
+<h3>Task</h3>
+<pre>Implement requirement BOX-4 of specs/tickets.md, free entry for children under 3, in boxoffice/prices.py, and add a test that verifies it. Tell me when the task is done.</pre>
+<h3>Session</h3>
+<article class="entry entry-command">
+<h4><time>0:03</time> Command<span class="meta">stream.jsonl:4</span></h4>
+<pre>$ cat shallnot.yaml specs/tickets.md boxoffice/prices.py &amp;&amp; ls . tests* &amp;&amp; cat tests/*price* | head -60</pre>
+<pre>version: 1
+specs:
+  - specs
+tests:
+  - tests
+results:
+  - test-results/pytest.xml
+test_commands:
+  - pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml
+proofs:
+  require: [discriminating-power, alignment]
+  trust: local
+  code:
+    - boxoffice
+# Cinema tickets
+
+The box office prices one ticket for one screening from the buyer&#39;s age, in
+whole years. Prices are whole euros.
+
+## Prices
+
+- **BOX-1~1**: WHEN the buyer is 12 to 64 years old THE SYSTEM SHALL charge 12.
+  - Example: ticket_price(age=30) =&gt; 12
+- **BOX-2~1**: WHEN the buyer is 65 or older THE SYSTEM SHALL charge 8.
+  - Example: ticket_price(age=65) =&gt; 8
+- **BOX-3~1**: WHEN the buyer is 3 to 11 years old THE SYSTEM SHALL charge 6.
+  - Example: ticket_price(age=7) =&gt; 6
+- **BOX-4~1**: WHEN the buyer is younger than 3 THE SYSTEM SHALL charge nothing.
+  - Example: ticket_price(age=2) =&gt; 0
+ADULT_PRICE = 12
+SENIOR_PRICE = 8
+CHILD_PRICE = 6
+
+SENIOR_FROM_AGE = 65
+ADULT_FROM_AGE = 12
+
+
+def ticket_price(age):
+    if age &gt;= SENIOR_FROM_AGE:
+        return SENIOR_PRICE
+    if age &gt;= ADULT_FROM_AGE:
+        return ADULT_PRICE
+    return CHILD_PRICE
+.:
+AGENTS.md
+CLAUDE.md
+boxoffice
+conftest.py
+pytest.ini
+shallnot.yaml
+specs
+test-results
+tests
+
+tests:
+test_prices.py
+import pytest
+
+from boxoffice import ticket_price
+
+
+@pytest.mark.verifies(&#34;BOX-1~1&#34;)
+def test_adult_pays_the_full_price():
+    assert ticket_price(age=30) == 12
+
+
+@pytest.mark.verifies(&#34;BOX-1~1&#34;)
+def test_adult_prices_run_from_twelve_to_sixty_four():
+    assert ticket_price(age=12) == 12
+    assert ticket_price(age=64) == 12
+
+
+@pytest.mark.verifies(&#34;BOX-2~1&#34;)
+def test_senior_pays_the_reduced_price():
+    assert ticket_price(age=70) == 8
+
+
+@pytest.mark.verifies(&#34;BOX-3~1&#34;)
+def test_child_prices_run_from_three_to_eleven():
+    assert ticket_price(age=3) == 6
+    assert ticket_price(age=11) == 6</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:06</time> Command<span class="meta">stream.jsonl:7</span></h4>
+<pre>$ python - &lt;&lt;&#39;E&#39;
+p=&#39;boxoffice/prices.py&#39;
+s=open(p).read()
+s=s.replace(&#34;CHILD_PRICE = 6\n&#34;,&#34;CHILD_PRICE = 6\nINFANT_PRICE = 0\n&#34;).replace(&#34;ADULT_FROM_AGE = 12\n&#34;,&#34;ADULT_FROM_AGE = 12\nCHILD_FROM_AGE = 3\n&#34;)
+s=s.replace(&#34;    return CHILD_PRICE&#34;,&#34;    if age &gt;= CHILD_FROM_AGE:\n        return CHILD_PRICE\n    return INFANT_PRICE&#34;)
+open(p,&#39;w&#39;).write(s)
+E
+cat &gt;&gt; tests/test_prices.py &lt;&lt;&#39;E&#39;
+
+
+@pytest.mark.verifies(&#34;BOX-4~1&#34;)
+def test_children_under_three_enter_free():
+    assert ticket_price(age=2) == 0
+    assert ticket_price(age=0) == 0
+EOF
+E
+sed -i &#39;/^EOF$/d&#39; tests/test_prices.py
+shallnot gate --json-out shallnot-report.json; echo $?; musthold-dp prove --changed; echo $?</pre>
+<pre>A variable in this command can&#39;t be checked before it runs</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:07</time> Agent<span class="meta">stream.jsonl:11</span></h4>
+<pre>Let me split this up.</pre>
+</article>
+<article class="entry entry-edit">
+<h4><time>0:07</time> Edit<span class="meta">stream.jsonl:12</span></h4>
+<pre>&lt;run&gt;/project/boxoffice/prices.py</pre>
+<pre><span class="del">-    return CHILD_PRICE</span>
+<span class="add">+    if age &gt;= CHILD_FROM_AGE:</span>
+<span class="add">+        return CHILD_PRICE</span>
+<span class="add">+    return INFANT_PRICE</span></pre>
+</article>
+<article class="entry entry-edit">
+<h4><time>0:08</time> Edit<span class="meta">stream.jsonl:14</span></h4>
+<pre>&lt;run&gt;/project/boxoffice/prices.py</pre>
+<pre><span class="del">-CHILD_PRICE = 6</span>
+<span class="add">+CHILD_PRICE = 6</span>
+<span class="add">+INFANT_PRICE = 0</span></pre>
+</article>
+<article class="entry entry-edit">
+<h4><time>0:09</time> Edit<span class="meta">stream.jsonl:16</span></h4>
+<pre>&lt;run&gt;/project/boxoffice/prices.py</pre>
+<pre><span class="del">-ADULT_FROM_AGE = 12</span>
+<span class="add">+ADULT_FROM_AGE = 12</span>
+<span class="add">+CHILD_FROM_AGE = 3</span></pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:10</time> Command<span class="meta">stream.jsonl:18</span></h4>
+<pre>$ printf &#39;\n\n@pytest.mark.verifies(&#34;BOX-4~1&#34;)\ndef test_children_under_three_enter_free():\n    assert ticket_price(age=2) == 0\n    assert ticket_price(age=0) == 0\n&#39; &gt;&gt; tests/test_prices.py; tail -12 tests/test_prices.py</pre>
+<pre>@pytest.mark.verifies(&#34;BOX-3~1&#34;)
+def test_child_prices_run_from_three_to_eleven():
+    assert ticket_price(age=3) == 6
+    assert ticket_price(age=11) == 6
+
+
+@pytest.mark.verifies(&#34;BOX-4~1&#34;)
+def test_children_under_three_enter_free():
+    assert ticket_price(age=2) == 0
+    assert ticket_price(age=0) == 0</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:11</time> Command<span class="meta">stream.jsonl:20</span></h4>
+<pre>$ shallnot gate --json-out shallnot-report.json; echo &#34;gate=$?&#34;</pre>
+<pre>This Bash command contains multiple operations. The following part requires approval: echo &#34;gate=$?&#34;</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:12</time> Command<span class="meta">stream.jsonl:23</span></h4>
+<pre>$ shallnot gate --json-out shallnot-report.json</pre>
+<pre>Exit code 1
+shallnot: running pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml
+============================= test session starts ==============================
+platform linux -- Python 3.13.14, pytest-9.1.1, pluggy-1.7.0
+rootdir: &lt;run&gt;/project
+configfile: pytest.ini
+testpaths: tests
+collected 5 items
+
+tests/test_prices.py .....                                               [100%]
+
+- generated xml file: &lt;run&gt;/project/test-results/pytest.xml -
+============================== 5 passed in 0.03s ===============================
+shallnot: &#34;pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml&#34; exited with status 0
+shallnot: FAIL
+focus: every known requirement
+requirements: 4 known, 4 in focus (4 covered, 0 failed, 0 skipped, 0 not run, 0 uncovered, 0 non-testable)
+tests: 5 in results, 5 bound, 0 untagged
+findings: 8 error, 0 warning, 0 info (8 blocking)
+
+REQUIREMENTS
+  BOX-1~1  covered  specs/tickets.md:8
+      passed  tests.test_prices › test_adult_pays_the_full_price                   tests/test_prices.py:6
+      passed  tests.test_prices › test_adult_prices_run_from_twelve_to_sixty_four  tests/test_prices.py:11
+  BOX-2~1  covered  specs/tickets.md:10
+      passed  tests.test_prices › test_senior_pays_the_reduced_price  tests/test_prices.py:17
+  BOX-3~1  covered  specs/tickets.md:12
+      passed  tests.test_prices › test_child_prices_run_from_three_to_eleven  tests/test_prices.py:22
+  BOX-4~1  covered  specs/tickets.md:14
+      passed  tests.test_prices › test_children_under_three_enter_free  tests/test_prices.py:28
+
+FINDINGS
+  error  stale_proof  specs/tickets.md:8   requirement BOX-1~1 has no valid alignment proof for test &#34;test_adult_pays_the_full_price, test_adult_prices_run_from_twelve_to_sixty_four&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/tickets.md:8   requirement BOX-1~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/tickets.md:10  requirement BOX-2~1 has no valid alignment proof for test &#34;test_senior_pays_the_reduced_price&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/tickets.md:10  requirement BOX-2~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/tickets.md:12  requirement BOX-3~1 has no valid alignment proof for test &#34;test_child_prices_run_from_three_to_eleven&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/tickets.md:12  requirement BOX-3~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/tickets.md:14  requirement BOX-4~1 has no valid alignment proof for test &#34;test_children_under_three_enter_free&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/tickets.md:14  requirement BOX-4~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:14</time> Agent<span class="meta">stream.jsonl:25</span></h4>
+<pre>Only proofs are missing. I&#39;ll use the prove-all skill.</pre>
+</article>
+<article class="entry entry-skill">
+<h4><time>0:14</time> Skill<span class="meta">stream.jsonl:26</span></h4>
+<pre>musthold:prove-all</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:15</time> Command<span class="meta">stream.jsonl:29</span></h4>
+<pre>$ musthold-dp doctor</pre>
+<pre>ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok ecosystem pytest
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:15</time> Command<span class="meta">stream.jsonl:30</span></h4>
+<pre>$ musthold-alignment doctor</pre>
+<pre>ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok policy align_k=5 modal_min={0.8 map[]}
+ok host-files claude
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:15</time> Command<span class="meta">stream.jsonl:33</span></h4>
+<pre>$ musthold-completeness doctor</pre>
+<pre>ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok git /usr/bin/git
+ok policy tau_adv={0.5 map[]} decide_k=3
+ok host-files claude
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:17</time> Command<span class="meta">stream.jsonl:35</span></h4>
+<pre>$ musthold-dp prove --changed</pre>
+<pre>Exit code 3
+wave 1
+BOX-1~1 awaiting_host
+BOX-2~1 awaiting_host
+BOX-3~1 awaiting_host
+BOX-4~1 awaiting_host
+awaiting_host 8 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:20</time> Command<span class="meta">stream.jsonl:37</span></h4>
+<pre>$ musthold-alignment prove --changed</pre>
+<pre>Exit code 3
+wave 1
+BOX-1~1 tests.test_prices.test_adult_pays_the_full_price awaiting_host
+BOX-1~1 tests.test_prices.test_adult_prices_run_from_twelve_to_sixty_four awaiting_host
+BOX-2~1 tests.test_prices.test_senior_pays_the_reduced_price awaiting_host
+BOX-3~1 tests.test_prices.test_child_prices_run_from_three_to_eleven awaiting_host
+BOX-4~1 tests.test_prices.test_children_under_three_enter_free awaiting_host
+awaiting_host 25 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:20</time> Command<span class="meta">stream.jsonl:38</span></h4>
+<pre>$ musthold-completeness prove --changed</pre>
+<pre>Exit code 3
+wave 1
+specs/tickets.md awaiting_host 0 questions
+awaiting_host 5 tickets</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:22</time> Agent<span class="meta">stream.jsonl:41</span></h4>
+<pre>All three modules are waiting on tickets. I&#39;ll load the dp fulfil skill first.</pre>
+</article>
+<article class="entry entry-skill">
+<h4><time>0:22</time> Skill<span class="meta">stream.jsonl:42</span></h4>
+<pre>musthold-dp:musthold-dp-fulfil</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:23</time> Command<span class="meta">stream.jsonl:45</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>21fa78f13a06af69956a90369a279e76ff84294543528b2eff9c92dc043c7c45.0.1 musthold-dp:generator
+21fa78f13a06af69956a90369a279e76ff84294543528b2eff9c92dc043c7c45.1.1 musthold-dp:generator
+359df4a3b2758cf69cf86f199dbd54caf808f50edbbd43f3f77c16b12e7495c8.0.1 musthold-dp:generator
+359df4a3b2758cf69cf86f199dbd54caf808f50edbbd43f3f77c16b12e7495c8.1.1 musthold-dp:generator
+39ba3a2b7ff67a225119ef76c29fed90f2add09b42cc3f147c0f80679e4ff40b.0.1 musthold-dp:generator
+39ba3a2b7ff67a225119ef76c29fed90f2add09b42cc3f147c0f80679e4ff40b.1.1 musthold-dp:generator
+4d3c3cc11e3277e58dc4feb39090e61d99cd36de869ca95d71e417a68361e24f.0.1 musthold-dp:generator
+4d3c3cc11e3277e58dc4feb39090e61d99cd36de869ca95d71e417a68361e24f.1.1 musthold-dp:generator</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>0:25</time> Executors: 8 launched<span class="meta">stream.jsonl:47</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:56</time> Command<span class="meta">stream.jsonl:318</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 2
+BOX-1~1 awaiting_host
+BOX-2~1 awaiting_host
+BOX-3~1 awaiting_host
+BOX-4~1 awaiting_host
+awaiting_host 8 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>1:06</time> Command<span class="meta">stream.jsonl:323</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>95f76696e00ad87137bb137826a2afe1c08cb263af90cab7f5e473a7cf0ce724.0.1 musthold-dp:judge
+95f76696e00ad87137bb137826a2afe1c08cb263af90cab7f5e473a7cf0ce724.1.1 musthold-dp:judge
+cc30c258b2d8fca517962a1c2b3efe641f1cf398705a68fb22b439fe8f824aac.0.1 musthold-dp:judge
+cc30c258b2d8fca517962a1c2b3efe641f1cf398705a68fb22b439fe8f824aac.1.1 musthold-dp:judge
+cd5c42fcc89a74495af09c03fd58124188067646176753a62f4490dfaef9dbb8.0.1 musthold-dp:judge
+cd5c42fcc89a74495af09c03fd58124188067646176753a62f4490dfaef9dbb8.1.1 musthold-dp:judge
+f7161a9b874a7face3a5efe69f3bd1667efd8c3062345aea4c8e450d355a9511.0.1 musthold-dp:judge
+f7161a9b874a7face3a5efe69f3bd1667efd8c3062345aea4c8e450d355a9511.1.1 musthold-dp:judge</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>1:08</time> Agent<span class="meta">stream.jsonl:325</span></h4>
+<pre>Status: BOX-4 is implemented and its test passes. The gate now only reports missing proofs, so I&#39;m running the proof modules. DP is on wave 2 of judge tickets.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>1:09</time> Executors: 8 launched<span class="meta">stream.jsonl:326</span></h4>
+<pre>musthold-dp:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>1:37</time> Command<span class="meta">stream.jsonl:598</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 3
+BOX-1~1 awaiting_host
+BOX-2~1 awaiting_host
+BOX-3~1 awaiting_host
+BOX-4~1 awaiting_host
+awaiting_host 25 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>3:14</time> Command<span class="meta">stream.jsonl:605</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>5bf99015256dc917bd3ca44e9ef20779d23aec223e1a61559aa576df714ea037.0.1 musthold-dp:generator
+5cbe2c3b90eeecdc0d5faee857080951212e24168c1bf3d352f4ce66e976b1b1.0.1 musthold-dp:decider
+5cbe2c3b90eeecdc0d5faee857080951212e24168c1bf3d352f4ce66e976b1b1.1.1 musthold-dp:decider
+5cbe2c3b90eeecdc0d5faee857080951212e24168c1bf3d352f4ce66e976b1b1.2.1 musthold-dp:decider
+687b636fadb6505d73a0c8f10d90ed3588a67c4f38b9190609f76ffa3ed1ae75.0.1 musthold-dp:decider
+687b636fadb6505d73a0c8f10d90ed3588a67c4f38b9190609f76ffa3ed1ae75.1.1 musthold-dp:decider
+687b636fadb6505d73a0c8f10d90ed3588a67c4f38b9190609f76ffa3ed1ae75.2.1 musthold-dp:decider
+762f8951f926d32eb1a1b235ecfd3a3972f9c8969c68688433ccebc23732b7d2.0.1 musthold-dp:generator
+9258b035942a8f24bb257f7cab2403486c3dec60bdc395ef8444949dbd7bf062.0.1 musthold-dp:decider
+9258b035942a8f24bb257f7cab2403486c3dec60bdc395ef8444949dbd7bf062.1.1 musthold-dp:decider
+9258b035942a8f24bb257f7cab2403486c3dec60bdc395ef8444949dbd7bf062.2.1 musthold-dp:decider
+9b7061df854bc1ef770be5aadf4e83953c0e385223685d11e4d06bce44dabab0.0.1 musthold-dp:decider
+9b7061df854bc1ef770be5aadf4e83953c0e385223685d11e4d06bce44dabab0.1.1 musthold-dp:decider
+9b7061df854bc1ef770be5aadf4e83953c0e385223685d11e4d06bce44dabab0.2.1 musthold-dp:decider
+9ea30475d0b4d92aeb4be9c8a1918f13f77ef932c1aa53a65228eb5f812c388b.0.1 musthold-dp:generator
+a127fceb2c15362f8e78ae7f8a66a33d896d96cafefbc488da9c5b8f7ee66a67.0.1 musthold-dp:generator
+a2f42f4e73cbc5a258890e9a9a0a682348be1fe4e0978929aba735180fc29cab.0.1 musthold-dp:decider
+a2f42f4e73cbc5a258890e9a9a0a682348be1fe4e0978929aba735180fc29cab.1.1 musthold-dp:decider
+a2f42f4e73cbc5a258890e9a9a0a682348be1fe4e0978929aba735180fc29cab.2.1 musthold-dp:decider
+ac3a7dcdd8b58fa1be6fb7f3f84341aa51138c9d6d6c19c93ed2e022b938ae6e.0.1 musthold-dp:decider
+ac3a7dcdd8b58fa1be6fb7f3f84341aa51138c9d6d6c19c93ed2e022b938ae6e.1.1 musthold-dp:decider
+ac3a7dcdd8b58fa1be6fb7f3f84341aa51138c9d6d6c19c93ed2e022b938ae6e.2.1 musthold-dp:decider
+d551ad634d0bb96c9a15a811d77992505ce56006799677a799ffe46de8e91580.0.1 musthold-dp:decider
+d551ad634d0bb96c9a15a811d77992505ce56006799677a799ffe46de8e91580.1.1 musthold-dp:decider
+d551ad634d0bb96c9a15a811d77992505ce56006799677a799ffe46de8e91580.2.1 musthold-dp:decider</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>3:17</time> Executors: 4 launched<span class="meta">stream.jsonl:608</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>3:31</time> Agent<span class="meta">stream.jsonl:740</span></h4>
+<pre>Deciders next, four at a time.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>3:32</time> Executors: 21 launched<span class="meta">stream.jsonl:741</span></h4>
+<pre>musthold-dp:decider</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>4:42</time> Agent<span class="meta">stream.jsonl:1444</span></h4>
+<pre>Update: BOX-4 is implemented and its test passes. I&#39;m still on the proof modules, and DP is on its third wave. I&#39;ll resume it now.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>4:43</time> Command<span class="meta">stream.jsonl:1445</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 4
+BOX-1~1 awaiting_host
+BOX-2~1 awaiting_host
+BOX-3~1 awaiting_host
+BOX-4~1 awaiting_host
+awaiting_host 2 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>5:02</time> Command<span class="meta">stream.jsonl:1449</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>869ce2f53d5d0943667ddb5b6c183392cc16d85c5df14f0d92b64ad78d2b11e3.0.1 musthold-dp:generator
+b3b69c26c07640a3d858d4896be90cab43f0a14d62fc45beeb5b8046e84f9bc3.0.1 musthold-dp:generator</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>5:04</time> Executors: 2 launched<span class="meta">stream.jsonl:1451</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>5:17</time> Command<span class="meta">stream.jsonl:1518</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 5
+BOX-1~1 awaiting_host
+BOX-2~1 awaiting_host
+BOX-3~1 awaiting_host
+BOX-4~1 awaiting_host
+awaiting_host 4 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>5:23</time> Command<span class="meta">stream.jsonl:1522</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>2ae4d4d0608f85e379cd2c20781ddc151407bf8770535c8601a4eb75747ffc89.0.1 musthold-dp:judge
+2ae4d4d0608f85e379cd2c20781ddc151407bf8770535c8601a4eb75747ffc89.1.1 musthold-dp:judge
+5856c59362fddbff8caa4a4f90a5fde738bef9a75c82094ef9884e0c6e4c8f93.0.1 musthold-dp:judge
+5856c59362fddbff8caa4a4f90a5fde738bef9a75c82094ef9884e0c6e4c8f93.1.1 musthold-dp:judge</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>5:25</time> Executors: 4 launched<span class="meta">stream.jsonl:1524</span></h4>
+<pre>musthold-dp:judge</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>5:40</time> Agent<span class="meta">stream.jsonl:1660</span></h4>
+<pre>Update: the code and test for BOX-4 are done and pass. DP&#39;s wave 5 judge tickets are answered, so I&#39;m resuming it.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>5:40</time> Command<span class="meta">stream.jsonl:1661</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 1
+wave 6
+BOX-1~1 proved PASS
+BOX-2~1 proved BLOCK
+  finding surviving_valid_mutant
+  finding unexcluded_survivor
+  survivor 162d3b953e30: a targeted mutant of slot S3 (partial), which every test of the criterion passes, fails the witness test_r2_age_100, which checks &#34;WHEN the buyer is 65 or older THE SYSTEM SHALL charge 8&#34;:
+    def test_r2_age_100():
+        assert ticket_price(age=100) == 8
+  survivor 48f879a2d77e: an operator mutant of family relational, which every test of the criterion passes, fails its example 1: ticket_price(age=65) =&gt; 8
+  survivor a2ac7905b3d2: an operator mutant of family module_constant, which every test of the criterion passes, fails its example 1: ticket_price(age=65) =&gt; 8
+BOX-3~1 proved PASS
+BOX-4~1 proved PASS</pre>
+</article>
+<article class="entry entry-edit">
+<h4><time>6:22</time> Edit<span class="meta">stream.jsonl:1684</span></h4>
+<pre>&lt;run&gt;/project/tests/test_prices.py</pre>
+<pre><span class="del">-    assert ticket_price(age=70) == 8</span>
+<span class="add">+    assert ticket_price(age=65) == 8</span>
+<span class="add">+    assert ticket_price(age=70) == 8</span>
+<span class="add">+    assert ticket_price(age=100) == 8</span></pre>
+</article>
+<article class="entry entry-command">
+<h4><time>6:23</time> Command<span class="meta">stream.jsonl:1686</span></h4>
+<pre>$ musthold-dp prove --changed</pre>
+<pre>Command did not complete within its 120s timeout and was moved to the background (ID: bnnwzlhnm). Output is being written to: &lt;run&gt;/tmp/claude-502/&lt;run&gt;-project/ec574576-506d-4be2-a111-0126e733aa0c/tasks/bnnwzlhnm.output. You will be notified when it completes. If it is still running after 10m in the background, it will be stopped and you will be notified. To check interim output, use Read on that file path.</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>8:25</time> Agent<span class="meta">stream.jsonl:1695</span></h4>
+<pre>The DP run is going in the background. I&#39;ll wait for its notification.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>8:26</time> Command<span class="meta">stream.jsonl:1696</span></h4>
+<pre>$ sleep 100; cat &lt;run&gt;/tmp/claude-502/&lt;run&gt;-project/ec574576-506d-4be2-a111-0126e733aa0c/tasks/bnnwzlhnm.output</pre>
+<pre>wave 7
+BOX-1~1 proved PASS
+BOX-2~1 proved PASS
+BOX-3~1 proved PASS
+BOX-4~1 proved PASS
+
+[exited with code 0]</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>10:07</time> Agent<span class="meta">stream.jsonl:1706</span></h4>
+<pre>DP passes for all four requirements. Next is alignment.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>10:07</time> Command<span class="meta">stream.jsonl:1707</span></h4>
+<pre>$ musthold-alignment prove --changed</pre>
+<pre>Exit code 3
+wave 2
+BOX-1~1 tests.test_prices.test_adult_pays_the_full_price awaiting_host
+BOX-1~1 tests.test_prices.test_adult_prices_run_from_twelve_to_sixty_four awaiting_host
+BOX-2~1 tests.test_prices.test_senior_pays_the_reduced_price awaiting_host
+BOX-3~1 tests.test_prices.test_child_prices_run_from_three_to_eleven awaiting_host
+BOX-4~1 tests.test_prices.test_children_under_three_enter_free awaiting_host
+awaiting_host 5 tickets</pre>
+</article>
+<article class="entry entry-skill">
+<h4><time>10:09</time> Skill<span class="meta">stream.jsonl:1709</span></h4>
+<pre>musthold-alignment:musthold-alignment-fulfil</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>10:10</time> Command<span class="meta">stream.jsonl:1712</span></h4>
+<pre>$ musthold-alignment request list --session prove</pre>
+<pre>1557672b9d4ddfde874b0dfbd2355df85f7f03e073ca5d0dc7956effabb4f6d9.0.1 musthold-alignment:decider
+18a0db41f6a87f6d153aebcbddc90f6e4a3b03688ff0e25ebfadd1c630648daa.0.1 musthold-alignment:decider
+39f8fc4eb3cc23ce6572245f8fa9dbca5e4aab8cbd73079dff39a94abc52395a.0.1 musthold-alignment:decider
+513324213f3135ef1622d483430b1124270cbbece0ff4aff18372d555f1a8a62.0.1 musthold-alignment:decider
+ccf6ebd8688fd4c1ca3f9e77c748266c5eb73ce7a6d993b66ecdeea9c2780a1a.0.1 musthold-alignment:decider</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>10:12</time> Executors: 5 launched<span class="meta">stream.jsonl:1714</span></h4>
+<pre>musthold-alignment:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>10:35</time> Command<span class="meta">stream.jsonl:1884</span></h4>
+<pre>$ musthold-alignment prove --resume</pre>
+<pre>Exit code 3
+wave 3
+BOX-1~1 tests.test_prices.test_adult_pays_the_full_price awaiting_host
+BOX-1~1 tests.test_prices.test_adult_prices_run_from_twelve_to_sixty_four awaiting_host
+BOX-2~1 tests.test_prices.test_senior_pays_the_reduced_price awaiting_host
+BOX-3~1 tests.test_prices.test_child_prices_run_from_three_to_eleven awaiting_host
+BOX-4~1 tests.test_prices.test_children_under_three_enter_free awaiting_host
+awaiting_host 10 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>10:39</time> Command<span class="meta">stream.jsonl:1907</span></h4>
+<pre>$ musthold-alignment request list --session prove</pre>
+<pre>1557672b9d4ddfde874b0dfbd2355df85f7f03e073ca5d0dc7956effabb4f6d9.1.1 musthold-alignment:decider
+1557672b9d4ddfde874b0dfbd2355df85f7f03e073ca5d0dc7956effabb4f6d9.2.1 musthold-alignment:decider
+18a0db41f6a87f6d153aebcbddc90f6e4a3b03688ff0e25ebfadd1c630648daa.1.1 musthold-alignment:decider
+18a0db41f6a87f6d153aebcbddc90f6e4a3b03688ff0e25ebfadd1c630648daa.2.1 musthold-alignment:decider
+39f8fc4eb3cc23ce6572245f8fa9dbca5e4aab8cbd73079dff39a94abc52395a.1.1 musthold-alignment:decider
+39f8fc4eb3cc23ce6572245f8fa9dbca5e4aab8cbd73079dff39a94abc52395a.2.1 musthold-alignment:decider
+513324213f3135ef1622d483430b1124270cbbece0ff4aff18372d555f1a8a62.1.1 musthold-alignment:decider
+513324213f3135ef1622d483430b1124270cbbece0ff4aff18372d555f1a8a62.2.1 musthold-alignment:decider
+ccf6ebd8688fd4c1ca3f9e77c748266c5eb73ce7a6d993b66ecdeea9c2780a1a.1.1 musthold-alignment:decider
+ccf6ebd8688fd4c1ca3f9e77c748266c5eb73ce7a6d993b66ecdeea9c2780a1a.2.1 musthold-alignment:decider</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>10:41</time> Executors: 10 launched<span class="meta">stream.jsonl:1909</span></h4>
+<pre>musthold-alignment:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>11:20</time> Command<span class="meta">stream.jsonl:2248</span></h4>
+<pre>$ musthold-alignment prove --resume</pre>
+<pre>Exit code 3
+wave 4
+BOX-1~1 tests.test_prices.test_adult_pays_the_full_price awaiting_host
+BOX-1~1 tests.test_prices.test_adult_prices_run_from_twelve_to_sixty_four proved ALIGNED
+BOX-2~1 tests.test_prices.test_senior_pays_the_reduced_price proved ALIGNED
+BOX-3~1 tests.test_prices.test_child_prices_run_from_three_to_eleven awaiting_host
+BOX-4~1 tests.test_prices.test_children_under_three_enter_free proved ALIGNED
+awaiting_host 10 tickets</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>11:22</time> Agent<span class="meta">stream.jsonl:2250</span></h4>
+<pre>Update: alignment has proved three tests ALIGNED, including BOX-4&#39;s. Two are still waiting on tickets (BOX-1&#39;s first test and BOX-3&#39;s), so I&#39;m answering those.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>11:22</time> Command<span class="meta">stream.jsonl:2251</span></h4>
+<pre>$ musthold-alignment request list --session prove</pre>
+<pre>4b8eb0cd77299f835110998e1f8264f0996e3656eff6a50ab5e7b6b8f804868f.0.1 musthold-alignment:judge
+4b8eb0cd77299f835110998e1f8264f0996e3656eff6a50ab5e7b6b8f804868f.1.1 musthold-alignment:judge
+4b8eb0cd77299f835110998e1f8264f0996e3656eff6a50ab5e7b6b8f804868f.2.1 musthold-alignment:judge
+4b8eb0cd77299f835110998e1f8264f0996e3656eff6a50ab5e7b6b8f804868f.3.1 musthold-alignment:judge
+4b8eb0cd77299f835110998e1f8264f0996e3656eff6a50ab5e7b6b8f804868f.4.1 musthold-alignment:judge
+ba46df66e9b80714b0e4ec4b8d7e47d7d6e27b7f4db80727881f67beb354e7d3.0.1 musthold-alignment:judge
+ba46df66e9b80714b0e4ec4b8d7e47d7d6e27b7f4db80727881f67beb354e7d3.1.1 musthold-alignment:judge
+ba46df66e9b80714b0e4ec4b8d7e47d7d6e27b7f4db80727881f67beb354e7d3.2.1 musthold-alignment:judge
+ba46df66e9b80714b0e4ec4b8d7e47d7d6e27b7f4db80727881f67beb354e7d3.3.1 musthold-alignment:judge
+ba46df66e9b80714b0e4ec4b8d7e47d7d6e27b7f4db80727881f67beb354e7d3.4.1 musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>11:25</time> Executors: 10 launched<span class="meta">stream.jsonl:2253</span></h4>
+<pre>musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>12:03</time> Command<span class="meta">stream.jsonl:2589</span></h4>
+<pre>$ musthold-alignment prove --resume</pre>
+<pre>wave 5
+BOX-1~1 tests.test_prices.test_adult_pays_the_full_price proved ALIGNED
+BOX-1~1 tests.test_prices.test_adult_prices_run_from_twelve_to_sixty_four fresh ALIGNED
+BOX-2~1 tests.test_prices.test_senior_pays_the_reduced_price fresh ALIGNED
+BOX-3~1 tests.test_prices.test_child_prices_run_from_three_to_eleven proved ALIGNED
+BOX-4~1 tests.test_prices.test_children_under_three_enter_free fresh ALIGNED</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>12:05</time> Agent<span class="meta">stream.jsonl:2594</span></h4>
+<pre>Alignment is ALIGNED on all five tests. I&#39;ll publish the proofs and run the gate.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>12:05</time> Command<span class="meta">stream.jsonl:2595</span></h4>
+<pre>$ musthold-verify --accept-local .musthold/cache --out .musthold/verified</pre>
+<pre>verified 13 statements (0 signed, 13 local), trust local, 4 pending, written to .musthold/verified</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>12:07</time> Command<span class="meta">stream.jsonl:2597</span></h4>
+<pre>$ shallnot gate --json-out shallnot-report.json 2&gt;&amp;1 | tail -25</pre>
+<pre>configfile: pytest.ini
+testpaths: tests
+collected 5 items
+
+tests/test_prices.py .....                                               [100%]
+
+- generated xml file: &lt;run&gt;/project/test-results/pytest.xml -
+============================== 5 passed in 0.03s ===============================
+shallnot: &#34;pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml&#34; exited with status 0
+shallnot: PASS
+focus: every known requirement
+requirements: 4 known, 4 in focus (4 covered, 0 failed, 0 skipped, 0 not run, 0 uncovered, 0 non-testable)
+tests: 5 in results, 5 bound, 0 untagged
+findings: 0 error, 0 warning, 0 info (0 blocking)
+
+REQUIREMENTS
+  BOX-1~1  covered  specs/tickets.md:8
+      passed  tests.test_prices › test_adult_pays_the_full_price                   tests/test_prices.py:6
+      passed  tests.test_prices › test_adult_prices_run_from_twelve_to_sixty_four  tests/test_prices.py:11
+  BOX-2~1  covered  specs/tickets.md:10
+      passed  tests.test_prices › test_senior_pays_the_reduced_price  tests/test_prices.py:17
+  BOX-3~1  covered  specs/tickets.md:12
+      passed  tests.test_prices › test_child_prices_run_from_three_to_eleven  tests/test_prices.py:24
+  BOX-4~1  covered  specs/tickets.md:14
+      passed  tests.test_prices › test_children_under_three_enter_free  tests/test_prices.py:30</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>12:12</time> Agent<span class="meta">stream.jsonl:2602</span></h4>
+<pre>BOX-4 is implemented and the gate passes (exit 0, 4 requirements covered, 0 blocking findings). One advisory check is still unfinished.
+
+- **Code:** in `boxoffice/prices.py`, `ticket_price` now returns 0 for ages under 3. I added `INFANT_PRICE = 0` and `CHILD_FROM_AGE = 3`, so ages 3 to 11 still return 6.
+- **Test:** `test_children_under_three_enter_free` in `tests/test_prices.py` is tagged `[verifies BOX-4~1]` and checks ages 2 and 0. I added no new requirement; BOX-4~1 was already in the spec and I left it unchanged.
+- **BOX-2 test change:** the discriminating-power check blocked BOX-2~1, which I hadn&#39;t touched. Its test only used age 70, so mutants at the age-65 boundary survived. I added `age=65` and `age=100` assertions to `test_senior_pays_the_reduced_price`, which only adds checks. Discriminating power and alignment now pass for all four requirements, and I published the proofs.
+- **Not done:** I did not run the completeness module (`musthold-completeness`), which had 5 tickets waiting. Its result is advisory and doesn&#39;t block the gate. I can run it if you want.</pre>
+</article>
+<article class="entry entry-gate allowed">
+<h4><time>12:12</time> Gate: allowed<span class="meta">hooks.jsonl:766</span></h4>
+</article>
+<h3>Outcome</h3>
+<ul>
+<li>Session: ended by itself, exit code 0</li>
+<li>Result event: success, error false, 115 turns (stream.jsonl:2607)</li>
+<li>Gate after the session: pass, exit code 0 (gate-after.json)</li>
+</ul>
+<h3>Change the session made</h3>
+<p class="meta">change.diff</p>
+<pre>diff --git a/boxoffice/prices.py b/boxoffice/prices.py
+index a59e29e..7e887fc 100644
+--- a/boxoffice/prices.py
++++ b/boxoffice/prices.py
+<span class="hunk">@@ -1,9 +1,11 @@</span>
+ ADULT_PRICE = 12
+ SENIOR_PRICE = 8
+ CHILD_PRICE = 6
+<span class="add">+INFANT_PRICE = 0</span>
+ 
+ SENIOR_FROM_AGE = 65
+ ADULT_FROM_AGE = 12
+<span class="add">+CHILD_FROM_AGE = 3</span>
+ 
+ 
+ def ticket_price(age):
+<span class="hunk">@@ -11,4 +13,6 @@ def ticket_price(age):</span>
+         return SENIOR_PRICE
+     if age &gt;= ADULT_FROM_AGE:
+         return ADULT_PRICE
+<span class="del">-    return CHILD_PRICE</span>
+<span class="add">+    if age &gt;= CHILD_FROM_AGE:</span>
+<span class="add">+        return CHILD_PRICE</span>
+<span class="add">+    return INFANT_PRICE</span>
+diff --git a/shallnot-report.json b/shallnot-report.json
+new file mode 100644
+index 0000000..d47eb1d
+--- /dev/null
++++ b/shallnot-report.json
+<span class="hunk">@@ -0,0 +1,478 @@</span>
+<span class="add">+{</span>
+<span class="add">+  &#34;schema_version&#34;: &#34;1.2&#34;,</span>
+<span class="add">+  &#34;tool&#34;: {</span>
+<span class="add">+    &#34;name&#34;: &#34;shallnot&#34;,</span>
+<span class="add">+    &#34;version&#34;: &#34;c331f9b97d5b&#34;</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;run&#34;: {</span>
+<span class="add">+    &#34;advisory&#34;: false,</span>
+<span class="add">+    &#34;fail_on&#34;: &#34;error&#34;,</span>
+<span class="add">+    &#34;id_pattern&#34;: &#34;[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*&#34;,</span>
+<span class="add">+    &#34;statement_canonicalization&#34;: &#34;c1&#34;,</span>
+<span class="add">+    &#34;focus&#34;: {</span>
+<span class="add">+      &#34;everything&#34;: true,</span>
+<span class="add">+      &#34;files&#34;: [],</span>
+<span class="add">+      &#34;ids&#34;: []</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;spec_files&#34;: [</span>
+<span class="add">+      &#34;specs/tickets.md&#34;</span>
+<span class="add">+    ],</span>
+<span class="add">+    &#34;test_roots&#34;: [</span>
+<span class="add">+      &#34;tests&#34;</span>
+<span class="add">+    ],</span>
+<span class="add">+    &#34;results_files&#34;: [</span>
+<span class="add">+      &#34;test-results/pytest.xml&#34;</span>
+<span class="add">+    ]</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;verdict&#34;: &#34;pass&#34;,</span>
+<span class="add">+  &#34;exit_code&#34;: 0,</span>
+<span class="add">+  &#34;summary&#34;: {</span>
+<span class="add">+    &#34;requirements&#34;: {</span>
+<span class="add">+      &#34;known&#34;: 4,</span>
+<span class="add">+      &#34;in_focus&#34;: 4,</span>
+<span class="add">+      &#34;covered&#34;: 4,</span>
+<span class="add">+      &#34;failed&#34;: 0,</span>
+<span class="add">+      &#34;skipped&#34;: 0,</span>
+<span class="add">+      &#34;not_run&#34;: 0,</span>
+<span class="add">+      &#34;uncovered&#34;: 0,</span>
+<span class="add">+      &#34;non_testable&#34;: 0</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;tests&#34;: {</span>
+<span class="add">+      &#34;total&#34;: 5,</span>
+<span class="add">+      &#34;bound&#34;: 5,</span>
+<span class="add">+      &#34;untagged&#34;: 0</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;findings&#34;: {</span>
+<span class="add">+      &#34;error&#34;: 0,</span>
+<span class="add">+      &#34;warning&#34;: 0,</span>
+<span class="add">+      &#34;info&#34;: 0,</span>
+<span class="add">+      &#34;blocking&#34;: 0</span>
+<span class="add">+    }</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;requirements&#34;: [</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;BOX-1&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;BOX-1~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN the buyer is 12 to 64 years old THE SYSTEM SHALL charge 12. - Example: ticket_price(age=30) =&gt; 12&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;8cc0d1da161e0f8f1c9433dbbffeb8f2a722ea2a89a985dec165ee04cdf6a220&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/tickets.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 8</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;ticket_price&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;age&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;30&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;12&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_adult_pays_the_full_price&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_prices&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_prices.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 6</span>
+<span class="add">+          }</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_adult_prices_run_from_twelve_to_sixty_four&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_prices&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_prices.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 11</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;BOX-2&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;BOX-2~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN the buyer is 65 or older THE SYSTEM SHALL charge 8. - Example: ticket_price(age=65) =&gt; 8&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;97ef5ce5343e5efe207a2713e1b84c11ca92d2e8d26e3aa1bad4320d9659c40c&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/tickets.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 10</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;ticket_price&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;age&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;65&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;8&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_senior_pays_the_reduced_price&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_prices&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_prices.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 17</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;BOX-3&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;BOX-3~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN the buyer is 3 to 11 years old THE SYSTEM SHALL charge 6. - Example: ticket_price(age=7) =&gt; 6&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;a406107bcf0a2b2e06f5a7dc39e6fe1c1f6839b37db28c023d59c6a9598c9af9&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/tickets.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 12</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;ticket_price&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;age&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;7&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;6&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_child_prices_run_from_three_to_eleven&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_prices&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_prices.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 24</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;BOX-4&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;BOX-4~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN the buyer is younger than 3 THE SYSTEM SHALL charge nothing. - Example: ticket_price(age=2) =&gt; 0&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;2ae8652a218b4b22de6546fddee825673ed821db543e8ac696c944435bbc4ef0&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/tickets.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 14</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;ticket_price&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;age&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;2&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;0&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_children_under_three_enter_free&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_prices&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_prices.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 30</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    }</span>
+<span class="add">+  ],</span>
+<span class="add">+  &#34;out_of_scope&#34;: [],</span>
+<span class="add">+  &#34;findings&#34;: [],</span>
+<span class="add">+  &#34;extensions&#34;: {</span>
+<span class="add">+    &#34;proofs&#34;: {</span>
+<span class="add">+      &#34;trust&#34;: &#34;local&#34;,</span>
+<span class="add">+      &#34;policy&#34;: {</span>
+<span class="add">+        &#34;signedPassBasis&#34;: &#34;corroborated&#34;,</span>
+<span class="add">+        &#34;minIsolation&#34;: &#34;restricted&#34;,</span>
+<span class="add">+        &#34;maxHostExclusions&#34;: 2,</span>
+<span class="add">+        &#34;validityThreshold&#34;: 0.7,</span>
+<span class="add">+        &#34;alignmentThreshold&#34;: 0.7,</span>
+<span class="add">+        &#34;escalation&#34;: &#34;error&#34;,</span>
+<span class="add">+        &#34;isolationFloorLowered&#34;: false</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;manifest&#34;: {</span>
+<span class="add">+        &#34;path&#34;: &#34;.musthold/verified/manifest.json&#34;,</span>
+<span class="add">+        &#34;digest&#34;: &#34;487467bf56e868a5309ce53d8a9808ef54d035d56da8e1d8e710744a34b02651&#34;,</span>
+<span class="add">+        &#34;verifierVersion&#34;: &#34;dev&#34;</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;consumed&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/BOX-1~1/88db7a74e97bfee8f6505f24ceebe27945be4e2d994b47f8b4cc15c50aa5b92c.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;234de59a4d740fdc863f7f42e102d94b773f1d4554cc38ea579eb20b00cef6aa&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BOX-1~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/BOX-1~1/ec81ba4c301383305f0e082ea72eab5ed06a921ed83af7977046399312b9e679.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;da599d7e52a3bc84225ee78b71d11944dd1ca55e1881d2314a534ef1e41316e7&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BOX-1~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/BOX-2~1/695bf7a1ea6c57f40d21eeb96114528099b215883a49e26bd21acd5b77ddacc6.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;216bca47faf2fde4833b0763071073b41a3d51f9d21643b0f5095e8059dbffe5&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BOX-2~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/BOX-3~1/959e2efc0feeb60498ed89e65a7da0fa2571afd63812e1b2b6fa93a1cbbf87f5.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;6db79f1f56ce1e8e6b919a3b3c6fe634e0e659ba0445736abbc27b0a5c869ead&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BOX-3~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/BOX-4~1/18ef713b20e0c76d7a8a30ae4054d45823114e72c4e1212edc89630b2592fb48.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;3e39676dad64dba0ade1bb7c0a5cd6a15288dd3ed29e2c8bea44762be8cd60d9&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BOX-4~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/BOX-1~1/70c598da47aa3e22c00b0360de861a7b039759fa0ceae144df02bfd8e8c77053.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;50e753dbb4d86c19d9daef783173c964d76de3b9a81cc11cc96790a61169942c&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BOX-1~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_prices.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/BOX-1~1/fb7f7e35f85dbdd5d7d9ff673a96544374ee437fa3de3ebf27b102956f1c5c08.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;cb04992d32ddab4819ba3216769d4779a079b2882626c98e868cbb533385456f&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BOX-1~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/BOX-2~1/38e8805bc6fd8b6a33f758065ceb304c1be92e79bc34db38bc2083d4da76fd8e.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;b70b68b42e5f2d5ba622cc57789255204c1fabd440d8cfd0125b79cb3b236564&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BOX-2~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_prices.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/BOX-2~1/ba3c830c24156a918cdfd805b7c588038486bbe316128c461267577e67173770.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;922ef1e91c9adf2f2a3264e90dc137a022e209236e86a37c82873ae3b7d1c387&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BOX-2~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/BOX-3~1/53a5cbf676f09b4830947fce90b4087d0c0d344f86ece6aa4a37a8d167baabe8.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;cf68eddbec49e2f853e8f5c31c46c173df4f812685589a9845ea55c81ef18ef0&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BOX-3~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_prices.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/BOX-3~1/69242f7b4568e53042b3d617677317c77807cd015ecc0ffcf1dde23b1891f7a8.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;aacda449f0563fd97cb5175d3659e0b0233c1429068657c65699f8433db73e15&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BOX-3~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/BOX-4~1/226c8409be211c604eaf24058315a9ff6d94da54bedb1dd11f1faca4aed000dc.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;4b98f9dfb449bf1f612370aa00d6a69e0047dadf21cfa23e2d7cac6c63463c39&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BOX-4~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_prices.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/BOX-4~1/44c4a92f56e1b27081d9221ddff86f03691ac8df946de68cce16253937a9037c.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;ad0dd2771f1c67cd647bb850d854af9e049c2a97ee61727d315f19b954523fd7&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;BOX-4~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;pending&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;module&#34;: &#34;completeness&#34;,</span>
+<span class="add">+          &#34;criterion&#34;: &#34;BOX-1~1&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;awaiting_host&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;module&#34;: &#34;completeness&#34;,</span>
+<span class="add">+          &#34;criterion&#34;: &#34;BOX-2~1&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;awaiting_host&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;module&#34;: &#34;completeness&#34;,</span>
+<span class="add">+          &#34;criterion&#34;: &#34;BOX-3~1&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;awaiting_host&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;module&#34;: &#34;completeness&#34;,</span>
+<span class="add">+          &#34;criterion&#34;: &#34;BOX-4~1&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;awaiting_host&#34;</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;criteria&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;BOX-1~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 19</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted&#34;: 18,</span>
+<span class="add">+            &#34;restricted-attested&#34;: 1</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 4</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;BOX-2~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 14</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted-attested&#34;: 14</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 6</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;BOX-3~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 21</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted&#34;: 18,</span>
+<span class="add">+            &#34;restricted-attested&#34;: 3</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 4</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;BOX-4~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 19</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted&#34;: 17,</span>
+<span class="add">+            &#34;restricted-attested&#34;: 2</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 7</span>
+<span class="add">+        }</span>
+<span class="add">+      ]</span>
+<span class="add">+    }</span>
+<span class="add">+  }</span>
+<span class="add">+}</span>
+diff --git a/tests/test_prices.py b/tests/test_prices.py
+index 647818f..17a6332 100644
+--- a/tests/test_prices.py
++++ b/tests/test_prices.py
+<span class="hunk">@@ -16,10 +16,18 @@ def test_adult_prices_run_from_twelve_to_sixty_four():</span>
+ 
+ @pytest.mark.verifies(&#34;BOX-2~1&#34;)
+ def test_senior_pays_the_reduced_price():
+<span class="add">+    assert ticket_price(age=65) == 8</span>
+     assert ticket_price(age=70) == 8
+<span class="add">+    assert ticket_price(age=100) == 8</span>
+ 
+ 
+ @pytest.mark.verifies(&#34;BOX-3~1&#34;)
+ def test_child_prices_run_from_three_to_eleven():
+     assert ticket_price(age=3) == 6
+     assert ticket_price(age=11) == 6
+<span class="add">+</span>
+<span class="add">+</span>
+<span class="add">+@pytest.mark.verifies(&#34;BOX-4~1&#34;)</span>
+<span class="add">+def test_children_under_three_enter_free():</span>
+<span class="add">+    assert ticket_price(age=2) == 0</span>
+<span class="add">+    assert ticket_price(age=0) == 0</span></pre>
+<h3>Counts and timings</h3>
+<table>
+<tr><th>Measure</th><th>Value</th></tr>
+<tr><td>Assistant messages, main agent</td><td>55</td></tr>
+<tr><td>Assistant messages, subagents</td><td>216</td></tr>
+<tr><td>Executors launched</td><td>72</td></tr>
+<tr><td>Prove runs</td><td>14</td></tr>
+<tr><td>Gate runs, allowed</td><td>1</td></tr>
+<tr><td>Time in the gate</td><td>0.3 s</td></tr>
+<tr><td>Tool calls, Agent</td><td>72</td></tr>
+<tr><td>Tool calls, Bash</td><td>32</td></tr>
+<tr><td>Tool calls, Edit</td><td>4</td></tr>
+<tr><td>Tool calls, Skill</td><td>3</td></tr>
+<tr><td>Session wall-clock time</td><td>733.6 s</td></tr>
+<tr><td>Duration reported by the CLI</td><td>731.4 s</td></tr>
+<tr><td>API time reported by the CLI</td><td>706.4 s</td></tr>
+<tr><td>Cost reported by the CLI</td><td>2.2677 USD</td></tr>
+<tr><td>Turns reported by the CLI</td><td>115</td></tr>
+</table>
+</section>

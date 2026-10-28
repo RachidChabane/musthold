@@ -1,0 +1,1483 @@
+<section class="musthold-loop">
+<style>
+.musthold-loop{font-family:system-ui,sans-serif;line-height:1.45;max-width:72rem}
+.musthold-loop pre{white-space:pre-wrap;overflow-wrap:anywhere;background:rgba(127,127,127,.08);padding:.6rem .8rem;border-radius:6px;font-size:.85rem}
+.musthold-loop .entry{border-left:3px solid rgba(127,127,127,.35);padding:.1rem 0 .1rem .8rem;margin:1rem 0}
+.musthold-loop .entry-gate{border-left-color:#b3541e}
+.musthold-loop .entry-gate.passed{border-left-color:#2f7d32}
+.musthold-loop .meta{opacity:.7;font-size:.8rem;margin-left:.5rem}
+.musthold-loop .add{color:#2f7d32}
+.musthold-loop .del{color:#b3261e}
+.musthold-loop .hunk{opacity:.7}
+.musthold-loop table{border-collapse:collapse}
+.musthold-loop td,.musthold-loop th{border-bottom:1px solid rgba(127,127,127,.25);padding:.2rem .8rem .2rem 0;text-align:left}
+</style>
+<h2>Agent loop: train-fare, arm treatment, repetition 1</h2>
+<ul>
+<li>Model: claude-sonnet-5-5</li>
+<li>claude: 2.1.295 (Claude Code)</li>
+<li>colima: 0.10.3</li>
+<li>colima_cpus: 2</li>
+<li>colima_disk_bytes: 32212254720</li>
+<li>colima_memory_bytes: 4294967296</li>
+<li>docker_engine: 29.5.2</li>
+<li>git: 2.39.5</li>
+<li>host_arch: arm64</li>
+<li>host_os: Darwin</li>
+<li>host_os_version: 25.6.0</li>
+<li>musthold-alignment: musthold-alignment dev</li>
+<li>musthold-completeness: musthold-completeness dev</li>
+<li>musthold-dp: musthold-dp dev</li>
+<li>node: 24.22.1</li>
+<li>pytest: 9.1.1</li>
+<li>python: 3.13.14</li>
+<li>python3: Python 3.13.14</li>
+<li>shallnot: c331f9b97d5b96bdc18eba3b17be870c004dc239</li>
+<li>shallnot --version: shallnot c331f9b97d5b</li>
+<li>uv: 0.11.23</li>
+<li>Started: 2026-10-27 18:07:01 UTC</li>
+<li>Caps: 1500 assistant messages, 7200 s, 40.00 USD</li>
+</ul>
+<h3>Task</h3>
+<pre>Implement requirement FARE-4 of specs/fares.md, free trips across zero or fewer zones, in railfare/fares.py, and add a test that verifies it. Tell me when the task is done.</pre>
+<h3>Session</h3>
+<article class="entry entry-command">
+<h4><time>0:03</time> Command<span class="meta">stream.jsonl:4</span></h4>
+<pre>$ cat shallnot.yaml specs/fares.md railfare/fares.py; ls . tests* 2&gt;/dev/null</pre>
+<pre>version: 1
+specs:
+  - specs
+tests:
+  - tests
+results:
+  - test-results/pytest.xml
+test_commands:
+  - pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml
+proofs:
+  require: [discriminating-power, alignment]
+  trust: local
+  code:
+    - railfare
+# Train fares
+
+The railway prices a single trip from the number of distance zones it crosses.
+Fares are whole euros.
+
+## Fares
+
+- **FARE-1~1**: WHEN a trip crosses one or two zones THE SYSTEM SHALL charge 3.
+  - Example: train_fare(zones=1) =&gt; 3
+- **FARE-2~1**: WHEN a trip crosses three or four zones THE SYSTEM SHALL charge 5.
+  - Example: train_fare(zones=3) =&gt; 5
+- **FARE-3~1**: WHEN a trip crosses five or more zones THE SYSTEM SHALL charge 8.
+  - Example: train_fare(zones=5) =&gt; 8
+- **FARE-4~1**: WHEN a trip crosses zero or fewer zones THE SYSTEM SHALL charge 0, including negative zone counts.
+  - Example: train_fare(zones=0) =&gt; 0
+ONE_TO_TWO_ZONE_FARE = 3
+THREE_TO_FOUR_ZONE_FARE = 5
+FIVE_OR_MORE_ZONE_FARE = 8
+
+
+def train_fare(*, zones):
+    if 1 &lt;= zones &lt;= 2:
+        return ONE_TO_TWO_ZONE_FARE
+    if 3 &lt;= zones &lt;= 4:
+        return THREE_TO_FOUR_ZONE_FARE
+    if zones &gt;= 5:
+        return FIVE_OR_MORE_ZONE_FARE
+    return None
+.:
+AGENTS.md
+CLAUDE.md
+conftest.py
+pytest.ini
+railfare
+shallnot.yaml
+specs
+test-results
+tests
+
+tests:
+test_fares.py</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:11</time> Command<span class="meta">stream.jsonl:7</span></h4>
+<pre>$ cat tests/test_fares.py</pre>
+<pre>import pytest
+
+from railfare import train_fare
+
+
+@pytest.mark.verifies(&#34;FARE-1~1&#34;)
+def test_one_and_two_zone_trips_cost_three_euros():
+    assert train_fare(zones=1) == 3
+    assert train_fare(zones=2) == 3
+
+
+@pytest.mark.verifies(&#34;FARE-2~1&#34;)
+def test_three_zone_trip_costs_five_euros():
+    assert train_fare(zones=3) == 5
+
+
+@pytest.mark.verifies(&#34;FARE-3~1&#34;)
+def test_five_or_more_zone_trips_cost_eight_euros():
+    assert train_fare(zones=5) == 8
+    assert train_fare(zones=9) == 8</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:16</time> Command<span class="meta">stream.jsonl:9</span></h4>
+<pre>$ python - &lt;&lt;&#39;E&#39;
+p=&#39;railfare/fares.py&#39;
+s=open(p).read()
+s=s.replace(&#34;FIVE_OR_MORE_ZONE_FARE = 8\n&#34;,&#34;FIVE_OR_MORE_ZONE_FARE = 8\nFREE_FARE = 0\n&#34;).replace(&#34;    return None&#34;,&#34;    return FREE_FARE&#34;)
+open(p,&#39;w&#39;).write(s)
+E
+cat &gt;&gt; tests/test_fares.py &lt;&lt;&#39;E&#39;
+
+
+@pytest.mark.verifies(&#34;FARE-4~1&#34;)
+def test_zero_or_negative_zone_trips_are_free():
+    assert train_fare(zones=0) == 0
+    assert train_fare(zones=-1) == 0
+    assert train_fare(zones=-10) == 0
+E
+shallnot gate --json-out shallnot-report.json; echo $?; musthold-dp prove --changed; echo $?</pre>
+<pre>A variable in this command can&#39;t be checked before it runs</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:17</time> Agent<span class="meta">stream.jsonl:12</span></h4>
+<pre>Splitting into simpler steps.</pre>
+</article>
+<article class="entry entry-edit">
+<h4><time>0:18</time> Edit<span class="meta">stream.jsonl:13</span></h4>
+<pre>&lt;run&gt;/project/railfare/fares.py</pre>
+<pre><span class="del">-    return None</span>
+<span class="add">+    return FREE_FARE</span></pre>
+</article>
+<article class="entry entry-edit">
+<h4><time>0:19</time> Edit<span class="meta">stream.jsonl:15</span></h4>
+<pre>&lt;run&gt;/project/railfare/fares.py</pre>
+<pre><span class="del">-FIVE_OR_MORE_ZONE_FARE = 8</span>
+<span class="add">+FIVE_OR_MORE_ZONE_FARE = 8</span>
+<span class="add">+FREE_FARE = 0</span></pre>
+</article>
+<article class="entry entry-edit">
+<h4><time>0:20</time> Edit<span class="meta">stream.jsonl:17</span></h4>
+<pre>&lt;run&gt;/project/tests/test_fares.py</pre>
+<pre><span class="del">-    assert train_fare(zones=9) == 8</span>
+<span class="add">+    assert train_fare(zones=9) == 8</span>
+<span class="add">+</span>
+<span class="add">+</span>
+<span class="add">+@pytest.mark.verifies(&#34;FARE-4~1&#34;)</span>
+<span class="add">+def test_zero_or_negative_zone_trips_are_free():</span>
+<span class="add">+    assert train_fare(zones=0) == 0</span>
+<span class="add">+    assert train_fare(zones=-1) == 0</span>
+<span class="add">+    assert train_fare(zones=-10) == 0</span></pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:21</time> Command<span class="meta">stream.jsonl:19</span></h4>
+<pre>$ shallnot gate --json-out shallnot-report.json; echo &#34;exit $?&#34;</pre>
+<pre>This Bash command contains multiple operations. The following part requires approval: echo &#34;exit $?&#34;</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:35</time> Command<span class="meta">stream.jsonl:22</span></h4>
+<pre>$ shallnot gate --json-out shallnot-report.json</pre>
+<pre>Exit code 1
+shallnot: running pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml
+============================= test session starts ==============================
+platform linux -- Python 3.13.14, pytest-9.1.1, pluggy-1.7.0
+rootdir: &lt;run&gt;/project
+configfile: pytest.ini
+testpaths: tests
+collected 4 items
+
+tests/test_fares.py ....                                                 [100%]
+
+- generated xml file: &lt;run&gt;/project/test-results/pytest.xml -
+============================== 4 passed in 0.04s ===============================
+shallnot: &#34;pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml&#34; exited with status 0
+shallnot: FAIL
+focus: every known requirement
+requirements: 4 known, 4 in focus (4 covered, 0 failed, 0 skipped, 0 not run, 0 uncovered, 0 non-testable)
+tests: 4 in results, 4 bound, 0 untagged
+findings: 8 error, 0 warning, 0 info (8 blocking)
+
+REQUIREMENTS
+  FARE-1~1  covered  specs/fares.md:8
+      passed  tests.test_fares › test_one_and_two_zone_trips_cost_three_euros  tests/test_fares.py:6
+  FARE-2~1  covered  specs/fares.md:10
+      passed  tests.test_fares › test_three_zone_trip_costs_five_euros  tests/test_fares.py:12
+  FARE-3~1  covered  specs/fares.md:12
+      passed  tests.test_fares › test_five_or_more_zone_trips_cost_eight_euros  tests/test_fares.py:17
+  FARE-4~1  covered  specs/fares.md:14
+      passed  tests.test_fares › test_zero_or_negative_zone_trips_are_free  tests/test_fares.py:23
+
+FINDINGS
+  error  stale_proof  specs/fares.md:8   requirement FARE-1~1 has no valid alignment proof for test &#34;test_one_and_two_zone_trips_cost_three_euros&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/fares.md:8   requirement FARE-1~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/fares.md:10  requirement FARE-2~1 has no valid alignment proof for test &#34;test_three_zone_trip_costs_five_euros&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/fares.md:10  requirement FARE-2~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/fares.md:12  requirement FARE-3~1 has no valid alignment proof for test &#34;test_five_or_more_zone_trips_cost_eight_euros&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/fares.md:12  requirement FARE-3~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/fares.md:14  requirement FARE-4~1 has no valid alignment proof for test &#34;test_zero_or_negative_zone_trips_are_free&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+  error  stale_proof  specs/fares.md:14  requirement FARE-4~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:38</time> Agent<span class="meta">stream.jsonl:24</span></h4>
+<pre>Tests pass; only proofs remain. Running the prove-all skill.</pre>
+</article>
+<article class="entry entry-skill">
+<h4><time>0:38</time> Skill<span class="meta">stream.jsonl:25</span></h4>
+<pre>musthold:prove-all</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:44</time> Command<span class="meta">stream.jsonl:28</span></h4>
+<pre>$ musthold-dp doctor</pre>
+<pre>ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok ecosystem pytest
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:44</time> Command<span class="meta">stream.jsonl:30</span></h4>
+<pre>$ musthold-alignment doctor</pre>
+<pre>ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok policy align_k=5 modal_min={0.8 map[]}
+ok host-files claude
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:44</time> Command<span class="meta">stream.jsonl:31</span></h4>
+<pre>$ musthold-completeness doctor</pre>
+<pre>ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok git /usr/bin/git
+ok policy tau_adv={0.5 map[]} decide_k=3
+ok host-files claude
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:46</time> Command<span class="meta">stream.jsonl:34</span></h4>
+<pre>$ musthold-dp prove --changed</pre>
+<pre>Exit code 3
+wave 1
+FARE-1~1 awaiting_host
+FARE-2~1 awaiting_host
+FARE-3~1 awaiting_host
+FARE-4~1 awaiting_host
+awaiting_host 8 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:46</time> Command<span class="meta">stream.jsonl:35</span></h4>
+<pre>$ musthold-alignment prove --changed</pre>
+<pre>Exit code 3
+wave 1
+FARE-1~1 tests.test_fares.test_one_and_two_zone_trips_cost_three_euros awaiting_host
+FARE-2~1 tests.test_fares.test_three_zone_trip_costs_five_euros awaiting_host
+FARE-3~1 tests.test_fares.test_five_or_more_zone_trips_cost_eight_euros awaiting_host
+FARE-4~1 tests.test_fares.test_zero_or_negative_zone_trips_are_free awaiting_host
+awaiting_host 20 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:46</time> Command<span class="meta">stream.jsonl:36</span></h4>
+<pre>$ musthold-completeness prove --changed</pre>
+<pre>Exit code 3
+wave 1
+specs/fares.md awaiting_host 0 questions
+awaiting_host 4 tickets</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>0:53</time> Agent<span class="meta">stream.jsonl:40</span></h4>
+<pre>All three await the host. Loading the dp fulfil skill first.</pre>
+</article>
+<article class="entry entry-skill">
+<h4><time>0:53</time> Skill<span class="meta">stream.jsonl:41</span></h4>
+<pre>musthold-dp:musthold-dp-fulfil</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:55</time> Command<span class="meta">stream.jsonl:44</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>2bdbffc06f9a4ba5a200cae14983186e70c2b524e1a0376f38b5a994ea8c16d3.0.1 musthold-dp:generator
+2bdbffc06f9a4ba5a200cae14983186e70c2b524e1a0376f38b5a994ea8c16d3.1.1 musthold-dp:generator
+303846cbeed1c16283c4a540c9822a6b3f8380c29a036a86d2317976ca98bc0c.0.1 musthold-dp:generator
+303846cbeed1c16283c4a540c9822a6b3f8380c29a036a86d2317976ca98bc0c.1.1 musthold-dp:generator
+a83947622a6d88ef683776799e095da5ac8e5da6e42012de73ba0d24c8c3f0bb.0.1 musthold-dp:generator
+a83947622a6d88ef683776799e095da5ac8e5da6e42012de73ba0d24c8c3f0bb.1.1 musthold-dp:generator
+d9b5cf97b4c04f6e771fa2538855f42d8ad1e678eee1521453abc8ea7abbbaf8.0.1 musthold-dp:generator
+d9b5cf97b4c04f6e771fa2538855f42d8ad1e678eee1521453abc8ea7abbbaf8.1.1 musthold-dp:generator</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:55</time> Command<span class="meta">stream.jsonl:46</span></h4>
+<pre>$ musthold-alignment request list --session prove</pre>
+<pre>0617f8d16dee7b9da82782922bd5d8aa54499a046fc355675e0ba2f40774137d.0.1 musthold-alignment:judge
+0617f8d16dee7b9da82782922bd5d8aa54499a046fc355675e0ba2f40774137d.1.1 musthold-alignment:judge
+0617f8d16dee7b9da82782922bd5d8aa54499a046fc355675e0ba2f40774137d.2.1 musthold-alignment:judge
+0617f8d16dee7b9da82782922bd5d8aa54499a046fc355675e0ba2f40774137d.3.1 musthold-alignment:judge
+0617f8d16dee7b9da82782922bd5d8aa54499a046fc355675e0ba2f40774137d.4.1 musthold-alignment:judge
+22a0651cc37f5745d8643c3b0dd9299116017e6fc8fabef9a110264a00b21065.0.1 musthold-alignment:judge
+22a0651cc37f5745d8643c3b0dd9299116017e6fc8fabef9a110264a00b21065.1.1 musthold-alignment:judge
+22a0651cc37f5745d8643c3b0dd9299116017e6fc8fabef9a110264a00b21065.2.1 musthold-alignment:judge
+22a0651cc37f5745d8643c3b0dd9299116017e6fc8fabef9a110264a00b21065.3.1 musthold-alignment:judge
+22a0651cc37f5745d8643c3b0dd9299116017e6fc8fabef9a110264a00b21065.4.1 musthold-alignment:judge
+4377ba770802b181a3f608d9c921c93e7a93f3ab216e7bad21140cfd526b6b07.0.1 musthold-alignment:judge
+4377ba770802b181a3f608d9c921c93e7a93f3ab216e7bad21140cfd526b6b07.1.1 musthold-alignment:judge
+4377ba770802b181a3f608d9c921c93e7a93f3ab216e7bad21140cfd526b6b07.2.1 musthold-alignment:judge
+4377ba770802b181a3f608d9c921c93e7a93f3ab216e7bad21140cfd526b6b07.3.1 musthold-alignment:judge
+4377ba770802b181a3f608d9c921c93e7a93f3ab216e7bad21140cfd526b6b07.4.1 musthold-alignment:judge
+a959b4d803166457422d3ddf8502a69d45ac5c1a91d74305db122ef555c1c60b.0.1 musthold-alignment:judge
+a959b4d803166457422d3ddf8502a69d45ac5c1a91d74305db122ef555c1c60b.1.1 musthold-alignment:judge
+a959b4d803166457422d3ddf8502a69d45ac5c1a91d74305db122ef555c1c60b.2.1 musthold-alignment:judge
+a959b4d803166457422d3ddf8502a69d45ac5c1a91d74305db122ef555c1c60b.3.1 musthold-alignment:judge
+a959b4d803166457422d3ddf8502a69d45ac5c1a91d74305db122ef555c1c60b.4.1 musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>0:55</time> Command<span class="meta">stream.jsonl:48</span></h4>
+<pre>$ musthold-completeness request list --session prove</pre>
+<pre>10378ad8b38fabc368363af69500c901193b9166df4eb1a167cbbb439aae79f2.0.1 musthold-completeness:decider
+6464b37898d11977b1f16b0993389bbd4d6323d0080cd973b2a58cc7b10487c0.0.1 musthold-completeness:decider
+73a26eb5fabfb733a12aa48ed0e01b56d5a94bcea5cd7801d96d2311b00c901b.0.1 musthold-completeness:decider
+ef51ca88b973c81fe32cd0382c69cbc7e39ba44048071353961fdf7ea982a633.0.1 musthold-completeness:decider</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>1:07</time> Executors: 8 launched<span class="meta">stream.jsonl:53</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>2:00</time> Command<span class="meta">stream.jsonl:322</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 2
+FARE-1~1 awaiting_host
+FARE-2~1 awaiting_host
+FARE-3~1 awaiting_host
+FARE-4~1 awaiting_host
+awaiting_host 8 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>2:23</time> Command<span class="meta">stream.jsonl:327</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>641f636468751e7ef03ef2b383a79e12542c37d5bb2d3652cb452875bca9dd69.0.1 musthold-dp:judge
+641f636468751e7ef03ef2b383a79e12542c37d5bb2d3652cb452875bca9dd69.1.1 musthold-dp:judge
+72f37ad9ce1218b9dd6ec0ccdc630a94b70ed7949e4f463cd813b0e2c2434021.0.1 musthold-dp:judge
+72f37ad9ce1218b9dd6ec0ccdc630a94b70ed7949e4f463cd813b0e2c2434021.1.1 musthold-dp:judge
+af29ae3e0e2d2958592b218a8e37922d5961dc54da301da703cc7896ef1f988e.0.1 musthold-dp:judge
+af29ae3e0e2d2958592b218a8e37922d5961dc54da301da703cc7896ef1f988e.1.1 musthold-dp:judge
+ebd1054aa3fd0951b7493a4e59689b8f1b10984f19273997aff10383933315f0.0.1 musthold-dp:judge
+ebd1054aa3fd0951b7493a4e59689b8f1b10984f19273997aff10383933315f0.1.1 musthold-dp:judge</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>2:27</time> Executors: 8 launched<span class="meta">stream.jsonl:344</span></h4>
+<pre>musthold-dp:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>3:15</time> Command<span class="meta">stream.jsonl:613</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Command did not complete within its 120s timeout and was moved to the background (ID: b60p2uwqr). Output is being written to: &lt;run&gt;/tmp/claude-502/&lt;run&gt;-project/25235c47-6eec-46b2-b3fc-16f8d1142643/tasks/b60p2uwqr.output. You will be notified when it completes. If it is still running after 10m in the background, it will be stopped and you will be notified. To check interim output, use Read on that file path.</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>5:18</time> Agent<span class="meta">stream.jsonl:623</span></h4>
+<pre>While that runs, I&#39;m starting the alignment judge tickets (20 of them, 4 at a time).</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>5:20</time> Executors: 4 launched<span class="meta">stream.jsonl:624</span></h4>
+<pre>musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-read">
+<h4><time>5:48</time> Read<span class="meta">stream.jsonl:762</span></h4>
+<pre>Read &lt;run&gt;/tmp/claude-502/&lt;run&gt;-project/25235c47-6eec-46b2-b3fc-16f8d1142643/tasks/b60p2uwqr.output</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>5:48</time> Command<span class="meta">stream.jsonl:764</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>141a32253e7260b7a08f7744082437ccdc8162c4b54766a15c9e476653d762f1.0.1 musthold-dp:decider
+141a32253e7260b7a08f7744082437ccdc8162c4b54766a15c9e476653d762f1.1.1 musthold-dp:decider
+141a32253e7260b7a08f7744082437ccdc8162c4b54766a15c9e476653d762f1.2.1 musthold-dp:decider
+2ef095f2b26889cae7a3f9623a1ef9b5bfc5a99741df3cac28e6d6dfffd653e8.0.1 musthold-dp:decider
+2ef095f2b26889cae7a3f9623a1ef9b5bfc5a99741df3cac28e6d6dfffd653e8.1.1 musthold-dp:decider
+2ef095f2b26889cae7a3f9623a1ef9b5bfc5a99741df3cac28e6d6dfffd653e8.2.1 musthold-dp:decider
+376f6790e2bf5c2ba21ce0c44d3b344de3e0b469cb7be038621a4fae99e0b1e9.0.1 musthold-dp:generator
+5106c825f915c42e5e6a36f5569b5377d8dae27b2d61fdc71a73dd56bb4f6a4d.0.1 musthold-dp:decider
+5106c825f915c42e5e6a36f5569b5377d8dae27b2d61fdc71a73dd56bb4f6a4d.1.1 musthold-dp:decider
+5106c825f915c42e5e6a36f5569b5377d8dae27b2d61fdc71a73dd56bb4f6a4d.2.1 musthold-dp:decider
+55c6c5e73010c8a3d30b4df9d7d37a9c80d71637fd85fc1ce272d1fa13a7dac2.0.1 musthold-dp:decider
+55c6c5e73010c8a3d30b4df9d7d37a9c80d71637fd85fc1ce272d1fa13a7dac2.1.1 musthold-dp:decider
+55c6c5e73010c8a3d30b4df9d7d37a9c80d71637fd85fc1ce272d1fa13a7dac2.2.1 musthold-dp:decider
+a9f12d70d1822e49f4a22835e80646afaaa73e36837d5da02c57bf8a688e4b1f.0.1 musthold-dp:decider
+a9f12d70d1822e49f4a22835e80646afaaa73e36837d5da02c57bf8a688e4b1f.1.1 musthold-dp:decider
+a9f12d70d1822e49f4a22835e80646afaaa73e36837d5da02c57bf8a688e4b1f.2.1 musthold-dp:decider
+b4fc085f3bb810ef0dffee5ecf1c7869b75610efa0ff2eab533d5475986b92b8.0.1 musthold-dp:decider
+b4fc085f3bb810ef0dffee5ecf1c7869b75610efa0ff2eab533d5475986b92b8.1.1 musthold-dp:decider
+b4fc085f3bb810ef0dffee5ecf1c7869b75610efa0ff2eab533d5475986b92b8.2.1 musthold-dp:decider
+c1db0be38c573f834894ec19f5a3a052d68f53b7205c36e3b29abd9d437e793c.0.1 musthold-dp:decider
+c1db0be38c573f834894ec19f5a3a052d68f53b7205c36e3b29abd9d437e793c.1.1 musthold-dp:decider
+c1db0be38c573f834894ec19f5a3a052d68f53b7205c36e3b29abd9d437e793c.2.1 musthold-dp:decider
+d0ec11936b09b074c219f697c5b3a81acedb5374fbca0cf2a0a4c5a03d231898.0.1 musthold-dp:generator
+d642fe2439ee256b5c8f3c2e7eb52ed58358e022c80bb3636918134aaa40ba32.0.1 musthold-dp:generator
+f2132e0eec9570a37465b7c5dffd5c6759b0daef3a5b08ce6c280809abebf89c.0.1 musthold-dp:generator</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>5:50</time> Agent<span class="meta">stream.jsonl:769</span></h4>
+<pre>Status: the dp proof is on wave 3 (25 tickets), alignment has 16 tickets left, and completeness has 4. I&#39;m continuing the alignment wave.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>5:51</time> Executors: 16 launched<span class="meta">stream.jsonl:770</span></h4>
+<pre>musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>7:36</time> Agent<span class="meta">stream.jsonl:1305</span></h4>
+<pre>Alignment tickets are all answered. I&#39;m resuming alignment and answering the 4 completeness tickets.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>7:36</time> Command<span class="meta">stream.jsonl:1306</span></h4>
+<pre>$ musthold-alignment prove --resume</pre>
+<pre>Command running in background with ID: br7u8gq53. Output is being written to: &lt;run&gt;/tmp/claude-502/&lt;run&gt;-project/25235c47-6eec-46b2-b3fc-16f8d1142643/tasks/br7u8gq53.output. You will be notified when it completes. To check interim output, use Read on that file path.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>7:37</time> Executors: 4 launched<span class="meta">stream.jsonl:1313</span></h4>
+<pre>musthold-completeness:decider</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>8:20</time> Agent<span class="meta">stream.jsonl:1447</span></h4>
+<pre>Alignment finished with exit 0. Next I&#39;m resuming completeness, then the dp tickets.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>8:20</time> Command<span class="meta">stream.jsonl:1448</span></h4>
+<pre>$ musthold-completeness prove --resume</pre>
+<pre>Exit code 3
+wave 2
+specs/fares.md awaiting_host 0 questions
+awaiting_host 4 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>8:21</time> Command<span class="meta">stream.jsonl:1450</span></h4>
+<pre>$ cat &lt;run&gt;/tmp/claude-502/&lt;run&gt;-project/25235c47-6eec-46b2-b3fc-16f8d1142643/tasks/br7u8gq53.output</pre>
+<pre>wave 2
+FARE-1~1 tests.test_fares.test_one_and_two_zone_trips_cost_three_euros proved ALIGNED uncorroborated
+FARE-2~1 tests.test_fares.test_three_zone_trip_costs_five_euros proved ALIGNED uncorroborated
+FARE-3~1 tests.test_fares.test_five_or_more_zone_trips_cost_eight_euros proved ALIGNED uncorroborated
+FARE-4~1 tests.test_fares.test_zero_or_negative_zone_trips_are_free proved ALIGNED uncorroborated
+
+[exited with code 0]</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>8:22</time> Agent<span class="meta">stream.jsonl:1453</span></h4>
+<pre>Alignment is proved: all four tests are ALIGNED. Completeness is on wave 2 and dp on wave 3, so I&#39;m listing their tickets.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>8:23</time> Command<span class="meta">stream.jsonl:1454</span></h4>
+<pre>$ musthold-completeness request list --session prove</pre>
+<pre>10378ad8b38fabc368363af69500c901193b9166df4eb1a167cbbb439aae79f2.1.1 musthold-completeness:decider
+10378ad8b38fabc368363af69500c901193b9166df4eb1a167cbbb439aae79f2.2.1 musthold-completeness:decider
+6464b37898d11977b1f16b0993389bbd4d6323d0080cd973b2a58cc7b10487c0.1.1 musthold-completeness:decider
+6464b37898d11977b1f16b0993389bbd4d6323d0080cd973b2a58cc7b10487c0.2.1 musthold-completeness:decider</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>8:27</time> Executors: 4 launched<span class="meta">stream.jsonl:1456</span></h4>
+<pre>musthold-completeness:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>8:53</time> Command<span class="meta">stream.jsonl:1588</span></h4>
+<pre>$ musthold-completeness prove --resume</pre>
+<pre>wave 3
+specs/fares.md proved 2 questions</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>9:03</time> Agent<span class="meta">stream.jsonl:1590</span></h4>
+<pre>Completeness is done, which leaves dp wave 3 with 25 tickets (22 deciders, 3 generators). I&#39;m launching those 4 at a time.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>9:05</time> Executors: 4 launched<span class="meta">stream.jsonl:1591</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>9:29</time> Agent<span class="meta">stream.jsonl:1723</span></h4>
+<pre>Now the 21 decider tickets, 4 at a time.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>9:30</time> Executors: 21 launched<span class="meta">stream.jsonl:1724</span></h4>
+<pre>musthold-dp:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>11:43</time> Command<span class="meta">stream.jsonl:2411</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 4
+FARE-1~1 awaiting_host
+FARE-2~1 awaiting_host
+FARE-3~1 awaiting_host
+FARE-4~1 awaiting_host
+awaiting_host 4 tickets</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>12:07</time> Agent<span class="meta">stream.jsonl:2438</span></h4>
+<pre>Status: alignment and completeness are proved. The dp proof is on wave 4 with 4 tickets left.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>12:07</time> Command<span class="meta">stream.jsonl:2439</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>3b049b1d83cc757ab3f0dca420e789fa92fd2ee9399e7fb00610dd829b749876.0.1 musthold-dp:generator
+8c23c0a4f7c880750e023e7639ed11f22da3340cbac475b2dee82d05328a399a.0.1 musthold-dp:generator
+905625ba7ea861b89a0c3c20dc1418fc5a54ddabbf7a33713848e2c84031d16d.0.1 musthold-dp:generator
+f2132e0eec9570a37465b7c5dffd5c6759b0daef3a5b08ce6c280809abebf89c.0.2 musthold-dp:generator</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>12:09</time> Executors: 4 launched<span class="meta">stream.jsonl:2441</span></h4>
+<pre>musthold-dp:generator</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>12:29</time> Command<span class="meta">stream.jsonl:2575</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 5
+FARE-1~1 awaiting_host
+FARE-2~1 awaiting_host
+FARE-3~1 awaiting_host
+FARE-4~1 awaiting_host
+awaiting_host 7 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>12:40</time> Command<span class="meta">stream.jsonl:2579</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>0b4a6826a5453f4a73ad5cfebf2bcfb1273839cb017e184c111f47a9cf3799fe.0.1 musthold-dp:judge
+0b4a6826a5453f4a73ad5cfebf2bcfb1273839cb017e184c111f47a9cf3799fe.1.1 musthold-dp:judge
+873da6002c5ccc9d3568f903b9a803aaf1d224e468ff08b0f246113f6a6ffca5.0.1 musthold-dp:judge
+873da6002c5ccc9d3568f903b9a803aaf1d224e468ff08b0f246113f6a6ffca5.1.1 musthold-dp:judge
+8e8c1c0085a765c6898cc82f35cb5c7a8c34e4960ac9a7860e6c81b2f6ca9e17.0.1 musthold-dp:judge
+8e8c1c0085a765c6898cc82f35cb5c7a8c34e4960ac9a7860e6c81b2f6ca9e17.1.1 musthold-dp:judge
+ad0473892494f48502037210fd834d7c630fb1d51eabc2671973a432505e2841.0.1 musthold-dp:generator</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>12:45</time> Executors: 7 launched<span class="meta">stream.jsonl:2581</span></h4>
+<pre>musthold-dp:judge</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>13:23</time> Agent<span class="meta">stream.jsonl:2814</span></h4>
+<pre>Update: alignment and completeness are done. The dp proof is on its last waves, and I&#39;ve answered all of wave 5&#39;s tickets. I&#39;m resuming it now.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>13:23</time> Command<span class="meta">stream.jsonl:2815</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 3
+wave 6
+FARE-1~1 awaiting_host
+FARE-2~1 awaiting_host
+FARE-3~1 awaiting_host
+FARE-4~1 awaiting_host
+awaiting_host 2 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>13:29</time> Command<span class="meta">stream.jsonl:2819</span></h4>
+<pre>$ musthold-dp request list --session prove</pre>
+<pre>203e52902b87f1e1d2bae6de288cdaa654c60f37afaf39f189599f855f7e5a20.0.1 musthold-dp:judge
+203e52902b87f1e1d2bae6de288cdaa654c60f37afaf39f189599f855f7e5a20.1.1 musthold-dp:judge</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>13:33</time> Executors: 2 launched<span class="meta">stream.jsonl:2821</span></h4>
+<pre>musthold-dp:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>13:47</time> Command<span class="meta">stream.jsonl:2887</span></h4>
+<pre>$ musthold-dp prove --resume</pre>
+<pre>Exit code 1
+wave 7
+FARE-1~1 proved PASS
+FARE-2~1 proved BLOCK
+  finding surviving_valid_mutant
+  survivor 030bec0c7d1d: an operator mutant of family numeric_constant, which every test of the criterion passes, fails the witness test_r2_property_repeatable, which checks &#34;three or four zones THE SYSTEM SHALL charge 5&#34;:
+    def test_r2_property_repeatable():
+        rng = random.Random(777)
+        for _ in range(250):
+            z = rng.randint(3, 4)
+            first = train_fare(zones=z)
+            second = train_fare(zones=z)
+            assert first == 5
+            assert second == 5
+  survivor e12b886da91c: an operator mutant of family relational, which every test of the criterion passes, fails the witness test_r2_property_repeatable, which checks &#34;three or four zones THE SYSTEM SHALL charge 5&#34;:
+    def test_r2_property_repeatable():
+        rng = random.Random(777)
+        for _ in range(250):
+            z = rng.randint(3, 4)
+            first = train_fare(zones=z)
+            second = train_fare(zones=z)
+            assert first == 5
+            assert second == 5
+  survivor e4a3a8d6d998: an operator mutant of family relational, which every test of the criterion passes, fails the witness test_r2_property_repeatable, which checks &#34;three or four zones THE SYSTEM SHALL charge 5&#34;:
+    def test_r2_property_repeatable():
+        rng = random.Random(777)
+        for _ in range(250):
+            z = rng.randint(3, 4)
+            first = train_fare(zones=z)
+            second = train_fare(zones=z)
+            assert first == 5
+            assert second == 5
+FARE-3~1 proved PASS
+FARE-4~1 proved PASS</pre>
+</article>
+<article class="entry entry-edit">
+<h4><time>14:55</time> Edit<span class="meta">stream.jsonl:2913</span></h4>
+<pre>&lt;run&gt;/project/tests/test_fares.py</pre>
+<pre><span class="del">-def test_three_zone_trip_costs_five_euros():</span>
+<span class="del">-    assert train_fare(zones=3) == 5</span>
+<span class="add">+def test_three_zone_trip_costs_five_euros():</span>
+<span class="add">+    assert train_fare(zones=3) == 5</span>
+<span class="add">+    assert train_fare(zones=4) == 5</span></pre>
+</article>
+<article class="entry entry-command">
+<h4><time>14:57</time> Command<span class="meta">stream.jsonl:2915</span></h4>
+<pre>$ musthold-dp prove --changed</pre>
+<pre>Command did not complete within its 120s timeout and was moved to the background (ID: bkyq5fkje). Output is being written to: &lt;run&gt;/tmp/claude-502/&lt;run&gt;-project/25235c47-6eec-46b2-b3fc-16f8d1142643/tasks/bkyq5fkje.output. You will be notified when it completes. If it is still running after 10m in the background, it will be stopped and you will be notified. To check interim output, use Read on that file path.</pre>
+</article>
+<article class="entry entry-tool">
+<h4><time>17:02</time> Tool<span class="meta">stream.jsonl:2941</span></h4>
+<pre>ScheduleWakeup</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>17:13</time> Agent<span class="meta">stream.jsonl:2943</span></h4>
+<pre>FARE-4 is implemented and tested, but the task isn&#39;t done. The dp re-prove is still running, and the gate stays blocked until the proofs are re-run and published.
+
+**Done**
+- **Code:** `train_fare` in `railfare/fares.py` now returns 0 for zero or negative zone counts. It used to return `None`.
+- **Test:** `test_zero_or_negative_zone_trips_are_free` in `tests/test_fares.py` is tagged `FARE-4~1`. It asserts 0 for `zones=0`, `-1` and `-10`.
+- **Spec:** FARE-4~1 already existed, so I changed no requirements.
+- **Tests:** all 4 pass.
+
+**Proofs**
+- Alignment and completeness finished.
+- The dp proof passed FARE-1, FARE-3 and FARE-4. It blocked FARE-2: the existing test only checked `zones=3`, so mutants at the 3–4 boundary survived. I added `assert train_fare(zones=4) == 5` to that test and started a dp re-prove, which is still running.
+
+**Still to do**
+- Check the dp re-prove result, and answer any new tickets.
+- Run `musthold-verify --accept-local .musthold/cache --out .musthold/verified` to publish the proofs.
+- Re-run `shallnot gate --json-out shallnot-report.json`.
+
+I&#39;ll pick up from the re-prove when it finishes and tell you the final gate result.</pre>
+</article>
+<article class="entry entry-gate blocked">
+<h4><time>17:13</time> Gate: blocked<span class="meta">hooks.jsonl:867</span></h4>
+<pre>shallnot: the traceability gate is blocked by 8 finding(s). Resolve them before finishing:
+- stale_proof at specs/fares.md:8: requirement FARE-1~1 has no valid alignment proof for test &#34;test_one_and_two_zone_trips_cost_three_euros&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/fares.md:8: requirement FARE-1~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/fares.md:10: requirement FARE-2~1 has no valid alignment proof for test &#34;test_three_zone_trip_costs_five_euros&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/fares.md:10: requirement FARE-2~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/fares.md:12: requirement FARE-3~1 has no valid alignment proof for test &#34;test_five_or_more_zone_trips_cost_eight_euros&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/fares.md:12: requirement FARE-3~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/fares.md:14: requirement FARE-4~1 has no valid alignment proof for test &#34;test_zero_or_negative_zone_trips_are_free&#34; (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+- stale_proof at specs/fares.md:14: requirement FARE-4~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill
+Never delete or alter a tag, mark a requirement non-testable, skip a test or weaken an assertion to clear a finding. If a requirement cannot be met or tested as written, stop and say so.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>17:16</time> Command<span class="meta">stream.jsonl:2950</span></h4>
+<pre>$ cat &lt;run&gt;/tmp/claude-502/&lt;run&gt;-project/25235c47-6eec-46b2-b3fc-16f8d1142643/tasks/bkyq5fkje.output; musthold-dp request list --session prove</pre>
+<pre>(Bash completed with no output)</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>17:19</time> Agent<span class="meta">stream.jsonl:2955</span></h4>
+<pre>The dp re-prove is still running. The FARE-2 test changed, so alignment needs a re-run too.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>17:20</time> Command<span class="meta">stream.jsonl:2956</span></h4>
+<pre>$ musthold-alignment prove --changed</pre>
+<pre>Exit code 3
+wave 3
+FARE-1~1 tests.test_fares.test_one_and_two_zone_trips_cost_three_euros awaiting_host
+FARE-2~1 tests.test_fares.test_three_zone_trip_costs_five_euros awaiting_host
+FARE-3~1 tests.test_fares.test_five_or_more_zone_trips_cost_eight_euros awaiting_host
+FARE-4~1 tests.test_fares.test_zero_or_negative_zone_trips_are_free awaiting_host
+awaiting_host 20 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>17:22</time> Command<span class="meta">stream.jsonl:2961</span></h4>
+<pre>$ musthold-dp request list --session prove; musthold-alignment request list --session prove</pre>
+<pre>116cf22016abe97d10f77372d62b86f1f6f672a4fb20f08abcdb9ee7626cb6a9.0.1 musthold-alignment:judge
+116cf22016abe97d10f77372d62b86f1f6f672a4fb20f08abcdb9ee7626cb6a9.1.1 musthold-alignment:judge
+116cf22016abe97d10f77372d62b86f1f6f672a4fb20f08abcdb9ee7626cb6a9.2.1 musthold-alignment:judge
+116cf22016abe97d10f77372d62b86f1f6f672a4fb20f08abcdb9ee7626cb6a9.3.1 musthold-alignment:judge
+116cf22016abe97d10f77372d62b86f1f6f672a4fb20f08abcdb9ee7626cb6a9.4.1 musthold-alignment:judge
+274c1967cbdc4f7f25d54107cab974a376e5b835841a6cc377a6496c4fb84de4.0.1 musthold-alignment:judge
+274c1967cbdc4f7f25d54107cab974a376e5b835841a6cc377a6496c4fb84de4.1.1 musthold-alignment:judge
+274c1967cbdc4f7f25d54107cab974a376e5b835841a6cc377a6496c4fb84de4.2.1 musthold-alignment:judge
+274c1967cbdc4f7f25d54107cab974a376e5b835841a6cc377a6496c4fb84de4.3.1 musthold-alignment:judge
+274c1967cbdc4f7f25d54107cab974a376e5b835841a6cc377a6496c4fb84de4.4.1 musthold-alignment:judge
+9acba205da052adbd3401ba84400b843dece40b632ca1c30ce7d3af48a41f3ae.0.1 musthold-alignment:judge
+9acba205da052adbd3401ba84400b843dece40b632ca1c30ce7d3af48a41f3ae.1.1 musthold-alignment:judge
+9acba205da052adbd3401ba84400b843dece40b632ca1c30ce7d3af48a41f3ae.2.1 musthold-alignment:judge
+9acba205da052adbd3401ba84400b843dece40b632ca1c30ce7d3af48a41f3ae.3.1 musthold-alignment:judge
+9acba205da052adbd3401ba84400b843dece40b632ca1c30ce7d3af48a41f3ae.4.1 musthold-alignment:judge
+d533d3f962800566794c7dd7fbc4437d388c0d484003d4157dbe45d5725d3129.0.1 musthold-alignment:judge
+d533d3f962800566794c7dd7fbc4437d388c0d484003d4157dbe45d5725d3129.1.1 musthold-alignment:judge
+d533d3f962800566794c7dd7fbc4437d388c0d484003d4157dbe45d5725d3129.2.1 musthold-alignment:judge
+d533d3f962800566794c7dd7fbc4437d388c0d484003d4157dbe45d5725d3129.3.1 musthold-alignment:judge
+d533d3f962800566794c7dd7fbc4437d388c0d484003d4157dbe45d5725d3129.4.1 musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>17:26</time> Agent<span class="meta">stream.jsonl:2963</span></h4>
+<pre>dp has no tickets pending yet (its prove is still running). Answering the 20 alignment tickets.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>17:27</time> Executors: 16 launched<span class="meta">stream.jsonl:2964</span></h4>
+<pre>musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>18:45</time> Agent<span class="meta">stream.jsonl:3499</span></h4>
+<pre>The dp re-prove finished with exit 0. I&#39;m answering the last 4 alignment tickets.</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>18:47</time> Executors: 4 launched<span class="meta">stream.jsonl:3500</span></h4>
+<pre>musthold-alignment:judge</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>19:12</time> Command<span class="meta">stream.jsonl:3632</span></h4>
+<pre>$ musthold-alignment prove --resume</pre>
+<pre>Exit code 3
+wave 4
+FARE-1~1 tests.test_fares.test_one_and_two_zone_trips_cost_three_euros awaiting_host
+FARE-2~1 tests.test_fares.test_three_zone_trip_costs_five_euros awaiting_host
+FARE-3~1 tests.test_fares.test_five_or_more_zone_trips_cost_eight_euros awaiting_host
+FARE-4~1 tests.test_fares.test_zero_or_negative_zone_trips_are_free awaiting_host
+awaiting_host 4 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>19:13</time> Command<span class="meta">stream.jsonl:3633</span></h4>
+<pre>$ musthold-completeness prove --changed</pre>
+<pre>wave 4
+specs/fares.md proved 2 questions</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>19:13</time> Command<span class="meta">stream.jsonl:3636</span></h4>
+<pre>$ cat &lt;run&gt;/tmp/claude-502/&lt;run&gt;-project/25235c47-6eec-46b2-b3fc-16f8d1142643/tasks/bkyq5fkje.output</pre>
+<pre>wave 8
+FARE-1~1 proved PASS
+FARE-2~1 proved PASS
+FARE-3~1 proved PASS
+FARE-4~1 proved PASS
+
+[exited with code 0]</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>19:16</time> Agent<span class="meta">stream.jsonl:3638</span></h4>
+<pre>dp is fully PASS on all four requirements, and completeness is proved. Alignment has one more wave of 4 tickets.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>19:16</time> Command<span class="meta">stream.jsonl:3639</span></h4>
+<pre>$ musthold-alignment request list --session prove</pre>
+<pre>0d650a9b7270a86811ec8c533e562b5d8a8858df246edea40ed1066d6c1c2b19.0.1 musthold-alignment:decider
+611eb14ce0286c420a710765f1b576d752af3d53cc98bf719c0eea5bb229a614.0.1 musthold-alignment:decider
+9e172cd0a4e688c5d6c7db27e118dda567de14a41132062709349e16431d6bea.0.1 musthold-alignment:decider
+d73153dabad8a9e741328afdf2c7cd1f52c992c5120d2db9a641dc6e0fc00010.0.1 musthold-alignment:decider</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>19:19</time> Executors: 4 launched<span class="meta">stream.jsonl:3641</span></h4>
+<pre>musthold-alignment:decider</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>19:35</time> Command<span class="meta">stream.jsonl:3775</span></h4>
+<pre>$ musthold-alignment prove --resume</pre>
+<pre>Exit code 3
+wave 5
+FARE-1~1 tests.test_fares.test_one_and_two_zone_trips_cost_three_euros awaiting_host
+FARE-2~1 tests.test_fares.test_three_zone_trip_costs_five_euros awaiting_host
+FARE-3~1 tests.test_fares.test_five_or_more_zone_trips_cost_eight_euros awaiting_host
+FARE-4~1 tests.test_fares.test_zero_or_negative_zone_trips_are_free awaiting_host
+awaiting_host 8 tickets</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>19:39</time> Command<span class="meta">stream.jsonl:3777</span></h4>
+<pre>$ musthold-alignment request list --session prove</pre>
+<pre>0d650a9b7270a86811ec8c533e562b5d8a8858df246edea40ed1066d6c1c2b19.1.1 musthold-alignment:decider
+0d650a9b7270a86811ec8c533e562b5d8a8858df246edea40ed1066d6c1c2b19.2.1 musthold-alignment:decider
+611eb14ce0286c420a710765f1b576d752af3d53cc98bf719c0eea5bb229a614.1.1 musthold-alignment:decider
+611eb14ce0286c420a710765f1b576d752af3d53cc98bf719c0eea5bb229a614.2.1 musthold-alignment:decider
+9e172cd0a4e688c5d6c7db27e118dda567de14a41132062709349e16431d6bea.1.1 musthold-alignment:decider
+9e172cd0a4e688c5d6c7db27e118dda567de14a41132062709349e16431d6bea.2.1 musthold-alignment:decider
+d73153dabad8a9e741328afdf2c7cd1f52c992c5120d2db9a641dc6e0fc00010.1.1 musthold-alignment:decider
+d73153dabad8a9e741328afdf2c7cd1f52c992c5120d2db9a641dc6e0fc00010.2.1 musthold-alignment:decider</pre>
+</article>
+<article class="entry entry-executors">
+<h4><time>19:43</time> Executors: 8 launched<span class="meta">stream.jsonl:3779</span></h4>
+<pre>musthold-alignment:decider</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>20:26</time> Agent<span class="meta">stream.jsonl:4049</span></h4>
+<pre>Update: dp is PASS on all four requirements and completeness is proved. Alignment is on its last wave, and I&#39;ve answered all of its tickets. I&#39;m resuming it now.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>20:26</time> Command<span class="meta">stream.jsonl:4050</span></h4>
+<pre>$ musthold-alignment prove --resume</pre>
+<pre>wave 6
+FARE-1~1 tests.test_fares.test_one_and_two_zone_trips_cost_three_euros proved ALIGNED
+FARE-2~1 tests.test_fares.test_three_zone_trip_costs_five_euros proved ALIGNED
+FARE-3~1 tests.test_fares.test_five_or_more_zone_trips_cost_eight_euros proved ALIGNED
+FARE-4~1 tests.test_fares.test_zero_or_negative_zone_trips_are_free proved ALIGNED</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>20:28</time> Agent<span class="meta">stream.jsonl:4052</span></h4>
+<pre>All three modules are done. Publishing the proofs and running the gate.</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>20:28</time> Command<span class="meta">stream.jsonl:4053</span></h4>
+<pre>$ musthold-verify --accept-local .musthold/cache --out .musthold/verified</pre>
+<pre>verified 18 statements (0 signed, 18 local), trust local, 0 pending, written to .musthold/verified</pre>
+</article>
+<article class="entry entry-command">
+<h4><time>20:33</time> Command<span class="meta">stream.jsonl:4055</span></h4>
+<pre>$ shallnot gate --json-out shallnot-report.json 2&gt;&amp;1 | tail -20</pre>
+<pre>focus: every known requirement
+requirements: 4 known, 4 in focus (4 covered, 0 failed, 0 skipped, 0 not run, 0 uncovered, 0 non-testable)
+tests: 4 in results, 4 bound, 0 untagged
+findings: 0 error, 0 warning, 4 info (0 blocking)
+
+REQUIREMENTS
+  FARE-1~1  covered  specs/fares.md:8
+      passed  tests.test_fares › test_one_and_two_zone_trips_cost_three_euros  tests/test_fares.py:6
+  FARE-2~1  covered  specs/fares.md:10
+      passed  tests.test_fares › test_three_zone_trip_costs_five_euros  tests/test_fares.py:12
+  FARE-3~1  covered  specs/fares.md:12
+      passed  tests.test_fares › test_five_or_more_zone_trips_cost_eight_euros  tests/test_fares.py:18
+  FARE-4~1  covered  specs/fares.md:14
+      passed  tests.test_fares › test_zero_or_negative_zone_trips_are_free  tests/test_fares.py:24
+
+FINDINGS
+  info  completeness_question  specs/fares.md  completeness (error_handling): The specification does not say how error handling is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (error_handling): &lt;reason&gt;`.
+  info  completeness_question  specs/fares.md  completeness (error_handling): The specification does not say how error handling is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (error_handling): &lt;reason&gt;`.
+  info  completeness_question  specs/fares.md  completeness (input_validation): The specification does not say how input validation is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (input_validation): &lt;reason&gt;`.
+  info  completeness_question  specs/fares.md  completeness (input_validation): The specification does not say how input validation is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (input_validation): &lt;reason&gt;`.</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>20:38</time> Agent<span class="meta">stream.jsonl:4057</span></h4>
+<pre>FARE-4 is implemented and tested, and the gate is clean: 0 blocking findings, 4 of 4 requirements covered, and all three proofs published.
+
+- **Code:** `train_fare` in `railfare/fares.py` now returns 0 for zero or negative zone counts. Before, it returned `None`.
+- **Test:** `test_zero_or_negative_zone_trips_are_free` in `tests/test_fares.py` is tagged `[verifies FARE-4~1]`. It asserts 0 for `zones=0`, `-1` and `-10`.
+- **Spec:** FARE-4~1 already existed, so I added or changed no requirements.
+- **Extra test change:** the dp proof blocked FARE-2 because its existing test only checked `zones=3`, so mutants at the 3–4 boundary survived. I added `assert train_fare(zones=4) == 5` to that test.
+- **Proofs:** the discriminating-power and alignment proofs pass for all four requirements, and the completeness proof ran.
+- **Advisory notes:** completeness raised four non-blocking notes that the spec says nothing about error handling or input validation (for example, non-integer zone counts). That&#39;s for the spec owner to decide.
+
+I haven&#39;t committed anything.</pre>
+</article>
+<article class="entry entry-gate passed">
+<h4><time>20:38</time> Gate: passed<span class="meta">hooks.jsonl:1204</span></h4>
+<pre>shallnot: gate passed: 4 requirement(s) in focus covered by passing tests, 0 non-testable, no blocking finding.
+</pre>
+</article>
+<article class="entry entry-agent">
+<h4><time>21:04</time> Agent<span class="meta">stream.jsonl:4069</span></h4>
+<pre>That check is already done, so there&#39;s nothing left to continue.
+
+- **dp re-prove (task `bkyq5fkje`):** it finished with exit 0 and PASS on FARE-1 to FARE-4. That includes FARE-2, which passes now that its test also checks `zones=4`.
+- **Alignment:** I re-ran it because the FARE-2 test changed. All four tests came back ALIGNED.
+- **Completeness:** re-run, with 2 questions proved.
+- **Publish:** `musthold-verify --accept-local .musthold/cache --out .musthold/verified` verified 18 local statements.
+- **Gate:** `shallnot gate` reports 0 blocking findings. The only findings are 4 advisory completeness notes about error handling and input validation.</pre>
+</article>
+<article class="entry entry-gate allowed">
+<h4><time>21:04</time> Gate: allowed<span class="meta">hooks.jsonl:1208</span></h4>
+</article>
+<h3>Outcome</h3>
+<ul>
+<li>Session: ended by itself, exit code 0</li>
+<li>Result event: success, error false, 169 turns (stream.jsonl:4063)</li>
+<li>Gate after the session: pass, exit code 0 (gate-after.json)</li>
+</ul>
+<h3>Change the session made</h3>
+<p class="meta">change.diff</p>
+<pre>diff --git a/railfare/fares.py b/railfare/fares.py
+index e6c174f..fc740eb 100644
+--- a/railfare/fares.py
++++ b/railfare/fares.py
+<span class="hunk">@@ -1,6 +1,7 @@</span>
+ ONE_TO_TWO_ZONE_FARE = 3
+ THREE_TO_FOUR_ZONE_FARE = 5
+ FIVE_OR_MORE_ZONE_FARE = 8
+<span class="add">+FREE_FARE = 0</span>
+ 
+ 
+ def train_fare(*, zones):
+<span class="hunk">@@ -10,4 +11,4 @@ def train_fare(*, zones):</span>
+         return THREE_TO_FOUR_ZONE_FARE
+     if zones &gt;= 5:
+         return FIVE_OR_MORE_ZONE_FARE
+<span class="del">-    return None</span>
+<span class="add">+    return FREE_FARE</span>
+diff --git a/shallnot-report.json b/shallnot-report.json
+new file mode 100644
+index 0000000..6909a62
+--- /dev/null
++++ b/shallnot-report.json
+<span class="hunk">@@ -0,0 +1,526 @@</span>
+<span class="add">+{</span>
+<span class="add">+  &#34;schema_version&#34;: &#34;1.2&#34;,</span>
+<span class="add">+  &#34;tool&#34;: {</span>
+<span class="add">+    &#34;name&#34;: &#34;shallnot&#34;,</span>
+<span class="add">+    &#34;version&#34;: &#34;c331f9b97d5b&#34;</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;run&#34;: {</span>
+<span class="add">+    &#34;advisory&#34;: false,</span>
+<span class="add">+    &#34;fail_on&#34;: &#34;error&#34;,</span>
+<span class="add">+    &#34;id_pattern&#34;: &#34;[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*&#34;,</span>
+<span class="add">+    &#34;statement_canonicalization&#34;: &#34;c1&#34;,</span>
+<span class="add">+    &#34;focus&#34;: {</span>
+<span class="add">+      &#34;everything&#34;: true,</span>
+<span class="add">+      &#34;files&#34;: [],</span>
+<span class="add">+      &#34;ids&#34;: []</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;spec_files&#34;: [</span>
+<span class="add">+      &#34;specs/fares.md&#34;</span>
+<span class="add">+    ],</span>
+<span class="add">+    &#34;test_roots&#34;: [</span>
+<span class="add">+      &#34;tests&#34;</span>
+<span class="add">+    ],</span>
+<span class="add">+    &#34;results_files&#34;: [</span>
+<span class="add">+      &#34;test-results/pytest.xml&#34;</span>
+<span class="add">+    ]</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;verdict&#34;: &#34;pass&#34;,</span>
+<span class="add">+  &#34;exit_code&#34;: 0,</span>
+<span class="add">+  &#34;summary&#34;: {</span>
+<span class="add">+    &#34;requirements&#34;: {</span>
+<span class="add">+      &#34;known&#34;: 4,</span>
+<span class="add">+      &#34;in_focus&#34;: 4,</span>
+<span class="add">+      &#34;covered&#34;: 4,</span>
+<span class="add">+      &#34;failed&#34;: 0,</span>
+<span class="add">+      &#34;skipped&#34;: 0,</span>
+<span class="add">+      &#34;not_run&#34;: 0,</span>
+<span class="add">+      &#34;uncovered&#34;: 0,</span>
+<span class="add">+      &#34;non_testable&#34;: 0</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;tests&#34;: {</span>
+<span class="add">+      &#34;total&#34;: 4,</span>
+<span class="add">+      &#34;bound&#34;: 4,</span>
+<span class="add">+      &#34;untagged&#34;: 0</span>
+<span class="add">+    },</span>
+<span class="add">+    &#34;findings&#34;: {</span>
+<span class="add">+      &#34;error&#34;: 0,</span>
+<span class="add">+      &#34;warning&#34;: 0,</span>
+<span class="add">+      &#34;info&#34;: 4,</span>
+<span class="add">+      &#34;blocking&#34;: 0</span>
+<span class="add">+    }</span>
+<span class="add">+  },</span>
+<span class="add">+  &#34;requirements&#34;: [</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;FARE-1&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;FARE-1~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN a trip crosses one or two zones THE SYSTEM SHALL charge 3. - Example: train_fare(zones=1) =&gt; 3&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;9cee207ab55dcee6d11e698ac9a47302ad7fc47fbf622981cd0c2bbb04c40974&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/fares.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 8</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;train_fare&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;zones&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;1&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;3&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_one_and_two_zone_trips_cost_three_euros&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_fares&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_fares.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 6</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;FARE-2&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;FARE-2~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN a trip crosses three or four zones THE SYSTEM SHALL charge 5. - Example: train_fare(zones=3) =&gt; 5&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;373fea979583521e56c6e3506f0a0f664ba6bb46c7de060a34e600bde65d58a9&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/fares.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 10</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;train_fare&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;zones&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;3&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;5&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_three_zone_trip_costs_five_euros&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_fares&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_fares.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 12</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;FARE-3&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;FARE-3~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN a trip crosses five or more zones THE SYSTEM SHALL charge 8. - Example: train_fare(zones=5) =&gt; 8&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;6dc8d56407ede8977e9d00fe77e463228d4a47ab969140632b3a8a5c4afbf293&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/fares.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 12</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;train_fare&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;zones&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;5&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;8&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_five_or_more_zone_trips_cost_eight_euros&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_fares&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_fares.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 18</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;id&#34;: &#34;FARE-4&#34;,</span>
+<span class="add">+      &#34;revision&#34;: 1,</span>
+<span class="add">+      &#34;ref&#34;: &#34;FARE-4~1&#34;,</span>
+<span class="add">+      &#34;statement&#34;: &#34;WHEN a trip crosses zero or fewer zones THE SYSTEM SHALL charge 0, including negative zone counts. - Example: train_fare(zones=0) =&gt; 0&#34;,</span>
+<span class="add">+      &#34;statement_digest&#34;: &#34;6aa353370811a6fae38ee8dceb3fdec269852ba79fb42e2986dd730169429233&#34;,</span>
+<span class="add">+      &#34;status&#34;: &#34;active&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/fares.md&#34;,</span>
+<span class="add">+        &#34;line&#34;: 14</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;in_focus&#34;: true,</span>
+<span class="add">+      &#34;examples&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;index&#34;: 1,</span>
+<span class="add">+          &#34;operation&#34;: &#34;train_fare&#34;,</span>
+<span class="add">+          &#34;args&#34;: {</span>
+<span class="add">+            &#34;zones&#34;: {</span>
+<span class="add">+              &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+              &#34;value&#34;: &#34;0&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;expect&#34;: {</span>
+<span class="add">+            &#34;kind&#34;: &#34;returns&#34;,</span>
+<span class="add">+            &#34;type&#34;: &#34;integer&#34;,</span>
+<span class="add">+            &#34;value&#34;: &#34;0&#34;</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;coverage&#34;: &#34;covered&#34;,</span>
+<span class="add">+      &#34;tests&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;name&#34;: &#34;test_zero_or_negative_zone_trips_are_free&#34;,</span>
+<span class="add">+          &#34;classname&#34;: &#34;tests.test_fares&#34;,</span>
+<span class="add">+          &#34;suite&#34;: &#34;pytest&#34;,</span>
+<span class="add">+          &#34;outcome&#34;: &#34;passed&#34;,</span>
+<span class="add">+          &#34;results_file&#34;: &#34;test-results/pytest.xml&#34;,</span>
+<span class="add">+          &#34;source&#34;: {</span>
+<span class="add">+            &#34;file&#34;: &#34;tests/test_fares.py&#34;,</span>
+<span class="add">+            &#34;line&#34;: 24</span>
+<span class="add">+          }</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;extensions&#34;: {}</span>
+<span class="add">+    }</span>
+<span class="add">+  ],</span>
+<span class="add">+  &#34;out_of_scope&#34;: [],</span>
+<span class="add">+  &#34;findings&#34;: [</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;completeness_question&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;info&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: false,</span>
+<span class="add">+      &#34;message&#34;: &#34;completeness (error_handling): The specification does not say how error handling is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (error_handling): &lt;reason&gt;`.&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-completeness&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/fares.md&#34;</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;completeness_question&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;info&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: false,</span>
+<span class="add">+      &#34;message&#34;: &#34;completeness (error_handling): The specification does not say how error handling is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (error_handling): &lt;reason&gt;`.&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-completeness&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/fares.md&#34;</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;completeness_question&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;info&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: false,</span>
+<span class="add">+      &#34;message&#34;: &#34;completeness (input_validation): The specification does not say how input validation is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (input_validation): &lt;reason&gt;`.&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-completeness&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/fares.md&#34;</span>
+<span class="add">+      }</span>
+<span class="add">+    },</span>
+<span class="add">+    {</span>
+<span class="add">+      &#34;category&#34;: &#34;completeness_question&#34;,</span>
+<span class="add">+      &#34;severity&#34;: &#34;info&#34;,</span>
+<span class="add">+      &#34;blocking&#34;: false,</span>
+<span class="add">+      &#34;message&#34;: &#34;completeness (input_validation): The specification does not say how input validation is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (input_validation): &lt;reason&gt;`.&#34;,</span>
+<span class="add">+      &#34;module&#34;: &#34;musthold-completeness&#34;,</span>
+<span class="add">+      &#34;location&#34;: {</span>
+<span class="add">+        &#34;file&#34;: &#34;specs/fares.md&#34;</span>
+<span class="add">+      }</span>
+<span class="add">+    }</span>
+<span class="add">+  ],</span>
+<span class="add">+  &#34;extensions&#34;: {</span>
+<span class="add">+    &#34;proofs&#34;: {</span>
+<span class="add">+      &#34;trust&#34;: &#34;local&#34;,</span>
+<span class="add">+      &#34;policy&#34;: {</span>
+<span class="add">+        &#34;signedPassBasis&#34;: &#34;corroborated&#34;,</span>
+<span class="add">+        &#34;minIsolation&#34;: &#34;restricted&#34;,</span>
+<span class="add">+        &#34;maxHostExclusions&#34;: 2,</span>
+<span class="add">+        &#34;validityThreshold&#34;: 0.7,</span>
+<span class="add">+        &#34;alignmentThreshold&#34;: 0.7,</span>
+<span class="add">+        &#34;escalation&#34;: &#34;error&#34;,</span>
+<span class="add">+        &#34;isolationFloorLowered&#34;: false</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;manifest&#34;: {</span>
+<span class="add">+        &#34;path&#34;: &#34;.musthold/verified/manifest.json&#34;,</span>
+<span class="add">+        &#34;digest&#34;: &#34;26a3c773419f9174a75298a742839a5332f65bd3e4f0ea0228cd454e22a0ceea&#34;,</span>
+<span class="add">+        &#34;verifierVersion&#34;: &#34;dev&#34;</span>
+<span class="add">+      },</span>
+<span class="add">+      &#34;consumed&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/FARE-1~1/9fab0dbad57ceb0a320fee9c6a6998f318925ea4e5d515689eec07a57321b3c4.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;b620793ab952f7dd79d5bc97818c976866ead6e266067bcc8c059b51b2b064ff&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;FARE-1~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_fares.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/FARE-1~1/e51be9d47bcc0507bba42c9a4da773e3f7e16af1d4664823e7b03d4d2e16de02.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;14ad0420a981c1850bb530c7f12cd2f9c2f2d0b4f653ba1d3805d6f698e79755&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;FARE-1~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/FARE-2~1/08bf8722d2dc7c55529fa7b01f4b8b457c543c5c57e1a4dab2dd84ff71c52f47.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;1b79959b7826933f12eacf634a7b4bbbb7e90a28e8bc2febcb1d8b0b780e5b15&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;FARE-2~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/FARE-2~1/ef298fcfc09ab6408bb484582cc55f91bdeb20024842848a06d5f9681f3ba252.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;bbe06ac10b16376360520482f6113c53a9bb7d2e9b68ffdcfa2de6310321bc48&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;FARE-2~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_fares.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/FARE-3~1/3944b8e70317658bfd4295427f61a0cd2058bbbfa92d4d50ec4937d17bf9bea4.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;ac5a81b19ba9a651090ca4980cdf31e4e6e12432c10fcd60c81df9883dc13a98&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;FARE-3~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_fares.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/FARE-3~1/81baa8d8f02479565ebbb591d792d86064004c5e01e6f910b5dfe92eca9ba50e.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;f49a4afccec9dcfb0cd79cde55900aa90ab20f3bfa95b4e4a08a37af5f83699b&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;FARE-3~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/FARE-4~1/d0d416fe20128824b47486c688bee48ef205d6d358588687a92ab58a0e091f7f.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;55e48d149a42438297eec8584cbc0c95aa0677ecd95f000ed061593c5b49eee2&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;FARE-4~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_fares.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/alignment/FARE-4~1/f7aae4cda6fda2c0bac77b614cb550c5c14a5544ac5b527d8538fca1a58d8869.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;66a4663bcbc4adc25e1d04256c71b279cbb15ca203160951cb1e3c41a79d8f77&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/alignment/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;FARE-4~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/completeness/specs%2Ffares.md/2405f5ed30466c1872e245a8b2e9e38bf27a9f24d7c025aecef615e4639eba81.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;0a7ca85e7b340cbfd7a1fb8a547ea3bebee35586172db920939e3ff524eb0820&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/completeness/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;specs/fares.md&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/completeness/specs%2Ffares.md/6ea397a5377111b9bb726d0a76ae11584ca8787bb5bb44c5cd9521d8a38dc2ac.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;0751a00f129e5d2a2ff16f1d09dd9e826170de4c21aae1740370de2e8a5373e3&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/completeness/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;specs/fares.md&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/FARE-1~1/306a40e966e592ca36d1c63a4df927f415d5eda54c0008315d7d8a786d7c16f8.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;31079a92b3ae16f589cca12896cc8cdf2613d10cc41276c98b3ca54a72813ca0&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;FARE-1~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/FARE-1~1/a173fb13d8b24f0a6c81babe5ffafa7a29fc7d8b3701cb2565f80be96cf3f6e2.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;53ae6e0d64a7f86df0a84eab20906a4907f9343f12970afcec354bd6bd876307&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;FARE-1~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_fares.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/FARE-2~1/1b569f1f9b73d6981966da2ed99dc24ba473352ed93820fd9c2a6e4e0f094fbc.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;5686885212df423cb9f6e84442f1169ce5e14bcd97a0750a8de373bc7657e6e1&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;FARE-2~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_fares.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/FARE-2~1/755832c8ec0f0ac3b03021ee97579d6b413dfc16fd93b1237e8316f0b97ce7d0.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;08894e357870c51596f3f1a204054e11b81066ff5ef7a49a4def3e33d66d375d&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;FARE-2~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/FARE-3~1/76d657973f8f2c23c66d9a2b3116aa69b2b4f95721cfd4bb6500ae6a6299eb44.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;179754a3437f0a601a4523a3cf7a7c7fbad3e4905dc543b878376c214801caf8&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;FARE-3~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_fares.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/FARE-3~1/868aca6c6e09ef0e8823e8eaca39b4706f782fce76fb0bf6338317dbcc09224f.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;5c1e3db08ab122366d0171726d86cb7fbbac3cd07dead940cf6ea758b3796367&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;FARE-3~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/FARE-4~1/990e1a872ba98352a0383a181be1e00572c55c925a6d75504f02fb41a4f7bba7.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;b2c67fdf810934af0038e5b3153dd9dcdbd81f4b19cb76421b414edade0f2aef&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;FARE-4~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;stale&#34;,</span>
+<span class="add">+          &#34;reason&#34;: &#34;the test_source file tests/test_fares.py changed since the proof was produced&#34;</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;path&#34;: &#34;.musthold/verified/discriminating-power/FARE-4~1/d95070b4485f273d102ccee929d5aedcf78cc28c02ec0e7b462fb540f2cf7bd0.json&#34;,</span>
+<span class="add">+          &#34;digest&#34;: &#34;dbdef2f4e4b075a20e334d0139c66c38a420d481c38637eb98e229ce369d96b1&#34;,</span>
+<span class="add">+          &#34;predicateType&#34;: &#34;https://rachid-chabane.com/attestations/discriminating-power/v1&#34;,</span>
+<span class="add">+          &#34;subject&#34;: &#34;FARE-4~1&#34;,</span>
+<span class="add">+          &#34;state&#34;: &#34;valid&#34;</span>
+<span class="add">+        }</span>
+<span class="add">+      ],</span>
+<span class="add">+      &#34;pending&#34;: [],</span>
+<span class="add">+      &#34;criteria&#34;: [</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;FARE-1~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 15</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted-attested&#34;: 15</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 6</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;FARE-2~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 21</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted&#34;: 20,</span>
+<span class="add">+            &#34;restricted-attested&#34;: 1</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 6</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;FARE-3~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 23</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted&#34;: 22,</span>
+<span class="add">+            &#34;restricted-attested&#34;: 1</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 8</span>
+<span class="add">+        },</span>
+<span class="add">+        {</span>
+<span class="add">+          &#34;ref&#34;: &#34;FARE-4~1&#34;,</span>
+<span class="add">+          &#34;modules&#34;: {</span>
+<span class="add">+            &#34;alignment&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            },</span>
+<span class="add">+            &#34;discriminating-power&#34;: {</span>
+<span class="add">+              &#34;state&#34;: &#34;valid&#34;,</span>
+<span class="add">+              &#34;outcome&#34;: &#34;pass&#34;</span>
+<span class="add">+            }</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;absent&#34;: [],</span>
+<span class="add">+          &#34;channels&#34;: {</span>
+<span class="add">+            &#34;host-subagent&#34;: 17</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;isolation&#34;: {</span>
+<span class="add">+            &#34;restricted&#34;: 16,</span>
+<span class="add">+            &#34;restricted-attested&#34;: 1</span>
+<span class="add">+          },</span>
+<span class="add">+          &#34;hostExclusions&#34;: 0,</span>
+<span class="add">+          &#34;screenExclusions&#34;: 9</span>
+<span class="add">+        }</span>
+<span class="add">+      ]</span>
+<span class="add">+    }</span>
+<span class="add">+  }</span>
+<span class="add">+}</span>
+diff --git a/tests/test_fares.py b/tests/test_fares.py
+index 9c61e33..bf91fd8 100644
+--- a/tests/test_fares.py
++++ b/tests/test_fares.py
+<span class="hunk">@@ -12,9 +12,17 @@ def test_one_and_two_zone_trips_cost_three_euros():</span>
+ @pytest.mark.verifies(&#34;FARE-2~1&#34;)
+ def test_three_zone_trip_costs_five_euros():
+     assert train_fare(zones=3) == 5
+<span class="add">+    assert train_fare(zones=4) == 5</span>
+ 
+ 
+ @pytest.mark.verifies(&#34;FARE-3~1&#34;)
+ def test_five_or_more_zone_trips_cost_eight_euros():
+     assert train_fare(zones=5) == 8
+     assert train_fare(zones=9) == 8
+<span class="add">+</span>
+<span class="add">+</span>
+<span class="add">+@pytest.mark.verifies(&#34;FARE-4~1&#34;)</span>
+<span class="add">+def test_zero_or_negative_zone_trips_are_free():</span>
+<span class="add">+    assert train_fare(zones=0) == 0</span>
+<span class="add">+    assert train_fare(zones=-1) == 0</span>
+<span class="add">+    assert train_fare(zones=-10) == 0</span></pre>
+<h3>Counts and timings</h3>
+<table>
+<tr><th>Measure</th><th>Value</th></tr>
+<tr><td>Assistant messages, main agent</td><td>70</td></tr>
+<tr><td>Assistant messages, subagents</td><td>343</td></tr>
+<tr><td>Executors launched</td><td>114</td></tr>
+<tr><td>Prove runs</td><td>19</td></tr>
+<tr><td>Gate runs, blocked</td><td>1</td></tr>
+<tr><td>Gate runs, passed</td><td>1</td></tr>
+<tr><td>Gate runs, allowed</td><td>1</td></tr>
+<tr><td>Time in the gate</td><td>1.1 s</td></tr>
+<tr><td>Tool calls, Agent</td><td>114</td></tr>
+<tr><td>Tool calls, Bash</td><td>43</td></tr>
+<tr><td>Tool calls, Edit</td><td>4</td></tr>
+<tr><td>Tool calls, Read</td><td>1</td></tr>
+<tr><td>Tool calls, ScheduleWakeup</td><td>1</td></tr>
+<tr><td>Tool calls, Skill</td><td>2</td></tr>
+<tr><td>Session wall-clock time</td><td>1266.2 s</td></tr>
+<tr><td>Duration reported by the CLI</td><td>1237.8 s</td></tr>
+<tr><td>API time reported by the CLI</td><td>1856.3 s</td></tr>
+<tr><td>Cost reported by the CLI</td><td>3.4026 USD</td></tr>
+<tr><td>Turns reported by the CLI</td><td>169</td></tr>
+</table>
+</section>

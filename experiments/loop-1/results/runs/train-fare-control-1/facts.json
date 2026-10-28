@@ -1,0 +1,222 @@
+{
+  "run": "train-fare-control-1",
+  "task": "train-fare",
+  "arm": "control",
+  "repetition": 1,
+  "attempt": 1,
+  "outcome": "completed",
+  "capped": false,
+  "accepted": true,
+  "defective": false,
+  "escaped": false,
+  "violated": [],
+  "flaky": [],
+  "calls": [
+    {
+      "n": 1,
+      "hooksLine": 174,
+      "exitCode": 0,
+      "decision": "pass",
+      "startedAt": "2026-10-27T14:53:05.672510383Z",
+      "durationMs": 357
+    },
+    {
+      "n": 2,
+      "hooksLine": 430,
+      "exitCode": 0,
+      "decision": "pass",
+      "startedAt": "2026-10-27T14:56:32.119317962Z",
+      "durationMs": 359
+    },
+    {
+      "n": 3,
+      "hooksLine": 476,
+      "exitCode": 0,
+      "decision": "pass",
+      "startedAt": "2026-10-27T14:57:12.942376432Z",
+      "durationMs": 359
+    },
+    {
+      "n": 4,
+      "hooksLine": 552,
+      "exitCode": 0,
+      "decision": "pass",
+      "startedAt": "2026-10-27T14:58:23.631908255Z",
+      "durationMs": 353
+    },
+    {
+      "n": 5,
+      "hooksLine": 568,
+      "exitCode": 0,
+      "decision": "pass",
+      "startedAt": "2026-10-27T14:58:58.737204235Z",
+      "durationMs": 336
+    },
+    {
+      "n": 6,
+      "hooksLine": 594,
+      "exitCode": 0,
+      "decision": "pass",
+      "startedAt": "2026-10-27T14:59:38.771504847Z",
+      "durationMs": 356
+    },
+    {
+      "n": 7,
+      "hooksLine": 600,
+      "exitCode": 0,
+      "decision": "pass",
+      "startedAt": "2026-10-27T15:00:53.748789069Z",
+      "durationMs": 335
+    },
+    {
+      "n": 8,
+      "hooksLine": 848,
+      "exitCode": 0,
+      "decision": "pass",
+      "startedAt": "2026-10-27T15:18:44.258189761Z",
+      "durationMs": 344
+    }
+  ],
+  "blocks": [],
+  "blockCounts": {},
+  "giveUps": 0,
+  "findingCodes": {},
+  "strength": {
+    "final": "7/8",
+    "equipped": "4/8",
+    "contradicting": 0
+  },
+  "hits": {},
+  "testEdits": 0,
+  "cost": {
+    "mainMessages": 79,
+    "subagentMessages": 234,
+    "messages": 313,
+    "executors": 78,
+    "proveCommands": 19,
+    "notionalUsd": 0.6090099999999999,
+    "tokens": {
+      "claude-sonnet-5-5": {
+        "input": 132,
+        "output": 20768,
+        "cacheRead": 663970,
+        "cacheCreation": 88533
+      }
+    },
+    "wallSeconds": 1796.265,
+    "gateSeconds": 2.799
+  },
+  "voluntary": [
+    {
+      "line": 7,
+      "call": "Bash: cd <run>/project; python - \u003c\u003c'E'\np='railfare/fares.py'\ns=open(p).read().replace(\"    return None\",\"    return FREE_FARE\")\ns=\"FREE_FARE = 0\\n\"+s\nopen(p,'w').write(s)\nE\ncat \u003e\u003e tests/test_fares.py \u003c\u003c'E'\n\n\n@pytest.mark.verifies(\"FARE-4~1\")\ndef test_zero_or_fewer_zone_trips_are_free():\n    assert train_fare(zones=0) == 0\n    assert train_fare(zones=-1) == 0\n    assert train_fare(zones=-10) == 0\nE\nshallnot gate --json-out shallnot-report.json; echo $?; musthold-dp prove --changed; echo $?; musthold-alignment prove --changed; echo $?; musthold-completeness prove --changed; echo $?",
+      "findings": []
+    },
+    {
+      "line": 30,
+      "call": "Bash: cd <run>/project; musthold-dp prove --changed 2\u003e\u00261 | tail -15",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 309,
+      "call": "Bash: cd <run>/project; musthold-dp prove --resume 2\u003e\u00261 | tail -15",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 585,
+      "call": "Bash: cd <run>/project; musthold-dp prove --resume 2\u003e\u00261 | tail -15",
+      "findings": []
+    },
+    {
+      "line": 1451,
+      "call": "Bash: cd <run>/project; timeout 110 musthold-dp prove --resume \u003e /tmp/dp-resume.out 2\u003e\u00261; tail -15 /tmp/dp-resume.out",
+      "findings": []
+    },
+    {
+      "line": 1454,
+      "call": "Bash: cd <run>/project; musthold-dp prove --resume 2\u003e\u00261 | tail -15",
+      "findings": []
+    },
+    {
+      "line": 1607,
+      "call": "Bash: cd <run>/project; musthold-dp prove --resume 2\u003e\u00261 | tail -15",
+      "findings": []
+    },
+    {
+      "line": 1860,
+      "call": "Bash: cd <run>/project; musthold-dp prove --resume 2\u003e\u00261 | tail -15",
+      "findings": []
+    },
+    {
+      "line": 1911,
+      "call": "Bash: cd <run>/project; musthold-dp prove --resume 2\u003e\u00261 | tail -15",
+      "findings": []
+    },
+    {
+      "line": 1995,
+      "call": "Bash: cd <run>/project; musthold-dp prove --resume 2\u003e\u00261 | tail -15",
+      "findings": []
+    },
+    {
+      "line": 2014,
+      "call": "Bash: cd <run>/project; musthold-dp prove --resume 2\u003e\u00261 | head -60",
+      "findings": []
+    },
+    {
+      "line": 2034,
+      "call": "Bash: cd <run>/project; musthold-dp prove --changed 2\u003e\u00261 | head -40",
+      "findings": [
+        "host_unresponsive"
+      ]
+    },
+    {
+      "line": 2047,
+      "call": "Bash: cd <run>/project; musthold-alignment prove --changed 2\u003e\u00261 | head -30",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2048,
+      "call": "Bash: cd <run>/project; musthold-completeness prove --changed 2\u003e\u00261 | head -30",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2192,
+      "call": "Bash: cd <run>/project; musthold-alignment prove --resume 2\u003e\u00261 | head -40",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2488,
+      "call": "Bash: cd <run>/project; musthold-alignment prove --resume 2\u003e\u00261 | head -40",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2658,
+      "call": "Bash: cd <run>/project; musthold-alignment prove --resume 2\u003e\u00261 | head -40",
+      "findings": []
+    },
+    {
+      "line": 2733,
+      "call": "Bash: cd <run>/project; musthold-completeness prove --resume 2\u003e\u00261 | head -40",
+      "findings": [
+        "awaiting_host"
+      ]
+    },
+    {
+      "line": 2871,
+      "call": "Bash: cd <run>/project; musthold-completeness prove --resume 2\u003e\u00261 | head -40",
+      "findings": []
+    }
+  ]
+}

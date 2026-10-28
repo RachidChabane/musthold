@@ -1,0 +1,390 @@
+{
+  "schema_version": "1.2",
+  "tool": {
+    "name": "shallnot",
+    "version": "c331f9b97d5b"
+  },
+  "run": {
+    "advisory": false,
+    "fail_on": "error",
+    "id_pattern": "[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*",
+    "statement_canonicalization": "c1",
+    "focus": {
+      "everything": true,
+      "files": [],
+      "ids": []
+    },
+    "spec_files": [
+      "specs/fares.md"
+    ],
+    "test_roots": [
+      "tests"
+    ],
+    "results_files": [
+      "test-results/pytest.xml"
+    ]
+  },
+  "verdict": "fail",
+  "exit_code": 1,
+  "summary": {
+    "requirements": {
+      "known": 4,
+      "in_focus": 4,
+      "covered": 3,
+      "failed": 0,
+      "skipped": 0,
+      "not_run": 0,
+      "uncovered": 1,
+      "non_testable": 0
+    },
+    "tests": {
+      "total": 3,
+      "bound": 3,
+      "untagged": 0
+    },
+    "findings": {
+      "error": 7,
+      "warning": 0,
+      "info": 0,
+      "blocking": 7
+    }
+  },
+  "requirements": [
+    {
+      "id": "FARE-1",
+      "revision": 1,
+      "ref": "FARE-1~1",
+      "statement": "WHEN a trip crosses one or two zones THE SYSTEM SHALL charge 3. - Example: train_fare(zones=1) => 3",
+      "statement_digest": "9cee207ab55dcee6d11e698ac9a47302ad7fc47fbf622981cd0c2bbb04c40974",
+      "status": "active",
+      "location": {
+        "file": "specs/fares.md",
+        "line": 8
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "train_fare",
+          "args": {
+            "zones": {
+              "type": "integer",
+              "value": "1"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "3"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_one_and_two_zone_trips_cost_three_euros",
+          "classname": "tests.test_fares",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_fares.py",
+            "line": 6
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "FARE-2",
+      "revision": 1,
+      "ref": "FARE-2~1",
+      "statement": "WHEN a trip crosses three or four zones THE SYSTEM SHALL charge 5. - Example: train_fare(zones=3) => 5",
+      "statement_digest": "373fea979583521e56c6e3506f0a0f664ba6bb46c7de060a34e600bde65d58a9",
+      "status": "active",
+      "location": {
+        "file": "specs/fares.md",
+        "line": 10
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "train_fare",
+          "args": {
+            "zones": {
+              "type": "integer",
+              "value": "3"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "5"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_three_zone_trip_costs_five_euros",
+          "classname": "tests.test_fares",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_fares.py",
+            "line": 12
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "FARE-3",
+      "revision": 1,
+      "ref": "FARE-3~1",
+      "statement": "WHEN a trip crosses five or more zones THE SYSTEM SHALL charge 8. - Example: train_fare(zones=5) => 8",
+      "statement_digest": "6dc8d56407ede8977e9d00fe77e463228d4a47ab969140632b3a8a5c4afbf293",
+      "status": "active",
+      "location": {
+        "file": "specs/fares.md",
+        "line": 12
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "train_fare",
+          "args": {
+            "zones": {
+              "type": "integer",
+              "value": "5"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "8"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_five_or_more_zone_trips_cost_eight_euros",
+          "classname": "tests.test_fares",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_fares.py",
+            "line": 17
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "FARE-4",
+      "revision": 1,
+      "ref": "FARE-4~1",
+      "statement": "WHEN a trip crosses zero or fewer zones THE SYSTEM SHALL charge 0, including negative zone counts. - Example: train_fare(zones=0) => 0",
+      "statement_digest": "6aa353370811a6fae38ee8dceb3fdec269852ba79fb42e2986dd730169429233",
+      "status": "active",
+      "location": {
+        "file": "specs/fares.md",
+        "line": 14
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "train_fare",
+          "args": {
+            "zones": {
+              "type": "integer",
+              "value": "0"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "0"
+          }
+        }
+      ],
+      "coverage": "uncovered",
+      "tests": [],
+      "extensions": {}
+    }
+  ],
+  "out_of_scope": [],
+  "findings": [
+    {
+      "category": "stale_proof",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement FARE-1~1 has no valid alignment proof for test \"test_one_and_two_zone_trips_cost_three_euros\" (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill",
+      "requirement_id": "FARE-1",
+      "module": "musthold-alignment",
+      "location": {
+        "file": "specs/fares.md",
+        "line": 8
+      }
+    },
+    {
+      "category": "stale_proof",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement FARE-1~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill",
+      "requirement_id": "FARE-1",
+      "module": "musthold-dp",
+      "location": {
+        "file": "specs/fares.md",
+        "line": 8
+      }
+    },
+    {
+      "category": "stale_proof",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement FARE-2~1 has no valid alignment proof for test \"test_three_zone_trip_costs_five_euros\" (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill",
+      "requirement_id": "FARE-2",
+      "module": "musthold-alignment",
+      "location": {
+        "file": "specs/fares.md",
+        "line": 10
+      }
+    },
+    {
+      "category": "stale_proof",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement FARE-2~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill",
+      "requirement_id": "FARE-2",
+      "module": "musthold-dp",
+      "location": {
+        "file": "specs/fares.md",
+        "line": 10
+      }
+    },
+    {
+      "category": "stale_proof",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement FARE-3~1 has no valid alignment proof for test \"test_five_or_more_zone_trips_cost_eight_euros\" (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-alignment prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill",
+      "requirement_id": "FARE-3",
+      "module": "musthold-alignment",
+      "location": {
+        "file": "specs/fares.md",
+        "line": 12
+      }
+    },
+    {
+      "category": "stale_proof",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement FARE-3~1 has no valid discriminating-power proof (no verified proof set: .musthold/verified/manifest.json is absent): a missing or stale proof never passes. Run `musthold-dp prove --changed`, then publish with `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, or run the musthold:prove-all skill",
+      "requirement_id": "FARE-3",
+      "module": "musthold-dp",
+      "location": {
+        "file": "specs/fares.md",
+        "line": 12
+      }
+    },
+    {
+      "category": "uncovered_requirement",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement FARE-4~1 has no bound test",
+      "requirement_id": "FARE-4",
+      "location": {
+        "file": "specs/fares.md",
+        "line": 14
+      }
+    }
+  ],
+  "extensions": {
+    "proofs": {
+      "trust": "local",
+      "policy": {
+        "signedPassBasis": "corroborated",
+        "minIsolation": "restricted",
+        "maxHostExclusions": 2,
+        "validityThreshold": 0.7,
+        "alignmentThreshold": 0.7,
+        "escalation": "error",
+        "isolationFloorLowered": false
+      },
+      "manifest": null,
+      "consumed": [],
+      "pending": [],
+      "criteria": [
+        {
+          "ref": "FARE-1~1",
+          "modules": {
+            "alignment": {
+              "state": "missing",
+              "outcome": "absent"
+            },
+            "discriminating-power": {
+              "state": "missing",
+              "outcome": "absent"
+            }
+          },
+          "absent": [
+            "discriminating-power",
+            "alignment"
+          ],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        },
+        {
+          "ref": "FARE-2~1",
+          "modules": {
+            "alignment": {
+              "state": "missing",
+              "outcome": "absent"
+            },
+            "discriminating-power": {
+              "state": "missing",
+              "outcome": "absent"
+            }
+          },
+          "absent": [
+            "discriminating-power",
+            "alignment"
+          ],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        },
+        {
+          "ref": "FARE-3~1",
+          "modules": {
+            "alignment": {
+              "state": "missing",
+              "outcome": "absent"
+            },
+            "discriminating-power": {
+              "state": "missing",
+              "outcome": "absent"
+            }
+          },
+          "absent": [
+            "discriminating-power",
+            "alignment"
+          ],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        }
+      ]
+    }
+  }
+}

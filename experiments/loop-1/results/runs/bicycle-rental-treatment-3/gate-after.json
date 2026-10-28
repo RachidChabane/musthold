@@ -1,0 +1,464 @@
+{
+  "schema_version": "1.2",
+  "tool": {
+    "name": "shallnot",
+    "version": "c331f9b97d5b"
+  },
+  "run": {
+    "advisory": false,
+    "fail_on": "error",
+    "id_pattern": "[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*",
+    "statement_canonicalization": "c1",
+    "focus": {
+      "everything": true,
+      "files": [],
+      "ids": []
+    },
+    "spec_files": [
+      "specs/prices.md"
+    ],
+    "test_roots": [
+      "tests"
+    ],
+    "results_files": [
+      "test-results/pytest.xml"
+    ]
+  },
+  "verdict": "pass",
+  "exit_code": 0,
+  "summary": {
+    "requirements": {
+      "known": 4,
+      "in_focus": 4,
+      "covered": 4,
+      "failed": 0,
+      "skipped": 0,
+      "not_run": 0,
+      "uncovered": 0,
+      "non_testable": 0
+    },
+    "tests": {
+      "total": 4,
+      "bound": 4,
+      "untagged": 0
+    },
+    "findings": {
+      "error": 0,
+      "warning": 0,
+      "info": 2,
+      "blocking": 0
+    }
+  },
+  "requirements": [
+    {
+      "id": "BIKE-1",
+      "revision": 1,
+      "ref": "BIKE-1~1",
+      "statement": "WHEN a rental lasts from 1 to 10 whole hours THE SYSTEM SHALL charge 10. - Example: rental_price(hours=5) => 10",
+      "statement_digest": "43bb6ba8dbde494599ae955c15092a4ed2441234c6b2af64caaa26e839784821",
+      "status": "active",
+      "location": {
+        "file": "specs/prices.md",
+        "line": 8
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "rental_price",
+          "args": {
+            "hours": {
+              "type": "integer",
+              "value": "5"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "10"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_short_rental_price",
+          "classname": "tests.test_pricing",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_pricing.py",
+            "line": 6
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "BIKE-2",
+      "revision": 1,
+      "ref": "BIKE-2~1",
+      "statement": "WHEN a rental lasts from 11 to 30 whole hours THE SYSTEM SHALL charge 18. - Example: rental_price(hours=20) => 18",
+      "statement_digest": "2948b3fa1dcd0473f776d6a4ad81edadc3c7d7d678d395bf7fbe8dbb8f9d26ec",
+      "status": "active",
+      "location": {
+        "file": "specs/prices.md",
+        "line": 10
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "rental_price",
+          "args": {
+            "hours": {
+              "type": "integer",
+              "value": "20"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "18"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_medium_rental_price_range",
+          "classname": "tests.test_pricing",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_pricing.py",
+            "line": 13
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "BIKE-3",
+      "revision": 1,
+      "ref": "BIKE-3~1",
+      "statement": "WHEN a rental lasts from 31 to 80 whole hours THE SYSTEM SHALL charge 30. - Example: rental_price(hours=50) => 30",
+      "statement_digest": "f0a7c0215742527befede5500e07b6e47bbd93aabb9186ea207fb1fff1b8346c",
+      "status": "active",
+      "location": {
+        "file": "specs/prices.md",
+        "line": 12
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "rental_price",
+          "args": {
+            "hours": {
+              "type": "integer",
+              "value": "50"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "30"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_long_rental_price_range",
+          "classname": "tests.test_pricing",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_pricing.py",
+            "line": 19
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "BIKE-4",
+      "revision": 1,
+      "ref": "BIKE-4~1",
+      "statement": "WHEN a rental lasts 81 or more whole hours THE SYSTEM SHALL charge 45. - Example: rental_price(hours=100) => 45",
+      "statement_digest": "8c6a83eed0deaab65e96a557e0637a39d39fef75115680ca6e71ca7a5071b166",
+      "status": "active",
+      "location": {
+        "file": "specs/prices.md",
+        "line": 14
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "rental_price",
+          "args": {
+            "hours": {
+              "type": "integer",
+              "value": "100"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "45"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_extended_rental_price_range",
+          "classname": "tests.test_pricing",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_pricing.py",
+            "line": 25
+          }
+        }
+      ],
+      "extensions": {}
+    }
+  ],
+  "out_of_scope": [],
+  "findings": [
+    {
+      "category": "completeness_question",
+      "severity": "info",
+      "blocking": false,
+      "message": "completeness (error_handling): The specification does not say how error handling is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (error_handling): <reason>`.",
+      "module": "musthold-completeness",
+      "location": {
+        "file": "specs/prices.md"
+      }
+    },
+    {
+      "category": "completeness_question",
+      "severity": "info",
+      "blocking": false,
+      "message": "completeness (input_validation): The specification does not say how input validation is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (input_validation): <reason>`.",
+      "module": "musthold-completeness",
+      "location": {
+        "file": "specs/prices.md"
+      }
+    }
+  ],
+  "extensions": {
+    "proofs": {
+      "trust": "local",
+      "policy": {
+        "signedPassBasis": "corroborated",
+        "minIsolation": "restricted",
+        "maxHostExclusions": 2,
+        "validityThreshold": 0.7,
+        "alignmentThreshold": 0.7,
+        "escalation": "error",
+        "isolationFloorLowered": false
+      },
+      "manifest": {
+        "path": ".musthold/verified/manifest.json",
+        "digest": "130081b63a71c027229e2c9f222447a9d598d9642475f8f22fc66a3561ce6f8c",
+        "verifierVersion": "dev"
+      },
+      "consumed": [
+        {
+          "path": ".musthold/verified/alignment/BIKE-1~1/8d990f7932913b4c20d995b581b2ff612bf2d0012e3287ab05a32f69d7c53bf0.json",
+          "digest": "665fb86379b830b7e3cd6b44a314c632186262273aa5bdc421e0d821a06e5345",
+          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
+          "subject": "BIKE-1~1",
+          "state": "valid"
+        },
+        {
+          "path": ".musthold/verified/alignment/BIKE-2~1/0a59a1126ed1435e775133b00e6ff11dfe14dcb6a158bacb84ee53f99bbe077d.json",
+          "digest": "fe7cb559dbcae9ea2f1f52c13046128db64d3886aa340979ee30ad8ac64f7ee8",
+          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
+          "subject": "BIKE-2~1",
+          "state": "valid"
+        },
+        {
+          "path": ".musthold/verified/alignment/BIKE-3~1/b0e8ca0f64c6c5d2597c4e9dd084a45a30e4698dea86feb91a8418d1708e65f5.json",
+          "digest": "8469ba2b69f4ea79653260fd98de20e75653c0f7dcdd3d8b719530e500712c3e",
+          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
+          "subject": "BIKE-3~1",
+          "state": "valid"
+        },
+        {
+          "path": ".musthold/verified/alignment/BIKE-4~1/ae74038e056ec215082988c4bdd016dc6f923fba79822780820b31d4ea38a4db.json",
+          "digest": "63e4f3676c409695f9ab7e1c37169a8f589a29dfd0be533af115e5c4265f8539",
+          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
+          "subject": "BIKE-4~1",
+          "state": "valid"
+        },
+        {
+          "path": ".musthold/verified/completeness/specs%2Fprices.md/b4bea71a05f2d7cc5a1e63e699a73f5a97c374a0ff408971975a85cf95b05f29.json",
+          "digest": "b32fc380b470ec12c32f722f0f046fcbde43b915cfe68c5b2f03c557226952d9",
+          "predicateType": "https://rachid-chabane.com/attestations/completeness/v1",
+          "subject": "specs/prices.md",
+          "state": "valid"
+        },
+        {
+          "path": ".musthold/verified/discriminating-power/BIKE-1~1/679b14508a63a2fd4b26b932e89e21124ebf0d6e9fd8f498a7cd5d101de27c12.json",
+          "digest": "2c16b1e179e1e02a0f23678794022fa06f5a2776553e9f26f279b27a12e71ea7",
+          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
+          "subject": "BIKE-1~1",
+          "state": "valid"
+        },
+        {
+          "path": ".musthold/verified/discriminating-power/BIKE-1~1/b13594ae393b93cb31719174d34ac26deca1bf0b99b434c8b4b3ea8b8d80a467.json",
+          "digest": "cfaea98b4b1ddc4f0d2f7c5a41c8d50b66198c579248b0f3e0abdb412e00aa64",
+          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
+          "subject": "BIKE-1~1",
+          "state": "stale",
+          "reason": "the test_source file tests/test_pricing.py changed since the proof was produced"
+        },
+        {
+          "path": ".musthold/verified/discriminating-power/BIKE-2~1/1dcae96b949463ca1ede4c845090c3770c62c65a22a3eb6d7ef81d1d24ec42cd.json",
+          "digest": "6cab0b1a5c47ea55ebf07c7bd0f1e82d4c309361f3fbda40a650ceeba282fd91",
+          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
+          "subject": "BIKE-2~1",
+          "state": "stale",
+          "reason": "the test_source file tests/test_pricing.py changed since the proof was produced"
+        },
+        {
+          "path": ".musthold/verified/discriminating-power/BIKE-2~1/8472ca5262e6213d3075f05a3045be35289610d31667f0326de733b461ca50ca.json",
+          "digest": "c6236c683c7b883600fc657347a510dd40f325c652613336ce8759d48d1cfa12",
+          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
+          "subject": "BIKE-2~1",
+          "state": "valid"
+        },
+        {
+          "path": ".musthold/verified/discriminating-power/BIKE-3~1/77fc7cd96de123edd3ab88cc251167bc0a65f98147522ec0a03f9f5a9c483904.json",
+          "digest": "2a5eed2a0fa2cbf668d7b1f3faab8f4df8baa4ec4339c5d6755a568b9c44ee3f",
+          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
+          "subject": "BIKE-3~1",
+          "state": "valid"
+        },
+        {
+          "path": ".musthold/verified/discriminating-power/BIKE-3~1/e883aeca075c4b9128b1b638d2dd4fcab08288aa042bbfa8db4346484bc0d8fc.json",
+          "digest": "19d8e6c7ab43184d48a603cbd0fad4a4d7c22fb0c2fc508a6c05525cdaf66fe0",
+          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
+          "subject": "BIKE-3~1",
+          "state": "stale",
+          "reason": "the test_source file tests/test_pricing.py changed since the proof was produced"
+        },
+        {
+          "path": ".musthold/verified/discriminating-power/BIKE-4~1/12ad77b85c1c3f5d5dfe98fb2084ef565db2a4a46954e20e13b16f8136f3a612.json",
+          "digest": "f20d70f8019c04974920850f18c9caedf8fad58f4eaacf8d8a5d924bacd59408",
+          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
+          "subject": "BIKE-4~1",
+          "state": "stale",
+          "reason": "the test_source file tests/test_pricing.py changed since the proof was produced"
+        },
+        {
+          "path": ".musthold/verified/discriminating-power/BIKE-4~1/264f61a29e42948f778ab120ba13ff7057edc1712ada5c03985349dc9b1a7a2a.json",
+          "digest": "542e52d0fc8734e6d670749c69e556fe04f3c8157e76f842ecc506e62438ef14",
+          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
+          "subject": "BIKE-4~1",
+          "state": "valid"
+        }
+      ],
+      "pending": [],
+      "criteria": [
+        {
+          "ref": "BIKE-1~1",
+          "modules": {
+            "alignment": {
+              "state": "valid",
+              "outcome": "pass"
+            },
+            "discriminating-power": {
+              "state": "valid",
+              "outcome": "pass"
+            }
+          },
+          "absent": [],
+          "channels": {
+            "host-subagent": 11
+          },
+          "isolation": {
+            "restricted-attested": 11
+          },
+          "hostExclusions": 0,
+          "screenExclusions": 7
+        },
+        {
+          "ref": "BIKE-2~1",
+          "modules": {
+            "alignment": {
+              "state": "valid",
+              "outcome": "pass"
+            },
+            "discriminating-power": {
+              "state": "valid",
+              "outcome": "pass"
+            }
+          },
+          "absent": [],
+          "channels": {
+            "host-subagent": 16
+          },
+          "isolation": {
+            "restricted": 16
+          },
+          "hostExclusions": 0,
+          "screenExclusions": 6
+        },
+        {
+          "ref": "BIKE-3~1",
+          "modules": {
+            "alignment": {
+              "state": "valid",
+              "outcome": "pass"
+            },
+            "discriminating-power": {
+              "state": "valid",
+              "outcome": "pass"
+            }
+          },
+          "absent": [],
+          "channels": {
+            "host-subagent": 21
+          },
+          "isolation": {
+            "restricted-attested": 21
+          },
+          "hostExclusions": 0,
+          "screenExclusions": 6
+        },
+        {
+          "ref": "BIKE-4~1",
+          "modules": {
+            "alignment": {
+              "state": "valid",
+              "outcome": "pass"
+            },
+            "discriminating-power": {
+              "state": "valid",
+              "outcome": "pass"
+            }
+          },
+          "absent": [],
+          "channels": {
+            "host-subagent": 21
+          },
+          "isolation": {
+            "restricted-attested": 21
+          },
+          "hostExclusions": 0,
+          "screenExclusions": 8
+        }
+      ]
+    }
+  }
+}

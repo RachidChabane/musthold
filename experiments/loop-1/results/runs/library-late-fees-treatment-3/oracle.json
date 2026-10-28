@@ -1,0 +1,2006 @@
+{
+  "tests": [
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-100]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-10]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-11]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-12]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-13]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-14]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-15]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-16]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-17]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-18]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-19]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-1]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-20]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-21]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-22]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-23]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-24]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-25]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-26]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-27]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-28]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-29]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-2]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-30]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-31]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-32]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-33]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-34]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-35]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-36]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-37]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-38]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-39]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-3]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-40]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-41]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-42]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-43]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-44]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-45]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-46]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-47]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-48]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-49]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-4]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-50]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-51]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-52]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-53]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-54]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-55]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-56]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-57]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-58]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-59]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-5]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-60]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-61]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-62]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-63]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-64]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-65]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-66]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-67]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-68]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-69]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-6]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-70]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-71]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-72]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-73]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-74]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-75]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-76]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-77]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-78]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-79]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-7]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-80]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-81]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-82]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-83]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-84]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-85]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-86]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-87]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-88]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-89]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-8]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-90]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-91]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-92]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-93]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-94]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-95]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-96]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-97]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-98]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-99]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[-9]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_all_not_overdue_inputs_charge_zero[0]",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_example_not_overdue_charges_zero",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_1::test_not_overdue_boundary_and_next_overdue_day",
+      "criterion": "LATE-1",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_2::test_all_one_to_five_day_inputs_charge_one[1]",
+      "criterion": "LATE-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_2::test_all_one_to_five_day_inputs_charge_one[2]",
+      "criterion": "LATE-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_2::test_all_one_to_five_day_inputs_charge_one[3]",
+      "criterion": "LATE-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_2::test_all_one_to_five_day_inputs_charge_one[4]",
+      "criterion": "LATE-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_2::test_all_one_to_five_day_inputs_charge_one[5]",
+      "criterion": "LATE-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_2::test_example_one_to_five_days_overdue_charges_one",
+      "criterion": "LATE-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_2::test_one_to_five_day_boundaries_charge_one[1]",
+      "criterion": "LATE-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_2::test_one_to_five_day_boundaries_charge_one[2]",
+      "criterion": "LATE-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_2::test_one_to_five_day_boundaries_charge_one[4]",
+      "criterion": "LATE-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_2::test_one_to_five_day_boundaries_charge_one[5]",
+      "criterion": "LATE-2",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_3::test_all_six_to_ten_day_inputs_charge_three[10]",
+      "criterion": "LATE-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_3::test_all_six_to_ten_day_inputs_charge_three[6]",
+      "criterion": "LATE-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_3::test_all_six_to_ten_day_inputs_charge_three[7]",
+      "criterion": "LATE-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_3::test_all_six_to_ten_day_inputs_charge_three[8]",
+      "criterion": "LATE-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_3::test_all_six_to_ten_day_inputs_charge_three[9]",
+      "criterion": "LATE-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_3::test_example_six_to_ten_days_overdue_charges_three",
+      "criterion": "LATE-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_3::test_six_to_ten_day_boundaries_charge_three[10]",
+      "criterion": "LATE-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_3::test_six_to_ten_day_boundaries_charge_three[6]",
+      "criterion": "LATE-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_3::test_six_to_ten_day_boundaries_charge_three[7]",
+      "criterion": "LATE-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_3::test_six_to_ten_day_boundaries_charge_three[9]",
+      "criterion": "LATE-3",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_4::test_all_eleven_to_twenty_day_inputs_charge_six[11]",
+      "criterion": "LATE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_4::test_all_eleven_to_twenty_day_inputs_charge_six[12]",
+      "criterion": "LATE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_4::test_all_eleven_to_twenty_day_inputs_charge_six[13]",
+      "criterion": "LATE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_4::test_all_eleven_to_twenty_day_inputs_charge_six[14]",
+      "criterion": "LATE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_4::test_all_eleven_to_twenty_day_inputs_charge_six[15]",
+      "criterion": "LATE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_4::test_all_eleven_to_twenty_day_inputs_charge_six[16]",
+      "criterion": "LATE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_4::test_all_eleven_to_twenty_day_inputs_charge_six[17]",
+      "criterion": "LATE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_4::test_all_eleven_to_twenty_day_inputs_charge_six[18]",
+      "criterion": "LATE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_4::test_all_eleven_to_twenty_day_inputs_charge_six[19]",
+      "criterion": "LATE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_4::test_all_eleven_to_twenty_day_inputs_charge_six[20]",
+      "criterion": "LATE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_4::test_eleven_to_twenty_day_boundaries_charge_six[11]",
+      "criterion": "LATE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_4::test_eleven_to_twenty_day_boundaries_charge_six[12]",
+      "criterion": "LATE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_4::test_eleven_to_twenty_day_boundaries_charge_six[19]",
+      "criterion": "LATE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_4::test_eleven_to_twenty_day_boundaries_charge_six[20]",
+      "criterion": "LATE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_4::test_example_eleven_to_twenty_days_overdue_charges_six",
+      "criterion": "LATE-4",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_example_twenty_one_or_more_days_overdue_charges_ten",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[100]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[21]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[22]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[23]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[24]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[25]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[26]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[27]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[28]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[29]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[30]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[31]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[32]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[33]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[34]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[35]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[36]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[37]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[38]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[39]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[40]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[41]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[42]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[43]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[44]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[45]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[46]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[47]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[48]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[49]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[50]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[51]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[52]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[53]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[54]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[55]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[56]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[57]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[58]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[59]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[60]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[61]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[62]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[63]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[64]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[65]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[66]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[67]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[68]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[69]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[70]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[71]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[72]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[73]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[74]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[75]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[76]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[77]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[78]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[79]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[80]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[81]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[82]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[83]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[84]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[85]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[86]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[87]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[88]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[89]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[90]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[91]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[92]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[93]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[94]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[95]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[96]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[97]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[98]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_sampled_twenty_one_or_more_day_inputs_charge_ten[99]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_twenty_one_day_boundary_charges_ten[21]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "test_late_5::test_twenty_one_day_boundary_charges_ten[22]",
+      "criterion": "LATE-5",
+      "failed": [
+        false,
+        false,
+        false
+      ]
+    }
+  ],
+  "timedOut": [
+    false,
+    false,
+    false
+  ],
+  "oomKilled": [
+    false,
+    false,
+    false
+  ],
+  "defective": false,
+  "violated": [],
+  "flaky": []
+}

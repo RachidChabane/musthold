@@ -1,0 +1,536 @@
+diff --git a/railfare/fares.py b/railfare/fares.py
+index e6c174f..fc740eb 100644
+--- a/railfare/fares.py
++++ b/railfare/fares.py
+@@ -1,6 +1,7 @@
+ ONE_TO_TWO_ZONE_FARE = 3
+ THREE_TO_FOUR_ZONE_FARE = 5
+ FIVE_OR_MORE_ZONE_FARE = 8
++FREE_FARE = 0
+ 
+ 
+ def train_fare(*, zones):
+@@ -10,4 +11,4 @@ def train_fare(*, zones):
+         return THREE_TO_FOUR_ZONE_FARE
+     if zones >= 5:
+         return FIVE_OR_MORE_ZONE_FARE
+-    return None
++    return FREE_FARE
+diff --git a/shallnot-report.json b/shallnot-report.json
+new file mode 100644
+index 0000000..e44dad7
+--- /dev/null
++++ b/shallnot-report.json
+@@ -0,0 +1,490 @@
++{
++  "schema_version": "1.2",
++  "tool": {
++    "name": "shallnot",
++    "version": "c331f9b97d5b"
++  },
++  "run": {
++    "advisory": false,
++    "fail_on": "error",
++    "id_pattern": "[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*",
++    "statement_canonicalization": "c1",
++    "focus": {
++      "everything": true,
++      "files": [],
++      "ids": []
++    },
++    "spec_files": [
++      "specs/fares.md"
++    ],
++    "test_roots": [
++      "tests"
++    ],
++    "results_files": [
++      "test-results/pytest.xml"
++    ]
++  },
++  "verdict": "pass",
++  "exit_code": 0,
++  "summary": {
++    "requirements": {
++      "known": 4,
++      "in_focus": 4,
++      "covered": 4,
++      "failed": 0,
++      "skipped": 0,
++      "not_run": 0,
++      "uncovered": 0,
++      "non_testable": 0
++    },
++    "tests": {
++      "total": 4,
++      "bound": 4,
++      "untagged": 0
++    },
++    "findings": {
++      "error": 0,
++      "warning": 0,
++      "info": 1,
++      "blocking": 0
++    }
++  },
++  "requirements": [
++    {
++      "id": "FARE-1",
++      "revision": 1,
++      "ref": "FARE-1~1",
++      "statement": "WHEN a trip crosses one or two zones THE SYSTEM SHALL charge 3. - Example: train_fare(zones=1) => 3",
++      "statement_digest": "9cee207ab55dcee6d11e698ac9a47302ad7fc47fbf622981cd0c2bbb04c40974",
++      "status": "active",
++      "location": {
++        "file": "specs/fares.md",
++        "line": 8
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "train_fare",
++          "args": {
++            "zones": {
++              "type": "integer",
++              "value": "1"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "3"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_one_and_two_zone_trips_cost_three_euros",
++          "classname": "tests.test_fares",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_fares.py",
++            "line": 6
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "FARE-2",
++      "revision": 1,
++      "ref": "FARE-2~1",
++      "statement": "WHEN a trip crosses three or four zones THE SYSTEM SHALL charge 5. - Example: train_fare(zones=3) => 5",
++      "statement_digest": "373fea979583521e56c6e3506f0a0f664ba6bb46c7de060a34e600bde65d58a9",
++      "status": "active",
++      "location": {
++        "file": "specs/fares.md",
++        "line": 10
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "train_fare",
++          "args": {
++            "zones": {
++              "type": "integer",
++              "value": "3"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "5"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_three_zone_trip_costs_five_euros",
++          "classname": "tests.test_fares",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_fares.py",
++            "line": 12
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "FARE-3",
++      "revision": 1,
++      "ref": "FARE-3~1",
++      "statement": "WHEN a trip crosses five or more zones THE SYSTEM SHALL charge 8. - Example: train_fare(zones=5) => 8",
++      "statement_digest": "6dc8d56407ede8977e9d00fe77e463228d4a47ab969140632b3a8a5c4afbf293",
++      "status": "active",
++      "location": {
++        "file": "specs/fares.md",
++        "line": 12
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "train_fare",
++          "args": {
++            "zones": {
++              "type": "integer",
++              "value": "5"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "8"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_five_or_more_zone_trips_cost_eight_euros",
++          "classname": "tests.test_fares",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_fares.py",
++            "line": 18
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "FARE-4",
++      "revision": 1,
++      "ref": "FARE-4~1",
++      "statement": "WHEN a trip crosses zero or fewer zones THE SYSTEM SHALL charge 0, including negative zone counts. - Example: train_fare(zones=0) => 0",
++      "statement_digest": "6aa353370811a6fae38ee8dceb3fdec269852ba79fb42e2986dd730169429233",
++      "status": "active",
++      "location": {
++        "file": "specs/fares.md",
++        "line": 14
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "train_fare",
++          "args": {
++            "zones": {
++              "type": "integer",
++              "value": "0"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "0"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_zero_or_fewer_zone_trips_are_free",
++          "classname": "tests.test_fares",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_fares.py",
++            "line": 24
++          }
++        }
++      ],
++      "extensions": {}
++    }
++  ],
++  "out_of_scope": [],
++  "findings": [
++    {
++      "category": "completeness_question",
++      "severity": "info",
++      "blocking": false,
++      "message": "completeness (input_validation): The specification does not say how input validation is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (input_validation): <reason>`.",
++      "module": "musthold-completeness",
++      "location": {
++        "file": "specs/fares.md"
++      }
++    }
++  ],
++  "extensions": {
++    "proofs": {
++      "trust": "local",
++      "policy": {
++        "signedPassBasis": "corroborated",
++        "minIsolation": "restricted",
++        "maxHostExclusions": 2,
++        "validityThreshold": 0.7,
++        "alignmentThreshold": 0.7,
++        "escalation": "error",
++        "isolationFloorLowered": false
++      },
++      "manifest": {
++        "path": ".musthold/verified/manifest.json",
++        "digest": "3af09d0a6f3b07cbdaef7d3904bf0d93e4df73bba2ae399107162ecf8055041a",
++        "verifierVersion": "dev"
++      },
++      "consumed": [
++        {
++          "path": ".musthold/verified/alignment/FARE-1~1/42ad91a5817da2d6feea8374afb75eec836fd101a10df8bbbdafddb645641def.json",
++          "digest": "b83e14645a508d3f895cf05bb6a74d2e16fe051cc98cfc33989140059d4a1e97",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "FARE-1~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_fares.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/alignment/FARE-1~1/68be908a7d36883cff866744208677f42626403eed1f75707010cf2c80bd997c.json",
++          "digest": "816f6cc15c69c1cb03c6d7d0d714748c73a9b487e6d06c0e42502e75aee71b20",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "FARE-1~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/alignment/FARE-2~1/8ebb9fbb5cfd8bfe9def40b588115f0c3e47c677c2aad9cda4f9bf30662a4476.json",
++          "digest": "2d421c47d0000c9237953c063ddd43d8238a782d952e6a7c17be6e9f028898b0",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "FARE-2~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/alignment/FARE-2~1/92171b2597638fae57103d724328acf285c0ad41c6eda2f2e724785a4d81afc1.json",
++          "digest": "36fffa122710b97f325720c5f3c7c1fdeb9cb456986c9bb2cf93fa9bbdc47b19",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "FARE-2~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_fares.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/alignment/FARE-3~1/a74dc7b5da95b80f0afff2471f53f25c95b74f1f68c651ba088d6062063dcd4d.json",
++          "digest": "3d60d4bd0a6f38fe0fc1b1ebee905f6afe8c39ad94054cfecf0fedd276b38dd8",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "FARE-3~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/alignment/FARE-3~1/ff7f2a75b76d42a351fd7a50ba9097563153d16b6a0cad1b978f0c8756acab5f.json",
++          "digest": "63a3d238d524aaaa023083c348e29f800f676912fc5cf360f9269aaf7f679f31",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "FARE-3~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_fares.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/alignment/FARE-4~1/4c13b67d5fe784d599e5873f9b46842b14e78a65e9b36bf6aaaf74bd1f0a1008.json",
++          "digest": "3f52c48ef9b882220832c79c138d159a6c77ab76c532efb15c6f0be9e7475ccd",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "FARE-4~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_fares.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/alignment/FARE-4~1/b476b4ccf8c4e7566a83bf58f4812199e1e045e9ddfa7a7c802a6711a8e47510.json",
++          "digest": "d6b24cce0d9d8902d73e4afc7cca9d671e593bdc77d8d3f28a21ef1e98198cb2",
++          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
++          "subject": "FARE-4~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/completeness/specs%2Ffares.md/62e155bcdd76aa0757159fb5bb1a031037f2a0a15785eccd70e3fe61bf726545.json",
++          "digest": "784165c9bcc104c5523977b8c2e4226a7939a6f1ac728a7a78f22cc1045843b8",
++          "predicateType": "https://rachid-chabane.com/attestations/completeness/v1",
++          "subject": "specs/fares.md",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/FARE-1~1/56261b08cbc58db4cf37fe38b39453a9d46ab27eb68ba43a2852f66409f9d565.json",
++          "digest": "1f95560349a784bf96f5cc49bc2cbe5ca0e267baa93d1d6e049ea89fc9e525b4",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "FARE-1~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_fares.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/FARE-1~1/59382b6a9adc9a8d3d8da02d8b7645681886f9c58ebca5148924accea360d0b3.json",
++          "digest": "01b2fad808f54c2eb947a5448c922fb767689c1a7d8fff9f58297485c23e4784",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "FARE-1~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/FARE-2~1/a3e0317b623a903ed9bffcbec8d8d69d37eb19c1870c4ae9e0655f534535a056.json",
++          "digest": "c79cd592878aad4fd31dc70239f313918ffcf7469eacb5bd28c8dc07ffd9c73e",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "FARE-2~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/FARE-2~1/b4456af736d3ab59112b2311dfb2180455e2a6da8183ed6987d1abce205e661a.json",
++          "digest": "cea71d8b890252213c75364a73e50d1878e4a3ba9e8df071edd72fcaa8305cf6",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "FARE-2~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_fares.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/FARE-3~1/57241b6fd983aae29956011916d4b2f88fad0b3ecdaa3a5370737f0dd9eea764.json",
++          "digest": "81bd3fb4553f1b6371eb946a686178cfbcebcc20fac6280f12a681380539aef8",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "FARE-3~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/FARE-3~1/8622e523f33fbc4540a8f5010c72694ffe619c41436424ddd6324ba07b24604f.json",
++          "digest": "01006ef869a02ef4fe694fac9049b84f1e2549cab8fb7e7f59068a6d4da73cc4",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "FARE-3~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_fares.py changed since the proof was produced"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/FARE-4~1/33f7f6eff589d8ef7880503bb118ea1dce02a652b931d16244a8448b0daad1a1.json",
++          "digest": "b0161a221da70a1d3c126b41d136b5651e50499fe7e8fc2b4da44b4431070ab2",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "FARE-4~1",
++          "state": "valid"
++        },
++        {
++          "path": ".musthold/verified/discriminating-power/FARE-4~1/8d4b78d4a7114b17ad86ecab753a8769e6da00f8617dd4d2849bd7aa7696d836.json",
++          "digest": "4d70efeeeebdf72eafdfbe05a441d71e5725dcf577900b0037a5711ed700852f",
++          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
++          "subject": "FARE-4~1",
++          "state": "stale",
++          "reason": "the test_source file tests/test_fares.py changed since the proof was produced"
++        }
++      ],
++      "pending": [],
++      "criteria": [
++        {
++          "ref": "FARE-1~1",
++          "modules": {
++            "alignment": {
++              "state": "valid",
++              "outcome": "pass"
++            },
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 15
++          },
++          "isolation": {
++            "restricted": 14,
++            "restricted-attested": 1
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 6
++        },
++        {
++          "ref": "FARE-2~1",
++          "modules": {
++            "alignment": {
++              "state": "valid",
++              "outcome": "pass"
++            },
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 21
++          },
++          "isolation": {
++            "restricted": 20,
++            "restricted-attested": 1
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 6
++        },
++        {
++          "ref": "FARE-3~1",
++          "modules": {
++            "alignment": {
++              "state": "valid",
++              "outcome": "pass"
++            },
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 23
++          },
++          "isolation": {
++            "restricted": 22,
++            "restricted-attested": 1
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 8
++        },
++        {
++          "ref": "FARE-4~1",
++          "modules": {
++            "alignment": {
++              "state": "valid",
++              "outcome": "pass"
++            },
++            "discriminating-power": {
++              "state": "valid",
++              "outcome": "pass"
++            }
++          },
++          "absent": [],
++          "channels": {
++            "host-subagent": 17
++          },
++          "isolation": {
++            "restricted": 16,
++            "restricted-attested": 1
++          },
++          "hostExclusions": 0,
++          "screenExclusions": 9
++        }
++      ]
++    }
++  }
++}
+diff --git a/tests/test_fares.py b/tests/test_fares.py
+index 9c61e33..87923a5 100644
+--- a/tests/test_fares.py
++++ b/tests/test_fares.py
+@@ -12,9 +12,17 @@ def test_one_and_two_zone_trips_cost_three_euros():
+ @pytest.mark.verifies("FARE-2~1")
+ def test_three_zone_trip_costs_five_euros():
+     assert train_fare(zones=3) == 5
++    assert train_fare(zones=4) == 5
+ 
+ 
+ @pytest.mark.verifies("FARE-3~1")
+ def test_five_or_more_zone_trips_cost_eight_euros():
+     assert train_fare(zones=5) == 8
+     assert train_fare(zones=9) == 8
++
++
++@pytest.mark.verifies("FARE-4~1")
++def test_zero_or_fewer_zone_trips_are_free():
++    assert train_fare(zones=0) == 0
++    assert train_fare(zones=-1) == 0
++    assert train_fare(zones=-10) == 0

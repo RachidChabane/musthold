@@ -1,0 +1,1403 @@
+# Agent loop: library-late-fees, arm control, repetition 2
+
+- Model: claude-sonnet-5-5
+- claude: 2.1.295 (Claude Code)
+- colima: 0.10.3
+- colima_cpus: 2
+- colima_disk_bytes: 32212254720
+- colima_memory_bytes: 4294967296
+- docker_engine: 29.5.2
+- git: 2.39.5
+- host_arch: arm64
+- host_os: Darwin
+- host_os_version: 25.6.0
+- musthold-alignment: musthold-alignment dev
+- musthold-completeness: musthold-completeness dev
+- musthold-dp: musthold-dp dev
+- node: 24.22.1
+- pytest: 9.1.1
+- python: 3.13.14
+- python3: Python 3.13.14
+- shallnot: c331f9b97d5b96bdc18eba3b17be870c004dc239
+- shallnot --version: shallnot c331f9b97d5b
+- uv: 0.11.23
+- Started: 2026-10-28 00:05:29 UTC
+- Caps: 1500 assistant messages, 7200 s, 40.00 USD
+
+## Task
+
+```text
+Implement requirement LATE-5 of specs/late-fees.md, charge 10 from 21 overdue days, in library_fees/late_fees.py, and add a test that verifies it. Tell me when the task is done.
+```
+
+## Session
+
+### 0:03 · Command
+
+Source: `stream.jsonl:4`
+
+```console
+$ cat specs/late-fees.md shallnot.yaml library_fees/late_fees.py; ls . tests* 2>/dev/null
+```
+
+```text
+# Library late fees
+
+The library charges a fee for a loan according to its number of overdue days.
+Fees are whole currency units.
+
+## Fees
+
+- **LATE-1~1**: WHEN a loan is not overdue THE SYSTEM SHALL charge 0.
+  - Example: late_fee(days_overdue=0) => 0
+- **LATE-2~1**: WHEN a loan is 1 to 5 days overdue THE SYSTEM SHALL charge 1.
+  - Example: late_fee(days_overdue=3) => 1
+- **LATE-3~1**: WHEN a loan is 6 to 10 days overdue THE SYSTEM SHALL charge 3.
+  - Example: late_fee(days_overdue=7) => 3
+- **LATE-4~1**: WHEN a loan is 11 to 20 days overdue THE SYSTEM SHALL charge 6.
+  - Example: late_fee(days_overdue=15) => 6
+- **LATE-5~1**: WHEN a loan is 21 or more days overdue THE SYSTEM SHALL charge 10, including at the 21-day boundary.
+  - Example: late_fee(days_overdue=25) => 10
+version: 1
+specs:
+  - specs
+tests:
+  - tests
+results:
+  - test-results/pytest.xml
+test_commands:
+  - pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml
+proofs:
+  require: []
+  trust: local
+  code:
+    - library_fees
+def late_fee(days_overdue):
+    if days_overdue <= 0:
+        return 0
+    if days_overdue <= 5:
+        return 1
+    if days_overdue <= 10:
+        return 3
+    return 6
+.:
+AGENTS.md
+CLAUDE.md
+conftest.py
+library_fees
+pytest.ini
+shallnot.yaml
+specs
+test-results
+tests
+
+tests:
+test_late_fees.py
+```
+
+### 0:04 · Command
+
+Source: `stream.jsonl:7`
+
+```console
+$ cat tests/test_late_fees.py
+```
+
+```text
+import pytest
+
+from library_fees import late_fee
+
+
+@pytest.mark.verifies("LATE-1~1")
+def test_no_fee_for_a_loan_due_today():
+    assert late_fee(days_overdue=0) == 0
+
+
+@pytest.mark.verifies("LATE-1~1")
+def test_no_fee_for_a_loan_returned_early():
+    assert late_fee(days_overdue=-1) == 0
+
+
+@pytest.mark.verifies("LATE-2~1")
+def test_small_late_fee_matches_the_example():
+    assert late_fee(days_overdue=3) == 1
+
+
+@pytest.mark.verifies("LATE-3~1")
+def test_medium_late_fee_covers_its_range():
+    assert late_fee(days_overdue=6) == 3
+    assert late_fee(days_overdue=10) == 3
+
+
+@pytest.mark.verifies("LATE-4~1")
+def test_large_late_fee_covers_its_range():
+    assert late_fee(days_overdue=11) == 6
+    assert late_fee(days_overdue=20) == 6
+```
+
+### 0:06 · Command
+
+Source: `stream.jsonl:9`
+
+```console
+$ python - <<'E'
+p='library_fees/late_fees.py'
+s=open(p).read().replace("    return 6\n","    if days_overdue <= 20:\n        return 6\n    return 10\n")
+open(p,'w').write(s)
+E
+cat >> tests/test_late_fees.py <<'E'
+
+
+@pytest.mark.verifies("LATE-5~1")
+def test_maximum_late_fee_starts_at_the_21_day_boundary():
+    assert late_fee(days_overdue=20) == 6
+    assert late_fee(days_overdue=21) == 10
+    assert late_fee(days_overdue=25) == 10
+E
+shallnot gate --json-out shallnot-report.json; echo $?
+musthold-dp prove --changed; echo dp $?
+musthold-alignment prove --changed; echo al $?
+musthold-completeness prove --changed; echo co $?
+```
+
+```text
+A variable in this command can't be checked before it runs
+```
+
+### 0:08 · Agent
+
+Source: `stream.jsonl:12`
+
+```text
+Splitting it up.
+```
+
+### 0:08 · Edit
+
+Source: `stream.jsonl:13`
+
+```text
+<run>/project/library_fees/late_fees.py
+```
+
+```diff
+-    return 6
++    if days_overdue <= 20:
++        return 6
++    return 10
+```
+
+### 0:09 · Edit
+
+Source: `stream.jsonl:15`
+
+```text
+<run>/project/tests/test_late_fees.py
+```
+
+```diff
+-    assert late_fee(days_overdue=20) == 6
++    assert late_fee(days_overdue=20) == 6
++    assert late_fee(days_overdue=21) == 10
++    assert late_fee(days_overdue=25) == 10
++
++
++@pytest.mark.verifies("LATE-5~1")
++def test_maximum_late_fee_starts_at_the_21_day_boundary():
++    assert late_fee(days_overdue=20) == 6
+```
+
+### 0:11 · Read
+
+Source: `stream.jsonl:20`
+
+```text
+Read <run>/project/tests/test_late_fees.py
+```
+
+### 0:12 · Agent
+
+Source: `stream.jsonl:22`
+
+```text
+I misplaced the assertions; fixing that.
+```
+
+### 0:14 · Edit
+
+Source: `stream.jsonl:23`
+
+```text
+<run>/project/tests/test_late_fees.py
+```
+
+```diff
+-    assert late_fee(days_overdue=20) == 6
+-    assert late_fee(days_overdue=21) == 10
+-    assert late_fee(days_overdue=25) == 10
+-
+-
+-@pytest.mark.verifies("LATE-5~1")
+-def test_maximum_late_fee_starts_at_the_21_day_boundary():
+-    assert late_fee(days_overdue=20) == 6
++    assert late_fee(days_overdue=20) == 6
++
++
++@pytest.mark.verifies("LATE-5~1")
++def test_maximum_late_fee_starts_at_the_21_day_boundary():
++    assert late_fee(days_overdue=20) == 6
++    assert late_fee(days_overdue=21) == 10
++    assert late_fee(days_overdue=25) == 10
+```
+
+### 0:14 · Command
+
+Source: `stream.jsonl:25`
+
+```console
+$ shallnot gate --json-out shallnot-report.json; echo gate $?
+```
+
+```text
+A variable in this command can't be checked before it runs
+```
+
+### 0:15 · Command
+
+Source: `stream.jsonl:28`
+
+```console
+$ musthold-dp prove --changed; echo dp $?
+```
+
+```text
+A variable in this command can't be checked before it runs
+```
+
+### 0:16 · Agent
+
+Source: `stream.jsonl:31`
+
+```text
+Likely `$?` is the issue; dropping it.
+```
+
+### 0:16 · Command
+
+Source: `stream.jsonl:32`
+
+```console
+$ shallnot gate --json-out shallnot-report.json
+```
+
+```text
+shallnot: running pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml
+============================= test session starts ==============================
+platform linux -- Python 3.13.14, pytest-9.1.1, pluggy-1.7.0
+rootdir: <run>/project
+configfile: pytest.ini
+testpaths: tests
+collected 6 items
+
+tests/test_late_fees.py ......                                           [100%]
+
+- generated xml file: <run>/project/test-results/pytest.xml -
+============================== 6 passed in 0.04s ===============================
+shallnot: "pytest -o junit_family=xunit1 --junitxml=test-results/pytest.xml" exited with status 0
+shallnot: PASS
+focus: every known requirement
+requirements: 5 known, 5 in focus (5 covered, 0 failed, 0 skipped, 0 not run, 0 uncovered, 0 non-testable)
+tests: 6 in results, 6 bound, 0 untagged
+findings: 0 error, 0 warning, 0 info (0 blocking)
+
+REQUIREMENTS
+  LATE-1~1  covered  specs/late-fees.md:8
+      passed  tests.test_late_fees › test_no_fee_for_a_loan_due_today       tests/test_late_fees.py:6
+      passed  tests.test_late_fees › test_no_fee_for_a_loan_returned_early  tests/test_late_fees.py:11
+  LATE-2~1  covered  specs/late-fees.md:10
+      passed  tests.test_late_fees › test_small_late_fee_matches_the_example  tests/test_late_fees.py:16
+  LATE-3~1  covered  specs/late-fees.md:12
+      passed  tests.test_late_fees › test_medium_late_fee_covers_its_range  tests/test_late_fees.py:21
+  LATE-4~1  covered  specs/late-fees.md:14
+      passed  tests.test_late_fees › test_large_late_fee_covers_its_range  tests/test_late_fees.py:27
+  LATE-5~1  covered  specs/late-fees.md:16
+      passed  tests.test_late_fees › test_maximum_late_fee_starts_at_the_21_day_boundary  tests/test_late_fees.py:33
+```
+
+### 0:16 · Command
+
+Source: `stream.jsonl:33`
+
+```console
+$ musthold-dp prove --changed
+```
+
+```text
+Exit code 3
+wave 1
+LATE-1~1 awaiting_host
+LATE-2~1 awaiting_host
+LATE-3~1 awaiting_host
+LATE-4~1 awaiting_host
+LATE-5~1 awaiting_host
+awaiting_host 10 tickets
+```
+
+### 0:19 · Agent
+
+Source: `stream.jsonl:36`
+
+```text
+Gate passes. The musthold proofs need the fulfil skill.
+```
+
+### 0:19 · Skill
+
+Source: `stream.jsonl:37`
+
+```text
+musthold:prove-all
+```
+
+### 0:20 · Command
+
+Source: `stream.jsonl:40`
+
+```console
+$ musthold-dp doctor; musthold-alignment doctor; musthold-completeness doctor; which musthold-s1 musthold-verify
+```
+
+```text
+Exit code 1
+ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok ecosystem pytest
+ok journal 10 records, chain verified
+ok classify mode auto, 0 admitted
+ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok policy align_k=5 modal_min={0.8 map[]}
+ok host-files claude
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted
+ok shallnot /opt/musthold/bin/shallnot
+ok shallnot-schema report schema 1.2 or later
+ok git /usr/bin/git
+ok policy tau_adv={0.5 map[]} decide_k=3
+ok host-files claude
+ok journal 0 records, chain verified
+ok classify mode auto, 0 admitted
+/opt/musthold/bin/musthold-verify
+```
+
+### 0:22 · Command
+
+Source: `stream.jsonl:43`
+
+```console
+$ musthold-alignment prove --changed
+```
+
+```text
+Exit code 3
+wave 1
+LATE-1~1 tests.test_late_fees.test_no_fee_for_a_loan_due_today awaiting_host
+LATE-1~1 tests.test_late_fees.test_no_fee_for_a_loan_returned_early awaiting_host
+LATE-2~1 tests.test_late_fees.test_small_late_fee_matches_the_example awaiting_host
+LATE-3~1 tests.test_late_fees.test_medium_late_fee_covers_its_range awaiting_host
+LATE-4~1 tests.test_late_fees.test_large_late_fee_covers_its_range awaiting_host
+LATE-5~1 tests.test_late_fees.test_maximum_late_fee_starts_at_the_21_day_boundary awaiting_host
+awaiting_host 30 tickets
+```
+
+### 0:22 · Command
+
+Source: `stream.jsonl:44`
+
+```console
+$ musthold-completeness prove --changed
+```
+
+```text
+Exit code 3
+wave 1
+specs/late-fees.md awaiting_host 0 questions
+awaiting_host 3 tickets
+```
+
+### 0:25 · Agent
+
+Source: `stream.jsonl:47`
+
+```text
+All three need waves. I'll load the fulfil skills for the ticket steps.
+```
+
+### 0:25 · Skill
+
+Source: `stream.jsonl:48`
+
+```text
+musthold-dp:musthold-dp-fulfil
+```
+
+### 0:26 · Command
+
+Source: `stream.jsonl:51`
+
+```console
+$ musthold-dp request list --session prove
+```
+
+```text
+22e98cddf20a1539c3ec978290468b5f63bc42ef0c3619d752b15be330d1ece3.0.1 musthold-dp:generator
+22e98cddf20a1539c3ec978290468b5f63bc42ef0c3619d752b15be330d1ece3.1.1 musthold-dp:generator
+304af6cdf10f3aba3120d0b617395c43858d0c083f55eecdd0ac75e98617686d.0.1 musthold-dp:generator
+304af6cdf10f3aba3120d0b617395c43858d0c083f55eecdd0ac75e98617686d.1.1 musthold-dp:generator
+466a159892e9871d02a0323103deb9d76f9a9ade2f2236f2f3b8835f28a7693a.0.1 musthold-dp:generator
+466a159892e9871d02a0323103deb9d76f9a9ade2f2236f2f3b8835f28a7693a.1.1 musthold-dp:generator
+924ff98de4c3bb9659f06e3e8719514672f85eea0814bffd93d967b13d09ffea.0.1 musthold-dp:generator
+924ff98de4c3bb9659f06e3e8719514672f85eea0814bffd93d967b13d09ffea.1.1 musthold-dp:generator
+ec98df87ce3d2a9b78538dfaec8166c61c0fa6dff3079c611754d90e79699e47.0.1 musthold-dp:generator
+ec98df87ce3d2a9b78538dfaec8166c61c0fa6dff3079c611754d90e79699e47.1.1 musthold-dp:generator
+```
+
+### 0:27 · Agent
+
+Source: `stream.jsonl:53`
+
+```text
+Launching in batches of 4.
+```
+
+### 0:29 · Executors: 10 launched
+
+Source: `stream.jsonl:54`
+
+```text
+musthold-dp:generator
+```
+
+### 1:19 · Command
+
+Source: `stream.jsonl:393`
+
+```console
+$ musthold-dp prove --resume
+```
+
+```text
+Exit code 3
+wave 2
+LATE-1~1 awaiting_host
+LATE-2~1 awaiting_host
+LATE-3~1 awaiting_host
+LATE-4~1 awaiting_host
+LATE-5~1 awaiting_host
+awaiting_host 10 tickets
+```
+
+### 1:31 · Command
+
+Source: `stream.jsonl:400`
+
+```console
+$ musthold-dp request list --session prove
+```
+
+```text
+2b0a39ce1fa3f05dd4436c1aa20d48f33ba634cd092601d906428a36232f2556.0.1 musthold-dp:judge
+2b0a39ce1fa3f05dd4436c1aa20d48f33ba634cd092601d906428a36232f2556.1.1 musthold-dp:judge
+57004e79de5740d0df4849b49d2050c35de15f08b14f7c2db33cc1a0d0cfccb6.0.1 musthold-dp:judge
+57004e79de5740d0df4849b49d2050c35de15f08b14f7c2db33cc1a0d0cfccb6.1.1 musthold-dp:judge
+69ab5408e8c719990a50c6a7594a494f2dac3695936ff76997062e3fa85e7bc3.0.1 musthold-dp:judge
+69ab5408e8c719990a50c6a7594a494f2dac3695936ff76997062e3fa85e7bc3.1.1 musthold-dp:judge
+d24092d296a35ed54b489b6abb81648ae822fe7a2b82c7c60ff29272ca6484b6.0.1 musthold-dp:judge
+d24092d296a35ed54b489b6abb81648ae822fe7a2b82c7c60ff29272ca6484b6.1.1 musthold-dp:judge
+e3cd679404e306479e0a1f5d8e7849b6c31e569e00e6dbbcfe58fbab430cfb20.0.1 musthold-dp:judge
+e3cd679404e306479e0a1f5d8e7849b6c31e569e00e6dbbcfe58fbab430cfb20.1.1 musthold-dp:judge
+```
+
+### 1:34 · Executors: 4 launched
+
+Source: `stream.jsonl:402`
+
+```text
+musthold-dp:judge
+```
+
+### 1:47 · Agent
+
+Source: `stream.jsonl:539`
+
+```text
+Status: code and test done, gate passes. I'm working through the proof modules' tickets now (dp wave 2 in progress).
+```
+
+### 1:48 · Executors: 6 launched
+
+Source: `stream.jsonl:540`
+
+```text
+musthold-dp:judge
+```
+
+### 2:16 · Command
+
+Source: `stream.jsonl:744`
+
+```console
+$ musthold-dp prove --resume
+```
+
+```text
+Command did not complete within its 120s timeout and was moved to the background (ID: b9l6skqm5). Output is being written to: <run>/tmp/claude-502/<run>-project/9266b83f-6794-40ca-b6eb-9564fa07578e/tasks/b9l6skqm5.output. You will be notified when it completes. If it is still running after 10m in the background, it will be stopped and you will be notified. To check interim output, use Read on that file path.
+```
+
+### 2:16 · Command
+
+Source: `stream.jsonl:745`
+
+```console
+$ musthold-alignment request list --session prove
+```
+
+```text
+015d98439eafaf27e212915a14ebfcd9169c4ba4723a9bac3889d88feede992d.0.1 musthold-alignment:judge
+015d98439eafaf27e212915a14ebfcd9169c4ba4723a9bac3889d88feede992d.1.1 musthold-alignment:judge
+015d98439eafaf27e212915a14ebfcd9169c4ba4723a9bac3889d88feede992d.2.1 musthold-alignment:judge
+015d98439eafaf27e212915a14ebfcd9169c4ba4723a9bac3889d88feede992d.3.1 musthold-alignment:judge
+015d98439eafaf27e212915a14ebfcd9169c4ba4723a9bac3889d88feede992d.4.1 musthold-alignment:judge
+9bb325294c2366eb16429f937e0ede04ad41e57506d1347c77157a2196f56447.0.1 musthold-alignment:judge
+9bb325294c2366eb16429f937e0ede04ad41e57506d1347c77157a2196f56447.1.1 musthold-alignment:judge
+9bb325294c2366eb16429f937e0ede04ad41e57506d1347c77157a2196f56447.2.1 musthold-alignment:judge
+9bb325294c2366eb16429f937e0ede04ad41e57506d1347c77157a2196f56447.3.1 musthold-alignment:judge
+9bb325294c2366eb16429f937e0ede04ad41e57506d1347c77157a2196f56447.4.1 musthold-alignment:judge
+af3bce364201451ffadde3112cef9ac13077281ab9a053b279ea16fffcaba7e0.0.1 musthold-alignment:judge
+af3bce364201451ffadde3112cef9ac13077281ab9a053b279ea16fffcaba7e0.1.1 musthold-alignment:judge
+af3bce364201451ffadde3112cef9ac13077281ab9a053b279ea16fffcaba7e0.2.1 musthold-alignment:judge
+af3bce364201451ffadde3112cef9ac13077281ab9a053b279ea16fffcaba7e0.3.1 musthold-alignment:judge
+af3bce364201451ffadde3112cef9ac13077281ab9a053b279ea16fffcaba7e0.4.1 musthold-alignment:judge
+bb6d15abb404cd2a49d04f3312f84a9e6cc4e61e079798d677cc545547c694bd.0.1 musthold-alignment:judge
+bb6d15abb404cd2a49d04f3312f84a9e6cc4e61e079798d677cc545547c694bd.1.1 musthold-alignment:judge
+bb6d15abb404cd2a49d04f3312f84a9e6cc4e61e079798d677cc545547c694bd.2.1 musthold-alignment:judge
+bb6d15abb404cd2a49d04f3312f84a9e6cc4e61e079798d677cc545547c694bd.3.1 musthold-alignment:judge
+bb6d15abb404cd2a49d04f3312f84a9e6cc4e61e079798d677cc545547c694bd.4.1 musthold-alignment:judge
+d377fbb964348a8e7d5d03b8cf03b6ac52545998372c2d440fc1d6c23073caea.0.1 musthold-alignment:judge
+d377fbb964348a8e7d5d03b8cf03b6ac52545998372c2d440fc1d6c23073caea.1.1 musthold-alignment:judge
+d377fbb964348a8e7d5d03b8cf03b6ac52545998372c2d440fc1d6c23073caea.2.1 musthold-alignment:judge
+d377fbb964348a8e7d5d03b8cf03b6ac52545998372c2d440fc1d6c23073caea.3.1 musthold-alignment:judge
+d377fbb964348a8e7d5d03b8cf03b6ac52545998372c2d440fc1d6c23073caea.4.1 musthold-alignment:judge
+e16508ba2d93dd1d6ece18c51ed40845ae0c9dfe86674d926dd36ab6337ae5dc.0.1 musthold-alignment:judge
+e16508ba2d93dd1d6ece18c51ed40845ae0c9dfe86674d926dd36ab6337ae5dc.1.1 musthold-alignment:judge
+e16508ba2d93dd1d6ece18c51ed40845ae0c9dfe86674d926dd36ab6337ae5dc.2.1 musthold-alignment:judge
+e16508ba2d93dd1d6ece18c51ed40845ae0c9dfe86674d926dd36ab6337ae5dc.3.1 musthold-alignment:judge
+e16508ba2d93dd1d6ece18c51ed40845ae0c9dfe86674d926dd36ab6337ae5dc.4.1 musthold-alignment:judge
+```
+
+### 4:20 · Executors: 4 launched
+
+Source: `stream.jsonl:758`
+
+```text
+musthold-alignment:judge
+```
+
+### 4:31 · Command
+
+Source: `stream.jsonl:893`
+
+```console
+$ cat <run>/tmp/claude-502/<run>-project/9266b83f-6794-40ca-b6eb-9564fa07578e/tasks/b9l6skqm5.output; musthold-dp request list --session prove
+```
+
+```text
+wave 3
+LATE-1~1 awaiting_host
+LATE-2~1 awaiting_host
+LATE-3~1 awaiting_host
+LATE-4~1 awaiting_host
+LATE-5~1 awaiting_host
+awaiting_host 38 tickets
+
+[exited with code 3]
+014f5dfc2a545d7a659381324e17592f19f2610f6652919dfbeffb8a564121ee.0.1 musthold-dp:decider
+014f5dfc2a545d7a659381324e17592f19f2610f6652919dfbeffb8a564121ee.1.1 musthold-dp:decider
+014f5dfc2a545d7a659381324e17592f19f2610f6652919dfbeffb8a564121ee.2.1 musthold-dp:decider
+0aae947906a581c79c272b932fa9f1003b740b59c47e3832a1448e1094e03e15.0.1 musthold-dp:generator
+10ed85d7e90b4b748d8bdfad930c60731caadeaf7a3045cfd6de3ee4a15c3820.0.1 musthold-dp:decider
+10ed85d7e90b4b748d8bdfad930c60731caadeaf7a3045cfd6de3ee4a15c3820.1.1 musthold-dp:decider
+10ed85d7e90b4b748d8bdfad930c60731caadeaf7a3045cfd6de3ee4a15c3820.2.1 musthold-dp:decider
+19fd1d3a9f65403dd5ce22f8321591942633c2ed00efa4d48bd5c32854b417be.0.1 musthold-dp:decider
+19fd1d3a9f65403dd5ce22f8321591942633c2ed00efa4d48bd5c32854b417be.1.1 musthold-dp:decider
+19fd1d3a9f65403dd5ce22f8321591942633c2ed00efa4d48bd5c32854b417be.2.1 musthold-dp:decider
+23552b07a4166f94806b6c2e911565800aba206372e7406392d760e6bdd11afc.0.1 musthold-dp:decider
+23552b07a4166f94806b6c2e911565800aba206372e7406392d760e6bdd11afc.1.1 musthold-dp:decider
+23552b07a4166f94806b6c2e911565800aba206372e7406392d760e6bdd11afc.2.1 musthold-dp:decider
+26479d9d2550cb28f940244fd4a96712ac57c8afbb2c1a121594467d701f7d0d.0.1 musthold-dp:decider
+26479d9d2550cb28f940244fd4a96712ac57c8afbb2c1a121594467d701f7d0d.1.1 musthold-dp:decider
+26479d9d2550cb28f940244fd4a96712ac57c8afbb2c1a121594467d701f7d0d.2.1 musthold-dp:decider
+4abdb54a5929d96c6d2e319f3bb1cdfc1296be9523106b416cfc37b86218e39e.0.1 musthold-dp:decider
+4abdb54a5929d96c6d2e319f3bb1cdfc1296be9523106b416cfc37b86218e39e.1.1 musthold-dp:decider
+4abdb54a5929d96c6d2e319f3bb1cdfc1296be9523106b416cfc37b86218e39e.2.1 musthold-dp:decider
+4fe308d7700d50d56bb87076b1bbfd66ededb4c3cc56a036b3ba4340a9845520.0.1 musthold-dp:decider
+4fe308d7700d50d56bb87076b1bbfd66ededb4c3cc56a036b3ba4340a9845520.1.1 musthold-dp:decider
+4fe308d7700d50d56bb87076b1bbfd66ededb4c3cc56a036b3ba4340a9845520.2.1 musthold-dp:decider
+605622a7043537293854963b6d53129f116d3a7f5b7a511a05a45ede4970221b.0.1 musthold-dp:generator
+71b4ff2defd7b3bd518886fd705395e5ad5b41fc0b3dd320702fb6817e77ba71.0.1 musthold-dp:generator
+7845485d7fe4fc04b9b79f682e735a2c308586cb2b657f1564a04858a407be74.0.1 musthold-dp:decider
+7845485d7fe4fc04b9b79f682e735a2c308586cb2b657f1564a04858a407be74.1.1 musthold-dp:decider
+7845485d7fe4fc04b9b79f682e735a2c308586cb2b657f1564a04858a407be74.2.1 musthold-dp:decider
+7919de6ee16fbf1ae5036938280c525e5b4fa0b07623ef82c4e3346c601a224b.0.1 musthold-dp:decider
+7919de6ee16fbf1ae5036938280c525e5b4fa0b07623ef82c4e3346c601a224b.1.1 musthold-dp:decider
+7919de6ee16fbf1ae5036938280c525e5b4fa0b07623ef82c4e3346c601a224b.2.1 musthold-dp:decider
+7def0033d9af2dca7df3920602ba77f9a838a7f3cffcce790531073475576d55.0.1 musthold-dp:decider
+7def0033d9af2dca7df3920602ba77f9a838a7f3cffcce790531073475576d55.1.1 musthold-dp:decider
+7def0033d9af2dca7df3920602ba77f9a838a7f3cffcce790531073475576d55.2.1 musthold-dp:decider
+9b2559ac529b28b1919316784c9527645deab5a0f491805f48a3d99d37840087.0.1 musthold-dp:generator
+a9fd68f15fc9c1f0d04fc4dbaf19916768136d2ced73e1a3042b267519d6cf19.0.1 musthold-dp:generator
+d3ca24b32efe741e9ddc45e077067e0db8359b0ff61911796b651a9fcb6dbbf8.0.1 musthold-dp:decider
+d3ca24b32efe741e9ddc45e077067e0db8359b0ff61911796b651a9fcb6dbbf8.1.1 musthold-dp:decider
+d3ca24b32efe741e9ddc45e077067e0db8359b0ff61911796b651a9fcb6dbbf8.2.1 musthold-dp:decider
+```
+
+### 4:34 · Executors: 24 launched
+
+Source: `stream.jsonl:898`
+
+```text
+musthold-alignment:judge
+```
+
+### 5:47 · Agent
+
+Source: `stream.jsonl:1730`
+
+```text
+Update: the code and test are done and the gate is green. I'm on the last two alignment tickets, then the resume steps for dp, alignment and completeness.
+```
+
+### 5:48 · Executors: 2 launched
+
+Source: `stream.jsonl:1731`
+
+```text
+musthold-alignment:judge
+```
+
+### 5:49 · Command
+
+Source: `stream.jsonl:1753`
+
+```console
+$ musthold-completeness request list --session prove
+```
+
+```text
+1d4db03832df3a0552234f457b96d9b6cae422a6ac8fc746699d848e953a977f.0.1 musthold-completeness:decider
+6dd2f7e46c12dcbf50b8cec7548e4c7f894698ea4023beb147192dd0442da1f2.0.1 musthold-completeness:decider
+a7962e5f93543d803b4d8deb9c191b2a498c42591c49f0ec639b9c48cc582c9f.0.1 musthold-completeness:decider
+```
+
+### 5:58 · Executors: 3 launched
+
+Source: `stream.jsonl:1801`
+
+```text
+musthold-completeness:decider
+```
+
+### 6:08 · Command
+
+Source: `stream.jsonl:1902`
+
+```console
+$ musthold-alignment prove --resume
+```
+
+```text
+wave 2
+LATE-1~1 tests.test_late_fees.test_no_fee_for_a_loan_due_today proved ALIGNED uncorroborated
+LATE-1~1 tests.test_late_fees.test_no_fee_for_a_loan_returned_early proved ALIGNED uncorroborated
+LATE-2~1 tests.test_late_fees.test_small_late_fee_matches_the_example proved ALIGNED uncorroborated
+LATE-3~1 tests.test_late_fees.test_medium_late_fee_covers_its_range proved ALIGNED uncorroborated
+LATE-4~1 tests.test_late_fees.test_large_late_fee_covers_its_range proved ALIGNED uncorroborated
+LATE-5~1 tests.test_late_fees.test_maximum_late_fee_starts_at_the_21_day_boundary proved ALIGNED uncorroborated
+```
+
+### 6:08 · Command
+
+Source: `stream.jsonl:1903`
+
+```console
+$ musthold-completeness prove --resume
+```
+
+```text
+Exit code 3
+wave 2
+specs/late-fees.md awaiting_host 0 questions
+awaiting_host 4 tickets
+```
+
+### 6:11 · Command
+
+Source: `stream.jsonl:1909`
+
+```console
+$ musthold-completeness request list --session prove
+```
+
+```text
+6dd2f7e46c12dcbf50b8cec7548e4c7f894698ea4023beb147192dd0442da1f2.1.1 musthold-completeness:decider
+6dd2f7e46c12dcbf50b8cec7548e4c7f894698ea4023beb147192dd0442da1f2.2.1 musthold-completeness:decider
+a7962e5f93543d803b4d8deb9c191b2a498c42591c49f0ec639b9c48cc582c9f.1.1 musthold-completeness:decider
+a7962e5f93543d803b4d8deb9c191b2a498c42591c49f0ec639b9c48cc582c9f.2.1 musthold-completeness:decider
+```
+
+### 6:13 · Executors: 4 launched
+
+Source: `stream.jsonl:1911`
+
+```text
+musthold-completeness:decider
+```
+
+### 6:24 · Command
+
+Source: `stream.jsonl:2046`
+
+```console
+$ musthold-completeness prove --resume
+```
+
+```text
+wave 3
+specs/late-fees.md proved 2 questions
+```
+
+### 6:26 · Agent
+
+Source: `stream.jsonl:2048`
+
+```text
+Update: alignment is done (all 6 tests ALIGNED) and completeness is done (2 advisory questions). Only dp remains, with 38 tickets in wave 3.
+```
+
+### 6:26 · Command
+
+Source: `stream.jsonl:2049`
+
+```console
+$ musthold-dp request list --session prove | head -20
+```
+
+```text
+014f5dfc2a545d7a659381324e17592f19f2610f6652919dfbeffb8a564121ee.0.1 musthold-dp:decider
+014f5dfc2a545d7a659381324e17592f19f2610f6652919dfbeffb8a564121ee.1.1 musthold-dp:decider
+014f5dfc2a545d7a659381324e17592f19f2610f6652919dfbeffb8a564121ee.2.1 musthold-dp:decider
+0aae947906a581c79c272b932fa9f1003b740b59c47e3832a1448e1094e03e15.0.1 musthold-dp:generator
+10ed85d7e90b4b748d8bdfad930c60731caadeaf7a3045cfd6de3ee4a15c3820.0.1 musthold-dp:decider
+10ed85d7e90b4b748d8bdfad930c60731caadeaf7a3045cfd6de3ee4a15c3820.1.1 musthold-dp:decider
+10ed85d7e90b4b748d8bdfad930c60731caadeaf7a3045cfd6de3ee4a15c3820.2.1 musthold-dp:decider
+19fd1d3a9f65403dd5ce22f8321591942633c2ed00efa4d48bd5c32854b417be.0.1 musthold-dp:decider
+19fd1d3a9f65403dd5ce22f8321591942633c2ed00efa4d48bd5c32854b417be.1.1 musthold-dp:decider
+19fd1d3a9f65403dd5ce22f8321591942633c2ed00efa4d48bd5c32854b417be.2.1 musthold-dp:decider
+23552b07a4166f94806b6c2e911565800aba206372e7406392d760e6bdd11afc.0.1 musthold-dp:decider
+23552b07a4166f94806b6c2e911565800aba206372e7406392d760e6bdd11afc.1.1 musthold-dp:decider
+23552b07a4166f94806b6c2e911565800aba206372e7406392d760e6bdd11afc.2.1 musthold-dp:decider
+26479d9d2550cb28f940244fd4a96712ac57c8afbb2c1a121594467d701f7d0d.0.1 musthold-dp:decider
+26479d9d2550cb28f940244fd4a96712ac57c8afbb2c1a121594467d701f7d0d.1.1 musthold-dp:decider
+26479d9d2550cb28f940244fd4a96712ac57c8afbb2c1a121594467d701f7d0d.2.1 musthold-dp:decider
+4abdb54a5929d96c6d2e319f3bb1cdfc1296be9523106b416cfc37b86218e39e.0.1 musthold-dp:decider
+4abdb54a5929d96c6d2e319f3bb1cdfc1296be9523106b416cfc37b86218e39e.1.1 musthold-dp:decider
+4abdb54a5929d96c6d2e319f3bb1cdfc1296be9523106b416cfc37b86218e39e.2.1 musthold-dp:decider
+4fe308d7700d50d56bb87076b1bbfd66ededb4c3cc56a036b3ba4340a9845520.0.1 musthold-dp:decider
+```
+
+### 6:29 · Executors: 20 launched
+
+Source: `stream.jsonl:2052`
+
+```text
+musthold-dp:decider
+```
+
+### 7:36 · Agent
+
+Source: `stream.jsonl:2727`
+
+```text
+Update: 20 of 38 dp tickets answered. Alignment and completeness are finished, so only the dp loop and the final publish step are left.
+```
+
+### 7:37 · Executors: 18 launched
+
+Source: `stream.jsonl:2728`
+
+```text
+musthold-dp:decider
+```
+
+### 8:44 · Command
+
+Source: `stream.jsonl:3329`
+
+```console
+$ musthold-dp prove --resume
+```
+
+```text
+Exit code 3
+wave 4
+LATE-1~1 awaiting_host
+LATE-2~1 awaiting_host
+LATE-3~1 awaiting_host
+LATE-4~1 awaiting_host
+LATE-5~1 awaiting_host
+awaiting_host 5 tickets
+```
+
+### 8:49 · Agent
+
+Source: `stream.jsonl:3333`
+
+```text
+Update: dp is on wave 4, with 5 tickets left. Alignment and completeness are done.
+```
+
+### 8:49 · Command
+
+Source: `stream.jsonl:3334`
+
+```console
+$ musthold-dp request list --session prove
+```
+
+```text
+0aae947906a581c79c272b932fa9f1003b740b59c47e3832a1448e1094e03e15.0.2 musthold-dp:generator
+605622a7043537293854963b6d53129f116d3a7f5b7a511a05a45ede4970221b.0.2 musthold-dp:generator
+71b4ff2defd7b3bd518886fd705395e5ad5b41fc0b3dd320702fb6817e77ba71.0.2 musthold-dp:generator
+9b2559ac529b28b1919316784c9527645deab5a0f491805f48a3d99d37840087.0.2 musthold-dp:generator
+a9fd68f15fc9c1f0d04fc4dbaf19916768136d2ced73e1a3042b267519d6cf19.0.2 musthold-dp:generator
+```
+
+### 8:53 · Executors: 5 launched
+
+Source: `stream.jsonl:3336`
+
+```text
+musthold-dp:generator
+```
+
+### 9:18 · Command
+
+Source: `stream.jsonl:3501`
+
+```console
+$ musthold-dp prove --resume
+```
+
+```text
+Exit code 3
+wave 5
+LATE-1~1 awaiting_host
+LATE-2~1 awaiting_host
+LATE-3~1 awaiting_host
+LATE-4~1 awaiting_host
+LATE-5~1 awaiting_host
+awaiting_host 5 tickets
+```
+
+### 9:23 · Command
+
+Source: `stream.jsonl:3505`
+
+```console
+$ musthold-dp request list --session prove
+```
+
+```text
+0aae947906a581c79c272b932fa9f1003b740b59c47e3832a1448e1094e03e15.0.3 musthold-dp:generator
+605622a7043537293854963b6d53129f116d3a7f5b7a511a05a45ede4970221b.0.3 musthold-dp:generator
+71b4ff2defd7b3bd518886fd705395e5ad5b41fc0b3dd320702fb6817e77ba71.0.3 musthold-dp:generator
+9b2559ac529b28b1919316784c9527645deab5a0f491805f48a3d99d37840087.0.3 musthold-dp:generator
+a9fd68f15fc9c1f0d04fc4dbaf19916768136d2ced73e1a3042b267519d6cf19.0.3 musthold-dp:generator
+```
+
+### 9:26 · Executors: 5 launched
+
+Source: `stream.jsonl:3510`
+
+```text
+musthold-dp:generator
+```
+
+### 9:57 · Command
+
+Source: `stream.jsonl:3675`
+
+```console
+$ musthold-dp prove --resume
+```
+
+```text
+Exit code 3
+wave 6
+LATE-1~1 awaiting_host
+LATE-2~1 awaiting_host
+LATE-3~1 awaiting_host
+LATE-4~1 awaiting_host
+LATE-5~1 awaiting_host
+awaiting_host 5 tickets
+```
+
+### 10:07 · Agent
+
+Source: `stream.jsonl:3683`
+
+```text
+The code and test for LATE-5 are done, but the musthold-dp proof is not finished, so the proofs are unpublished.
+
+- **Code:** `library_fees/late_fees.py` now returns 10 from 21 overdue days, and 6 for 11–20 days as before.
+- **Test:** `test_maximum_late_fee_starts_at_the_21_day_boundary` in `tests/test_late_fees.py` is tagged `[verifies LATE-5~1]`. It checks 20 → 6, 21 → 10 and 25 → 10, so it would fail without the new branch.
+- **Spec:** I didn't change `specs/late-fees.md`. LATE-5~1 was already stated there.
+- **Shallnot gate:** passes with exit 0. All 5 requirements are covered, with 6 tests passing and no blocking findings.
+- **musthold-alignment:** done. All 6 tests are proved ALIGNED.
+- **musthold-completeness:** done. It raised 2 advisory questions about `specs/late-fees.md`, which don't block anything. I haven't looked at what they are.
+- **musthold-dp:** stuck. After 6 waves it still exits with code 3. For the last 3 waves the same 5 generator tickets came back as retries (`…0.1`, `…0.2`, `…0.3`), one per requirement, each answered and each re-issued. It has not converged on its own, and I stopped rather than keep looping.
+- **Publish:** I did not run `musthold-verify --accept-local .musthold/cache --out .musthold/verified`, because it is meant to run once every module is finished. Until then the gate may report the proofs as stale.
+
+The retries could mean the generator keeps producing answers that dp rejects. I didn't read the tickets to find out, since the skill says not to.
+
+Decision for you: I can run another `musthold-dp prove --resume` round, or you can look at the journal first (`musthold-dp request show <ticket>`).
+```
+
+### 10:07 · Gate: allowed
+
+Source: `hooks.jsonl:1093`
+
+## Outcome
+
+- Session: ended by itself, exit code 0
+- Result event: success, error false, 141 turns (stream.jsonl:3688)
+- Gate after the session: pass, exit code 0 (gate-after.json)
+
+## Change the session made
+
+Source: `change.diff`
+
+```diff
+diff --git a/library_fees/late_fees.py b/library_fees/late_fees.py
+index 1d81a63..7f572b2 100644
+--- a/library_fees/late_fees.py
++++ b/library_fees/late_fees.py
+@@ -5,4 +5,6 @@ def late_fee(days_overdue):
+         return 1
+     if days_overdue <= 10:
+         return 3
+-    return 6
++    if days_overdue <= 20:
++        return 6
++    return 10
+diff --git a/shallnot-report.json b/shallnot-report.json
+new file mode 100644
+index 0000000..b5d59fd
+--- /dev/null
++++ b/shallnot-report.json
+@@ -0,0 +1,356 @@
++{
++  "schema_version": "1.2",
++  "tool": {
++    "name": "shallnot",
++    "version": "c331f9b97d5b"
++  },
++  "run": {
++    "advisory": false,
++    "fail_on": "error",
++    "id_pattern": "[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*",
++    "statement_canonicalization": "c1",
++    "focus": {
++      "everything": true,
++      "files": [],
++      "ids": []
++    },
++    "spec_files": [
++      "specs/late-fees.md"
++    ],
++    "test_roots": [
++      "tests"
++    ],
++    "results_files": [
++      "test-results/pytest.xml"
++    ]
++  },
++  "verdict": "pass",
++  "exit_code": 0,
++  "summary": {
++    "requirements": {
++      "known": 5,
++      "in_focus": 5,
++      "covered": 5,
++      "failed": 0,
++      "skipped": 0,
++      "not_run": 0,
++      "uncovered": 0,
++      "non_testable": 0
++    },
++    "tests": {
++      "total": 6,
++      "bound": 6,
++      "untagged": 0
++    },
++    "findings": {
++      "error": 0,
++      "warning": 0,
++      "info": 0,
++      "blocking": 0
++    }
++  },
++  "requirements": [
++    {
++      "id": "LATE-1",
++      "revision": 1,
++      "ref": "LATE-1~1",
++      "statement": "WHEN a loan is not overdue THE SYSTEM SHALL charge 0. - Example: late_fee(days_overdue=0) => 0",
++      "statement_digest": "966704e38cd80b2ed346b6da9c45714b85f57eae352115943a99b28522c400a8",
++      "status": "active",
++      "location": {
++        "file": "specs/late-fees.md",
++        "line": 8
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "late_fee",
++          "args": {
++            "days_overdue": {
++              "type": "integer",
++              "value": "0"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "0"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_no_fee_for_a_loan_due_today",
++          "classname": "tests.test_late_fees",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_late_fees.py",
++            "line": 6
++          }
++        },
++        {
++          "name": "test_no_fee_for_a_loan_returned_early",
++          "classname": "tests.test_late_fees",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_late_fees.py",
++            "line": 11
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "LATE-2",
++      "revision": 1,
++      "ref": "LATE-2~1",
++      "statement": "WHEN a loan is 1 to 5 days overdue THE SYSTEM SHALL charge 1. - Example: late_fee(days_overdue=3) => 1",
++      "statement_digest": "2d2278beb6e26f9970372df7cc9b9ac0b469394c9e965dadb88181c409daec4f",
++      "status": "active",
++      "location": {
++        "file": "specs/late-fees.md",
++        "line": 10
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "late_fee",
++          "args": {
++            "days_overdue": {
++              "type": "integer",
++              "value": "3"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "1"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_small_late_fee_matches_the_example",
++          "classname": "tests.test_late_fees",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_late_fees.py",
++            "line": 16
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "LATE-3",
++      "revision": 1,
++      "ref": "LATE-3~1",
++      "statement": "WHEN a loan is 6 to 10 days overdue THE SYSTEM SHALL charge 3. - Example: late_fee(days_overdue=7) => 3",
++      "statement_digest": "1928399ec8c38504c4990557d5e5c2c16d5bbae8289e524359f14498627d8cce",
++      "status": "active",
++      "location": {
++        "file": "specs/late-fees.md",
++        "line": 12
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "late_fee",
++          "args": {
++            "days_overdue": {
++              "type": "integer",
++              "value": "7"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "3"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_medium_late_fee_covers_its_range",
++          "classname": "tests.test_late_fees",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_late_fees.py",
++            "line": 21
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "LATE-4",
++      "revision": 1,
++      "ref": "LATE-4~1",
++      "statement": "WHEN a loan is 11 to 20 days overdue THE SYSTEM SHALL charge 6. - Example: late_fee(days_overdue=15) => 6",
++      "statement_digest": "d69625f8ab278c27e88db3ff932d9bde74cccce24805e6e4b630d754baa9ccdf",
++      "status": "active",
++      "location": {
++        "file": "specs/late-fees.md",
++        "line": 14
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "late_fee",
++          "args": {
++            "days_overdue": {
++              "type": "integer",
++              "value": "15"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "6"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_large_late_fee_covers_its_range",
++          "classname": "tests.test_late_fees",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_late_fees.py",
++            "line": 27
++          }
++        }
++      ],
++      "extensions": {}
++    },
++    {
++      "id": "LATE-5",
++      "revision": 1,
++      "ref": "LATE-5~1",
++      "statement": "WHEN a loan is 21 or more days overdue THE SYSTEM SHALL charge 10, including at the 21-day boundary. - Example: late_fee(days_overdue=25) => 10",
++      "statement_digest": "44a234d79199f5b77092545ba3dd866a2ddf2b609c3aacb46ec2770fb18f6993",
++      "status": "active",
++      "location": {
++        "file": "specs/late-fees.md",
++        "line": 16
++      },
++      "in_focus": true,
++      "examples": [
++        {
++          "index": 1,
++          "operation": "late_fee",
++          "args": {
++            "days_overdue": {
++              "type": "integer",
++              "value": "25"
++            }
++          },
++          "expect": {
++            "kind": "returns",
++            "type": "integer",
++            "value": "10"
++          }
++        }
++      ],
++      "coverage": "covered",
++      "tests": [
++        {
++          "name": "test_maximum_late_fee_starts_at_the_21_day_boundary",
++          "classname": "tests.test_late_fees",
++          "suite": "pytest",
++          "outcome": "passed",
++          "results_file": "test-results/pytest.xml",
++          "source": {
++            "file": "tests/test_late_fees.py",
++            "line": 33
++          }
++        }
++      ],
++      "extensions": {}
++    }
++  ],
++  "out_of_scope": [],
++  "findings": [],
++  "extensions": {
++    "proofs": {
++      "trust": "local",
++      "policy": {
++        "signedPassBasis": "corroborated",
++        "minIsolation": "restricted",
++        "maxHostExclusions": 2,
++        "validityThreshold": 0.7,
++        "alignmentThreshold": 0.7,
++        "escalation": "error",
++        "isolationFloorLowered": false
++      },
++      "manifest": null,
++      "consumed": [],
++      "pending": [],
++      "criteria": [
++        {
++          "ref": "LATE-1~1",
++          "modules": {},
++          "absent": [],
++          "channels": {},
++          "isolation": {},
++          "hostExclusions": 0,
++          "screenExclusions": 0
++        },
++        {
++          "ref": "LATE-2~1",
++          "modules": {},
++          "absent": [],
++          "channels": {},
++          "isolation": {},
++          "hostExclusions": 0,
++          "screenExclusions": 0
++        },
++        {
++          "ref": "LATE-3~1",
++          "modules": {},
++          "absent": [],
++          "channels": {},
++          "isolation": {},
++          "hostExclusions": 0,
++          "screenExclusions": 0
++        },
++        {
++          "ref": "LATE-4~1",
++          "modules": {},
++          "absent": [],
++          "channels": {},
++          "isolation": {},
++          "hostExclusions": 0,
++          "screenExclusions": 0
++        },
++        {
++          "ref": "LATE-5~1",
++          "modules": {},
++          "absent": [],
++          "channels": {},
++          "isolation": {},
++          "hostExclusions": 0,
++          "screenExclusions": 0
++        }
++      ]
++    }
++  }
++}
+diff --git a/tests/test_late_fees.py b/tests/test_late_fees.py
+index bad46a0..3585586 100644
+--- a/tests/test_late_fees.py
++++ b/tests/test_late_fees.py
+@@ -28,3 +28,10 @@ def test_medium_late_fee_covers_its_range():
+ def test_large_late_fee_covers_its_range():
+     assert late_fee(days_overdue=11) == 6
+     assert late_fee(days_overdue=20) == 6
++
++
++@pytest.mark.verifies("LATE-5~1")
++def test_maximum_late_fee_starts_at_the_21_day_boundary():
++    assert late_fee(days_overdue=20) == 6
++    assert late_fee(days_overdue=21) == 10
++    assert late_fee(days_overdue=25) == 10
+```
+
+
+## Counts and timings
+
+| Measure | Value |
+|---|---|
+| Assistant messages, main agent | 56 |
+| Assistant messages, subagents | 315 |
+| Executors launched | 105 |
+| Prove runs | 13 |
+| Gate runs, allowed | 1 |
+| Time in the gate | 0.3 s |
+| Tool calls, Agent | 105 |
+| Tool calls, Bash | 27 |
+| Tool calls, Edit | 3 |
+| Tool calls, Read | 1 |
+| Tool calls, Skill | 2 |
+| Session wall-clock time | 609.6 s |
+| Duration reported by the CLI | 607.6 s |
+| API time reported by the CLI | 1021.2 s |
+| Cost reported by the CLI | 3.1003 USD |
+| Turns reported by the CLI | 141 |

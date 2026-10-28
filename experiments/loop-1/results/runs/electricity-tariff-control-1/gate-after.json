@@ -1,0 +1,478 @@
+{
+  "schema_version": "1.2",
+  "tool": {
+    "name": "shallnot",
+    "version": "c331f9b97d5b"
+  },
+  "run": {
+    "advisory": false,
+    "fail_on": "error",
+    "id_pattern": "[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*",
+    "statement_canonicalization": "c1",
+    "focus": {
+      "everything": true,
+      "files": [],
+      "ids": []
+    },
+    "spec_files": [
+      "specs/hourly_tariffs.md"
+    ],
+    "test_roots": [
+      "tests"
+    ],
+    "results_files": [
+      "test-results/pytest.xml"
+    ]
+  },
+  "verdict": "pass",
+  "exit_code": 0,
+  "summary": {
+    "requirements": {
+      "known": 4,
+      "in_focus": 4,
+      "covered": 4,
+      "failed": 0,
+      "skipped": 0,
+      "not_run": 0,
+      "uncovered": 0,
+      "non_testable": 0
+    },
+    "tests": {
+      "total": 4,
+      "bound": 4,
+      "untagged": 0
+    },
+    "findings": {
+      "error": 0,
+      "warning": 0,
+      "info": 3,
+      "blocking": 0
+    }
+  },
+  "requirements": [
+    {
+      "id": "HOUR-1",
+      "revision": 1,
+      "ref": "HOUR-1~1",
+      "statement": "WHEN the hour is from 0 through 4 THE SYSTEM SHALL return a tariff of 0.11. - Example: electricity_tariff(hour=2) => 0.11",
+      "statement_digest": "d522e98e721b42e8fb9311101e90391d2710b394b17056831286873a8d8526dd",
+      "status": "active",
+      "location": {
+        "file": "specs/hourly_tariffs.md",
+        "line": 8
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "electricity_tariff",
+          "args": {
+            "hour": {
+              "type": "integer",
+              "value": "2"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "decimal",
+            "value": "0.11"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_night_tariff_matches_the_published_example",
+          "classname": "tests.test_tariffs",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_tariffs.py",
+            "line": 6
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "HOUR-2",
+      "revision": 1,
+      "ref": "HOUR-2~1",
+      "statement": "WHEN the hour is from 6 through 15 THE SYSTEM SHALL return a tariff of 0.23. - Example: electricity_tariff(hour=10) => 0.23",
+      "statement_digest": "0fe6d4a95f852e839e2581db02c3bc8f752e2cf681624f400459d4690559a645",
+      "status": "active",
+      "location": {
+        "file": "specs/hourly_tariffs.md",
+        "line": 10
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "electricity_tariff",
+          "args": {
+            "hour": {
+              "type": "integer",
+              "value": "10"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "decimal",
+            "value": "0.23"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_daytime_tariff_covers_its_period",
+          "classname": "tests.test_tariffs",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_tariffs.py",
+            "line": 15
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "HOUR-3",
+      "revision": 1,
+      "ref": "HOUR-3~1",
+      "statement": "WHEN the hour is from 17 through 19 THE SYSTEM SHALL return a tariff of 0.37. - Example: electricity_tariff(hour=18) => 0.37",
+      "statement_digest": "585f6e219a308f5fe744f6de639df8fbb32ae8dc84f60f012d75f7b188a4097e",
+      "status": "active",
+      "location": {
+        "file": "specs/hourly_tariffs.md",
+        "line": 12
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "electricity_tariff",
+          "args": {
+            "hour": {
+              "type": "integer",
+              "value": "18"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "decimal",
+            "value": "0.37"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_peak_tariff_covers_its_period",
+          "classname": "tests.test_tariffs",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_tariffs.py",
+            "line": 22
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "HOUR-4",
+      "revision": 1,
+      "ref": "HOUR-4~1",
+      "statement": "WHEN the hour is from 21 through 23, including boundary hours 21 and 23, THE SYSTEM SHALL return a tariff of 0.19. - Example: electricity_tariff(hour=22) => 0.19",
+      "statement_digest": "150e54bef721db04eac27ab08e8aa12157eedbf9cb3dc137b3d331d2d3de168d",
+      "status": "active",
+      "location": {
+        "file": "specs/hourly_tariffs.md",
+        "line": 14
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "electricity_tariff",
+          "args": {
+            "hour": {
+              "type": "integer",
+              "value": "22"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "decimal",
+            "value": "0.19"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_late_evening_tariff_covers_its_period",
+          "classname": "tests.test_tariffs",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_tariffs.py",
+            "line": 29
+          }
+        }
+      ],
+      "extensions": {}
+    }
+  ],
+  "out_of_scope": [],
+  "findings": [
+    {
+      "category": "completeness_question",
+      "severity": "info",
+      "blocking": false,
+      "message": "completeness (boundaries): The specification does not say how boundary values is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (boundaries): <reason>`.",
+      "module": "musthold-completeness",
+      "location": {
+        "file": "specs/hourly_tariffs.md"
+      }
+    },
+    {
+      "category": "completeness_question",
+      "severity": "info",
+      "blocking": false,
+      "message": "completeness (error_handling): The specification does not say how error handling is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (error_handling): <reason>`.",
+      "module": "musthold-completeness",
+      "location": {
+        "file": "specs/hourly_tariffs.md"
+      }
+    },
+    {
+      "category": "completeness_question",
+      "severity": "info",
+      "blocking": false,
+      "message": "completeness (input_validation): The specification does not say how input validation is handled. State the expected behaviour, or declare the dimension out of scope with `Out of scope (input_validation): <reason>`.",
+      "module": "musthold-completeness",
+      "location": {
+        "file": "specs/hourly_tariffs.md"
+      }
+    }
+  ],
+  "extensions": {
+    "proofs": {
+      "trust": "local",
+      "policy": {
+        "signedPassBasis": "corroborated",
+        "minIsolation": "restricted",
+        "maxHostExclusions": 2,
+        "validityThreshold": 0.7,
+        "alignmentThreshold": 0.7,
+        "escalation": "error",
+        "isolationFloorLowered": false
+      },
+      "manifest": {
+        "path": ".musthold/verified/manifest.json",
+        "digest": "285d49a3e1368c36304bd77d3288408634445041fa2673256fb3461064636734",
+        "verifierVersion": "dev"
+      },
+      "consumed": [
+        {
+          "path": ".musthold/verified/alignment/HOUR-1~1/2cc52ff89345c81d2a7042e097ea5f9a8e4495e62565837fbbe1e8fa94ba58c0.json",
+          "digest": "62932cd56bb6ecb6e6ddf397713bf5f37ae16b30ce808c47264b88da4d2b71eb",
+          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
+          "subject": "HOUR-1~1",
+          "state": "valid"
+        },
+        {
+          "path": ".musthold/verified/alignment/HOUR-2~1/f7de30c99552969076dc7524ced72b8e6e19bc6691cd7e836b188f74b15f90ce.json",
+          "digest": "2cf69a2cefdc83e3088664d3f387dc7f93f78ae849d023f2537da6c482b61ccb",
+          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
+          "subject": "HOUR-2~1",
+          "state": "valid"
+        },
+        {
+          "path": ".musthold/verified/alignment/HOUR-3~1/f89a53749de7aad316e74cf0058d83c69b82cfba62e6d47cf58e0ddbcf3a685c.json",
+          "digest": "b9ae2ec77f1121c385a2a709a2fbe662f0078e648b896f6c2c0423260c56b761",
+          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
+          "subject": "HOUR-3~1",
+          "state": "valid"
+        },
+        {
+          "path": ".musthold/verified/alignment/HOUR-4~1/0cdbc5e3611e1d1a6ebbdf6e2e1b6150602727a630cce71f8aa31361338a12ce.json",
+          "digest": "0ff5e5fc0ded636d39e9191efedf163d584844eb3921fe405b4f41053b62fafb",
+          "predicateType": "https://rachid-chabane.com/attestations/alignment/v1",
+          "subject": "HOUR-4~1",
+          "state": "valid"
+        },
+        {
+          "path": ".musthold/verified/completeness/specs%2Fhourly_tariffs.md/6bc9835056da8dcaff1697b6b5bccdad5f1766f21bff6de90efc4eb5c9fb49d4.json",
+          "digest": "386b8c2e3098d4a5527af5b137c88bb7c8ee616d12ffa2954cbea181eac6ba0d",
+          "predicateType": "https://rachid-chabane.com/attestations/completeness/v1",
+          "subject": "specs/hourly_tariffs.md",
+          "state": "valid"
+        },
+        {
+          "path": ".musthold/verified/discriminating-power/HOUR-1~1/5088aae42746a7ea17cf6f93286f88fc9d2547e3c79dcd89a78181834b1ac021.json",
+          "digest": "30c027f2136f4eedc7b5b9086b8f17a566ad56ba2d58ab9d67df248a3d85d641",
+          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
+          "subject": "HOUR-1~1",
+          "state": "valid"
+        },
+        {
+          "path": ".musthold/verified/discriminating-power/HOUR-1~1/a87d2bf85ff5e5d29c7ed520f8e5fbf975fdbaacfe1ddf3281c1432be38eaff2.json",
+          "digest": "868cba53bb7c0d5df19f9498c9522f1a8ab41f7ff41376b3eb12b6231ec62fae",
+          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
+          "subject": "HOUR-1~1",
+          "state": "stale",
+          "reason": "the test_source file tests/test_tariffs.py changed since the proof was produced"
+        },
+        {
+          "path": ".musthold/verified/discriminating-power/HOUR-2~1/54e52d2d15488f2de77b077df54bfe1f2f6ff6ae552ee1fe1d45e72883635e65.json",
+          "digest": "30b571c908668260091566bb872c9c10ecb4743924551b74433f8f5dc91d7f00",
+          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
+          "subject": "HOUR-2~1",
+          "state": "stale",
+          "reason": "the test_source file tests/test_tariffs.py changed since the proof was produced"
+        },
+        {
+          "path": ".musthold/verified/discriminating-power/HOUR-2~1/af65ea64f70c34f81af348bc2384bd0b5d7ab4a1d0885ab4517d98a701f703f9.json",
+          "digest": "97bc1335d067893fd1d6b749ef3608e607f03fdbf2d77568e2334675f70c9440",
+          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
+          "subject": "HOUR-2~1",
+          "state": "valid"
+        },
+        {
+          "path": ".musthold/verified/discriminating-power/HOUR-3~1/c9ad4f2cdfd7fa8314e51263ce04dbb8c5523cb3f647685e3fa20b554427fb8d.json",
+          "digest": "6349a999388d20e7792e20f23df57e16b58aca934718941632efd1a5a0403ae7",
+          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
+          "subject": "HOUR-3~1",
+          "state": "valid"
+        },
+        {
+          "path": ".musthold/verified/discriminating-power/HOUR-3~1/eeaadabd18005040568f1a2d5aaad1d33a76e3e5dc8d35bda4894316d35f2d70.json",
+          "digest": "9fd213476be8c505ed6b642fa0e480b7ea72def1e7a8521cc109e96e2d5d3fe0",
+          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
+          "subject": "HOUR-3~1",
+          "state": "stale",
+          "reason": "the test_source file tests/test_tariffs.py changed since the proof was produced"
+        },
+        {
+          "path": ".musthold/verified/discriminating-power/HOUR-4~1/7072383d2075f854de692815683806ef4416a5b0127f04abbef82567f2f0dad9.json",
+          "digest": "f7099715e62047d8c3b35e18631d3d8243822eb5cbffcb41621d67579e471bc6",
+          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
+          "subject": "HOUR-4~1",
+          "state": "valid"
+        },
+        {
+          "path": ".musthold/verified/discriminating-power/HOUR-4~1/d02d9015dededac1ba1d438fcd828b6996828b13feec3afa1d067ca414d22467.json",
+          "digest": "24a3c9752989829de8fd5b8a72886e62c794d872a29c3f7c60375e86c26a089a",
+          "predicateType": "https://rachid-chabane.com/attestations/discriminating-power/v1",
+          "subject": "HOUR-4~1",
+          "state": "stale",
+          "reason": "the test_source file tests/test_tariffs.py changed since the proof was produced"
+        }
+      ],
+      "pending": [],
+      "criteria": [
+        {
+          "ref": "HOUR-1~1",
+          "modules": {
+            "alignment": {
+              "state": "valid",
+              "outcome": "pass"
+            },
+            "discriminating-power": {
+              "state": "valid",
+              "outcome": "pass"
+            }
+          },
+          "absent": [],
+          "channels": {
+            "host-subagent": 21
+          },
+          "isolation": {
+            "restricted": 20,
+            "restricted-attested": 1
+          },
+          "hostExclusions": 0,
+          "screenExclusions": 33
+        },
+        {
+          "ref": "HOUR-2~1",
+          "modules": {
+            "alignment": {
+              "state": "valid",
+              "outcome": "pass"
+            },
+            "discriminating-power": {
+              "state": "valid",
+              "outcome": "pass"
+            }
+          },
+          "absent": [],
+          "channels": {
+            "host-subagent": 27
+          },
+          "isolation": {
+            "restricted": 26,
+            "restricted-attested": 1
+          },
+          "hostExclusions": 0,
+          "screenExclusions": 36
+        },
+        {
+          "ref": "HOUR-3~1",
+          "modules": {
+            "alignment": {
+              "state": "valid",
+              "outcome": "pass"
+            },
+            "discriminating-power": {
+              "state": "valid",
+              "outcome": "pass"
+            }
+          },
+          "absent": [],
+          "channels": {
+            "host-subagent": 32
+          },
+          "isolation": {
+            "restricted": 31,
+            "restricted-attested": 1
+          },
+          "hostExclusions": 0,
+          "screenExclusions": 36
+        },
+        {
+          "ref": "HOUR-4~1",
+          "modules": {
+            "alignment": {
+              "state": "valid",
+              "outcome": "pass"
+            },
+            "discriminating-power": {
+              "state": "valid",
+              "outcome": "pass"
+            }
+          },
+          "absent": [],
+          "channels": {
+            "host-subagent": 37
+          },
+          "isolation": {
+            "restricted": 36,
+            "restricted-attested": 1
+          },
+          "hostExclusions": 0,
+          "screenExclusions": 32
+        }
+      ]
+    }
+  }
+}

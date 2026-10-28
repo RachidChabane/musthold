@@ -10,3 +10,6 @@ build/
 *.test
 *.out
 /.tools/
+
+# Raw records of a study's runs: covered by results/SHA256SUMS, published as a release archive, never in history (PREREG loop-1 §11.1).
+experiments/*/results/runs/*/raw/

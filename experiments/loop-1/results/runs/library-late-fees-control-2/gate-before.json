@@ -1,0 +1,347 @@
+{
+  "schema_version": "1.2",
+  "tool": {
+    "name": "shallnot",
+    "version": "c331f9b97d5b"
+  },
+  "run": {
+    "advisory": false,
+    "fail_on": "error",
+    "id_pattern": "[A-Z][A-Z0-9]*-[0-9]+(?:\\.[A-Za-z0-9]+)*",
+    "statement_canonicalization": "c1",
+    "focus": {
+      "everything": true,
+      "files": [],
+      "ids": []
+    },
+    "spec_files": [
+      "specs/late-fees.md"
+    ],
+    "test_roots": [
+      "tests"
+    ],
+    "results_files": [
+      "test-results/pytest.xml"
+    ]
+  },
+  "verdict": "fail",
+  "exit_code": 1,
+  "summary": {
+    "requirements": {
+      "known": 5,
+      "in_focus": 5,
+      "covered": 4,
+      "failed": 0,
+      "skipped": 0,
+      "not_run": 0,
+      "uncovered": 1,
+      "non_testable": 0
+    },
+    "tests": {
+      "total": 5,
+      "bound": 5,
+      "untagged": 0
+    },
+    "findings": {
+      "error": 1,
+      "warning": 0,
+      "info": 0,
+      "blocking": 1
+    }
+  },
+  "requirements": [
+    {
+      "id": "LATE-1",
+      "revision": 1,
+      "ref": "LATE-1~1",
+      "statement": "WHEN a loan is not overdue THE SYSTEM SHALL charge 0. - Example: late_fee(days_overdue=0) => 0",
+      "statement_digest": "966704e38cd80b2ed346b6da9c45714b85f57eae352115943a99b28522c400a8",
+      "status": "active",
+      "location": {
+        "file": "specs/late-fees.md",
+        "line": 8
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "late_fee",
+          "args": {
+            "days_overdue": {
+              "type": "integer",
+              "value": "0"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "0"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_no_fee_for_a_loan_due_today",
+          "classname": "tests.test_late_fees",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_late_fees.py",
+            "line": 6
+          }
+        },
+        {
+          "name": "test_no_fee_for_a_loan_returned_early",
+          "classname": "tests.test_late_fees",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_late_fees.py",
+            "line": 11
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "LATE-2",
+      "revision": 1,
+      "ref": "LATE-2~1",
+      "statement": "WHEN a loan is 1 to 5 days overdue THE SYSTEM SHALL charge 1. - Example: late_fee(days_overdue=3) => 1",
+      "statement_digest": "2d2278beb6e26f9970372df7cc9b9ac0b469394c9e965dadb88181c409daec4f",
+      "status": "active",
+      "location": {
+        "file": "specs/late-fees.md",
+        "line": 10
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "late_fee",
+          "args": {
+            "days_overdue": {
+              "type": "integer",
+              "value": "3"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "1"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_small_late_fee_matches_the_example",
+          "classname": "tests.test_late_fees",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_late_fees.py",
+            "line": 16
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "LATE-3",
+      "revision": 1,
+      "ref": "LATE-3~1",
+      "statement": "WHEN a loan is 6 to 10 days overdue THE SYSTEM SHALL charge 3. - Example: late_fee(days_overdue=7) => 3",
+      "statement_digest": "1928399ec8c38504c4990557d5e5c2c16d5bbae8289e524359f14498627d8cce",
+      "status": "active",
+      "location": {
+        "file": "specs/late-fees.md",
+        "line": 12
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "late_fee",
+          "args": {
+            "days_overdue": {
+              "type": "integer",
+              "value": "7"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "3"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_medium_late_fee_covers_its_range",
+          "classname": "tests.test_late_fees",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_late_fees.py",
+            "line": 21
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "LATE-4",
+      "revision": 1,
+      "ref": "LATE-4~1",
+      "statement": "WHEN a loan is 11 to 20 days overdue THE SYSTEM SHALL charge 6. - Example: late_fee(days_overdue=15) => 6",
+      "statement_digest": "d69625f8ab278c27e88db3ff932d9bde74cccce24805e6e4b630d754baa9ccdf",
+      "status": "active",
+      "location": {
+        "file": "specs/late-fees.md",
+        "line": 14
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "late_fee",
+          "args": {
+            "days_overdue": {
+              "type": "integer",
+              "value": "15"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "6"
+          }
+        }
+      ],
+      "coverage": "covered",
+      "tests": [
+        {
+          "name": "test_large_late_fee_covers_its_range",
+          "classname": "tests.test_late_fees",
+          "suite": "pytest",
+          "outcome": "passed",
+          "results_file": "test-results/pytest.xml",
+          "source": {
+            "file": "tests/test_late_fees.py",
+            "line": 27
+          }
+        }
+      ],
+      "extensions": {}
+    },
+    {
+      "id": "LATE-5",
+      "revision": 1,
+      "ref": "LATE-5~1",
+      "statement": "WHEN a loan is 21 or more days overdue THE SYSTEM SHALL charge 10, including at the 21-day boundary. - Example: late_fee(days_overdue=25) => 10",
+      "statement_digest": "44a234d79199f5b77092545ba3dd866a2ddf2b609c3aacb46ec2770fb18f6993",
+      "status": "active",
+      "location": {
+        "file": "specs/late-fees.md",
+        "line": 16
+      },
+      "in_focus": true,
+      "examples": [
+        {
+          "index": 1,
+          "operation": "late_fee",
+          "args": {
+            "days_overdue": {
+              "type": "integer",
+              "value": "25"
+            }
+          },
+          "expect": {
+            "kind": "returns",
+            "type": "integer",
+            "value": "10"
+          }
+        }
+      ],
+      "coverage": "uncovered",
+      "tests": [],
+      "extensions": {}
+    }
+  ],
+  "out_of_scope": [],
+  "findings": [
+    {
+      "category": "uncovered_requirement",
+      "severity": "error",
+      "blocking": true,
+      "message": "requirement LATE-5~1 has no bound test",
+      "requirement_id": "LATE-5",
+      "location": {
+        "file": "specs/late-fees.md",
+        "line": 16
+      }
+    }
+  ],
+  "extensions": {
+    "proofs": {
+      "trust": "local",
+      "policy": {
+        "signedPassBasis": "corroborated",
+        "minIsolation": "restricted",
+        "maxHostExclusions": 2,
+        "validityThreshold": 0.7,
+        "alignmentThreshold": 0.7,
+        "escalation": "error",
+        "isolationFloorLowered": false
+      },
+      "manifest": null,
+      "consumed": [],
+      "pending": [],
+      "criteria": [
+        {
+          "ref": "LATE-1~1",
+          "modules": {},
+          "absent": [],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        },
+        {
+          "ref": "LATE-2~1",
+          "modules": {},
+          "absent": [],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        },
+        {
+          "ref": "LATE-3~1",
+          "modules": {},
+          "absent": [],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        },
+        {
+          "ref": "LATE-4~1",
+          "modules": {},
+          "absent": [],
+          "channels": {},
+          "isolation": {},
+          "hostExclusions": 0,
+          "screenExclusions": 0
+        }
+      ]
+    }
+  }
+}
