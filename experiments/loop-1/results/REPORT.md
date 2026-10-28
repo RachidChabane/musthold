@@ -249,6 +249,6 @@ The oracle found no defective final change in either arm, 0/18 each, so no gate 
 
 The four treatment runs that the acceptance gate rejected, 4/18, were all oracle-clean. In each one the blocking findings are `stale_proof`: the session ended without publishing a verified proof set (`.musthold/verified/manifest.json` absent). Their records show pending blocks on proofs awaiting their host and give-ups of the end-of-turn hook. The rejections come from proofs the session did not finish, not from a proof that judged a correct change wrong.
 
-The control arm ran the proof modules on its own in 18/18 runs, so it saw the same counterexamples as the treatment arm without being held by them. That narrows the contrast to the gate's requirement, as the limits say.
+The control arm ran the proof modules on its own in 18/18 runs, and the gate then held it on their findings: with `proofs.require` empty, a proof that is present and fails still blocks the end of the turn. Control runs had finding blocks in 4/18 runs, `surviving_valid_mutant` each time, more than the treatment arm's 2/18. The contrast between the arms was therefore narrower than the requirement alone suggests. A study with this design needs a control arm whose gate does not act on proofs it does not require.
 
 H2 rests on two treatment runs with a finding block; one of them, 1/2, was corrected and accepted.
