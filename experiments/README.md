@@ -11,6 +11,7 @@ before any data existed.
 | [`validity-w`](validity-w) | the witness-based mutant validity policy of discriminating power (G3-W) |
 | [`demos-1`](demos-1) | the first scans of public repositories |
 | [`loop-1`](loop-1) | the agent loop under the proof gate |
+| [`loop-2`](loop-2) | whether the proofs bring a useful gain over traceability alone, decided by the rules of ADR 0017 |
 
 ## Freezes and the archive commits
 

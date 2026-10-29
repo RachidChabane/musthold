@@ -1,0 +1,250 @@
+#!/usr/bin/env python3
+"""Operating characteristics of the loop-2 decision rule.
+
+The decision rule is ADR 0017's. Tasks are strata. The direction comes from the exact
+stratified permutation test: its statistic is the number of treatment escapes, and its
+null distribution permutes the arm labels within each task with each task's escape
+total fixed. The magnitude comes from the stratified Miettinen-Nurminen score interval
+of the risk difference, control minus treatment, at level 0.90, with weights
+n1*n2/(n1+n2) per task. Outcomes are evaluated in this order:
+
+  1. HARM               p_more <= 0.05
+  2. REJECTION-ONLY     p_less <= 0.05 and guard G or guard Y fails
+  3. USEFUL GAIN        p_less <= 0.05 and L >= delta
+  4. GAIN BELOW USEFUL  p_less <= 0.05 and U < delta
+  5. GAIN               p_less <= 0.05 otherwise
+  6. NO USEFUL GAIN     U < delta
+  7. INCONCLUSIVE       otherwise
+
+The simulation draws each task's control escape rate from a beta distribution with mean
+`control` and concentration KAPPA, and sets its treatment escape rate to the control
+rate times treatment/control. A clean treatment change is refused with probability
+FALSE_REJECTION; a caught defective change is corrected and accepted with probability
+CORRECTION, and refused otherwise. Control refuses nothing. The draws use a fixed seed,
+so every run prints the same output.
+
+Usage:
+  script/power table                 operating characteristics per scenario
+  script/power reach ESCAPES RUNS    outcome shares of the confirmatory design at the
+                                     chosen coder's calibration control rate, shrunk
+                                     to (ESCAPES + 1) / (RUNS + 2), with the treatment
+                                     halving it and with no effect
+"""
+
+import math
+import random
+import sys
+
+TASKS = 24
+ALPHA = 0.05
+LEVEL_Z = 1.6448536269514722  # two-sided 0.90
+DELTA = 0.15
+GUARD_G = 0.15  # maximum share of oracle-clean treatment changes the gate refuses
+GUARD_Y = 0.10  # maximum shortfall of the treatment's clean accepted yield
+KAPPA = 4.0
+FALSE_REJECTION = 0.08
+CORRECTION = 0.5
+DRAWS = 2_000
+SEED = 20261029
+REPETITIONS = 8  # runs per task and arm in the confirmatory phase
+TABLE_REPETITIONS = (5, REPETITIONS, 10)
+RELATIVE_EFFECT = 0.5
+SCENARIOS = (
+    (0.50, 0.25),
+    (0.40, 0.10),
+    (0.40, 0.20),
+    (0.30, 0.15),
+    (0.40, 0.30),
+    (0.20, 0.10),
+    (0.40, 0.40),
+    (0.20, 0.20),
+    (0.10, 0.10),
+    (0.20, 0.30),
+)
+OUTCOMES = (
+    "USEFUL GAIN",
+    "GAIN",
+    "GAIN BELOW USEFUL",
+    "REJECTION-ONLY",
+    "NO USEFUL GAIN",
+    "HARM",
+    "INCONCLUSIVE",
+)
+
+
+def hypergeometric(escapes: int, runs: int) -> list[float]:
+    """Distribution of one task's treatment escapes, `escapes` in all, `runs` per arm."""
+    total = math.comb(2 * runs, runs)
+    return [
+        math.comb(escapes, k) * math.comb(2 * runs - escapes, runs - k) / total
+        if 0 <= escapes - k <= runs
+        else 0.0
+        for k in range(runs + 1)
+    ]
+
+
+def convolve(left: list[float], right: list[float]) -> list[float]:
+    out = [0.0] * (len(left) + len(right) - 1)
+    for i, p in enumerate(left):
+        if p:
+            for j, q in enumerate(right):
+                out[i + j] += p * q
+    return out
+
+
+def exact_tails(totals: list[int], treated: int, runs: int) -> tuple[float, float]:
+    """(p_less, p_more) of the stratified permutation test."""
+    distribution = [1.0]
+    for escapes in totals:
+        distribution = convolve(distribution, hypergeometric(escapes, runs))
+    p_less = sum(distribution[: treated + 1])
+    p_more = sum(distribution[treated:])
+    return p_less, p_more
+
+
+def restricted_mle(p1: float, p2: float, n1: int, n2: int, delta: float) -> tuple[float, float]:
+    """Miettinen-Nurminen maximum likelihood rates under p1 - p2 = delta."""
+    theta = n2 / n1
+    a = 1.0 + theta
+    b = -(1.0 + theta + p1 + theta * p2 + delta * (theta + 2.0))
+    c = delta * delta + delta * (2.0 * p1 + theta + 1.0) + p1 + theta * p2
+    d = -p1 * delta * (1.0 + delta)
+    v = b**3 / (3.0 * a) ** 3 - b * c / (6.0 * a * a) + d / (2.0 * a)
+    s = b * b / (3.0 * a) ** 2 - c / (3.0 * a)
+    u = math.copysign(math.sqrt(max(s, 0.0)), v) if v != 0 else math.sqrt(max(s, 0.0))
+    if u == 0.0:
+        r1 = -b / (3.0 * a)
+    else:
+        w = (math.pi + math.acos(max(-1.0, min(1.0, v / u**3)))) / 3.0
+        r1 = 2.0 * u * math.cos(w) - b / (3.0 * a)
+    r1 = min(1.0, max(0.0, r1))
+    r2 = min(1.0, max(0.0, r1 - delta))
+    return r1, r2
+
+
+def score(cells: list[tuple[int, int, int, int]], delta: float) -> float:
+    """Stratified Miettinen-Nurminen score at delta; decreasing in delta."""
+    numerator = denominator = 0.0
+    for x1, n1, x2, n2 in cells:
+        weight = n1 * n2 / (n1 + n2)
+        p1, p2 = x1 / n1, x2 / n2
+        r1, r2 = restricted_mle(p1, p2, n1, n2, delta)
+        variance = (r1 * (1 - r1) / n1 + r2 * (1 - r2) / n2) * (n1 + n2) / (n1 + n2 - 1)
+        numerator += weight * (p1 - p2 - delta)
+        denominator += weight * weight * variance
+    if denominator <= 0.0:
+        return math.inf if numerator > 0 else -math.inf if numerator < 0 else 0.0
+    return numerator / math.sqrt(denominator)
+
+
+def decide(p_less: float, p_more: float, score_at_delta: float, guards_hold: bool) -> str:
+    """The score decreases in delta, so L >= DELTA is score(DELTA) >= z and U < DELTA is
+    score(DELTA) < -z."""
+    lower_clears = score_at_delta >= LEVEL_Z
+    upper_below = score_at_delta < -LEVEL_Z
+    if p_more <= ALPHA:
+        return "HARM"
+    if p_less <= ALPHA:
+        if not guards_hold:
+            return "REJECTION-ONLY"
+        if lower_clears:
+            return "USEFUL GAIN"
+        if upper_below:
+            return "GAIN BELOW USEFUL"
+        return "GAIN"
+    if upper_below:
+        return "NO USEFUL GAIN"
+    return "INCONCLUSIVE"
+
+
+def beta_rate(rng: random.Random, mean: float) -> float:
+    if mean <= 0.0:
+        return 0.0
+    if mean >= 1.0:
+        return 1.0
+    return rng.betavariate(mean * KAPPA, (1.0 - mean) * KAPPA)
+
+
+def draw(rng: random.Random, control: float, treatment: float, runs: int) -> str:
+    ratio = treatment / control if control > 0 else 1.0
+    cells, totals, treated = [], [], 0
+    clean_treatment = refused_clean = accepted_clean_treatment = accepted_clean_control = 0
+    for _ in range(TASKS):
+        rate_c = beta_rate(rng, control)
+        rate_t = min(1.0, rate_c * ratio)
+        caught = max(0.0, rate_c - rate_t)
+        escapes_c = escapes_t = 0
+        for _ in range(runs):
+            if rng.random() < rate_c:
+                escapes_c += 1
+            else:
+                accepted_clean_control += 1
+            roll = rng.random()
+            if roll < rate_t:
+                escapes_t += 1
+            elif roll < rate_t + caught:
+                if rng.random() < CORRECTION:
+                    clean_treatment += 1
+                    accepted_clean_treatment += 1
+            else:
+                clean_treatment += 1
+                if rng.random() < FALSE_REJECTION:
+                    refused_clean += 1
+                else:
+                    accepted_clean_treatment += 1
+        cells.append((escapes_c, runs, escapes_t, runs))
+        totals.append(escapes_c + escapes_t)
+        treated += escapes_t
+    p_less, p_more = exact_tails(totals, treated, runs)
+    guard_g = clean_treatment == 0 or refused_clean / clean_treatment <= GUARD_G
+    arm_runs = TASKS * runs
+    guard_y = (accepted_clean_control - accepted_clean_treatment) / arm_runs <= GUARD_Y
+    return decide(p_less, p_more, score(cells, DELTA), guard_g and guard_y)
+
+
+def characteristics(control: float, treatment: float, runs: int, rng: random.Random) -> dict[str, float]:
+    counts = dict.fromkeys(OUTCOMES, 0)
+    for _ in range(DRAWS):
+        counts[draw(rng, control, treatment, runs)] += 1
+    return {outcome: count / DRAWS for outcome, count in counts.items()}
+
+
+def table() -> None:
+    rng = random.Random(SEED)
+    for runs in TABLE_REPETITIONS:
+        print(f"### {TASKS} tasks, {runs} runs per task and arm ({2 * TASKS * runs} runs)")
+        print()
+        print("| Control -> treatment | " + " | ".join(OUTCOMES) + " |")
+        print("|---" * (len(OUTCOMES) + 1) + "|")
+        for control, treatment in SCENARIOS:
+            shares = characteristics(control, treatment, runs, rng)
+            row = " | ".join(f"{shares[outcome]:.2f}" for outcome in OUTCOMES)
+            print(f"| {control:.2f} -> {treatment:.2f} | {row} |")
+        print()
+    print(
+        f"(delta {DELTA}, kappa {KAPPA}, false rejection {FALSE_REJECTION}, correction {CORRECTION},"
+        f" {DRAWS} draws per cell, seed {SEED})"
+    )
+
+
+def reach(escapes: int, runs: int) -> None:
+    control = (escapes + 1) / (runs + 2)
+    rng = random.Random(SEED)
+    print(f"shrunk control rate {control:.3f}, {TASKS} tasks, {REPETITIONS} runs per task and arm")
+    for label, treatment in (("treatment halves it", control * (1.0 - RELATIVE_EFFECT)), ("no effect", control)):
+        shares = characteristics(control, treatment, REPETITIONS, rng)
+        print(f"{label}: " + ", ".join(f"{outcome} {shares[outcome]:.2f}" for outcome in OUTCOMES))
+
+
+def main() -> None:
+    if len(sys.argv) == 2 and sys.argv[1] == "table":
+        table()
+    elif len(sys.argv) == 4 and sys.argv[1] == "reach":
+        reach(int(sys.argv[2]), int(sys.argv[3]))
+    else:
+        sys.stderr.write(__doc__ or "")
+        sys.exit(64)
+
+
+if __name__ == "__main__":
+    main()
