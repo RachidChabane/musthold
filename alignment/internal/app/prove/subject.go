@@ -163,8 +163,10 @@ func (s *subjectRun) proveDeclared(ref criterion.Ref) (TestResult, error) {
 	if err != nil {
 		return TestResult{}, err
 	}
-	if err := s.rememberFresh(baseKey, freshRecord{CacheKey: cacheKey, Verdict: outcome.decision.Verdict, Reason: outcome.decision.Reason}); err != nil {
-		return TestResult{}, err
+	if !verdict.Abandoned(outcome.decision.Reason) {
+		if err := s.rememberFresh(baseKey, freshRecord{CacheKey: cacheKey, Verdict: outcome.decision.Verdict, Reason: outcome.decision.Reason}); err != nil {
+			return TestResult{}, err
+		}
 	}
 	return TestResult{Test: label, Criterion: ref, Status: StatusProved, Verdict: outcome.decision.Verdict, Reason: outcome.decision.Reason, CacheKey: cacheKey}, nil
 }
@@ -174,14 +176,14 @@ func (s *subjectRun) freshMemoKey(baseKey string) string {
 }
 
 // freshRecord returns the record of the Statement written for the base cache key,
-// when that Statement still exists.
+// when that Statement still exists and its verdict is not an abandonment.
 func (s *subjectRun) freshRecord(ref criterion.Ref, baseKey string) (freshRecord, bool) {
 	raw, found, err := s.pass.deps.Memo.Get(s.freshMemoKey(baseKey))
 	if err != nil || !found {
 		return freshRecord{}, false
 	}
 	var record freshRecord
-	if json.Unmarshal(raw, &record) != nil {
+	if json.Unmarshal(raw, &record) != nil || verdict.Abandoned(record.Reason) {
 		return freshRecord{}, false
 	}
 	exists, err := s.pass.deps.Proofs.Has(ref, record.CacheKey)

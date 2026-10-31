@@ -5,13 +5,11 @@ import (
 	"path/filepath"
 
 	"github.com/RachidChabane/musthold/alignment/internal/adapters/bundlefs"
-	"github.com/RachidChabane/musthold/alignment/internal/adapters/responsecheck"
 	"github.com/RachidChabane/musthold/alignment/internal/app/prove"
 	"github.com/RachidChabane/musthold/format"
 	"github.com/RachidChabane/musthold/format/hostproto"
 	"github.com/RachidChabane/musthold/format/hostproto/hostbundle"
 	"github.com/RachidChabane/musthold/format/hostproto/hostsync"
-	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
 // ciRun is the CI part of a `prove` invocation.
@@ -42,7 +40,7 @@ func (e Env) prepareCI(project *project, ci ciRun) (func(prove.Result) error, er
 				return refusal{err}
 			}
 		}
-		if result.PendingTickets == 0 {
+		if len(result.Waiting.Launchable) == 0 {
 			return nil
 		}
 		return e.writeIssued(project)
@@ -62,7 +60,7 @@ func (e Env) importer(project *project, dir string) (*hostsync.Importer, error) 
 	if err != nil {
 		return nil, refusal{err}
 	}
-	service := requests.Service{Plugin: pluginName, Store: project.store, Validator: responsecheck.New(), Clock: e.Now}
+	service := e.newRequestService(project.root, project.store)
 	return &hostsync.Importer{Service: service, Store: project.store, Bundle: bundle}, nil
 }
 

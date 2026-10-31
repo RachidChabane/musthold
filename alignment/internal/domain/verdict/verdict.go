@@ -36,6 +36,11 @@ const (
 	ReasonIsolationBelowFloor = "isolation_below_floor"
 )
 
+// Abandoned reports whether a decision of the reason rests on a request the host
+// abandoned: it says what the host left undetermined, not what the test is
+// worth, so it is never a verdict to keep.
+func Abandoned(reason string) bool { return reason == ReasonHostUnresponsive }
+
 // Deciders named in a decision.
 const (
 	DeciderJudge       = "judge"

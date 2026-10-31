@@ -123,7 +123,7 @@ func TestRecordAndReplay(t *testing.T) {
 		}
 	})
 
-	t.Run("a replay with no recording of a request is a hard error [verifies SP-334~1]", func(t *testing.T) {
+	t.Run("a replay with no recording of a request is a hard error [verifies SP-334~2]", func(t *testing.T) {
 		replayer := newHarness(t, testkit.PythonParcel)
 		replayer.withPowers(testkit.PythonPowers())
 		code, _, stderr := replayer.run(nil, proveCommand, allFlag, "--replay", t.TempDir())

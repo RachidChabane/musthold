@@ -7,6 +7,8 @@ import (
 
 	"github.com/RachidChabane/musthold/alignment/internal/app/prove"
 	"github.com/RachidChabane/musthold/alignment/internal/domain/criterion"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbridge"
 )
 
 func TestPrintResultLeavesNoTrailingSpace(t *testing.T) {
@@ -18,7 +20,7 @@ func TestPrintResultLeavesNoTrailingSpace(t *testing.T) {
 				{Test: "test_total", Criterion: criterion.Ref{ID: "PAR-1", Revision: 1}, Status: prove.StatusAwaitingHost},
 				{Test: "test_zone", Criterion: criterion.Ref{ID: "PAR-2", Revision: 1}, Status: prove.StatusAwaitingProof, Reason: "awaiting_proof"},
 			},
-			PendingTickets: 2,
+			Waiting: hostbridge.Waiting{Launchable: make([]hostproto.Ticket, 2)},
 		})
 		for _, line := range strings.Split(strings.TrimSuffix(out.String(), "\n"), "\n") {
 			if line != strings.TrimSpace(line) {

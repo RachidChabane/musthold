@@ -73,7 +73,7 @@ func TestLayout(t *testing.T) {
 		mustNoError(t, err)
 		_, err = store.Secret()
 		mustNoError(t, err)
-		_, err = store.AdvanceWave(hostproto.SessionProve)
+		_, err = store.AdvanceWave(hostproto.SessionProve, 0)
 		mustNoError(t, err)
 
 		for _, dir := range []string{store.Dir(), store.path(RequestsDir), store.path(TicketsDir), store.path(ResponsesDir)} {
@@ -358,7 +358,7 @@ func TestQueue(t *testing.T) {
 		dir := filepath.Join(t.TempDir(), "host")
 		store := mustOpen(t, dir)
 		for want := 1; want <= 3; want++ {
-			got, err := store.AdvanceWave(hostproto.SessionProve)
+			got, err := store.AdvanceWave(hostproto.SessionProve, 0)
 			if err != nil || got != want {
 				t.Fatalf("AdvanceWave = %d, %v; want %d", got, err, want)
 			}
@@ -371,7 +371,7 @@ func TestQueue(t *testing.T) {
 
 	t.Run("recording keeps the wave counter [verifies SP-343~2]", func(t *testing.T) {
 		store := openStore(t)
-		_, err := store.AdvanceWave(hostproto.SessionProve)
+		_, err := store.AdvanceWave(hostproto.SessionProve, 0)
 		mustNoError(t, err)
 		mustNoError(t, store.Record(item("a", 1, "PAR-1~1")))
 		if wave, _ := store.Wave(hostproto.SessionProve); wave != 1 {
@@ -422,9 +422,9 @@ func TestQueue(t *testing.T) {
 			t.Fatalf("items = %+v", items)
 		}
 		scan := hostproto.ScanSession("3f5a9c")
-		next, err := store.AdvanceWave(hostproto.SessionProve)
+		next, err := store.AdvanceWave(hostproto.SessionProve, 0)
 		mustNoError(t, err)
-		first, err := store.AdvanceWave(scan)
+		first, err := store.AdvanceWave(scan, 0)
 		mustNoError(t, err)
 		reopened, err := mustOpen(t, dir).Wave(hostproto.SessionProve)
 		if err != nil || next != legacyProveWave+1 || first != 1 || reopened != legacyProveWave+1 {

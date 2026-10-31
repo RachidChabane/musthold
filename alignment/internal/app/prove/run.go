@@ -32,18 +32,26 @@ func (u UseCase) Run(ctx context.Context, options Options) (Result, error) {
 	if err := u.Settings.Policy.Validate(); err != nil {
 		return Result{}, err
 	}
+	release, err := u.Deps.Store.LockRun(hostproto.SessionProve)
+	if errors.Is(err, hostproto.ErrSessionBusy) {
+		return u.unfinished(hostproto.StepSessionBusy)
+	}
+	if err != nil {
+		return Result{}, err
+	}
+	defer release()
 	for {
 		result, err := u.pass(ctx, options)
 		if err != nil {
-			return result, err
+			return u.cut(ctx, err)
 		}
 		if err := u.writePending(result); err != nil {
 			return result, err
 		}
-		if result.PendingTickets == 0 || u.Deps.Replay == nil {
+		if len(result.Waiting.Launchable) == 0 || u.Deps.Replay == nil {
 			return result, nil
 		}
-		if err := u.Deps.Replay.Serve(result.pending); errors.Is(err, requests.ErrNothingServed) {
+		if err := u.Deps.Replay.Serve(requests.PendingOf(result.Waiting.Launchable)); errors.Is(err, requests.ErrNothingServed) {
 			return result, nil
 		} else if err != nil {
 			return result, err
@@ -58,17 +66,19 @@ func (u UseCase) pass(ctx context.Context, options Options) (Result, error) {
 	if err != nil {
 		return Result{}, fmt.Errorf("load the criteria: %w", err)
 	}
-	wave, err := u.Deps.Store.AdvanceWave(hostproto.SessionProve)
+	bridge, err := hostbridge.Open(u.Deps.Store, u.Deps.Clock, u.Deps.Entropy, hostproto.SessionProve)
 	if err != nil {
-		return Result{}, fmt.Errorf("advance the wave: %w", err)
+		return Result{}, err
 	}
+	bridge.Renew = !options.Resume
+	wave := bridge.Wave
 	policyDigest, err := u.Settings.Policy.Digest()
 	if err != nil {
 		return Result{}, err
 	}
 	pass := &passState{
 		deps: u.Deps, settings: u.Settings, project: report.Project, policyDigest: policyDigest, options: options,
-		bridge: hostbridge.New(u.Deps.Store, u.Deps.Clock, u.Deps.Entropy, hostproto.SessionProve, wave), proofs: map[criterion.Ref]*chosenProof{},
+		bridge: bridge, proofs: map[criterion.Ref]*chosenProof{},
 		files: map[string]fileDigest{},
 	}
 	if err := pass.loadProofPending(); err != nil {
@@ -83,15 +93,31 @@ func (u UseCase) pass(ctx context.Context, options Options) (Result, error) {
 		result.Tests = append(result.Tests, proved...)
 	}
 	result.Findings = slices.Clone(pass.findings)
-	pending, err := pass.bridge.FinishWave()
+	if ctx.Err() != nil {
+		return Result{}, context.Cause(ctx)
+	}
+	outstanding, err := pass.bridge.FinishWave()
 	if err != nil {
 		return Result{}, err
 	}
-	result.PendingTickets = len(pending)
-	for _, ticket := range pending {
-		result.pending = append(result.pending, requests.PendingTicket{Ticket: ticket.TicketID.String(), Nonce: ticket.Nonce})
-	}
+	result.Waiting = hostbridge.WaitingOf(outstanding)
 	return result, nil
+}
+
+// cut turns the error of a step whose budget ran out into an unfinished result,
+// and returns any other error as it is.
+func (u UseCase) cut(ctx context.Context, err error) (Result, error) {
+	if !hostproto.StepSpent(ctx) {
+		return Result{}, err
+	}
+	return u.unfinished(hostproto.StepBudgetSpent)
+}
+
+// unfinished is the result of a step that ended before its run finished: what
+// the session waits for as the store holds it.
+func (u UseCase) unfinished(end hostproto.StepEnd) (Result, error) {
+	waiting, wave, err := hostbridge.Unfinished(u.Deps.Store, hostproto.SessionProve, end)
+	return Result{Wave: wave, Waiting: waiting}, err
 }
 
 // writePending tells Shallnot what the module still waits for: the criteria whose
@@ -124,6 +150,11 @@ func (u UseCase) writePending(result Result) error {
 			}
 		}
 	}
+	records, err := u.Deps.Store.Records()
+	if err != nil {
+		return fmt.Errorf("read the journal: %w", err)
+	}
+	pending.Answered = hostproto.AcceptedAnswers(records)
 	if err := u.Deps.Pending.Write(pending); err != nil {
 		return fmt.Errorf("write the pending file: %w", err)
 	}

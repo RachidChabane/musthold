@@ -36,7 +36,7 @@ musthold-alignment prove --resume
 musthold-alignment doctor
 ```
 
-`prove` exits 3 while tickets wait for the host. The full command set is in
+`prove` exits 3 while tickets wait for the host or its step was unfinished; every call returns within 90 seconds and the next one continues. The full command set is in
 [commands](../docs/usage/commands.md).
 
 ## Documentation

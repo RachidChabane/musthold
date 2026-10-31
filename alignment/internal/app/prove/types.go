@@ -17,6 +17,7 @@ import (
 	"github.com/RachidChabane/musthold/alignment/internal/domain/policy"
 	"github.com/RachidChabane/musthold/format"
 	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbridge"
 	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
@@ -110,19 +111,18 @@ type TestResult struct {
 type Result struct {
 	Wave  int
 	Tests []TestResult
-	// PendingTickets counts the tickets still waiting for an answer.
-	PendingTickets int
+	// Waiting is what the step leaves for a later invocation.
+	Waiting hostbridge.Waiting
 	// Findings are module findings that do not change a verdict, such as a
 	// discriminating-power Statement that could not be read.
 	Findings []string
-
-	pending []requests.PendingTicket
 }
 
-// ExitCode maps the result to the exit codes of ADR 0005: 3 while tickets wait,
+// ExitCode maps the result to the exit codes of ADR 0005: 3 while tickets wait
+// or the step ended unfinished,
 // 1 while a test is not ALIGNED or a proof is awaited, 0 otherwise.
 func (r Result) ExitCode() int {
-	if r.PendingTickets > 0 {
+	if r.Waiting.Pending() {
 		return ExitAwaitingHost
 	}
 	for _, test := range r.Tests {

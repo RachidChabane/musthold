@@ -3,6 +3,7 @@
 package cli
 
 import (
+	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -62,6 +63,17 @@ type Env struct {
 	// ClassifyAdmission replaces the shipped admission table of classifications;
 	// nil keeps the shipped one.
 	ClassifyAdmission *hostproto.ClassifyAdmission
+	// Context is the context the commands run under; nil runs them under the
+	// background context.
+	Context context.Context
+}
+
+// context is the context the commands run under.
+func (e Env) context() context.Context {
+	if e.Context == nil {
+		return context.Background()
+	}
+	return e.Context
 }
 
 // Main runs the binary called binary with the given arguments in the process's

@@ -17,16 +17,16 @@ func TestProveExitCodes(t *testing.T) {
 	h := newHarness(t, testkit.PythonParcel)
 	h.withPowers(testkit.PythonPowers())
 
-	t.Run("prove exits 3 while tickets wait and gives the same requests when run again [verifies SP-334~1]", func(t *testing.T) {
+	t.Run("prove exits 3 while tickets wait and gives the same requests, in the same wave, when run again without an answer [verifies SP-334~2]", func(t *testing.T) {
 		code, output, _ := h.run(nil, proveCommand, allFlag)
-		if code != cli.ExitAwaitingHost || !strings.Contains(output, "awaiting_host") {
+		if code != cli.ExitAwaitingHost || !strings.Contains(output, "awaiting_host") || !strings.HasPrefix(output, "wave 1\n") {
 			t.Fatalf("exit code %d:\n%s", code, output)
 		}
 		first := h.requestsJSON()
-		code, _, _ = h.run(nil, proveCommand, allFlag)
+		code, again, _ := h.run(nil, proveCommand, allFlag)
 		second := h.requestsJSON()
-		if code != cli.ExitAwaitingHost || len(first.Items) == 0 || len(first.Items) != len(second.Items) {
-			t.Fatalf("exit code %d, %d then %d tickets", code, len(first.Items), len(second.Items))
+		if code != cli.ExitAwaitingHost || len(first.Items) == 0 || len(first.Items) != len(second.Items) || !strings.HasPrefix(again, "wave 1\n") {
+			t.Fatalf("exit code %d, %d then %d tickets:\n%s", code, len(first.Items), len(second.Items), again)
 		}
 		for index, item := range first.Items {
 			if item.Ticket.RequestID != second.Items[index].Ticket.RequestID || item.Ticket != second.Items[index].Ticket {
@@ -35,7 +35,7 @@ func TestProveExitCodes(t *testing.T) {
 		}
 	})
 
-	t.Run("prove exits 0 when every test is ALIGNED and 1 when one is not [verifies SP-334~1]", func(t *testing.T) {
+	t.Run("prove exits 0 when every test is ALIGNED and 1 when one is not [verifies SP-334~2]", func(t *testing.T) {
 		aligned := newHarness(t, testkit.PythonParcel)
 		aligned.reportWith(func(requirements []any) []any {
 			for _, requirement := range requirements {
@@ -58,7 +58,7 @@ func TestProveExitCodes(t *testing.T) {
 		}
 	})
 
-	t.Run("prove --resume is refused when no request was ever emitted [verifies SP-334~1]", func(t *testing.T) {
+	t.Run("prove --resume is refused when no request was ever emitted [verifies SP-334~2]", func(t *testing.T) {
 		fresh := newHarness(t, testkit.PythonParcel)
 		code, _, stderr := fresh.run(nil, proveCommand, resumeFlag)
 		if code != cli.ExitToolFailure || !strings.Contains(stderr, "nothing to resume") {

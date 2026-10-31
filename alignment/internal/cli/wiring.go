@@ -13,7 +13,6 @@ import (
 	javascriptmask "github.com/RachidChabane/musthold/alignment/internal/adapters/masking/javascript"
 	kotlinmask "github.com/RachidChabane/musthold/alignment/internal/adapters/masking/kotlin"
 	pythonmask "github.com/RachidChabane/musthold/alignment/internal/adapters/masking/python"
-	"github.com/RachidChabane/musthold/alignment/internal/adapters/pendingfile"
 	"github.com/RachidChabane/musthold/alignment/internal/adapters/process"
 	"github.com/RachidChabane/musthold/alignment/internal/adapters/proofcache"
 	"github.com/RachidChabane/musthold/alignment/internal/adapters/proofsource"
@@ -119,7 +118,7 @@ func (e Env) openProject(rootFlag string) (*project, error) {
 			Store:      store,
 			Proofs:     proofcache.New(root, checker),
 			Power:      proofsource.Source{Root: root},
-			Pending:    pendingfile.Directory{Root: root},
+			Pending:    pendingDirectory(root, store),
 			Memo:       localcache.NewMemo(cacheDir),
 			Statements: checker,
 			Clock:      e.Now,

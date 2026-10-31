@@ -200,10 +200,12 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 
 ## The prove use case
 
-- **SP-334~1**: WHEN `prove` runs THE SYSTEM SHALL exit 3 while tickets wait for the
-  host, 1 when a test is not ALIGNED or a proof is awaited, 0 otherwise, advance
-  one wave per run, give the same requests when run again, and refuse `--resume`
-  when no request was ever emitted.
+- **SP-334~2**: WHEN `prove` runs THE SYSTEM SHALL exit 3 while tickets wait for the
+  host, 1 when a test is not ALIGNED or a proof is awaited, 0 otherwise, open the
+  next wave only in a run that follows an answer of the host, or the end of the
+  session, and continue the open wave in any other run, give the same requests
+  when run again, and refuse `--resume` when no request was ever emitted and no
+  wave is open.
 - **SP-335~1**: WHEN `prove` is given conflicting flags or unexpected arguments THE
   SYSTEM SHALL fail without acting.
 - **SP-336~1**: WHEN `request list|show|submit` runs THE SYSTEM SHALL list, show and
@@ -532,3 +534,27 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   SHALL ship the hooks module that carries the classifier calls of the host,
   naming the binary of the module, and the validator of Claude Code SHALL accept
   the plugin.
+
+## Bounded steps and host answers
+
+- **SP-2680~1**: WHEN `prove` runs without `--ci` and without `--replay` THE
+  SYSTEM SHALL bound its work to the step budget `host.step_seconds`, end a step
+  whose budget ran out, or whose prove session another `prove` holds, without
+  writing a Statement or retiring a ticket, print the launchable tickets and
+  `unfinished budget_spent` or `unfinished session_busy`, and exit 3; and
+  running the same command again SHALL continue from what is stored.
+- **SP-2681~1**: WHEN a test's verdict rests on a request the host abandoned
+  (`host_unresponsive`) THE SYSTEM SHALL write its Statement but never record it
+  as fresh, and never report fresh a recorded verdict with that reason, so that
+  `prove --changed` proves the test again and renews its abandoned tickets.
+- **SP-2682~1**: WHEN `prove` ends a step THE SYSTEM SHALL print `awaiting_host
+  <n> tickets` with n the number of tickets `request list` shows for the
+  session, `in_flight <m> tickets` when executors hold m fetched tickets, and the
+  `unfinished` line of an unfinished step, and exit 3 while any of them is
+  printed; and the binary SHALL answer `request progress` with the Progress
+  document of the format.
+- **SP-2683~1**: WHEN the module writes its pending file, at the end of a step or
+  when it accepts an answer through `request submit` or its executor server, THE
+  SYSTEM SHALL write it atomically under a lock kept outside the work tree, with
+  the count of answers the module accepted, which never decreases, and keep the
+  file once that count is above zero.
