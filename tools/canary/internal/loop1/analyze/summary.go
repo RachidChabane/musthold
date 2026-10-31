@@ -133,30 +133,16 @@ type BuildInput struct {
 func Build(in BuildInput) Summary {
 	summary := Summary{
 		Provenance: in.Provenance,
-		Window:     Window{FirstStart: in.Phase.FirstStart, Cap: in.Phase.Cap, CapReached: in.Phase.CapReached},
-		Population: Population{Counted: map[string]int{}, Void: map[string]map[study.Outcome]int{}, Missing: map[string]map[study.Outcome]int{}},
-		Deviations: Deviations{File: study.DeviationsFile, Counts: map[study.Kind]int{}},
+		Window:     WindowOf(in.Phase),
+		Deviations: CountDeviations(in.Deviations),
 		Digests:    in.Digests,
-		Runs:       []RunEntry{},
 	}
-	for _, arm := range Arms() {
-		summary.Population.Void[arm] = map[study.Outcome]int{}
-		summary.Population.Missing[arm] = map[study.Outcome]int{}
-	}
+	summary.Runs, summary.Population = Census(in.Phase, in.Facts)
 	var counted []facts.Facts
-	for _, state := range in.Phase.Runs {
-		entry := runEntry(state, in.Facts)
-		summary.Runs = append(summary.Runs, entry)
-		tally(&summary.Population, entry)
+	for _, entry := range summary.Runs {
 		if entry.Facts != nil {
 			counted = append(counted, *entry.Facts)
 		}
-	}
-	for _, kind := range study.Kinds() {
-		summary.Deviations.Counts[kind] = 0
-	}
-	for _, deviation := range in.Deviations {
-		summary.Deviations.Counts[deviation.Kind]++
 	}
 	summary.Analysis = Analysis{Core: core(counted), ProtocolDeviations: touching(in.Deviations, counted)}
 	summary.Secondary = secondary(counted)
@@ -166,6 +152,40 @@ func Build(in BuildInput) Summary {
 		SubsetWithoutCapped:   touching(in.Deviations, filter(counted, func(run facts.Facts) bool { return !run.Capped })),
 	}}
 	return summary
+}
+
+// WindowOf is the run phase's window as it ended.
+func WindowOf(p phase.Phase) Window {
+	return Window{FirstStart: p.FirstStart, Cap: p.Cap, CapReached: p.CapReached}
+}
+
+// CountDeviations counts the entries of the deviation log by kind.
+func CountDeviations(deviations []study.Deviation) Deviations {
+	counted := Deviations{File: study.DeviationsFile, Counts: map[study.Kind]int{}}
+	for _, kind := range study.Kinds() {
+		counted.Counts[kind] = 0
+	}
+	for _, deviation := range deviations {
+		counted.Counts[deviation.Kind]++
+	}
+	return counted
+}
+
+// Census lists every run of the phase, in order, with its attempts, its state
+// and, when it is counted, its facts, and counts the population per arm.
+func Census(p phase.Phase, all map[string]facts.Facts) ([]RunEntry, Population) {
+	population := Population{Counted: map[string]int{}, Void: map[string]map[study.Outcome]int{}, Missing: map[string]map[study.Outcome]int{}}
+	for _, arm := range Arms() {
+		population.Void[arm] = map[study.Outcome]int{}
+		population.Missing[arm] = map[study.Outcome]int{}
+	}
+	runs := []RunEntry{}
+	for _, state := range p.Runs {
+		entry := runEntry(state, all)
+		runs = append(runs, entry)
+		tally(&population, entry)
+	}
+	return runs, population
 }
 
 func runEntry(state phase.RunState, all map[string]facts.Facts) RunEntry {

@@ -66,6 +66,12 @@ func probability(p *big.Rat) Probability {
 	return Probability{Exact: p.RatString(), Value: value}
 }
 
+// ProbabilityOf is an exact probability with its value.
+func ProbabilityOf(p *big.Rat) Probability { return probability(p) }
+
+// RateOf is k of n with its exact interval.
+func RateOf(k, n int) Rate { return rate(k, n) }
+
 // Rate is a proportion with its exact interval.
 type Rate struct {
 	Fraction Fraction `json:"fraction"`
