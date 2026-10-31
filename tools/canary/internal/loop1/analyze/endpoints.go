@@ -419,7 +419,13 @@ type Core struct {
 
 // core runs H1, H2, S1 and S2 on counted runs.
 func core(runs []facts.Facts) Core {
+	return Core{Runs: len(runs), H1: DecideH1(runs), H2: DecideH2(runs), S1: defectTest(runs), S2: DecideS2(runs)}
+}
+
+// defectTest is S1: the test of H1 on the defect indicator, over the included
+// tasks.
+func defectTest(runs []facts.Facts) Permutation {
 	included, _ := Eligible(runs)
 	s1, _ := permutation(inTasks(runs, included), included, func(run facts.Facts) bool { return run.Defective })
-	return Core{Runs: len(runs), H1: DecideH1(runs), H2: DecideH2(runs), S1: s1, S2: DecideS2(runs)}
+	return s1
 }

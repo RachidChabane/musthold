@@ -62,15 +62,25 @@ type Input struct {
 	Deviations string
 }
 
-// Lint checks the report and returns every problem in line order.
+// Lint checks the report against loop-1's conclusion templates and returns
+// every problem in line order.
 func Lint(in Input) ([]Problem, error) {
+	return Linter{Templates: conclusion.Templates()}.Lint(in)
+}
+
+// Linter checks a study's report: Templates are the study's conclusion
+// templates, inside whose fillings a banned word is allowed.
+type Linter struct{ Templates []string }
+
+// Lint checks the report and returns every problem in line order.
+func (l Linter) Lint(in Input) ([]Problem, error) {
 	fractions, err := summaryFractions(in.Summary)
 	if err != nil {
 		return nil, err
 	}
 	entries := deviationTexts(in.Deviations)
 	var templates []*regexp.Regexp
-	for _, template := range conclusion.Templates() {
+	for _, template := range l.Templates {
 		templates = append(templates, conclusion.Pattern(template))
 	}
 	var problems []Problem

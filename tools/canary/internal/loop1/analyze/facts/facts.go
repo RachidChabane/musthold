@@ -377,9 +377,9 @@ func isPending(code string) bool {
 	return code == staleProof || slices.Contains(format.PendingReasons(), format.PendingReason(code))
 }
 
-// classify gives a block its kind and findings from its report. A proof finding
+// Classify gives a block its kind and findings from its report. A proof finding
 // is one that names its module.
-func classify(report *Report) (BlockKind, []Finding) {
+func Classify(report *Report) (BlockKind, []Finding) {
 	var verdicts, pending, other []Finding
 	if report != nil {
 		for _, finding := range report.Findings {
@@ -524,7 +524,7 @@ func blocks(in Input, calls []Call, edits []edit, clean bool) []Block {
 			continue
 		}
 		report, reported := in.Stops[call.N]
-		kind, findings := classify(report)
+		kind, findings := Classify(report)
 		block := Block{Call: call.N, Kind: kind, ReportMissing: !reported || report == nil, Findings: findings}
 		between := editsBetween(edits, calls, index)
 		block.Edits = len(between)

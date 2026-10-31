@@ -175,7 +175,7 @@ func TestBlocks(t *testing.T) {
 		if got.Blocks[0].Kind != KindTraceability || got.Blocks[0].ReportMissing || got.Blocks[1].Kind != KindTraceability || !got.Blocks[1].ReportMissing {
 			t.Fatalf("blocks %+v", got.Blocks)
 		}
-		pending, findings := classify(report(finding("awaiting_host", "A-1", "musthold-dp"), finding("uncovered_requirement", "A-2", "")))
+		pending, findings := Classify(report(finding("awaiting_host", "A-1", "musthold-dp"), finding("uncovered_requirement", "A-2", "")))
 		if pending != KindPending || len(findings) != 2 {
 			t.Fatalf("got %s %+v", pending, findings)
 		}

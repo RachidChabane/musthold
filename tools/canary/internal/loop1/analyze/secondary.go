@@ -289,12 +289,20 @@ type Sensitivity struct {
 }
 
 func sensitivity(runs []facts.Facts) Sensitivity {
-	return Sensitivity{
+	found := Sensitivity{
 		WithoutInSample: core(filter(runs, func(run facts.Facts) bool { return run.Task != InSampleTask })),
 		WithoutHits:     core(filter(runs, func(run facts.Facts) bool { return !run.HasHit() })),
 		WithoutCapped:   core(filter(runs, func(run facts.Facts) bool { return !run.Capped })),
-		SignH1:          sign(shareDifferences(runs, func(run facts.Facts) bool { return run.Escaped })),
-		SignS1:          sign(shareDifferences(runs, func(run facts.Facts) bool { return run.Defective })),
-		SignH2:          sign(majorityDifferences(runs)),
 	}
+	found.SignH1, found.SignS1, found.SignH2 = signTests(runs)
+	return found
+}
+
+// signTests are the sign tests over tasks of PREREG §10.5: on the per-task
+// difference of escape and defect shares, and on the per-task majority of
+// corrected runs.
+func signTests(runs []facts.Facts) (h1, s1, h2 Sign) {
+	return sign(shareDifferences(runs, func(run facts.Facts) bool { return run.Escaped })),
+		sign(shareDifferences(runs, func(run facts.Facts) bool { return run.Defective })),
+		sign(majorityDifferences(runs))
 }

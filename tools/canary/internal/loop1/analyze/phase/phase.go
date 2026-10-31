@@ -100,13 +100,22 @@ type Phase struct {
 	Open []string
 }
 
+// Judge judges the run phase of loop-1 at now, under its calendar cap.
+func Judge(order []string, attempts map[string][]Attempt, now time.Time) Phase {
+	return Calendar{Cap: CalendarCap}.Judge(order, attempts, now)
+}
+
+// Calendar is a run phase's calendar cap: the time after the start of the first
+// run at which the phase ends.
+type Calendar struct{ Cap time.Duration }
+
 // Judge judges the run phase at now, from the order and the attempts of each
 // run. The phase ends when every run of the order is counted or blocked, or once
 // the calendar cap is reached.
-func Judge(order []string, attempts map[string][]Attempt, now time.Time) Phase {
+func (c Calendar) Judge(order []string, attempts map[string][]Attempt, now time.Time) Phase {
 	judged := Phase{FirstStart: firstStart(attempts)}
 	if !judged.FirstStart.IsZero() {
-		judged.Cap = judged.FirstStart.Add(CalendarCap)
+		judged.Cap = judged.FirstStart.Add(c.Cap)
 		judged.CapReached = !now.Before(judged.Cap)
 	}
 	for _, name := range order {
