@@ -230,11 +230,13 @@ func (e Env) hostScan(wired scanProject, request scan.Request, outputFormat stri
 }
 
 // printAwaiting prints what a scan leaves for later, as `prove` does: the wave,
-// the session whose tickets the skill relays, how many tickets wait, and an
-// unfinished step.
+// the session whose tickets the skill relays, unless the step ended before it
+// opened one, how many tickets wait, and an unfinished step.
 func printAwaiting(out io.Writer, result scan.HostResult) {
 	fmt.Fprintf(out, "wave %d\n", result.Wave)
-	fmt.Fprintf(out, "session %s\n", result.Session)
+	if result.Session != "" {
+		fmt.Fprintf(out, "session %s\n", result.Session)
+	}
 	for _, line := range result.Waiting.Lines() {
 		fmt.Fprintln(out, line)
 	}

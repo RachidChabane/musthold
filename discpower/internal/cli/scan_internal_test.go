@@ -104,6 +104,14 @@ func TestPrintAwaiting(t *testing.T) {
 			t.Fatal("exit codes")
 		}
 	})
+
+	t.Run("a scan step cut before it opened its session prints no session and its unfinished line [verifies SP-2676~1]", func(t *testing.T) {
+		var out strings.Builder
+		printAwaiting(&out, scan.HostResult{Waiting: hostbridge.Waiting{Step: hostproto.StepBudgetSpent}})
+		if want := "wave 0\nunfinished budget_spent\n"; out.String() != want {
+			t.Fatalf("printed %q", out.String())
+		}
+	})
 }
 
 func TestWitnessRecorder(t *testing.T) {
