@@ -9,7 +9,7 @@ description: Scan the code, or a pull request, for the promises its sources make
 
 1. Run `musthold scan --host [<PR>]`, with the pull request number when the user gave one, and the flags the user gave.
 2. Exit code 0: the scan finished. Show its report and stop. Exit code 2: show the refusal to the user and stop. Do not loop.
-3. Exit code 3: read the line `session scan:<key>` of the output and keep that session. Answer its tickets with steps 4 to 6.
+3. Exit code 3: read the line `session scan:<key>` of the output and keep that session. Answer its tickets with steps 4 to 6. A line that starts with `unfinished` means the step ran out of time or another run held the session: when the output names no session, run step 1 again; otherwise the next step 7 continues it.
 4. If `musthold-s1` is on `PATH` and `.musthold/config.yaml` sets `systemone.endpoint`, run `musthold-s1 drain --module dp --session scan:<key>`. A failure leaves the tickets for the next step.
 5. Run `musthold-dp request list --session scan:<key>`. Each line is `<ticket> <role>`. List no other session.
 6. Answer each ticket as the skill `musthold-dp-fulfil` gives for a ticket, with the session `scan:<key>` in place of `prove`.
