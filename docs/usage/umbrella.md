@@ -69,7 +69,9 @@ Plugins install no binary: each binary must be on `PATH` (see
    whose step printed an `unfinished` line and lists no ticket only runs `prove
    --resume`, which continues the step; one that printed `in_flight` first waits
    for its executors. No module's wave waits for another's;
-4. ends a module whose `prove` exits 0 or 1 and reports its verdict lines. At a
+4. ends a module whose `prove` exits 0 or 1 and reports its verdict lines, except
+   one whose verdict lines say `awaiting_proof`: once every module before it is
+   done, it runs that module's `prove --changed` once more and goes on. At a
    first `host_unresponsive` finding it runs that module's `prove --changed` once
    more, which asks the abandoned requests again, and goes on; at a second it
    reports it. For exit code 2 it reports to the user and stops that module;

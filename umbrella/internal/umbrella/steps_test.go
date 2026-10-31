@@ -17,6 +17,7 @@ func TestProveAllBoundedSteps(t *testing.T) {
 			"`<binary> prove --changed` once, in the foreground", "within 90 seconds", "`<binary> request list --session prove`",
 			"printed an `unfinished` line and lists no ticket only runs `<binary> prove --resume`", "`in_flight <n> tickets`",
 			"run that module's `<binary> prove --changed` once more", "at a second `host_unresponsive` finding",
+			"the status `awaiting_proof`", "once every module before it is done, run its `<binary> prove --changed` once more",
 			"`" + pluginfiles.VerifyLocalCommand + "`",
 		} {
 			if !strings.Contains(body, want) {

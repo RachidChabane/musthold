@@ -39,7 +39,9 @@ dispatcher, in Shallnot's Markdown spec format. `shallnot gate` traces them to t
   answer the tickets `request list --session prove` shows, call `prove --resume`
   again for a module whose step printed an `unfinished` line, wait for its own
   executors after `in_flight`, answer a first `host_unresponsive` finding with
-  one more `prove --changed` of that module and report the second, and publish
+  one more `prove --changed` of that module and report the second, run once more
+  the `prove --changed` of a module whose verdict lines say `awaiting_proof`
+  once every module before it is done, and publish
   with `musthold-verify --accept-local` once every present module exited with
   code 0 or 1; and the `scan` skill SHALL continue a scan whose step printed an
   `unfinished` line.
