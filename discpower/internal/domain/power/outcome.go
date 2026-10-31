@@ -35,6 +35,7 @@ const (
 	FindingHostUnresponsive       Finding = "host_unresponsive"
 	FindingUnexcludedSurvivor     Finding = "unexcluded_survivor"
 	FindingExampleExecutorMissing Finding = "example_executor_unavailable"
+	FindingSpecWitnessFailed      Finding = "spec_witness_failed"
 )
 
 // Entry is one mutant of a pool with the validity votes cast on it.
@@ -97,8 +98,9 @@ type Evaluation struct {
 //     the set that killed no sentinel.
 //
 // A test of the set that killed a sentinel escalates, and so do an exhausted
-// budget and an unresponsive host: the gate that reads the Statement does the
-// same.
+// budget, an unresponsive host and a witness of the criterion that the
+// reference fails in every run while every scope judge holds it fixed: the gate
+// that reads the Statement does the same.
 func Evaluate(standing Standing, rules Rules) Evaluation {
 	universe := NewUniverse(standing.Witnesses, rules)
 	evaluation := Evaluation{Decisions: map[string]Decision{}}
@@ -140,6 +142,9 @@ func Evaluate(standing Standing, rules Rules) Evaluation {
 	}
 	if standing.HostUnresponsive {
 		escalations = append(escalations, FindingHostUnresponsive)
+	}
+	if len(universe.FailedAsFixed(subject.Ref)) > 0 {
+		escalations = append(escalations, FindingSpecWitnessFailed)
 	}
 	evaluation.Outcome = compose(blocks, escalations)
 	evaluation.Faults = GroupFaults(standing.Entries, evaluation.Decisions)

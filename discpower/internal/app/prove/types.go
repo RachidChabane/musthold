@@ -135,6 +135,9 @@ type CriterionResult struct {
 	// Survivors are the mutants that block the criterion, with what their local
 	// findings show.
 	Survivors []Survivor
+	// FailedWitnesses are the witnesses of the criterion the reference fails in
+	// every run and every scope judge holds fixed, as its Statement lists them.
+	FailedWitnesses []format.FailedWitness
 }
 
 // Result is the result of a run.

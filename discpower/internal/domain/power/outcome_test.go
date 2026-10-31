@@ -7,6 +7,7 @@ import (
 	"github.com/RachidChabane/musthold/discpower/internal/domain/policy"
 	"github.com/RachidChabane/musthold/discpower/internal/domain/power"
 	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
 	"github.com/RachidChabane/musthold/format"
 )
 
@@ -98,6 +99,60 @@ func TestEvaluate(t *testing.T) {
 		got := power.Terminal(standing(entry(killedValidE), entry(errored)), rulesOf(policy.Default()))
 		if got.Result != power.Pass {
 			t.Errorf("outcome %+v", got)
+		}
+	})
+
+	withWitness := func(standing power.Standing, added witness.Record) power.Standing {
+		standing.Witnesses = append(slices.Clone(standing.Witnesses), added)
+		return standing
+	}
+	t.Run("a witness of the criterion the reference fails in every run, held fixed by every scope judge, escalates"+verifiesSP167, func(t *testing.T) {
+		failed := withWitness(standing(entry(killedValidE)), failedRecord(ownFailedAsFixed, subjectRef, true, threeFailures...))
+		got := power.Terminal(failed, rulesOf(policy.Default()))
+		if got.Result != power.Escalate || !slices.Equal(got.Findings, []power.Finding{power.FindingSpecWitnessFailed}) {
+			t.Errorf("outcome %+v", got)
+		}
+	})
+
+	t.Run("a failed witness never lowers a block"+verifiesSP167, func(t *testing.T) {
+		failed := withWitness(standing(entry(killedValidE), entry(survivingValidE)), failedRecord(ownFailedAsFixed, subjectRef, true, threeFailures...))
+		got := power.Terminal(failed, rulesOf(policy.Default()))
+		if got.Result != power.Block || !got.Has(power.FindingSurvivingValid) || !got.Has(power.FindingSpecWitnessFailed) {
+			t.Errorf("outcome %+v", got)
+		}
+	})
+
+	twoFailures := []witness.Outcome{witness.OutcomeFailed, witness.OutcomePassed, witness.OutcomeFailed}
+	for _, c := range []struct {
+		name  string
+		added witness.Record
+	}{
+		{"a witness a scope judge does not hold fixed never escalates", failedRecord(ownFailedAsFixed, subjectRef, false, threeFailures...)},
+		{"a witness that fails two runs of three never escalates", failedRecord(ownFailedAsFixed, subjectRef, true, twoFailures...)},
+		{"a witness that failed only two runs never escalates", failedRecord(ownFailedAsFixed, subjectRef, true, threeFailures[:2]...)},
+		{"a failed witness of another criterion never escalates this one", failedRecord(ownFailedAsFixed, otherRef, true, threeFailures...)},
+	} {
+		t.Run(c.name+verifiesSP167, func(t *testing.T) {
+			got := power.Terminal(withWitness(standing(entry(killedValidE)), c.added), rulesOf(policy.Default()))
+			if got.Result != power.Pass || got.Has(power.FindingSpecWitnessFailed) {
+				t.Errorf("outcome %+v", got)
+			}
+		})
+	}
+
+	t.Run("the universe lists the criterion's failed witnesses alone, sorted, once each"+verifiesSP2701, func(t *testing.T) {
+		records := append(universeRecords(),
+			failedRecord("b-"+ownFailedAsFixed, subjectRef, true, threeFailures...),
+			failedRecord("a-"+ownFailedAsFixed, subjectRef, true, threeFailures...),
+			failedRecord("a-"+ownFailedAsFixed, subjectRef, true, threeFailures...),
+			failedRecord(ownFailedAsFixed, otherRef, true, threeFailures...),
+		)
+		var ids []string
+		for _, record := range power.NewUniverse(records, rulesOf(policy.Default())).FailedAsFixed(subjectRef) {
+			ids = append(ids, record.Witness.ID)
+		}
+		if want := []string{"a-" + ownFailedAsFixed, "b-" + ownFailedAsFixed}; !slices.Equal(ids, want) {
+			t.Errorf("failed witnesses %v, want %v", ids, want)
 		}
 	})
 

@@ -100,9 +100,10 @@ func (u UseCase) pass(ctx context.Context, p *project, options Options) (Result,
 
 // freshRecord remembers the Statement written for a freshness key.
 type freshRecord struct {
-	CacheKey  string     `json:"cacheKey"`
-	Result    string     `json:"result"`
-	Survivors []Survivor `json:"survivors,omitempty"`
+	CacheKey        string                 `json:"cacheKey"`
+	Result          string                 `json:"result"`
+	Survivors       []Survivor             `json:"survivors,omitempty"`
+	FailedWitnesses []format.FailedWitness `json:"failedWitnesses,omitempty"`
 }
 
 // proveAll runs the searches of every criterion, then settles the pools against
@@ -176,7 +177,10 @@ func (r *critRun) conclude(ctx context.Context, sets []witness.Set, records []wi
 	}
 	if options.Selection == SelectChanged {
 		if record, fresh := r.p.freshRecord(r.c.Ref, freshness); fresh {
-			return CriterionResult{Ref: r.c.Ref, Status: StatusFresh, CacheKey: record.CacheKey, Outcome: power.Outcome{Result: power.Result(record.Result)}, Survivors: record.Survivors}, nil
+			return CriterionResult{
+				Ref: r.c.Ref, Status: StatusFresh, CacheKey: record.CacheKey, Outcome: power.Outcome{Result: power.Result(record.Result)},
+				Survivors: record.Survivors, FailedWitnesses: record.FailedWitnesses,
+			}, nil
 		}
 	}
 	if r.waiting || !r.creditSettled() {
@@ -216,10 +220,11 @@ func (r *critRun) finalize(base []format.Input, freshness string) (CriterionResu
 		return CriterionResult{}, err
 	}
 	survivors := r.survivors(predicate)
-	if err := r.p.rememberFresh(freshness, freshRecord{CacheKey: cacheKey, Result: string(outcome.Result), Survivors: survivors}); err != nil {
+	failed := predicate.FailedWitnesses
+	if err := r.p.rememberFresh(freshness, freshRecord{CacheKey: cacheKey, Result: string(outcome.Result), Survivors: survivors, FailedWitnesses: failed}); err != nil {
 		return CriterionResult{}, err
 	}
-	return CriterionResult{Ref: r.c.Ref, Status: StatusProved, Outcome: outcome, CacheKey: cacheKey, Survivors: survivors}, nil
+	return CriterionResult{Ref: r.c.Ref, Status: StatusProved, Outcome: outcome, CacheKey: cacheKey, Survivors: survivors, FailedWitnesses: failed}, nil
 }
 
 // writeFacts keeps the facts record of the Statement: every executed fact and

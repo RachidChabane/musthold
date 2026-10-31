@@ -38,7 +38,7 @@ var (
 	verifiesSP164  = " [verifies SP-164~2]"
 	verifiesSP165  = " [verifies SP-165~2]"
 	verifiesSP166  = " [verifies SP-166~2]"
-	verifiesSP167  = " [verifies SP-167~2]"
+	verifiesSP167  = " [verifies SP-167~3]"
 	verifiesSP168  = " [verifies SP-168~2]"
 	verifiesSP169  = " [verifies SP-169~2]"
 	verifiesSP184  = " [verifies SP-184~2]"
@@ -46,6 +46,7 @@ var (
 	verifiesSP902  = " [verifies SP-902~1]"
 	verifiesSP1976 = " [verifies SP-1976~1]"
 	verifiesSP1977 = " [verifies SP-1977~1]"
+	verifiesSP2701 = " [verifies SP-2701~1]"
 )
 
 // bindings binds the own tests to the subject's criterion and the other tests to
@@ -156,6 +157,7 @@ const (
 	ownWitnessLow     = "own-witness-below-floor"
 	ownEscalateOnly   = "own-escalate-only"
 	ownConflict       = "own-reading-conflict"
+	ownFailedAsFixed  = "own-failed-as-fixed"
 	otherWitness      = "other-witness"
 	otherEscalateOnly = "other-escalate-only"
 )
@@ -178,11 +180,23 @@ func record(id string, criterion spec.Ref, blockBearing bool, isolation format.I
 	}
 }
 
+// failedRecord builds the record of a witness of a criterion that the reference
+// fails in the given runs, with both scope judges answering FIXED when fixed
+// and NOT_FIXED otherwise.
+func failedRecord(id string, criterion spec.Ref, fixed bool, runs ...witness.Outcome) witness.Record {
+	failed := record(id, criterion, fixed, format.IsolationRestricted)
+	failed.Reference = runs
+	return failed
+}
+
+// threeFailures are the reference runs of a witness the reference fails in
+// every run.
+var threeFailures = []witness.Outcome{witness.OutcomeFailed, witness.OutcomeFailed, witness.OutcomeFailed}
+
 // universeRecords are the witnesses of the subject's criterion and of another
 // one used across the tests.
 func universeRecords() []witness.Record {
-	conflict := record(ownConflict, subjectRef, true, format.IsolationRestricted)
-	conflict.Reference = []witness.Outcome{witness.OutcomeFailed, witness.OutcomeFailed, witness.OutcomeFailed}
+	conflict := failedRecord(ownConflict, subjectRef, false, threeFailures...)
 	return []witness.Record{
 		record(ownWitness, subjectRef, true, format.IsolationRestricted),
 		record(ownWitnessLow, subjectRef, true, format.IsolationInline),

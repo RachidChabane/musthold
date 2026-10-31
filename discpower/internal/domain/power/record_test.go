@@ -51,6 +51,23 @@ func TestRecord(t *testing.T) {
 		})
 	})
 
+	t.Run("a failed witness held fixed escalates the recomputed outcome"+verifiesSP1977, func(t *testing.T) {
+		killed := withID(failing(killedBy(power.OriginTargeted, testOwnA), ownWitness), "k")
+		current := standing(entry(killed))
+		current.Witnesses = append(current.Witnesses, failedRecord(ownFailedAsFixed, subjectRef, true, threeFailures...))
+		encoded, err := power.NewRecord(current, rulesOf(policy.Default()), referencePassing()).Encode()
+		if err != nil {
+			t.Fatal(err)
+		}
+		decoded, err := power.DecodeRecord(encoded)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := power.Terminal(decoded.StandingFor(decoded.Bindings), decoded.Rules("")); got.Result != power.Escalate || !got.Has(power.FindingSpecWitnessFailed) {
+			t.Errorf("recomputed %+v", got)
+		}
+	})
+
 	t.Run("another binding of the tests gives the outcome of that test set"+verifiesSP1977, func(t *testing.T) {
 		killed := withID(failing(killedBy(power.OriginTargeted, testOtherA), ownWitness), "k")
 		record := power.NewRecord(standing(entry(killed)), rulesOf(policy.Default()), referencePassing())

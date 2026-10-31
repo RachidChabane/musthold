@@ -222,12 +222,13 @@ type Universe struct {
 	records  map[string]witness.Record
 	statuses map[string]witness.Status
 	byRef    map[spec.Ref][]string
+	scope    witness.ScopeRule
 }
 
 // NewUniverse indexes the witness records.
 func NewUniverse(records []witness.Record, rules Rules) Universe {
-	universe := Universe{records: map[string]witness.Record{}, statuses: map[string]witness.Status{}, byRef: map[spec.Ref][]string{}}
 	scope := rules.ScopeRule()
+	universe := Universe{records: map[string]witness.Record{}, statuses: map[string]witness.Status{}, byRef: map[spec.Ref][]string{}, scope: scope}
 	for _, record := range records {
 		id := record.Witness.ID
 		if _, known := universe.records[id]; known {
@@ -263,6 +264,19 @@ func (u Universe) Criteria() []spec.Ref {
 	}
 	slices.SortFunc(refs, spec.Ref.Compare)
 	return refs
+}
+
+// FailedAsFixed lists, sorted by id, the witnesses of the criterion that the
+// reference fails in every run and that every scope judge holds fixed by the
+// criterion's text, whichever draw wrote them.
+func (u Universe) FailedAsFixed(ref spec.Ref) []witness.Record {
+	var failed []witness.Record
+	for _, id := range u.byRef[ref] {
+		if record := u.records[id]; record.FailedAsFixed(u.scope) {
+			failed = append(failed, record)
+		}
+	}
+	return failed
 }
 
 // BlockBearing reports whether the witness is block-bearing.

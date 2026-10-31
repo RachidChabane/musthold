@@ -591,15 +591,17 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   is EQUIVALENT for a killed mutant or a mutant whose behaviour differs, or a
   witness that execution does not confirm, THE SYSTEM SHALL name the
   contradiction so that the answer is rejected.
-- **SP-167~2**: WHEN the outcome of a criterion and a test set is decided THE
+- **SP-167~3**: WHEN the outcome of a criterion and a test set is decided THE
   SYSTEM SHALL block on a reference that fails a test of the set, a failing
   example, or an owner-attributed, VALID_e or collateral mutant that survives
   every test of the set; escalate when no credit-bearing mutant of the pool is
   killed by the set, on any other surviving mutant that execution did not
-  exclude, on a test of the set that killed a sentinel, an exhausted budget or
-  an unresponsive host; pass only when a credit-bearing mutant was killed by a
-  test of the set that killed no sentinel and nothing else remains; and block
-  before escalating.
+  exclude, on a test of the set that killed a sentinel, an exhausted budget, an
+  unresponsive host, or a witness of the criterion that fails on the reference
+  in every run and that `judge_k` scope votes all hold FIXED at or above
+  `tau_judge`, as `spec_witness_failed`; pass only when a credit-bearing mutant
+  was killed by a test of the set that killed no sentinel and nothing else
+  remains; and block before escalating.
 - **SP-168~2**: WHEN the search for mutants is checked for its end THE SYSTEM SHALL
   stop once the targeted and owner-attributed mutants of the pool that fail a
   block-bearing witness or an example of the criterion number `min_valid` over
@@ -660,11 +662,13 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   before the set runs on any mutant and before the criterion's first generation
   request, and reject a vote whose set is incomplete so that its ticket is
   reissued.
-- **SP-1964~1**: WHEN the witnesses of a draw are answered THE SYSTEM SHALL run
+- **SP-1964~2**: WHEN the witnesses of a draw are answered THE SYSTEM SHALL run
   each set alone on the reference three times, run the sets that hold a passing
   witness on every planted refactor, and ask one `judge.scope` request of
-  `judge_k` votes that shows the spec and every witness the reference passes, the
-  refactor results applying after the scope verdicts and recorded per witness.
+  `judge_k` votes that shows the spec and every witness the reference passes or
+  fails in every run, in the order the writers answered and with nothing that
+  tells the two apart, the refactor results applying after the scope verdicts
+  and recorded per witness.
 - **SP-1965~1**: WHEN witness sets run on a mutant or a refactor THE SYSTEM SHALL
   write their files into a workspace of that program only, run every set the
   memo does not hold in one batch, run each set alone when the whole batch
@@ -694,10 +698,26 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   let neither the footprint, the stop rule nor the further draw read the credit
   draw, run every pool against its witnesses, and write no Statement before it
   is settled.
-- **SP-1970~1**: WHEN a witness of the criterion fails on the reference in every
-  run THE SYSTEM SHALL report a `reading_conflict` finding that names the
-  criterion, the witness and its clause, and count it in the Statement, without
-  changing the criterion's outcome.
+- **SP-1970~2**: WHEN a witness of the criterion fails on the reference in every
+  run THE SYSTEM SHALL count it in the Statement, and WHEN a scope vote does not
+  hold it FIXED at or above `tau_judge` THE SYSTEM SHALL report a
+  `reading_conflict` finding that names the criterion, the witness and its
+  clause, without changing the criterion's outcome.
+- **SP-2701~1**: WHEN a witness of the criterion fails on the reference in every
+  run and `judge_k` scope votes all hold it FIXED at or above `tau_judge`,
+  whatever their isolation, THE SYSTEM SHALL list it in the Statement's
+  `failedWitnesses` with its id, name and clause, and with its code bounded by
+  the bound of a host view in a Statement produced locally; SHALL record the
+  same list for a fresh criterion; and `prove` SHALL print under the criterion
+  the witness's name, its clause and that code, so that the change can be fixed
+  where the spec fixes an output it does not give. A witness that fails on the
+  reference in fewer runs, or that a scope vote does not hold fixed, SHALL never
+  be listed.
+- **SP-2702~1**: WHEN scope judges are asked about the witnesses of a draw THE
+  SYSTEM SHALL define FIXED as the requirement's text alone, under the
+  precedence, fixing the very output the witness asserts on every input it
+  checks, and NOT_FIXED as the text leaving that output open, fixing a different
+  output, or leaving it to another requirement.
 - **SP-1971~1**: WHEN the ecosystem cannot run witnesses THE SYSTEM SHALL ask no
   witness, report `witness_runner_unavailable`, and take the footprint from the
   criterion's tests.

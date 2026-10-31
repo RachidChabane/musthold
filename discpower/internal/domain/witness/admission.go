@@ -29,8 +29,9 @@ const (
 	// ReadingPasses: it passed every run.
 	ReadingPasses Reading = "passes"
 	// ReadingConflict: it failed every run. The writer read the criterion one
-	// way and the reference does another: a question about the spec, never a
-	// block.
+	// way and the reference does another: a question about the spec, unless
+	// every scope judge holds the output it asserts fixed by the criterion's
+	// text, when the reference is what breaks the spec.
 	ReadingConflict Reading = "reading_conflict"
 	// ReadingFlaky: it passed some runs and failed others.
 	ReadingFlaky Reading = "flaky"
@@ -165,6 +166,14 @@ func (r Record) ScopeApproved(rule ScopeRule) bool {
 	return !slices.ContainsFunc(r.Scope, func(vote ScopeVote) bool {
 		return vote.Answer != ScopeFixed || vote.Confidence < rule.Threshold
 	})
+}
+
+// FailedAsFixed reports whether the reference fails the witness in every run
+// while the scope judges hold the output it asserts fixed by its criterion's
+// text: an executed failure of a check the spec fixes. Like a block-bearing
+// witness, it needs no vote at the isolation floor.
+func (r Record) FailedAsFixed(rule ScopeRule) bool {
+	return r.Reading() == ReadingConflict && r.ScopeApproved(rule)
 }
 
 // Status says where the witness stands under the admission and the scope rule.

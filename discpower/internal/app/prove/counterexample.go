@@ -83,6 +83,23 @@ func (r *critRun) survivors(predicate format.DiscriminatingPower) []Survivor {
 	return found
 }
 
+// failedWitnesses lists, sorted by id, the witnesses of the criterion that the
+// reference fails in every run and that every scope judge holds fixed by the
+// criterion's text: each names a defect of the code under proof. A statement
+// produced locally shows the code of each, which holds the input and the output
+// the spec fixes for it; a statement produced by CI names them only.
+func (r *critRun) failedWitnesses() []format.FailedWitness {
+	var failed []format.FailedWitness
+	for _, record := range power.NewUniverse(r.records, r.g3w()).FailedAsFixed(r.c.Ref) {
+		entry := format.FailedWitness{ID: record.Witness.ID, Name: record.Witness.Name, Clause: record.Witness.Clause}
+		if r.p.producedBy() == format.ProducedByLocal {
+			entry = entry.WithCode(record.Witness.Code)
+		}
+		failed = append(failed, entry)
+	}
+	return failed
+}
+
 // witnessRecord finds the record of a witness the pool was run against.
 func (r *critRun) witnessRecord(id string) (witness.Record, bool) {
 	index := slices.IndexFunc(r.records, func(record witness.Record) bool { return record.Witness.ID == id })

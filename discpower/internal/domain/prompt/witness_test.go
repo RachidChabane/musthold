@@ -13,6 +13,8 @@ import (
 	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
 )
 
+const verifiesSP2702 = " [verifies SP-2702~1]"
+
 const (
 	python      = "Python with pytest"
 	conventions = "One module, plain functions named test_*."
@@ -186,6 +188,16 @@ func TestBuildScope(t *testing.T) {
 	t.Run("the scope labels are w1, w2 and so on"+verifiesSP173, func(t *testing.T) {
 		if prompt.ScopeLabel(0) != "w1" || prompt.ScopeLabel(1) != "w2" {
 			t.Errorf("got %s and %s", prompt.ScopeLabel(0), prompt.ScopeLabel(1))
+		}
+	})
+	t.Run("FIXED is the text fixing the very output asserted, and a different output is NOT_FIXED"+verifiesSP2702, func(t *testing.T) {
+		for _, want := range []string{
+			"FIXED: the requirement's text alone, under the precedence, fixes the very output the witness asserts, on every input it checks.",
+			"NOT_FIXED: the text leaves that output open for some input the witness checks, fixes a different output there, or another requirement decides it.",
+		} {
+			if !strings.Contains(built.Prompt.User, want) {
+				t.Errorf("%q is missing", want)
+			}
 		}
 	})
 	t.Run("the response schema is the scope schema"+verifiesSP173, func(t *testing.T) {

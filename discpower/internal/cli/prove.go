@@ -148,6 +148,11 @@ func printResult(out io.Writer, result prove.Result) {
 				fmt.Fprintln(out, line)
 			}
 		}
+		for _, failed := range criterion.FailedWitnesses {
+			for _, line := range failedWitnessLines(failed) {
+				fmt.Fprintln(out, line)
+			}
+		}
 	}
 	for _, finding := range result.Findings {
 		fmt.Fprintf(out, "module finding %s\n", finding)

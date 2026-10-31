@@ -15,6 +15,7 @@ import (
 const (
 	verifiesSP1960 = " [verifies SP-1960~1]"
 	verifiesSP1961 = " [verifies SP-1961~1]"
+	verifiesSP2701 = " [verifies SP-2701~1]"
 
 	refactorName   = "rename-local"
 	otherRefactor  = "extract-helper"
@@ -174,6 +175,48 @@ func TestRecordStatus(t *testing.T) {
 				if vote.Answer != witness.ScopeFixed || vote.Confidence < judgeThreshold {
 					t.Fatalf("the vote %+v does not approve", vote)
 				}
+			}
+		})
+	})
+}
+
+func TestFailedAsFixed(t *testing.T) {
+	approving := []witness.ScopeVote{fixed(1, format.IsolationRestricted), fixed(judgeThreshold, format.IsolationInline)}
+	for _, c := range []struct {
+		name   string
+		record witness.Record
+		want   bool
+	}{
+		{"three failures every vote holds fixed fail as fixed", record(conflict, nil, approving...), true},
+		{"votes of a weak isolation or marked still count", record(conflict, nil, fixed(1, format.IsolationInline), witness.ScopeVote{Answer: witness.ScopeFixed, Confidence: 1, Marked: true}), true},
+		{"a NOT_FIXED vote keeps a reading conflict", record(conflict, nil, fixed(1, format.IsolationRestricted), witness.ScopeVote{Answer: witness.ScopeNotFixed, Confidence: 1}), false},
+		{"an UNDETERMINED vote keeps a reading conflict", record(conflict, nil, fixed(1, format.IsolationRestricted), witness.ScopeVote{Answer: witness.ScopeUndetermined, Confidence: 1}), false},
+		{"a vote below the threshold keeps a reading conflict", record(conflict, nil, fixed(1, format.IsolationRestricted), fixed(judgeThreshold-0.01, format.IsolationRestricted)), false},
+		{"too few votes keep a reading conflict", record(conflict, nil, fixed(1, format.IsolationRestricted)), false},
+		{"two failures in three runs are flaky, never failed as fixed", record([]witness.Outcome{witness.OutcomeFailed, witness.OutcomeFailed, witness.OutcomePassed}, nil, approving...), false},
+		{"two failing runs alone are unrunnable, never failed as fixed", record(conflict[:2], nil, approving...), false},
+		{"a passing witness never failed", record(passes, nil, approving...), false},
+	} {
+		t.Run(c.name+verifiesSP2701, func(t *testing.T) {
+			if got := c.record.FailedAsFixed(rule); got != c.want {
+				t.Errorf("got %t, want %t", got, c.want)
+			}
+		})
+	}
+	t.Run("only three failures out of three runs, every one of at least judge_k votes FIXED at the threshold, fail as fixed"+verifiesSP2701, func(t *testing.T) {
+		outcomes := []witness.Outcome{witness.OutcomePassed, witness.OutcomeFailed, witness.OutcomeFlaky, witness.OutcomeErrored}
+		answers := []witness.ScopeAnswer{witness.ScopeFixed, witness.ScopeNotFixed, witness.ScopeUndetermined}
+		rapid.Check(t, func(t *rapid.T) {
+			runs := rapid.SliceOfN(rapid.SampledFrom(outcomes), 0, witness.ReferenceRuns).Draw(t, "runs")
+			votes := rapid.SliceOfN(rapid.Custom(func(t *rapid.T) witness.ScopeVote {
+				return witness.ScopeVote{Answer: rapid.SampledFrom(answers).Draw(t, "answer"), Confidence: rapid.Float64Range(0, 1).Draw(t, "confidence")}
+			}), 0, scopeVotes+1).Draw(t, "votes")
+			allFailed := len(runs) == witness.ReferenceRuns && !slices.ContainsFunc(runs, func(o witness.Outcome) bool { return o != witness.OutcomeFailed })
+			allFixed := len(votes) >= scopeVotes && !slices.ContainsFunc(votes, func(v witness.ScopeVote) bool {
+				return v.Answer != witness.ScopeFixed || v.Confidence < judgeThreshold
+			})
+			if got := record(runs, nil, votes...).FailedAsFixed(rule); got != (allFailed && allFixed) {
+				t.Fatalf("runs %v, votes %+v: failed as fixed %t", runs, votes, got)
 			}
 		})
 	})

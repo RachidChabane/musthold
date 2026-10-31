@@ -2,8 +2,10 @@ package cli_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -14,6 +16,7 @@ import (
 	"github.com/RachidChabane/musthold/discpower/internal/cli"
 	"github.com/RachidChabane/musthold/discpower/internal/domain/power"
 	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
+	"github.com/RachidChabane/musthold/format"
 	"github.com/RachidChabane/musthold/format/hostproto"
 	"github.com/RachidChabane/musthold/format/hostproto/hostprototest"
 )
@@ -21,14 +24,15 @@ import (
 const (
 	verifiesSP1962 = " [verifies SP-1962~1]"
 	verifiesSP1963 = " [verifies SP-1963~1]"
-	verifiesSP1964 = " [verifies SP-1964~1]"
+	verifiesSP1964 = " [verifies SP-1964~2]"
 	verifiesSP1966 = " [verifies SP-1966~2]"
 	verifiesSP1967 = " [verifies SP-1967~1]"
 	verifiesSP1968 = " [verifies SP-1968~1]"
-	verifiesSP1970 = " [verifies SP-1970~1]"
+	verifiesSP1970 = " [verifies SP-1970~2]"
 	verifiesSP1972 = " [verifies SP-1972~1]"
 	verifiesSP1977 = " [verifies SP-1977~1]"
 	verifiesSP1978 = " [verifies SP-1978~1]"
+	verifiesSP2701 = " [verifies SP-2701~1]"
 
 	factsCommand        = "facts"
 	showVerb            = "show"
@@ -49,7 +53,19 @@ const (
 	configFile          = ".musthold/config.yaml"
 	sameThreshold       = `{"edits":[{"file":"parcel/rates.py","qualname":"shipping_fee","new_source":"def shipping_fee(total):\n    if not total < FREE_SHIPPING_FROM:\n        return 0\n    return SHIPPING_FEE"}]}`
 	admissionSection    = "admission:\n  refactors: planted\n"
+	ratesFile           = "parcel/rates.py"
+	inclusiveThreshold  = "if total >= FREE_SHIPPING_FROM:"
+	exclusiveThreshold  = "if total > FREE_SHIPPING_FROM:"
+	boundaryClause      = "reaches 50"
+	boundaryWitness     = "free_from_fifty"
+	boundaryAssertion   = "assert shipping_fee(50) == 0"
+	// onceThenBoundary passes the first time it runs in a workspace and checks
+	// the boundary every later time.
+	onceThenBoundary = "assert __import__('pathlib').Path(__file__ + '.ran').exists() is False and __import__('pathlib').Path(__file__ + '.ran').touch() is None or shipping_fee(50) == 0"
+	notFixed         = "NOT_FIXED"
 )
+
+var scopeLabel = regexp.MustCompile(`(?m)^Witness (w\d+), for the clause`)
 
 // pendingKinds tells, for each pending ticket, whether it asks for witnesses,
 // scope verdicts or anything else.
@@ -126,12 +142,64 @@ func (h *harness) facts(criterion string) power.Record {
 }
 
 // conflictingOracle writes, for the shipping criterion, an example the
-// reference fails.
+// reference fails, and its scope judges hold that example NOT_FIXED: the spec
+// fixes another output there.
 type conflictingOracle struct{ honest oracle }
 
 func (c conflictingOracle) Answer(persona string, view hostproto.ExecutorView) (string, error) {
 	answer, err := c.honest.Answer(persona, view)
-	return strings.Replace(answer, conflictingExample, conflictedExample, 1), err
+	if err != nil {
+		return "", err
+	}
+	if strings.Contains(string(view.ResponseSchema), scopeSchemaMarker) {
+		return holdNotFixed(answer, view.User, conflictedExample)
+	}
+	return strings.Replace(answer, conflictingExample, conflictedExample, 1), nil
+}
+
+// holdNotFixed turns the scope verdict of every witness whose code holds the
+// text into NOT_FIXED.
+func holdNotFixed(answer, user, text string) (string, error) {
+	var document struct {
+		Verdicts map[string]map[string]any `json:"verdicts"`
+	}
+	if err := json.Unmarshal([]byte(answer), &document); err != nil {
+		return "", err
+	}
+	matches := scopeLabel.FindAllStringSubmatchIndex(user, -1)
+	for index, match := range matches {
+		end := len(user)
+		if index+1 < len(matches) {
+			end = matches[index+1][0]
+		}
+		if label := user[match[2]:match[3]]; strings.Contains(user[match[0]:end], text) {
+			document.Verdicts[label]["answer"] = notFixed
+		}
+	}
+	encoded, err := json.Marshal(document)
+	return string(encoded), err
+}
+
+// flakyBoundaryOracle writes the boundary witness of the shipping criterion so
+// that it passes its first run in a workspace and checks the boundary in the
+// others.
+type flakyBoundaryOracle struct{ honest oracle }
+
+func (f flakyBoundaryOracle) Answer(persona string, view hostproto.ExecutorView) (string, error) {
+	answer, err := f.honest.Answer(persona, view)
+	return strings.Replace(answer, boundaryAssertion, onceThenBoundary, 1), err
+}
+
+// witnessNamed finds the record of the criterion's witness of the name.
+func witnessNamed(t *testing.T, record power.Record, name string) witness.Record {
+	t.Helper()
+	index := slices.IndexFunc(record.Witnesses, func(item witness.Record) bool {
+		return item.Witness.Criterion == record.Criterion && item.Witness.Name == name
+	})
+	if index < 0 {
+		t.Fatalf("no witness %s of %s", name, record.Criterion)
+	}
+	return record.Witnesses[index]
 }
 
 func TestWitnessesEndToEnd(t *testing.T) {
@@ -263,7 +331,18 @@ func TestWitnessesEndToEnd(t *testing.T) {
 		})
 	})
 
-	t.Run("a witness the reference fails is reported as a reading conflict and changes no outcome"+verifiesSP1970, func(t *testing.T) {
+	t.Run("the correct change lists no failed witness"+verifiesSP2701, func(t *testing.T) {
+		if strings.Contains(output, string(power.FindingSpecWitnessFailed)) {
+			t.Errorf("a failed witness on the correct change:\n%s", output)
+		}
+		for criterion := range verdicts(output) {
+			if failed := h.statement(criterion).Predicate.FailedWitnesses; len(failed) != 0 {
+				t.Errorf("%s lists %+v", criterion, failed)
+			}
+		}
+	})
+
+	t.Run("a witness the reference fails and a scope judge holds not fixed is a reading conflict and changes no outcome"+verifiesSP1970, func(t *testing.T) {
 		conflicted := newHarness(t, shared)
 		_, conflictedOutput := conflicted.drive(hostprototest.PersonaHonest, conflictingOracle{})
 		if !strings.Contains(conflictedOutput, "reading_conflict: "+shippingCriterion) {
@@ -271,6 +350,65 @@ func TestWitnessesEndToEnd(t *testing.T) {
 		}
 		if got, want := verdicts(conflictedOutput)[shippingCriterion], verdicts(output)[shippingCriterion]; got != want {
 			t.Errorf("the reading conflict changed the outcome: %q, was %q", got, want)
+		}
+		if strings.Contains(conflictedOutput, string(power.FindingSpecWitnessFailed)) || len(conflicted.statement(shippingCriterion).Predicate.FailedWitnesses) != 0 {
+			t.Errorf("a witness held not fixed escalated:\n%s", conflictedOutput)
+		}
+		t.Run("the scope judges were asked about it, blind to its failure"+verifiesSP1964, func(t *testing.T) {
+			record := conflicted.facts(shippingCriterion)
+			for _, item := range record.Witnesses {
+				if item.Witness.Criterion == record.Criterion && item.Reading() == witness.ReadingConflict && len(item.Scope) != writersPerCriterion {
+					t.Errorf("the reading conflict %s has %d scope votes", item.Witness.Name, len(item.Scope))
+				}
+			}
+		})
+	})
+
+	t.Run("a change wrong where the spec states a rule in prose, with silent tests, escalates as spec_witness_failed"+verifiesSP2701, func(t *testing.T) {
+		wrong := newHarness(t, shared)
+		wrong.rewrite(ratesFile, inclusiveThreshold, exclusiveThreshold)
+		code, wrongOutput := wrong.drive(hostprototest.PersonaHonest, oracle{})
+		if code != cli.ExitBlocked || !slices.Contains(findings(wrongOutput, shippingCriterion), string(power.FindingSpecWitnessFailed)) {
+			t.Fatalf("exit %d, findings of %s %v\n%s", code, shippingCriterion, findings(wrongOutput, shippingCriterion), wrongOutput)
+		}
+		shown := fmt.Sprintf("  spec witness %s, which checks %q, fails in every run", boundaryWitness, boundaryClause)
+		for _, want := range []string{shown, boundaryAssertion} {
+			if !strings.Contains(wrongOutput, want) {
+				t.Errorf("%q is not shown:\n%s", want, wrongOutput)
+			}
+		}
+		failed := wrong.statement(shippingCriterion).Predicate.FailedWitnesses
+		if !slices.ContainsFunc(failed, func(item format.FailedWitness) bool {
+			return item.Name == boundaryWitness && item.Clause == boundaryClause && strings.Contains(item.Code, boundaryAssertion)
+		}) {
+			t.Errorf("the Statement lists %+v", failed)
+		}
+		facts := wrong.facts(shippingCriterion)
+		if record := witnessNamed(t, facts, boundaryWitness); !record.FailedAsFixed(facts.Rules("").ScopeRule()) {
+			t.Errorf("the boundary witness: runs %v, scope %+v", record.Reference, record.Scope)
+		}
+		t.Run("a fresh criterion shows the same failed witness"+verifiesSP2701, func(t *testing.T) {
+			_, freshOutput, _ := wrong.run(nil, proveCommand, changedFlag)
+			if !strings.Contains(freshOutput, shown) || !strings.Contains(freshOutput, boundaryAssertion) {
+				t.Errorf("the fresh run does not show the failed witness:\n%s", freshOutput)
+			}
+		})
+	})
+
+	t.Run("a witness that fails the wrong change in fewer than three runs of three never escalates"+verifiesSP2701, func(t *testing.T) {
+		flaky := newHarness(t, shared)
+		flaky.rewrite(ratesFile, inclusiveThreshold, exclusiveThreshold)
+		_, flakyOutput := flaky.drive(hostprototest.PersonaHonest, flakyBoundaryOracle{})
+		if record := witnessNamed(t, flaky.facts(shippingCriterion), boundaryWitness); record.Reading() != witness.ReadingFlaky {
+			t.Fatalf("the boundary witness reads %s from %v", record.Reading(), record.Reference)
+		}
+		if slices.Contains(findings(flakyOutput, shippingCriterion), string(power.FindingSpecWitnessFailed)) {
+			t.Errorf("a flaky witness escalated:\n%s", flakyOutput)
+		}
+		for _, item := range flaky.statement(shippingCriterion).Predicate.FailedWitnesses {
+			if item.Name == boundaryWitness {
+				t.Errorf("the flaky witness is listed: %+v", item)
+			}
 		}
 	})
 

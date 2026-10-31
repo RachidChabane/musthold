@@ -227,6 +227,7 @@ func (r *critRun) predicate(inputs []format.Input, cacheKey string, correctCodeP
 		Mutants:           mutants,
 		Executor:          r.proofExecutor(),
 		Examples:          r.exampleRuns(),
+		FailedWitnesses:   r.failedWitnesses(),
 	}, nil
 }
 

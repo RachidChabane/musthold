@@ -77,9 +77,9 @@ func (p *project) redrawsForCredit() bool { return p.producedBy() == format.Prod
 
 // drawWitnesses asks the writers of a draw, commits the digest of each set they
 // return to the journal, runs the sets on the reference, asks the scope judges
-// about every witness the reference passes, then runs the witnesses the
-// reference passes on the planted refactors. It returns the draw, settled or
-// not.
+// about every witness the reference passes or fails in every run, then runs the
+// witnesses the reference passes on the planted refactors. It returns the draw,
+// settled or not.
 func (r *critRun) drawWitnesses(ctx context.Context, number, votes int) (*witnessDraw, error) {
 	draw := newWitnessDraw(number)
 	request, err := r.witnessRequest(number)
@@ -271,22 +271,37 @@ func (r *critRun) passes(current *witnessDraw, id string) bool {
 // passingWitnesses lists the witnesses of the draw the reference passes, in the
 // order the writers answered.
 func (r *critRun) passingWitnesses(draw *witnessDraw) []witness.Witness {
-	var passing []witness.Witness
+	return witnessesReading(draw, witness.ReadingPasses)
+}
+
+// scopedWitnesses lists the witnesses of the draw the scope judges are asked
+// about, in the order the writers answered: those the reference passes and
+// those it fails in every run, interleaved as written, so that nothing the
+// judges see tells the two apart.
+func (r *critRun) scopedWitnesses(draw *witnessDraw) []witness.Witness {
+	return witnessesReading(draw, witness.ReadingPasses, witness.ReadingConflict)
+}
+
+// witnessesReading lists, once each and in the order the writers answered, the
+// witnesses of the draw whose reference runs read one of the readings.
+func witnessesReading(draw *witnessDraw, readings ...witness.Reading) []witness.Witness {
+	var found []witness.Witness
 	for _, set := range draw.sets {
 		for _, w := range set.Witnesses {
 			record, own := draw.records[w.ID]
-			if own && record.Reading() == witness.ReadingPasses && !slices.ContainsFunc(passing, func(seen witness.Witness) bool { return seen.ID == w.ID }) {
-				passing = append(passing, w)
+			if own && slices.Contains(readings, record.Reading()) && !slices.ContainsFunc(found, func(seen witness.Witness) bool { return seen.ID == w.ID }) {
+				found = append(found, w)
 			}
 		}
 	}
-	return passing
+	return found
 }
 
 // judgeScope asks the scope judges about every witness of the draw the reference
-// passes and records their votes. It reports whether the draw is settled.
+// passes or fails in every run and records their votes. It reports whether the
+// draw is settled.
 func (r *critRun) judgeScope(draw *witnessDraw) (bool, error) {
-	shown := r.passingWitnesses(draw)
+	shown := r.scopedWitnesses(draw)
 	if len(shown) == 0 {
 		return true, nil
 	}
@@ -404,11 +419,14 @@ func (r *critRun) profilesOf(id string) []format.ExecutorProfile {
 }
 
 // readingConflicts lists the witnesses of the criterion the reference fails in
-// every run: questions about the spec, reported beside the outcome.
+// every run and that the scope judges do not all hold fixed: questions about
+// the spec, reported beside the outcome. The others fail the criterion as
+// `spec_witness_failed`.
 func (r *critRun) readingConflicts() []string {
 	var conflicts []string
+	scope := r.g3w().ScopeRule()
 	for _, record := range r.witnessRecords() {
-		if record.Reading() == witness.ReadingConflict {
+		if record.Reading() == witness.ReadingConflict && !record.FailedAsFixed(scope) {
 			conflicts = append(conflicts, fmt.Sprintf("%s: %s witness %s (%s)", FindingReadingConflict, r.c.Ref, record.Witness.ShortID(), record.Witness.Clause))
 		}
 	}

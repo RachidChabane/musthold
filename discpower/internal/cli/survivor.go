@@ -27,16 +27,33 @@ func survivorLines(survivor prove.Survivor) []string {
 		return []string{head + fmt.Sprintf("fails its example %d", *counterexample.Example)}
 	case counterexample.Witness != nil:
 		witness := counterexample.Witness
-		lines := []string{head + fmt.Sprintf("fails the witness %s, which checks %q:", witness.Name, witness.Clause)}
-		for _, line := range strings.Split(strings.TrimRight(witness.Code, "\n"), "\n") {
-			lines = append(lines, survivorIndent+line)
-		}
-		if witness.Truncated {
-			lines = append(lines, fmt.Sprintf("%s(the witness is cut at %d bytes)", survivorIndent, format.SourceViewCap))
-		}
-		return lines
+		head += fmt.Sprintf("fails the witness %s, which checks %q:", witness.Name, witness.Clause)
+		return append([]string{head}, witnessCodeLines(witness.Code, witness.Truncated)...)
 	}
 	return []string{strings.TrimSuffix(head, ", ")}
+}
+
+// failedWitnessLines say what a witness the code under proof fails shows: its
+// name, the clause it checks and, in a local run, its code, which holds the
+// input and the output the spec fixes for it.
+func failedWitnessLines(failed format.FailedWitness) []string {
+	head := fmt.Sprintf("  spec witness %s, which checks %q, fails in every run, and every scope judge holds its output fixed by the spec", failed.Name, failed.Clause)
+	if failed.Code == "" {
+		return []string{head}
+	}
+	return append([]string{head + ":"}, witnessCodeLines(failed.Code, failed.Truncated)...)
+}
+
+// witnessCodeLines indent a witness's code and say when it was cut.
+func witnessCodeLines(code string, truncated bool) []string {
+	var lines []string
+	for _, line := range strings.Split(strings.TrimRight(code, "\n"), "\n") {
+		lines = append(lines, survivorIndent+line)
+	}
+	if truncated {
+		lines = append(lines, fmt.Sprintf("%s(the witness is cut at %d bytes)", survivorIndent, format.SourceViewCap))
+	}
+	return lines
 }
 
 // drawnAs says how the mutant was drawn.
