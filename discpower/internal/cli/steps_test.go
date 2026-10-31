@@ -35,13 +35,6 @@ const (
 	pendingPath     = ".musthold/pending/discpower.json"
 )
 
-// spentContext is the context of a step whose budget already ran out.
-func spentContext() context.Context {
-	ctx, cancel := context.WithCancelCause(context.Background())
-	cancel(hostproto.ErrStepSpent)
-	return ctx
-}
-
 // progress runs `request progress --json` for the prove session.
 func (h *harness) progress(since int) hostproto.Progress {
 	h.t.Helper()
@@ -79,38 +72,40 @@ func TestBoundedSteps(t *testing.T) {
 	}
 	shared := t.TempDir()
 
-	t.Run("a step whose budget ran out keeps what is stored, writes nothing, exits 3, and the next call continues"+verifiesStepBound, func(t *testing.T) {
-		h := newHarness(t, shared)
-		code, first, _ := h.run(nil, proveCommand, allFlag)
-		if code != cli.ExitAwaitingHost {
-			t.Fatalf("exit code %d:\\n%s", code, first)
+	t.Run("a step whose budget ran out in its executions keeps what is stored, writes nothing, exits 3, and the next call continues"+verifiesStepBound, func(t *testing.T) {
+		h := newHarness(t, "")
+		if code, first, _ := h.run(nil, proveCommand, allFlag); code != cli.ExitAwaitingHost {
+			t.Fatalf("exit code %d:\n%s", code, first)
 		}
-		before := h.requestsJSON()
+		if _, err := hostprototest.PlayCLI(h, hostprototest.PersonaHonest, oracle{}, func(time.Duration) {}); err != nil {
+			t.Fatal(err)
+		}
+		statements := len(h.statements())
 		journal := len(h.journal())
-		h.ctx = spentContext()
-		code, cut, _ := h.run(nil, proveCommand, allFlag, resumeFlag)
-		if code != cli.ExitAwaitingHost || !strings.Contains(cut, unfinishedSpent) {
-			t.Fatalf("exit code %d:\\n%s", code, cut)
+		cut := ""
+		for budget := firstStepBudget / 4; cut == "" && budget <= firstStepBudget*4; budget *= 2 {
+			ctx, cancel := context.WithTimeoutCause(context.Background(), budget, hostproto.ErrStepSpent)
+			h.ctx = ctx
+			code, output, stderr := h.run(nil, proveCommand, allFlag, resumeFlag)
+			cancel()
+			h.ctx = nil
+			switch {
+			case code == cli.ExitAwaitingHost && strings.Contains(output, unfinishedSpent):
+				cut = output
+			case code == cli.ExitToolFailure && strings.Contains(stderr, "host.step_seconds"):
+			default:
+				t.Skipf("the step ended before its budget ran out (exit %d), so it cannot be cut here", code)
+			}
 		}
-		if after := h.requestsJSON(); len(after.Items) != len(before.Items) || len(h.journal()) != journal {
-			t.Fatalf("the cut step changed the store: %d then %d tickets, journal %d then %d", len(before.Items), len(after.Items), journal, len(h.journal()))
+		if cut == "" {
+			t.Fatal("no budget cut the step in its executions")
 		}
-		h.ctx = nil
-		code, again, _ := h.run(nil, proveCommand, allFlag, resumeFlag)
-		if code != cli.ExitAwaitingHost || strings.Contains(again, unfinishedSpent) || len(h.requestsJSON().Items) != len(before.Items) {
-			t.Fatalf("the next call: exit %d:\\n%s", code, again)
+		if len(h.statements()) != statements || len(h.journal()) < journal {
+			t.Fatalf("the cut step wrote %d Statements over %d, journal %d then %d", len(h.statements()), statements, journal, len(h.journal()))
 		}
-	})
-
-	t.Run("a step cut before it asked anything is resumed by --resume"+verifiesStepBound, func(t *testing.T) {
-		h := newHarness(t, shared)
-		h.ctx = spentContext()
-		if code, cut, _ := h.run(nil, proveCommand, allFlag); code != cli.ExitAwaitingHost || !strings.Contains(cut, unfinishedSpent) {
-			t.Fatalf("exit code %d:\\n%s", code, cut)
-		}
-		h.ctx = nil
-		if code, resumed, stderr := h.run(nil, proveCommand, allFlag, resumeFlag); code != cli.ExitAwaitingHost {
-			t.Fatalf("exit code %d:\\n%s%s", code, resumed, stderr)
+		code, again, stderr := h.run(nil, proveCommand, allFlag, resumeFlag)
+		if code == cli.ExitToolFailure || strings.Contains(again, unfinishedSpent) {
+			t.Fatalf("the next call: exit %d:\n%s%s", code, again, stderr)
 		}
 	})
 

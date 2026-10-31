@@ -182,7 +182,7 @@ func TestRequestList(t *testing.T) {
 	t.Run("an empty store lists an empty array of items [verifies SP-192~2]", func(t *testing.T) {
 		f := newHostFixture(t)
 		code, stdout, _ := f.run(nil, hostproto.ListArgs(hostproto.SessionProve)...)
-		if code != cli.ExitClean || strings.TrimSpace(stdout) != `{"items":[]}` {
+		if code != cli.ExitClean || strings.TrimSpace(stdout) != `{"items":[],"inFlight":0,"orphaned":0}` {
 			t.Fatalf("exit %d, stdout %q", code, stdout)
 		}
 	})
