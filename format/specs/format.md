@@ -305,6 +305,14 @@ Go tests of the module in CI.
   with one `prove --changed` and report the second; and WHEN a resume is asked
   THE SYSTEM SHALL accept it for a session that holds a request or opened a wave
   it did not end.
+- **SP-2691~1**: WHEN a fake host answers, through the request service, two
+  modules of 14 criteria each, whose criteria ask a writer then two judges and
+  whose steps run out of budget, and the host leaves one fetched ticket orphaned
+  and one writer's answers are contradicted until the ticket is abandoned, THE
+  SYSTEM SHALL bring every criterion of both modules to a kept conclusion: the
+  orphan reissued, the abandonment renewed by one new run, no ticket left
+  waiting, and each module's pending file empty with its count of answers above
+  zero.
 - **SP-2666~1**: WHEN the work budget of a step is configured THE SYSTEM SHALL
   read `host.step_seconds` as a whole number of seconds from 1 to 75, default to
   60, refuse any other value, and report a step as spent exactly when its own
