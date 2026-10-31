@@ -118,17 +118,24 @@ waiting. A new scan ends the older scans; nothing but `prove` ends `prove`.
 | State | Entered by | Next |
 |---|---|---|
 | `emitted` | a session reaches a model step with no cached response | `fetched`, `superseded` |
-| `fetched` | `fetch_request(ticket, cap)` | `accepted`, `rejected`, or `expired` after 20 minutes |
+| `fetched` | `fetch_request(ticket, cap)` | `accepted`, `rejected`, or `expired` after 20 minutes, or at once when the stop hook journals the end of the executor's run without an answer |
 | `accepted` | `submit_response` with a known ticket, an unused nonce, a valid capability and output valid against the schema; one schema correction is allowed | `validated`, `rejected` |
 | `rejected`, `expired` | execution contradicts the answer, or the schema still fails, or the time ran out | `emitted` again with a new nonce while emissions remain (3 by default), else `abandoned` |
 | `validated` | at `--resume`: the splice, the build, the kills and the invariants of the module hold | `consumed` |
 | `superseded` | no live session wants the request any more | `emitted` again as a new emission when a session wants it again, never counted toward abandonment |
-| `abandoned` | emissions exhausted | the claim is UNDETERMINED with `host_unresponsive` |
+| `abandoned` | emissions exhausted | the claim is UNDETERMINED with `host_unresponsive`; `emitted` again, with a fresh count of emissions, when a new run (not `--resume`) wants the request |
 
-**Waves.** `prove` is a resumable state machine. It does its deterministic stages,
-emits the tickets of one wave and exits 3. `prove --resume` runs the next wave. The
-fulfil skill loops in the session until the exit code is not 3, listing the
-tickets of the prove session with `request list --session prove`.
+**Waves and steps.** `prove` is a resumable state machine run in steps. A step
+does its deterministic stages, emits the tickets of its wave and exits 3. A step
+opens the next wave only when the journal accepted an answer for the session
+since the open wave began, or the session ended; otherwise it continues the open
+wave. Every step stops once its work budget (`host.step_seconds`) is spent, keeps
+what it stored and returns within 90 seconds; one run of a session holds it at a
+time. The count a step prints, the items of `request list` and the counts of
+`request progress` come from one read of the store, which sorts the waiting
+tickets into launchable, in flight and orphaned. The fulfil skill loops in the
+session until the exit code is not 3, listing the tickets of the prove session
+with `request list --session prove`.
 
 **Executor.** The host runs a plugin subagent whose tools are exactly `fetch_request`
 and `submit_response`, served by the plugin's own MCP server (`mcp --role executor`).

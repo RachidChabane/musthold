@@ -103,10 +103,15 @@ The subject key is the subject name with `%`, `/` and `\` percent-encoded.
 
 ## Pending files
 
-A module's pending file is `.musthold/pending/<module>.json`: a module name and
+A module's pending file is `.musthold/pending/<module>.json`: a module name,
 entries, each a requirement `ID~REV` with a reason of the closed set
 `awaiting_host`, `awaiting_proof`, `awaiting_host_judgment`, `host_unresponsive`,
-strictly ascending. See [troubleshooting](troubleshooting.md#pending-reasons).
+strictly ascending, and `answered`, the number of host answers the module
+accepted for the project. The count never decreases, and once it is above zero
+the module keeps the file, with `"pending": []` when nothing waits. A module
+updates it, atomically, at the end of each `prove` step and whenever it accepts
+an answer, so that Shallnot's end-of-turn hook can tell a proof run that advances
+from one that stalled. See [troubleshooting](troubleshooting.md#pending-reasons).
 
 ## Host protocol
 

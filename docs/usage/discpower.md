@@ -398,7 +398,11 @@ the answers go:
 |---|---|
 | 0 | the scan finished and wrote its reports |
 | 2 | a refusal, such as a `--resume` whose commit, tree, mode, base, pull request, seed, counts, budget, module version or sources differ from the open session's, each difference named |
-| 3 | tickets wait: the scan prints `wave N`, `session scan:<key>` and `awaiting_host N tickets` |
+| 3 | tickets wait, or the step was unfinished: the scan prints `wave N`, `session scan:<key>`, `awaiting_host N tickets` and, for a step that used its time budget or found its session held by another run, `unfinished budget_spent` or `unfinished session_busy` |
+
+A scan works in steps as `prove` does: each invocation returns within 90 seconds,
+keeps what it stored, and opens the session's next wave only once the host
+answered.
 
 The tickets of the session are listed with
 `musthold-dp request list --session scan:<key>`. `--resume` continues the open

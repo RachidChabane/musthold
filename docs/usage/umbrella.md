@@ -60,14 +60,19 @@ Plugins install no binary: each binary must be on `PATH` (see
    missing module never counts as proved; a present module that fails its `doctor`
    is reported and left out; with no module present it stops;
 2. runs `prove --changed` of each present module in the order discriminating power,
-   alignment, completeness;
+   alignment, completeness, in the foreground: every `prove` step returns within
+   90 seconds;
 3. while any module exited with code 3, runs one wave for each such module in that
    order before any module starts its next wave: the relay when `musthold-s1` is
    on `PATH` and an endpoint is configured, then one foreground blind executor per
-   ticket, then `prove --resume`. No module's wave waits for another's;
-4. ends a module whose `prove` exits 0 or 1 and reports its verdict lines. For exit
-   code 2, or a `host_unresponsive` finding, it reports to the user and stops that
-   module without looping;
+   ticket `request list --session prove` shows, then `prove --resume`. A module
+   whose step printed an `unfinished` line and lists no ticket only runs `prove
+   --resume`, which continues the step; one that printed `in_flight` first waits
+   for its executors. No module's wave waits for another's;
+4. ends a module whose `prove` exits 0 or 1 and reports its verdict lines. At a
+   first `host_unresponsive` finding it runs that module's `prove --changed` once
+   more, which asks the abandoned requests again, and goes on; at a second it
+   reports it. For exit code 2 it reports to the user and stops that module;
 5. once every present module is done, publishes the local proofs once with
    `musthold-verify --accept-local .musthold/cache --out .musthold/verified`,
    which is the one command besides the module commands it pre-approves, and says

@@ -93,13 +93,27 @@ musthold-dp prove --ci [--import-host DIR] [--root DIR]
 
 Completeness adds `--base REF`, the reference the change is measured from.
 
-`prove` is a resumable state machine. A run does the deterministic work it can,
-emits tickets for what needs a model, prints them as `awaiting_host`, and exits
-with code 3. Each run, including `--resume`, advances one wave. Running `prove`
-again without answering gives the same requests.
+`prove` is a resumable state machine that works in steps. A step does the
+deterministic work it can, emits tickets for what needs a model, prints them as
+`awaiting_host`, and exits with code 3. A step opens the next wave only when the
+host answered since the open wave began, or the previous run ended; running
+`prove` again without answering continues the same wave with the same requests.
 
-The first line is `wave N`. A final `awaiting_host N tickets` line is printed while
-tickets wait. Lines in between are specific to each module. Findings are printed
+Every step returns within 90 seconds: it stops once it has worked
+`host.step_seconds` (60 by default, see [configuration](configuration.md)),
+keeps every executed fact and ticket it stored, writes no Statement for a
+criterion it did not finish, prints `unfinished budget_spent` and exits with
+code 3. Running the same command again continues. A step that starts while
+another `prove` of the repository holds the session changes nothing and prints
+`unfinished session_busy`. A step too short to store any executed fact fails
+with exit code 2 and names `host.step_seconds`. `--ci` and `--replay` runs, which
+no host answers in their course, are not bounded.
+
+The first line is `wave N`. While the step leaves work, final lines say what:
+`awaiting_host N tickets`, N being the number of tickets `request list` shows;
+`in_flight N tickets` for tickets executors fetched and still hold; and the
+`unfinished` line of an unfinished step. Lines in between are specific to each
+module. Findings are printed
 as `  finding <name>` under a criterion and `module finding <name>` for the run.
 The discriminating-power module adds a `  survivor` line under a criterion for each
 mutant that blocks it (see [discriminating power](discpower.md)).
@@ -107,7 +121,12 @@ mutant that blocks it (see [discriminating power](discpower.md)).
 Exit codes: 0 clean; 1 blocked or escalated (the meaning is per module), or a
 refusal such as `--ci` without a CI run, a bundle of another module version that left
 requests unanswered, or a bundle that cannot be decoded; 2 tool failure or usage
-error such as conflicting flags; 3 `awaiting_host`.
+error such as conflicting flags; 3 `awaiting_host`, `in_flight` or `unfinished`.
+
+A verdict that rests on a ticket the host abandoned (`host_unresponsive`) is
+written but never kept as fresh: the next `prove --changed` proves it again and
+issues the abandoned tickets again with a fresh count of emissions. `--resume`
+leaves them abandoned.
 
 ## request
 
@@ -115,13 +134,15 @@ error such as conflicting flags; 3 `awaiting_host`.
 musthold-dp request list [--json] [--session SESSION] [--root DIR]
 musthold-dp request show <ticket> [--cap CAP] [--root DIR]
 musthold-dp request submit <ticket> --nonce NONCE [--cap CAP] [--root DIR]
+musthold-dp request progress [--json] [--session SESSION] [--since CURSOR] [--root DIR]
 ```
 
 A ticket is `<requestId>.<vote>.<emission>`.
 
-- `list` prints `<ticket> <role>` per pending ticket; with `--json` it prints the
-  listing, including each ticket's nonce, view and the sessions that want its
-  request. `--session prove` lists the tickets of `prove` only, and
+- `list` prints `<ticket> <role>` per ticket an executor may be started for; with
+  `--json` it prints the listing, including each ticket's nonce, view and the
+  sessions that want its request, and the counts `inFlight` and `orphaned` of the
+  fetched tickets that still wait. `--session prove` lists the tickets of `prove` only, and
   `--session scan:<key>` those of one scan; without `--session` it lists the
   tickets of every session. A value that names no session is refused.
 - `show` prints what an executor receives: the ticket, its nonce, the prompt, the
@@ -131,6 +152,12 @@ A ticket is `<requestId>.<vote>.<emission>`.
   schema violation is reported back and one correction is allowed. A different
   second answer for an accepted ticket is refused as `resubmission_conflict`. An
   answer submitted outside an executor is journaled as `exposed`.
+- `progress` prints where the journal stands and what the session waits for:
+  `cursor`, the sequence number the next journal record will carry; `answered`,
+  the answers accepted from the record numbered `--since` on (every answer
+  without it); and the `launchable`, `inFlight` and `orphaned` counts. `--json`
+  prints the same members as a document. A caller keeps `cursor` and passes it
+  as `--since` on its next read to learn whether an answer arrived in between.
 
 While attestation is required, `show` and `submit` need a capability that only a
 harness hook issues. These commands exist for scripts, the relay, test fakes and

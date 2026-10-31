@@ -195,8 +195,8 @@ shallnot check
 ```
 
 Run the verify step after each proof run you make by hand. `.musthold/pending/`
-holds the pending files of the alignment and completeness modules, which `verify`
-folds into the manifest when `--out` is `.musthold/verified`.
+holds the pending files of the modules, which `verify` folds into the manifest
+when `--out` is `.musthold/verified`.
 
 A criterion passes when traceability and every required proof pass. A blocking
 finding names the command that resolves it.

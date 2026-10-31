@@ -38,7 +38,7 @@ proof as a pass.
 | `awaiting_host` | A module has tickets the host has not answered. | Run the module's fulfil skill (or `prove-all`); or `prove` and answer the tickets. |
 | `awaiting_proof` | A proof the module consumes is not there yet. Alignment reports it for a test while the discriminating-power proof of the same requirement is pending. | Finish the discriminating-power proof. |
 | `awaiting_host_judgment` | CI drew a surviving mutant that needs a judgment of the host. | `host pull --ci-run ID`, answer, `host push`, re-run CI ([CI](ci.md)). |
-| `host_unresponsive` | The host did not answer after every emission (3 by default). | Report it. Do not loop: check `doctor`, that the plugin and its hooks are installed, and the journal. |
+| `host_unresponsive` | The host did not answer after every emission (3 by default). | Run `prove --changed` once: it asks the abandoned requests again. If it comes back, report it: check `doctor`, that the plugin and its hooks are installed, and the journal. |
 
 `awaiting_host`, `awaiting_proof` and `awaiting_host_judgment` send the agent back
 to work; Shallnot's end-of-turn hook lets a turn end after a bounded number of
@@ -61,9 +61,15 @@ The `shallnot` on `PATH` predates report schema 1.2. Install a Shallnot that has
 or point `MUSTHOLD_SHALLNOT` at one. `doctor` shows the `shallnot` path and the
 `shallnot-schema` check.
 
-**`prove` stays at exit 3.** Tickets are unanswered. `musthold-dp request list
---session prove` shows them. Each run of `prove`, including `--resume`, advances one wave; answers
-must exist before `--resume` can consume them.
+**`prove` stays at exit 3.** Tickets are unanswered, or the step was unfinished.
+`musthold-dp request list --session prove` shows the tickets an executor may be
+started for; `awaiting_host N tickets` counts exactly those. A step opens a new
+wave only once the host answered, so answers must exist before `--resume` can
+consume them. `unfinished budget_spent` means the step used its time budget: run
+the same command again. `in_flight N tickets` means executors fetched tickets and
+have not answered yet; a ticket whose executor ended without answering is issued
+again at the next step. `musthold-dp request progress --session prove` shows the
+counts and how many answers arrived.
 
 **The executor server refuses every answer, or tickets never leave `awaiting_host`.**
 The harness hooks did not issue a capability. Check that the module's plugin is

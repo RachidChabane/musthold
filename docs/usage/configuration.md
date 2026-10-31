@@ -44,6 +44,7 @@ systemone:
 | `policy` | mapping | defaults below | Decision policy of discriminating power. |
 | `host.sampling` | `on` | off | Lets the executor server offer `drain` to a client that declares MCP sampling. |
 | `host.require_attestation` | boolean | `true` | When `true`, an executor answer without a capability issued by the harness hooks is refused. `false` records such answers as `restricted`. |
+| `host.step_seconds` | whole number, 1 to 75 | `60` | The work budget of one step of `prove` or `scan --host`. A step stops once it is spent, keeps what it stored and prints `unfinished budget_spent`, so that it returns within 90 seconds. |
 | `systemone.endpoint` | URL | none | Endpoint the relay posts closed questions to. |
 | `systemone.model` | string | none | Model named in each relayed request. |
 | `systemone.classify` | `auto`, `shadow`, `off`, or a mapping of `default` and proof kinds to those | `auto` | Classification by the host's mod: `auto` serves only the admitted entries, `shadow` journals and never answers, `off` does nothing. See [System One](system-one.md#classification-by-the-host). |
