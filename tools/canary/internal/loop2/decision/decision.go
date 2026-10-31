@@ -6,6 +6,7 @@ package decision
 import (
 	"math/big"
 
+	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/facts"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/analyze/stats"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop2/mn"
 )
@@ -20,8 +21,8 @@ const Z = mn.Z90
 // gate may refuse; GuardYBound the largest shortfall of the treatment's share
 // of runs ending in an accepted oracle-clean change below the control's.
 var (
-	GuardGBound = big.NewRat(3, 20)
-	GuardYBound = big.NewRat(1, 10)
+	GuardGBound = facts.Fraction{K: 3, N: 20}
+	GuardYBound = facts.Fraction{K: 1, N: 10}
 )
 
 // Outcome is a row of the table.
@@ -70,43 +71,36 @@ type Guards struct {
 func (g Guards) Hold() bool { return g.G.Holds && g.Y.Holds }
 
 // GuardG is the treatment's refused oracle-clean changes over its oracle-clean
-// changes, against GuardGBound.
+// changes, against its bound.
 type GuardG struct {
-	Refused int  `json:"refused"`
-	Clean   int  `json:"clean"`
-	Holds   bool `json:"holds"`
+	Refused facts.Fraction `json:"refused"`
+	Bound   facts.Fraction `json:"bound"`
+	Holds   bool           `json:"holds"`
 }
 
 // GuardY is each arm's runs ending in an accepted oracle-clean change over its
 // counted runs; it holds when the control's share exceeds the treatment's by at
-// most GuardYBound.
+// most its bound.
 type GuardY struct {
-	ControlAcceptedClean   int  `json:"controlAcceptedClean"`
-	ControlRuns            int  `json:"controlRuns"`
-	TreatmentAcceptedClean int  `json:"treatmentAcceptedClean"`
-	TreatmentRuns          int  `json:"treatmentRuns"`
-	Holds                  bool `json:"holds"`
+	Control   facts.Fraction `json:"control"`
+	Treatment facts.Fraction `json:"treatment"`
+	Bound     facts.Fraction `json:"bound"`
+	Holds     bool           `json:"holds"`
 }
 
 // EvaluateGuards evaluates G and Y on the counts. G holds when the treatment
 // has no oracle-clean change; a share over an arm without a run is 0.
 func EvaluateGuards(c Counts) Guards {
-	g := GuardG{Refused: c.TreatmentRefusedClean, Clean: c.TreatmentClean}
-	g.Holds = share(g.Refused, g.Clean).Cmp(GuardGBound) <= 0
+	g := GuardG{Refused: facts.Fraction{K: c.TreatmentRefusedClean, N: c.TreatmentClean}, Bound: GuardGBound}
+	g.Holds = g.Refused.Rat().Cmp(g.Bound.Rat()) <= 0
 	y := GuardY{
-		ControlAcceptedClean: c.ControlAcceptedClean, ControlRuns: c.ControlRuns,
-		TreatmentAcceptedClean: c.TreatmentAcceptedClean, TreatmentRuns: c.TreatmentRuns,
+		Control:   facts.Fraction{K: c.ControlAcceptedClean, N: c.ControlRuns},
+		Treatment: facts.Fraction{K: c.TreatmentAcceptedClean, N: c.TreatmentRuns},
+		Bound:     GuardYBound,
 	}
-	shortfall := new(big.Rat).Sub(share(y.ControlAcceptedClean, y.ControlRuns), share(y.TreatmentAcceptedClean, y.TreatmentRuns))
-	y.Holds = shortfall.Cmp(GuardYBound) <= 0
+	shortfall := new(big.Rat).Sub(y.Control.Rat(), y.Treatment.Rat())
+	y.Holds = shortfall.Cmp(y.Bound.Rat()) <= 0
 	return Guards{G: g, Y: y}
-}
-
-func share(k, n int) *big.Rat {
-	if n == 0 {
-		return new(big.Rat)
-	}
-	return big.NewRat(int64(k), int64(n))
 }
 
 // Evidence is what the table reads: the tails of the exact stratified
