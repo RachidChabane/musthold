@@ -13,6 +13,14 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
+// Files reads records directories.
+type Files struct{}
+
+// Load reads the records of a counted attempt; see Load.
+func (Files) Load(name, records, project string) (Run, map[string]string, error) {
+	return Load(name, records, project)
+}
+
 // Load reads the records of a counted attempt named name: every file loop-1's
 // facts read, first-stop-oracle.json when the session made an end-of-turn call
 // and adjudication.json for an escape. It returns the record and the SHA-256 of
