@@ -149,7 +149,7 @@ func TestAnalyze(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
-	t.Run("analyze writes summary.json with every run, its record and the digests, and REPORT.md that lints clean [verifies SP-2825~1] [verifies SP-2827~1]", func(t *testing.T) {
+	t.Run("analyze writes summary.json with every run, its record and the digests [verifies SP-2825~1]", func(t *testing.T) {
 		if err := w.analyze(t, w.start.Add(time.Hour)); err != nil {
 			t.Fatal(err)
 		}
@@ -173,6 +173,8 @@ func TestAnalyze(t *testing.T) {
 		if summary.Provenance.Tags[1].Name != analysis.TagPrereg || summary.Provenance.Tags[1].Commit != "abc" {
 			t.Fatalf("provenance %+v", summary.Provenance)
 		}
+	})
+	t.Run("report-lint finds the report analyze wrote clean [verifies SP-2827~1]", func(t *testing.T) {
 		var stdout, stderr bytes.Buffer
 		if code := Table()[ReportLint](context.Background(), []string{"--repo", w.repo}, &stdout, &stderr); code != 0 {
 			t.Fatalf("report-lint exit %d: %s", code, stderr.String())

@@ -236,15 +236,15 @@ func TestSetGate(t *testing.T) {
 }
 
 func TestReadjudicate(t *testing.T) {
-	t.Run("each escape is listed with its sentence and verdicts, and the sensitivity drops the disputed ones [verifies SP-2818~1] [verifies SP-2819~1]", func(t *testing.T) {
-		runs := design(names("t", 6), 4, 3, 0)
-		// Dispute every escape of the first two tasks.
-		for index := range runs {
-			if runs[index].Escaped && (runs[index].Task == "ta" || runs[index].Task == "tb") {
-				rt.Adjudicated(true)(&runs[index])
-			}
+	runs := design(names("t", 6), 4, 3, 0)
+	// Dispute every escape of the first two tasks.
+	for index := range runs {
+		if runs[index].Escaped && (runs[index].Task == "ta" || runs[index].Task == "tb") {
+			rt.Adjudicated(true)(&runs[index])
 		}
-		got := Readjudicate(runs)
+	}
+	got := Readjudicate(runs)
+	t.Run("each escape is listed with its sentence and verdicts, and disputed when a judge dissents [verifies SP-2818~1]", func(t *testing.T) {
 		if len(got.Escapes) != 18 || got.Disputed != (facts.Fraction{K: 6, N: 18}) {
 			t.Fatalf("escapes %d, disputed %v", len(got.Escapes), got.Disputed)
 		}
@@ -252,6 +252,8 @@ func TestReadjudicate(t *testing.T) {
 		if first.Criterion != broken || first.Sentence == "" || len(first.Verdicts) != 2 || !first.Disputed {
 			t.Fatalf("first escape %+v", first)
 		}
+	})
+	t.Run("the sensitivity decides again without the runs of the disputed escapes [verifies SP-2819~1]", func(t *testing.T) {
 		// Without the disputed runs the first two tasks hold one control run each,
 		// so they leave the strata.
 		if len(got.Sensitivity.Tasks) != 4 || got.Sensitivity.Control.Fraction != (facts.Fraction{K: 12, N: 16}) {

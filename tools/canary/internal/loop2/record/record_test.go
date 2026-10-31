@@ -64,6 +64,8 @@ func TestRefusalOf(t *testing.T) {
 			{"accepted", true, study.OutcomeCompleted, passingGate(), CauseNone},
 			{"accepted at a cap", true, study.OutcomeCappedTime, passingGate(), CauseNone},
 			{"a cap before a verdict", false, study.OutcomeCappedMessages, gate(blocking("surviving_valid_mutant", criterionBroken, moduleDP)), CauseCap},
+			{"a cap with an uncited requirement", false, study.OutcomeCappedTime, gate(blocking("uncovered_requirement", criterionBroken, "")), CauseCap},
+			{"pending proofs alone at a cap", false, study.OutcomeCappedTime, gate(blocking("stale_proof", criterionBroken, moduleDP)), CausePending},
 			{"a proof verdict", false, study.OutcomeCompleted, gate(blocking("surviving_valid_mutant", criterionBroken, moduleDP), blocking("stale_proof", "FARE-2", moduleDP)), CauseFinding},
 			{"a stale proof alone", false, study.OutcomeCompleted, gate(blocking("stale_proof", criterionBroken, moduleDP)), CausePending},
 			{"a pending reason alone", false, study.OutcomeCompleted, gate(blocking("awaiting_host", criterionBroken, moduleDP)), CausePending},

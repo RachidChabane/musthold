@@ -88,7 +88,9 @@ var kindCauses = map[facts.BlockKind]Cause{
 }
 
 // RefusalOf derives the refusal cause of a final change from its acceptance,
-// the attempt's outcome and gate-after.json.
+// the attempt's outcome and gate-after.json. Stale or pending proofs alone are
+// the cause even when the session ended at a cap; any other refusal of a
+// capped session is the cap's.
 func RefusalOf(accepted bool, outcome study.Outcome, gate *facts.Report) Refusal {
 	if accepted {
 		return Refusal{Cause: CauseNone, Findings: []facts.Finding{}}
@@ -97,7 +99,7 @@ func RefusalOf(accepted bool, outcome study.Outcome, gate *facts.Report) Refusal
 	if findings == nil {
 		findings = []facts.Finding{}
 	}
-	if outcome.Capped() {
+	if outcome.Capped() && kind != facts.KindPending {
 		return Refusal{Cause: CauseCap, Findings: findings}
 	}
 	return Refusal{Cause: kindCauses[kind], Findings: findings}

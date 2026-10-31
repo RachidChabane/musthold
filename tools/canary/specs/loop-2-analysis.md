@@ -64,8 +64,13 @@ calibration phase (`C1`, `C2`):
 }
 ```
 
-A run's `refusal` is its refusal cause (SP-2813): `none`, `cap`, `finding`,
+A run's `refusal` is its refusal cause (SP-2801): `none`, `cap`, `finding`,
 `pending` or `traceability`.
+
+`analyze` reads the order, the tags' commits and the tasks from the inputs freeze
+`experiments/loop-2/freeze/inputs.json`, in the format of loop-1's inputs freeze,
+and the times of the tags from the RFC 3161 tokens beside it: `plan-commit.tsr`
+with `plan-commit.txt`, `prereg-commit.tsr` and `inputs-commit.tsr`.
 
 - **SP-2800~1**: WHEN a counted run's loop-2 record is read THE SYSTEM SHALL compute
   loop-1's facts from its records, read `first-stop-oracle.json` as the grade of
@@ -73,11 +78,11 @@ A run's `refusal` is its refusal cause (SP-2813): `none`, `cap`, `finding`,
   absent, and read `adjudication.json` for an escape, refusing an escape without
   it.
 - **SP-2801~1**: WHEN the refusal cause of a run's final change is derived THE
-  SYSTEM SHALL call it none when the change is accepted, cap when the session
-  ended at a cap, finding when a blocking finding of `gate-after.json` comes from
-  a proof's verdict, pending when its only blocking proof findings are
-  `stale_proof` or pending reasons, and traceability otherwise, and SHALL keep the
-  blocking findings with their code, criterion and module.
+  SYSTEM SHALL call it none when the change is accepted, pending when the only
+  blocking proof findings of `gate-after.json` are `stale_proof` or pending
+  reasons, cap when the session otherwise ended at a cap, finding when a blocking
+  finding comes from a proof's verdict, and traceability otherwise, and SHALL keep
+  the blocking findings with their code, criterion and module.
 
 ## Magnitude: the Miettinen–Nurminen score
 
