@@ -1,8 +1,9 @@
 # ADR 0013: Witness-based mutant validity (G3-W)
 
-Status: accepted. Supersedes the "judged VALID_c, survivor" and "judged VALID_c,
-killed" rows of the claim-power table of ADR 0005, and its NOT_VIOLATING and
-EQUIVALENT exclusion rows, with the rows below. Every other part of ADR 0005 stands.
+Status: accepted. Amended by ADR 0017. Supersedes the "judged VALID_c, survivor"
+and "judged VALID_c, killed" rows of the claim-power table of ADR 0005, and its
+NOT_VIOLATING and EQUIVALENT exclusion rows, with the rows below. Every other part
+of ADR 0005 stands.
 
 ## Context
 
@@ -75,17 +76,27 @@ pre-registration `experiments/validity-w/PREREG.md`.
 - **Reference.** Each set runs alone on the reference three times. A witness that
   passes every run passes the reference; one that fails every run is a reading
   conflict; a mix is flaky; an error is unrunnable.
-- **Reading conflicts** are questions about the spec. The module reports each as a
-  `reading_conflict` finding naming the criterion, the witness and its clause,
-  and counts them in the Statement. They never block and do not change the
-  criterion's outcome: the gate reads the outcome from the Statement's mutants,
-  and a reading conflict concerns no mutant.
 - **Scope judges (C).** One `judge.scope` request of `judge_k` votes per draw
-  shows the spec and every witness the reference passes, and asks, per witness,
-  whether the criterion's text alone, under the precedence, fixes the output the
-  witness asserts. A witness that every vote answers FIXED at or above `tau_judge`
-  is held in scope. The scope judges see no mutant; they gate a block and never
-  create a pass, so their isolation does not limit that power.
+  shows the spec and every witness the reference passes or fails in every run,
+  in the order the writers answered and with nothing that tells the two apart,
+  and asks, per witness, whether the criterion's text alone, under the
+  precedence, fixes the very output the witness asserts; a text that fixes a
+  different output answers NOT_FIXED. A witness that every vote answers FIXED at
+  or above `tau_judge` is held in scope. The scope judges see no mutant; they
+  gate a block or an escalation and never create a pass, so their isolation does
+  not limit that power.
+- **Failing witnesses.** A witness the reference fails in every run and that is
+  held in scope is a failed spec witness: an executed failure, three runs out of
+  three, of a check the criterion's text fixes, the evidence of a VALID_e block
+  with the reference in the mutant's place. The module escalates the criterion
+  with the finding `spec_witness_failed` and lists the witness in the
+  Statement's `failedWitnesses` with its id, name and clause, and with its code,
+  which holds the input and the expected output, in a Statement produced
+  locally. Any other witness the reference fails in every run is a reading
+  conflict: a question about the spec, reported as a `reading_conflict` finding
+  naming the criterion, the witness and its clause and counted in the
+  Statement, which never blocks and does not change the criterion's outcome. A
+  witness whose runs on the reference disagree is flaky and does neither.
 - **Planted refactors.** A project may name, in `admission.refactors`, a directory
   of edit sets that preserve every criterion. The sets that hold a passing witness
   run on each, after the scope verdicts, and the result is recorded per witness.
@@ -127,9 +138,10 @@ In order, BLOCK before ESCALATE before PASS:
 6. Alignment: unchanged (Shallnot).
 7. Otherwise PASS. Pass credit is a credit-bearing mutant killed by a test of S.
 
-A test of S that killed a sentinel, an exhausted ticket budget and an unresponsive
-host also escalate, and a kill earns credit only from a test that killed no
-sentinel: the gate that reads the Statement applies the same rules.
+A test of S that killed a sentinel, an exhausted ticket budget, an unresponsive
+host and a failed spec witness of c also escalate, and a kill earns credit only
+from a test that killed no sentinel: the gate that reads the Statement applies the
+same rules.
 
 No judgment alone settles a survivor. The validity votes (V-H) are asked only on
 survivors no witness settles; they never block, and their EQUIVALENT only
@@ -145,6 +157,7 @@ more than `corroborated`.
 | EQUIVALENT, survivor | exclusion | compiled-form identity (E0); or full-resolution F3 `NO_DIFF_FOUND` with every validity vote EQUIVALENT, no confirmed F4 witness and no failed witness the reference passes | ESCALATE |
 | NOT_VIOLATING / OFF_TARGET, survivor | exclusion | fails an example or an admitted witness of another criterion and none of c's | ESCALATE |
 | judged VALID or NOT_VIOLATING with no witness failure | none | — | ESCALATE |
+| failed spec witness of c | ESCALATE | the reference failing the witness 3/3, every scope judge holding it FIXED | reading conflict, no effect |
 
 ### Encoding in the Statement
 
@@ -228,7 +241,7 @@ examples alone.
   The memo keeps a second pass free.
 - The F3 and F4 stages need bound operations. Without them, as in a project that
   binds none, survivors no witness settles escalate.
-- The scope judges are same-host tickets and correlate; they gate a block and
-  never create one.
+- The scope judges are same-host tickets and correlate; they gate a block or the
+  escalation of a failed spec witness and never create either.
 - Witness echo by a coder who copies a witness it was shown is closed in CI by the
   credit draw, not locally.

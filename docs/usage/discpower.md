@@ -27,11 +27,16 @@ For each requirement in scope, the module:
    mutant. The digest of each witness set is journaled before any mutant exists.
    In CI, two more writers seeded by the CI run write the only witnesses that
    earn pass credit there;
-4. runs each witness on the unmodified code three times. A witness that fails
-   every run is a reading conflict, reported as `reading_conflict`; one that
-   passes every run goes to two blind `judge` executors, who see the spec and the
-   witnesses and say, per witness, whether the requirement's text alone fixes what
-   it asserts. A witness both hold fixed is block-bearing;
+4. runs each witness on the unmodified code three times. Every witness that
+   passes every run or fails every run goes to two blind `judge` executors, who
+   see the spec and those witnesses, with nothing that tells which fail, and say,
+   per witness, whether the requirement's text alone fixes the very output it
+   asserts. A passing witness both hold fixed is block-bearing. A witness that
+   fails every run and that both hold fixed is a failed spec witness: the code
+   gives another output where the spec fixes one, and the requirement escalates
+   with `spec_witness_failed`. A failing witness a judge does not hold fixed is a
+   reading conflict, reported as `reading_conflict`. A witness whose runs
+   disagree counts for nothing;
 5. computes the requirement's footprint: the functions its witnesses reach on the
    unmodified code, plus their static closure and the module-level assignments
    they read;
@@ -69,7 +74,7 @@ For each requirement in scope, the module:
 | Result | When |
 |---|---|
 | `BLOCK` | the tests fail on the reference code; an example of the requirement fails on it; an owner-attributed or VALID_e mutant survives every bound test |
-| `ESCALATE` | a surviving mutant is unsettled; no credit-bearing mutant was killed; a test killed a sentinel; the host budget is exhausted; the host stopped answering |
+| `ESCALATE` | a surviving mutant is unsettled; no credit-bearing mutant was killed; a test killed a sentinel; the host budget is exhausted; the host stopped answering; the code fails a witness of the requirement in every run and both scope judges hold that witness fixed |
 | `PASS` | at least one credit-bearing mutant was killed and nothing else remains |
 
 A block comes before an escalation. Every block rests on an executed failure: a
@@ -90,7 +95,7 @@ witness writer.
 by `  finding <name>` lines. Findings: `correct_code_fails`, `example_failed`,
 `surviving_valid_mutant`, `no_valid_mutant`, `no_killed_valid_mutant`,
 `mutation_sensitive_test`, `budget_exhausted`, `host_unresponsive`,
-`unexcluded_survivor`, `example_executor_unavailable`. Module findings such as
+`unexcluded_survivor`, `example_executor_unavailable`, `spec_witness_failed`. Module findings such as
 `reading_conflict` and `witness_runner_unavailable` are printed after the
 requirements.
 
@@ -112,6 +117,23 @@ real testing work, and one fitted to the code would not. The Statement records t
 same in its mutant entry (`extensions.counterexample`), and Shallnot's
 `surviving_valid_mutant` finding repeats it under `proofs.trust: local`. A
 Statement produced by CI records none.
+
+Under a requirement with the finding `spec_witness_failed`, `prove` prints one
+`  spec witness` line per failed spec witness: its name, the clause it checks
+and, in a local run, its code, which holds the input and the output the spec
+fixes for it. Fix the code at that input; a test bound to the requirement that
+checks the same input keeps the fix:
+
+```
+PAR-3~1 proved ESCALATE
+  finding spec_witness_failed
+  spec witness free_from_fifty, which checks "reaches 50", fails in every run, and every scope judge holds its output fixed by the spec:
+    def free_from_fifty():
+        assert shipping_fee(50) == 0
+```
+
+The Statement lists the same witnesses in `failedWitnesses`, by id, name and
+clause, with their code only in a Statement produced locally.
 
 `musthold-dp facts show <ID~REV>` prints the facts record of the last Statement
 of a requirement: every witness with its runs and scope votes, and every mutant

@@ -45,6 +45,7 @@ confidence source of the claim. `judge_k` is the number of blind judge tickets
 | judged valid or not-violating survivor no witness settles | none | — | escalate |
 | closed screen of a survivor | pool membership | none; only answers at the isolation floor and not marked can screen a survivor out, and screen-outs are counted in `screenExclusions`; a survivor the screen would otherwise have let go, kept in the pool only by the floor, is counted in `screenFloorEntries` | `executed-only` bypasses the screen |
 | unsettled survivor, no credit-bearing mutant killed, test that killed a sentinel | escalate | none | none |
+| failed spec witness (`spec_witness_failed`) | escalate | the code under proof fails, three runs out of three, a witness of the requirement that every scope judge holds fixed by the requirement's text | a reading conflict, reported, no effect |
 | alignment ALIGNED | clears the test | judge plus a SPECIFIC or OVERBROAD matrix that is neither contaminated nor pinning off-spec behaviour | without the discriminating-power module: `uncorroborated`, which clears under `trust: local` and escalates under `trust: signed` unless the basis is `judged` |
 | alignment MISALIGNED, UNDETERMINED | escalate | none | none |
 | completeness question | reported | none | none |
@@ -55,11 +56,16 @@ A survivor blocks only by failing, on execution, a witness: a test a blind write
 derived from the spec before any mutant existed. The writer sees the spec documents,
 with every requirement relabelled by position, the requirement to check, the public
 signatures of the code the spec mentions and the signatures of the project's test
-helpers; never a body of the code, a test, a mutant or a kill. A witness the
-reference fails in every run is a reading conflict, reported as a question about the
-spec. Two scope judges, who see the spec and the witnesses but never a mutant, decide
-whether the requirement's text alone fixes what each witness asserts; a witness both
-hold fixed is block-bearing. The scope judges only gate a block. Validity judges
+helpers; never a body of the code, a test, a mutant or a kill. Two scope judges, who
+see the spec and the witnesses the reference passes or fails in every run but never a
+mutant, and nothing that tells a passing witness from a failing one, decide whether
+the requirement's text alone fixes the very output each witness asserts. A passing
+witness both hold fixed is block-bearing. A witness the reference fails in every run
+and both hold fixed escalates the requirement as `spec_witness_failed`: the code
+under proof breaks the requirement where the spec fixes the output, which matters
+when the reference is a change still under review. A failing witness a judge does
+not hold fixed is a reading conflict, reported as a question about the spec. The
+scope judges only gate a block or an escalation; they never create a pass. Validity judges
 are asked only on the survivors no witness settles, and no judgment alone excludes a
 survivor. In CI two fresh writers, seeded by the CI run, write a credit draw: only
 its witnesses earn credit there, so the witnesses that earn credit in CI were never
