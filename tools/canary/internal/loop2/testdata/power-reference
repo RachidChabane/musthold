@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+"""Write power-reference.json from experiments/loop-2/script/power.
+
+The fixture holds what the reference implementation computes on seeded inputs:
+
+  scores     stratified Miettinen-Nurminen scores on cells of unequal arm sizes, with
+             the interval [L, U] found by bisection on the reference's score
+  decisions  the exact tails, the score at the margin and the outcome of the
+             decision rule on cells of equal arm sizes, as the reference's
+             exact_tails supports, with the guards given
+
+Cases whose score or tail sits within a tolerance of a decision boundary are left
+out, so a difference of one unit in the last place never flips an outcome.
+
+Usage: power-reference [OUT]   (default: power-reference.json beside this file)
+"""
+
+import json
+import os
+import random
+import runpy
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.abspath(os.path.join(HERE, "..", "..", "..", "..", ".."))
+POWER = os.path.join(REPO, "experiments", "loop-2", "script", "power")
+SEED = 20261031
+SCORE_CASES = 60
+DECISION_CASES = 80
+BOUNDARY = 1e-6
+BISECTION_STEPS = 200
+DELTAS = (-0.6, -0.15, 0.0, 0.1, 0.15, 0.3, 0.7)
+
+
+def interval(power, cells, z):
+    def root(target):
+        low, high = -1.0, 1.0
+        for _ in range(BISECTION_STEPS):
+            middle = (low + high) / 2
+            if power["score"](cells, middle) >= target:
+                low = middle
+            else:
+                high = middle
+        return (low + high) / 2
+
+    return root(z), root(-z)
+
+
+def score_case(power, rng):
+    tasks = rng.randint(1, 8)
+    cells = []
+    for _ in range(tasks):
+        n1, n2 = rng.randint(1, 10), rng.randint(1, 10)
+        cells.append((rng.randint(0, n1), n1, rng.randint(0, n2), n2))
+    low, high = interval(power, cells, power["LEVEL_Z"])
+    return {
+        "cells": cells,
+        "scores": [{"delta": delta, "score": power["score"](cells, delta)} for delta in DELTAS],
+        "low": low,
+        "high": high,
+    }
+
+
+def decision_case(power, rng):
+    tasks = rng.choice((4, 12, 24))
+    runs = rng.choice((3, 6, 8))
+    control = rng.uniform(0.0, 0.7)
+    treatment = max(0.0, min(1.0, control + rng.uniform(-0.5, 0.3)))
+    cells, totals, treated = [], [], 0
+    for _ in range(tasks):
+        escapes_c = sum(rng.random() < control for _ in range(runs))
+        escapes_t = sum(rng.random() < treatment for _ in range(runs))
+        cells.append((escapes_c, runs, escapes_t, runs))
+        totals.append(escapes_c + escapes_t)
+        treated += escapes_t
+    p_less, p_more = power["exact_tails"](totals, treated, runs)
+    at_margin = power["score"](cells, power["DELTA"])
+    z, alpha = power["LEVEL_Z"], power["ALPHA"]
+    near = [abs(at_margin - z), abs(at_margin + z), abs(p_less - alpha), abs(p_more - alpha)]
+    if min(near) < BOUNDARY:
+        return None
+    guards_hold = rng.random() < 0.8
+    return {
+        "cells": cells,
+        "guardsHold": guards_hold,
+        "pLess": p_less,
+        "pMore": p_more,
+        "scoreAtMargin": at_margin,
+        "outcome": power["decide"](p_less, p_more, at_margin, guards_hold),
+    }
+
+
+def main():
+    out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "power-reference.json")
+    power = runpy.run_path(POWER)
+    rng = random.Random(SEED)
+    scores = [score_case(power, rng) for _ in range(SCORE_CASES)]
+    decisions = []
+    while len(decisions) < DECISION_CASES:
+        case = decision_case(power, rng)
+        if case is not None:
+            decisions.append(case)
+    with open(out, "w", encoding="utf-8") as handle:
+        json.dump({"z": power["LEVEL_Z"], "delta": power["DELTA"], "scores": scores, "decisions": decisions}, handle, indent=1)
+        handle.write("\n")
+
+
+if __name__ == "__main__":
+    main()
