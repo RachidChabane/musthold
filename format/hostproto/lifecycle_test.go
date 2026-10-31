@@ -25,6 +25,7 @@ var legalTransitions = map[hostproto.State][]hostproto.State{
 	hostproto.StateExpired:    {hostproto.StateEmitted, hostproto.StateAbandoned},
 	hostproto.StateValidated:  {hostproto.StateConsumed},
 	hostproto.StateSuperseded: {hostproto.StateEmitted},
+	hostproto.StateAbandoned:  {hostproto.StateEmitted},
 }
 
 func freshEntry() hostproto.Entry {
@@ -68,13 +69,16 @@ func acceptStep(e hostproto.Entry) (hostproto.Entry, error) {
 func expireStep(e hostproto.Entry) (hostproto.Entry, error) {
 	return e.Expire(epoch.Add(hostproto.FetchTTL))
 }
+func renewStep(e hostproto.Entry) (hostproto.Entry, error) {
+	return e.Renew(strings.Repeat("9", hostproto.NonceHexLength))
+}
 func abandonStep(e hostproto.Entry) (hostproto.Entry, error) {
 	e.Ticket.Emission = e.MaxEmissions
 	return e.Reissue(strings.Repeat("a", hostproto.NonceHexLength))
 }
 
 func TestTransitionTable(t *testing.T) {
-	t.Run("the table allows exactly the legal transitions and no other [verifies SP-120~2]", func(t *testing.T) {
+	t.Run("the table allows exactly the legal transitions and no other [verifies SP-120~3]", func(t *testing.T) {
 		for _, from := range hostproto.States() {
 			for _, to := range hostproto.States() {
 				want := slices.Contains(legalTransitions[from], to)
@@ -85,7 +89,7 @@ func TestTransitionTable(t *testing.T) {
 		}
 	})
 
-	t.Run("the states are the nine of the lifecycle and the terminal ones have no way out [verifies SP-120~2]", func(t *testing.T) {
+	t.Run("the states are the nine of the lifecycle and the terminal ones have no way out [verifies SP-120~3]", func(t *testing.T) {
 		if len(hostproto.States()) != 9 {
 			t.Fatalf("states = %v", hostproto.States())
 		}
@@ -94,13 +98,13 @@ func TestTransitionTable(t *testing.T) {
 				t.Errorf("Terminal(%s) = %v", state, hostproto.Terminal(state))
 			}
 		}
-		for _, terminal := range []hostproto.State{hostproto.StateConsumed, hostproto.StateAbandoned} {
-			if !hostproto.Terminal(terminal) {
-				t.Errorf("%s is not terminal", terminal)
-			}
+		if !hostproto.Terminal(hostproto.StateConsumed) {
+			t.Error("a consumed ticket is not terminal")
 		}
-		if hostproto.Terminal(hostproto.StateSuperseded) {
-			t.Error("a superseded ticket must be able to come back as a new emission")
+		for _, back := range []hostproto.State{hostproto.StateSuperseded, hostproto.StateAbandoned} {
+			if hostproto.Terminal(back) {
+				t.Errorf("a %s ticket must be able to come back as a new emission", back)
+			}
 		}
 	})
 
@@ -115,15 +119,25 @@ func TestTransitionTable(t *testing.T) {
 		"Consume":       {hostproto.StateConsumed, hostproto.Entry.Consume},
 		"Supersede":     {hostproto.StateSuperseded, hostproto.Entry.Supersede},
 		"Expire":        {hostproto.StateExpired, expireStep},
+		"Release":       {hostproto.StateExpired, hostproto.Entry.Release},
+		"Renew":         {hostproto.StateEmitted, renewStep},
 	}
 	for name, method := range methods {
-		t.Run(name+" succeeds exactly from the states the table allows and leaves the entry alone otherwise [verifies SP-120~2]", func(t *testing.T) {
+		t.Run(name+" succeeds exactly from the states the table allows and leaves the entry alone otherwise [verifies SP-120~3]", func(t *testing.T) {
 			for _, from := range hostproto.States() {
 				entry := entryIn(t, from)
 				next, err := method.apply(entry)
 				legal := hostproto.Legal(from, method.to)
 				// Fetch from fetched and Accept of the accepted answer are idempotent replays.
 				replay := (name == "Fetch" && from == hostproto.StateFetched) || (name == "Accept" && slices.Contains([]hostproto.State{hostproto.StateAccepted, hostproto.StateValidated, hostproto.StateConsumed}, from))
+				// Release and Renew each leave exactly one state, of the moves the table allows into theirs.
+				narrower := (name == "Release" && from != hostproto.StateFetched) || (name == "Renew" && from != hostproto.StateAbandoned)
+				if narrower {
+					if !errors.Is(err, hostproto.ErrIllegalTransition) || next != entry {
+						t.Errorf("%s from %s: %+v, %v", name, from, next, err)
+					}
+					continue
+				}
 				switch {
 				case legal && err != nil:
 					t.Errorf("%s from %s failed: %v", name, from, err)
@@ -138,7 +152,7 @@ func TestTransitionTable(t *testing.T) {
 }
 
 func TestLifecycleGuards(t *testing.T) {
-	t.Run("fetching again with the same capability changes nothing, with another is refused [verifies SP-121~2]", func(t *testing.T) {
+	t.Run("fetching again with the same capability changes nothing, with another is refused [verifies SP-121~3]", func(t *testing.T) {
 		fetched := entryIn(t, hostproto.StateFetched)
 		again, err := fetched.Fetch(hostprototest.Digest("cap"), epoch.Add(time.Hour))
 		if err != nil || again != fetched {
@@ -149,7 +163,7 @@ func TestLifecycleGuards(t *testing.T) {
 		}
 	})
 
-	t.Run("a schema failure allows one correction and then rejects [verifies SP-121~2]", func(t *testing.T) {
+	t.Run("a schema failure allows one correction and then rejects [verifies SP-121~3]", func(t *testing.T) {
 		entry := entryIn(t, hostproto.StateFetched)
 		first, allowed, err := entry.FailSchema()
 		if err != nil || !allowed || first.State != hostproto.StateFetched || first.Corrections != 1 {
@@ -164,7 +178,7 @@ func TestLifecycleGuards(t *testing.T) {
 		}
 	})
 
-	t.Run("a fetched ticket expires only after the time to live [verifies SP-121~2]", func(t *testing.T) {
+	t.Run("a fetched ticket expires only after the time to live [verifies SP-121~3]", func(t *testing.T) {
 		fetched := entryIn(t, hostproto.StateFetched)
 		if _, err := fetched.Expire(epoch.Add(hostproto.FetchTTL - time.Nanosecond)); !errors.Is(err, hostproto.ErrNotExpired) {
 			t.Fatalf("error = %v", err)
@@ -178,7 +192,7 @@ func TestLifecycleGuards(t *testing.T) {
 		}
 	})
 
-	t.Run("a rejected or expired ticket is reissued with a new nonce while emissions remain [verifies SP-121~2]", func(t *testing.T) {
+	t.Run("a rejected or expired ticket is reissued with a new nonce while emissions remain [verifies SP-121~3]", func(t *testing.T) {
 		nonce := strings.Repeat("b", hostproto.NonceHexLength)
 		for _, state := range []hostproto.State{hostproto.StateRejected, hostproto.StateExpired} {
 			entry := entryIn(t, state)
@@ -196,7 +210,7 @@ func TestLifecycleGuards(t *testing.T) {
 		}
 	})
 
-	t.Run("a ticket is abandoned when its emissions are exhausted [verifies SP-121~2]", func(t *testing.T) {
+	t.Run("a ticket is abandoned when its emissions are exhausted [verifies SP-121~3]", func(t *testing.T) {
 		abandoned := entryIn(t, hostproto.StateAbandoned)
 		if abandoned.Reason != hostproto.ReasonHostUnresponsive || abandoned.Ticket.Emission != hostproto.DefaultMaxEmissions {
 			t.Fatalf("abandoned = %+v", abandoned)
@@ -232,7 +246,7 @@ func TestLifecycleGuards(t *testing.T) {
 		}
 	})
 
-	t.Run("re-emissions after supersessions never count toward abandonment, host failures still do [verifies SP-2149~1] [verifies SP-121~2]", func(t *testing.T) {
+	t.Run("re-emissions after supersessions never count toward abandonment, host failures still do [verifies SP-2149~1] [verifies SP-121~3]", func(t *testing.T) {
 		nonce := strings.Repeat("f", hostproto.NonceHexLength)
 		entry := freshEntry()
 		for range hostproto.DefaultMaxEmissions * 2 {
@@ -268,7 +282,75 @@ func TestLifecycleGuards(t *testing.T) {
 		}
 	})
 
-	t.Run("only a validated answer is consumable [verifies SP-121~2]", func(t *testing.T) {
+	t.Run("a fetched ticket whose executor's run ended is released before the time to live, and only a fetched one [verifies SP-2662~1]", func(t *testing.T) {
+		fetched := entryIn(t, hostproto.StateFetched)
+		released, err := fetched.Release()
+		if err != nil || released.State != hostproto.StateExpired {
+			t.Fatalf("released = %+v, %v", released, err)
+		}
+		reissued, err := released.Reissue(strings.Repeat("8", hostproto.NonceHexLength))
+		if err != nil || reissued.State != hostproto.StateEmitted || reissued.Ticket.Emission != fetched.Ticket.Emission+1 {
+			t.Fatalf("the released ticket reissued as %+v, %v", reissued, err)
+		}
+	})
+
+	t.Run("an abandoned ticket is renewed as the next emission with a new nonce, no answer and a fresh count of emissions [verifies SP-2660~1] [verifies SP-121~3]", func(t *testing.T) {
+		abandoned := entryIn(t, hostproto.StateAbandoned)
+		renewed, err := renewStep(abandoned)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if renewed.State != hostproto.StateEmitted || renewed.Ticket.Emission != abandoned.Ticket.Emission+1 || renewed.Ticket.Nonce == abandoned.Ticket.Nonce ||
+			renewed.AcceptedOutput != "" || renewed.CapDigest != "" || renewed.Reason != "" || renewed.Exhausted() {
+			t.Fatalf("renewed as %+v", renewed)
+		}
+		entry := renewed
+		for failure := range hostproto.DefaultMaxEmissions {
+			if entry, err = hostFailure(entry); err != nil {
+				t.Fatal(err)
+			}
+			wantAbandoned := failure == hostproto.DefaultMaxEmissions-1
+			if (entry.State == hostproto.StateAbandoned) != wantAbandoned {
+				t.Fatalf("after host failure %d since the renewal the ticket is %s", failure+1, entry.State)
+			}
+		}
+	})
+
+	t.Run("emission numbers only grow and a ticket is abandoned only after three host emissions since its last renewal [verifies SP-2660~1] [verifies SP-121~3]", func(t *testing.T) {
+		rapid.Check(t, func(t *rapid.T) {
+			entry := freshEntry()
+			sinceRenewal := 1
+			for step := range rapid.IntRange(1, 40).Draw(t, "steps") {
+				before := entry
+				var err error
+				switch {
+				case entry.State == hostproto.StateAbandoned:
+					if sinceRenewal < hostproto.DefaultMaxEmissions {
+						t.Fatalf("abandoned after %d host emissions since the renewal", sinceRenewal)
+					}
+					entry, err = renewStep(entry)
+					sinceRenewal = 1
+				case rapid.Bool().Draw(t, "supersede"):
+					if entry, err = entry.Supersede(); err == nil {
+						entry, err = entry.Reemit(strings.Repeat("7", hostproto.NonceHexLength))
+					}
+				default:
+					entry, err = hostFailure(entry)
+					if entry.State == hostproto.StateEmitted {
+						sinceRenewal++
+					}
+				}
+				if err != nil {
+					t.Fatalf("step %d: %v", step, err)
+				}
+				if entry.Ticket.Emission < before.Ticket.Emission {
+					t.Fatalf("step %d: emission went from %d to %d", step, before.Ticket.Emission, entry.Ticket.Emission)
+				}
+			}
+		})
+	})
+
+	t.Run("only a validated answer is consumable [verifies SP-121~3]", func(t *testing.T) {
 		for _, state := range hostproto.States() {
 			if got := entryIn(t, state).Consumable(); got != (state == hostproto.StateValidated) {
 				t.Errorf("Consumable in %s = %v", state, got)
@@ -276,7 +358,7 @@ func TestLifecycleGuards(t *testing.T) {
 		}
 	})
 
-	t.Run("a stateful queue never consumes an unvalidated answer and brings a superseded one back only as a new emission [verifies SP-121~2] [verifies SP-2149~1]", func(t *testing.T) {
+	t.Run("a stateful queue never consumes an unvalidated answer and brings a superseded one back only as a new emission [verifies SP-121~3] [verifies SP-2149~1]", func(t *testing.T) {
 		rapid.Check(t, func(t *rapid.T) {
 			entry := freshEntry()
 			var wasValidated bool
@@ -291,6 +373,8 @@ func TestLifecycleGuards(t *testing.T) {
 				"reemit": func(e hostproto.Entry) (hostproto.Entry, error) {
 					return e.Reemit(strings.Repeat("d", hostproto.NonceHexLength))
 				},
+				"release": hostproto.Entry.Release,
+				"renew":   renewStep,
 				"schema": func(e hostproto.Entry) (hostproto.Entry, error) {
 					next, _, err := e.FailSchema()
 					return next, err
@@ -323,14 +407,33 @@ func TestLifecycleGuards(t *testing.T) {
 						(name != "reemit" || next.Ticket.Emission != before.Ticket.Emission+1 || next.Reemissions != before.Reemissions+1) {
 						t.Fatalf("%s brought a superseded entry back as %+v", name, next)
 					}
-					if next.State == hostproto.StateAbandoned && next.Ticket.Emission-next.Reemissions < next.MaxEmissions {
-						t.Fatalf("abandoned after %d emissions for the host", next.Ticket.Emission-next.Reemissions)
+					if next.State == hostproto.StateAbandoned && next.Ticket.Emission-next.Reemissions-next.Renewed < next.MaxEmissions {
+						t.Fatalf("abandoned after %d emissions for the host", next.Ticket.Emission-next.Reemissions-next.Renewed)
+					}
+					if next.Ticket.Emission < before.Ticket.Emission {
+						t.Fatalf("%s lowered the emission number", name)
 					}
 					entry = next
 				},
 			})
 		})
 	})
+}
+
+// hostFailure is one emission the host failed: the ticket is fetched, answered,
+// contradicted by execution and reissued, or abandoned once emissions ran out.
+func hostFailure(entry hostproto.Entry) (hostproto.Entry, error) {
+	rejected, err := fetchStep(entry)
+	if err == nil {
+		rejected, err = acceptStep(rejected)
+	}
+	if err == nil {
+		rejected, err = rejected.Contradict()
+	}
+	if err != nil {
+		return entry, err
+	}
+	return rejected.Reissue(strings.Repeat("6", hostproto.NonceHexLength))
 }
 
 func TestResubmission(t *testing.T) {

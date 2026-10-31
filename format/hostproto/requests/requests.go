@@ -96,26 +96,32 @@ type Service struct {
 	RequireAttestation bool
 	// Executor describes the host the executor origins answer for.
 	Executor ExecutorContext
+	// Tally keeps the count of accepted answers where the gate reads it; nil
+	// keeps it nowhere.
+	Tally AnswerTally
+}
+
+// AnswerTally keeps the count of the answers a module accepted for the project,
+// so that the gate's end-of-turn hook can tell a proof run that advances.
+type AnswerTally interface {
+	// Accepted records that the module accepted total answers so far.
+	Accepted(total int) error
 }
 
 // List returns the tickets that wait for an answer in the sessions the filter
-// selects: those in state `emitted`, ordered by request id then vote, each with
-// the sessions that want its request.
+// selects, as the one query of the outstanding tickets sorts them: the
+// launchable ones, in state `emitted`, ordered by request id then vote, each with
+// the sessions that want its request, and the counts of those in flight and
+// orphaned.
 func (s Service) List(filter hostproto.SessionFilter) (hostproto.Listing, error) {
-	entries, err := s.Store.ListEntries()
+	view, err := hostproto.ReadStoreView(s.Store)
 	if err != nil {
-		return hostproto.Listing{}, fmt.Errorf("list the tickets: %w", err)
+		return hostproto.Listing{}, err
 	}
-	items, err := s.Store.Items()
-	if err != nil {
-		return hostproto.Listing{}, fmt.Errorf("read the queue: %w", err)
-	}
-	sessions := hostproto.IndexSessions(items)
-	listing := hostproto.Listing{Items: []hostproto.ListingItem{}}
-	for _, entry := range entries {
-		if entry.State != hostproto.StateEmitted || !sessions.Selects(filter, entry.Ticket.RequestID) {
-			continue
-		}
+	outstanding := view.Outstanding(filter)
+	sessions := hostproto.IndexSessions(view.Items)
+	listing := hostproto.Listing{Items: []hostproto.ListingItem{}, InFlight: len(outstanding.InFlight), Orphaned: len(outstanding.Orphaned)}
+	for _, entry := range outstanding.Launchable {
 		request, err := s.Store.GetRequest(entry.Ticket.RequestID)
 		if err != nil {
 			return hostproto.Listing{}, fmt.Errorf("read the request of %s: %w", entry.Ticket.TicketID, err)
@@ -125,6 +131,17 @@ func (s Service) List(filter hostproto.SessionFilter) (hostproto.Listing, error)
 		})
 	}
 	return listing, nil
+}
+
+// Progress returns what the journal shows of the sessions the filter selects
+// since the cursor: the answers it accepted from there on and the tickets they
+// wait for, read in one query with the listing's.
+func (s Service) Progress(filter hostproto.SessionFilter, since int) (hostproto.Progress, error) {
+	view, err := hostproto.ReadStoreView(s.Store)
+	if err != nil {
+		return hostproto.Progress{}, err
+	}
+	return view.Progress(filter, since), nil
 }
 
 func (s Service) verifier() (hostproto.CapVerifier, error) {
@@ -246,7 +263,7 @@ func (s Service) accept(submission Submission, binding hostproto.Binding) (Recei
 	receipt := Receipt{Text: executorrun.Receipt(submission.Ticket)}
 	switch {
 	case errors.Is(err, hostproto.ErrAlreadyAccepted):
-		return receipt, nil
+		return receipt, s.tally()
 	case errors.Is(err, hostproto.ErrResubmissionConflict):
 		s.journal(hostproto.EventResubmissionConflict, submission.Ticket, "")
 		return Receipt{}, err
@@ -268,7 +285,24 @@ func (s Service) accept(submission Submission, binding hostproto.Binding) (Recei
 	}
 	s.journal(hostproto.EventAccepted, submission.Ticket, "")
 	s.journalUnattested(submission, binding)
-	return receipt, nil
+	return receipt, s.tally()
+}
+
+// tally gives the tally the count of every answer the journal accepted. A replay
+// of an accepted answer tallies again, so that an answer whose tally failed is
+// counted once the executor submits it again.
+func (s Service) tally() error {
+	if s.Tally == nil {
+		return nil
+	}
+	records, err := s.Store.Records()
+	if err != nil {
+		return fmt.Errorf("read the journal to count the answers: %w", err)
+	}
+	if err := s.Tally.Accepted(hostproto.AcceptedAnswers(records)); err != nil {
+		return fmt.Errorf("record the count of answers: %w", err)
+	}
+	return nil
 }
 
 // journalUnattested records an answer that no capability backs: outside an

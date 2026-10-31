@@ -174,11 +174,11 @@ func TestList(t *testing.T) {
 		}
 	})
 
-	t.Run("an empty store lists no items, not null [verifies SP-702~1]", func(t *testing.T) {
+	t.Run("an empty store lists no items, not null, and counts no fetched ticket [verifies SP-702~1] [verifies SP-2661~1]", func(t *testing.T) {
 		store := hostprototest.NewMemoryHostStore()
 		listing, err := Service{Store: store}.List(hostproto.EverySession)
 		encoded, _ := json.Marshal(listing)
-		if err != nil || string(encoded) != `{"items":[]}` {
+		if err != nil || string(encoded) != `{"items":[],"inFlight":0,"orphaned":0}` {
 			t.Fatalf("listing %s, error %v", encoded, err)
 		}
 	})

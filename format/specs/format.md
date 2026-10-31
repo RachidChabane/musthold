@@ -89,6 +89,12 @@ Go tests of the module in CI.
   `host_unresponsive`, strictly ascending by criterion and then reason, ignore
   unknown members, and report `missing_field`, `requirement`, `unknown_value` or
   `unsorted` for a violation.
+- **SP-2667~1**: WHEN a module's pending file is written or decoded THE SYSTEM
+  SHALL carry `answered`, a non-negative whole number counting the host answers
+  the module accepted for the project, refuse a negative count as
+  `requirement`, write over a stored file the larger of the two counts so that
+  the count never decreases, and keep the file present, with `"pending": []`
+  when nothing waits, once the count is above zero.
 - **SP-197~1**: WHEN the path of a proof is built or read THE SYSTEM SHALL give
   `proofs/<module>/<subject key>/<cacheKey>.dsse.json` for a signed proof and
   `<module>/<subject key>/<cacheKey>.json` for a bare statement, accept a path
@@ -231,19 +237,80 @@ Go tests of the module in CI.
 
 ## Host protocol: lifecycle and binding
 
-- **SP-120~2**: WHEN a ticket changes state THE SYSTEM SHALL allow only the moves
+- **SP-120~3**: WHEN a ticket changes state THE SYSTEM SHALL allow only the moves
   of the lifecycle table (`emitted` to `fetched` or `superseded`; `fetched` to
   `accepted`, `expired` or `rejected`; `accepted` to `validated` or `rejected`;
   `rejected` and `expired` to `emitted` or `abandoned`; `validated` to
-  `consumed`; `superseded` to `emitted`), refuse every other move without
-  changing the entry, and treat `consumed` and `abandoned` as terminal.
-- **SP-121~2**: WHEN a ticket is fetched, answered, expired or reissued THE SYSTEM
+  `consumed`; `superseded` to `emitted`; `abandoned` to `emitted`), refuse every
+  other move without changing the entry, and treat `consumed` as the only
+  terminal state.
+- **SP-121~3**: WHEN a ticket is fetched, answered, expired or reissued THE SYSTEM
   SHALL bind a fetch to one capability, allow one schema correction before it
   rejects, expire a fetched ticket after 20 minutes, reissue a rejected or expired
   ticket with a new nonce while fewer than three emissions were made for the
-  host, not counting re-emissions after a supersession, and abandon
-  it as `host_unresponsive` after that, and make only a validated answer
-  consumable.
+  host since the ticket was last renewed, not counting re-emissions after a
+  supersession, and abandon it as `host_unresponsive` after that, and make only a
+  validated answer consumable.
+- **SP-2660~1**: WHEN a new run of a session, one that does not resume, wants a
+  request whose ticket is abandoned THE SYSTEM SHALL renew it: issue it again as
+  the next emission, keeping the emission number growing, with a new nonce, no
+  stored answer and a fresh count of three emissions; and a resumed run SHALL
+  leave an abandoned ticket abandoned.
+- **SP-2661~1**: WHEN the tickets a session waits for are read THE SYSTEM SHALL
+  read the tickets, the queue and the journal in one query and sort each waiting
+  ticket into launchable (`emitted`), in flight (`fetched` by an executor whose
+  run the journal does not show ended) or orphaned (`fetched`, and the journal
+  holds an event the stop hook bound to an agent, `attested`, `leaked`,
+  `exposed`, `restricted`, `allowlist_observed`, `launch_bare`,
+  `history_inherited` or `blindness_unproven`, on that exact emission of the
+  ticket); and the waiting count a run reports, the items and counts of `request
+  list` and the counts of `request progress` SHALL all come from that one sort,
+  so that the count of launchable tickets always equals the number of listed
+  items.
+- **SP-2662~1**: WHEN a run wants a request whose ticket is orphaned THE SYSTEM
+  SHALL expire it at once and reissue it with a new nonce as a host failure;
+  WHEN a wave closes THE SYSTEM SHALL expire every orphaned ticket of the session
+  it did not reissue; and a ticket fetched outside an executor, from the command
+  line or a relay, which no stop event follows, SHALL expire only after 20
+  minutes.
+- **SP-2663~1**: WHEN a pass of a session starts THE SYSTEM SHALL open the
+  session's next wave, recording the journal cursor it opens at, only when the
+  session never opened one, or ended, or the journal accepted an answer for one
+  of its tickets from that cursor on; otherwise the pass SHALL continue the open
+  wave under its number.
+- **SP-2664~1**: WHEN `request progress --json` runs with an optional
+  `--session` and an optional `--since <cursor>` THE SYSTEM SHALL print a
+  Progress document whose members are exactly `cursor` (the sequence number the
+  next journal record will carry), `since`, `answered` (the answers the journal
+  accepted from the record numbered `since` on, for tickets of the selected
+  sessions, every answer when `since` is 0), `launchable`, `inFlight` and
+  `orphaned`, as a golden contract file fixes them, and a second read given the
+  first one's cursor SHALL report an answer exactly when one was accepted in
+  between.
+- **SP-2665~1**: WHEN a run of a session starts while another run holds that
+  session of the same store THE SYSTEM SHALL refuse it at once as
+  `session_busy` without waiting and without changing the store, and SHALL let a
+  run of another session, or a run after the holder released the session,
+  proceed.
+- **SP-2668~1**: WHEN a submission is accepted, or an accepted answer is
+  submitted again, THE SYSTEM SHALL give the module's answer tally the number of
+  answers the journal accepted, of every session, and report a tally that fails
+  as an error of the submission, so that the count the pending file keeps grows
+  with every accepted answer whatever path brought it.
+- **SP-2669~1**: WHEN the fulfil skill of a module is generated THE SYSTEM SHALL
+  tell the agent to run `prove --resume` in the foreground, to go on while it
+  exits with code 3, to call it again after an `unfinished budget_spent` or
+  `unfinished session_busy` line, to wait for its own executors after an
+  `in_flight <n> tickets` line, and to answer a first `host_unresponsive` finding
+  with one `prove --changed` and report the second; and WHEN a resume is asked
+  THE SYSTEM SHALL accept it for a session that holds a request or opened a wave
+  it did not end.
+- **SP-2666~1**: WHEN the work budget of a step is configured THE SYSTEM SHALL
+  read `host.step_seconds` as a whole number of seconds from 1 to 75, default to
+  60, refuse any other value, and report a step as spent exactly when its own
+  budget ran out, so that one step, persisting and reporting included, returns
+  within 90 seconds.
+
 - **SP-122~1**: WHEN a submission is checked THE SYSTEM SHALL require the ticket
   identifier, the nonce, a state that takes an answer, the schema digest recorded
   at emission and, when attestation is required, a capability of an agent

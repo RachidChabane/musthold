@@ -92,11 +92,11 @@ func TestQueueState(t *testing.T) {
 	t.Run("waves are counted per session and advancing one leaves the others"+verifiesQueueSessions, func(t *testing.T) {
 		var queue hostproto.QueueState
 		for want := 1; want <= 3; want++ {
-			if got := queue.AdvanceWave(hostproto.SessionProve); got != want {
+			if got := queue.AdvanceWave(hostproto.SessionProve, 0); got != want {
 				t.Fatalf("prove wave %d, want %d", got, want)
 			}
 		}
-		if got := queue.AdvanceWave(scanSession); got != 1 {
+		if got := queue.AdvanceWave(scanSession, 0); got != 1 {
 			t.Fatalf("first scan wave %d", got)
 		}
 		if queue.Wave(hostproto.SessionProve) != 3 || queue.Wave(scanSession) != 1 || queue.Wave(otherScanSession) != 0 {
@@ -107,13 +107,13 @@ func TestQueueState(t *testing.T) {
 	t.Run("a session ends until it advances a wave again, and a session only an item names is live"+verifiesQueueSessions, func(t *testing.T) {
 		var queue hostproto.QueueState
 		queue.Record(queueItem("a", otherScanSession))
-		queue.AdvanceWave(scanSession)
+		queue.AdvanceWave(scanSession, 0)
 		queue.EndSession(scanSession)
 		liveness := hostproto.LivenessOf(queue.Sessions())
 		if liveness.Live(scanSession) || !liveness.Live(otherScanSession) || !liveness.Live(hostproto.SessionProve) {
 			t.Fatalf("sessions %+v", queue.Sessions())
 		}
-		queue.AdvanceWave(scanSession)
+		queue.AdvanceWave(scanSession, 0)
 		if !hostproto.LivenessOf(queue.Sessions()).Live(scanSession) || queue.Wave(scanSession) != 2 {
 			t.Fatalf("after a new wave: %+v", queue.Sessions())
 		}
@@ -150,7 +150,7 @@ func TestQueueState(t *testing.T) {
 		var queue hostproto.QueueState
 		queue.Record(queueItem("a", scanSession))
 		queue.Record(queueItem("b", hostproto.SessionProve))
-		queue.AdvanceWave(scanSession)
+		queue.AdvanceWave(scanSession, 0)
 		queue.EndSession(scanSession)
 		if _, err := queue.Withdraw("a", scanSession); err != nil {
 			t.Fatal(err)
@@ -183,7 +183,7 @@ func TestQueueState(t *testing.T) {
 				t.Fatalf("%s belongs to %v", item.RequestID, item.Sessions)
 			}
 		}
-		if got := queue.AdvanceWave(hostproto.SessionProve); got != legacyWave+1 {
+		if got := queue.AdvanceWave(hostproto.SessionProve, 0); got != legacyWave+1 {
 			t.Fatalf("the next prove wave is %d", got)
 		}
 	})

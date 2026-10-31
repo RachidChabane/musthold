@@ -34,6 +34,8 @@ func RunQueueContract(t *testing.T, newStore func(t *testing.T) hostproto.HostSt
 		{"waves are counted per session", queueWavesPerSession},
 		{"a session ends until it advances a wave again", queueEndSession},
 		{"a withdrawn session leaves the others on the request", queueWithdraw},
+		{"a wave keeps the journal cursor it opened at", queueWaveCursor},
+		{"one run at a time holds a session, without waiting", queueRunLock},
 	}
 	for _, contract := range contracts {
 		t.Run(contract.name, func(t *testing.T) { contract.run(t, newStore(t)) })
@@ -90,12 +92,12 @@ func queueDefaultSession(t *testing.T, store hostproto.HostStore) {
 
 func queueWavesPerSession(t *testing.T, store hostproto.HostStore) {
 	for want := 1; want <= contractProveWaves; want++ {
-		got, err := store.AdvanceWave(hostproto.SessionProve)
+		got, err := store.AdvanceWave(hostproto.SessionProve, 0)
 		if err != nil || got != want {
 			t.Fatalf("prove wave %d, %v; want %d", got, err, want)
 		}
 	}
-	scanWave, err := store.AdvanceWave(contractScan)
+	scanWave, err := store.AdvanceWave(contractScan, 0)
 	if err != nil || scanWave != 1 {
 		t.Fatalf("first scan wave %d, %v", scanWave, err)
 	}
@@ -108,7 +110,7 @@ func queueWavesPerSession(t *testing.T, store hostproto.HostStore) {
 }
 
 func queueEndSession(t *testing.T, store hostproto.HostStore) {
-	_, err := store.AdvanceWave(contractScan)
+	_, err := store.AdvanceWave(contractScan, 0)
 	mustQueue(t, err)
 	mustQueue(t, store.Record(contractItem("a", 1, nil, contractOtherScan)))
 	mustQueue(t, store.EndSession(contractScan))
@@ -118,7 +120,7 @@ func queueEndSession(t *testing.T, store hostproto.HostStore) {
 	if liveness.Live(contractScan) || !liveness.Live(contractOtherScan) || !liveness.Live(hostproto.SessionProve) {
 		t.Fatalf("sessions %+v", states)
 	}
-	_, err = store.AdvanceWave(contractScan)
+	_, err = store.AdvanceWave(contractScan, 0)
 	mustQueue(t, err)
 	states, err = store.Sessions()
 	mustQueue(t, err)
@@ -144,4 +146,36 @@ func queueWithdraw(t *testing.T, store hostproto.HostStore) {
 	if _, err := store.Withdraw("unknown", hostproto.SessionProve); !errors.Is(err, hostproto.ErrNotFound) {
 		t.Fatalf("an unknown request: %v", err)
 	}
+}
+
+func queueWaveCursor(t *testing.T, store hostproto.HostStore) {
+	const first, second = 4, 9
+	for _, cursor := range []int{first, second} {
+		_, err := store.AdvanceWave(hostproto.SessionProve, cursor)
+		mustQueue(t, err)
+		states, err := store.Sessions()
+		mustQueue(t, err)
+		if len(states) != 1 || states[0].Cursor != cursor {
+			t.Fatalf("after a wave opened at %d: %+v", cursor, states)
+		}
+	}
+}
+
+func queueRunLock(t *testing.T, store hostproto.HostStore) {
+	release, err := store.LockRun(hostproto.SessionProve)
+	mustQueue(t, err)
+	if _, err := store.LockRun(hostproto.SessionProve); !errors.Is(err, hostproto.ErrSessionBusy) {
+		t.Fatalf("a second run of the held session: %v", err)
+	}
+	other, err := store.LockRun(contractScan)
+	if err != nil {
+		t.Fatalf("another session is held apart: %v", err)
+	}
+	other()
+	release()
+	again, err := store.LockRun(hostproto.SessionProve)
+	if err != nil {
+		t.Fatalf("a released session: %v", err)
+	}
+	again()
 }

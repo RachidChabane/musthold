@@ -3,6 +3,7 @@ package hostproto
 import (
 	"cmp"
 	"encoding/json"
+	"errors"
 	"slices"
 )
 
@@ -29,9 +30,9 @@ type Queue interface {
 	Items() ([]QueueItem, error)
 	// Wave returns the number of the session's current wave, zero before its first.
 	Wave(session Session) (int, error)
-	// AdvanceWave starts the next wave of the session, marks the session live and
-	// returns the wave's number.
-	AdvanceWave(session Session) (int, error)
+	// AdvanceWave starts the next wave of the session at the journal cursor, marks
+	// the session live and returns the wave's number.
+	AdvanceWave(session Session, cursor int) (int, error)
 	// Sessions lists the state of every session the queue knows, ordered by
 	// session: those that advanced a wave or ended, and those an item names.
 	Sessions() ([]SessionState, error)
@@ -43,11 +44,24 @@ type Queue interface {
 }
 
 // HostStore is the host directory of a module: the shared protocol store, the
-// discard of a response a reissued ticket replaces, and the queue.
+// discard of a response a reissued ticket replaces, the queue and the run lock
+// of each session.
 type HostStore interface {
 	Store
 	ResponseDiscarder
 	Queue
+	RunLock
+}
+
+// ErrSessionBusy is returned when another run holds the session.
+var ErrSessionBusy = errors.New("another run holds the session")
+
+// RunLock lets one run at a time work for a session of a store.
+type RunLock interface {
+	// LockRun takes the session for the caller without waiting: it returns the
+	// function that gives the session back, or ErrSessionBusy while another run
+	// holds it.
+	LockRun(session Session) (release func(), err error)
 }
 
 // QueueVersion is the version of the queue document that holds sessions. A
@@ -113,10 +127,11 @@ func (q *QueueState) Wave(session Session) int {
 }
 
 // AdvanceWave implements Queue.AdvanceWave.
-func (q *QueueState) AdvanceWave(session Session) int {
+func (q *QueueState) AdvanceWave(session Session, cursor int) int {
 	state := q.stateOf(session)
 	state.Wave++
 	state.Ended = false
+	state.Cursor = cursor
 	return state.Wave
 }
 

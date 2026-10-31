@@ -13,6 +13,7 @@ type MemoryHostStore struct {
 	*MemoryStore
 	mutex sync.Mutex
 	queue hostproto.QueueState
+	held  map[hostproto.Session]bool
 }
 
 var _ hostproto.HostStore = (*MemoryHostStore)(nil)
@@ -49,8 +50,26 @@ func (s *MemoryHostStore) Wave(session hostproto.Session) (int, error) {
 }
 
 // AdvanceWave implements hostproto.Queue.
-func (s *MemoryHostStore) AdvanceWave(session hostproto.Session) (int, error) {
-	return inQueue(s, func(queue *hostproto.QueueState) (int, error) { return queue.AdvanceWave(session), nil })
+func (s *MemoryHostStore) AdvanceWave(session hostproto.Session, cursor int) (int, error) {
+	return inQueue(s, func(queue *hostproto.QueueState) (int, error) { return queue.AdvanceWave(session, cursor), nil })
+}
+
+// LockRun implements hostproto.RunLock.
+func (s *MemoryHostStore) LockRun(session hostproto.Session) (func(), error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	if s.held[session] {
+		return nil, hostproto.ErrSessionBusy
+	}
+	if s.held == nil {
+		s.held = map[hostproto.Session]bool{}
+	}
+	s.held[session] = true
+	return func() {
+		s.mutex.Lock()
+		defer s.mutex.Unlock()
+		delete(s.held, session)
+	}, nil
 }
 
 // Sessions implements hostproto.Queue.

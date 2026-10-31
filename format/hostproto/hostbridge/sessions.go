@@ -100,12 +100,7 @@ func (b *Bridge) supersede(view storeView, id hostproto.RequestID) error {
 			continue
 		}
 		viewed := entry.Ticket.TicketID
-		_, err := b.update(viewed.Key(), func(stored hostproto.Entry) (hostproto.Entry, error) {
-			if stored.Ticket.TicketID != viewed {
-				return stored, fmt.Errorf("%w: %s was issued again", hostproto.ErrIllegalTransition, viewed)
-			}
-			return stored.Supersede()
-		}, hostproto.EventSuperseded)
+		_, err := b.update(viewed.Key(), guardEmission(viewed, hostproto.Entry.Supersede), hostproto.EventSuperseded)
 		if err != nil && !errors.Is(err, hostproto.ErrIllegalTransition) {
 			return fmt.Errorf("supersede %s: %w", entry.Ticket.TicketID, err)
 		}
@@ -167,33 +162,47 @@ func (b *Bridge) end(sessions []hostproto.Session) error {
 }
 
 // FinishWave closes the wave of the bridge's session: it supersedes what the
-// session no longer wants and returns the session's tickets that still wait for
-// an answer. A wave that leaves none waiting is the session's last, in which the
-// run writes its statement, so the session ends.
-func (b *Bridge) FinishWave() ([]hostproto.Ticket, error) {
+// session no longer wants, retires the orphaned tickets of the requests it did
+// not ask for in this wave, whose runs ended without an answer, and returns what
+// the session still waits for. A wave that leaves nothing waiting is the
+// session's last, in which the run writes its statement, so the session ends.
+func (b *Bridge) FinishWave() (hostproto.Outstanding, error) {
 	if err := b.SupersedeUnwanted(); err != nil {
-		return nil, err
+		return hostproto.Outstanding{}, err
 	}
-	pending, err := b.PendingTickets()
-	if err != nil || len(pending) > 0 {
-		return pending, err
-	}
-	return nil, b.End()
-}
-
-// PendingTickets lists the tickets of the bridge's session still waiting for an
-// answer, in store order.
-func (b *Bridge) PendingTickets() ([]hostproto.Ticket, error) {
-	view, err := b.view()
+	outstanding, err := b.Outstanding()
 	if err != nil {
-		return nil, err
+		return hostproto.Outstanding{}, err
 	}
-	filter := hostproto.OnlySession(b.Session)
-	var pending []hostproto.Ticket
-	for _, entry := range view.entries {
-		if hostproto.Waits(entry.State) && view.sessions.Selects(filter, entry.Ticket.RequestID) {
-			pending = append(pending, entry.Ticket)
+	if len(outstanding.Orphaned) > 0 {
+		if err := b.retireOrphans(outstanding.Orphaned); err != nil {
+			return hostproto.Outstanding{}, err
+		}
+		if outstanding, err = b.Outstanding(); err != nil {
+			return hostproto.Outstanding{}, err
 		}
 	}
-	return pending, nil
+	if outstanding.Waiting() > 0 {
+		return outstanding, nil
+	}
+	return outstanding, b.End()
+}
+
+// retireOrphans expires the orphaned tickets; the next wave that wants their
+// request issues them again.
+func (b *Bridge) retireOrphans(orphans []hostproto.Entry) error {
+	for _, orphan := range orphans {
+		viewed := orphan.Ticket.TicketID
+		_, err := b.update(viewed.Key(), guardEmission(viewed, hostproto.Entry.Release), hostproto.EventExpired)
+		if err != nil && !errors.Is(err, hostproto.ErrIllegalTransition) {
+			return fmt.Errorf("retire the orphaned ticket %s: %w", viewed, err)
+		}
+	}
+	return nil
+}
+
+// Outstanding reads what the bridge's session waits for, in one read of the
+// store: the same query `request list` and `request progress` answer from.
+func (b *Bridge) Outstanding() (hostproto.Outstanding, error) {
+	return hostproto.QueryOutstanding(b.Store, hostproto.OnlySession(b.Session))
 }

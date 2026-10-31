@@ -12,7 +12,8 @@ const (
 	// FetchTTL is how long a fetched ticket stays answerable.
 	FetchTTL = 20 * time.Minute
 	// DefaultMaxEmissions is how many times a ticket is issued for the host before
-	// it is abandoned; a re-emission after a supersession is not counted.
+	// it is abandoned; a re-emission after a supersession is not counted, and a
+	// renewal starts the count again.
 	DefaultMaxEmissions = 3
 	// MaxCorrections is how many schema corrections an executor is allowed.
 	MaxCorrections = 1
@@ -54,7 +55,7 @@ var transitions = map[State][]State{
 	StateValidated:  {StateConsumed},
 	StateConsumed:   nil,
 	StateSuperseded: {StateEmitted},
-	StateAbandoned:  nil,
+	StateAbandoned:  {StateEmitted},
 }
 
 // States lists every lifecycle state.
@@ -91,7 +92,10 @@ type Entry struct {
 	MaxEmissions int    `json:"maxEmissions"`
 	// Reemissions counts the emissions made because a superseded ticket was wanted
 	// again; they are not the host's doing, so MaxEmissions does not count them.
-	Reemissions int       `json:"reemissions,omitempty"`
+	Reemissions int `json:"reemissions,omitempty"`
+	// Renewed counts the emissions made for the host before the ticket was last
+	// renewed; MaxEmissions counts only the emissions made since.
+	Renewed     int       `json:"renewed,omitempty"`
 	Corrections int       `json:"corrections"`
 	FetchedAt   time.Time `json:"fetchedAt"`
 	// EmittedAt is when the ticket was first emitted; the raw API log of a
@@ -193,6 +197,15 @@ func (e Entry) Expire(at time.Time) (Entry, error) {
 	return e.move(StateExpired)
 }
 
+// Release retires, before FetchTTL, a fetched ticket that no executor can answer
+// any more: the run of the executor that fetched it ended without an answer.
+func (e Entry) Release() (Entry, error) {
+	if e.State != StateFetched {
+		return e, fmt.Errorf("%w: release in state %s", ErrIllegalTransition, e.State)
+	}
+	return e.move(StateExpired)
+}
+
 // Reissue turns a rejected or expired ticket into a new emission with the given
 // nonce while emissions remain, and abandons it otherwise.
 func (e Entry) Reissue(nonce string) (Entry, error) {
@@ -222,9 +235,28 @@ func (e Entry) Reemit(nonce string) (Entry, error) {
 	return next, nil
 }
 
+// Renew issues an abandoned ticket again, as the next emission with the given
+// nonce, when a new run of a session wants its request: the emissions made
+// before stop counting toward MaxEmissions.
+func (e Entry) Renew(nonce string) (Entry, error) {
+	if e.State != StateAbandoned {
+		return e, fmt.Errorf("%w: renewal in state %s", ErrIllegalTransition, e.State)
+	}
+	next, err := e.nextEmission(nonce)
+	if err != nil {
+		return e, err
+	}
+	next.Renewed = e.Ticket.Emission - e.Reemissions
+	next.Reason = ""
+	return next, nil
+}
+
 // Exhausted reports whether the host was given every emission MaxEmissions
-// allows, so that a reissue abandons the ticket.
-func (e Entry) Exhausted() bool { return e.Ticket.Emission-e.Reemissions >= e.MaxEmissions }
+// allows since the last renewal, so that a reissue abandons the ticket.
+func (e Entry) Exhausted() bool { return e.hostEmissions() >= e.MaxEmissions }
+
+// hostEmissions counts the emissions made for the host since the last renewal.
+func (e Entry) hostEmissions() int { return e.Ticket.Emission - e.Reemissions - e.Renewed }
 
 // nextEmission moves the entry to a new emission of its ticket with the nonce and
 // clears what the previous emission held.

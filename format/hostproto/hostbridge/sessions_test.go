@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"errors"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/RachidChabane/musthold/format/hostproto"
@@ -30,7 +31,7 @@ var (
 // session starts it.
 func (r *rig) on(session hostproto.Session) *Bridge {
 	r.t.Helper()
-	wave, err := r.store.AdvanceWave(session)
+	wave, err := r.store.AdvanceWave(session, 0)
 	if err != nil {
 		r.t.Fatal(err)
 	}
@@ -55,14 +56,17 @@ func (r *rig) supersedeUnwanted(bridge *Bridge) {
 
 func (r *rig) pendingOf(bridge *Bridge) []hostproto.TicketID {
 	r.t.Helper()
-	pending, err := bridge.PendingTickets()
+	outstanding, err := bridge.Outstanding()
 	if err != nil {
 		r.t.Fatal(err)
 	}
-	ids := make([]hostproto.TicketID, len(pending))
-	for index, ticket := range pending {
-		ids[index] = ticket.TicketID
+	var ids []hostproto.TicketID
+	for _, entries := range [][]hostproto.Entry{outstanding.Launchable, outstanding.InFlight, outstanding.Orphaned} {
+		for _, entry := range entries {
+			ids = append(ids, entry.Ticket.TicketID)
+		}
 	}
+	slices.SortFunc(ids, func(a, b hostproto.TicketID) int { return strings.Compare(a.String(), b.String()) })
 	return ids
 }
 
@@ -246,7 +250,7 @@ func TestEndingSessions(t *testing.T) {
 		answer := r.wantOn(first, oneVote, request)
 		pending, err := first.FinishWave()
 		states, _ := r.store.Sessions()
-		if err != nil || len(pending) != 1 || !hostproto.LivenessOf(states).Live(hostproto.SessionProve) {
+		if err != nil || pending.Waiting() != 1 || !hostproto.LivenessOf(states).Live(hostproto.SessionProve) {
 			t.Fatalf("pending %v, %v, sessions %+v", pending, err, states)
 		}
 		r.answer(answer.Votes[0].Ticket, `{"validity":"VALID"}`)
@@ -254,7 +258,7 @@ func TestEndingSessions(t *testing.T) {
 		r.wantOn(last, oneVote, request)
 		pending, err = last.FinishWave()
 		states, _ = r.store.Sessions()
-		if err != nil || len(pending) != 0 || hostproto.LivenessOf(states).Live(hostproto.SessionProve) {
+		if err != nil || pending.Waiting() != 0 || hostproto.LivenessOf(states).Live(hostproto.SessionProve) {
 			t.Fatalf("pending %v, %v, sessions %+v", pending, err, states)
 		}
 	})
@@ -293,7 +297,7 @@ func TestRacingSessions(t *testing.T) {
 		request := variant("raced")
 		first := r.wantOn(r.on(hostproto.SessionProve), oneVote, request)
 		late := &lateReader{MemoryHostStore: r.store, missed: map[hostproto.Key]bool{}}
-		wave, _ := r.store.AdvanceWave(scanSession)
+		wave, _ := r.store.AdvanceWave(scanSession, 0)
 		raced, err := New(late, r.clock.Now, &sequenceReader{next: scanSeedOffset}, scanSession, wave).Want(Ask{Request: request, Votes: oneVote})
 		if err != nil {
 			t.Fatal(err)

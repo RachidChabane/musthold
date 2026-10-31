@@ -474,16 +474,13 @@ func TestPendingTickets(t *testing.T) {
 		r.answer(answer.Votes[2].Ticket, `{"validity":"VALID"}`)
 		r.failSchemaTwice(answer.Votes[3].Ticket)
 
-		pending, err := r.bridge.PendingTickets()
+		outstanding, err := r.bridge.Outstanding()
 		if err != nil {
 			t.Fatal(err)
 		}
-		var votes []int
-		for _, ticket := range pending {
-			votes = append(votes, ticket.Vote)
-		}
-		if !slices.Equal(votes, []int{0, 1}) {
-			t.Fatalf("pending votes %v", votes)
+		if len(outstanding.Launchable) != 1 || outstanding.Launchable[0].Ticket.Vote != 0 ||
+			len(outstanding.InFlight) != 1 || outstanding.InFlight[0].Ticket.Vote != 1 || len(outstanding.Orphaned) != 0 {
+			t.Fatalf("outstanding %+v", outstanding)
 		}
 	})
 }

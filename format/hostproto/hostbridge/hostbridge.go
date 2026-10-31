@@ -115,10 +115,41 @@ type Bridge struct {
 	// journal across invocations: first issues, reissues and re-emissions alike.
 	// Zero means no cap.
 	EmissionCap int
+	// Renew is set for a new run of the session, which issues the abandoned
+	// tickets of the requests it wants again; a resumed run leaves them
+	// abandoned, so that a host whose answers keep failing ends the run.
+	Renew bool
 
 	wanted  map[hostproto.RequestID]bool
 	unasked map[hostproto.RequestID]bool
 	waiting bool
+}
+
+// Open builds the bridge of a session's next pass. The pass opens the session's
+// next wave when the session has no wave open or the journal accepted an answer
+// for it since the open wave began; otherwise it continues the open wave, so
+// that waves advance only on answers.
+func Open(store hostproto.HostStore, clock func() time.Time, entropy io.Reader, session hostproto.Session) (*Bridge, error) {
+	view, err := hostproto.ReadStoreView(store)
+	if err != nil {
+		return nil, err
+	}
+	states, err := store.Sessions()
+	if err != nil {
+		return nil, fmt.Errorf("read the sessions: %w", err)
+	}
+	state := hostproto.SessionState{Session: session}
+	if index := slices.IndexFunc(states, func(known hostproto.SessionState) bool { return known.Session == session }); index >= 0 {
+		state = states[index]
+	}
+	wave := state.Wave
+	answered := hostproto.AnsweredSince(view.Records, state.Cursor, hostproto.IndexSessions(view.Items), hostproto.OnlySession(session))
+	if state.OpensWave(answered) {
+		if wave, err = store.AdvanceWave(session, hostproto.JournalCursor(view.Records)); err != nil {
+			return nil, fmt.Errorf("open the wave: %w", err)
+		}
+	}
+	return New(store, clock, entropy, session, wave), nil
 }
 
 // New builds the bridge of a session for one of its waves.
@@ -196,7 +227,7 @@ func (b *Bridge) settle(request hostproto.Request, id hostproto.RequestID, vote 
 	if err != nil {
 		return VoteState{}, err
 	}
-	entry, err = b.revive(key, entry, budget)
+	entry, err = b.revive(key, entry, journaled.Ticket(entry.Ticket.TicketID.String()), budget)
 	if err != nil {
 		return VoteState{}, err
 	}
@@ -240,28 +271,75 @@ func (b *Bridge) emit(request hostproto.Request, id hostproto.RequestID, vote in
 	return entry, b.journal(hostproto.EventEmitted, ticket.TicketID)
 }
 
-// revive retires a fetched ticket that waited past its time to live, reissues a
-// rejected or expired one with a new nonce, abandoning it when its emissions ran
-// out, and re-emits a superseded one, whose request is wanted again. A new
-// emission the cap refuses leaves the ticket as it is.
-func (b *Bridge) revive(key hostproto.Key, entry hostproto.Entry, budget *budget) (hostproto.Entry, error) {
+// revive retires a fetched ticket that waited past its time to live or whose
+// executor's run ended without an answer, reissues a rejected or expired one with
+// a new nonce, abandoning it when its emissions ran out, re-emits a superseded
+// one, whose request is wanted again, and renews an abandoned one for a new run.
+// A new emission the cap refuses leaves the ticket as it is.
+func (b *Bridge) revive(key hostproto.Key, entry hostproto.Entry, events []hostproto.Event, budget *budget) (hostproto.Entry, error) {
 	if entry.State == hostproto.StateFetched {
-		expired, err := b.update(key, func(e hostproto.Entry) (hostproto.Entry, error) { return e.Expire(b.Clock()) }, hostproto.EventExpired)
+		retired, err := b.retire(key, entry, events)
 		switch {
 		case errors.Is(err, hostproto.ErrNotExpired):
 			return entry, nil
 		case err != nil:
 			return b.raced(key, err)
 		}
-		entry = expired
+		entry = retired
 	}
 	switch entry.State {
 	case hostproto.StateSuperseded:
 		return b.reemit(key, entry, budget)
 	case hostproto.StateRejected, hostproto.StateExpired:
 		return b.reissue(key, entry, budget)
+	case hostproto.StateAbandoned:
+		if b.Renew {
+			return b.renew(key, entry, budget)
+		}
 	}
 	return entry, nil
+}
+
+// retire expires a fetched ticket: at once when the run of the executor that
+// fetched it ended, after its time to live otherwise.
+func (b *Bridge) retire(key hostproto.Key, entry hostproto.Entry, events []hostproto.Event) (hostproto.Entry, error) {
+	if hostproto.RunEnded(events) {
+		return b.update(key, guardEmission(entry.Ticket.TicketID, hostproto.Entry.Release), hostproto.EventExpired)
+	}
+	return b.update(key, func(e hostproto.Entry) (hostproto.Entry, error) { return e.Expire(b.Clock()) }, hostproto.EventExpired)
+}
+
+// guardEmission applies the change only to the emission it was decided for: a
+// ticket another run issued again since is left as that run left it.
+func guardEmission(viewed hostproto.TicketID, change func(hostproto.Entry) (hostproto.Entry, error)) func(hostproto.Entry) (hostproto.Entry, error) {
+	return func(stored hostproto.Entry) (hostproto.Entry, error) {
+		if stored.Ticket.TicketID != viewed {
+			return stored, fmt.Errorf("%w: %s was issued again", hostproto.ErrIllegalTransition, viewed)
+		}
+		return change(stored)
+	}
+}
+
+// renew issues an abandoned ticket again for a new run of the session, with a
+// new nonce and a fresh count of emissions, once the answer it held is
+// discarded.
+func (b *Bridge) renew(key hostproto.Key, entry hostproto.Entry, budget *budget) (hostproto.Entry, error) {
+	if !budget.allows() {
+		return entry, nil
+	}
+	nonce, err := hostproto.NewNonce(b.Entropy)
+	if err != nil {
+		return hostproto.Entry{}, err
+	}
+	renewed, err := b.Store.UpdateEntry(key, func(e hostproto.Entry) (hostproto.Entry, error) { return e.Renew(nonce) })
+	if err != nil {
+		return b.raced(key, err)
+	}
+	if err := b.Store.DiscardResponse(key); err != nil {
+		return hostproto.Entry{}, fmt.Errorf("discard the answer the renewed ticket replaces: %w", err)
+	}
+	budget.spend()
+	return renewed, b.journal(hostproto.EventEmitted, renewed.Ticket.TicketID)
 }
 
 // reissue issues a rejected or expired ticket again with a new nonce, once the

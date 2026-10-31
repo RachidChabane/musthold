@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/RachidChabane/musthold/format"
+	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
 // Recording is an answer kept from an earlier run: the output and, when it was
@@ -38,6 +39,15 @@ func RecordingName(requestID string, vote int) string {
 type PendingTicket struct {
 	Ticket string
 	Nonce  string
+}
+
+// PendingOf lists the tickets a replayer serves, with their nonces.
+func PendingOf(tickets []hostproto.Ticket) []PendingTicket {
+	pending := make([]PendingTicket, len(tickets))
+	for index, ticket := range tickets {
+		pending[index] = PendingTicket{Ticket: ticket.TicketID.String(), Nonce: ticket.Nonce}
+	}
+	return pending
 }
 
 // ErrNothingServed is returned by a Replayer that answered none of the pending

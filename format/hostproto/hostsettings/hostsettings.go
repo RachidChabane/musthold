@@ -9,7 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"slices"
+	"time"
 
 	"gopkg.in/yaml.v3"
 
@@ -37,6 +39,17 @@ type Settings struct {
 	// ClassifyWitnessDir is `host.classify.witness_dir`: the directory of the
 	// user's own raw API log, empty when the check is not opted into.
 	ClassifyWitnessDir string
+	// StepSeconds is `host.step_seconds`, the work budget of one step of a
+	// command that waits on the host; zero keeps the default.
+	StepSeconds int
+}
+
+// StepWork is the work budget of one step: `host.step_seconds`, else the default.
+func (s Settings) StepWork() time.Duration {
+	if s.StepSeconds == 0 {
+		return hostproto.DefaultStepWork
+	}
+	return time.Duration(s.StepSeconds) * time.Second
 }
 
 // ClassifyModeFor is the value of `systemone.classify` for the module of a proof
@@ -64,7 +77,7 @@ func (s Settings) AttestationRequired() bool {
 // IsDefault reports whether the settings equal the defaults, so that an encoder
 // can leave them out.
 func (s Settings) IsDefault() bool {
-	return !s.Sampling && s.RequireAttestation == nil && s.Classify == "" && len(s.ClassifyByKind) == 0 && s.ClassifyWitnessDir == ""
+	return !s.Sampling && s.RequireAttestation == nil && s.Classify == "" && len(s.ClassifyByKind) == 0 && s.ClassifyWitnessDir == "" && s.StepSeconds == 0
 }
 
 // Document is the YAML shape of the section. A member the section does not name
@@ -73,6 +86,7 @@ type Document struct {
 	Sampling           bool             `yaml:"sampling"`
 	RequireAttestation *bool            `yaml:"require_attestation"`
 	Classify           classifyDocument `yaml:"classify"`
+	StepSeconds        *float64         `yaml:"step_seconds"`
 }
 
 // classifyDocument is the `host.classify` mapping.
@@ -90,9 +104,20 @@ type systemOneDocument struct {
 // holds the value of the modules it does not name.
 const classifyDefaultKey = "default"
 
-// Settings returns the settings the document holds.
-func (d Document) Settings() Settings {
-	return Settings{Sampling: d.Sampling, RequireAttestation: d.RequireAttestation, ClassifyWitnessDir: d.Classify.WitnessDir}
+// Settings returns the settings the document holds, or an error for a step
+// budget outside the bounds of a step.
+func (d Document) Settings() (Settings, error) {
+	settings := Settings{Sampling: d.Sampling, RequireAttestation: d.RequireAttestation, ClassifyWitnessDir: d.Classify.WitnessDir}
+	if d.StepSeconds == nil {
+		return settings, nil
+	}
+	seconds := *d.StepSeconds
+	if seconds != math.Trunc(seconds) || seconds < hostproto.MinStepWork.Seconds() || seconds > hostproto.MaxStepWork.Seconds() {
+		return Settings{}, fmt.Errorf("%w: host.step_seconds is %v, want a whole number of seconds from %v to %v",
+			ErrInvalidSection, seconds, hostproto.MinStepWork.Seconds(), hostproto.MaxStepWork.Seconds())
+	}
+	settings.StepSeconds = int(seconds)
+	return settings, nil
 }
 
 // ErrInvalidSection is returned for a host section that names an unknown member
@@ -135,7 +160,7 @@ func hostSection(node yaml.Node) (Settings, error) {
 	if err := decoder.Decode(&document); err != nil && !errors.Is(err, io.EOF) {
 		return Settings{}, fmt.Errorf("%w: %v", ErrInvalidSection, err)
 	}
-	return document.Settings(), nil
+	return document.Settings()
 }
 
 // readClassifySwitch reads `systemone.classify`: one value for every module, or a

@@ -130,11 +130,33 @@ func (i SessionIndex) Selects(filter SessionFilter, id RequestID) bool {
 }
 
 // SessionState is what a queue keeps of one session: the number of its current
-// wave and whether it ended. A session the queue has no state for is live.
+// wave, the journal cursor the wave opened at and whether the session ended. A
+// session the queue has no state for is live.
 type SessionState struct {
 	Session Session `json:"session"`
 	Wave    int     `json:"wave"`
+	Cursor  int     `json:"cursor,omitempty"`
 	Ended   bool    `json:"ended,omitempty"`
+}
+
+// Resumable reports whether a run of the session may be resumed: the session
+// holds a request, or it opened a wave it did not end, as a first step that ran
+// out of time before it asked anything leaves it.
+func Resumable(states []SessionState, items []QueueItem, session Session) bool {
+	if session.HoldsAny(items) {
+		return true
+	}
+	return slices.ContainsFunc(states, func(state SessionState) bool {
+		return state.Session == session && state.Wave > 0 && !state.Ended
+	})
+}
+
+// OpensWave reports whether a pass of the session opens its next wave: the
+// session has no wave open, because it never started one or it ended, or the
+// journal accepted answers for it since its open wave began. Without an answer,
+// a pass continues the open wave.
+func (s SessionState) OpensWave(answeredSince int) bool {
+	return s.Wave == 0 || s.Ended || answeredSince > 0
 }
 
 // Liveness tells which sessions are live.

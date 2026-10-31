@@ -694,7 +694,7 @@
     {
       "from": "abandoned",
       "to": "emitted",
-      "legal": false
+      "legal": true
     },
     {
       "from": "abandoned",
