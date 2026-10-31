@@ -25,6 +25,7 @@ A blind oracle, which the agent never sees, then measures three things:
 | `image/` | the container image the runs use |
 | `freeze/` | the frozen commits, their RFC 3161 timestamps, `inputs.json` and the sums |
 | `results/` | the committed results |
+| `deviations/` | the deviation log and the RFC 3161 timestamps of its operator entries (PREREG §12) |
 | `script/`, `Makefile` | the front door |
 
 ## Front door
