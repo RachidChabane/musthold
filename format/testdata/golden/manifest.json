@@ -272,6 +272,50 @@
     "schema": "invalid"
   },
   {
+    "file": "discriminating-power-failed-witness.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "discriminating-power-failed-witness-in-ci.json",
+    "decode": "ok",
+    "violations": [],
+    "schema": "valid"
+  },
+  {
+    "file": "discriminating-power-failed-witness-code-in-ci.json",
+    "decode": "ok",
+    "violations": [
+      "counterexample_not_local"
+    ],
+    "schema": "valid"
+  },
+  {
+    "file": "discriminating-power-failed-witness-oversized-code.json",
+    "decode": "ok",
+    "violations": [
+      "counterexample_size"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "discriminating-power-failed-witness-bad-id.json",
+    "decode": "ok",
+    "violations": [
+      "bad_digest"
+    ],
+    "schema": "invalid"
+  },
+  {
+    "file": "discriminating-power-failed-witnesses-unsorted.json",
+    "decode": "ok",
+    "violations": [
+      "unsorted"
+    ],
+    "schema": "valid"
+  },
+  {
     "file": "completeness-not-advisory.json",
     "decode": "ok",
     "violations": [

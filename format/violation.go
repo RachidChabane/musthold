@@ -35,7 +35,8 @@ const (
 	CodeInconsistentAttribution   ViolationCode = "inconsistent_attribution"
 	CodeInputDescriptor           ViolationCode = "input_descriptor"
 	// CodeCounterexampleNotLocal: a statement not produced locally carries a
-	// counterexample; CodeCounterexampleSize: its witness is above the bound.
+	// counterexample or the code of a failed witness; CodeCounterexampleSize:
+	// the code of such a witness is above the bound.
 	CodeCounterexampleNotLocal ViolationCode = "counterexample_not_local"
 	CodeCounterexampleSize     ViolationCode = "counterexample_size"
 

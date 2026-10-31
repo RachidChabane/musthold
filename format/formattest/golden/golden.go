@@ -261,16 +261,53 @@ func discriminatingPowerCases() []Case {
 			witness := format.WitnessExample{Name: counterexampleWitness, Clause: counterexampleClause, Code: strings.Repeat("x", format.SourceViewCap+1)}
 			withCounterexample(s, format.Counterexample{Origin: format.OriginOperator, Family: counterexampleFamily, Witness: &witness})
 		}),
+		build("discriminating-power-failed-witness", valid(), func(s *power) {
+			withFailedWitnesses(s, format.ProducedByLocal, failedWitness(failedWitnessLabel).WithCode(counterexampleCode))
+		}),
+		build("discriminating-power-failed-witness-in-ci", valid(), func(s *power) {
+			withFailedWitnesses(s, format.ProducedByCI, failedWitness(failedWitnessLabel))
+		}),
+		build("discriminating-power-failed-witness-code-in-ci", breaks(SchemaValid, format.CodeCounterexampleNotLocal), func(s *power) {
+			withFailedWitnesses(s, format.ProducedByCI, failedWitness(failedWitnessLabel).WithCode(counterexampleCode))
+		}),
+		build("discriminating-power-failed-witness-oversized-code", breaks(SchemaInvalid, format.CodeCounterexampleSize), func(s *power) {
+			oversized := failedWitness(failedWitnessLabel)
+			oversized.Code = strings.Repeat("x", format.SourceViewCap+1)
+			withFailedWitnesses(s, format.ProducedByLocal, oversized)
+		}),
+		build("discriminating-power-failed-witness-bad-id", breaks(SchemaInvalid, format.CodeBadDigest), func(s *power) {
+			badID := failedWitness(failedWitnessLabel)
+			badID.ID = counterexampleWitness
+			withFailedWitnesses(s, format.ProducedByLocal, badID)
+		}),
+		build("discriminating-power-failed-witnesses-unsorted", breaks(SchemaValid, format.CodeUnsorted), func(s *power) {
+			witnesses := []format.FailedWitness{failedWitness(failedWitnessLabel), failedWitness(otherFailedWitnessLabel)}
+			slices.SortFunc(witnesses, func(a, b format.FailedWitness) int { return strings.Compare(b.ID, a.ID) })
+			withFailedWitnesses(s, format.ProducedByLocal, witnesses...)
+		}),
 	}
 }
 
-// Parts of the counterexample vectors.
+// Parts of the counterexample and failed-witness vectors.
 const (
-	counterexampleWitness = "free_from_fifty"
-	counterexampleClause  = "reaches 50"
-	counterexampleCode    = "def free_from_fifty():\n    assert shipping_fee(50) == 0"
-	counterexampleFamily  = "relational"
+	counterexampleWitness   = "free_from_fifty"
+	counterexampleClause    = "reaches 50"
+	counterexampleCode      = "def free_from_fifty():\n    assert shipping_fee(50) == 0"
+	counterexampleFamily    = "relational"
+	failedWitnessLabel      = "witness-free-from-fifty"
+	otherFailedWitnessLabel = "witness-charged-below-fifty"
 )
+
+// failedWitness is a failed witness of the vectors, named by its label's digest.
+func failedWitness(label string) format.FailedWitness {
+	return format.FailedWitness{ID: proofs.Digest(label), Name: counterexampleWitness, Clause: counterexampleClause}
+}
+
+// withFailedWitnesses gives the statement the failed witnesses and the producer.
+func withFailedWitnesses(s *format.Statement[format.DiscriminatingPower], producedBy format.ProducedBy, witnesses ...format.FailedWitness) {
+	s.Predicate.ProducedBy = producedBy
+	s.Predicate.FailedWitnesses = witnesses
+}
 
 // withCounterexample gives the regular mutant of the statement a counterexample
 // and the producer that may carry one.

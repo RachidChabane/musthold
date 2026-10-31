@@ -60,6 +60,7 @@ func (p DiscriminatingPower) check(sink *collector, subject []Subject) {
 		example.Result.check(sink, path+".result", ClassExecuted)
 		checkMember(sink, path+".result.value", example.Result.Value, exampleResults)
 	}
+	checkFailedWitnesses(sink, "predicate.failedWitnesses", p.ProducedBy, p.FailedWitnesses)
 }
 
 func (p Completeness) check(sink *collector, subject []Subject) {

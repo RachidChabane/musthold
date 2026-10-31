@@ -1,6 +1,10 @@
 package format
 
-import "slices"
+import (
+	"fmt"
+	"slices"
+	"strings"
+)
 
 // SourceViewCap bounds the source text a host view or a statement shows: the
 // whole functions of a host view, the code of a counterexample's witness.
@@ -90,6 +94,46 @@ func checkCounterexample(sink *collector, path string, producedBy ProducedBy, co
 		checkNotEmpty(sink, path+".witness.code", counterexample.Witness.Code)
 		if len(counterexample.Witness.Code) > SourceViewCap {
 			sink.add(CodeCounterexampleSize, path+".witness.code", "the code of a witness is at most %d bytes", SourceViewCap)
+		}
+	}
+}
+
+// FailedWitness is a witness of the criterion that the reference fails in every
+// run and that every scope judge holds fixed by the criterion's text: the spec
+// fixes an output the code under proof does not give. Its id, name and clause
+// are in every statement; its code, which holds the input and the output the
+// spec fixes for it, only in a statement produced locally.
+type FailedWitness struct {
+	// ID is the content digest of the witness.
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Clause string `json:"clause"`
+	// Code is the witness's test, at most SourceViewCap bytes; Truncated says
+	// that its end was cut there.
+	Code      string `json:"code,omitempty"`
+	Truncated bool   `json:"truncated,omitempty"`
+}
+
+// WithCode returns the failed witness showing its code, cut by BoundedWitness.
+func (w FailedWitness) WithCode(code string) FailedWitness {
+	bounded := BoundedWitness(w.Name, w.Clause, code)
+	w.Code, w.Truncated = bounded.Code, bounded.Truncated
+	return w
+}
+
+// checkFailedWitnesses enforces the shape of the failed witnesses and that only
+// a local statement shows their code.
+func checkFailedWitnesses(sink *collector, path string, producedBy ProducedBy, witnesses []FailedWitness) {
+	checkAscending(sink, path, witnesses, func(a, b FailedWitness) int { return strings.Compare(a.ID, b.ID) })
+	for index, witness := range witnesses {
+		witnessPath := fmt.Sprintf("%s[%d]", path, index)
+		checkDigest(sink, witnessPath+".id", witness.ID)
+		checkNotEmpty(sink, witnessPath+".name", witness.Name)
+		if len(witness.Code) > SourceViewCap {
+			sink.add(CodeCounterexampleSize, witnessPath+".code", "the code of a witness is at most %d bytes", SourceViewCap)
+		}
+		if producedBy != ProducedByLocal && (witness.Code != "" || witness.Truncated) {
+			sink.add(CodeCounterexampleNotLocal, witnessPath+".code", "a statement produced by %s shows no witness code", producedBy)
 		}
 	}
 }

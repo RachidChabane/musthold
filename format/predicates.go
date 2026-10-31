@@ -191,6 +191,10 @@ type DiscriminatingPower struct {
 	Mutants           []Mutant     `json:"mutants,omitempty"`
 	Executor          Executor     `json:"executor"`
 	Examples          []ExampleRun `json:"examples,omitempty"`
+	// FailedWitnesses are the witnesses of the criterion that the reference
+	// fails in every run and that every scope judge holds fixed by the
+	// criterion's text: each escalates the criterion as `spec_witness_failed`.
+	FailedWitnesses []FailedWitness `json:"failedWitnesses,omitempty"`
 }
 
 // Question is one advisory completeness question.

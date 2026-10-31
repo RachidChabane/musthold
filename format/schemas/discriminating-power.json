@@ -32,6 +32,10 @@
     "examples": {
       "type": "array",
       "items": { "$ref": "#/$defs/exampleRun" }
+    },
+    "failedWitnesses": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/failedWitness" }
     }
   },
   "$defs": {
@@ -183,6 +187,17 @@
             { "properties": { "value": { "enum": ["killed", "survived", "error"] } } }
           ]
         }
+      }
+    },
+    "failedWitness": {
+      "type": "object",
+      "required": ["id", "name", "clause"],
+      "properties": {
+        "id": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/sha256Hex" },
+        "name": { "$ref": "https://rachid-chabane.com/attestations/common/v1#/$defs/nonEmptyString" },
+        "clause": { "type": "string" },
+        "code": { "type": "string", "minLength": 1, "maxLength": 49152 },
+        "truncated": { "type": "boolean" }
       }
     },
     "exampleRun": {

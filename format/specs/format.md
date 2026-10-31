@@ -74,6 +74,11 @@ Go tests of the module in CI.
   the bound of a host view; SHALL refuse a counterexample in a statement not
   produced locally; and SHALL cut a witness's code at that bound, at a line
   boundary when there is one, saying that it was cut.
+- **SP-2700~1**: WHEN a discriminating-power predicate lists `failedWitnesses`
+  THE SYSTEM SHALL require them strictly ascending by id, each with the SHA-256
+  content digest of the witness as its id, its name and its clause, and code of
+  at most `SourceViewCap` bytes; and SHALL refuse a witness's code, or the mark
+  that it was cut, in a statement not produced locally.
 
 ## Pending criteria and ledger layout
 
