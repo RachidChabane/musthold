@@ -229,11 +229,30 @@ func (r *report) secondary(s Summary) {
 	r.heading("Secondary endpoints (unadjusted)")
 	r.population(s, s.Analysis.ProtocolDeviations)
 	r.blank()
-	s1 := s.Analysis.S1
+	r.endpoints(s.Analysis.S1, s.Analysis.S2, s.Secondary)
+}
+
+// RenderKept renders S1 to S8 and the sign tests over tasks as loop-1's report
+// writes them, for a later study that keeps them.
+func RenderKept(k Kept) string {
+	r := &report{}
+	r.endpoints(k.S1, k.S2, k.Secondary)
+	r.blank()
+	r.signs(k.SignH1, k.SignS1, k.SignH2)
+	return r.b.String()
+}
+
+// FormatProbability writes a probability with its exact value.
+func FormatProbability(value Probability) string { return p(value) }
+
+// FormatRate writes a rate with its exact interval.
+func FormatRate(value Rate) string { return interval(value) }
+
+// endpoints writes S1 to S8.
+func (r *report) endpoints(s1 Permutation, s2 S2, secondary Secondary) {
 	r.line("**S1 defective final change.** `p_less` %s, `p_more` %s, `p_min` %s.", p(s1.PLess), p(s1.PMore), p(s1.PMin))
 	r.effect(s1, "a defective change")
 	r.blank()
-	s2 := s.Analysis.S2
 	r.line("**S2 test strength.** Treatment total of killed violations %d, probability of at least that total %s; %d runs without a final kill share. Sign test over tasks on the mean kill share: %d favourable of %d informative tasks, p %s.",
 		s2.Observed, p(s2.P), s2.MissingShare, s2.Sign.Favourable, s2.Sign.Informative, p(s2.Sign.P))
 	r.blank()
@@ -242,23 +261,23 @@ func (r *report) secondary(s Summary) {
 	r.line("| Arm | Yield | False rejection |")
 	r.line("|---|---|---|")
 	for _, arm := range Arms() {
-		r.line("| %s | %s | %s |", arm, interval(s.Secondary.S3[arm].Yield), interval(s.Secondary.S3[arm].FalseRejection))
+		r.line("| %s | %s | %s |", arm, interval(secondary.S3[arm].Yield), interval(secondary.S3[arm].FalseRejection))
 	}
-	r.s4(s)
-	r.s5(s)
-	r.s6(s)
-	r.s7(s)
-	r.s8(s)
+	r.s4(secondary)
+	r.s5(secondary)
+	r.s6(secondary)
+	r.s7(secondary)
+	r.s8(secondary)
 }
 
-func (r *report) s4(s Summary) {
+func (r *report) s4(secondary Secondary) {
 	r.blank()
 	r.line("**S4 blocks.**")
 	r.blank()
 	r.line("| Arm | Counted runs | Finding blocks | Pending blocks | Traceability blocks | Runs with a finding block | Give-ups | Finding codes |")
 	r.line("|---|---|---|---|---|---|---|---|")
 	for _, arm := range Arms() {
-		s4 := s.Secondary.S4[arm]
+		s4 := secondary.S4[arm]
 		var findings []string
 		for _, findingCode := range slices.Sorted(maps.Keys(s4.FindingCodes)) {
 			findings = append(findings, fmt.Sprintf("%s %d", code(findingCode), s4.FindingCodes[findingCode]))
@@ -271,25 +290,25 @@ func (r *report) s4(s Summary) {
 	}
 }
 
-func (r *report) s5(s Summary) {
+func (r *report) s5(secondary Secondary) {
 	r.blank()
 	r.line("**S5 cheating attempts**, runs with a hit over counted runs, with exact intervals at level 0.95.")
 	r.blank()
 	r.line("| Detector | Control | Treatment |")
 	r.line("|---|---|---|")
 	for _, detector := range study.Detectors() {
-		r.line("| %s | %s | %s |", detector, interval(s.Secondary.S5[ArmControl][detector]), interval(s.Secondary.S5[ArmTreatment][detector]))
+		r.line("| %s | %s | %s |", detector, interval(secondary.S5[ArmControl][detector]), interval(secondary.S5[ArmTreatment][detector]))
 	}
 }
 
-func (r *report) s6(s Summary) {
+func (r *report) s6(secondary Secondary) {
 	r.blank()
 	r.line("**S6 cost.** Dollars are notional: the token is a subscription.")
 	r.blank()
 	r.line("| Arm | Measure | Median per run | Maximum per run | Per accepted change |")
 	r.line("|---|---|---|---|---|")
 	for _, arm := range Arms() {
-		for _, row := range s.Secondary.S6.PerArm[arm] {
+		for _, row := range secondary.S6.PerArm[arm] {
 			perAccepted := dash
 			if row.PerAccepted != nil {
 				perAccepted = fmt.Sprintf(numberFormat, *row.PerAccepted)
@@ -302,7 +321,7 @@ func (r *report) s6(s Summary) {
 	r.blank()
 	r.line("| Task | %s |", strings.Join(Measures(), " | "))
 	r.line("|---|%s", strings.Repeat("---|", len(Measures())))
-	for _, row := range s.Secondary.S6.PerTask {
+	for _, row := range secondary.S6.PerTask {
 		cells := make([]string, 0, len(Measures()))
 		for _, name := range Measures() {
 			cells = append(cells, fmt.Sprintf(numberFormat, row.Differences[name]))
@@ -311,25 +330,25 @@ func (r *report) s6(s Summary) {
 	}
 }
 
-func (r *report) s7(s Summary) {
+func (r *report) s7(secondary Secondary) {
 	r.blank()
-	r.line("**S7 voluntary proofs in the control arm.** Control runs with a voluntary proof: %s.", interval(s.Secondary.S7.Runs))
-	for _, entry := range s.Secondary.S7.List {
+	r.line("**S7 voluntary proofs in the control arm.** Control runs with a voluntary proof: %s.", interval(secondary.S7.Runs))
+	for _, entry := range secondary.S7.List {
 		r.line("- %s: calls %d, findings printed: %s", code(entry.Run), entry.Calls, codes(entry.Findings))
 	}
 }
 
-func (r *report) s8(s Summary) {
+func (r *report) s8(secondary Secondary) {
 	r.blank()
 	r.line("**S8 per-criterion defects**, runs that violate the criterion over counted runs, with exact intervals at level 0.95.")
 	r.blank()
-	if len(s.Secondary.S8) == 0 {
+	if len(secondary.S8) == 0 {
 		r.line("No criterion is violated in any counted run.")
 		return
 	}
 	r.line("| Task | Criterion | Control | Treatment |")
 	r.line("|---|---|---|---|")
-	for _, row := range s.Secondary.S8 {
+	for _, row := range secondary.S8 {
 		r.line("| %s | %s | %s | %s |", code(row.Task), code(row.Criterion), interval(row.Control), interval(row.Treatment))
 	}
 }
@@ -354,13 +373,18 @@ func (r *report) sensitivity(s Summary) {
 			codes(s.Sensitivity.ProtocolDeviations[subset.key]))
 	}
 	r.blank()
+	r.signs(s.Sensitivity.SignH1, s.Sensitivity.SignS1, s.Sensitivity.SignH2)
+}
+
+// signs writes the sign tests over tasks.
+func (r *report) signs(h1, s1, h2 Sign) {
 	for _, test := range []struct {
 		label string
 		sign  Sign
 	}{
-		{"H1, per-task difference of escape shares", s.Sensitivity.SignH1},
-		{"S1, per-task difference of defect shares", s.Sensitivity.SignS1},
-		{"H2, per-task majority of corrected runs", s.Sensitivity.SignH2},
+		{"H1, per-task difference of escape shares", h1},
+		{"S1, per-task difference of defect shares", s1},
+		{"H2, per-task majority of corrected runs", h2},
 	} {
 		r.line("- sign test over tasks, %s: %d favourable of %d informative tasks, p %s", test.label, test.sign.Favourable, test.sign.Informative, p(test.sign.P))
 	}
