@@ -82,8 +82,10 @@ func (p *passState) proveSpec(spec criterion.Spec) (SpecResult, error) {
 	if err != nil {
 		return SpecResult{}, err
 	}
-	if err := run.rememberFresh(baseKey, freshRecord{CacheKey: cacheKey, Questions: questions}); err != nil {
-		return SpecResult{}, err
+	if !run.unresponsive {
+		if err := run.rememberFresh(baseKey, freshRecord{CacheKey: cacheKey, Questions: questions}); err != nil {
+			return SpecResult{}, err
+		}
 	}
 	if err := run.consume(); err != nil {
 		return SpecResult{}, err

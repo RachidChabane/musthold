@@ -17,6 +17,7 @@ import (
 	"sync"
 
 	"github.com/RachidChabane/musthold/completeness/internal/platform/atomicfile"
+	"github.com/RachidChabane/musthold/completeness/internal/platform/filelock"
 	"github.com/RachidChabane/musthold/format/hostproto"
 )
 
@@ -74,7 +75,7 @@ func withLock[T any](s *Store, fn func() (T, error)) (T, error) {
 	var zero T
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	release, err := acquireFileLock(s.path(LockFile))
+	release, err := filelock.Acquire(s.path(LockFile), FileMode)
 	if err != nil {
 		return zero, fmt.Errorf("lock %s: %w", s.dir, err)
 	}

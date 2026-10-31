@@ -541,3 +541,26 @@ traces them to the Go tests of the module in CI.
   SHALL ship the hooks module that carries the classifier calls of the host,
   naming the binary of the module, and the validator of Claude Code SHALL accept
   the plugin.
+
+## Bounded steps and host answers
+
+- **SP-2685~1**: WHEN `prove` runs without `--ci` and without `--replay` THE
+  SYSTEM SHALL bound its work to the step budget `host.step_seconds`, end a step
+  whose budget ran out, or whose prove session another `prove` holds, without
+  writing a Statement or retiring a ticket, print the launchable tickets and
+  `unfinished budget_spent` or `unfinished session_busy`, and exit 3; and
+  running the same command again SHALL continue from what is stored.
+- **SP-2686~1**: WHEN a spec's questions rest on a request the host abandoned
+  THE SYSTEM SHALL write its Statement but never record it as fresh, so that
+  `prove --changed` proves the spec again and renews its abandoned tickets.
+- **SP-2687~1**: WHEN `prove` ends a step THE SYSTEM SHALL print `awaiting_host
+  <n> tickets` with n the number of tickets `request list` shows for the
+  session, `in_flight <m> tickets` when executors hold m fetched tickets, and the
+  `unfinished` line of an unfinished step, and exit 3 while any of them is
+  printed; and the binary SHALL answer `request progress` with the Progress
+  document of the format.
+- **SP-2688~1**: WHEN the module writes its pending file, at the end of a step or
+  when it accepts an answer through `request submit` or its executor server, THE
+  SYSTEM SHALL write it atomically under a lock kept outside the work tree, with
+  the count of answers the module accepted, which never decreases, and keep the
+  file once that count is above zero.

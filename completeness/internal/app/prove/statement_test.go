@@ -224,7 +224,7 @@ func TestPendingAndExitCodes(t *testing.T) {
 		w := newWorld(t, testkit.GoLedger)
 		w.answers = nil
 		result := w.mustRun(prove.Options{})
-		if result.ExitCode() != prove.ExitAwaitingHost || result.PendingTickets == 0 {
+		if result.ExitCode() != prove.ExitAwaitingHost || len(result.Waiting.Launchable) == 0 {
 			t.Fatalf("result %+v", result)
 		}
 		if result.Specs[0].Status != prove.StatusAwaitingHost || len(w.proofs.statements) != 0 {

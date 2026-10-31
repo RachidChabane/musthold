@@ -6,15 +6,17 @@ import (
 	"testing"
 
 	"github.com/RachidChabane/musthold/completeness/internal/app/prove"
+	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbridge"
 )
 
 func TestPrintResultLeavesNoTrailingSpace(t *testing.T) {
 	t.Run("a spec that awaits the host prints no empty field [verifies SP-1631~1]", func(t *testing.T) {
 		var out bytes.Buffer
 		printResult(&out, prove.Result{
-			Wave:           1,
-			Specs:          []prove.SpecResult{{Spec: "specs/parcel.md", Status: prove.StatusAwaitingHost}, {Spec: "specs/zone.md", Status: prove.StatusProved, Unresponsive: true}},
-			PendingTickets: 2,
+			Wave:    1,
+			Specs:   []prove.SpecResult{{Spec: "specs/parcel.md", Status: prove.StatusAwaitingHost}, {Spec: "specs/zone.md", Status: prove.StatusProved, Unresponsive: true}},
+			Waiting: hostbridge.Waiting{Launchable: make([]hostproto.Ticket, 2)},
 		})
 		for _, line := range strings.Split(strings.TrimSuffix(out.String(), "\n"), "\n") {
 			if line != strings.TrimSpace(line) {

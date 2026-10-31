@@ -10,7 +10,6 @@ import (
 	"github.com/RachidChabane/musthold/completeness/internal/adapters/hoststore"
 	"github.com/RachidChabane/musthold/completeness/internal/adapters/localcache"
 	"github.com/RachidChabane/musthold/completeness/internal/adapters/operations"
-	"github.com/RachidChabane/musthold/completeness/internal/adapters/pendingfile"
 	"github.com/RachidChabane/musthold/completeness/internal/adapters/process"
 	"github.com/RachidChabane/musthold/completeness/internal/adapters/proofcache"
 	"github.com/RachidChabane/musthold/completeness/internal/adapters/proofsource"
@@ -128,7 +127,7 @@ func (e Env) openProject(rootFlag string) (*project, error) {
 			Store:      store,
 			Proofs:     proofcache.New(root, checker),
 			Evidence:   proofsource.Source{Root: root},
-			Pending:    pendingfile.Directory{Root: root},
+			Pending:    pendingDirectory(root, store),
 			Memo:       localcache.NewMemo(cacheDir),
 			Statements: checker,
 			Clock:      e.Now,

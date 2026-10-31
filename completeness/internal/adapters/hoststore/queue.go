@@ -67,8 +67,8 @@ func (s *Store) Wave(session hostproto.Session) (int, error) {
 }
 
 // AdvanceWave implements hostproto.Queue.
-func (s *Store) AdvanceWave(session hostproto.Session) (int, error) {
-	return changeQueue(s, func(queue *hostproto.QueueState) (int, error) { return queue.AdvanceWave(session), nil })
+func (s *Store) AdvanceWave(session hostproto.Session, cursor int) (int, error) {
+	return changeQueue(s, func(queue *hostproto.QueueState) (int, error) { return queue.AdvanceWave(session, cursor), nil })
 }
 
 // Sessions implements hostproto.Queue.

@@ -107,7 +107,7 @@ func TestWithoutEvidence(t *testing.T) {
 		})
 
 		t.Run(l.fixture+": the run asks the host once per wave and writes the Statement when everything is answered [verifies SP-543~1]", func(t *testing.T) {
-			if result.PendingTickets != 0 || result.ExitCode() != prove.ExitClean {
+			if result.Waiting.Pending() || result.ExitCode() != prove.ExitClean {
 				t.Fatalf("result %+v", result)
 			}
 			if len(result.Specs) != 1 || result.Specs[0].Status != prove.StatusProved || result.Specs[0].Questions != len(statement.Predicate.Questions) {

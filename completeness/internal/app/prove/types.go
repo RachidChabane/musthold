@@ -18,6 +18,7 @@ import (
 	"github.com/RachidChabane/musthold/completeness/internal/domain/policy"
 	"github.com/RachidChabane/musthold/format"
 	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbridge"
 	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
@@ -119,19 +120,18 @@ type SpecResult struct {
 type Result struct {
 	Wave  int
 	Specs []SpecResult
-	// PendingTickets counts the tickets still waiting for an answer.
-	PendingTickets int
+	// Waiting is what the step leaves for a later invocation.
+	Waiting hostbridge.Waiting
 	// Findings are module findings that do not change a Statement's meaning, such
 	// as a source file that cannot be read.
 	Findings []string
-
-	pending []requests.PendingTicket
 }
 
-// ExitCode maps the result to the exit codes of ADR 0005: 3 while tickets wait,
+// ExitCode maps the result to the exit codes of ADR 0005: 3 while tickets wait
+// or the step ended unfinished,
 // 1 when a host stopped answering, 0 otherwise.
 func (r Result) ExitCode() int {
-	if r.PendingTickets > 0 {
+	if r.Waiting.Pending() {
 		return ExitAwaitingHost
 	}
 	for _, spec := range r.Specs {

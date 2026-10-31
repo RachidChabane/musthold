@@ -7,7 +7,6 @@ import (
 	"io"
 
 	"github.com/RachidChabane/musthold/completeness/internal/adapters/recordings"
-	"github.com/RachidChabane/musthold/completeness/internal/adapters/responsecheck"
 	"github.com/RachidChabane/musthold/completeness/internal/app/prove"
 	"github.com/RachidChabane/musthold/format/cliconv"
 	"github.com/RachidChabane/musthold/format/hostproto"
@@ -105,7 +104,11 @@ func (e Env) runProve(rootFlag string, options prove.Options, record, replay str
 		if err != nil {
 			return outcome{err: err}
 		}
-		if !hostproto.SessionProve.HoldsAny(items) {
+		states, err := project.store.Sessions()
+		if err != nil {
+			return outcome{err: err}
+		}
+		if !hostproto.Resumable(states, items, hostproto.SessionProve) {
 			return outcome{err: errNothingToResume}
 		}
 	}
@@ -114,7 +117,7 @@ func (e Env) runProve(rootFlag string, options prove.Options, record, replay str
 	}
 	if replay != "" {
 		project.deps.Replay = requests.RecordingReplayer{
-			Service:    requests.Service{Plugin: pluginName, Store: project.store, Validator: responsecheck.New(), Clock: e.Now},
+			Service:    e.newRequestService(project.root, project.store),
 			Recordings: recordings.Directory{Dir: replay},
 		}
 	}
@@ -122,7 +125,12 @@ func (e Env) runProve(rootFlag string, options prove.Options, record, replay str
 	if err != nil {
 		return outcome{err: err}
 	}
-	result, err := prove.UseCase{Deps: project.deps, Settings: project.settings}.Run(context.Background(), options)
+	ctx, stop, err := e.stepContext(project.root, ci.enabled || replay != "")
+	if err != nil {
+		return outcome{err: err}
+	}
+	defer stop()
+	result, err := prove.UseCase{Deps: project.deps, Settings: project.settings}.Run(ctx, options)
 	if err != nil {
 		return outcome{err: err}
 	}
@@ -145,7 +153,21 @@ func printResult(out io.Writer, result prove.Result) {
 	for _, finding := range result.Findings {
 		fmt.Fprintf(out, "module finding %s\n", finding)
 	}
-	if result.PendingTickets > 0 {
-		fmt.Fprintf(out, "awaiting_host %d tickets\n", result.PendingTickets)
+	for _, line := range result.Waiting.Lines() {
+		fmt.Fprintln(out, line)
 	}
+}
+
+// stepContext bounds the work of one step by `host.step_seconds`. A run that no
+// host answers in its course, under `--ci` or `--replay`, is not bounded.
+func (e Env) stepContext(root string, unbounded bool) (context.Context, context.CancelFunc, error) {
+	if unbounded {
+		return e.context(), func() {}, nil
+	}
+	settings, err := hostSettingsOf(root)
+	if err != nil {
+		return nil, nil, err
+	}
+	ctx, stop := hostproto.WithStep(e.context(), settings.StepWork())
+	return ctx, stop, nil
 }
