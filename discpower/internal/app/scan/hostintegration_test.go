@@ -82,7 +82,7 @@ func TestHostMemoLoss(t *testing.T) {
 		f.runs.failRuns["test_va_free"] = []int{4, 5, 6}
 		before := len(f.allEmissions(t))
 		again := f.invoke(t, req)
-		if again.Finished || len(again.Pending) == 0 {
+		if again.Finished || len(again.Waiting.Launchable) == 0 {
 			t.Fatalf("result %+v", again)
 		}
 		for _, kind := range pendingKinds(t, f.store, again) {
@@ -98,8 +98,8 @@ func TestHostMemoLoss(t *testing.T) {
 		if _, err := format.AdmitScan(final.Report.Encoded); err != nil {
 			t.Fatal(err)
 		}
-		if added := len(f.allEmissions(t)) - before; added != len(again.Pending) || final.Report.Promises.Calls > promise.Budget {
-			t.Fatalf("%d emissions added for %d re-asks", added, len(again.Pending))
+		if added := len(f.allEmissions(t)) - before; added != len(again.Waiting.Launchable) || final.Report.Promises.Calls > promise.Budget {
+			t.Fatalf("%d emissions added for %d re-asks", added, len(again.Waiting.Launchable))
 		}
 	})
 }
@@ -174,7 +174,7 @@ func TestHostSharesTheFileStoreWithProve(t *testing.T) {
 
 // proveWave is one wave of a prove session that wants one request.
 func proveWave(store hostproto.HostStore, clock func() time.Time, ask hostbridge.Ask) error {
-	wave, err := store.AdvanceWave(hostproto.SessionProve)
+	wave, err := store.AdvanceWave(hostproto.SessionProve, 0)
 	if err != nil {
 		return err
 	}
@@ -194,10 +194,11 @@ func provePending(t *testing.T, store hostproto.HostStore) []hostproto.RequestID
 		t.Fatal(err)
 	}
 	bridge := hostbridge.New(store, nil, nil, hostproto.SessionProve, wave)
-	tickets, err := bridge.PendingTickets()
+	outstanding, err := bridge.Outstanding()
 	if err != nil {
 		t.Fatal(err)
 	}
+	tickets := outstanding.Tickets()
 	var ids []hostproto.RequestID
 	for _, ticket := range tickets {
 		ids = append(ids, ticket.RequestID)

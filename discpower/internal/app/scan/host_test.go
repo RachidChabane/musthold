@@ -53,7 +53,7 @@ func TestHostStages(t *testing.T) {
 		}
 	})
 	t.Run("the extraction shows the README under its name, and no diff in repository mode"+verifiesSources, func(t *testing.T) {
-		request, err := f.store.GetRequest(first.Pending[0].RequestID)
+		request, err := f.store.GetRequest(first.Waiting.Launchable[0].RequestID)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -124,7 +124,7 @@ func TestHostStages(t *testing.T) {
 	f.host.answer(t, third.Session)
 	fourth := f.invoke(t, req)
 	t.Run("the final stage runs the suite in its one invocation and finishes"+verifiesOneProcess, func(t *testing.T) {
-		if !fourth.Finished || fourth.ExitCode() != scan.ExitFinished || len(fourth.Pending) != 0 {
+		if !fourth.Finished || fourth.ExitCode() != scan.ExitFinished || len(fourth.Waiting.Launchable) != 0 {
 			t.Fatalf("result %+v", fourth)
 		}
 		if calls := f.suite.took(); calls == 0 {
@@ -261,8 +261,8 @@ func TestHostAwaiting(t *testing.T) {
 			t.Fatal(err)
 		}
 		result := f.invoke(t, hostRequest())
-		if len(result.Pending) != 1 || result.Pending[0].RequestID == mustID(t, other.Request) {
-			t.Fatalf("pending %+v", result.Pending)
+		if len(result.Waiting.Launchable) != 1 || result.Waiting.Launchable[0].RequestID == mustID(t, other.Request) {
+			t.Fatalf("pending %+v", result.Waiting.Launchable)
 		}
 	})
 }
@@ -285,7 +285,7 @@ func TestHostContradiction(t *testing.T) {
 		}
 		f.suite.took()
 		contradicted := f.invoke(t, req)
-		if contradicted.Finished || f.suite.took() != 0 || len(contradicted.Pending) == 0 {
+		if contradicted.Finished || f.suite.took() != 0 || len(contradicted.Waiting.Launchable) == 0 {
 			t.Fatalf("result %+v", contradicted)
 		}
 		f.host.answer(t, contradicted.Session)
@@ -445,7 +445,7 @@ func TestHostPullRequest(t *testing.T) {
 		req := hostRequest()
 		req.PullRequest = 12
 		first := f.invoke(t, req)
-		request, err := f.store.GetRequest(first.Pending[0].RequestID)
+		request, err := f.store.GetRequest(first.Waiting.Launchable[0].RequestID)
 		if err != nil {
 			t.Fatal(err)
 		}

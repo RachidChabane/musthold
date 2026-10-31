@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/RachidChabane/musthold/discpower/internal/adapters/responsecheck"
 	"github.com/RachidChabane/musthold/discpower/internal/adapters/transcriptfile"
 	"github.com/RachidChabane/musthold/discpower/internal/domain/hostharness"
 	"github.com/RachidChabane/musthold/discpower/internal/domain/projectconfig"
@@ -59,14 +58,12 @@ func (e Env) executorService(root string, harness hostharness.Harness) (executor
 	if err != nil {
 		return executorhost.Service{}, false, err
 	}
-	service := requests.Service{
-		Plugin: pluginName, Store: store, Validator: responsecheck.New(), Clock: e.Now,
-		RequireAttestation: harness.AttestationRequired(settings.Host.AttestationRequired()),
-		Executor: requests.ExecutorContext{
-			Harness:   format.Harness{Name: harness.Name, Version: harness.Version},
-			Isolation: harness.Isolation(),
-			Channel:   harness.AnswerChannel(),
-		},
+	service := e.newRequestService(root, store)
+	service.RequireAttestation = harness.AttestationRequired(settings.Host.AttestationRequired())
+	service.Executor = requests.ExecutorContext{
+		Harness:   format.Harness{Name: harness.Name, Version: harness.Version},
+		Isolation: harness.Isolation(),
+		Channel:   harness.AnswerChannel(),
 	}
 	return executorhost.Service{Requests: service, ModuleNames: []string{drainAlias, moduleName}}, settings.Host.Sampling, nil
 }

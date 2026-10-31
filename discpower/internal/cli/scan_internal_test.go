@@ -16,6 +16,7 @@ import (
 	domain "github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 	"github.com/RachidChabane/musthold/discpower/internal/domain/scanscope"
 	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbridge"
 )
 
 func TestDepthRequest(t *testing.T) {
@@ -95,7 +96,7 @@ func TestPrintAwaiting(t *testing.T) {
 	t.Run("a scan that waits prints its wave, its session and how many tickets wait, as prove does [verifies SP-2245~1]", func(t *testing.T) {
 		var out strings.Builder
 		session := hostproto.ScanSession("abc")
-		printAwaiting(&out, scan.HostResult{Session: session, Wave: 2, Pending: make([]hostproto.Ticket, 3)})
+		printAwaiting(&out, scan.HostResult{Session: session, Wave: 2, Waiting: hostbridge.Waiting{Launchable: make([]hostproto.Ticket, 3)}})
 		if want := "wave 2\nsession scan:abc\nawaiting_host 3 tickets\n"; out.String() != want {
 			t.Fatalf("printed %q", out.String())
 		}

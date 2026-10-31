@@ -83,7 +83,8 @@ func sessionIndex(t *testing.T, store hostproto.HostStore) hostproto.SessionInde
 	return hostproto.IndexSessions(items)
 }
 
-// submit fetches the ticket and accepts the output as its answer.
+// submit fetches the ticket, accepts the output as its answer and journals the
+// acceptance, as the command line of the module does.
 func (h *fakeHost) submit(t *testing.T, entry hostproto.Entry, output string) {
 	t.Helper()
 	key := entry.Ticket.Key()
@@ -101,6 +102,9 @@ func (h *fakeHost) submit(t *testing.T, entry hostproto.Entry, output string) {
 	response := hostprototest.Response(accepted.Ticket)
 	response.Output = []byte(output)
 	if err := h.store.PutResponse(response); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.store.Append(hostproto.Event{Kind: hostproto.EventAccepted, Ticket: accepted.Ticket.TicketID.String()}); err != nil {
 		t.Fatal(err)
 	}
 }

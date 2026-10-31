@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"io/fs"
 	"os"
@@ -42,6 +43,8 @@ type harness struct {
 	// admission is the table of classifications the binary answers with; nil keeps
 	// the shipped, empty one.
 	admission *hostproto.ClassifyAdmission
+	// ctx is the context the commands run under; nil keeps the background one.
+	ctx context.Context
 	// rawLog, when set, records the classifier calls the fake mod makes.
 	rawLog *hostprototest.RawAPILog
 	// waves bounds how many times drive lets the host answer; zero means the default.
@@ -133,6 +136,7 @@ func (h *harness) env(stdin []byte) (cli.Env, *bytes.Buffer, *bytes.Buffer) {
 		Now:               func() time.Time { return h.now },
 		Entropy:           h.entropy,
 		ClassifyAdmission: h.admission,
+		Context:           h.ctx,
 	}, &stdout, &stderr
 }
 

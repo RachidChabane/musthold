@@ -8,7 +8,6 @@ import (
 	"io"
 	"strings"
 
-	"github.com/RachidChabane/musthold/discpower/internal/adapters/responsecheck"
 	"github.com/RachidChabane/musthold/format"
 	"github.com/RachidChabane/musthold/format/cliconv"
 	"github.com/RachidChabane/musthold/format/hostproto"
@@ -25,6 +24,7 @@ const (
 	flagVoters       = "voters"
 	flagSessionModel = "session-model"
 	flagSession      = "session"
+	flagSince        = "since"
 	// Verbs of `systemone`.
 	verbExport       = "export"
 	verbImport       = "import"
@@ -58,11 +58,11 @@ func (e Env) requestService(root string) (requests.Service, error) {
 	if err != nil {
 		return requests.Service{}, err
 	}
-	return requests.Service{Plugin: pluginName, Store: store, Validator: responsecheck.New(), Clock: e.Now}, nil
+	return e.newRequestService(root, store), nil
 }
 
 // requestVerbs are the verbs of `request`.
-var requestVerbs = []string{hostproto.SubcommandList, hostproto.SubcommandShow, hostproto.SubcommandSubmit}
+var requestVerbs = []string{hostproto.SubcommandList, hostproto.SubcommandShow, hostproto.SubcommandSubmit, hostproto.SubcommandProgress}
 
 func (e Env) request(args []string) outcome {
 	if len(args) == 0 {
@@ -74,6 +74,8 @@ func (e Env) request(args []string) outcome {
 		return outcome{err: cliconv.HelpRequest{Text: cliconv.VerbsUsage(e.Binary, commandRequest, requestVerbs)}}
 	case verb == hostproto.SubcommandList:
 		return e.requestList(rest)
+	case verb == hostproto.SubcommandProgress:
+		return e.requestProgress(rest)
 	case verb == hostproto.SubcommandShow:
 		return e.requestShow(rest)
 	case verb == hostproto.SubcommandSubmit:
@@ -81,6 +83,45 @@ func (e Env) request(args []string) outcome {
 	}
 	return outcome{err: refusal{fmt.Errorf("unknown request verb %q", verb)}}
 }
+
+// usageSince is the usage of `--since` of `request progress`.
+const usageSince = "count the answers from this journal cursor on, as a previous read printed it"
+
+func (e Env) requestProgress(args []string) outcome {
+	set := e.newFlags(commandRequest+" "+hostproto.SubcommandProgress, "")
+	asJSON := set.Bool(flagJSON, false, "print the progress as JSON")
+	session := set.String(flagSession, "", usageSession)
+	since := set.Int(flagSince, 0, usageSince)
+	root := set.String(flagRoot, "", usageRoot)
+	rest, err := parseInterleaved(set, args)
+	switch {
+	case err != nil:
+		return outcome{err: err}
+	case len(rest) > 0:
+		return outcome{err: errUnexpectedParams}
+	case *since < 0:
+		return outcome{err: refusal{errNegativeCursor}}
+	}
+	filter, err := sessionFilterOf(*session)
+	if err != nil {
+		return outcome{err: err}
+	}
+	service, err := e.requestService(mustRoot(e, *root))
+	if err != nil {
+		return outcome{err: err}
+	}
+	progress, err := service.Progress(filter, *since)
+	if err != nil {
+		return outcome{err: err}
+	}
+	if *asJSON {
+		return outcome{err: json.NewEncoder(e.Stdout).Encode(progress)}
+	}
+	fmt.Fprintln(e.Stdout, progress.Line())
+	return outcome{code: ExitClean}
+}
+
+var errNegativeCursor = errors.New("--since is a journal cursor, zero or more")
 
 func (e Env) requestList(args []string) outcome {
 	set := e.newFlags(commandRequest+" "+hostproto.SubcommandList, "")

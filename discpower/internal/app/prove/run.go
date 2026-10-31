@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/RachidChabane/musthold/discpower/internal/app/execution"
 	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 	"github.com/RachidChabane/musthold/discpower/internal/domain/power"
 	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
@@ -17,7 +18,7 @@ import (
 	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
-const freshNamespace = "fresh-proof"
+const freshNamespace = "fresh-outcome"
 
 // UseCase is the `prove` use case over its ports and settings.
 type UseCase struct {
@@ -25,30 +26,77 @@ type UseCase struct {
 	Settings Settings
 }
 
-// Run proves the criteria one pass at a time. Each pass recomputes the
-// deterministic stages, asks the host for what it needs and writes a Statement
-// for every criterion it can finish. With a replayer the passes follow one
-// another in this invocation until nothing is pending.
+// Run is one step of the run: it proves the criteria one pass at a time. Each
+// pass recomputes the deterministic stages, asks the host for what it needs and
+// writes a Statement for every criterion it can finish. With a replayer the
+// passes follow one another in this invocation until nothing is pending.
+//
+// The step holds the prove session for itself: while another step holds it, it
+// changes nothing and ends unfinished. When the context's step budget runs out,
+// the step stops where it is: every executed fact and ticket already stored
+// stays, no Statement is written for an unfinished criterion, no ticket is
+// retired, and running the step again continues from what is stored.
 func (u UseCase) Run(ctx context.Context, options Options) (Result, error) {
 	if err := u.Settings.Policy.Validate(); err != nil {
 		return Result{}, err
 	}
-	p, err := prepare(ctx, u.Deps, u.Settings)
+	release, err := u.Deps.Store.LockRun(hostproto.SessionProve)
+	if errors.Is(err, hostproto.ErrSessionBusy) {
+		return u.unfinished(hostproto.StepSessionBusy)
+	}
 	if err != nil {
 		return Result{}, err
+	}
+	defer release()
+	deps := u.Deps
+	memo := execution.NewStepMemo(ctx, deps.Memo)
+	deps.Memo = memo
+	p, err := prepare(ctx, deps, u.Settings)
+	if err != nil {
+		return u.cut(ctx, memo, err)
 	}
 	defer p.release()
 	for {
 		result, err := u.pass(ctx, p, options)
-		if err != nil || result.PendingTickets == 0 || u.Deps.Replay == nil {
+		if err != nil {
+			return u.cut(ctx, memo, err)
+		}
+		if err := u.writePending(result); err != nil {
 			return result, err
 		}
-		if err := u.Deps.Replay.Serve(result.pending); errors.Is(err, requests.ErrNothingServed) {
+		if len(result.Waiting.Launchable) == 0 || u.Deps.Replay == nil {
+			return result, nil
+		}
+		if err := u.Deps.Replay.Serve(requests.PendingOf(result.Waiting.Launchable)); errors.Is(err, requests.ErrNothingServed) {
 			return result, nil
 		} else if err != nil {
 			return result, err
 		}
 	}
+}
+
+// ErrStepTooShort is returned when a step spent its budget without storing any
+// new executed fact: one unit of work outlasts the budget, so running the step
+// again would never advance.
+var ErrStepTooShort = errors.New("the step spent its budget before it stored any executed fact: raise host.step_seconds")
+
+// cut turns the error of a step whose budget ran out into an unfinished result,
+// and returns any other error as it is.
+func (u UseCase) cut(ctx context.Context, memo *execution.StepMemo, err error) (Result, error) {
+	if !hostproto.StepSpent(ctx) {
+		return Result{}, err
+	}
+	if memo.Stored() == 0 {
+		return Result{}, ErrStepTooShort
+	}
+	return u.unfinished(hostproto.StepBudgetSpent)
+}
+
+// unfinished is the result of a step that ended before its run finished: what
+// the session waits for as the store holds it.
+func (u UseCase) unfinished(end hostproto.StepEnd) (Result, error) {
+	waiting, wave, err := hostbridge.Unfinished(u.Deps.Store, hostproto.SessionProve, end)
+	return Result{Wave: wave, Waiting: waiting}, err
 }
 
 // pass is one wave. Every criterion first draws its witnesses; while one of them
@@ -58,11 +106,12 @@ func (u UseCase) Run(ctx context.Context, options Options) (Result, error) {
 // run against the witnesses of every criterion and settled, and the criteria
 // whose survivors are judged are proved.
 func (u UseCase) pass(ctx context.Context, p *project, options Options) (Result, error) {
-	wave, err := u.Deps.Store.AdvanceWave(hostproto.SessionProve)
+	bridge, err := hostbridge.Open(u.Deps.Store, u.Deps.Clock, u.Deps.Entropy, hostproto.SessionProve)
 	if err != nil {
-		return Result{}, fmt.Errorf("advance the wave: %w", err)
+		return Result{}, err
 	}
-	bridge := hostbridge.New(u.Deps.Store, u.Deps.Clock, u.Deps.Entropy, hostproto.SessionProve, wave)
+	bridge.Renew = !options.Resume
+	wave := bridge.Wave
 	p.scopes = nil
 	runs := make([]*critRun, len(p.criteria))
 	settled := true
@@ -87,23 +136,29 @@ func (u UseCase) pass(ctx context.Context, p *project, options Options) (Result,
 	for _, run := range runs {
 		result.Findings = append(result.Findings, run.readingConflicts()...)
 	}
-	pending, err := bridge.FinishWave()
+	if ctx.Err() != nil {
+		return Result{}, context.Cause(ctx)
+	}
+	outstanding, err := bridge.FinishWave()
 	if err != nil {
 		return Result{}, err
 	}
-	result.PendingTickets = len(pending)
-	for _, ticket := range pending {
-		result.pending = append(result.pending, requests.PendingTicket{Ticket: ticket.TicketID.String(), Nonce: ticket.Nonce})
-	}
+	result.Waiting = hostbridge.WaitingOf(outstanding)
 	return result, nil
 }
 
-// freshRecord remembers the Statement written for a freshness key.
+// freshRecord remembers the Statement written for a freshness key with the
+// outcome it carries.
 type freshRecord struct {
 	CacheKey        string                 `json:"cacheKey"`
-	Result          string                 `json:"result"`
+	Result          power.Result           `json:"result"`
+	Findings        []power.Finding        `json:"findings,omitempty"`
 	Survivors       []Survivor             `json:"survivors,omitempty"`
 	FailedWitnesses []format.FailedWitness `json:"failedWitnesses,omitempty"`
+}
+
+func (f freshRecord) outcome() power.Outcome {
+	return power.Outcome{Result: f.Result, Findings: f.Findings}
 }
 
 // proveAll runs the searches of every criterion, then settles the pools against
@@ -178,13 +233,16 @@ func (r *critRun) conclude(ctx context.Context, sets []witness.Set, records []wi
 	if options.Selection == SelectChanged {
 		if record, fresh := r.p.freshRecord(r.c.Ref, freshness); fresh {
 			return CriterionResult{
-				Ref: r.c.Ref, Status: StatusFresh, CacheKey: record.CacheKey, Outcome: power.Outcome{Result: power.Result(record.Result)},
+				Ref: r.c.Ref, Status: StatusFresh, CacheKey: record.CacheKey, Outcome: record.outcome(),
 				Survivors: record.Survivors, FailedWitnesses: record.FailedWitnesses,
 			}, nil
 		}
 	}
 	if r.waiting || !r.creditSettled() {
 		return CriterionResult{Ref: r.c.Ref, Status: StatusAwaitingHost}, nil
+	}
+	if ctx.Err() != nil {
+		return CriterionResult{}, context.Cause(ctx)
 	}
 	return r.finalize(base, freshness)
 }
@@ -221,8 +279,11 @@ func (r *critRun) finalize(base []format.Input, freshness string) (CriterionResu
 	}
 	survivors := r.survivors(predicate)
 	failed := predicate.FailedWitnesses
-	if err := r.p.rememberFresh(freshness, freshRecord{CacheKey: cacheKey, Result: string(outcome.Result), Survivors: survivors, FailedWitnesses: failed}); err != nil {
-		return CriterionResult{}, err
+	if !outcome.Abandoned() {
+		record := freshRecord{CacheKey: cacheKey, Result: outcome.Result, Findings: outcome.Findings, Survivors: survivors, FailedWitnesses: failed}
+		if err := r.p.rememberFresh(freshness, record); err != nil {
+			return CriterionResult{}, err
+		}
 	}
 	return CriterionResult{Ref: r.c.Ref, Status: StatusProved, Outcome: outcome, CacheKey: cacheKey, Survivors: survivors, FailedWitnesses: failed}, nil
 }
@@ -273,14 +334,15 @@ func (p *project) freshMemoKey(freshness string) string {
 }
 
 // freshRecord returns the record of the Statement written for the freshness key,
-// when that Statement still exists.
+// when that Statement still exists and its outcome is a verdict, not an
+// abandonment.
 func (p *project) freshRecord(ref spec.Ref, freshness string) (freshRecord, bool) {
 	raw, found, err := p.deps.Memo.Get(p.freshMemoKey(freshness))
 	if err != nil || !found {
 		return freshRecord{}, false
 	}
 	var record freshRecord
-	if json.Unmarshal(raw, &record) != nil {
+	if json.Unmarshal(raw, &record) != nil || record.outcome().Abandoned() {
 		return freshRecord{}, false
 	}
 	exists, err := p.deps.Proofs.Has(ref, record.CacheKey)

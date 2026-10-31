@@ -416,7 +416,7 @@ func emissions(t *testing.T, store hostproto.HostStore, session hostproto.Sessio
 func pendingKinds(t *testing.T, store hostproto.HostStore, result scan.HostResult) []hostproto.Kind {
 	t.Helper()
 	var kinds []hostproto.Kind
-	for _, ticket := range result.Pending {
+	for _, ticket := range result.Waiting.Launchable {
 		request, err := store.GetRequest(ticket.RequestID)
 		if err != nil {
 			t.Fatal(err)
@@ -446,7 +446,7 @@ func hostprototestRequest(t *testing.T) hostbridge.Ask {
 // proveBridge is the bridge of a prove wave on the fixture's store.
 func proveBridge(t *testing.T, f *hostFixture) *hostbridge.Bridge {
 	t.Helper()
-	wave, err := f.store.AdvanceWave(hostproto.SessionProve)
+	wave, err := f.store.AdvanceWave(hostproto.SessionProve, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

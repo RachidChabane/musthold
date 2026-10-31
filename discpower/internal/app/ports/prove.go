@@ -8,6 +8,7 @@ import (
 	"github.com/RachidChabane/musthold/discpower/internal/domain/ecosystem"
 	"github.com/RachidChabane/musthold/discpower/internal/domain/mutation"
 	"github.com/RachidChabane/musthold/discpower/internal/domain/spec"
+	"github.com/RachidChabane/musthold/format"
 )
 
 // Report is what Shallnot reports about the criteria of a project: the schema
@@ -94,6 +95,13 @@ type FactsStore interface {
 type MutantVault interface {
 	Put(id string, edits mutation.EditSet) error
 	Get(id string) (mutation.EditSet, error)
+}
+
+// PendingWriter keeps the module's pending file, which tells Shallnot what the
+// module still waits for and how many host answers it accepted.
+type PendingWriter interface {
+	// Write replaces the entries of the file and keeps the larger count of answers.
+	Write(pending format.Pending) error
 }
 
 // ExecutionMemo is the local memo of executed facts, keyed by content.

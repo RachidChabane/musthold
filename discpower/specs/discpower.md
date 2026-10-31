@@ -1191,10 +1191,12 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
 
 ## The prove use case
 
-- **SP-181~1**: WHEN `prove` runs THE SYSTEM SHALL exit 3 while tickets wait for the
-  host, 1 when a criterion blocks or escalates, 0 otherwise, advance one wave per
-  run, give the same requests when run again, and refuse `--resume` when no
-  request was ever emitted.
+- **SP-181~2**: WHEN `prove` runs THE SYSTEM SHALL exit 3 while tickets wait for the
+  host, 1 when a criterion blocks or escalates, 0 otherwise, open the next wave
+  only in a run that follows an answer of the host, or the end of the session,
+  and continue the open wave in any other run, give the same requests when run
+  again, and refuse `--resume` when no request was ever emitted and no wave is
+  open.
 - **SP-182~2**: WHEN an honest host answers every request THE SYSTEM SHALL block a
   criterion whose weak test lets a VALID_e mutant survive and pass criteria whose
   tests kill every VALID_e mutant, writing one Statement per criterion.
@@ -2041,3 +2043,44 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   SYSTEM SHALL run each job once on at most the given number of workers, at
   least one, start no job once one has failed, and return that failure once
   every started job has ended.
+
+## Bounded steps and host answers
+
+- **SP-2670~1**: WHEN `prove` runs without `--ci` and without `--replay` THE
+  SYSTEM SHALL bound its work to the step budget `host.step_seconds`, and WHEN
+  the budget runs out THE SYSTEM SHALL stop where it is, keep every executed fact
+  and every ticket already stored, write no Statement for a criterion it did not
+  finish, retire no ticket, print the launchable tickets and `unfinished
+  budget_spent`, and exit 3; and running the same command again SHALL continue
+  from what is stored, so that a run cut into any number of steps writes the
+  same Statements, byte for byte, as a run in one step.
+- **SP-2671~1**: WHEN a step's budget ran out THE SYSTEM SHALL store no executed
+  fact and no Statement from then on, so that no fact an interrupted execution
+  produced is ever kept; and WHEN a step spent its budget before it stored any
+  executed fact THE SYSTEM SHALL fail as a tool failure that names
+  `host.step_seconds`, since running it again would never advance.
+- **SP-2672~1**: WHEN `prove` starts while another `prove` of the repository
+  holds the prove session THE SYSTEM SHALL change nothing, print the launchable
+  tickets and `unfinished session_busy`, and exit 3.
+- **SP-2673~1**: WHEN a criterion's outcome rests on a ticket the host abandoned
+  (`host_unresponsive`) THE SYSTEM SHALL write its Statement but never record it
+  as fresh, so that `prove --changed` proves the criterion again and renews its
+  abandoned tickets; and a recorded outcome that rests on an abandonment SHALL
+  never be reported fresh.
+- **SP-2674~1**: WHEN `prove` or a scan that asks the host ends a step THE SYSTEM
+  SHALL print `awaiting_host <n> tickets` with n the number of tickets `request
+  list` shows for the session, `in_flight <m> tickets` when executors hold m
+  fetched tickets, and the `unfinished` line of an unfinished step, and exit 3
+  while any of them is printed; and the binary SHALL answer `request progress`
+  with the Progress document of the format.
+- **SP-2675~1**: WHEN the module writes its pending file, at the end of a step or
+  when it accepts an answer through `request submit` or its executor server, THE
+  SYSTEM SHALL write `.musthold/pending/discpower.json` atomically under a lock
+  kept outside the work tree, with the criteria that wait for the host or rest
+  on an abandoned ticket and the count of answers the module accepted, which
+  never decreases, and keep the file once that count is above zero.
+- **SP-2676~1**: WHEN `scan --host` runs THE SYSTEM SHALL work in steps as
+  `prove` does: hold its scan session for itself, bound its work to
+  `host.step_seconds`, keep what it stored when the budget runs out, print
+  `unfinished budget_spent` or `unfinished session_busy` and exit 3 when the
+  step ends unfinished, and open the session's next wave only on an answer.

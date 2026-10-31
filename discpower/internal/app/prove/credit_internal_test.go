@@ -49,11 +49,11 @@ func producing(producedBy format.ProducedBy) fixture {
 
 func pendingTickets(t *testing.T, f fixture) int {
 	t.Helper()
-	pending, err := f.run.bridge.PendingTickets()
+	outstanding, err := f.run.bridge.Outstanding()
 	if err != nil {
 		t.Fatal(err)
 	}
-	return len(pending)
+	return outstanding.Waiting()
 }
 
 func TestWitnessSeed(t *testing.T) {

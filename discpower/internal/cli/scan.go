@@ -213,7 +213,12 @@ func pullRequestOf(positionals []string) (int, error) {
 // wait it prints the wave, the session and the tickets and exits 3; once the
 // scan finished it prints its only headline and writes its reports.
 func (e Env) hostScan(wired scanProject, request scan.Request, outputFormat string) outcome {
-	result, err := wired.service.RunHost(context.Background(), request)
+	ctx, stop, err := e.stepContext(wired.root, false)
+	if err != nil {
+		return outcome{err: err}
+	}
+	defer stop()
+	result, err := wired.service.RunHost(ctx, request)
 	if err != nil {
 		return outcome{err: scanFailure(err)}
 	}
@@ -224,12 +229,15 @@ func (e Env) hostScan(wired scanProject, request scan.Request, outputFormat stri
 	return e.reportScan(wired.root, result.Report, outputFormat)
 }
 
-// printAwaiting prints what a scan waits for, as `prove` does: the wave, the
-// session whose tickets the skill relays, and how many tickets wait.
+// printAwaiting prints what a scan leaves for later, as `prove` does: the wave,
+// the session whose tickets the skill relays, how many tickets wait, and an
+// unfinished step.
 func printAwaiting(out io.Writer, result scan.HostResult) {
 	fmt.Fprintf(out, "wave %d\n", result.Wave)
 	fmt.Fprintf(out, "session %s\n", result.Session)
-	fmt.Fprintf(out, "awaiting_host %d tickets\n", len(result.Pending))
+	for _, line := range result.Waiting.Lines() {
+		fmt.Fprintln(out, line)
+	}
 }
 
 // reportScan writes the reports of a finished scan and prints it in the

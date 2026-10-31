@@ -74,6 +74,11 @@ type Outcome struct {
 // Has reports whether the outcome carries the finding.
 func (o Outcome) Has(finding Finding) bool { return slices.Contains(o.Findings, finding) }
 
+// Abandoned reports whether the outcome rests on a ticket the host abandoned: it
+// says what the host left undetermined, not what the tests are worth, so it is
+// never a verdict to keep.
+func (o Outcome) Abandoned() bool { return o.Has(FindingHostUnresponsive) }
+
 // Evaluation is the outcome of a criterion with the decision taken for every
 // mutant of its pool, by mutant id, and the fault classes of the pool.
 type Evaluation struct {

@@ -10,14 +10,12 @@ import (
 	"github.com/RachidChabane/musthold/discpower/internal/adapters/ciseed"
 	"github.com/RachidChabane/musthold/discpower/internal/adapters/hostgit"
 	"github.com/RachidChabane/musthold/discpower/internal/adapters/process"
-	"github.com/RachidChabane/musthold/discpower/internal/adapters/responsecheck"
 	"github.com/RachidChabane/musthold/discpower/internal/app/prove"
 	"github.com/RachidChabane/musthold/discpower/internal/domain/projectconfig"
 	"github.com/RachidChabane/musthold/format"
 	"github.com/RachidChabane/musthold/format/hostproto"
 	"github.com/RachidChabane/musthold/format/hostproto/hostbundle"
 	"github.com/RachidChabane/musthold/format/hostproto/hostsync"
-	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
 // Environment variables that name the CI run, in the order they are tried.
@@ -75,7 +73,7 @@ func (e Env) prepareCI(project *project, settings *prove.Settings, ci ciRun) (fu
 				return refusal{err}
 			}
 		}
-		if result.PendingTickets == 0 {
+		if len(result.Waiting.Launchable) == 0 {
 			return nil
 		}
 		return e.writeIssued(project)
@@ -95,7 +93,7 @@ func (e Env) importer(project *project, dir string) (*hostsync.Importer, error) 
 	if err != nil {
 		return nil, refusal{err}
 	}
-	service := requests.Service{Plugin: pluginName, Store: project.store, Validator: responsecheck.New(), Clock: e.Now}
+	service := e.newRequestService(project.root, project.store)
 	return &hostsync.Importer{Service: service, Store: project.store, Bundle: bundle}, nil
 }
 

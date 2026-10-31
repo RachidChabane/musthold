@@ -23,6 +23,7 @@ import (
 	"github.com/RachidChabane/musthold/discpower/internal/domain/witness"
 	"github.com/RachidChabane/musthold/format"
 	"github.com/RachidChabane/musthold/format/hostproto"
+	"github.com/RachidChabane/musthold/format/hostproto/hostbridge"
 	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
@@ -75,6 +76,8 @@ type Settings struct {
 	// Refactors are the planted refactors every witness must pass to be
 	// admitted; with none, every witness the reference passes is admitted.
 	Refactors []Refactor
+	// PendingModule names the module in its pending file, `<module>.json`.
+	PendingModule string
 }
 
 // Refactor is one planted refactor: a change that preserves every criterion.
@@ -105,7 +108,9 @@ type Deps struct {
 	Memo       ports.ExecutionMemo
 	Statements ports.StatementValidator
 	// Facts keeps the facts record of every Statement written.
-	Facts   ports.FactsStore
+	Facts ports.FactsStore
+	// Pending keeps the module's pending file; nil keeps none.
+	Pending ports.PendingWriter
 	Clock   func() time.Time
 	Entropy io.Reader
 	// Replay and Record are optional.
@@ -140,23 +145,22 @@ type CriterionResult struct {
 	FailedWitnesses []format.FailedWitness
 }
 
-// Result is the result of a run.
+// Result is the result of a step.
 type Result struct {
 	Wave     int
 	Criteria []CriterionResult
-	// PendingTickets counts the tickets still waiting for an answer.
-	PendingTickets int
+	// Waiting is what the step leaves for a later invocation.
+	Waiting hostbridge.Waiting
 	// Findings are module findings that do not change an outcome, such as an
 	// example whose operation is unbound.
 	Findings []string
-
-	pending []requests.PendingTicket
 }
 
-// ExitCode maps the result to the exit codes of ADR 0005: 3 while tickets wait,
-// 1 when a criterion blocks or escalates, 0 otherwise.
+// ExitCode maps the result to the exit codes of ADR 0005: 3 while tickets wait
+// or the step ended unfinished, 1 when a criterion blocks or escalates, 0
+// otherwise.
 func (r Result) ExitCode() int {
-	if r.PendingTickets > 0 {
+	if r.Waiting.Pending() {
 		return ExitAwaitingHost
 	}
 	for _, criterion := range r.Criteria {

@@ -56,7 +56,7 @@ type sessionRun struct {
 func startSession(t *testing.T, dir string, session hostproto.Session, seed byte) sessionRun {
 	t.Helper()
 	store := mustOpen(t, dir)
-	wave, err := store.AdvanceWave(session)
+	wave, err := store.AdvanceWave(session, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,10 +75,11 @@ func (r sessionRun) want(labels ...string) error {
 
 func (r sessionRun) pending() []hostproto.RequestID {
 	r.t.Helper()
-	tickets, err := r.bridge.PendingTickets()
+	outstanding, err := r.bridge.Outstanding()
 	if err != nil {
 		r.t.Fatal(err)
 	}
+	tickets := outstanding.Tickets()
 	ids := make([]hostproto.RequestID, len(tickets))
 	for index, ticket := range tickets {
 		ids[index] = ticket.RequestID

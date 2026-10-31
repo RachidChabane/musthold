@@ -65,8 +65,10 @@ type hostRun struct {
 	change  change
 	sources []promise.Source
 	bridge  *hostbridge.Bridge
-	asker   *asker
-	state   *promiseState
+	// unlock gives the scan session back once the step ends.
+	unlock func()
+	asker  *asker
+	state  *promiseState
 	// built is the reference workspace, built once in the invocation by the
 	// first stage that needs it, and builtAt when its copy began.
 	built   *reference
@@ -99,6 +101,9 @@ func (r *hostRun) consume() error {
 
 // release removes the reference workspace, when one was built.
 func (r *hostRun) release() {
+	if r.unlock != nil {
+		r.unlock()
+	}
 	if r.built != nil {
 		_ = r.service.deps.Workspaces.Release(r.built.workspace)
 	}

@@ -208,7 +208,7 @@ func TestProveEndToEnd(t *testing.T) {
 	}
 	shared := t.TempDir()
 
-	t.Run("prove waits for the host, repeats its requests and refuses to resume nothing [verifies SP-181~1]", func(t *testing.T) {
+	t.Run("prove waits for the host, repeats its requests in the same wave while it does not answer and refuses to resume nothing [verifies SP-181~2]", func(t *testing.T) {
 		h := newHarness(t, shared)
 		if code, _, _ := h.run(nil, proveCommand, resumeFlag); code != cli.ExitToolFailure {
 			t.Errorf("--resume before any request exited %d, want %d", code, cli.ExitToolFailure)
@@ -220,7 +220,7 @@ func TestProveEndToEnd(t *testing.T) {
 		if code != cli.ExitAwaitingHost || code2 != cli.ExitAwaitingHost {
 			t.Fatalf("exit codes %d and %d, want %d", code, code2, cli.ExitAwaitingHost)
 		}
-		if !strings.Contains(first, "wave 1") || !strings.Contains(second, "wave 2") {
+		if !strings.Contains(first, "wave 1") || !strings.Contains(second, "wave 1") {
 			t.Errorf("waves: %q then %q", firstLine(first), firstLine(second))
 		}
 		if requestIDs(t, listed) != requestIDs(t, listedAgain) {
@@ -415,7 +415,7 @@ func TestProveCleanRun(t *testing.T) {
 			t.Errorf("%s: %q, want %q\n%s", ref, got, provedPass, output)
 		}
 	}
-	t.Run("a run whose criteria all pass exits clean [verifies SP-181~1]", func(t *testing.T) {
+	t.Run("a run whose criteria all pass exits clean [verifies SP-181~2]", func(t *testing.T) {
 		if code != cli.ExitClean {
 			t.Errorf("exit code %d, want %d", code, cli.ExitClean)
 		}

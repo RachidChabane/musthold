@@ -158,6 +158,7 @@ func (e Env) openProject(rootFlag string) (*project, error) {
 		Memo:       localcache.NewMemo(cacheDir),
 		Statements: checker,
 		Facts:      factsrecord.New(xdg.RecordsDir(e.lookupEnv, e.HomeDir, root)),
+		Pending:    pendingDirectory(root, store),
 		Clock:      e.Now,
 		Entropy:    e.Entropy,
 	}}, nil
@@ -233,7 +234,7 @@ func (p *project) proveSettings() (prove.Settings, error) {
 		Operations: execution.Operations(p.settings.OperationsFor(p.name)),
 		Seed:       uint64(operator.LocalSeed),
 		Module:     format.Module{Name: moduleName, Version: version.Version},
-		Plugin:     pluginName,
+		Plugin:     pluginName, PendingModule: pendingModule,
 
 		ClassifyFirst: p.classifyFirst,
 	}, nil
