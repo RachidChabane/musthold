@@ -131,7 +131,13 @@ func (r *round) runChecks(ctx context.Context) (Report, error) {
 
 // record appends the output of each check to the construction records.
 func (a *Acceptor) record(name string, number int, report Report) error {
-	if a.Records == nil {
+	return RecordReport(a.Records, name, number, report)
+}
+
+// RecordReport appends the output of each check that ran to the construction
+// records, when there are records.
+func RecordReport(writer records.Writer, name string, number int, report Report) error {
+	if writer == nil {
 		return nil
 	}
 	for _, result := range report.Results {
@@ -142,7 +148,7 @@ func (a *Acceptor) record(name string, number int, report Report) error {
 			Domain: name, Round: number, ID: result.ID, Name: result.Name,
 			Passed: result.Passed, Agreed: result.Agreed, Findings: result.Findings, Output: result.Output,
 		}
-		if err := a.Records.Append(records.Entry{Check: &entry}); err != nil {
+		if err := writer.Append(records.Entry{Check: &entry}); err != nil {
 			return err
 		}
 	}

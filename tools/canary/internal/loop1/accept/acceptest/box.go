@@ -8,10 +8,15 @@
 //	# BREAKS: X-1          the code violates criterion X-1; oracle tests of X-1 fail
 //	# TESTS-MISS: X-1      the project's own tests do not notice that violation
 //	# INLINE-MISS: X-1     a test made of the inline examples does not notice it
+//	# STALE-TESTS: X-1     the project's own tests of X-1 fail; its oracle tests do not
 //	# NONDETERMINISTIC     the second run of any pytest command differs
 //
 // Markers in an oracle file: `# SYNTAX_ERROR` makes its collection fail and
 // `# SKIPPED` makes its tests skip.
+//
+// `shallnot check` with --tests reports, as error findings, each criterion of
+// the spec that no test cites as uncovered and each criterion a test cites at
+// another revision as a revision mismatch.
 package acceptest
 
 import (
@@ -96,12 +101,12 @@ func isPytest(argv []string) bool {
 
 // source is what the markers of a tree say.
 type source struct {
-	breaks, testsMiss, inlineMiss map[string]bool
-	nondeterministic              bool
+	breaks, testsMiss, inlineMiss, staleTests map[string]bool
+	nondeterministic                          bool
 }
 
 func readSource(dir string) source {
-	found := source{breaks: map[string]bool{}, testsMiss: map[string]bool{}, inlineMiss: map[string]bool{}}
+	found := source{breaks: map[string]bool{}, testsMiss: map[string]bool{}, inlineMiss: map[string]bool{}, staleTests: map[string]bool{}}
 	_ = filepath.WalkDir(dir, func(location string, entry os.DirEntry, err error) error {
 		relative, _ := filepath.Rel(dir, location)
 		if err != nil || entry.IsDir() || !strings.HasSuffix(location, ".py") ||
@@ -117,6 +122,8 @@ func readSource(dir string) source {
 				found.testsMiss[match[2]] = true
 			case "INLINE-MISS":
 				found.inlineMiss[match[2]] = true
+			case "STALE-TESTS":
+				found.staleTests[match[2]] = true
 			}
 		}
 		found.nondeterministic = found.nondeterministic || strings.Contains(string(data), "# NONDETERMINISTIC")
@@ -126,9 +133,10 @@ func readSource(dir string) source {
 }
 
 var (
-	markerPattern   = regexp.MustCompile(`# (BREAKS|TESTS-MISS|INLINE-MISS): ([A-Z0-9-]+)`)
+	markerPattern   = regexp.MustCompile(`# (BREAKS|TESTS-MISS|INLINE-MISS|STALE-TESTS): ([A-Z0-9-]+)`)
 	testDefPattern  = regexp.MustCompile(`(?m)^def (test_\w+)\(`)
 	citePattern     = regexp.MustCompile(`verifies\("([A-Z0-9-]+)~[0-9]+"\)`)
+	refPattern      = regexp.MustCompile(`verifies\("([A-Z0-9-]+~[0-9]+)"\)`)
 	declaration     = regexp.MustCompile(`^\s*[-*]\s+\*\*([A-Z][A-Z0-9]*-[0-9]+)~([0-9]+)\*\*:\s*(.*)$`)
 	runNumberSuffix = regexp.MustCompile(`run-([0-9]+)\.xml$`)
 )
@@ -221,7 +229,7 @@ func projectCase(module, name, block string, state source) testCase {
 		return c
 	}
 	for _, cited := range citePattern.FindAllStringSubmatch(block, -1) {
-		if state.breaks[cited[1]] && !state.testsMiss[cited[1]] {
+		if (state.breaks[cited[1]] && !state.testsMiss[cited[1]]) || state.staleTests[cited[1]] {
 			c.status = "failed"
 		}
 	}
@@ -284,21 +292,56 @@ func readSpec(path string) []criterion {
 }
 
 func (b *Box) shallnotCheck(command box.Command) box.Result {
-	spec := ""
+	spec, tests := "", ""
 	for index, arg := range command.Argv {
 		if arg == "--specs" && index+1 < len(command.Argv) {
 			spec = command.Argv[index+1]
 		}
+		if arg == "--tests" && index+1 < len(command.Argv) {
+			tests = command.Argv[index+1]
+		}
 	}
 	report := map[string]any{"verdict": "fail", "exit_code": 1}
 	var requirements, findings []map[string]any
-	for _, c := range readSpec(filepath.Join(command.Dir, spec)) {
+	criteria := readSpec(filepath.Join(command.Dir, spec))
+	for _, c := range criteria {
 		requirements = append(requirements, map[string]any{"id": c.id, "ref": c.ref, "statement": c.statement, "status": "active"})
-		findings = append(findings, map[string]any{"category": "uncovered_requirement", "requirement_id": c.id, "blocking": false})
+		if tests == "" {
+			findings = append(findings, map[string]any{"category": "uncovered_requirement", "requirement_id": c.id, "blocking": false})
+		}
+	}
+	if tests != "" {
+		findings = traceability(filepath.Join(command.Dir, tests), criteria)
 	}
 	report["requirements"], report["findings"] = requirements, findings
 	data, _ := json.Marshal(report)
 	return box.Result{Stdout: data}
+}
+
+// traceability is what `shallnot check --tests` finds in the tests' citations.
+func traceability(tests string, criteria []criterion) []map[string]any {
+	cited := map[string]bool{}
+	sources, _ := filepath.Glob(filepath.Join(tests, "*.py"))
+	for _, file := range sources {
+		data, _ := os.ReadFile(file)
+		for _, match := range refPattern.FindAllStringSubmatch(string(data), -1) {
+			cited[match[1]] = true
+		}
+	}
+	var findings []map[string]any
+	for _, c := range criteria {
+		if cited[c.ref] {
+			continue
+		}
+		category := "uncovered_requirement"
+		for ref := range cited {
+			if strings.HasPrefix(ref, c.id+"~") {
+				category = "revision_mismatch"
+			}
+		}
+		findings = append(findings, map[string]any{"category": category, "requirement_id": c.id, "severity": "error", "blocking": false})
+	}
+	return findings
 }
 
 func (b *Box) shallnotGate(command box.Command) box.Result {

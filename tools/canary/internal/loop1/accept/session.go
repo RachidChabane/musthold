@@ -94,11 +94,24 @@ func (m *material) readVariants() {
 	var violations, refactors Tree
 	m.read("violations", records.TargetVariants, m.task.Truth.Violations, &violations)
 	m.read("refactors", records.TargetVariants, m.task.Truth.Refactors, &refactors)
+	var problems []string
+	m.violations, m.refactors, problems = GroupVariants(violations, refactors)
+	for _, text := range problems {
+		m.problem(records.TargetVariants, "%s", text)
+	}
+}
+
+// GroupVariants reads the files of violations/ as one violation per
+// <criterion>/<k>/ directory and the files of refactors/ as one refactor per
+// <k>/ directory, in order, and lists the files that lie elsewhere.
+func GroupVariants(violations, refactors Tree) ([]Variant, []Variant, []string) {
+	var problems []string
+	var foundViolations, foundRefactors []Variant
 	grouped := map[string]Tree{}
 	for _, name := range sortedKeys(violations) {
 		parts := strings.SplitN(name, "/", 3)
 		if len(parts) != 3 {
-			m.problem(records.TargetVariants, "violations/%s is not under violations/<criterion>/<k>/", name)
+			problems = append(problems, fmt.Sprintf("violations/%s is not under violations/<criterion>/<k>/", name))
 			continue
 		}
 		key := parts[0] + "/" + parts[1]
@@ -109,13 +122,13 @@ func (m *material) readVariants() {
 	}
 	for _, key := range sortedKeys(grouped) {
 		criterion, number, _ := strings.Cut(key, "/")
-		m.violations = append(m.violations, Variant{Criterion: criterion, Number: number, Edits: grouped[key]})
+		foundViolations = append(foundViolations, Variant{Criterion: criterion, Number: number, Edits: grouped[key]})
 	}
 	grouped = map[string]Tree{}
 	for _, name := range sortedKeys(refactors) {
 		number, rest, found := strings.Cut(name, "/")
 		if !found {
-			m.problem(records.TargetVariants, "refactors/%s is not under refactors/<k>/", name)
+			problems = append(problems, fmt.Sprintf("refactors/%s is not under refactors/<k>/", name))
 			continue
 		}
 		if grouped[number] == nil {
@@ -124,8 +137,9 @@ func (m *material) readVariants() {
 		grouped[number][rest] = refactors[name]
 	}
 	for _, number := range sortedKeys(grouped) {
-		m.refactors = append(m.refactors, Variant{Number: number, Edits: grouped[number]})
+		foundRefactors = append(foundRefactors, Variant{Number: number, Edits: grouped[number]})
 	}
+	return foundViolations, foundRefactors, problems
 }
 
 // derive builds the reference tree and the tree of each violation and refactor.
