@@ -47,3 +47,14 @@ func TestEntry(t *testing.T) {
 		}
 	})
 }
+
+func TestForwardingEntry(t *testing.T) {
+	t.Run("asked to forward, the entry gives its command everything after the token's line [verifies SP-2944~1]", func(t *testing.T) {
+		var stdout, stderr bytes.Buffer
+		script := `test "$` + entry.TokenVariable + `" = "` + token + `" && cat`
+		code := entry.RunWith(entry.Options{ForwardStdin: true}, []string{"/bin/sh", "-c", script}, strings.NewReader(token+"\nthe prompt\nsecond line"), &stdout, &stderr)
+		if code != 0 || stdout.String() != "the prompt\nsecond line" {
+			t.Errorf("exit %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
+		}
+	})
+}

@@ -1,12 +1,12 @@
 // Package entry is the first process of a session's container: it reads the
 // model token from its standard input, starts the session's command with the
-// token in that command's environment only and its standard input closed, and
-// forwards the signals it receives. The token reaches no file, no argument and no
+// token in that command's environment only and its standard input closed, or,
+// when asked, holding the rest of the entry's standard input, and forwards the
+// signals it receives. The token reaches no file, no argument and no
 // environment the engine records.
 package entry
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -30,14 +30,27 @@ const (
 // ErrNoToken is returned when standard input holds no token line.
 var ErrNoToken = errors.New("standard input holds no token")
 
-// ReadToken reads the first line of the input, without its line break.
+// ReadToken reads the first line of the input, without its line break, and
+// nothing after it.
 func ReadToken(input io.Reader) (string, error) {
-	reader := bufio.NewReaderSize(io.LimitReader(input, maxTokenSize), maxTokenSize)
-	line, err := reader.ReadString('\n')
-	if err != nil && !errors.Is(err, io.EOF) {
-		return "", err
+	var line []byte
+	octet := make([]byte, 1)
+	for len(line) < maxTokenSize {
+		n, err := input.Read(octet)
+		if n == 1 {
+			if octet[0] == '\n' {
+				break
+			}
+			line = append(line, octet[0])
+		}
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return "", err
+		}
 	}
-	token := strings.TrimRight(line, "\r\n")
+	token := strings.TrimRight(string(line), "\r")
 	if token == "" {
 		return "", ErrNoToken
 	}
@@ -56,8 +69,22 @@ func Environment(own []string, token string) []string {
 	return append(kept, TokenVariable+"="+token)
 }
 
-// Run reads the token, starts the command and returns its exit code.
+// Options say what the command receives beside the token.
+type Options struct {
+	// ForwardStdin gives the command the rest of the entry's standard input,
+	// after the token's line; otherwise its standard input is closed.
+	ForwardStdin bool
+}
+
+// Run reads the token, starts the command with its standard input closed and
+// returns its exit code.
 func Run(argv []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	return RunWith(Options{}, argv, stdin, stdout, stderr)
+}
+
+// RunWith reads the token, starts the command as the options say and returns
+// its exit code.
+func RunWith(options Options, argv []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	token, err := ReadToken(stdin)
 	if err != nil {
 		fmt.Fprintln(stderr, "entry:", err)
@@ -70,6 +97,9 @@ func Run(argv []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	command := exec.Command(argv[0], argv[1:]...)
 	command.Env = Environment(os.Environ(), token)
 	command.Stdin, command.Stdout, command.Stderr = nil, stdout, stderr
+	if options.ForwardStdin {
+		command.Stdin = stdin
+	}
 	if err := command.Start(); err != nil {
 		fmt.Fprintln(stderr, "entry: the command could not start:", err)
 		return ExitNoStart

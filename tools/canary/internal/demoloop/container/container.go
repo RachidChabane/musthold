@@ -58,8 +58,11 @@ const (
 // Subcommands of the runner binary the containers run.
 const (
 	EntrySubcommand = "entry"
-	ProxySubcommand = "egress-proxy"
-	ProbeSubcommand = "probe-isolation"
+	// ForwardStdinFlag makes the entry give its command the rest of its
+	// standard input, after the token's line.
+	ForwardStdinFlag = "forward-stdin"
+	ProxySubcommand  = "egress-proxy"
+	ProbeSubcommand  = "probe-isolation"
 )
 
 // ModelEndpoints are the only destinations the proxy forwards to, unless a box
@@ -112,6 +115,10 @@ type Box struct {
 	// is Image.
 	Egress     []string
 	ProxyImage string
+	// ForwardStdin gives the session's command the rest of the session's
+	// standard input, after the token's line; otherwise the command reads
+	// nothing.
+	ForwardStdin bool
 }
 
 // memory is the box's memory bound.
@@ -236,7 +243,11 @@ func ProxyVariables() []string {
 func (b Box) SessionArgv(dir string, variables, argv []string) []string {
 	command := append(b.base(b.SessionName()), "--interactive", "--network", b.NetworkName(), "--workdir", dir, b.Image)
 	command = append(command, environment(variables)...)
-	command = append(command, Runner(), EntrySubcommand, "--")
+	command = append(command, Runner(), EntrySubcommand)
+	if b.ForwardStdin {
+		command = append(command, "--"+ForwardStdinFlag)
+	}
+	command = append(command, "--")
 	return append(command, argv...)
 }
 

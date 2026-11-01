@@ -84,3 +84,15 @@ func TestSessionAndProxy(t *testing.T) {
 		}
 	})
 }
+
+func TestForwardingSession(t *testing.T) {
+	box := container.Box{Image: "sha256:abc", RunDir: "/work/r1", Product: "/product", UID: 501, GID: 20, Run: "r1"}
+	t.Run("a session asks its entry to forward standard input only when its box says so [verifies SP-2944~1]", func(t *testing.T) {
+		plain := strings.Join(box.SessionArgv("/work/r1", nil, []string{"claude"}), " ")
+		box.ForwardStdin = true
+		forwarding := strings.Join(box.SessionArgv("/work/r1", nil, []string{"claude"}), " ")
+		if !strings.HasSuffix(plain, container.EntrySubcommand+" -- claude") || !strings.HasSuffix(forwarding, container.EntrySubcommand+" --"+container.ForwardStdinFlag+" -- claude") {
+			t.Fatalf("plain %s\nforwarding %s", plain, forwarding)
+		}
+	})
+}

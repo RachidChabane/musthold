@@ -22,10 +22,11 @@ func (l *listFlag) Set(v string) error { *l = append(*l, v); return nil }
 // standard input and starts the command after `--` with it.
 func (e Env) entry(args []string) int {
 	set := e.flags(container.EntrySubcommand)
+	forward := set.Bool(container.ForwardStdinFlag, false, "give the command the rest of standard input, after the token's line")
 	if err := set.Parse(args); err != nil {
 		return ExitUsage
 	}
-	return entry.Run(set.Args(), e.Stdin, e.Stdout, e.Stderr)
+	return entry.RunWith(entry.Options{ForwardStdin: *forward}, set.Args(), e.Stdin, e.Stdout, e.Stderr)
 }
 
 // egressProxy serves the logging proxy of a session's network.
