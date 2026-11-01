@@ -1,0 +1,26 @@
+{
+  "tasks": [],
+  "arms": ["control", "treatment"],
+  "repetitions": 8,
+  "seed": 20261101,
+  "model": "claude-sonnet-5-5",
+  "caps": {
+    "assistant_messages": 1500,
+    "seconds": 7200,
+    "budget_usd": "40.00"
+  },
+  "toolchain": ["python3"],
+  "allowed_tools": [
+    "Bash(pytest *)",
+    "Bash(python3 -m pytest *)",
+    "Bash(shallnot *)",
+    "Bash(musthold-dp *)",
+    "Bash(musthold-alignment *)",
+    "Bash(musthold-completeness *)",
+    "Bash(musthold-verify *)",
+    "Bash(git status *)",
+    "Bash(git diff *)",
+    "Skill"
+  ],
+  "draw_seed": 20261102
+}
