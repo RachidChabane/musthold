@@ -58,7 +58,7 @@ func (e Env) executorService(root string, harness hostharness.Harness) (executor
 	if err != nil {
 		return executorhost.Service{}, false, err
 	}
-	service := e.newRequestService(root, store)
+	service := e.newRequestService(store)
 	service.RequireAttestation = harness.AttestationRequired(settings.Host.AttestationRequired())
 	service.Executor = requests.ExecutorContext{
 		Harness:   format.Harness{Name: harness.Name, Version: harness.Version},

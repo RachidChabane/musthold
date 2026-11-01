@@ -60,7 +60,7 @@ func (e Env) importer(project *project, dir string) (*hostsync.Importer, error) 
 	if err != nil {
 		return nil, refusal{err}
 	}
-	service := e.newRequestService(project.root, project.store)
+	service := e.newRequestService(project.store)
 	return &hostsync.Importer{Service: service, Store: project.store, Bundle: bundle}, nil
 }
 

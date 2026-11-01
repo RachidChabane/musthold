@@ -148,8 +148,13 @@ func TestBoundedSteps(t *testing.T) {
 		}
 		after := h.progress(before.Cursor)
 		pending, _ := h.tally()
-		if submitted == 0 || after.Answered != submitted || pending.Answered != submitted || after.Launchable != 0 {
-			t.Fatalf("submitted %d, progress %+v, pending %+v", submitted, after, pending)
+		if submitted == 0 || after.Answered != submitted || pending.Answered != 0 || after.Launchable != 0 {
+			t.Fatalf("submitted %d, progress %+v, pending %+v before any execution check", submitted, after, pending)
+		}
+		h.run(nil, proveCommand, allFlag, resumeFlag)
+		checked, _ := h.tally()
+		if kept := hostproto.KeptAnswers(h.journal()); checked.Answered != kept {
+			t.Fatalf("the pending file counts %d answers once checked, the journal kept %d", checked.Answered, kept)
 		}
 	})
 
@@ -160,7 +165,7 @@ func TestBoundedSteps(t *testing.T) {
 		if code == cli.ExitAwaitingHost || code == cli.ExitToolFailure || !present || pending.Answered == 0 || pending.Pending == nil {
 			t.Fatalf("exit %d, pending %+v present %v:\\n%s", code, pending, present, output)
 		}
-		journaled := hostproto.AcceptedAnswers(h.journal())
+		journaled := hostproto.KeptAnswers(h.journal())
 		if pending.Answered != journaled {
 			t.Fatalf("the file counts %d answers, the journal %d", pending.Answered, journaled)
 		}

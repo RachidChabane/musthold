@@ -117,6 +117,11 @@ func (m *memoryPending) Write(pending format.Pending) error {
 	return nil
 }
 
+func (m *memoryPending) Tally(module string, total int) error {
+	m.current = format.Pending{Module: module, Pending: m.current.Pending, Answered: total}.Over(m.current)
+	return nil
+}
+
 // honestReplayer answers the pending tickets from an answer source, through the
 // same checks a script's submission goes through.
 type honestReplayer struct {

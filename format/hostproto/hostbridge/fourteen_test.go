@@ -183,7 +183,7 @@ type fakeHost struct {
 
 func (h *fakeHost) answer(t *testing.T, m *simulatedModule, clock func() time.Time) {
 	t.Helper()
-	service := requests.Service{Store: m.store, Validator: hostprototest.MemberValidator{}, Clock: clock, Tally: tallyOf{m}}
+	service := requests.Service{Store: m.store, Validator: hostprototest.MemberValidator{}, Clock: clock}
 	listing, err := service.List(hostproto.OnlySession(hostproto.SessionProve))
 	if err != nil {
 		t.Fatal(err)
@@ -203,14 +203,6 @@ func (h *fakeHost) answer(t *testing.T, m *simulatedModule, clock func() time.Ti
 			t.Fatal(err)
 		}
 	}
-}
-
-// tallyOf keeps the module's count of answers in its pending file.
-type tallyOf struct{ m *simulatedModule }
-
-func (t tallyOf) Accepted(total int) error {
-	t.m.pending = format.Pending{Module: t.m.name, Pending: t.m.pending.Pending, Answered: total}.Over(t.m.pending)
-	return nil
 }
 
 func TestFourteenCriteriaTwoProofs(t *testing.T) {
@@ -252,7 +244,7 @@ func TestFourteenCriteriaTwoProofs(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					published := format.Pending{Module: m.name, Pending: []format.PendingEntry{}, Answered: hostproto.AcceptedAnswers(records)}.Over(m.pending)
+					published := format.Pending{Module: m.name, Pending: []format.PendingEntry{}, Answered: hostproto.KeptAnswers(records)}.Over(m.pending)
 					if err := published.Validate(); err != nil || len(published.Pending) != 0 || published.Answered == 0 || !published.Kept() {
 						t.Fatalf("%s publishes %+v, %v", m.name, published, err)
 					}

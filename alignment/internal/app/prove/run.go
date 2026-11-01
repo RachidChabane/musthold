@@ -117,7 +117,31 @@ func (u UseCase) cut(ctx context.Context, err error) (Result, error) {
 // the session waits for as the store holds it.
 func (u UseCase) unfinished(end hostproto.StepEnd) (Result, error) {
 	waiting, wave, err := hostbridge.Unfinished(u.Deps.Store, hostproto.SessionProve, end)
-	return Result{Wave: wave, Waiting: waiting}, err
+	if err != nil {
+		return Result{}, err
+	}
+	if end == hostproto.StepBudgetSpent {
+		if err := u.tallyKept(); err != nil {
+			return Result{}, err
+		}
+	}
+	return Result{Wave: wave, Waiting: waiting}, nil
+}
+
+// tallyKept records in the pending file the answers the module's execution
+// checks kept so far, as a step that did not reach its end does.
+func (u UseCase) tallyKept() error {
+	if u.Deps.Pending == nil {
+		return nil
+	}
+	records, err := u.Deps.Store.Records()
+	if err != nil {
+		return fmt.Errorf("read the journal: %w", err)
+	}
+	if err := u.Deps.Pending.Tally(u.Settings.PendingModule, hostproto.KeptAnswers(records)); err != nil {
+		return fmt.Errorf("record the count of answers: %w", err)
+	}
+	return nil
 }
 
 // writePending tells Shallnot what the module still waits for: the criteria whose
@@ -154,7 +178,7 @@ func (u UseCase) writePending(result Result) error {
 	if err != nil {
 		return fmt.Errorf("read the journal: %w", err)
 	}
-	pending.Answered = hostproto.AcceptedAnswers(records)
+	pending.Answered = hostproto.KeptAnswers(records)
 	if err := u.Deps.Pending.Write(pending); err != nil {
 		return fmt.Errorf("write the pending file: %w", err)
 	}

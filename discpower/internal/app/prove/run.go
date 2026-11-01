@@ -96,7 +96,31 @@ func (u UseCase) cut(ctx context.Context, memo *execution.StepMemo, err error) (
 // the session waits for as the store holds it.
 func (u UseCase) unfinished(end hostproto.StepEnd) (Result, error) {
 	waiting, wave, err := hostbridge.Unfinished(u.Deps.Store, hostproto.SessionProve, end)
-	return Result{Wave: wave, Waiting: waiting}, err
+	if err != nil {
+		return Result{}, err
+	}
+	if end == hostproto.StepBudgetSpent {
+		if err := u.tallyKept(); err != nil {
+			return Result{}, err
+		}
+	}
+	return Result{Wave: wave, Waiting: waiting}, nil
+}
+
+// tallyKept records in the pending file the answers the module's execution
+// checks kept so far, as a step that did not reach its end does.
+func (u UseCase) tallyKept() error {
+	if u.Deps.Pending == nil {
+		return nil
+	}
+	records, err := u.Deps.Store.Records()
+	if err != nil {
+		return fmt.Errorf("read the journal: %w", err)
+	}
+	if err := u.Deps.Pending.Tally(u.Settings.PendingModule, hostproto.KeptAnswers(records)); err != nil {
+		return fmt.Errorf("record the count of answers: %w", err)
+	}
+	return nil
 }
 
 // pass is one wave. Every criterion first draws its witnesses; while one of them

@@ -43,10 +43,10 @@ func entryIn(t fataler, state hostproto.State) hostproto.Entry {
 		hostproto.StateFetched:    {fetchStep},
 		hostproto.StateExpired:    {fetchStep, expireStep},
 		hostproto.StateAccepted:   {fetchStep, acceptStep},
-		hostproto.StateRejected:   {fetchStep, acceptStep, hostproto.Entry.Contradict},
+		hostproto.StateRejected:   {fetchStep, acceptStep, contradictStep},
 		hostproto.StateValidated:  {fetchStep, acceptStep, hostproto.Entry.MarkValidated},
 		hostproto.StateConsumed:   {fetchStep, acceptStep, hostproto.Entry.MarkValidated, hostproto.Entry.Consume},
-		hostproto.StateAbandoned:  {fetchStep, acceptStep, hostproto.Entry.Contradict, abandonStep},
+		hostproto.StateAbandoned:  {fetchStep, acceptStep, contradictStep, abandonStep},
 	}
 	for _, step := range steps[state] {
 		var err error
@@ -58,6 +58,13 @@ func entryIn(t fataler, state hostproto.State) hostproto.Entry {
 		t.Fatalf("entry is %s, want %s", entry.State, state)
 	}
 	return entry
+}
+
+// contradictionReason is why execution contradicts an answer in these tests.
+const contradictionReason = "the answer's tests fail on the reference"
+
+func contradictStep(e hostproto.Entry) (hostproto.Entry, error) {
+	return e.Contradict(contradictionReason)
 }
 
 func fetchStep(e hostproto.Entry) (hostproto.Entry, error) {
@@ -114,7 +121,7 @@ func TestTransitionTable(t *testing.T) {
 	}{
 		"Fetch":         {hostproto.StateFetched, fetchStep},
 		"Accept":        {hostproto.StateAccepted, acceptStep},
-		"Contradict":    {hostproto.StateRejected, hostproto.Entry.Contradict},
+		"Contradict":    {hostproto.StateRejected, contradictStep},
 		"MarkValidated": {hostproto.StateValidated, hostproto.Entry.MarkValidated},
 		"Consume":       {hostproto.StateConsumed, hostproto.Entry.Consume},
 		"Supersede":     {hostproto.StateSuperseded, hostproto.Entry.Supersede},
@@ -264,7 +271,7 @@ func TestLifecycleGuards(t *testing.T) {
 				rejected, err = acceptStep(rejected)
 			}
 			if err == nil {
-				rejected, err = rejected.Contradict()
+				rejected, err = rejected.Contradict(contradictionReason)
 			}
 			if err != nil {
 				t.Fatal(err)
@@ -363,7 +370,7 @@ func TestLifecycleGuards(t *testing.T) {
 			entry := freshEntry()
 			var wasValidated bool
 			actions := map[string]func(hostproto.Entry) (hostproto.Entry, error){
-				"fetch": fetchStep, "accept": acceptStep, "contradict": hostproto.Entry.Contradict,
+				"fetch": fetchStep, "accept": acceptStep, "contradict": contradictStep,
 				"validate": hostproto.Entry.MarkValidated, "consume": hostproto.Entry.Consume,
 				"supersede": hostproto.Entry.Supersede,
 				"expire":    func(e hostproto.Entry) (hostproto.Entry, error) { return e.Expire(epoch.Add(2 * hostproto.FetchTTL)) },
@@ -428,7 +435,7 @@ func hostFailure(entry hostproto.Entry) (hostproto.Entry, error) {
 		rejected, err = acceptStep(rejected)
 	}
 	if err == nil {
-		rejected, err = rejected.Contradict()
+		rejected, err = rejected.Contradict(contradictionReason)
 	}
 	if err != nil {
 		return entry, err

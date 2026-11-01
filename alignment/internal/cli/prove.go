@@ -115,7 +115,7 @@ func (e Env) runProve(rootFlag string, options prove.Options, record, replay str
 	}
 	if replay != "" {
 		project.deps.Replay = requests.RecordingReplayer{
-			Service:    e.newRequestService(project.root, project.store),
+			Service:    e.newRequestService(project.store),
 			Recordings: recordings.Directory{Dir: replay},
 		}
 	}

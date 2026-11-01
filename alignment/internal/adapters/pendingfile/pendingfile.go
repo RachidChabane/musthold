@@ -1,6 +1,6 @@
 // Package pendingfile keeps the pending file of a module, `.musthold/pending/<module>.json`,
 // which tells Shallnot what the module still waits for and how many host answers
-// it accepted. The file is written in the form the format fixes, atomically, and
+// its execution checks kept. The file is written in the form the format fixes, atomically, and
 // read back through the format's own decoder.
 package pendingfile
 
@@ -15,7 +15,6 @@ import (
 	"github.com/RachidChabane/musthold/alignment/internal/platform/atomicfile"
 	"github.com/RachidChabane/musthold/alignment/internal/platform/filelock"
 	"github.com/RachidChabane/musthold/format"
-	"github.com/RachidChabane/musthold/format/hostproto/requests"
 )
 
 const (
@@ -61,19 +60,12 @@ func (d Directory) Read(module string) (format.Pending, error) {
 	return format.DecodePending(content)
 }
 
-// Tally is the answer tally of one module, kept in its pending file.
-type Tally struct {
-	Directory Directory
-	Module    string
-}
-
-var _ requests.AnswerTally = Tally{}
-
-// Accepted implements requests.AnswerTally: the file keeps its entries and takes
-// the larger count of answers, and exists from the first answer on.
-func (t Tally) Accepted(total int) error {
-	return t.Directory.update(t.Module, func(stored format.Pending) format.Pending {
-		return format.Pending{Module: t.Module, Pending: stored.Pending, Answered: total}.Over(stored)
+// Tally records the count of answers of the module in its pending file: the
+// file keeps its entries and takes the larger count, and exists from the first
+// answer on.
+func (d Directory) Tally(module string, total int) error {
+	return d.update(module, func(stored format.Pending) format.Pending {
+		return format.Pending{Module: module, Pending: stored.Pending, Answered: total}.Over(stored)
 	})
 }
 

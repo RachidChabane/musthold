@@ -99,6 +99,8 @@ type PendingStore interface {
 	Write(pending format.Pending) error
 	// Read returns the pending file of a module, empty when there is none.
 	Read(module string) (format.Pending, error)
+	// Tally keeps the larger count of answers and the entries of the module's file.
+	Tally(module string, total int) error
 }
 
 // Project is the tree of the project under proof.

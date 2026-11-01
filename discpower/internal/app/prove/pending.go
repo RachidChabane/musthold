@@ -9,7 +9,7 @@ import (
 
 // writePending tells Shallnot what the module still waits for: the criteria
 // whose tickets wait for the host, and those whose outcome rests on a ticket the
-// host abandoned; and how many host answers the module accepted.
+// host abandoned; and how many host answers its execution checks kept.
 func (u UseCase) writePending(result Result) error {
 	if u.Deps.Pending == nil {
 		return nil
@@ -18,7 +18,7 @@ func (u UseCase) writePending(result Result) error {
 	if err != nil {
 		return fmt.Errorf("read the journal: %w", err)
 	}
-	pending := format.Pending{Module: u.Settings.PendingModule, Pending: []format.PendingEntry{}, Answered: hostproto.AcceptedAnswers(records)}
+	pending := format.Pending{Module: u.Settings.PendingModule, Pending: []format.PendingEntry{}, Answered: hostproto.KeptAnswers(records)}
 	for _, criterion := range result.Criteria {
 		if reason, waits := pendingReason(criterion); waits {
 			pending.Pending = append(pending.Pending, format.PendingEntry{Criterion: criterion.Ref.String(), Reason: reason})

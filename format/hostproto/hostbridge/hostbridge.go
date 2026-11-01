@@ -358,7 +358,7 @@ func (b *Bridge) reissue(key hostproto.Key, entry hostproto.Entry, budget *budge
 		return b.raced(key, err)
 	}
 	if reissued.State == hostproto.StateAbandoned {
-		return reissued, b.journal(hostproto.EventAbandoned, reissued.Ticket.TicketID)
+		return reissued, b.journalDetail(hostproto.EventAbandoned, reissued.Ticket.TicketID, reissued.Failures)
 	}
 	if err := b.Store.DiscardResponse(key); err != nil {
 		return hostproto.Entry{}, fmt.Errorf("discard the answer the reissued ticket replaces: %w", err)
@@ -402,7 +402,11 @@ func (b *Bridge) update(key hostproto.Key, change func(hostproto.Entry) (hostpro
 }
 
 func (b *Bridge) journal(kind hostproto.EventKind, ticket hostproto.TicketID) error {
-	if _, err := b.Store.Append(hostproto.Event{Kind: kind, Ticket: ticket.String(), Session: b.Session}); err != nil {
+	return b.journalDetail(kind, ticket, "")
+}
+
+func (b *Bridge) journalDetail(kind hostproto.EventKind, ticket hostproto.TicketID, detail string) error {
+	if _, err := b.Store.Append(hostproto.Event{Kind: kind, Ticket: ticket.String(), Session: b.Session, Detail: detail}); err != nil {
 		return fmt.Errorf("journal %s: %w", kind, err)
 	}
 	return nil
@@ -458,15 +462,11 @@ func (b *Bridge) moveVotes(answer Answer, from hostproto.State, change func(host
 // Contradict rejects an accepted vote that execution contradicts. The next Want
 // reissues the ticket with a new nonce while emissions remain.
 func (b *Bridge) Contradict(vote VoteState, reason string) error {
-	entry, err := b.Store.UpdateEntry(vote.Ticket.Key(), func(e hostproto.Entry) (hostproto.Entry, error) {
-		next, err := e.Contradict()
-		next.Reason = reason
-		return next, err
-	})
+	entry, err := b.Store.UpdateEntry(vote.Ticket.Key(), func(e hostproto.Entry) (hostproto.Entry, error) { return e.Contradict(reason) })
 	if err != nil {
 		return fmt.Errorf("reject %s: %w", vote.Ticket, err)
 	}
-	return b.journal(hostproto.EventRejected, entry.Ticket.TicketID)
+	return b.journalDetail(hostproto.EventRejected, entry.Ticket.TicketID, reason)
 }
 
 // Consume records that a proof used the validated votes of an answer.

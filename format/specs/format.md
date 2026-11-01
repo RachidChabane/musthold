@@ -91,7 +91,7 @@ Go tests of the module in CI.
   `unsorted` for a violation.
 - **SP-2667~1**: WHEN a module's pending file is written or decoded THE SYSTEM
   SHALL carry `answered`, a non-negative whole number counting the host answers
-  the module accepted for the project, refuse a negative count as
+  the module's execution checks kept for the project, refuse a negative count as
   `requirement`, write over a stored file the larger of the two counts so that
   the count never decreases, and keep the file present, with `"pending": []`
   when nothing waits, once the count is above zero.
@@ -292,11 +292,15 @@ Go tests of the module in CI.
   `session_busy` without waiting and without changing the store, and SHALL let a
   run of another session, or a run after the holder released the session,
   proceed.
-- **SP-2668~1**: WHEN a submission is accepted, or an accepted answer is
-  submitted again, THE SYSTEM SHALL give the module's answer tally the number of
-  answers the journal accepted, of every session, and report a tally that fails
-  as an error of the submission, so that the count the pending file keeps grows
-  with every accepted answer whatever path brought it.
+- **SP-2668~1**: WHEN the count of a module's answers is taken THE SYSTEM SHALL
+  count the answers the journal records as validated, of every session, those
+  that passed the module's execution checks and advanced a proof, and never an
+  answer that was only accepted or that execution rejected, so that the count
+  never decreases and never grows for a host whose answers are always rejected;
+  WHEN an answer is rejected THE SYSTEM SHALL journal the reason, and an entry
+  SHALL keep, in order, the reason of every failed emission (a contradiction by
+  execution, a schema failure, an expiry, a release), which its abandonment, its
+  reissues and its renewal keep and its abandonment journals.
 - **SP-2669~1**: WHEN the fulfil skill of a module is generated THE SYSTEM SHALL
   tell the agent to run `prove --resume` in the foreground, to go on while it
   exits with code 3, to call it again after an `unfinished budget_spent` or

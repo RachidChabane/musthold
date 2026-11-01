@@ -559,8 +559,8 @@ traces them to the Go tests of the module in CI.
   `unfinished` line of an unfinished step, and exit 3 while any of them is
   printed; and the binary SHALL answer `request progress` with the Progress
   document of the format.
-- **SP-2688~1**: WHEN the module writes its pending file, at the end of a step or
-  when it accepts an answer through `request submit` or its executor server, THE
-  SYSTEM SHALL write it atomically under a lock kept outside the work tree, with
-  the count of answers the module accepted, which never decreases, and keep the
-  file once that count is above zero.
+- **SP-2688~1**: WHEN the module ends a step, finished or out of budget, THE
+  SYSTEM SHALL write its pending file atomically under a lock kept outside the
+  work tree, with the count of answers its execution checks kept, which never
+  decreases and counts no answer before a step checked it, and keep the file
+  once that count is above zero.

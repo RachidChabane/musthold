@@ -102,6 +102,8 @@ type MutantVault interface {
 type PendingWriter interface {
 	// Write replaces the entries of the file and keeps the larger count of answers.
 	Write(pending format.Pending) error
+	// Tally keeps the larger count of answers and the entries of the file.
+	Tally(module string, total int) error
 }
 
 // ExecutionMemo is the local memo of executed facts, keyed by content.

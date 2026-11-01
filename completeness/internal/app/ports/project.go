@@ -149,4 +149,6 @@ type ProofSource interface {
 type PendingStore interface {
 	// Write replaces the pending file of the module; an empty list removes it.
 	Write(pending format.Pending) error
+	// Tally keeps the larger count of answers and the entries of the module's file.
+	Tally(module string, total int) error
 }

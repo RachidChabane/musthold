@@ -2073,12 +2073,12 @@ format. `shallnot gate` traces them to the Go tests of the module in CI.
   fetched tickets, and the `unfinished` line of an unfinished step, and exit 3
   while any of them is printed; and the binary SHALL answer `request progress`
   with the Progress document of the format.
-- **SP-2675~1**: WHEN the module writes its pending file, at the end of a step or
-  when it accepts an answer through `request submit` or its executor server, THE
+- **SP-2675~1**: WHEN the module ends a step, finished or out of budget, THE
   SYSTEM SHALL write `.musthold/pending/discpower.json` atomically under a lock
   kept outside the work tree, with the criteria that wait for the host or rest
-  on an abandoned ticket and the count of answers the module accepted, which
-  never decreases, and keep the file once that count is above zero.
+  on an abandoned ticket and the count of answers its execution checks kept,
+  which never decreases and counts no answer before a step checked it, and keep
+  the file once that count is above zero.
 - **SP-2676~1**: WHEN `scan --host` runs THE SYSTEM SHALL work in steps as
   `prove` does: hold its scan session for itself, bound its work to
   `host.step_seconds`, keep what it stored when the budget runs out, print

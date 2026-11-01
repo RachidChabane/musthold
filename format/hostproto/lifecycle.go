@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -22,6 +23,19 @@ const (
 // ReasonHostUnresponsive is the reason of an abandoned ticket: the claim it was
 // meant to settle is UNDETERMINED.
 const ReasonHostUnresponsive = "host_unresponsive"
+
+// Failures of an emission that are not a contradiction by execution, which
+// names its own.
+const (
+	// FailureSchema: the answer still broke the response schema after its
+	// correction.
+	FailureSchema = "schema"
+	// FailureExpired: the fetched ticket was not answered within FetchTTL.
+	FailureExpired = "expired"
+	// FailureReleased: the executor that fetched the ticket ended its run without
+	// an answer.
+	FailureReleased = "released"
+)
 
 // State is the lifecycle state of a ticket.
 type State string
@@ -104,6 +118,21 @@ type Entry struct {
 	CapDigest      string    `json:"capDigest,omitempty"`
 	AcceptedOutput string    `json:"acceptedOutput,omitempty"`
 	Reason         string    `json:"reason,omitempty"`
+	// Failures are the reasons every emission made for the host failed, in
+	// order, joined by FailureSeparator: an abandonment, a reissue and a renewal
+	// keep them.
+	Failures string `json:"failures,omitempty"`
+}
+
+// FailureSeparator joins the reasons of the failed emissions of an entry.
+const FailureSeparator = "; "
+
+// FailureReasons lists the reasons the emissions of the entry failed, in order.
+func (e Entry) FailureReasons() []string {
+	if e.Failures == "" {
+		return nil
+	}
+	return strings.Split(e.Failures, FailureSeparator)
 }
 
 // NewEntry creates the entry of a freshly emitted ticket.
@@ -173,12 +202,29 @@ func (e Entry) FailSchema() (next Entry, correctionAllowed bool, err error) {
 		e.Corrections++
 		return e, true, nil
 	}
-	next, err = e.move(StateRejected)
+	next, err = e.fail(StateRejected, FailureSchema)
 	return next, false, err
 }
 
-// Contradict rejects an accepted answer that execution contradicts.
-func (e Entry) Contradict() (Entry, error) { return e.move(StateRejected) }
+// Contradict rejects an accepted answer that execution contradicts, for the
+// reason given.
+func (e Entry) Contradict(reason string) (Entry, error) {
+	next, err := e.fail(StateRejected, reason)
+	if err == nil {
+		next.Reason = reason
+	}
+	return next, err
+}
+
+// fail moves the entry to a state that ends its emission and records why.
+func (e Entry) fail(to State, reason string) (Entry, error) {
+	next, err := e.move(to)
+	if err != nil {
+		return e, err
+	}
+	next.Failures = strings.Join(append(e.FailureReasons(), reason), FailureSeparator)
+	return next, nil
+}
 
 // MarkValidated records that the answer passed every execution check.
 func (e Entry) MarkValidated() (Entry, error) { return e.move(StateValidated) }
@@ -194,7 +240,7 @@ func (e Entry) Expire(at time.Time) (Entry, error) {
 	if e.State == StateFetched && at.Sub(e.FetchedAt) < FetchTTL {
 		return e, ErrNotExpired
 	}
-	return e.move(StateExpired)
+	return e.fail(StateExpired, FailureExpired)
 }
 
 // Release retires, before FetchTTL, a fetched ticket that no executor can answer
@@ -203,11 +249,12 @@ func (e Entry) Release() (Entry, error) {
 	if e.State != StateFetched {
 		return e, fmt.Errorf("%w: release in state %s", ErrIllegalTransition, e.State)
 	}
-	return e.move(StateExpired)
+	return e.fail(StateExpired, FailureReleased)
 }
 
 // Reissue turns a rejected or expired ticket into a new emission with the given
-// nonce while emissions remain, and abandons it otherwise.
+// nonce while emissions remain, and abandons it otherwise; the reasons its
+// emissions failed stay on the entry.
 func (e Entry) Reissue(nonce string) (Entry, error) {
 	if e.State != StateRejected && e.State != StateExpired {
 		return e, fmt.Errorf("%w: reissue in state %s", ErrIllegalTransition, e.State)

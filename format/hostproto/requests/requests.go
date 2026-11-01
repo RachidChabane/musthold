@@ -96,16 +96,6 @@ type Service struct {
 	RequireAttestation bool
 	// Executor describes the host the executor origins answer for.
 	Executor ExecutorContext
-	// Tally keeps the count of accepted answers where the gate reads it; nil
-	// keeps it nowhere.
-	Tally AnswerTally
-}
-
-// AnswerTally keeps the count of the answers a module accepted for the project,
-// so that the gate's end-of-turn hook can tell a proof run that advances.
-type AnswerTally interface {
-	// Accepted records that the module accepted total answers so far.
-	Accepted(total int) error
 }
 
 // List returns the tickets that wait for an answer in the sessions the filter
@@ -249,7 +239,7 @@ func (s Service) failSchema(ticket hostproto.TicketID, cause error) (Receipt, er
 	}
 	s.journal(hostproto.EventSchemaFailed, ticket, "")
 	if !allowed {
-		s.journal(hostproto.EventRejected, ticket, "schema")
+		s.journal(hostproto.EventRejected, ticket, hostproto.FailureSchema)
 	}
 	return Receipt{CorrectionAllowed: allowed}, cause
 }
@@ -263,7 +253,7 @@ func (s Service) accept(submission Submission, binding hostproto.Binding) (Recei
 	receipt := Receipt{Text: executorrun.Receipt(submission.Ticket)}
 	switch {
 	case errors.Is(err, hostproto.ErrAlreadyAccepted):
-		return receipt, s.tally()
+		return receipt, nil
 	case errors.Is(err, hostproto.ErrResubmissionConflict):
 		s.journal(hostproto.EventResubmissionConflict, submission.Ticket, "")
 		return Receipt{}, err
@@ -285,24 +275,7 @@ func (s Service) accept(submission Submission, binding hostproto.Binding) (Recei
 	}
 	s.journal(hostproto.EventAccepted, submission.Ticket, "")
 	s.journalUnattested(submission, binding)
-	return receipt, s.tally()
-}
-
-// tally gives the tally the count of every answer the journal accepted. A replay
-// of an accepted answer tallies again, so that an answer whose tally failed is
-// counted once the executor submits it again.
-func (s Service) tally() error {
-	if s.Tally == nil {
-		return nil
-	}
-	records, err := s.Store.Records()
-	if err != nil {
-		return fmt.Errorf("read the journal to count the answers: %w", err)
-	}
-	if err := s.Tally.Accepted(hostproto.AcceptedAnswers(records)); err != nil {
-		return fmt.Errorf("record the count of answers: %w", err)
-	}
-	return nil
+	return receipt, nil
 }
 
 // journalUnattested records an answer that no capability backs: outside an

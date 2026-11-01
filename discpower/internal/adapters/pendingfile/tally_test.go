@@ -35,12 +35,12 @@ func tallyRead(t *testing.T, directory pendingfile.Directory) (format.Pending, b
 func TestAnswerTally(t *testing.T) {
 	waiting := []format.PendingEntry{{Criterion: "PAR-1~1", Reason: format.PendingAwaitingHost}}
 
-	t.Run("the first accepted answer makes the file, which a later empty write keeps"+verifiesTallyFile, func(t *testing.T) {
+	t.Run("the first kept answer makes the file, which a later empty write keeps"+verifiesTallyFile, func(t *testing.T) {
 		directory := pendingfile.Directory{Root: t.TempDir(), Lock: filepath.Join(t.TempDir(), "pending.lock")}
 		if _, present := tallyRead(t, directory); present {
 			t.Fatal("a file before any answer")
 		}
-		if err := (pendingfile.Tally{Directory: directory, Module: tallyModule}).Accepted(1); err != nil {
+		if err := directory.Tally(tallyModule, 1); err != nil {
 			t.Fatal(err)
 		}
 		if err := directory.Write(format.Pending{Module: tallyModule}); err != nil {
@@ -54,12 +54,11 @@ func TestAnswerTally(t *testing.T) {
 
 	t.Run("the count never decreases and a tally keeps the waiting entries"+verifiesTallyFile, func(t *testing.T) {
 		directory := pendingfile.Directory{Root: t.TempDir()}
-		tally := pendingfile.Tally{Directory: directory, Module: tallyModule}
 		if err := directory.Write(format.Pending{Module: tallyModule, Pending: waiting, Answered: 4}); err != nil {
 			t.Fatal(err)
 		}
 		for _, total := range []int{2, 6, 5} {
-			if err := tally.Accepted(total); err != nil {
+			if err := directory.Tally(tallyModule, total); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -78,7 +77,7 @@ func TestAnswerTally(t *testing.T) {
 			group.Add(1)
 			go func() {
 				defer group.Done()
-				if err := (pendingfile.Tally{Directory: directory, Module: tallyModule}).Accepted(total); err != nil {
+				if err := directory.Tally(tallyModule, total); err != nil {
 					t.Error(err)
 				}
 			}()

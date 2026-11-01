@@ -166,13 +166,15 @@ func AnsweredSince(records []Record, cursor int, sessions SessionIndex, filter S
 	return count
 }
 
-// AcceptedAnswers counts every answer the journal accepted, of any session: the
-// count a module's pending file keeps. The journal is append-only, so the count
-// never decreases.
-func AcceptedAnswers(records []Record) int {
+// KeptAnswers counts every answer the journal records as validated, of any
+// session: an answer that passed the module's execution checks and so advanced
+// a proof, the count a module's pending file keeps. An answer execution rejects
+// is never validated, and the journal is append-only, so the count never
+// decreases.
+func KeptAnswers(records []Record) int {
 	count := 0
 	for _, record := range records {
-		if record.Event.Kind == EventAccepted {
+		if record.Event.Kind == EventValidated {
 			count++
 		}
 	}

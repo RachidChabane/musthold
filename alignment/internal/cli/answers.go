@@ -19,11 +19,7 @@ func pendingDirectory(root string, store *hoststore.Store) pendingfile.Directory
 	return pendingfile.Directory{Root: root, Lock: filepath.Join(store.Dir(), pendingLockFile)}
 }
 
-// newRequestService is the request service of the project's host store: every
-// answer it accepts is tallied in the module's pending file.
-func (e Env) newRequestService(root string, store *hoststore.Store) requests.Service {
-	return requests.Service{
-		Plugin: pluginName, Store: store, Validator: responsecheck.New(), Clock: e.Now,
-		Tally: pendingfile.Tally{Directory: pendingDirectory(root, store), Module: pendingModule},
-	}
+// newRequestService is the request service of the project's host store.
+func (e Env) newRequestService(store *hoststore.Store) requests.Service {
+	return requests.Service{Plugin: pluginName, Store: store, Validator: responsecheck.New(), Clock: e.Now}
 }

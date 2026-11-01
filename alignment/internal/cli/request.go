@@ -58,7 +58,7 @@ func (e Env) requestService(root string) (requests.Service, error) {
 	if err != nil {
 		return requests.Service{}, err
 	}
-	return e.newRequestService(root, store), nil
+	return e.newRequestService(store), nil
 }
 
 // requestVerbs are the verbs of `request`.
