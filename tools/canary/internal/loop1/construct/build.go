@@ -2,8 +2,6 @@ package construct
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -39,9 +37,9 @@ const (
 type builder struct {
 	c      *Constructor
 	author authorRole
-	// attempts counts the calls per role; repairs those that repair.
-	attempts map[records.Role]int
-	repairs  map[records.Role]int
+	// caller makes and records the calls of the roles, counting the attempts
+	// and the repairs of each.
+	caller *Caller
 	// authorFiles and testFiles are the last files each role wrote.
 	authorFiles []File
 	testFiles   []File
@@ -49,7 +47,7 @@ type builder struct {
 	testsSpec string
 	// replay holds the calls and rounds an earlier invocation already recorded
 	// for this task; nil when there are none.
-	replay *replay
+	replay *Replay
 }
 
 // outcome is how a task's construction ended.
@@ -59,10 +57,8 @@ type outcome struct {
 }
 
 func newBuilder(c *Constructor, author authorRole, history records.Log) *builder {
-	return &builder{
-		c: c, author: author, attempts: map[records.Role]int{}, repairs: map[records.Role]int{},
-		replay: newReplay(history, author.name()),
-	}
+	replay := NewReplay(history, author.name())
+	return &builder{c: c, author: author, caller: NewCaller(c.Model, c.Records, replay), replay: replay}
 }
 
 // run writes the task, then evaluates and repairs it until it passes, cannot be
@@ -99,7 +95,7 @@ func (b *builder) run(ctx context.Context) (outcome, error) {
 // evaluate runs the acceptance checks, or reports the failure of a call that
 // left nothing to check.
 func (b *builder) evaluate(ctx context.Context, round int, failures []records.Finding) (accept.Report, error) {
-	if report, recorded := b.replay.report(b.author.name(), round); recorded {
+	if report, recorded := b.replay.Report(b.author.name(), round); recorded {
 		return report, nil
 	}
 	if len(failures) == 0 {
@@ -136,7 +132,7 @@ func (b *builder) route(report accept.Report) (map[records.Role][]string, []reco
 func (b *builder) repair(ctx context.Context, problems map[records.Role][]string) ([]records.Finding, bool, error) {
 	authorRepaired := b.canRepair(records.RoleAuthor, problems)
 	if authorRepaired {
-		b.c.progress("%s: repairing the author (%d of %d)", b.author.name(), b.repairs[records.RoleAuthor]+1, MaxRepairs)
+		b.c.progress("%s: repairing the author (%d of %d)", b.author.name(), b.caller.Repairs(records.RoleAuthor)+1, MaxRepairs)
 		failures, err := b.writeAuthor(ctx, records.PurposeRepair, problems[records.RoleAuthor])
 		if err != nil || len(failures) > 0 {
 			return failures, true, err
@@ -151,7 +147,7 @@ func (b *builder) repair(ctx context.Context, problems map[records.Role][]string
 		}
 	}
 	if b.canRepair(records.RoleOracle, problems) {
-		b.c.progress("%s: repairing the tests (%d of %d)", b.author.name(), b.repairs[records.RoleOracle]+1, MaxRepairs)
+		b.c.progress("%s: repairing the tests (%d of %d)", b.author.name(), b.caller.Repairs(records.RoleOracle)+1, MaxRepairs)
 		failures, err := b.writeTests(ctx, records.PurposeRepair, problems[records.RoleOracle])
 		return failures, true, err
 	}
@@ -159,7 +155,7 @@ func (b *builder) repair(ctx context.Context, problems map[records.Role][]string
 }
 
 func (b *builder) canRepair(role records.Role, problems map[records.Role][]string) bool {
-	return len(problems[role]) > 0 && b.repairs[role] < MaxRepairs
+	return len(problems[role]) > 0 && b.caller.Repairs(role) < MaxRepairs
 }
 
 // stop ends a task that no repair can improve.
@@ -218,7 +214,7 @@ func (b *builder) testsStale() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return digest(spec) != b.testsSpec, nil
+	return Digest(spec) != b.testsSpec, nil
 }
 
 // writeTests makes a call to the test writer, which is given the spec and the
@@ -241,7 +237,7 @@ func (b *builder) writeTests(ctx context.Context, purpose records.Purpose, probl
 		return failure, err
 	}
 	b.testFiles = files
-	b.testsSpec = digest(spec)
+	b.testsSpec = Digest(spec)
 	if err := CheckTestFiles(files); err != nil {
 		return []records.Finding{{Role: records.RoleOracle, Target: records.TargetOutput, Text: err.Error()}}, nil
 	}
@@ -251,80 +247,13 @@ func (b *builder) writeTests(ctx context.Context, purpose records.Purpose, probl
 	return nil, nil
 }
 
-// call makes one model call and records it. A call the model could not answer is
-// returned as a failure on the role and counts as an attempt; a call that failed
-// on the harness side is recorded, counts as nothing, and is returned as an
-// error so that construction stops where it is. Only a failure to record is
-// otherwise an error.
+// call makes one call of a role with the schema of every call.
 func (b *builder) call(ctx context.Context, role records.Role, purpose records.Purpose, prompt string) ([]File, []records.Finding, error) {
 	schema, err := FilesSchema()
 	if err != nil {
 		return nil, nil, err
 	}
-	request := Request{Role: role, Purpose: purpose, Domain: b.author.name(), Attempt: b.attempts[role] + 1, Prompt: prompt, Schema: schema}
-	recorded, err := b.replay.nextCall(request)
-	if err != nil {
-		return nil, nil, err
-	}
-	reply, callErr := b.answer(ctx, request, recorded)
-	if err := ctx.Err(); err != nil {
-		return nil, nil, err
-	}
-	var harness *HarnessFailure
-	if errors.As(callErr, &harness) {
-		return nil, nil, b.stopOnHarness(request, reply, callErr, harness)
-	}
-	b.attempts[role]++
-	if purpose == records.PurposeRepair {
-		b.repairs[role]++
-	}
-	if recorded == nil {
-		if err := b.c.Records.Append(records.Entry{Call: callRecord(request, reply, callErr)}); err != nil {
-			return nil, nil, err
-		}
-	}
-	if callErr != nil {
-		return nil, []records.Finding{{Role: role, Target: records.TargetOutput, Text: "the call failed: " + callErr.Error()}}, nil
-	}
-	return reply.Files, nil, nil
-}
-
-// answer returns the recorded answer of a call that an earlier invocation made,
-// or asks the model.
-func (b *builder) answer(ctx context.Context, request Request, recorded *answer) (Reply, error) {
-	if recorded != nil {
-		return recorded.reply, recorded.callErr
-	}
-	return b.c.Model.Complete(ctx, request)
-}
-
-// stopOnHarness records a call that failed on the harness side and returns the
-// error that stops construction, naming where it stopped.
-func (b *builder) stopOnHarness(request Request, reply Reply, callErr error, harness *HarnessFailure) error {
-	entry := callRecord(request, reply, callErr)
-	entry.HarnessFailure = string(harness.Kind)
-	if err := b.c.Records.Append(records.Entry{Call: entry}); err != nil {
-		return err
-	}
-	return fmt.Errorf("%s %s attempt %d (%s): %w", request.Domain, request.Role, request.Attempt, request.Purpose, callErr)
-}
-
-func callRecord(request Request, reply Reply, callErr error) *records.Call {
-	call := &records.Call{
-		Role: request.Role, Purpose: request.Purpose, Domain: request.Domain, Attempt: request.Attempt,
-		PromptSHA256: digest(request.Prompt), Schema: string(request.Schema.JSON),
-		Output: string(reply.Output), Stderr: string(reply.Stderr), CodexVersion: reply.CodexVersion,
-		Start: reply.Start.UTC(), End: reply.End.UTC(), Exit: reply.Exit,
-	}
-	if callErr != nil {
-		call.Error = callErr.Error()
-	}
-	return call
-}
-
-func digest(text string) string {
-	sum := sha256.Sum256([]byte(text))
-	return hex.EncodeToString(sum[:])
+	return b.caller.Call(ctx, b.caller.Next(role, purpose, b.author.name(), prompt, schema))
 }
 
 // Constructor builds the tasks of the study.

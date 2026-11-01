@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
@@ -44,13 +43,11 @@ type Acceptor struct {
 
 // round is one evaluation of one task.
 type round struct {
-	a        *Acceptor
+	a *Acceptor
+	*Bench
 	m        *material
 	name     string
 	number   int
-	stage    string
-	log      strings.Builder
-	memo     map[string]memoEntry
 	criteria []string
 	refs     map[string]string
 	examples map[string][]Example
@@ -73,7 +70,7 @@ func (a *Acceptor) Accept(ctx context.Context, name string, number int) (Report,
 	if err := os.MkdirAll(stage, treeDirectoryMode); err != nil {
 		return Report{}, fmt.Errorf("create the stage of %s: %w", name, err)
 	}
-	r := &round{a: a, m: m, name: name, number: number, stage: stage, memo: map[string]memoEntry{}, refs: map[string]string{}}
+	r := &round{Bench: NewBench(a.Runner, stage), a: a, m: m, name: name, number: number, refs: map[string]string{}}
 	report, err := r.runChecks(ctx)
 	if err != nil {
 		return Report{}, err
@@ -90,7 +87,7 @@ func (a *Acceptor) Accept(ctx context.Context, name string, number int) (Report,
 // and the others do not run.
 func (a *Acceptor) unreadable(name string, number int, cause error) (Report, error) {
 	result := newResult(CheckShape)
-	result.fail(records.RoleAuthor, records.TargetTask, "%v", cause)
+	result.Fail(records.RoleAuthor, records.TargetTask, "%v", cause)
 	report := withSkipped(name, result)
 	return report, a.record(name, number, report)
 }
@@ -117,12 +114,12 @@ func (r *round) runChecks(ctx context.Context) (Report, error) {
 	checks := checks()
 	report := Report{Task: r.name}
 	for _, id := range CheckOrder() {
-		r.log.Reset()
+		r.Log.Reset()
 		result, err := checks[id](r, ctx)
 		if err != nil {
 			return Report{}, fmt.Errorf("check %s %s: %w", id, checkNames[id], err)
 		}
-		result.Output += r.log.String()
+		result.Output += r.Log.String()
 		report.Results = append(report.Results, *result)
 		if id == CheckShape && !result.Passed {
 			report = withSkipped(r.name, result)

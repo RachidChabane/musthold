@@ -46,13 +46,13 @@ func CheckPrompt(prompt, criterion, spec, source string) error {
 // OracleFileName is the test file that holds the tests of one criterion:
 // test_<id>.py with the ID in lower case and its hyphen written as an underscore.
 func OracleFileName(criterion string) string {
-	return OracleFilePrefix + strings.ToLower(strings.ReplaceAll(criterion, "-", "_")) + pythonSuffix
+	return OracleFilePrefix + strings.ToLower(strings.ReplaceAll(criterion, "-", "_")) + PythonSuffix
 }
 
 // The names the oracle's files follow.
 const (
 	OracleFilePrefix = "test_"
-	pythonSuffix     = ".py"
+	PythonSuffix     = ".py"
 	// OracleConfigFile is the oracle's own pytest configuration.
 	OracleConfigFile = "pytest.ini"
 )

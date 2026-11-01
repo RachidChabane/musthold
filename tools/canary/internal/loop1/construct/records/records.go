@@ -62,15 +62,18 @@ type Call struct {
 	Purpose Purpose `json:"purpose"`
 	Domain  string  `json:"domain"`
 	// Attempt counts the calls of this role for this domain from 1.
-	Attempt      int       `json:"attempt"`
-	PromptSHA256 string    `json:"prompt_sha256"`
-	Schema       string    `json:"schema"`
-	Output       string    `json:"output"`
-	Stderr       string    `json:"stderr,omitempty"`
-	CodexVersion string    `json:"codex_version"`
-	Start        time.Time `json:"start"`
-	End          time.Time `json:"end"`
-	Exit         int       `json:"exit"`
+	Attempt      int    `json:"attempt"`
+	PromptSHA256 string `json:"prompt_sha256"`
+	Schema       string `json:"schema"`
+	Output       string `json:"output"`
+	Stderr       string `json:"stderr,omitempty"`
+	CodexVersion string `json:"codex_version"`
+	// CLIVersion is the version of a model's command-line client other than
+	// Codex; it is absent for a Codex call.
+	CLIVersion string    `json:"cli_version,omitempty"`
+	Start      time.Time `json:"start"`
+	End        time.Time `json:"end"`
+	Exit       int       `json:"exit"`
 	// HarnessFailure names the kind of failure of the machinery around the model
 	// when the call failed on that side; it is empty for a call the model answered
 	// or answered badly. A harness failure uses no repair call.

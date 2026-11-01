@@ -177,8 +177,8 @@ func (s Store) write(name, relative, content string) error {
 	return nil
 }
 
-// checkPaths refuses paths that are empty, absolute, unclean or repeated.
-func checkPaths(files []File) error {
+// CheckPaths refuses paths that are empty, absolute, unclean or repeated.
+func CheckPaths(files []File) error {
 	seen := map[string]bool{}
 	for _, file := range files {
 		clean := path.Clean(file.Path)
@@ -200,7 +200,7 @@ func topLevel(file string) string {
 }
 
 func checkEntries(files []File, allowed []string) error {
-	if err := checkPaths(files); err != nil {
+	if err := CheckPaths(files); err != nil {
 		return err
 	}
 	for _, file := range files {
@@ -231,7 +231,7 @@ func CheckVariantFiles(files []File) error {
 // CheckTestFiles accepts pytest.ini and test_*.py files directly in the
 // directory of the tests, and nothing else.
 func CheckTestFiles(files []File) error {
-	if err := checkPaths(files); err != nil {
+	if err := CheckPaths(files); err != nil {
 		return err
 	}
 	for _, file := range files {

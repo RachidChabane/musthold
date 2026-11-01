@@ -38,16 +38,16 @@ def test_children_pay_six(age):
 
 func boxofficeRound(t *testing.T, oracle string) *round {
 	t.Helper()
-	fixture, err := readTree(boxofficeFixture)
+	fixture, err := ReadTree(boxofficeFixture)
 	if err != nil {
 		t.Fatal(err)
 	}
-	reference, err := readTree(boxofficeSource)
+	reference, err := ReadTree(boxofficeSource)
 	if err != nil {
 		t.Fatal(err)
 	}
 	m := &material{
-		fixture: fixture, reference: reference, oracle: tree{"test_box_4.py": []byte(oracle)},
+		fixture: fixture, reference: reference, oracle: Tree{"test_box_4.py": []byte(oracle)},
 		task: study.Task{
 			Name: "boxoffice", Spec: "specs/tickets.md", Source: "boxoffice/prices.py", Criterion: "BOX-4",
 			Interface: study.Interface{Module: "boxoffice.prices", Operation: "ticket_price", Signature: "ticket_price(age)"},
@@ -55,7 +55,7 @@ func boxofficeRound(t *testing.T, oracle string) *round {
 		},
 	}
 	edited := reference["prices.py"]
-	m.violations = []variant{{Criterion: "BOX-1", Number: "1", Edits: tree{"prices.py": []byte(strings.Replace(string(edited), "SENIOR_FROM_AGE = 65", "SENIOR_FROM_AGE = 66", 1))}}}
+	m.violations = []Variant{{Criterion: "BOX-1", Number: "1", Edits: Tree{"prices.py": []byte(strings.Replace(string(edited), "SENIOR_FROM_AGE = 65", "SENIOR_FROM_AGE = 66", 1))}}}
 	return &round{m: m, criteria: []string{"BOX-1", "BOX-2", "BOX-3", "BOX-4"}}
 }
 
@@ -147,7 +147,7 @@ func TestLeakWordsAndPaths(t *testing.T) {
 
 func TestFixtureFilesAreReadWithoutTheirCaches(t *testing.T) {
 	t.Run("a tree skips the caches a run leaves behind [verifies SP-2551~1]", func(t *testing.T) {
-		files, err := readTree(filepath.Clean(boxofficeFixture))
+		files, err := ReadTree(filepath.Clean(boxofficeFixture))
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -14,20 +14,23 @@ import (
 // where it stopped.
 var ErrResumeDiverged = errors.New("the construction records do not match the calls to resume")
 
-// replay holds what the records say a domain's construction already did: the
+// Replay holds what the records say a domain's construction already did: the
 // calls the model answered, in order, and the checks of each failed round. A
 // builder that replays them rebuilds, without any model call or check, the state
 // it had when the last invocation stopped, so that it resumes at the same
 // domain, role and attempt. Calls that failed on the harness side are not part
 // of it: they used no attempt.
-type replay struct {
+type Replay struct {
 	calls  []records.Call
 	rounds map[int][]records.Check
+	// parsers read the recorded output of a role whose final message is not a
+	// document of files; ParseFiles reads every other role's.
+	parsers map[records.Role]func(output []byte) ([]File, error)
 }
 
-// newReplay selects the records of one domain.
-func newReplay(log records.Log, domain string) *replay {
-	r := &replay{rounds: map[int][]records.Check{}}
+// NewReplay selects the records of one domain.
+func NewReplay(log records.Log, domain string) *Replay {
+	r := &Replay{rounds: map[int][]records.Check{}, parsers: map[records.Role]func([]byte) ([]File, error){}}
 	for _, call := range log.Calls {
 		if call.Domain == domain && call.HarnessFailure == "" {
 			r.calls = append(r.calls, call)
@@ -41,6 +44,21 @@ func newReplay(log records.Log, domain string) *replay {
 	return r
 }
 
+// WithParser reads the recorded output of a role with parse in place of
+// ParseFiles, and returns the replay.
+func (r *Replay) WithParser(role records.Role, parse func(output []byte) ([]File, error)) *Replay {
+	r.parsers[role] = parse
+	return r
+}
+
+// parse reads the recorded output of a call of a role.
+func (r *Replay) parse(role records.Role, output []byte) ([]File, error) {
+	if parse, found := r.parsers[role]; found {
+		return parse(output)
+	}
+	return ParseFiles(output)
+}
+
 // answer is a recorded call: what the model returned and the error that call
 // ended with, which is nil for a call that produced files.
 type answer struct {
@@ -50,23 +68,23 @@ type answer struct {
 
 // nextCall returns the answer recorded for a request, or nil when the records
 // hold no more calls. It refuses a request that is not the recorded call.
-func (r *replay) nextCall(request Request) (*answer, error) {
+func (r *Replay) nextCall(request Request) (*answer, error) {
 	if r == nil || len(r.calls) == 0 {
 		return nil, nil
 	}
 	call := r.calls[0]
 	r.calls = r.calls[1:]
-	if call.Role != request.Role || call.Purpose != request.Purpose || call.Attempt != request.Attempt || call.PromptSHA256 != digest(request.Prompt) {
+	if call.Role != request.Role || call.Purpose != request.Purpose || call.Attempt != request.Attempt || call.PromptSHA256 != Digest(request.Prompt) {
 		return nil, fmt.Errorf("%w: recorded %s %s attempt %d of %s", ErrResumeDiverged, call.Role, call.Purpose, call.Attempt, call.Domain)
 	}
 	reply := Reply{
-		Output: []byte(call.Output), Stderr: []byte(call.Stderr), CodexVersion: call.CodexVersion,
+		Output: []byte(call.Output), Stderr: []byte(call.Stderr), CodexVersion: call.CodexVersion, CLIVersion: call.CLIVersion,
 		Start: call.Start, End: call.End, Exit: call.Exit,
 	}
 	if call.Error != "" {
 		return &answer{reply: reply, callErr: errors.New(call.Error)}, nil
 	}
-	files, err := ParseFiles(reply.Output)
+	files, err := r.parse(call.Role, reply.Output)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrResumeDiverged, err)
 	}
@@ -74,10 +92,10 @@ func (r *replay) nextCall(request Request) (*answer, error) {
 	return &answer{reply: reply}, nil
 }
 
-// report returns the recorded outcome of a round that failed, or false when the
+// Report returns the recorded outcome of a round that failed, or false when the
 // round was not recorded or all of its checks passed: the latter is evaluated
 // again so that a task that passed is admitted.
-func (r *replay) report(domain string, number int) (accept.Report, bool) {
+func (r *Replay) Report(domain string, number int) (accept.Report, bool) {
 	if r == nil {
 		return accept.Report{}, false
 	}

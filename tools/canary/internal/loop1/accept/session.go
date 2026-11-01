@@ -11,17 +11,17 @@ import (
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
-// variant is one edit of the reference source: a violation of one criterion or a
+// Variant is one edit of the reference source: a violation of one criterion or a
 // refactor. Its files lie relative to the directory of the source file.
-type variant struct {
+type Variant struct {
 	// Criterion is the violated criterion; empty for a refactor.
 	Criterion string
 	Number    string
-	Edits     tree
+	Edits     Tree
 }
 
 // Label names the variant in findings and in stage directories.
-func (v variant) Label() string {
+func (v Variant) Label() string {
 	if v.Criterion == "" {
 		return "refactor-" + v.Number
 	}
@@ -33,17 +33,17 @@ func (v variant) Label() string {
 type material struct {
 	repo       string
 	task       study.Task
-	fixture    tree
-	reference  tree
-	violations []variant
-	refactors  []variant
-	oracle     tree
+	fixture    Tree
+	reference  Tree
+	violations []Variant
+	refactors  []Variant
+	oracle     Tree
 	problems   []problem
 
 	// Trees derived from the material; nil when their inputs are unusable.
-	referenceTree tree
-	violationTree map[string]tree
-	refactorTree  map[string]tree
+	referenceTree Tree
+	violationTree map[string]Tree
+	refactorTree  map[string]Tree
 }
 
 // problem is something the material lacks, with the part of the task it is about.
@@ -81,20 +81,20 @@ func loadMaterial(repo, name string) (*material, error) {
 	return m, nil
 }
 
-func (m *material) read(what string, target records.Target, relative string, into *tree) {
-	files, err := readTree(filepath.Join(m.repo, filepath.FromSlash(relative)))
+func (m *material) read(what string, target records.Target, relative string, into *Tree) {
+	files, err := ReadTree(filepath.Join(m.repo, filepath.FromSlash(relative)))
 	if err != nil {
 		m.problem(target, "%s: %v", what, err)
-		files = tree{}
+		files = Tree{}
 	}
 	*into = files
 }
 
 func (m *material) readVariants() {
-	var violations, refactors tree
+	var violations, refactors Tree
 	m.read("violations", records.TargetVariants, m.task.Truth.Violations, &violations)
 	m.read("refactors", records.TargetVariants, m.task.Truth.Refactors, &refactors)
-	grouped := map[string]tree{}
+	grouped := map[string]Tree{}
 	for _, name := range sortedKeys(violations) {
 		parts := strings.SplitN(name, "/", 3)
 		if len(parts) != 3 {
@@ -103,15 +103,15 @@ func (m *material) readVariants() {
 		}
 		key := parts[0] + "/" + parts[1]
 		if grouped[key] == nil {
-			grouped[key] = tree{}
+			grouped[key] = Tree{}
 		}
 		grouped[key][parts[2]] = violations[name]
 	}
 	for _, key := range sortedKeys(grouped) {
 		criterion, number, _ := strings.Cut(key, "/")
-		m.violations = append(m.violations, variant{Criterion: criterion, Number: number, Edits: grouped[key]})
+		m.violations = append(m.violations, Variant{Criterion: criterion, Number: number, Edits: grouped[key]})
 	}
-	grouped = map[string]tree{}
+	grouped = map[string]Tree{}
 	for _, name := range sortedKeys(refactors) {
 		number, rest, found := strings.Cut(name, "/")
 		if !found {
@@ -119,12 +119,12 @@ func (m *material) readVariants() {
 			continue
 		}
 		if grouped[number] == nil {
-			grouped[number] = tree{}
+			grouped[number] = Tree{}
 		}
 		grouped[number][rest] = refactors[name]
 	}
 	for _, number := range sortedKeys(grouped) {
-		m.refactors = append(m.refactors, variant{Number: number, Edits: grouped[number]})
+		m.refactors = append(m.refactors, Variant{Number: number, Edits: grouped[number]})
 	}
 }
 
@@ -134,24 +134,24 @@ func (m *material) derive() {
 		m.problem(records.TargetReference, "reference: holds no file")
 		return
 	}
-	reference, err := m.fixture.overlay(m.reference, m.sourceDir())
+	reference, err := m.fixture.Overlay(m.reference, m.sourceDir())
 	if err != nil {
 		m.problem(records.TargetReference, "reference: %v", err)
 		return
 	}
 	m.referenceTree = reference
-	m.violationTree = map[string]tree{}
+	m.violationTree = map[string]Tree{}
 	for _, v := range m.violations {
 		m.derived(v, m.violationTree)
 	}
-	m.refactorTree = map[string]tree{}
+	m.refactorTree = map[string]Tree{}
 	for _, r := range m.refactors {
 		m.derived(r, m.refactorTree)
 	}
 }
 
-func (m *material) derived(v variant, into map[string]tree) {
-	edited, err := m.referenceTree.overlay(v.Edits, m.sourceDir())
+func (m *material) derived(v Variant, into map[string]Tree) {
+	edited, err := m.referenceTree.Overlay(v.Edits, m.sourceDir())
 	if err != nil {
 		m.problem(records.TargetVariants, "%s: %v", v.Label(), err)
 		return
@@ -160,8 +160,8 @@ func (m *material) derived(v variant, into map[string]tree) {
 }
 
 // violationsOf lists the violations of one criterion, in order.
-func (m *material) violationsOf(criterion string) []variant {
-	var found []variant
+func (m *material) violationsOf(criterion string) []Variant {
+	var found []Variant
 	for _, v := range m.violations {
 		if v.Criterion == criterion {
 			found = append(found, v)
@@ -171,8 +171,8 @@ func (m *material) violationsOf(criterion string) []variant {
 }
 
 // violationsExcept lists the violations of every criterion but one.
-func (m *material) violationsExcept(criterion string) []variant {
-	var found []variant
+func (m *material) violationsExcept(criterion string) []Variant {
+	var found []Variant
 	for _, v := range m.violations {
 		if v.Criterion != criterion {
 			found = append(found, v)

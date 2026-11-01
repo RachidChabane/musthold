@@ -119,25 +119,28 @@ func (r Report) Print(out io.Writer) {
 	}
 }
 
-// result starts a passing result for a check.
-func newResult(id string) *Result {
-	return &Result{ID: id, Name: checkNames[id], Passed: true, Agreed: true}
+// newResult starts a passing result for a check of this package.
+func newResult(id string) *Result { return NewResult(id, checkNames[id]) }
+
+// NewResult starts a passing result for a check.
+func NewResult(id, name string) *Result {
+	return &Result{ID: id, Name: name, Passed: true, Agreed: true}
 }
 
-// fail records a finding and fails the result.
-func (res *Result) fail(role records.Role, target records.Target, format string, args ...any) {
+// Fail records a finding and fails the result.
+func (res *Result) Fail(role records.Role, target records.Target, format string, args ...any) {
 	res.Passed = false
 	res.Findings = append(res.Findings, records.Finding{Role: role, Target: target, Text: fmt.Sprintf(format, args...)})
 }
 
-// disagree fails the result because the runs of a command differ. The author
-// is told about its own target; the test writer too when its tests ran.
-func (res *Result) disagree(d disagreement, label string, authorTarget records.Target, withOracle bool) {
+// Disagree fails the result because the runs of a command differ. The author
+// is told about its own target; the role that wrote the tests too, when tests ran.
+func (res *Result) Disagree(d Disagreement, label string, authorTarget records.Target, oracleRole records.Role) {
 	res.Passed, res.Agreed = false, false
 	const text = "the three runs on %s do not give the same result: a test or the code under test depends on something other than its inputs"
 	res.Findings = append(res.Findings, records.Finding{Role: records.RoleAuthor, Target: authorTarget, Text: fmt.Sprintf(text, label)})
-	if withOracle {
-		res.Findings = append(res.Findings, records.Finding{Role: records.RoleOracle, Target: records.TargetOracle, Text: fmt.Sprintf(text, label)})
+	if oracleRole != "" {
+		res.Findings = append(res.Findings, records.Finding{Role: oracleRole, Target: records.TargetOracle, Text: fmt.Sprintf(text, label)})
 	}
 	res.Output += d.Error()
 }

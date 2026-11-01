@@ -43,9 +43,12 @@ type Reply struct {
 	Output       []byte
 	Stderr       []byte
 	CodexVersion string
-	Start        time.Time
-	End          time.Time
-	Exit         int
+	// CLIVersion is the version of a model's command-line client other than
+	// Codex; empty for a Codex call.
+	CLIVersion string
+	Start      time.Time
+	End        time.Time
+	Exit       int
 }
 
 // Model answers a prompt with a set of files.

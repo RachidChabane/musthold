@@ -22,12 +22,12 @@ const (
 	oraclePrefix      = OracleSubdir + "/"
 )
 
-// tree is a set of files by slash-separated path relative to the tree's root.
-type tree map[string][]byte
+// Tree is a set of files by slash-separated path relative to the tree's root.
+type Tree map[string][]byte
 
-// readTree reads every file under dir.
-func readTree(dir string) (tree, error) {
-	files := tree{}
+// ReadTree reads every file under dir.
+func ReadTree(dir string) (Tree, error) {
+	files := Tree{}
 	err := filepath.WalkDir(dir, func(location string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -55,19 +55,19 @@ func readTree(dir string) (tree, error) {
 	return files, nil
 }
 
-// clone copies the tree.
-func (t tree) clone() tree {
-	copied := make(tree, len(t))
+// Clone copies the tree.
+func (t Tree) Clone() Tree {
+	copied := make(Tree, len(t))
 	for name, content := range t {
 		copied[name] = content
 	}
 	return copied
 }
 
-// overlay returns the tree with each file of edits written at base/<its path>.
+// Overlay returns the tree with each file of edits written at base/<its path>.
 // It fails for an edit that would add a file the tree does not hold.
-func (t tree) overlay(edits tree, base string) (tree, error) {
-	merged := t.clone()
+func (t Tree) Overlay(edits Tree, base string) (Tree, error) {
+	merged := t.Clone()
 	for _, name := range sortedKeys(edits) {
 		target := path.Join(base, name)
 		if _, exists := merged[target]; !exists {
@@ -78,9 +78,9 @@ func (t tree) overlay(edits tree, base string) (tree, error) {
 	return merged, nil
 }
 
-// without returns the tree without the files under a directory prefix.
-func (t tree) without(prefix string) tree {
-	kept := tree{}
+// Without returns the tree without the files under a directory prefix.
+func (t Tree) Without(prefix string) Tree {
+	kept := Tree{}
 	for name, content := range t {
 		if !strings.HasPrefix(name, prefix) {
 			kept[name] = content
@@ -89,17 +89,17 @@ func (t tree) without(prefix string) tree {
 	return kept
 }
 
-// with returns the tree with the files of another added under a prefix.
-func (t tree) with(prefix string, added tree) tree {
-	merged := t.clone()
+// With returns the tree with the files of another added under a prefix.
+func (t Tree) With(prefix string, added Tree) Tree {
+	merged := t.Clone()
 	for name, content := range added {
 		merged[prefix+name] = content
 	}
 	return merged
 }
 
-// write replaces dir with the tree.
-func (t tree) write(dir string) error {
+// Write replaces dir with the tree.
+func (t Tree) Write(dir string) error {
 	if err := os.RemoveAll(dir); err != nil {
 		return fmt.Errorf("clear %s: %w", dir, err)
 	}

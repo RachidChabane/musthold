@@ -9,66 +9,88 @@ import (
 
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/box"
 	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/construct/records"
-	"github.com/RachidChabane/musthold/tools/canary/internal/loop1/study"
 )
 
 const (
-	inlineTestFile      = "tests/test_inline_examples.py"
-	minTestsPerCriteria = 2
-	collectedSeparator  = "::"
+	// InlineTestFile is where a test made of inline examples lies in a project.
+	InlineTestFile       = "tests/test_inline_examples.py"
+	MinTestsPerCriterion = 2
+	collectedSeparator   = "::"
 )
 
-// pytestArgv is the command that runs a project's own tests.
-func pytestArgv(junit string) []string {
+// PytestArgv is the command that runs a project's own tests.
+func PytestArgv(junit string) []string {
 	return []string{PythonProgram, "-m", "pytest", "-p", "no:cacheprovider", "-q", "--junitxml=" + junit}
 }
 
-// oracleArgv is the command that runs the oracle in a tree (PREREG §4.1).
-func oracleArgv(junit string) []string {
+// OracleArgv is the command that runs the oracle in a tree (PREREG §4.1).
+func OracleArgv(junit string) []string {
 	return []string{
 		PythonProgram, "-m", "pytest", "-c", oraclePrefix + OracleConfigFile, "--rootdir", OracleSubdir, "--noconftest",
 		"-p", "no:cacheprovider", "-q", "--junitxml=" + junit, OracleSubdir,
 	}
 }
 
-func collectArgv() []string {
+// CollectArgv is the command that lists the oracle's tests in a tree.
+func CollectArgv() []string {
 	return []string{
 		PythonProgram, "-m", "pytest", "-c", oraclePrefix + OracleConfigFile, "--rootdir", OracleSubdir, "--noconftest",
 		"-p", "no:cacheprovider", "--collect-only", "-q", OracleSubdir,
 	}
 }
 
-// oracleTree is a project as the oracle is run in it: without its tests, with
-// the oracle added.
-func (r *round) oracleTree(project tree) tree {
-	return project.without(testsDirectory+"/").with(oraclePrefix, r.m.oracle)
+// OracleTree is a project as an oracle is run in it: without its tests, with
+// the oracle's files added under oracle/.
+func OracleTree(project, oracle Tree) Tree {
+	return project.Without(TestsDirectory+"/").With(oraclePrefix, oracle)
 }
 
-// tests runs the project's own tests in a tree. It reports ok=false when the
+// oracleTree is a project as the task's oracle is run in it.
+func (r *round) oracleTree(project Tree) Tree { return OracleTree(project, r.m.oracle) }
+
+// Tests runs the project's own tests in a tree. It reports ok=false when the
 // runs disagree, after failing the result.
-func (r *round) tests(ctx context.Context, res *Result, label string, project tree, authorTarget records.Target) (outcome, bool, error) {
-	found, err := r.pytestOutcome(ctx, label, project, pytestArgv, nil)
-	return found, r.agreed(res, err, label, authorTarget, false), r.fatal(err)
+func (b *Bench) Tests(ctx context.Context, res *Result, label string, project Tree, authorTarget records.Target) (Outcome, bool, error) {
+	found, err := b.PytestOutcome(ctx, label, project, PytestArgv, nil)
+	return found, agreed(res, err, label, authorTarget, ""), fatal(err)
 }
 
-// oracle runs the oracle in a tree. It reports ok=false when the runs disagree.
-func (r *round) oracle(ctx context.Context, res *Result, label string, project tree, authorTarget records.Target) (outcome, bool, error) {
+// SpecTests is an oracle as a bench runs it: its files, the criteria its test
+// files are named after, and the role that writes it.
+type SpecTests struct {
+	Files    Tree
+	Criteria []string
+	Role     records.Role
+}
+
+// Oracle runs an oracle in a tree. It reports ok=false when the runs disagree,
+// after failing the result for the author's target and the oracle's role.
+func (b *Bench) Oracle(ctx context.Context, res *Result, label string, project Tree, spec SpecTests, authorTarget records.Target) (Outcome, bool, error) {
 	label = "spec-tests-" + label
-	found, err := r.pytestOutcome(ctx, label, r.oracleTree(project), oracleArgv, ModulesOfCriteria(r.criteria))
-	return found, r.agreed(res, err, label, authorTarget, true), r.fatal(err)
+	found, err := b.PytestOutcome(ctx, label, OracleTree(project, spec.Files), OracleArgv, ModulesOfCriteria(spec.Criteria))
+	return found, agreed(res, err, label, authorTarget, spec.Role), fatal(err)
 }
 
-func (r *round) agreed(res *Result, err error, label string, authorTarget records.Target, withOracle bool) bool {
-	var d disagreement
+func (r *round) tests(ctx context.Context, res *Result, label string, project Tree, authorTarget records.Target) (Outcome, bool, error) {
+	return r.Tests(ctx, res, label, project, authorTarget)
+}
+
+// oracle runs the task's oracle in a tree.
+func (r *round) oracle(ctx context.Context, res *Result, label string, project Tree, authorTarget records.Target) (Outcome, bool, error) {
+	return r.Oracle(ctx, res, label, project, SpecTests{Files: r.m.oracle, Criteria: r.criteria, Role: records.RoleOracle}, authorTarget)
+}
+
+func agreed(res *Result, err error, label string, authorTarget records.Target, oracleRole records.Role) bool {
+	var d Disagreement
 	if errors.As(err, &d) {
-		res.disagree(d, label, authorTarget, withOracle)
+		res.Disagree(d, label, authorTarget, oracleRole)
 		return false
 	}
 	return err == nil
 }
 
-func (r *round) fatal(err error) error {
-	var d disagreement
+func fatal(err error) error {
+	var d Disagreement
 	if errors.As(err, &d) {
 		return nil
 	}
@@ -83,8 +105,8 @@ func (r *round) fixture(ctx context.Context) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	if ok && !found.passesAll() {
-		res.fail(records.RoleAuthor, records.TargetFixture, "the tests of the fixture do not pass:\n%s", describeFailures(found.failedCases()))
+	if ok && !found.PassesAll() {
+		res.Fail(records.RoleAuthor, records.TargetFixture, "the tests of the fixture do not pass:\n%s", DescribeFailures(found.FailedCases()))
 	}
 	if err := r.gate(ctx, res); err != nil {
 		return nil, err
@@ -93,7 +115,7 @@ func (r *round) fixture(ctx context.Context) (*Result, error) {
 }
 
 func (r *round) gate(ctx context.Context, res *Result) error {
-	dir, err := r.treeDir("equipped", r.m.fixture)
+	dir, err := r.TreeDir("equipped", r.m.fixture)
 	if err != nil {
 		return err
 	}
@@ -101,32 +123,32 @@ func (r *round) gate(ctx context.Context, res *Result) error {
 	if err != nil {
 		return fmt.Errorf("equip the control arm: %w", err)
 	}
-	var reports [Runs]*shallnotReport
-	runs, err := r.repeat(ctx,
-		func(int) box.Command { return r.command(project, ShallnotProgram, "gate", "--format", "json") },
+	var reports [Runs]*ShallnotReport
+	runs, err := r.Repeat(ctx,
+		func(int) box.Command { return r.Command(project, ShallnotProgram, "gate", "--format", "json") },
 		func(run int, result box.Result) string {
-			reports[run] = decodeShallnot(result)
-			return shallnotSignature(reports[run], result.ExitCode)
+			reports[run] = DecodeShallnot(result)
+			return ShallnotSignature(reports[run], result.ExitCode)
 		})
 	if err != nil {
 		return err
 	}
-	if !runs.agreed {
-		res.disagree(disagreement{signatures: runs.signatures}, "the traceability run", records.TargetFixture, false)
+	if !runs.Agreed {
+		res.Disagree(Disagreement{Signatures: runs.Signatures}, "the traceability run", records.TargetFixture, "")
 		return nil
 	}
 	if blocked := blockingFindings(reports[0]); !onlyMissingTest(blocked, r.m.task.Criterion) {
-		res.fail(records.RoleAuthor, records.TargetFixture,
+		res.Fail(records.RoleAuthor, records.TargetFixture,
 			"the traceability run of the project must flag the missing test of %s and nothing else; it flagged: %s", r.m.task.Criterion, describeBlocks(reports[0], blocked))
 	}
 	return nil
 }
 
-func blockingFindings(report *shallnotReport) []shallnotFinding {
+func blockingFindings(report *ShallnotReport) []ShallnotFinding {
 	if report == nil {
 		return nil
 	}
-	var blocking []shallnotFinding
+	var blocking []ShallnotFinding
 	for _, finding := range report.Findings {
 		if finding.Blocking {
 			blocking = append(blocking, finding)
@@ -135,11 +157,11 @@ func blockingFindings(report *shallnotReport) []shallnotFinding {
 	return blocking
 }
 
-func onlyMissingTest(blocking []shallnotFinding, criterion string) bool {
-	return len(blocking) == 1 && blocking[0].Category == categoryUncovered && blocking[0].RequirementID == criterion
+func onlyMissingTest(blocking []ShallnotFinding, criterion string) bool {
+	return len(blocking) == 1 && blocking[0].Category == CategoryUncovered && blocking[0].RequirementID == criterion
 }
 
-func describeBlocks(report *shallnotReport, blocking []shallnotFinding) string {
+func describeBlocks(report *ShallnotReport, blocking []ShallnotFinding) string {
 	if report == nil {
 		return "no readable report"
 	}
@@ -161,14 +183,14 @@ func (r *round) reference(ctx context.Context) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	if ok && !tests.passesAll() {
-		res.fail(records.RoleAuthor, records.TargetReference, "the reference does not pass the tests of the fixture:\n%s", describeFailures(tests.failedCases()))
+	if ok && !tests.PassesAll() {
+		res.Fail(records.RoleAuthor, records.TargetReference, "the reference does not pass the tests of the fixture:\n%s", DescribeFailures(tests.FailedCases()))
 	}
 	found, ok, err := r.oracle(ctx, res, "reference", r.m.referenceTree, records.TargetReference)
 	if err != nil {
 		return nil, err
 	}
-	if ok && !found.passesAll() {
+	if ok && !found.PassesAll() {
 		r.failOracle(res, found, records.TargetReference, "the reference", "an implementation of every criterion")
 	}
 	return res, nil
@@ -176,14 +198,14 @@ func (r *round) reference(ctx context.Context) (*Result, error) {
 
 // failOracle reports oracle tests that fail where they should pass, to the
 // author with their messages and to the test writer by name alone.
-func (r *round) failOracle(res *Result, found outcome, target records.Target, where, implementation string) {
-	if found.everythingFails() || len(found.failedCases()) == 0 {
-		res.fail(records.RoleAuthor, target, "%s ran no spec test to the end (timeout, crash or collection failure)", where)
-		res.fail(records.RoleOracle, records.TargetOracle, "the tests do not run to the end against %s", implementation)
+func (r *round) failOracle(res *Result, found Outcome, target records.Target, where, implementation string) {
+	if found.EverythingFails() || len(found.FailedCases()) == 0 {
+		res.Fail(records.RoleAuthor, target, "%s ran no spec test to the end (timeout, crash or collection failure)", where)
+		res.Fail(records.RoleOracle, records.TargetOracle, "the tests do not run to the end against %s", implementation)
 		return
 	}
-	res.fail(records.RoleAuthor, target, "%s fails spec tests:\n%s", where, describeFailures(found.failedCases()))
-	res.fail(records.RoleOracle, records.TargetOracle, "these tests fail against %s:\n%s", implementation, strings.Join(sortedCaseIDs(found.failedCases()), "\n"))
+	res.Fail(records.RoleAuthor, target, "%s fails spec tests:\n%s", where, DescribeFailures(found.FailedCases()))
+	res.Fail(records.RoleOracle, records.TargetOracle, "these tests fail against %s:\n%s", implementation, strings.Join(SortedCaseIDs(found.FailedCases()), "\n"))
 }
 
 // base is check A4: the fixture fails an oracle test of the task criterion and
@@ -195,13 +217,13 @@ func (r *round) base(ctx context.Context) (*Result, error) {
 	if err != nil || !ok {
 		return res, err
 	}
-	if !found.failsCriterion(criterion) {
-		res.fail(records.RoleAuthor, records.TargetFixture, "no spec test of %s fails on the fixture: its source already behaves as the criterion states", criterion)
-		res.fail(records.RoleOracle, records.TargetOracle, "no test of %s fails against an implementation that lacks the behaviour it states", criterion)
+	if !found.FailsCriterion(criterion) {
+		res.Fail(records.RoleAuthor, records.TargetFixture, "no spec test of %s fails on the fixture: its source already behaves as the criterion states", criterion)
+		res.Fail(records.RoleOracle, records.TargetOracle, "no test of %s fails against an implementation that lacks the behaviour it states", criterion)
 	}
-	if outside := found.failingOutside(criterion); len(outside) > 0 {
-		res.fail(records.RoleAuthor, records.TargetFixture, "the fixture fails spec tests of other criteria:\n%s", describeFailures(outside))
-		res.fail(records.RoleOracle, records.TargetOracle, "these tests fail against an implementation of every criterion but %s:\n%s", criterion, strings.Join(sortedCaseIDs(outside), "\n"))
+	if outside := found.FailingOutside(criterion); len(outside) > 0 {
+		res.Fail(records.RoleAuthor, records.TargetFixture, "the fixture fails spec tests of other criteria:\n%s", DescribeFailures(outside))
+		res.Fail(records.RoleOracle, records.TargetOracle, "these tests fail against an implementation of every criterion but %s:\n%s", criterion, strings.Join(SortedCaseIDs(outside), "\n"))
 	}
 	return res, nil
 }
@@ -218,13 +240,13 @@ func (r *round) diagonal(ctx context.Context) (*Result, error) {
 		if !ok {
 			continue
 		}
-		if !found.failsCriterion(v.Criterion) {
-			res.fail(records.RoleAuthor, records.TargetVariants, "%s fails no spec test of %s", v.Label(), v.Criterion)
-			res.fail(records.RoleOracle, records.TargetOracle, "no test of %s fails against an implementation that violates it", v.Criterion)
+		if !found.FailsCriterion(v.Criterion) {
+			res.Fail(records.RoleAuthor, records.TargetVariants, "%s fails no spec test of %s", v.Label(), v.Criterion)
+			res.Fail(records.RoleOracle, records.TargetOracle, "no test of %s fails against an implementation that violates it", v.Criterion)
 		}
-		if outside := found.failingOutside(v.Criterion); len(outside) > 0 {
-			res.fail(records.RoleAuthor, records.TargetVariants, "%s fails spec tests of other criteria:\n%s", v.Label(), describeFailures(outside))
-			res.fail(records.RoleOracle, records.TargetOracle, "these tests fail against an implementation that violates only %s:\n%s", v.Criterion, strings.Join(sortedCaseIDs(outside), "\n"))
+		if outside := found.FailingOutside(v.Criterion); len(outside) > 0 {
+			res.Fail(records.RoleAuthor, records.TargetVariants, "%s fails spec tests of other criteria:\n%s", v.Label(), DescribeFailures(outside))
+			res.Fail(records.RoleOracle, records.TargetOracle, "these tests fail against an implementation that violates only %s:\n%s", v.Criterion, strings.Join(SortedCaseIDs(outside), "\n"))
 		}
 	}
 	return res, nil
@@ -238,7 +260,7 @@ func (r *round) refactorsCheck(ctx context.Context) (*Result, error) {
 		if err != nil {
 			return nil, err
 		}
-		if ok && !found.passesAll() {
+		if ok && !found.PassesAll() {
 			r.failOracle(res, found, records.TargetVariants, refactor.Label(), "an implementation that keeps every criterion")
 		}
 	}
@@ -251,118 +273,139 @@ func (r *round) refactorsCheck(ctx context.Context) (*Result, error) {
 func (r *round) room(ctx context.Context) (*Result, error) {
 	res := newResult(CheckRoom)
 	task := r.m.task
-	inline, err := inlineExamplesTest(task.Interface, r.examples[task.Criterion])
+	inline, err := InlineExamplesTest(map[string]string{task.Interface.Operation: task.Interface.Module}, r.examples[task.Criterion])
 	if err != nil {
 		return nil, err
 	}
-	witness, err := r.firstPassing(ctx, res, r.m.violationsOf(task.Criterion), func(v variant) (string, tree) {
-		project := r.m.violationTree[v.Label()].without(testsDirectory + "/")
-		project[inlineTestFile] = inline
+	witness, err := r.firstPassing(ctx, res, r.m.violationsOf(task.Criterion), func(v Variant) (string, Tree) {
+		project := r.m.violationTree[v.Label()].Without(TestsDirectory + "/")
+		project[InlineTestFile] = inline
 		return "inline-" + v.Label(), project
 	})
 	if err != nil {
 		return nil, err
 	}
 	if res.Agreed && witness == "" {
-		res.fail(records.RoleAuthor, records.TargetVariants, "no violation of %s passes a test made of the inline examples of %s alone", task.Criterion, task.Criterion)
+		res.Fail(records.RoleAuthor, records.TargetVariants, "no violation of %s passes a test made of the inline examples of %s alone", task.Criterion, task.Criterion)
 	}
-	witness, err = r.firstPassing(ctx, res, r.m.violationsExcept(task.Criterion), func(v variant) (string, tree) {
+	witness, err = r.firstPassing(ctx, res, r.m.violationsExcept(task.Criterion), func(v Variant) (string, Tree) {
 		return "tests-" + v.Label(), r.m.violationTree[v.Label()]
 	})
 	if err != nil {
 		return nil, err
 	}
 	if res.Agreed && witness == "" {
-		res.fail(records.RoleAuthor, records.TargetVariants, "no violation of an implemented criterion passes the tests of the fixture")
+		res.Fail(records.RoleAuthor, records.TargetVariants, "no violation of an implemented criterion passes the tests of the fixture")
 	}
 	return res, nil
 }
 
 // firstPassing runs the project's tests on each variant, in order, and returns
 // the label of the first on which they pass.
-func (r *round) firstPassing(ctx context.Context, res *Result, variants []variant, project func(variant) (string, tree)) (string, error) {
+func (r *round) firstPassing(ctx context.Context, res *Result, variants []Variant, project func(Variant) (string, Tree)) (string, error) {
 	for _, v := range variants {
 		label, files := project(v)
 		found, ok, err := r.tests(ctx, res, label, files, records.TargetVariants)
 		if err != nil {
 			return "", err
 		}
-		if ok && found.passesAll() {
+		if ok && found.PassesAll() {
 			return v.Label(), nil
 		}
 	}
 	return "", nil
 }
 
-// inlineExamplesTest is a test file that asserts each inline example of a
-// criterion and nothing else.
-func inlineExamplesTest(iface study.Interface, examples []Example) ([]byte, error) {
+// InlineExamplesTest is a test file that asserts each inline example of a
+// criterion and nothing else, importing each operation the examples call from
+// its module.
+func InlineExamplesTest(modules map[string]string, examples []Example) ([]byte, error) {
 	if len(examples) == 0 {
 		return nil, fmt.Errorf("the task criterion has no inline example")
 	}
+	called := map[string]string{}
+	for _, example := range examples {
+		module, found := modules[example.Operation]
+		if !found {
+			return nil, fmt.Errorf("an example calls %q, which no module provides", example.Operation)
+		}
+		called[example.Operation] = module
+	}
 	var source strings.Builder
-	fmt.Fprintf(&source, "from %s import %s\n", iface.Module, iface.Operation)
+	for _, operation := range sortedKeys(called) {
+		fmt.Fprintf(&source, "from %s import %s\n", called[operation], operation)
+	}
 	for index, example := range examples {
-		fmt.Fprintf(&source, "\n\ndef test_example_%d():\n    assert %s(%s) == (%s)\n", index+1, iface.Operation, example.Arguments, example.Result)
+		fmt.Fprintf(&source, "\n\ndef test_example_%d():\n    assert %s(%s) == (%s)\n", index+1, example.Operation, example.Arguments, example.Result)
 	}
 	return []byte(source.String()), nil
 }
 
-// collection is check A9: the oracle collects at least two tests per criterion
-// and skips none.
+// collection is check A9 on the task's oracle.
 func (r *round) collection(ctx context.Context) (*Result, error) {
 	res := newResult(CheckCollection)
-	label := "collect"
-	dir, err := r.treeDir(label, r.oracleTree(r.m.referenceTree))
-	if err != nil {
+	spec := SpecTests{Files: r.m.oracle, Criteria: r.criteria, Role: records.RoleOracle}
+	if err := r.Collection(ctx, res, r.m.referenceTree, spec); err != nil {
 		return nil, err
-	}
-	var listed [Runs][]string
-	runs, err := r.repeat(ctx,
-		func(int) box.Command { return r.command(dir, collectArgv()...) },
-		func(run int, result box.Result) string {
-			listed[run] = collectedNodes(result.Stdout)
-			return fmt.Sprintf("exit=%d timeout=%t\n%s", result.ExitCode, result.TimedOut, strings.Join(listed[run], "\n"))
-		})
-	if err != nil {
-		return nil, err
-	}
-	if !runs.agreed {
-		res.fail(records.RoleOracle, records.TargetOracle, "the three collections of the tests do not give the same list")
-		res.Agreed = false
-		res.Output += disagreement{signatures: runs.signatures}.Error()
-		return res, nil
-	}
-	if runs.results[0].ExitCode != 0 || runs.results[0].TimedOut {
-		res.fail(records.RoleOracle, records.TargetOracle, "the tests cannot be collected (exit %d):\n%s", runs.results[0].ExitCode, collectionErrors(runs.results[0].Stdout))
-		return res, nil
-	}
-	r.countCollected(res, listed[0])
-	reference, ok, err := r.oracle(ctx, res, "reference", r.m.referenceTree, records.TargetReference)
-	if err != nil {
-		return nil, err
-	}
-	if skipped := reference.skipped(); ok && len(skipped) > 0 {
-		res.fail(records.RoleOracle, records.TargetOracle, "these tests are skipped:\n%s", strings.Join(sortedCaseIDs(skipped), "\n"))
 	}
 	return res, nil
 }
 
-func (r *round) countCollected(res *Result, nodes []string) {
+// Collection fails the result unless the oracle, run in the reference tree,
+// collects at least MinTestsPerCriterion tests for each of its criteria and
+// skips none. Its findings go to the oracle's role.
+func (b *Bench) Collection(ctx context.Context, res *Result, reference Tree, spec SpecTests) error {
+	label := "collect"
+	dir, err := b.TreeDir(label, OracleTree(reference, spec.Files))
+	if err != nil {
+		return err
+	}
+	var listed [Runs][]string
+	runs, err := b.Repeat(ctx,
+		func(int) box.Command { return b.Command(dir, CollectArgv()...) },
+		func(run int, result box.Result) string {
+			listed[run] = CollectedNodes(result.Stdout)
+			return fmt.Sprintf("exit=%d timeout=%t\n%s", result.ExitCode, result.TimedOut, strings.Join(listed[run], "\n"))
+		})
+	if err != nil {
+		return err
+	}
+	if !runs.Agreed {
+		res.Fail(spec.Role, records.TargetOracle, "the three collections of the tests do not give the same list")
+		res.Agreed = false
+		res.Output += Disagreement{Signatures: runs.Signatures}.Error()
+		return nil
+	}
+	if runs.Results[0].ExitCode != 0 || runs.Results[0].TimedOut {
+		res.Fail(spec.Role, records.TargetOracle, "the tests cannot be collected (exit %d):\n%s", runs.Results[0].ExitCode, CollectionErrors(runs.Results[0].Stdout))
+		return nil
+	}
+	countCollected(res, listed[0], spec)
+	found, ok, err := b.Oracle(ctx, res, "reference", reference, spec, records.TargetReference)
+	if err != nil {
+		return err
+	}
+	if skipped := found.Skipped(); ok && len(skipped) > 0 {
+		res.Fail(spec.Role, records.TargetOracle, "these tests are skipped:\n%s", strings.Join(SortedCaseIDs(skipped), "\n"))
+	}
+	return nil
+}
+
+func countCollected(res *Result, nodes []string, spec SpecTests) {
 	perFile := map[string]int{}
 	for _, node := range nodes {
 		file, _, _ := strings.Cut(node, collectedSeparator)
 		perFile[file[strings.LastIndex(file, "/")+1:]]++
 	}
-	for _, criterion := range r.criteria {
-		if n := perFile[OracleFileName(criterion)]; n < minTestsPerCriteria {
-			res.fail(records.RoleOracle, records.TargetOracle, "%s collects %d tests, at least %d are required for %s", OracleFileName(criterion), n, minTestsPerCriteria, criterion)
+	for _, criterion := range spec.Criteria {
+		if n := perFile[OracleFileName(criterion)]; n < MinTestsPerCriterion {
+			res.Fail(spec.Role, records.TargetOracle, "%s collects %d tests, at least %d are required for %s", OracleFileName(criterion), n, MinTestsPerCriterion, criterion)
 		}
 	}
 }
 
-// collectedNodes lists the test node IDs `pytest --collect-only -q` printed.
-func collectedNodes(stdout []byte) []string {
+// CollectedNodes lists the test node IDs `pytest --collect-only -q` printed.
+func CollectedNodes(stdout []byte) []string {
 	var nodes []string
 	for _, line := range strings.Split(string(stdout), "\n") {
 		if line = strings.TrimSpace(line); strings.Contains(line, collectedSeparator) && !strings.ContainsAny(line, " \t") {
@@ -373,12 +416,12 @@ func collectedNodes(stdout []byte) []string {
 	return nodes
 }
 
-// collectionErrors keeps the lines of a collection report that name an error.
-func collectionErrors(stdout []byte) string {
+// CollectionErrors keeps the lines of a collection report that name an error.
+func CollectionErrors(stdout []byte) string {
 	var kept []string
 	for _, line := range strings.Split(string(stdout), "\n") {
 		if strings.HasPrefix(line, "ERROR ") {
-			kept = append(kept, truncate(line))
+			kept = append(kept, Truncate(line))
 		}
 	}
 	return strings.Join(kept, "\n")

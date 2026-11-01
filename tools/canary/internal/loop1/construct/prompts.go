@@ -20,7 +20,19 @@ const (
 	authorTemplate = "author.tmpl"
 	variantsName   = "variants.tmpl"
 	testsTemplate  = "tests.tmpl"
+	partsFile      = "parts.tmpl"
 )
+
+// PromptParts is the text of the templates every prompt shares: "files" renders
+// a set of files, "reply" asks for the document of files, and "repair" renders
+// a previous answer with the problems found in it.
+func PromptParts() (string, error) {
+	data, err := promptFiles.ReadFile(path.Join(promptDir, partsFile))
+	if err != nil {
+		return "", fmt.Errorf("read the shared prompt templates: %w", err)
+	}
+	return string(data), nil
+}
 
 // FilesSchema is the schema of every call's final message.
 func FilesSchema() (Schema, error) {

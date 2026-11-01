@@ -45,10 +45,11 @@ func writeFile(location string, content []byte) error {
 
 func firstLine(data []byte) string {
 	line, _, _ := strings.Cut(strings.TrimSpace(string(data)), "\n")
-	return truncate(line)
+	return Truncate(line)
 }
 
-func truncate(text string) string {
+// Truncate cuts a text to the length a finding quotes.
+func Truncate(text string) string {
 	runes := []rune(text)
 	if len(runes) <= maxMessageRunes {
 		return text
@@ -56,13 +57,13 @@ func truncate(text string) string {
 	return string(runes[:maxMessageRunes]) + "…"
 }
 
-// describeFailures lists failing cases with the first line of their message.
-func describeFailures(cases []CaseResult) string {
+// DescribeFailures lists failing cases with the first line of their message.
+func DescribeFailures(cases []CaseResult) string {
 	var lines []string
 	for _, c := range cases {
 		line := c.ID
 		if message, _, _ := strings.Cut(c.Message, "\n"); message != "" {
-			line += ": " + truncate(message)
+			line += ": " + Truncate(message)
 		}
 		lines = append(lines, line)
 	}

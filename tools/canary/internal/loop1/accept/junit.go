@@ -105,7 +105,7 @@ func criterionOf(raw junitCase, criterionOfFile map[string]string) string {
 
 // ModuleOfCriterion is the module name of a criterion's test file.
 func ModuleOfCriterion(criterion string) string {
-	return strings.TrimSuffix(OracleFileName(criterion), pythonSuffix)
+	return strings.TrimSuffix(OracleFileName(criterion), PythonSuffix)
 }
 
 // ModulesOfCriteria maps the module name of each criterion's test file to the
